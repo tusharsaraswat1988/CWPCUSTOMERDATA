@@ -4540,7 +4540,49 @@
       if (filteredCountEl) filteredCountEl.textContent = filtered.length;
       if (totalCountEl) totalCountEl.textContent = state.adminRecords.length;
 
+      state.lastFilteredRecords = filtered;
       renderAdminRecordsTable(filtered);
+    }
+
+    function exportAdminRecordsCSV() {
+      var records = state.lastFilteredRecords || state.adminRecords;
+      if (!records || records.length === 0) {
+        showToast('एक्सपोर्ट करने के लिए कोई रिकॉर्ड उपलब्ध नहीं है।', '⚠️');
+        return;
+      }
+      var headers = ['क्र. सं.', 'ग्राहक का नाम', 'मोबाइल नंबर', 'शीट', 'गाड़ी नंबर', 'पता', 'सेकेंडरी पता', 'असाइन स्टाफ', 'पैकेज', 'गूगल मैप्स लिंक', 'फोटो लिंक', 'एक्टिव स्टेटस'];
+      var rows = [headers];
+      records.forEach(function(r, idx) {
+        rows.push([
+          idx + 1,
+          r.customerName || '',
+          r.customerNumber || '',
+          r.sheetName || '',
+          r.vehicle || r.vehicleNumbers || '',
+          r.address || '',
+          r.secondaryAddress || '',
+          r.staffName || '',
+          r.packageType || '',
+          r.googleMapsUrl || '',
+          r.photoUrl || '',
+          r.active || 'Yes'
+        ]);
+      });
+      var csvContent = '\uFEFF' + rows.map(function(row) {
+        return row.map(function(val) {
+          var str = (val !== null && val !== undefined ? val : '').toString().replace(/"/g, '""');
+          return '"' + str + '"';
+        }).join(',');
+      }).join('\r\n');
+      var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'CWP_Customers_' + new Date().toISOString().slice(0, 10) + '.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('CSV फ़ाइल डाउनलोड हो गई (' + records.length + ' रिकॉर्ड्स)', '📥');
     }
 
     function renderAdminRecordsTable(records) {
