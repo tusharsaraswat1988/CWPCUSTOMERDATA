@@ -179,7 +179,8 @@ function getHeaderIndexMap(sheet) {
     if (norm.indexOf("staffid") >= 0 || norm === "id") {
       if (map["staffid"] === undefined) map["staffid"] = c;
     }
-    if (norm.indexOf("vehicle") >= 0 || norm.indexOf("model") >= 0 || norm.indexOf("site") >= 0) {
+    // Critical: Exclude photo so "Customer / Vehicle Photo URL" does not hijack vehicle column
+    if ((norm.indexOf("vehicle") >= 0 || norm.indexOf("model") >= 0 || norm.indexOf("site") >= 0) && norm.indexOf("photo") === -1) {
       if (map["vehicle"] === undefined) map["vehicle"] = c;
     }
     if (norm.indexOf("packagetype") >= 0 || (norm.indexOf("package") >= 0 && norm.indexOf("purchased") === -1 && norm.indexOf("count") === -1)) {
@@ -838,7 +839,7 @@ function getAllCustomersForAdmin() {
         googleMapsUrl: getVal(row, hMap, ["googlemapsurl", "mapurl", "maps", "location"]),
         photoUrl: getVal(row, hMap, ["customervehiclephotourl", "vehiclesitephotourl", "photourl", "photo"]),
         address: getVal(row, hMap, ["address"]),
-        vehicle: getVal(row, hMap, ["vehicle", "vehiclenumbersmodels", "vehiclenumbersitename"]),
+        vehicle: getVal(row, hMap, ["vehiclenumbersmodels", "vehiclenumbersitename", "vehiclenumbers", "vehicle", "models", "site"]),
         packageType: getVal(row, hMap, ["packagetype", "pkgtype", "servicetypecarwashsolarcleaning", "servicetype"]) || "DCC ONLY",
         packagesPurchased: (getVal(row, hMap, ["packagespurchased", "pkgcount"]) || "1").toString(),
         secondaryAddress: getVal(row, hMap, ["secondaryaddressifany", "secondaryaddress"]) || "",

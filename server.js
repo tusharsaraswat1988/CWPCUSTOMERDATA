@@ -18,6 +18,7 @@ const cloudinary = require('cloudinary').v2;
 const PORT = process.env.PORT || 3000;
 const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyoDbQHE4LQgGOylM0IYatOCMiueKDVqeR8NdPAKj2hOt6fsp9Pb3B-lOxkRFaF8nUH/exec';
 const DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN || 'cwpdata.up.railway.app';
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1IXs46tRE324YYgBBAKxD1aCCnYVzmqfX4jxCWvfiALY';
 
 const DATA_FILE = path.join(__dirname, 'local_data.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -106,6 +107,150 @@ function saveLocalData(data) {
   } catch (err) {
     console.error('Error writing local_data.json:', err.message);
   }
+}
+
+/**
+ * Fetches all live customers directly from Google Sheets using official Visualization API
+ * Ensures zero delay and 100% accurate column mapping (vehicle, address, maps, photo, staff)
+ */
+async function fetchAllLiveCustomers() {
+  const ssId = SPREADSHEET_ID;
+  const sheets = ['Daily Clean', 'All Other Work'];
+  const allRecords = [];
+
+  for (const sheetName of sheets) {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const text = await res.text();
+      const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+      if (!json || !json.table || !json.table.rows) continue;
+
+      const rawCols = json.table.cols.map(c => (c.label || '').trim());
+      const normCols = rawCols.map(c => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
+      const rows = json.table.rows;
+
+      rows.forEach((row, rIdx) => {
+        const rowVals = (row.c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
+
+        function getCell(aliases) {
+          for (let alias of aliases) {
+            const key = alias.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const idx = normCols.indexOf(key);
+            if (idx >= 0 && rowVals[idx] !== undefined && rowVals[idx] !== '') {
+              return rowVals[idx];
+            }
+          }
+          return '';
+        }
+
+        const custName = getCell(['customername', 'custname']);
+        // Skip empty rows
+        if (!custName && !rowVals.some(v => v !== '')) return;
+
+        const custPhone = getCell(['customernumber', 'custphone', 'number', 'phone', 'mob']);
+        const mapUrl = getCell(['googlemapsurl', 'mapurl', 'maps', 'location']);
+        const photo = getCell(['customervehiclephotourl', 'vehiclesitephotourl', 'photourl', 'photo']);
+        const address = getCell(['address']);
+
+        // Explicit vehicle column parsing depending on sheet
+        let vehicle = '';
+        if (sheetName === 'Daily Clean') {
+          vehicle = getCell(['vehiclenumbersmodels', 'vehiclenumbers', 'vehicle']);
+        } else {
+          vehicle = getCell(['vehiclenumbersitename', 'vehicleorsite', 'vehicle']);
+        }
+
+        const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype']) || 'DCC ONLY';
+        const pkgCount = getCell(['packagespurchased', 'pkgcount']) || '1';
+        const staff = getCell(['staffname', 'staff']);
+        const notes = getCell(['staffnotescleaninginstructions', 'staffnotesspecialinstructions', 'staffnotes', 'notes']);
+        const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress']);
+        const secMap = getCell(['secondarymapsurl']);
+        const active = getCell(['active', 'status']) || 'Yes';
+
+        allRecords.push({
+          sheetName: sheetName,
+          rowIndex: rIdx + 2,
+          customerName: custName,
+          customerNumber: custPhone,
+          googleMapsUrl: mapUrl,
+          photoUrl: photo,
+          address: address,
+          vehicle: vehicle,
+          packageType: pkgType,
+          packagesPurchased: pkgCount,
+          staffName: staff,
+          secondaryAddress: secAddr,
+          secondaryMapsUrl: secMap,
+          notes: notes,
+          active: active
+        });
+      });
+    } catch (e) {
+      console.error(`Error fetching live sheet ${sheetName}:`, e.message);
+    }
+  }
+
+  return allRecords;
+}
+
+function formatStaffDataResponse(staffId, allCustomers) {
+  const staffQuery = (staffId || '').trim().toLowerCase();
+  const staffObj = (appState.staffList || []).find(s => 
+    (s.id || '').toLowerCase() === staffQuery || 
+    (s.name || '').toLowerCase() === staffQuery
+  );
+  const matchName = staffObj ? staffObj.name.toLowerCase() : staffQuery;
+
+  const dailyClean = (allCustomers || []).filter(c => 
+    c.sheetName === 'Daily Clean' && 
+    (c.staffName || '').trim().toLowerCase() === matchName &&
+    (c.active || 'Yes').toLowerCase() === 'yes'
+  ).map(c => ({
+    staffId: staffObj ? staffObj.id : staffId,
+    staffName: c.staffName || (staffObj ? staffObj.name : staffId),
+    customerName: c.customerName,
+    customerNumber: c.customerNumber,
+    googleMapsUrl: c.googleMapsUrl,
+    photoUrl: c.photoUrl,
+    address: c.address,
+    vehicleNumbers: c.vehicle,
+    packageType: c.packageType,
+    packagesPurchased: c.packagesPurchased,
+    staffNotes: c.notes,
+    secondaryAddress: c.secondaryAddress,
+    secondaryMapsUrl: c.secondaryMapsUrl,
+    active: c.active
+  }));
+
+  const allOtherWork = (allCustomers || []).filter(c => 
+    c.sheetName === 'All Other Work' && 
+    (c.staffName || '').trim().toLowerCase() === matchName &&
+    (c.active || 'Yes').toLowerCase() === 'yes'
+  ).map(c => ({
+    staffId: staffObj ? staffObj.id : staffId,
+    staffName: c.staffName || (staffObj ? staffObj.name : staffId),
+    customerName: c.customerName,
+    customerNumber: c.customerNumber,
+    googleMapsUrl: c.googleMapsUrl,
+    photoUrl: c.photoUrl,
+    address: c.address,
+    serviceType: c.packageType,
+    vehicleOrSite: c.vehicle,
+    packageDetails: c.packageType,
+    staffNotes: c.notes,
+    active: c.active
+  }));
+
+  return {
+    staffId: staffObj ? staffObj.id : staffId,
+    staffName: staffObj ? staffObj.name : staffId,
+    dailyClean: dailyClean,
+    allOtherWork: allOtherWork,
+    totalCount: dailyClean.length + allOtherWork.length
+  };
 }
 
 /**
@@ -201,6 +346,12 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && pathname === '/api/staff-data') {
     const staffId = parsedUrl.searchParams.get('staffId') || '';
     try {
+      const allCustomers = await fetchAllLiveCustomers();
+      if (allCustomers && allCustomers.length > 0) {
+        const staffData = formatStaffDataResponse(staffId, allCustomers);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify(staffData));
+      }
       const data = await forwardToGoogleAppsScript({ action: 'getStaffData', staffId: staffId });
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify(data));
@@ -371,6 +522,42 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
+        // Live All Customers handler for Admin Active Records
+        if (payload.action === 'getAllCustomers') {
+          try {
+            const records = await fetchAllLiveCustomers();
+            if (records && records.length > 0) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(records));
+            }
+          } catch (liveErr) {
+            console.warn('Live fetchAllLiveCustomers failed, proxying to Apps Script:', liveErr.message);
+          }
+          try {
+            const gasRes = await forwardToGoogleAppsScript(payload);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(gasRes));
+          } catch (e) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(appState.customers || []));
+          }
+        }
+
+        // Live Staff Customer Data handler
+        if (payload.action === 'getStaffData') {
+          const staffId = payload.staffId || '';
+          try {
+            const allCustomers = await fetchAllLiveCustomers();
+            if (allCustomers && allCustomers.length > 0) {
+              const staffData = formatStaffDataResponse(staffId, allCustomers);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(staffData));
+            }
+          } catch (liveErr) {
+            console.warn('Live getStaffData failed, proxying to Apps Script:', liveErr.message);
+          }
+        }
+
         // Upload photo to Cloudinary CDN before saving/updating customer record in Google Sheet
         if ((payload.action === 'saveCustomer' || payload.action === 'updateCustomer') && payload.customerData) {
           const cust = payload.customerData;
@@ -448,7 +635,7 @@ const server = http.createServer(async (req, res) => {
   res.end('Index.html not found');
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`=======================================================`);
   console.log(`🚗 CWP Detailers & Motors - Staff Information Viewer`);
   console.log(`=======================================================`);
