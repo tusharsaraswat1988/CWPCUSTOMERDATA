@@ -3800,11 +3800,6 @@
         checkAdminAuthStatus();
         syncBrandLogos();
       }
-        if (adminControls) adminControls.style.display = 'flex';
-        if (titleEl) titleEl.textContent = 'Admin App';
-        checkAdminAuthStatus();
-        syncBrandLogos();
-      }
     }
 
     /* Staff Authentication & Security Logic */
@@ -4977,10 +4972,6 @@
         } else {
           loadStaffListForAdmin();
         }
-      }, function(err) {
-        showToast('त्रुटि: ' + (err.message || err), '❌');
-      });
-    }
       }, function(err) {
         showToast('त्रुटि: ' + (err.message || err), '❌');
       });
