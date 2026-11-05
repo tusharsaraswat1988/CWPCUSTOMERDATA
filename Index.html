@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   
   <style>
     :root {
@@ -163,11 +165,11 @@
     .staff-live-badge {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       background: rgba(16, 185, 129, 0.16);
       color: #34d399;
       border: 1px solid rgba(52, 211, 153, 0.4);
-      padding: 4px 11px;
+      padding: 4px 12px;
       border-radius: 20px;
       font-size: 11px;
       font-weight: 700;
@@ -175,9 +177,32 @@
     }
 
     .dot-live {
-      color: var(--call-green);
-      font-size: 13px;
-      line-height: 1;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 7px;
+      height: 7px;
+      background: #10b981;
+      border-radius: 50%;
+      margin-right: 2px;
+    }
+
+    .dot-live::after {
+      content: '';
+      position: absolute;
+      top: -3px; left: -3px; right: -3px; bottom: -3px;
+      border-radius: 50%;
+      border: 2px solid #10b981;
+      animation: radarPulse 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+      opacity: 0.8;
+      pointer-events: none;
+    }
+
+    @keyframes radarPulse {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      70% { transform: scale(2.4); opacity: 0; }
+      100% { transform: scale(2.4); opacity: 0; }
     }
 
     .admin-pill-badge {
@@ -414,16 +439,35 @@
       border-radius: var(--radius-md);
       padding: 11px 13px;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
       display: flex;
       flex-direction: column;
       gap: 6px;
+      animation: cardEntrance 0.34s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      animation-delay: calc(var(--card-index, 0) * 40ms);
+      will-change: transform, opacity;
+    }
+
+    @keyframes cardEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     .smart-card:hover {
       border-color: #cbd5e1;
-      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.07);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px -2px rgba(15, 23, 42, 0.09);
+    }
+
+    .smart-card:active {
+      transform: scale(0.985);
     }
 
     /* Top Row: Index + Customer Name (Left) & Call + Map Buttons (Right) */
@@ -850,15 +894,15 @@
     }
 
     .skeleton-shimmer {
-      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-      background-size: 200% 100%;
-      animation: skeletonShimmer 1.5s infinite;
+      background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 35%, #f8fafc 50%, #e2e8f0 65%, #f1f5f9 100%);
+      background-size: 250% 100%;
+      animation: skeletonShimmer 1.6s ease-in-out infinite;
       border-radius: 4px;
     }
 
     @keyframes skeletonShimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
+      0% { background-position: 150% 0; }
+      100% { background-position: -150% 0; }
     }
 
     .skeleton-badge {
@@ -893,6 +937,168 @@
       width: 100%;
       height: 22px;
       border-radius: 6px;
+    }
+
+    /* Admin Table Shimmer Skeletons */
+    .records-table tbody tr.skeleton-tr {
+      background: #ffffff;
+      transition: background 0.2s ease;
+    }
+    .records-table tbody tr.skeleton-tr:nth-child(even) {
+      background: #fafbfc;
+    }
+    .records-table tbody tr.skeleton-tr td {
+      padding: 10px 12px;
+      vertical-align: middle;
+      border-bottom: 1px solid #edf2f7;
+    }
+
+    /* Auto-Draft Badges & Alert Banners */
+    .cwp-draft-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .cwp-draft-badge.saving {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .cwp-draft-badge.saved {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .draft-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .draft-dot.pulse {
+      background: #d97706;
+      animation: draftPulse 1.2s infinite ease-in-out;
+    }
+    .draft-dot.ready {
+      background: #10b981;
+    }
+    @keyframes draftPulse {
+      0%, 100% { transform: scale(0.8); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+    }
+
+    .cwp-draft-banner {
+      background: #f0fdf4;
+      border: 1.5px solid #bbf7d0;
+      border-left: 4px solid #16a34a;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      animation: draftBannerSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes draftBannerSlide {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .cwp-draft-banner-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 240px;
+    }
+    .cwp-draft-banner-icon {
+      font-size: 20px;
+      line-height: 1;
+    }
+    .cwp-draft-banner-text {
+      font-size: 12.5px;
+      color: #1e293b;
+      line-height: 1.4;
+    }
+    .cwp-draft-banner-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-draft-action {
+      border: none;
+      padding: 5px 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-draft-action:active {
+      transform: scale(0.96);
+    }
+    .btn-draft-restore {
+      background: #16a34a;
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(22, 163, 74, 0.25);
+    }
+    .btn-draft-restore:hover {
+      background: #15803d;
+    }
+    .btn-draft-discard {
+      background: #ffffff;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    .btn-draft-discard:hover {
+      background: #fef2f2;
+    }
+
+    /* Animated Button Spinner */
+    .cwp-spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: cwpSpin 0.75s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    .cwp-spinner-dark {
+      border-color: rgba(30, 41, 59, 0.2);
+      border-top-color: #1e293b;
+    }
+    @keyframes cwpSpin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Photo Upload Progress Bar */
+    .photo-upload-progress-wrap {
+      width: 100%;
+      margin-top: 8px;
+      background: #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 6px;
+      display: none;
+    }
+    .photo-upload-progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      transition: width 0.35s ease;
+      border-radius: 10px;
     }
 
     /* Polished Empty State Card */
@@ -2600,6 +2806,21 @@
       transform: translateY(0);
     }
 
+    @keyframes springModalIn {
+      0% {
+        opacity: 0;
+        transform: scale(0.92) translateY(12px);
+      }
+      65% {
+        opacity: 1;
+        transform: scale(1.015) translateY(-2px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
     .modal-card-box {
       background: #ffffff;
       border-radius: var(--radius-lg);
@@ -2610,6 +2831,13 @@
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
+      animation: springModalIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      will-change: transform, opacity;
+    }
+
+    .logout-confirm-box {
+      animation: springModalIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      will-change: transform, opacity;
     }
     .modal-card-header {
       padding: 14px 18px;
@@ -2777,7 +3005,503 @@
         gap: 5px;
       }
     }
+    /* Admin Tab Fade Transition */
+    .admin-tab-pane {
+      animation: tabFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Tactile Input Error Shake */
+    @keyframes inputShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .input-error-shake {
+      animation: inputShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+    }
+
+    /* Floating Network Status Banner */
+    .cwp-network-banner {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-60px);
+      z-index: 10002;
+      padding: 7px 18px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      opacity: 0;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+      pointer-events: none;
+    }
+    .cwp-network-banner.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    .cwp-network-banner.offline {
+      background: #dc2626;
+      color: #ffffff;
+      border: 1px solid #ef4444;
+    }
+    .cwp-network-banner.online {
+      background: #16a34a;
+      color: #ffffff;
+      border: 1px solid #22c55e;
+    }
+
+    /* Tactile Press Compression */
+    .tab-btn:active,
+    .filter-pill:active,
+    .btn-admin-action:active,
+    .chip-btn:active {
+      transform: scale(0.965);
+    }
+
+    @media (max-width: 640px) {
+      /* Native-style Mobile Bottom Sheets */
+      .image-modal-overlay {
+        align-items: flex-end !important;
+        padding: 0 !important;
+      }
+      .modal-card-box {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 20px 20px 0 0 !important;
+        max-height: 88vh !important;
+        margin: 0 !important;
+        animation: sheetSlideUp 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) forwards !important;
+      }
+      .modal-card-box::before {
+        content: '';
+        display: block;
+        width: 44px;
+        height: 4px;
+        background: #cbd5e1;
+        border-radius: 4px;
+        margin: 8px auto 6px auto;
+        flex-shrink: 0;
+      }
+
+      /* 44px+ Ergonomic Mobile Touch Targets for Field Staff */
+      .btn-card-action,
+      .btn-top-action {
+        height: 44px !important;
+        min-height: 44px !important;
+        padding: 0 14px !important;
+        font-size: 13px !important;
+        border-radius: 9px !important;
+      }
+      .filter-pill {
+        min-height: 40px !important;
+        padding: 6px 12px !important;
+      }
+      .search-clear-btn,
+      .btn-clear-search {
+        min-width: 44px !important;
+        min-height: 44px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+    }
+
+    @keyframes sheetSlideUp {
+      from { transform: translateY(100%); opacity: 0.5; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* =========================================================================
+       PHOTO CROP & DEGREE-WISE ROTATION STYLES
+       ========================================================================= */
+/*!
+ * Cropper.js v1.5.13
+ * https://fengyuanchen.github.io/cropperjs
+ *
+ * Copyright 2015-present Chen Fengyuan
+ * Released under the MIT license
+ *
+ * Date: 2022-11-20T05:30:43.444Z
+ */.cropper-container{direction:ltr;font-size:0;line-height:0;position:relative;-ms-touch-action:none;touch-action:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.cropper-container img{-webkit-backface-visibility:hidden;backface-visibility:hidden;display:block;height:100%;image-orientation:0deg;max-height:none!important;max-width:none!important;min-height:0!important;min-width:0!important;width:100%}.cropper-canvas,.cropper-crop-box,.cropper-drag-box,.cropper-modal,.cropper-wrap-box{bottom:0;left:0;position:absolute;right:0;top:0}.cropper-canvas,.cropper-wrap-box{overflow:hidden}.cropper-drag-box{background-color:#fff;opacity:0}.cropper-modal{background-color:#000;opacity:.5}.cropper-view-box{display:block;height:100%;outline:1px solid #39f;outline-color:rgba(51,153,255,.75);overflow:hidden;width:100%}.cropper-dashed{border:0 dashed #eee;display:block;opacity:.5;position:absolute}.cropper-dashed.dashed-h{border-bottom-width:1px;border-top-width:1px;height:33.33333%;left:0;top:33.33333%;width:100%}.cropper-dashed.dashed-v{border-left-width:1px;border-right-width:1px;height:100%;left:33.33333%;top:0;width:33.33333%}.cropper-center{display:block;height:0;left:50%;opacity:.75;position:absolute;top:50%;width:0}.cropper-center:after,.cropper-center:before{background-color:#eee;content:" ";display:block;position:absolute}.cropper-center:before{height:1px;left:-3px;top:0;width:7px}.cropper-center:after{height:7px;left:0;top:-3px;width:1px}.cropper-face,.cropper-line,.cropper-point{display:block;height:100%;opacity:.1;position:absolute;width:100%}.cropper-face{background-color:#fff;left:0;top:0}.cropper-line{background-color:#39f}.cropper-line.line-e{cursor:ew-resize;right:-3px;top:0;width:5px}.cropper-line.line-n{cursor:ns-resize;height:5px;left:0;top:-3px}.cropper-line.line-w{cursor:ew-resize;left:-3px;top:0;width:5px}.cropper-line.line-s{bottom:-3px;cursor:ns-resize;height:5px;left:0}.cropper-point{background-color:#39f;height:5px;opacity:.75;width:5px}.cropper-point.point-e{cursor:ew-resize;margin-top:-3px;right:-3px;top:50%}.cropper-point.point-n{cursor:ns-resize;left:50%;margin-left:-3px;top:-3px}.cropper-point.point-w{cursor:ew-resize;left:-3px;margin-top:-3px;top:50%}.cropper-point.point-s{bottom:-3px;cursor:s-resize;left:50%;margin-left:-3px}.cropper-point.point-ne{cursor:nesw-resize;right:-3px;top:-3px}.cropper-point.point-nw{cursor:nwse-resize;left:-3px;top:-3px}.cropper-point.point-sw{bottom:-3px;cursor:nesw-resize;left:-3px}.cropper-point.point-se{bottom:-3px;cursor:nwse-resize;height:20px;opacity:1;right:-3px;width:20px}@media (min-width:768px){.cropper-point.point-se{height:15px;width:15px}}@media (min-width:992px){.cropper-point.point-se{height:10px;width:10px}}@media (min-width:1200px){.cropper-point.point-se{height:5px;opacity:.75;width:5px}}.cropper-point.point-se:before{background-color:#39f;bottom:-50%;content:" ";display:block;height:200%;opacity:0;position:absolute;right:-50%;width:200%}.cropper-invisible{opacity:0}.cropper-bg{background-image:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0iAAAAA3NCSVQICAjb4U/gAAAABlBMVEXMzMz////TjRV2AAAACXBIWXMAAArrAAAK6wGCiw1aAAAAHHRFWHRTb2Z0d2FyZQBBZG9iZSBGaXJld29ya3MgQ1M26LyyjAAAABFJREFUCJlj+M/AgBVhF/0PAH6/D/HkDxOGAAAAAElFTkSuQmCC")}.cropper-hide{display:block;height:0;position:absolute;width:0}.cropper-hidden{display:none!important}.cropper-move{cursor:move}.cropper-crop{cursor:crosshair}.cropper-disabled .cropper-drag-box,.cropper-disabled .cropper-face,.cropper-disabled .cropper-line,.cropper-disabled .cropper-point{cursor:not-allowed}
+    .cropper-modal-card {
+      position: relative;
+      width: min(95vw, 880px);
+      max-height: 94vh;
+      display: flex;
+      flex-direction: column;
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-md);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+      overflow: hidden;
+      margin: auto;
+      animation: modalFadeIn 0.2s ease-out;
+    }
+
+    .cropper-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      background: #1e293b;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+    }
+
+    .cropper-canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 48vh;
+      min-height: 250px;
+      max-height: 420px;
+      background: #090d16;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cropper-canvas-wrap .cropper-container {
+      max-height: 100%;
+    }
+
+    .cropper-controls-panel {
+      padding: 12px 16px;
+      background: #1e293b;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .cropper-control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .cropper-label-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cropper-ctrl-icon {
+      font-size: 15px;
+    }
+
+    .cropper-ctrl-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .cropper-degree-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(37, 99, 235, 0.35);
+      border: 1px solid #3b82f6;
+      color: #93c5fd;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      min-width: 54px;
+      text-align: center;
+    }
+
+    .cropper-slider-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .btn-nudge-angle {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f1f5f9;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .btn-nudge-angle:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: #60a5fa;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .cropper-range-wrapper {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .cropper-range-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #334155;
+      outline: none;
+      cursor: pointer;
+      margin: 6px 0;
+    }
+
+    .cropper-range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      transition: transform 0.1s, background-color 0.1s;
+    }
+
+    .cropper-range-slider::-webkit-slider-thumb:hover {
+      background: #2563eb;
+      transform: scale(1.15);
+    }
+
+    .cropper-range-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+
+    .cropper-range-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5px;
+      color: #64748b;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0 2px;
+    }
+
+    .cropper-buttons-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .btn-crop-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #e2e8f0;
+      padding: 6px 11px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-crop-action:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+      border-color: #93c5fd;
+    }
+
+    .btn-crop-tool-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-crop-tool-btn:hover {
+      background: rgba(37, 99, 235, 0.25);
+      color: #ffffff;
+      border-color: #3b82f6;
+    }
+
+    .cropper-secondary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 6px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .cropper-aspect-group,
+    .cropper-zoom-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .btn-aspect-chip {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #94a3b8;
+      padding: 4px 9px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-aspect-chip.active,
+    .btn-aspect-chip:hover {
+      background: var(--brand-blue);
+      color: #ffffff;
+      border-color: #60a5fa;
+    }
+
+    .btn-crop-icon-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #f8fafc;
+      padding: 5px 9px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-crop-icon-btn.active,
+    .btn-crop-icon-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: #93c5fd;
+      color: #ffffff;
+    }
+
+    .cropper-modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 12px 18px;
+      background: #0f172a;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-cropper-cancel {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
+      padding: 9px 16px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-cropper-cancel:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+
+    .btn-cropper-apply {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: #059669;
+      border: 1px solid #10b981;
+      color: #ffffff;
+      padding: 9px 20px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);
+      transition: all 0.15s;
+    }
+
+    .btn-cropper-apply:hover {
+      background: #047857;
+      border-color: #34d399;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 10px -1px rgba(5, 150, 105, 0.4);
+    }
+
+    .btn-photo-action-sm {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: var(--text-secondary);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-photo-action-sm:hover {
+      background: #e2e8f0;
+      color: var(--text-primary);
+    }
+
+    .btn-photo-crop {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: var(--brand-blue);
+    }
+
+    .btn-photo-crop:hover {
+      background: #dbeafe;
+      border-color: #93c5fd;
+    }
+
+    .btn-photo-del {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+
+    .btn-photo-del:hover {
+      background: #fee2e2;
+      border-color: #f87171;
+    }
   </style>
+
 </head>
 <body class="admin-mode-active">
 
@@ -3088,11 +3812,33 @@
       <!-- Admin Tab 1: Add Customer Form (Customer-First Organization) -->
       <div id="adminTabAddCust" class="admin-tab-pane">
         <div class="admin-card-section">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <h2 class="admin-card-title">👤 नया ग्राहक जोड़ें (Add Customer)</h2>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <h2 class="admin-card-title" style="margin-bottom: 0;">👤 नया ग्राहक जोड़ें (Add Customer)</h2>
+              <div id="custDraftBadge" class="cwp-draft-badge" style="display: none;"></div>
+            </div>
             <span class="admin-pill-badge" style="background: var(--call-green-light); color: var(--call-green); border-color: var(--call-green-border);">✓ Customer-First Layout</span>
           </div>
           <p class="admin-card-desc">सर्वप्रथम ग्राहक की पहचान (नाम, मोबाइल, मैप लोकेशन, फोटो, पता) दर्ज करें, उसके बाद गाड़ी और स्टाफ निर्देश।</p>
+
+          <!-- Auto-Draft Restoration Banner -->
+          <div id="custDraftRestoreBanner" class="cwp-draft-banner" style="display: none;">
+            <div class="cwp-draft-banner-content">
+              <span class="cwp-draft-banner-icon">📝</span>
+              <div class="cwp-draft-banner-text">
+                <strong style="color: #15803d;">पिछला अधूरा ड्राफ्ट मिला:</strong>
+                <span id="custDraftTimeInfo" style="color: #374151; font-size: 12px; margin-left: 4px;"></span>
+              </div>
+            </div>
+            <div class="cwp-draft-banner-actions">
+              <button type="button" class="btn-draft-action btn-draft-restore" onclick="restoreCustomerDraft()">
+                <span>✓</span> ड्राफ्ट भरें (Restore)
+              </button>
+              <button type="button" class="btn-draft-action btn-draft-discard" onclick="discardCustomerDraft(false)">
+                <span>✕</span> हटाएं (Discard)
+              </button>
+            </div>
+          </div>
 
           <form id="addCustomerForm" onsubmit="handleCustomerSubmit(event)">
             
@@ -3124,15 +3870,35 @@
                 </div>
               </div>
 
-              <!-- Photo Upload directly from Camera / File -->
+              <!-- Photo Upload directly from Camera / File with Crop & Rotation -->
               <div class="form-group">
-                <label class="form-label">ग्राहक / गाड़ी की फोटो (Photo Upload - Direct)</label>
-                <div class="upload-dropzone" onclick="document.getElementById('custPhotoFile').click()">
-                  <div style="font-size: 20px;">📸</div>
-                  <div style="font-size: 12px; font-weight: 600; color: var(--brand-blue); margin-top: 4px;">फोटो चुनें या कैमरा से खींचे</div>
-                  <div style="font-size: 11px; color: var(--text-muted);">JPG, PNG • फोन या कंप्यूटर से सीधे अपलोड करें</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label class="form-label" style="margin-bottom: 0;">ग्राहक / गाड़ी की फोटो (Photo Upload - Direct)</label>
+                  <span style="font-size: 11px; color: var(--brand-blue); font-weight: 600;">✨ क्रॉप और सीधा (Rotate) करने की सुविधा</span>
+                </div>
+                <div class="upload-dropzone" id="custPhotoDropzone" onclick="triggerCustPhotoSelect()">
+                  <div id="custPhotoPlaceholder">
+                    <div style="font-size: 22px;">📸</div>
+                    <div style="font-size: 12px; font-weight: 600; color: var(--brand-blue); margin-top: 4px;">फोटो चुनें या कैमरा से खींचे</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">JPG, PNG • फोटो चुनने पर क्रॉप और रोटेट टूल खुलेगा</div>
+                  </div>
                   <input type="file" id="custPhotoFile" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
-                  <img id="custPhotoPreview" class="upload-preview-img" style="display: none;" alt="Preview">
+                  <img id="custPhotoPreview" class="upload-preview-img" style="display: none; cursor: pointer;" alt="Preview" onclick="event.stopPropagation(); openExistingCustPhotoCropper()" title="फोटो क्रॉप / रोटेट करने के लिए क्लिक करें">
+                  <div id="custPhotoProgressWrap" class="photo-upload-progress-wrap">
+                    <div id="custPhotoProgressFill" class="photo-upload-progress-fill"></div>
+                  </div>
+                </div>
+                <!-- Action Buttons under Preview -->
+                <div id="custPhotoActionsWrap" style="display: none; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingCustPhotoCropper()">
+                    <span>✂️</span> <span>क्रॉप / रोटेट करें</span>
+                  </button>
+                  <button type="button" class="btn-photo-action-sm" onclick="document.getElementById('custPhotoFile').click()">
+                    <span>🔄</span> <span>दूसरी फोटो चुनें</span>
+                  </button>
+                  <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeCustPhoto(event)">
+                    <span>🗑️</span> <span>हटाएं</span>
+                  </button>
                 </div>
               </div>
 
@@ -3521,9 +4287,32 @@
   <div id="editCustomerModal" class="image-modal-overlay" onclick="closeEditCustomerModal()" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()">
       <div class="modal-card-header">
-        <h3 class="modal-card-title">✏️ ग्राहक रिकॉर्ड एडिट करें (Edit Customer)</h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 class="modal-card-title" style="margin-bottom: 0;">✏️ ग्राहक रिकॉर्ड एडिट करें (Edit Customer)</h3>
+          <div id="editDraftBadge" class="cwp-draft-badge" style="display: none;"></div>
+        </div>
         <button type="button" class="modal-close-x" onclick="closeEditCustomerModal()">✕</button>
       </div>
+
+      <!-- Edit Draft Restore Banner -->
+      <div id="editDraftRestoreBanner" class="cwp-draft-banner" style="display: none; margin: 12px 16px 0 16px;">
+        <div class="cwp-draft-banner-content">
+          <span class="cwp-draft-banner-icon">📝</span>
+          <div class="cwp-draft-banner-text">
+            <strong style="color: #15803d;">अधूरे बदलाव मिले:</strong>
+            <span id="editDraftTimeInfo" style="color: #374151; font-size: 12px; margin-left: 4px;"></span>
+          </div>
+        </div>
+        <div class="cwp-draft-banner-actions">
+          <button type="button" class="btn-draft-action btn-draft-restore" onclick="restoreEditDraft()">
+            <span>✓</span> ड्राफ्ट भरें
+          </button>
+          <button type="button" class="btn-draft-action btn-draft-discard" onclick="discardEditDraft(false)">
+            <span>✕</span> हटाएं
+          </button>
+        </div>
+      </div>
+
       <form id="editCustomerForm" onsubmit="handleEditCustomerSubmit(event)" style="padding: 16px;">
         <input type="hidden" id="editSheetName">
         <input type="hidden" id="editRowIndex">
@@ -3602,10 +4391,21 @@
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">गाड़ी की फोटो (Cloudinary CDN)</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <img id="editPhotoThumb" src="" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover; display: none; border: 1px solid var(--border-color);" alt="Thumb">
-              <input type="file" id="editCustPhotoFile" accept="image/*" class="form-input" style="padding: 6px; font-size: 11px;" onchange="handleEditPhotoSelect(event)">
+            <label class="form-label">गाड़ी की फोटो (Cloudinary CDN / Direct)</label>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <img id="editPhotoThumb" src="" style="width: 46px; height: 46px; border-radius: 6px; object-fit: cover; display: none; border: 1px solid var(--border-color); cursor: pointer;" alt="Thumb" onclick="openExistingEditPhotoCropper()" title="क्रॉप / रोटेट करने के लिए क्लिक करें">
+              <input type="file" id="editCustPhotoFile" accept="image/*" class="form-input" style="padding: 6px; font-size: 11px; flex: 1; min-width: 140px;" onchange="handleEditPhotoSelect(event)">
+            </div>
+            <div id="editPhotoProgressWrap" class="photo-upload-progress-wrap">
+              <div id="editPhotoProgressFill" class="photo-upload-progress-fill"></div>
+            </div>
+            <div id="editPhotoActionsWrap" style="display: none; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+              <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingEditPhotoCropper()">
+                <span>✂️</span> <span>क्रॉप / रोटेट करें</span>
+              </button>
+              <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeEditCustPhoto(event)">
+                <span>🗑️</span> <span>हटाएं</span>
+              </button>
             </div>
           </div>
           <div class="form-group">
@@ -3675,6 +4475,110 @@
     </div>
   </div>
 
+
+  <!-- =====================================================================
+       ENHANCED PHOTO CROP & DEGREE-WISE ROTATION MODAL
+       Allows users to straighten (degree slider, 90° flips) and crop photos
+       ===================================================================== -->
+  <div id="cwpPhotoCropperModal" class="image-modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 1200;" onclick="cropperHandleOverlayClick(event)">
+    <div class="cropper-modal-card" onclick="event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="cropper-modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">✂️</span>
+          <div>
+            <h3 style="font-size: 14.5px; font-weight: 700; color: #ffffff; margin: 0; line-height: 1.2;">फोटो क्रॉप व सीधा करें (Crop & Straighten)</h3>
+            <div style="font-size: 11px; color: #94a3b8;">डिग्री के अनुसार घुमाएँ व क्रॉप बॉक्स एडजस्ट करें</div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-x" onclick="closeCropperModal()" style="color: #cbd5e1;">✕</button>
+      </div>
+
+      <!-- Main Cropper Viewport -->
+      <div class="cropper-canvas-wrap">
+        <img id="cwpCropperSourceImg" src="" alt="To Crop" style="max-width: 100%;">
+      </div>
+
+      <!-- Rotation & Straighten Toolbar (Degree Wise) -->
+      <div class="cropper-controls-panel">
+        <!-- Degree Slider Row -->
+        <div class="cropper-control-row">
+          <div class="cropper-label-group">
+            <span class="cropper-ctrl-icon">📐</span>
+            <span class="cropper-ctrl-label">फोटो सीधा करें (Angle):</span>
+            <span id="cropperAngleBadge" class="cropper-degree-badge">0.0°</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button type="button" class="btn-crop-tool-btn" onclick="cropperResetAngle()" title="0 डिग्री पर रीसेट करें">0° सीधा करें</button>
+          </div>
+        </div>
+
+        <div class="cropper-slider-container">
+          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(-5)" title="5° बाएँ">-5°</button>
+          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(-1)" title="1° बाएँ">-1°</button>
+          <div class="cropper-range-wrapper">
+            <input type="range" id="cropperAngleSlider" min="-180" max="180" step="0.5" value="0" class="cropper-range-slider" oninput="cropperOnSliderInput(this.value)">
+            <div class="cropper-range-ticks">
+              <span>-180°</span>
+              <span>-90°</span>
+              <span>0°</span>
+              <span>+90°</span>
+              <span>+180°</span>
+            </div>
+          </div>
+          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(1)" title="1° दाएँ">+1°</button>
+          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(5)" title="5° दाएँ">+5°</button>
+        </div>
+
+        <!-- Quick 90 deg Rotate & Flip Buttons -->
+        <div class="cropper-buttons-row">
+          <button type="button" class="btn-crop-action" onclick="cropperStepRotate(-90)" title="90° बाएँ घुमाएँ">
+            <span>↶</span> <span>90° बाएँ</span>
+          </button>
+          <button type="button" class="btn-crop-action" onclick="cropperStepRotate(90)" title="90° दाएँ घुमाएँ">
+            <span>↷</span> <span>90° दाएँ</span>
+          </button>
+          <button type="button" class="btn-crop-action" onclick="cropperStepRotate(180)" title="180° घुमाएँ">
+            <span>🔁</span> <span>180°</span>
+          </button>
+          <button type="button" class="btn-crop-action" onclick="cropperFlipH()" title="क्षैतिज पलटें (Flip Horizontal)">
+            <span>↔️</span> <span>क्षैतिज</span>
+          </button>
+          <button type="button" class="btn-crop-action" onclick="cropperFlipV()" title="लंबवत पलटें (Flip Vertical)">
+            <span>↕️</span> <span>लंबवत</span>
+          </button>
+        </div>
+
+        <!-- Aspect Ratio & Tools Row -->
+        <div class="cropper-secondary-row">
+          <div class="cropper-aspect-group">
+            <span style="font-size: 11px; font-weight: 600; color: #94a3b8; margin-right: 4px;">आकार:</span>
+            <button type="button" class="btn-aspect-chip active" id="btnAspectFree" onclick="cropperSetAspectRatio(NaN, 'free')">मुक्त (Free)</button>
+            <button type="button" class="btn-aspect-chip" id="btnAspect1_1" onclick="cropperSetAspectRatio(1, '1_1')">1:1 चौकोर</button>
+            <button type="button" class="btn-aspect-chip" id="btnAspect4_3" onclick="cropperSetAspectRatio(4/3, '4_3')">4:3</button>
+            <button type="button" class="btn-aspect-chip" id="btnAspect16_9" onclick="cropperSetAspectRatio(16/9, '16_9')">16:9</button>
+            <button type="button" class="btn-aspect-chip" id="btnAspect3_4" onclick="cropperSetAspectRatio(3/4, '3_4')">3:4 खड़ा</button>
+          </div>
+          <div class="cropper-zoom-group">
+            <button type="button" class="btn-crop-icon-btn active" id="cropperBtnModeCrop" onclick="cropperSetDragMode('crop')" title="क्रॉप बॉक्स एडजस्ट करें">✂️</button>
+            <button type="button" class="btn-crop-icon-btn" id="cropperBtnModeMove" onclick="cropperSetDragMode('move')" title="फोटो हिलाएं (Pan Photo)">🖐️</button>
+            <button type="button" class="btn-crop-icon-btn" onclick="cropperZoom(0.1)" title="ज़ूम इन">🔍+</button>
+            <button type="button" class="btn-crop-icon-btn" onclick="cropperZoom(-0.1)" title="ज़ूम आउट">🔍-</button>
+            <button type="button" class="btn-crop-icon-btn" onclick="cropperResetAll()" title="पूरा रीसेट">↺</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="cropper-modal-footer">
+        <button type="button" class="btn-cropper-cancel" onclick="closeCropperModal()">रद्द करें (Cancel)</button>
+        <button type="button" class="btn-cropper-apply" onclick="applyCroppedPhoto()">
+          <span>✓</span> <span>फोटो सीधा व क्रॉप करके सेट करें (Apply & Set)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toastNotification" class="toast-popup">
     <span id="toastIcon">✓</span>
@@ -3687,6 +4591,13 @@
        - ZERO inline `//` comments in script blocks
        - Escaped forward slashes in URLs
        ===================================================================== -->
+
+  <!-- Inlined Cropper.js v1.5.13 for 100% Offline and Gas Compatible Execution -->
+  <script>
+/* Cropper.js v1.5.13 (c) Chen Fengyuan MIT */
+!function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t="undefined"!=typeof globalThis?globalThis:t||self).Cropper=e()}(this,function(){"use strict";function C(e,t){var i,a=Object.keys(e);return Object.getOwnPropertySymbols&&(i=Object.getOwnPropertySymbols(e),t&&(i=i.filter(function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable})),a.push.apply(a,i)),a}function S(a){for(var t=1;t<arguments.length;t++){var n=null!=arguments[t]?arguments[t]:{};t%2?C(Object(n),!0).forEach(function(t){var e,i;e=a,i=n[t=t],t in e?Object.defineProperty(e,t,{value:i,enumerable:!0,configurable:!0,writable:!0}):e[t]=i}):Object.getOwnPropertyDescriptors?Object.defineProperties(a,Object.getOwnPropertyDescriptors(n)):C(Object(n)).forEach(function(t){Object.defineProperty(a,t,Object.getOwnPropertyDescriptor(n,t))})}return a}function D(t){return(D="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(t){return typeof t}:function(t){return t&&"function"==typeof Symbol&&t.constructor===Symbol&&t!==Symbol.prototype?"symbol":typeof t})(t)}function A(t,e){for(var i=0;i<e.length;i++){var a=e[i];a.enumerable=a.enumerable||!1,a.configurable=!0,"value"in a&&(a.writable=!0),Object.defineProperty(t,a.key,a)}}function j(t){return function(t){if(Array.isArray(t))return a(t)}(t)||function(t){if("undefined"!=typeof Symbol&&null!=t[Symbol.iterator]||null!=t["@@iterator"])return Array.from(t)}(t)||function(t,e){var i;if(t)return"string"==typeof t?a(t,e):"Map"===(i="Object"===(i=Object.prototype.toString.call(t).slice(8,-1))&&t.constructor?t.constructor.name:i)||"Set"===i?Array.from(t):"Arguments"===i||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(i)?a(t,e):void 0}(t)||function(){throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}()}function a(t,e){(null==e||e>t.length)&&(e=t.length);for(var i=0,a=new Array(e);i<e;i++)a[i]=t[i];return a}var t="undefined"!=typeof window&&void 0!==window.document,h=t?window:{},e=!(!t||!h.document.documentElement)&&"ontouchstart"in h.document.documentElement,i=t&&"PointerEvent"in h,c="cropper",P="all",I="crop",U="move",q="zoom",B="e",k="w",O="s",T="n",E="ne",W="nw",H="se",N="sw",$="".concat(c,"-crop"),Q="".concat(c,"-disabled"),L="".concat(c,"-hidden"),K="".concat(c,"-hide"),Z="".concat(c,"-invisible"),n="".concat(c,"-modal"),G="".concat(c,"-move"),d="".concat(c,"Action"),m="".concat(c,"Preview"),V="crop",F="move",J="none",_="crop",tt="cropend",et="cropmove",it="cropstart",at="dblclick",nt=i?"pointerdown":e?"touchstart":"mousedown",ot=i?"pointermove":e?"touchmove":"mousemove",ht=i?"pointerup pointercancel":e?"touchend touchcancel":"mouseup",rt="zoom",st="image/jpeg",ct=/^e|w|s|n|se|sw|ne|nw|all|crop|move|zoom$/,dt=/^data:/,lt=/^data:image\/jpeg;base64,/,pt=/^img|canvas$/i,mt={viewMode:0,dragMode:V,initialAspectRatio:NaN,aspectRatio:NaN,data:null,preview:"",responsive:!0,restore:!0,checkCrossOrigin:!0,checkOrientation:!0,modal:!0,guides:!0,center:!0,highlight:!0,background:!0,autoCrop:!0,autoCropArea:.8,movable:!0,rotatable:!0,scalable:!0,zoomable:!0,zoomOnTouch:!0,zoomOnWheel:!0,wheelZoomRatio:.1,cropBoxMovable:!0,cropBoxResizable:!0,toggleDragModeOnDblclick:!0,minCanvasWidth:0,minCanvasHeight:0,minCropBoxWidth:0,minCropBoxHeight:0,minContainerWidth:200,minContainerHeight:100,ready:null,cropstart:null,cropmove:null,cropend:null,crop:null,zoom:null},ut=Number.isNaN||h.isNaN;function p(t){return"number"==typeof t&&!ut(t)}function gt(t){return 0<t&&t<1/0}function ft(t){return void 0===t}function o(t){return"object"===D(t)&&null!==t}var vt=Object.prototype.hasOwnProperty;function u(t){if(!o(t))return!1;try{var e=t.constructor,i=e.prototype;return e&&i&&vt.call(i,"isPrototypeOf")}catch(t){return!1}}function l(t){return"function"==typeof t}var wt=Array.prototype.slice;function bt(t){return Array.from?Array.from(t):wt.call(t)}function z(i,a){return i&&l(a)&&(Array.isArray(i)||p(i.length)?bt(i).forEach(function(t,e){a.call(i,t,e,i)}):o(i)&&Object.keys(i).forEach(function(t){a.call(i,i[t],t,i)})),i}var g=Object.assign||function(i){for(var t=arguments.length,e=new Array(1<t?t-1:0),a=1;a<t;a++)e[a-1]=arguments[a];return o(i)&&0<e.length&&e.forEach(function(e){o(e)&&Object.keys(e).forEach(function(t){i[t]=e[t]})}),i},yt=/\.\d*(?:0|9){12}\d*$/;function Y(t,e){e=1<arguments.length&&void 0!==e?e:1e11;return yt.test(t)?Math.round(t*e)/e:t}var xt=/^width|height|left|top|marginLeft|marginTop$/;function f(t,e){var i=t.style;z(e,function(t,e){xt.test(e)&&p(t)&&(t="".concat(t,"px")),i[e]=t})}function v(t,e){var i;e&&(p(t.length)?z(t,function(t){v(t,e)}):t.classList?t.classList.add(e):(i=t.className.trim())?i.indexOf(e)<0&&(t.className="".concat(i," ").concat(e)):t.className=e)}function X(t,e){e&&(p(t.length)?z(t,function(t){X(t,e)}):t.classList?t.classList.remove(e):0<=t.className.indexOf(e)&&(t.className=t.className.replace(e,"")))}function r(t,e,i){e&&(p(t.length)?z(t,function(t){r(t,e,i)}):(i?v:X)(t,e))}var Mt=/([a-z\d])([A-Z])/g;function Ct(t){return t.replace(Mt,"$1-$2").toLowerCase()}function Dt(t,e){return o(t[e])?t[e]:t.dataset?t.dataset[e]:t.getAttribute("data-".concat(Ct(e)))}function w(t,e,i){o(i)?t[e]=i:t.dataset?t.dataset[e]=i:t.setAttribute("data-".concat(Ct(e)),i)}var Bt,kt,Ot=/\s\s*/,Tt=(kt=!1,t&&(Bt=!1,i=function(){},e=Object.defineProperty({},"once",{get:function(){return kt=!0,Bt},set:function(t){Bt=t}}),h.addEventListener("test",i,e),h.removeEventListener("test",i,e)),kt);function s(i,t,a,e){var n=3<arguments.length&&void 0!==e?e:{},o=a;t.trim().split(Ot).forEach(function(t){var e;Tt||(e=i.listeners)&&e[t]&&e[t][a]&&(o=e[t][a],delete e[t][a],0===Object.keys(e[t]).length&&delete e[t],0===Object.keys(e).length)&&delete i.listeners,i.removeEventListener(t,o,n)})}function b(o,t,h,e){var r=3<arguments.length&&void 0!==e?e:{},s=h;t.trim().split(Ot).forEach(function(a){var t,n;r.once&&!Tt&&(t=o.listeners,s=function(){delete n[a][h],o.removeEventListener(a,s,r);for(var t=arguments.length,e=new Array(t),i=0;i<t;i++)e[i]=arguments[i];h.apply(o,e)},(n=void 0===t?{}:t)[a]||(n[a]={}),n[a][h]&&o.removeEventListener(a,n[a][h],r),n[a][h]=s,o.listeners=n),o.addEventListener(a,s,r)})}function y(t,e,i){var a;return l(Event)&&l(CustomEvent)?a=new CustomEvent(e,{detail:i,bubbles:!0,cancelable:!0}):(a=document.createEvent("CustomEvent")).initCustomEvent(e,!0,!0,i),t.dispatchEvent(a)}function Et(t){t=t.getBoundingClientRect();return{left:t.left+(window.pageXOffset-document.documentElement.clientLeft),top:t.top+(window.pageYOffset-document.documentElement.clientTop)}}var Wt=h.location,Ht=/^(\w+:)\/\/([^:/?#]*):?(\d*)/i;function Nt(t){t=t.match(Ht);return null!==t&&(t[1]!==Wt.protocol||t[2]!==Wt.hostname||t[3]!==Wt.port)}function Lt(t){var e="timestamp=".concat((new Date).getTime());return t+(-1===t.indexOf("?")?"?":"&")+e}function x(t){var e=t.rotate,i=t.scaleX,a=t.scaleY,n=t.translateX,t=t.translateY,o=[],n=(p(n)&&0!==n&&o.push("translateX(".concat(n,"px)")),p(t)&&0!==t&&o.push("translateY(".concat(t,"px)")),p(e)&&0!==e&&o.push("rotate(".concat(e,"deg)")),p(i)&&1!==i&&o.push("scaleX(".concat(i,")")),p(a)&&1!==a&&o.push("scaleY(".concat(a,")")),o.length?o.join(" "):"none");return{WebkitTransform:n,msTransform:n,transform:n}}function M(t,e){var i=t.pageX,t=t.pageY,a={endX:i,endY:t};return e?a:S({startX:i,startY:t},a)}function R(t,e){var i,a=t.aspectRatio,n=t.height,t=t.width,e=1<arguments.length&&void 0!==e?e:"contain",o=gt(t),h=gt(n);return o&&h?(i=n*a,"contain"===e&&t<i||"cover"===e&&i<t?n=t/a:t=n*a):o?n=t/a:h&&(t=n*a),{width:t,height:n}}var zt=String.fromCharCode;var Yt=/^data:.*,/;function Xt(t){var e,i,a,n,o,h,r,s=new DataView(t);try{if(255===s.getUint8(0)&&216===s.getUint8(1))for(var c=s.byteLength,d=2;d+1<c;){if(255===s.getUint8(d)&&225===s.getUint8(d+1)){i=d;break}d+=1}if(a=i&&(n=i+10,"Exif"===function(t,e,i){var a="";i+=e;for(var n=e;n<i;n+=1)a+=zt(t.getUint8(n));return a}(s,i+4,4))&&((r=18761===(o=s.getUint16(n)))||19789===o)&&42===s.getUint16(n+2,r)&&8<=(h=s.getUint32(n+4,r))?n+h:a)for(var l,p=s.getUint16(a,r),m=0;m<p;m+=1)if(l=a+12*m+2,274===s.getUint16(l,r)){l+=8,e=s.getUint16(l,r),s.setUint16(l,1,r);break}}catch(t){e=1}return e}var t={render:function(){this.initContainer(),this.initCanvas(),this.initCropBox(),this.renderCanvas(),this.cropped&&this.renderCropBox()},initContainer:function(){var t=this.element,e=this.options,i=this.container,a=this.cropper,n=Number(e.minContainerWidth),e=Number(e.minContainerHeight),n=(v(a,L),X(t,L),{width:Math.max(i.offsetWidth,0<=n?n:200),height:Math.max(i.offsetHeight,0<=e?e:100)});f(a,{width:(this.containerData=n).width,height:n.height}),v(t,L),X(a,L)},initCanvas:function(){var t=this.containerData,e=this.imageData,i=this.options.viewMode,a=Math.abs(e.rotate)%180==90,n=a?e.naturalHeight:e.naturalWidth,a=a?e.naturalWidth:e.naturalHeight,e=n/a,o=t.width,h=t.height,e=(t.height*e>t.width?3===i?o=t.height*e:h=t.width/e:3===i?h=t.width/e:o=t.height*e,{aspectRatio:e,naturalWidth:n,naturalHeight:a,width:o,height:h});this.canvasData=e,this.limited=1===i||2===i,this.limitCanvas(!0,!0),e.width=Math.min(Math.max(e.width,e.minWidth),e.maxWidth),e.height=Math.min(Math.max(e.height,e.minHeight),e.maxHeight),e.left=(t.width-e.width)/2,e.top=(t.height-e.height)/2,e.oldLeft=e.left,e.oldTop=e.top,this.initialCanvasData=g({},e)},limitCanvas:function(t,e){var i=this.options,a=this.containerData,n=this.canvasData,o=this.cropBoxData,h=i.viewMode,r=n.aspectRatio,s=this.cropped&&o;t&&(t=Number(i.minCanvasWidth)||0,i=Number(i.minCanvasHeight)||0,1<h?(t=Math.max(t,a.width),i=Math.max(i,a.height),3===h&&(t<i*r?t=i*r:i=t/r)):0<h&&(t?t=Math.max(t,s?o.width:0):i?i=Math.max(i,s?o.height:0):s&&((t=o.width)<(i=o.height)*r?t=i*r:i=t/r)),t=(r=R({aspectRatio:r,width:t,height:i})).width,i=r.height,n.minWidth=t,n.minHeight=i,n.maxWidth=1/0,n.maxHeight=1/0),e&&((s?0:1)<h?(r=a.width-n.width,t=a.height-n.height,n.minLeft=Math.min(0,r),n.minTop=Math.min(0,t),n.maxLeft=Math.max(0,r),n.maxTop=Math.max(0,t),s&&this.limited&&(n.minLeft=Math.min(o.left,o.left+(o.width-n.width)),n.minTop=Math.min(o.top,o.top+(o.height-n.height)),n.maxLeft=o.left,n.maxTop=o.top,2===h)&&(n.width>=a.width&&(n.minLeft=Math.min(0,r),n.maxLeft=Math.max(0,r)),n.height>=a.height)&&(n.minTop=Math.min(0,t),n.maxTop=Math.max(0,t))):(n.minLeft=-n.width,n.minTop=-n.height,n.maxLeft=a.width,n.maxTop=a.height))},renderCanvas:function(t,e){var i,a,n,o,h=this.canvasData,r=this.imageData;e&&(e={width:r.naturalWidth*Math.abs(r.scaleX||1),height:r.naturalHeight*Math.abs(r.scaleY||1),degree:r.rotate||0},r=e.width,o=e.height,e=e.degree,i=90==(e=Math.abs(e)%180)?{width:o,height:r}:(a=e%90*Math.PI/180,i=Math.sin(a),n=r*(a=Math.cos(a))+o*i,r=r*i+o*a,90<e?{width:r,height:n}:{width:n,height:r}),a=h.width*((o=i.width)/h.naturalWidth),n=h.height*((e=i.height)/h.naturalHeight),h.left-=(a-h.width)/2,h.top-=(n-h.height)/2,h.width=a,h.height=n,h.aspectRatio=o/e,h.naturalWidth=o,h.naturalHeight=e,this.limitCanvas(!0,!1)),(h.width>h.maxWidth||h.width<h.minWidth)&&(h.left=h.oldLeft),(h.height>h.maxHeight||h.height<h.minHeight)&&(h.top=h.oldTop),h.width=Math.min(Math.max(h.width,h.minWidth),h.maxWidth),h.height=Math.min(Math.max(h.height,h.minHeight),h.maxHeight),this.limitCanvas(!1,!0),h.left=Math.min(Math.max(h.left,h.minLeft),h.maxLeft),h.top=Math.min(Math.max(h.top,h.minTop),h.maxTop),h.oldLeft=h.left,h.oldTop=h.top,f(this.canvas,g({width:h.width,height:h.height},x({translateX:h.left,translateY:h.top}))),this.renderImage(t),this.cropped&&this.limited&&this.limitCropBox(!0,!0)},renderImage:function(t){var e=this.canvasData,i=this.imageData,a=i.naturalWidth*(e.width/e.naturalWidth),n=i.naturalHeight*(e.height/e.naturalHeight);g(i,{width:a,height:n,left:(e.width-a)/2,top:(e.height-n)/2}),f(this.image,g({width:i.width,height:i.height},x(g({translateX:i.left,translateY:i.top},i)))),t&&this.output()},initCropBox:function(){var t=this.options,e=this.canvasData,i=t.aspectRatio||t.initialAspectRatio,t=Number(t.autoCropArea)||.8,a={width:e.width,height:e.height};i&&(e.height*i>e.width?a.height=a.width/i:a.width=a.height*i),this.cropBoxData=a,this.limitCropBox(!0,!0),a.width=Math.min(Math.max(a.width,a.minWidth),a.maxWidth),a.height=Math.min(Math.max(a.height,a.minHeight),a.maxHeight),a.width=Math.max(a.minWidth,a.width*t),a.height=Math.max(a.minHeight,a.height*t),a.left=e.left+(e.width-a.width)/2,a.top=e.top+(e.height-a.height)/2,a.oldLeft=a.left,a.oldTop=a.top,this.initialCropBoxData=g({},a)},limitCropBox:function(t,e){var i,a,n=this.options,o=this.containerData,h=this.canvasData,r=this.cropBoxData,s=this.limited,c=n.aspectRatio;t&&(t=Number(n.minCropBoxWidth)||0,n=Number(n.minCropBoxHeight)||0,i=s?Math.min(o.width,h.width,h.width+h.left,o.width-h.left):o.width,a=s?Math.min(o.height,h.height,h.height+h.top,o.height-h.top):o.height,t=Math.min(t,o.width),n=Math.min(n,o.height),c&&(t&&n?t<n*c?n=t/c:t=n*c:t?n=t/c:n&&(t=n*c),i<a*c?a=i/c:i=a*c),r.minWidth=Math.min(t,i),r.minHeight=Math.min(n,a),r.maxWidth=i,r.maxHeight=a),e&&(s?(r.minLeft=Math.max(0,h.left),r.minTop=Math.max(0,h.top),r.maxLeft=Math.min(o.width,h.left+h.width)-r.width,r.maxTop=Math.min(o.height,h.top+h.height)-r.height):(r.minLeft=0,r.minTop=0,r.maxLeft=o.width-r.width,r.maxTop=o.height-r.height))},renderCropBox:function(){var t=this.options,e=this.containerData,i=this.cropBoxData;(i.width>i.maxWidth||i.width<i.minWidth)&&(i.left=i.oldLeft),(i.height>i.maxHeight||i.height<i.minHeight)&&(i.top=i.oldTop),i.width=Math.min(Math.max(i.width,i.minWidth),i.maxWidth),i.height=Math.min(Math.max(i.height,i.minHeight),i.maxHeight),this.limitCropBox(!1,!0),i.left=Math.min(Math.max(i.left,i.minLeft),i.maxLeft),i.top=Math.min(Math.max(i.top,i.minTop),i.maxTop),i.oldLeft=i.left,i.oldTop=i.top,t.movable&&t.cropBoxMovable&&w(this.face,d,i.width>=e.width&&i.height>=e.height?U:P),f(this.cropBox,g({width:i.width,height:i.height},x({translateX:i.left,translateY:i.top}))),this.cropped&&this.limited&&this.limitCanvas(!0,!0),this.disabled||this.output()},output:function(){this.preview(),y(this.element,_,this.getData())}},i={initPreview:function(){var t=this.element,i=this.crossOrigin,e=this.options.preview,a=i?this.crossOriginUrl:this.url,n=t.alt||"The image to preview",o=document.createElement("img");i&&(o.crossOrigin=i),o.src=a,o.alt=n,this.viewBox.appendChild(o),this.viewBoxImage=o,e&&("string"==typeof(o=e)?o=t.ownerDocument.querySelectorAll(e):e.querySelector&&(o=[e]),z(this.previews=o,function(t){var e=document.createElement("img");w(t,m,{width:t.offsetWidth,height:t.offsetHeight,html:t.innerHTML}),i&&(e.crossOrigin=i),e.src=a,e.alt=n,e.style.cssText='display:block;width:100%;height:auto;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;image-orientation:0deg!important;"',t.innerHTML="",t.appendChild(e)}))},resetPreview:function(){z(this.previews,function(e){var i=Dt(e,m),i=(f(e,{width:i.width,height:i.height}),e.innerHTML=i.html,e),e=m;if(o(i[e]))try{delete i[e]}catch(t){i[e]=void 0}else if(i.dataset)try{delete i.dataset[e]}catch(t){i.dataset[e]=void 0}else i.removeAttribute("data-".concat(Ct(e)))})},preview:function(){var h=this.imageData,t=this.canvasData,e=this.cropBoxData,r=e.width,s=e.height,c=h.width,d=h.height,l=e.left-t.left-h.left,p=e.top-t.top-h.top;this.cropped&&!this.disabled&&(f(this.viewBoxImage,g({width:c,height:d},x(g({translateX:-l,translateY:-p},h)))),z(this.previews,function(t){var e=Dt(t,m),i=e.width,e=e.height,a=i,n=e,o=1;r&&(n=s*(o=i/r)),s&&e<n&&(a=r*(o=e/s),n=e),f(t,{width:a,height:n}),f(t.getElementsByTagName("img")[0],g({width:c*o,height:d*o},x(g({translateX:-l*o,translateY:-p*o},h))))}))}},e={bind:function(){var t=this.element,e=this.options,i=this.cropper;l(e.cropstart)&&b(t,it,e.cropstart),l(e.cropmove)&&b(t,et,e.cropmove),l(e.cropend)&&b(t,tt,e.cropend),l(e.crop)&&b(t,_,e.crop),l(e.zoom)&&b(t,rt,e.zoom),b(i,nt,this.onCropStart=this.cropStart.bind(this)),e.zoomable&&e.zoomOnWheel&&b(i,"wheel",this.onWheel=this.wheel.bind(this),{passive:!1,capture:!0}),e.toggleDragModeOnDblclick&&b(i,at,this.onDblclick=this.dblclick.bind(this)),b(t.ownerDocument,ot,this.onCropMove=this.cropMove.bind(this)),b(t.ownerDocument,ht,this.onCropEnd=this.cropEnd.bind(this)),e.responsive&&b(window,"resize",this.onResize=this.resize.bind(this))},unbind:function(){var t=this.element,e=this.options,i=this.cropper;l(e.cropstart)&&s(t,it,e.cropstart),l(e.cropmove)&&s(t,et,e.cropmove),l(e.cropend)&&s(t,tt,e.cropend),l(e.crop)&&s(t,_,e.crop),l(e.zoom)&&s(t,rt,e.zoom),s(i,nt,this.onCropStart),e.zoomable&&e.zoomOnWheel&&s(i,"wheel",this.onWheel,{passive:!1,capture:!0}),e.toggleDragModeOnDblclick&&s(i,at,this.onDblclick),s(t.ownerDocument,ot,this.onCropMove),s(t.ownerDocument,ht,this.onCropEnd),e.responsive&&s(window,"resize",this.onResize)}},Rt={resize:function(){var t,e,i,a,n,o,h;this.disabled||(t=this.options,a=this.container,e=this.containerData,i=a.offsetWidth/e.width,a=a.offsetHeight/e.height,1!=(n=Math.abs(i-1)>Math.abs(a-1)?i:a)&&(t.restore&&(o=this.getCanvasData(),h=this.getCropBoxData()),this.render(),t.restore)&&(this.setCanvasData(z(o,function(t,e){o[e]=t*n})),this.setCropBoxData(z(h,function(t,e){h[e]=t*n}))))},dblclick:function(){var t,e;this.disabled||this.options.dragMode===J||this.setDragMode((t=this.dragBox,e=$,(t.classList?t.classList.contains(e):-1<t.className.indexOf(e))?F:V))},wheel:function(t){var e=this,i=Number(this.options.wheelZoomRatio)||.1,a=1;this.disabled||(t.preventDefault(),this.wheeling)||(this.wheeling=!0,setTimeout(function(){e.wheeling=!1},50),t.deltaY?a=0<t.deltaY?1:-1:t.wheelDelta?a=-t.wheelDelta/120:t.detail&&(a=0<t.detail?1:-1),this.zoom(-a*i,t))},cropStart:function(t){var e,i=t.buttons,a=t.button;this.disabled||("mousedown"===t.type||"pointerdown"===t.type&&"mouse"===t.pointerType)&&(p(i)&&1!==i||p(a)&&0!==a||t.ctrlKey)||(i=this.options,e=this.pointers,t.changedTouches?z(t.changedTouches,function(t){e[t.identifier]=M(t)}):e[t.pointerId||0]=M(t),a=1<Object.keys(e).length&&i.zoomable&&i.zoomOnTouch?q:Dt(t.target,d),ct.test(a)&&!1!==y(this.element,it,{originalEvent:t,action:a})&&(t.preventDefault(),this.action=a,this.cropping=!1,a===I)&&(this.cropping=!0,v(this.dragBox,n)))},cropMove:function(t){var e,i=this.action;!this.disabled&&i&&(e=this.pointers,t.preventDefault(),!1!==y(this.element,et,{originalEvent:t,action:i}))&&(t.changedTouches?z(t.changedTouches,function(t){g(e[t.identifier]||{},M(t,!0))}):g(e[t.pointerId||0]||{},M(t,!0)),this.change(t))},cropEnd:function(t){var e,i;this.disabled||(e=this.action,i=this.pointers,t.changedTouches?z(t.changedTouches,function(t){delete i[t.identifier]}):delete i[t.pointerId||0],e&&(t.preventDefault(),Object.keys(i).length||(this.action=""),this.cropping&&(this.cropping=!1,r(this.dragBox,n,this.cropped&&this.options.modal)),y(this.element,tt,{originalEvent:t,action:e})))}},St={change:function(t){function e(t){switch(t){case B:f+D.x>y&&(D.x=y-f);break;case k:p+D.x<w&&(D.x=w-p);break;case T:m+D.y<b&&(D.y=b-m);break;case O:v+D.y>x&&(D.y=x-v)}}var i,a,o,n=this.options,h=this.canvasData,r=this.containerData,s=this.cropBoxData,c=this.pointers,d=this.action,l=n.aspectRatio,p=s.left,m=s.top,u=s.width,g=s.height,f=p+u,v=m+g,w=0,b=0,y=r.width,x=r.height,M=!0,C=(!l&&t.shiftKey&&(l=u&&g?u/g:1),this.limited&&(w=s.minLeft,b=s.minTop,y=w+Math.min(r.width,h.width,h.left+h.width),x=b+Math.min(r.height,h.height,h.top+h.height)),c[Object.keys(c)[0]]),D={x:C.endX-C.startX,y:C.endY-C.startY};switch(d){case P:p+=D.x,m+=D.y;break;case B:0<=D.x&&(y<=f||l&&(m<=b||x<=v))?M=!1:(e(B),(u+=D.x)<0&&(d=k,p-=u=-u),l&&(m+=(s.height-(g=u/l))/2));break;case T:D.y<=0&&(m<=b||l&&(p<=w||y<=f))?M=!1:(e(T),g-=D.y,m+=D.y,g<0&&(d=O,m-=g=-g),l&&(p+=(s.width-(u=g*l))/2));break;case k:D.x<=0&&(p<=w||l&&(m<=b||x<=v))?M=!1:(e(k),u-=D.x,p+=D.x,u<0&&(d=B,p-=u=-u),l&&(m+=(s.height-(g=u/l))/2));break;case O:0<=D.y&&(x<=v||l&&(p<=w||y<=f))?M=!1:(e(O),(g+=D.y)<0&&(d=T,m-=g=-g),l&&(p+=(s.width-(u=g*l))/2));break;case E:if(l){if(D.y<=0&&(m<=b||y<=f)){M=!1;break}e(T),g-=D.y,m+=D.y,u=g*l}else e(T),e(B),!(0<=D.x)||f<y?u+=D.x:D.y<=0&&m<=b&&(M=!1),(!(D.y<=0)||b<m)&&(g-=D.y,m+=D.y);u<0&&g<0?(d=N,m-=g=-g,p-=u=-u):u<0?(d=W,p-=u=-u):g<0&&(d=H,m-=g=-g);break;case W:if(l){if(D.y<=0&&(m<=b||p<=w)){M=!1;break}e(T),g-=D.y,m+=D.y,p+=s.width-(u=g*l)}else e(T),e(k),!(D.x<=0)||w<p?(u-=D.x,p+=D.x):D.y<=0&&m<=b&&(M=!1),(!(D.y<=0)||b<m)&&(g-=D.y,m+=D.y);u<0&&g<0?(d=H,m-=g=-g,p-=u=-u):u<0?(d=E,p-=u=-u):g<0&&(d=N,m-=g=-g);break;case N:if(l){if(D.x<=0&&(p<=w||x<=v)){M=!1;break}e(k),u-=D.x,p+=D.x,g=u/l}else e(O),e(k),!(D.x<=0)||w<p?(u-=D.x,p+=D.x):0<=D.y&&x<=v&&(M=!1),(!(0<=D.y)||v<x)&&(g+=D.y);u<0&&g<0?(d=E,m-=g=-g,p-=u=-u):u<0?(d=H,p-=u=-u):g<0&&(d=W,m-=g=-g);break;case H:if(l){if(0<=D.x&&(y<=f||x<=v)){M=!1;break}e(B),g=(u+=D.x)/l}else e(O),e(B),!(0<=D.x)||f<y?u+=D.x:0<=D.y&&x<=v&&(M=!1),(!(0<=D.y)||v<x)&&(g+=D.y);u<0&&g<0?(d=W,m-=g=-g,p-=u=-u):u<0?(d=N,p-=u=-u):g<0&&(d=E,m-=g=-g);break;case U:this.move(D.x,D.y),M=!1;break;case q:this.zoom((a=S({},i=c),o=0,z(i,function(n,t){delete a[t],z(a,function(t){var e=Math.abs(n.startX-t.startX),i=Math.abs(n.startY-t.startY),a=Math.abs(n.endX-t.endX),t=Math.abs(n.endY-t.endY),e=Math.sqrt(e*e+i*i),i=(Math.sqrt(a*a+t*t)-e)/e;Math.abs(i)>Math.abs(o)&&(o=i)})}),o),t),M=!1;break;case I:D.x&&D.y?(i=Et(this.cropper),p=C.startX-i.left,m=C.startY-i.top,u=s.minWidth,g=s.minHeight,0<D.x?d=0<D.y?H:E:D.x<0&&(p-=u,d=0<D.y?N:W),D.y<0&&(m-=g),this.cropped||(X(this.cropBox,L),this.cropped=!0,this.limited&&this.limitCropBox(!0,!0))):M=!1}M&&(s.width=u,s.height=g,s.left=p,s.top=m,this.action=d,this.renderCropBox()),z(c,function(t){t.startX=t.endX,t.startY=t.endY})}},At={crop:function(){return!this.ready||this.cropped||this.disabled||(this.cropped=!0,this.limitCropBox(!0,!0),this.options.modal&&v(this.dragBox,n),X(this.cropBox,L),this.setCropBoxData(this.initialCropBoxData)),this},reset:function(){return this.ready&&!this.disabled&&(this.imageData=g({},this.initialImageData),this.canvasData=g({},this.initialCanvasData),this.cropBoxData=g({},this.initialCropBoxData),this.renderCanvas(),this.cropped)&&this.renderCropBox(),this},clear:function(){return this.cropped&&!this.disabled&&(g(this.cropBoxData,{left:0,top:0,width:0,height:0}),this.cropped=!1,this.renderCropBox(),this.limitCanvas(!0,!0),this.renderCanvas(),X(this.dragBox,n),v(this.cropBox,L)),this},replace:function(e){var t=1<arguments.length&&void 0!==arguments[1]&&arguments[1];return!this.disabled&&e&&(this.isImg&&(this.element.src=e),t?(this.url=e,this.image.src=e,this.ready&&(this.viewBoxImage.src=e,z(this.previews,function(t){t.getElementsByTagName("img")[0].src=e}))):(this.isImg&&(this.replaced=!0),this.options.data=null,this.uncreate(),this.load(e))),this},enable:function(){return this.ready&&this.disabled&&(this.disabled=!1,X(this.cropper,Q)),this},disable:function(){return this.ready&&!this.disabled&&(this.disabled=!0,v(this.cropper,Q)),this},destroy:function(){var t=this.element;return t[c]&&(t[c]=void 0,this.isImg&&this.replaced&&(t.src=this.originalUrl),this.uncreate()),this},move:function(t){var e=1<arguments.length&&void 0!==arguments[1]?arguments[1]:t,i=this.canvasData,a=i.left,i=i.top;return this.moveTo(ft(t)?t:a+Number(t),ft(e)?e:i+Number(e))},moveTo:function(t){var e=1<arguments.length&&void 0!==arguments[1]?arguments[1]:t,i=this.canvasData,a=!1;return t=Number(t),e=Number(e),this.ready&&!this.disabled&&this.options.movable&&(p(t)&&(i.left=t,a=!0),p(e)&&(i.top=e,a=!0),a)&&this.renderCanvas(!0),this},zoom:function(t,e){var i=this.canvasData;return t=Number(t),this.zoomTo(i.width*(t=t<0?1/(1-t):1+t)/i.naturalWidth,null,e)},zoomTo:function(t,e,i){var a,n,o,h=this.options,r=this.canvasData,s=r.width,c=r.height,d=r.naturalWidth,l=r.naturalHeight;if(0<=(t=Number(t))&&this.ready&&!this.disabled&&h.zoomable){h=d*t,l=l*t;if(!1===y(this.element,rt,{ratio:t,oldRatio:s/d,originalEvent:i}))return this;i?(t=this.pointers,d=Et(this.cropper),t=t&&Object.keys(t).length?(o=n=a=0,z(t,function(t){var e=t.startX,t=t.startY;a+=e,n+=t,o+=1}),{pageX:a/=o,pageY:n/=o}):{pageX:i.pageX,pageY:i.pageY},r.left-=(h-s)*((t.pageX-d.left-r.left)/s),r.top-=(l-c)*((t.pageY-d.top-r.top)/c)):u(e)&&p(e.x)&&p(e.y)?(r.left-=(h-s)*((e.x-r.left)/s),r.top-=(l-c)*((e.y-r.top)/c)):(r.left-=(h-s)/2,r.top-=(l-c)/2),r.width=h,r.height=l,this.renderCanvas(!0)}return this},rotate:function(t){return this.rotateTo((this.imageData.rotate||0)+Number(t))},rotateTo:function(t){return p(t=Number(t))&&this.ready&&!this.disabled&&this.options.rotatable&&(this.imageData.rotate=t%360,this.renderCanvas(!0,!0)),this},scaleX:function(t){var e=this.imageData.scaleY;return this.scale(t,p(e)?e:1)},scaleY:function(t){var e=this.imageData.scaleX;return this.scale(p(e)?e:1,t)},scale:function(t){var e=1<arguments.length&&void 0!==arguments[1]?arguments[1]:t,i=this.imageData,a=!1;return t=Number(t),e=Number(e),this.ready&&!this.disabled&&this.options.scalable&&(p(t)&&(i.scaleX=t,a=!0),p(e)&&(i.scaleY=e,a=!0),a)&&this.renderCanvas(!0,!0),this},getData:function(){var i,a,t=0<arguments.length&&void 0!==arguments[0]&&arguments[0],e=this.options,n=this.imageData,o=this.canvasData,h=this.cropBoxData;return this.ready&&this.cropped?(i={x:h.left-o.left,y:h.top-o.top,width:h.width,height:h.height},a=n.width/n.naturalWidth,z(i,function(t,e){i[e]=t/a}),t&&(o=Math.round(i.y+i.height),h=Math.round(i.x+i.width),i.x=Math.round(i.x),i.y=Math.round(i.y),i.width=h-i.x,i.height=o-i.y)):i={x:0,y:0,width:0,height:0},e.rotatable&&(i.rotate=n.rotate||0),e.scalable&&(i.scaleX=n.scaleX||1,i.scaleY=n.scaleY||1),i},setData:function(t){var e,i=this.options,a=this.imageData,n=this.canvasData,o={};return this.ready&&!this.disabled&&u(t)&&(e=!1,i.rotatable&&p(t.rotate)&&t.rotate!==a.rotate&&(a.rotate=t.rotate,e=!0),i.scalable&&(p(t.scaleX)&&t.scaleX!==a.scaleX&&(a.scaleX=t.scaleX,e=!0),p(t.scaleY))&&t.scaleY!==a.scaleY&&(a.scaleY=t.scaleY,e=!0),e&&this.renderCanvas(!0,!0),i=a.width/a.naturalWidth,p(t.x)&&(o.left=t.x*i+n.left),p(t.y)&&(o.top=t.y*i+n.top),p(t.width)&&(o.width=t.width*i),p(t.height)&&(o.height=t.height*i),this.setCropBoxData(o)),this},getContainerData:function(){return this.ready?g({},this.containerData):{}},getImageData:function(){return this.sized?g({},this.imageData):{}},getCanvasData:function(){var e=this.canvasData,i={};return this.ready&&z(["left","top","width","height","naturalWidth","naturalHeight"],function(t){i[t]=e[t]}),i},setCanvasData:function(t){var e=this.canvasData,i=e.aspectRatio;return this.ready&&!this.disabled&&u(t)&&(p(t.left)&&(e.left=t.left),p(t.top)&&(e.top=t.top),p(t.width)?(e.width=t.width,e.height=t.width/i):p(t.height)&&(e.height=t.height,e.width=t.height*i),this.renderCanvas(!0)),this},getCropBoxData:function(){var t,e=this.cropBoxData;return(t=this.ready&&this.cropped?{left:e.left,top:e.top,width:e.width,height:e.height}:t)||{}},setCropBoxData:function(t){var e,i,a=this.cropBoxData,n=this.options.aspectRatio;return this.ready&&this.cropped&&!this.disabled&&u(t)&&(p(t.left)&&(a.left=t.left),p(t.top)&&(a.top=t.top),p(t.width)&&t.width!==a.width&&(e=!0,a.width=t.width),p(t.height)&&t.height!==a.height&&(i=!0,a.height=t.height),n&&(e?a.height=a.width/n:i&&(a.width=a.height*n)),this.renderCropBox()),this},getCroppedCanvas:function(){var t,e,i,a,n,o,h,r,s,c,d,l,p,m,u,g,f,v,w,b,y,x,M,C,D,B,k,O=0<arguments.length&&void 0!==arguments[0]?arguments[0]:{};return this.ready&&window.HTMLCanvasElement?(B=this.canvasData,u=this.image,l=this.imageData,a=B,v=O,g=l.aspectRatio,e=l.naturalWidth,n=l.naturalHeight,c=void 0===(c=l.rotate)?0:c,d=void 0===(d=l.scaleX)?1:d,l=void 0===(l=l.scaleY)?1:l,i=a.aspectRatio,r=a.naturalWidth,a=a.naturalHeight,h=void 0===(h=v.fillColor)?"transparent":h,p=void 0===(p=v.imageSmoothingEnabled)||p,m=void 0===(m=v.imageSmoothingQuality)?"low":m,o=void 0===(o=v.maxWidth)?1/0:o,k=void 0===(k=v.maxHeight)?1/0:k,t=void 0===(t=v.minWidth)?0:t,v=void 0===(v=v.minHeight)?0:v,w=document.createElement("canvas"),f=w.getContext("2d"),s=R({aspectRatio:i,width:o,height:k}),i=R({aspectRatio:i,width:t,height:v},"cover"),r=Math.min(s.width,Math.max(i.width,r)),s=Math.min(s.height,Math.max(i.height,a)),i=R({aspectRatio:g,width:o,height:k}),a=R({aspectRatio:g,width:t,height:v},"cover"),o=Math.min(i.width,Math.max(a.width,e)),k=Math.min(i.height,Math.max(a.height,n)),g=[-o/2,-k/2,o,k],w.width=Y(r),w.height=Y(s),f.fillStyle=h,f.fillRect(0,0,r,s),f.save(),f.translate(r/2,s/2),f.rotate(c*Math.PI/180),f.scale(d,l),f.imageSmoothingEnabled=p,f.imageSmoothingQuality=m,f.drawImage.apply(f,[u].concat(j(g.map(function(t){return Math.floor(Y(t))})))),f.restore(),t=w,this.cropped?(e=(v=this.getData()).x,i=v.y,a=v.width,n=v.height,1!=(o=t.width/Math.floor(B.naturalWidth))&&(e*=o,i*=o,a*=o,n*=o),h=R({aspectRatio:k=a/n,width:O.maxWidth||1/0,height:O.maxHeight||1/0}),r=R({aspectRatio:k,width:O.minWidth||0,height:O.minHeight||0},"cover"),c=(s=R({aspectRatio:k,width:O.width||(1!=o?t.width:a),height:O.height||(1!=o?t.height:n)})).width,d=s.height,c=Math.min(h.width,Math.max(r.width,c)),d=Math.min(h.height,Math.max(r.height,d)),p=(l=document.createElement("canvas")).getContext("2d"),l.width=Y(c),l.height=Y(d),p.fillStyle=O.fillColor||"transparent",p.fillRect(0,0,c,d),m=O.imageSmoothingEnabled,u=O.imageSmoothingQuality,p.imageSmoothingEnabled=void 0===m||m,u&&(p.imageSmoothingQuality=u),g=t.width,f=t.height,w=i,(v=e)<=-a||g<v?C=x=b=v=0:v<=0?(x=-v,v=0,C=b=Math.min(g,a+v)):v<=g&&(x=0,C=b=Math.min(a,g-v)),b<=0||w<=-n||f<w?D=M=y=w=0:w<=0?(M=-w,w=0,D=y=Math.min(f,n+w)):w<=f&&(M=0,D=y=Math.min(n,f-w)),B=[v,w,b,y],0<C&&0<D&&B.push(x*(k=c/a),M*k,C*k,D*k),p.drawImage.apply(p,[t].concat(j(B.map(function(t){return Math.floor(Y(t))})))),l):t):null},setAspectRatio:function(t){var e=this.options;return this.disabled||ft(t)||(e.aspectRatio=Math.max(0,t)||NaN,this.ready&&(this.initCropBox(),this.cropped)&&this.renderCropBox()),this},setDragMode:function(t){var e,i,a=this.options,n=this.dragBox,o=this.face;return this.ready&&!this.disabled&&(i=a.movable&&t===F,a.dragMode=t=(e=t===V)||i?t:J,w(n,d,t),r(n,$,e),r(n,G,i),a.cropBoxMovable||(w(o,d,t),r(o,$,e),r(o,G,i))),this}},jt=h.Cropper,Pt=function(){function n(t){var e=1<arguments.length&&void 0!==arguments[1]?arguments[1]:{},i=this,a=n;if(!(i instanceof a))throw new TypeError("Cannot call a class as a function");if(!t||!pt.test(t.tagName))throw new Error("The first argument is required and must be an <img> or <canvas> element.");this.element=t,this.options=g({},mt,u(e)&&e),this.cropped=!1,this.disabled=!1,this.pointers={},this.ready=!1,this.reloading=!1,this.replaced=!1,this.sized=!1,this.sizing=!1,this.init()}var t,e,i;return t=n,i=[{key:"noConflict",value:function(){return window.Cropper=jt,n}},{key:"setDefaults",value:function(t){g(mt,u(t)&&t)}}],(e=[{key:"init",value:function(){var t,e=this.element,i=e.tagName.toLowerCase();if(!e[c]){if(e[c]=this,"img"===i){if(this.isImg=!0,t=e.getAttribute("src")||"",!(this.originalUrl=t))return;t=e.src}else"canvas"===i&&window.HTMLCanvasElement&&(t=e.toDataURL());this.load(t)}}},{key:"load",value:function(t){var e,i,a,n,o,h,r=this;t&&(this.url=t,this.imageData={},e=this.element,(i=this.options).rotatable||i.scalable||(i.checkOrientation=!1),i.checkOrientation&&window.ArrayBuffer?dt.test(t)?lt.test(t)?this.read((h=(h=t).replace(Yt,""),a=atob(h),h=new ArrayBuffer(a.length),z(n=new Uint8Array(h),function(t,e){n[e]=a.charCodeAt(e)}),h)):this.clone():(o=new XMLHttpRequest,h=this.clone.bind(this),this.reloading=!0,(this.xhr=o).onabort=h,o.onerror=h,o.ontimeout=h,o.onprogress=function(){o.getResponseHeader("content-type")!==st&&o.abort()},o.onload=function(){r.read(o.response)},o.onloadend=function(){r.reloading=!1,r.xhr=null},i.checkCrossOrigin&&Nt(t)&&e.crossOrigin&&(t=Lt(t)),o.open("GET",t,!0),o.responseType="arraybuffer",o.withCredentials="use-credentials"===e.crossOrigin,o.send()):this.clone())}},{key:"read",value:function(t){var e=this.options,i=this.imageData,a=Xt(t),n=0,o=1,h=1;1<a&&(this.url=function(t,e){for(var i=[],a=new Uint8Array(t);0<a.length;)i.push(zt.apply(null,bt(a.subarray(0,8192)))),a=a.subarray(8192);return"data:".concat(e,";base64,").concat(btoa(i.join("")))}(t,st),n=(t=function(t){var e=0,i=1,a=1;switch(t){case 2:i=-1;break;case 3:e=-180;break;case 4:a=-1;break;case 5:e=90,a=-1;break;case 6:e=90;break;case 7:e=90,i=-1;break;case 8:e=-90}return{rotate:e,scaleX:i,scaleY:a}}(a)).rotate,o=t.scaleX,h=t.scaleY),e.rotatable&&(i.rotate=n),e.scalable&&(i.scaleX=o,i.scaleY=h),this.clone()}},{key:"clone",value:function(){var t=this.element,e=this.url,i=t.crossOrigin,a=e,n=(this.options.checkCrossOrigin&&Nt(e)&&(i=i||"anonymous",a=Lt(e)),this.crossOrigin=i,this.crossOriginUrl=a,document.createElement("img"));i&&(n.crossOrigin=i),n.src=a||e,n.alt=t.alt||"The image to crop",(this.image=n).onload=this.start.bind(this),n.onerror=this.stop.bind(this),v(n,K),t.parentNode.insertBefore(n,t.nextSibling)}},{key:"start",value:function(){function t(t,e){g(a.imageData,{naturalWidth:t,naturalHeight:e,aspectRatio:t/e}),a.initialImageData=g({},a.imageData),a.sizing=!1,a.sized=!0,a.build()}var e,i,a=this,n=this.image,o=(n.onload=null,n.onerror=null,this.sizing=!0,h.navigator&&/(?:iPad|iPhone|iPod).*?AppleWebKit/i.test(h.navigator.userAgent));n.naturalWidth&&!o?t(n.naturalWidth,n.naturalHeight):(e=document.createElement("img"),i=document.body||document.documentElement,(this.sizingImage=e).onload=function(){t(e.width,e.height),o||i.removeChild(e)},e.src=n.src,o||(e.style.cssText="left:0;max-height:none!important;max-width:none!important;min-height:0!important;min-width:0!important;opacity:0;position:absolute;top:0;z-index:-1;",i.appendChild(e)))}},{key:"stop",value:function(){var t=this.image;t.onload=null,t.onerror=null,t.parentNode.removeChild(t),this.image=null}},{key:"build",value:function(){var t,e,i,a,n,o,h,r,s;this.sized&&!this.ready&&(t=this.element,e=this.options,i=this.image,a=t.parentNode,(n=document.createElement("div")).innerHTML='<div class="cropper-container" touch-action="none"><div class="cropper-wrap-box"><div class="cropper-canvas"></div></div><div class="cropper-drag-box"></div><div class="cropper-crop-box"><span class="cropper-view-box"></span><span class="cropper-dashed dashed-h"></span><span class="cropper-dashed dashed-v"></span><span class="cropper-center"></span><span class="cropper-face"></span><span class="cropper-line line-e" data-cropper-action="e"></span><span class="cropper-line line-n" data-cropper-action="n"></span><span class="cropper-line line-w" data-cropper-action="w"></span><span class="cropper-line line-s" data-cropper-action="s"></span><span class="cropper-point point-e" data-cropper-action="e"></span><span class="cropper-point point-n" data-cropper-action="n"></span><span class="cropper-point point-w" data-cropper-action="w"></span><span class="cropper-point point-s" data-cropper-action="s"></span><span class="cropper-point point-ne" data-cropper-action="ne"></span><span class="cropper-point point-nw" data-cropper-action="nw"></span><span class="cropper-point point-sw" data-cropper-action="sw"></span><span class="cropper-point point-se" data-cropper-action="se"></span></div></div>',o=(n=n.querySelector(".".concat(c,"-container"))).querySelector(".".concat(c,"-canvas")),h=n.querySelector(".".concat(c,"-drag-box")),s=(r=n.querySelector(".".concat(c,"-crop-box"))).querySelector(".".concat(c,"-face")),this.container=a,this.cropper=n,this.canvas=o,this.dragBox=h,this.cropBox=r,this.viewBox=n.querySelector(".".concat(c,"-view-box")),this.face=s,o.appendChild(i),v(t,L),a.insertBefore(n,t.nextSibling),X(i,K),this.initPreview(),this.bind(),e.initialAspectRatio=Math.max(0,e.initialAspectRatio)||NaN,e.aspectRatio=Math.max(0,e.aspectRatio)||NaN,e.viewMode=Math.max(0,Math.min(3,Math.round(e.viewMode)))||0,v(r,L),e.guides||v(r.getElementsByClassName("".concat(c,"-dashed")),L),e.center||v(r.getElementsByClassName("".concat(c,"-center")),L),e.background&&v(n,"".concat(c,"-bg")),e.highlight||v(s,Z),e.cropBoxMovable&&(v(s,G),w(s,d,P)),e.cropBoxResizable||(v(r.getElementsByClassName("".concat(c,"-line")),L),v(r.getElementsByClassName("".concat(c,"-point")),L)),this.render(),this.ready=!0,this.setDragMode(e.dragMode),e.autoCrop&&this.crop(),this.setData(e.data),l(e.ready)&&b(t,"ready",e.ready,{once:!0}),y(t,"ready"))}},{key:"unbuild",value:function(){var t;this.ready&&(this.ready=!1,this.unbind(),this.resetPreview(),(t=this.cropper.parentNode)&&t.removeChild(this.cropper),X(this.element,L))}},{key:"uncreate",value:function(){this.ready?(this.unbuild(),this.ready=!1,this.cropped=!1):this.sizing?(this.sizingImage.onload=null,this.sizing=!1,this.sized=!1):this.reloading?(this.xhr.onabort=null,this.xhr.abort()):this.image&&this.stop()}}])&&A(t.prototype,e),i&&A(t,i),Object.defineProperty(t,"prototype",{writable:!1}),n}();return g(Pt.prototype,t,i,e,Rt,St,At),Pt});
+  </script>
+
   <script>
     /* Injected template variables from Google Apps Script */
     var initialStaffId = "<?= typeof initialStaffId !== 'undefined' ? initialStaffId : '' ?>";
@@ -3707,7 +4618,12 @@
       activeFilter: 'daily_car_cleaning',
       selectedPhotoBase64: '',
       selectedPhotoType: '',
-      selectedPhotoName: ''
+      selectedPhotoName: '',
+      rawSelectedPhotoDataUrl: '',
+      editPhotoBase64: '',
+      editPhotoType: '',
+      editPhotoName: '',
+      rawEditPhotoDataUrl: ''
     };
 
     /* Sync CWP Brand Logo across all Auth and Modal views */
@@ -3956,7 +4872,10 @@
             errBox.textContent = '❌ ' + (res && res.error ? res.error : 'गलत मोबाइल नंबर या 6-डिजिट पासवर्ड!');
             errBox.style.display = 'block';
           }
-          if (pinInput) pinInput.focus();
+          if (pinInput) {
+            triggerInputShake(pinInput);
+            pinInput.focus();
+          }
         }
       }, function(err) {
         if (btn) {
@@ -4056,6 +4975,7 @@
         if (logoutBtn) logoutBtn.style.display = 'inline-flex';
         loadStaffListForAdmin();
         loadAdminRecords();
+        initCustomerAutoDraft();
       } else {
         if (authGate) authGate.style.display = 'block';
         if (unlocked) unlocked.style.display = 'none';
@@ -4098,6 +5018,7 @@
         } else {
           errBox.textContent = '❌ ' + (res && res.error ? res.error : 'गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।');
           errBox.style.display = 'block';
+          triggerInputShake(input);
           input.focus();
         }
       }, function(err) {
@@ -4105,6 +5026,7 @@
         btn.innerHTML = '<span class="btn-icon">🔓</span> <span class="btn-label">एडमिन पोर्टल खोलें (Unlock Dashboard)</span>';
         errBox.textContent = '❌ ' + (err.message || 'सत्यापन विफल हुआ');
         errBox.style.display = 'block';
+        triggerInputShake(input);
       });
     }
 
@@ -4534,12 +5456,14 @@
           ? 'सर्च के अनुसार कोई रिकॉर्ड नहीं मिला। ("' + escapeHtml(state.searchQuery) + '")'
           : (state.activeFilter === 'solar_cleaning' ? 'इस केटेगरी में कोई सोलर साइट असाइन नहीं है।' : (state.activeFilter === 'car_washing' ? 'इस केटेगरी में कोई कार वॉशिंग असाइन नहीं है।' : 'इस केटेगरी में कोई दैनिक कार सफाई असाइन नहीं है।'));
         var emptyIcon = isSearchActive ? '🔍' : (state.activeFilter === 'solar_cleaning' ? '☀️' : (state.activeFilter === 'car_washing' ? '🧼' : '🚗'));
-        var clearBtnHtml = isSearchActive ? '<div style="margin-top:10px;"><button type="button" class="btn-clear-search-empty" onclick="clearStaffSearch()">✕ सर्च साफ़ करें</button></div>' : '';
+        var actionBtnHtml = isSearchActive 
+          ? '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="clearStaffSearch()">✕ सर्च साफ़ करें</button></div>'
+          : '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="setStaffFilter(\'daily_car_cleaning\')">🚗 मुख्य दैनिक सफाई पर जाएं</button></div>';
         container.innerHTML = '<div class="empty-state-card">' +
           '<div class="empty-icon-wrap">' + emptyIcon + '</div>' +
           '<h4 class="empty-title">कोई रिकॉर्ड नहीं मिला</h4>' +
           '<p class="empty-desc">' + emptyMsg + '</p>' +
-          clearBtnHtml +
+          actionBtnHtml +
         '</div>';
         return;
       }
@@ -5159,23 +6083,755 @@
       }, { timeout: 10000 });
     }
 
+    /* =========================================================================
+       AUTO-DRAFT & LOCAL PERSISTENCE SYSTEM (P0 Form Resilience)
+       ========================================================================= */
+    var CWP_DRAFT_KEY = 'cwp_add_customer_draft_v1';
+    var CWP_EDIT_DRAFT_PREFIX = 'cwp_edit_draft_';
+    var draftSaveTimer = null;
+    var editDraftSaveTimer = null;
+
+    function formatRelativeDraftTime(timestamp) {
+      if (!timestamp) return 'हाल ही में (Just now)';
+      var diffSec = Math.floor((Date.now() - timestamp) / 1000);
+      if (diffSec < 60) return 'अभी-अभी (Just now)';
+      var diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return diffMin + ' मिनट पहले (' + diffMin + ' min ago)';
+      var diffHours = Math.floor(diffMin / 60);
+      if (diffHours < 24) return diffHours + ' घंटे पहले (' + diffHours + ' hrs ago)';
+      return new Date(timestamp).toLocaleDateString() + ' ' + new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function initCustomerAutoDraft() {
+      var form = document.getElementById('addCustomerForm');
+      if (!form || form._hasDraftListener) return;
+      form._hasDraftListener = true;
+
+      /* Check for existing draft on init */
+      checkAndShowDraftBanner();
+
+      /* Attach input & change listener for debounced auto-drafting */
+      var inputs = form.querySelectorAll('input, select, textarea');
+      inputs.forEach(function(el) {
+        if (el.type === 'file') return;
+        el.addEventListener('input', triggerCustomerAutoDraft);
+        el.addEventListener('change', triggerCustomerAutoDraft);
+      });
+    }
+
+    function triggerCustomerAutoDraft() {
+      var badge = document.getElementById('custDraftBadge');
+      if (badge) {
+        badge.style.display = 'inline-flex';
+        badge.className = 'cwp-draft-badge saving';
+        badge.innerHTML = '<span class="draft-dot pulse"></span> ड्राफ्ट सेव हो रहा है...';
+      }
+
+      clearTimeout(draftSaveTimer);
+      draftSaveTimer = setTimeout(function() {
+        saveCustomerDraft();
+      }, 350);
+    }
+
+    function saveCustomerDraft() {
+      var nameEl = document.getElementById('custName');
+      var phoneEl = document.getElementById('custPhone');
+      var mapsEl = document.getElementById('custMapsUrl');
+      var addrEl = document.getElementById('custAddress');
+      var catEl = document.getElementById('custCategory');
+      var vehEl = document.getElementById('custVehicles');
+      var pkgEl = document.getElementById('custPkgType');
+      var pkgCustomEl = document.getElementById('custPkgTypeCustom');
+      var staffEl = document.getElementById('custStaffSelect');
+      var notesEl = document.getElementById('custNotes');
+      var secAddrEl = document.getElementById('custSecAddress');
+      var secMapsEl = document.getElementById('custSecMaps');
+
+      var name = (nameEl ? nameEl.value : '').trim();
+      var phone = (phoneEl ? phoneEl.value : '').trim();
+      var maps = (mapsEl ? mapsEl.value : '').trim();
+      var addr = (addrEl ? addrEl.value : '').trim();
+      var cat = catEl ? catEl.value : 'Daily Car Cleaning';
+      var veh = (vehEl ? vehEl.value : '').trim();
+      var pkg = pkgEl ? pkgEl.value : 'DCC ONLY';
+      var pkgCustom = (pkgCustomEl ? pkgCustomEl.value : '').trim();
+      var staff = staffEl ? staffEl.value : '';
+      var notes = (notesEl ? notesEl.value : '').trim();
+      var secAddr = (secAddrEl ? secAddrEl.value : '').trim();
+      var secMaps = (secMapsEl ? secMapsEl.value : '').trim();
+
+      /* Check if there is meaningful input worth preserving */
+      var hasContent = name || phone || maps || addr || veh || notes || secAddr || secMaps || (pkg === 'OTHER' && pkgCustom) || state.selectedPhotoBase64;
+      var badge = document.getElementById('custDraftBadge');
+
+      if (!hasContent) {
+        localStorage.removeItem(CWP_DRAFT_KEY);
+        if (badge) badge.style.display = 'none';
+        return;
+      }
+
+      var draftData = {
+        name: name,
+        phone: phone,
+        maps: maps,
+        addr: addr,
+        cat: cat,
+        veh: veh,
+        pkg: pkg,
+        pkgCustom: pkgCustom,
+        staff: staff,
+        notes: notes,
+        secAddr: secAddr,
+        secMaps: secMaps,
+        timestamp: Date.now()
+      };
+
+      try {
+        localStorage.setItem(CWP_DRAFT_KEY, JSON.stringify(draftData));
+        if (badge) {
+          badge.style.display = 'inline-flex';
+          badge.className = 'cwp-draft-badge saved';
+          var timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          badge.innerHTML = '<span class="draft-dot ready"></span> ✓ ड्राफ्ट सुरक्षित (' + timeStr + ')';
+        }
+      } catch (e) {
+        console.warn('Draft save error:', e);
+      }
+    }
+
+    function checkAndShowDraftBanner() {
+      var raw = localStorage.getItem(CWP_DRAFT_KEY);
+      var banner = document.getElementById('custDraftRestoreBanner');
+      var timeEl = document.getElementById('custDraftTimeInfo');
+      if (!raw) {
+        if (banner) banner.style.display = 'none';
+        return;
+      }
+
+      try {
+        var draft = JSON.parse(raw);
+        if (!draft || (!draft.name && !draft.phone && !draft.addr && !draft.veh)) {
+          localStorage.removeItem(CWP_DRAFT_KEY);
+          if (banner) banner.style.display = 'none';
+          return;
+        }
+
+        if (timeEl) {
+          var snippet = draft.name ? ('(' + draft.name + (draft.phone ? ' • ' + draft.phone : '') + ')') : '';
+          timeEl.textContent = formatRelativeDraftTime(draft.timestamp) + ' ' + snippet;
+        }
+        if (banner) banner.style.display = 'flex';
+      } catch (e) {
+        localStorage.removeItem(CWP_DRAFT_KEY);
+        if (banner) banner.style.display = 'none';
+      }
+    }
+
+    function restoreCustomerDraft() {
+      var raw = localStorage.getItem(CWP_DRAFT_KEY);
+      if (!raw) return;
+
+      try {
+        var d = JSON.parse(raw);
+        if (d.name !== undefined && document.getElementById('custName')) document.getElementById('custName').value = d.name;
+        if (d.phone !== undefined && document.getElementById('custPhone')) document.getElementById('custPhone').value = d.phone;
+        if (d.maps !== undefined && document.getElementById('custMapsUrl')) document.getElementById('custMapsUrl').value = d.maps;
+        if (d.addr !== undefined && document.getElementById('custAddress')) document.getElementById('custAddress').value = d.addr;
+        if (d.cat !== undefined && document.getElementById('custCategory')) {
+          document.getElementById('custCategory').value = d.cat;
+          toggleCategoryFields(d.cat);
+        }
+        if (d.veh !== undefined && document.getElementById('custVehicles')) document.getElementById('custVehicles').value = d.veh;
+        if (d.pkg !== undefined && document.getElementById('custPkgType')) {
+          document.getElementById('custPkgType').value = d.pkg;
+          handlePackageTypeChange(d.pkg);
+        }
+        if (d.pkgCustom !== undefined && document.getElementById('custPkgTypeCustom')) {
+          document.getElementById('custPkgTypeCustom').value = d.pkgCustom;
+        }
+        if (d.staff !== undefined && document.getElementById('custStaffSelect')) {
+          document.getElementById('custStaffSelect').value = d.staff;
+        }
+        if (d.notes !== undefined && document.getElementById('custNotes')) document.getElementById('custNotes').value = d.notes;
+        if (d.secAddr !== undefined && document.getElementById('custSecAddress')) {
+          document.getElementById('custSecAddress').value = d.secAddr;
+        }
+        if (d.secMaps !== undefined && document.getElementById('custSecMaps')) {
+          document.getElementById('custSecMaps').value = d.secMaps;
+        }
+
+        var banner = document.getElementById('custDraftRestoreBanner');
+        if (banner) banner.style.display = 'none';
+
+        var badge = document.getElementById('custDraftBadge');
+        if (badge) {
+          badge.style.display = 'inline-flex';
+          badge.className = 'cwp-draft-badge saved';
+          badge.innerHTML = '<span class="draft-dot ready"></span> ✓ ड्राफ्ट लोड हुआ';
+        }
+
+        showToast('ड्राफ्ट डेटा फॉर्म में सफलतापूर्वक भर दिया गया!', '✓');
+      } catch (e) {
+        console.error('Error restoring draft:', e);
+        showToast('ड्राफ्ट लोड करने में समस्या: ' + e.message, '⚠️');
+      }
+    }
+
+    function discardCustomerDraft(silent) {
+      localStorage.removeItem(CWP_DRAFT_KEY);
+      var banner = document.getElementById('custDraftRestoreBanner');
+      if (banner) banner.style.display = 'none';
+      var badge = document.getElementById('custDraftBadge');
+      if (badge) badge.style.display = 'none';
+      if (!silent) {
+        showToast('ड्राफ्ट हटा दिया गया', '🗑️');
+      }
+    }
+
+    /* Edit Modal Auto-Draft System */
+    function getEditDraftKey() {
+      var rowEl = document.getElementById('editRowIndex');
+      var sheetEl = document.getElementById('editSheetName');
+      var row = rowEl ? rowEl.value : 'unknown';
+      var sheet = sheetEl ? sheetEl.value : 'unknown';
+      return CWP_EDIT_DRAFT_PREFIX + sheet + '_' + row;
+    }
+
+    function initEditCustomerAutoDraft() {
+      var form = document.getElementById('editCustomerForm');
+      if (!form || form._hasEditDraftListener) return;
+      form._hasEditDraftListener = true;
+
+      var inputs = form.querySelectorAll('input, select, textarea');
+      inputs.forEach(function(el) {
+        if (el.type === 'file' || el.type === 'hidden') return;
+        el.addEventListener('input', triggerEditAutoDraft);
+        el.addEventListener('change', triggerEditAutoDraft);
+      });
+    }
+
+    function triggerEditAutoDraft() {
+      var badge = document.getElementById('editDraftBadge');
+      if (badge) {
+        badge.style.display = 'inline-flex';
+        badge.className = 'cwp-draft-badge saving';
+        badge.innerHTML = '<span class="draft-dot pulse"></span> सेव हो रहा है...';
+      }
+      clearTimeout(editDraftSaveTimer);
+      editDraftSaveTimer = setTimeout(function() {
+        saveEditDraft();
+      }, 400);
+    }
+
+    function saveEditDraft() {
+      var key = getEditDraftKey();
+      if (!key || key.indexOf('unknown') !== -1) return;
+
+      var nameEl = document.getElementById('editCustName');
+      var phoneEl = document.getElementById('editCustPhone');
+      var staffEl = document.getElementById('editCustStaff');
+      var activeEl = document.getElementById('editCustActive');
+      var catEl = document.getElementById('editCustCategory');
+      var pkgEl = document.getElementById('editCustPkgType');
+      var pkgCustomEl = document.getElementById('editCustPkgTypeCustom');
+      var vehEl = document.getElementById('editCustVehicles');
+      var mapsEl = document.getElementById('editCustMapsUrl');
+      var addrEl = document.getElementById('editCustAddress');
+      var secAddrEl = document.getElementById('editCustSecAddress');
+      var secMapsEl = document.getElementById('editCustSecMaps');
+      var notesEl = document.getElementById('editCustNotes');
+
+      var draftData = {
+        name: (nameEl ? nameEl.value : '').trim(),
+        phone: (phoneEl ? phoneEl.value : '').trim(),
+        staff: staffEl ? staffEl.value : '',
+        active: activeEl ? activeEl.value : 'Yes',
+        category: catEl ? catEl.value : 'Daily Car Cleaning',
+        pkg: pkgEl ? pkgEl.value : 'DCC ONLY',
+        pkgCustom: (pkgCustomEl ? pkgCustomEl.value : '').trim(),
+        vehicles: (vehEl ? vehEl.value : '').trim(),
+        maps: (mapsEl ? mapsEl.value : '').trim(),
+        address: (addrEl ? addrEl.value : '').trim(),
+        secAddress: (secAddrEl ? secAddrEl.value : '').trim(),
+        secMaps: (secMapsEl ? secMapsEl.value : '').trim(),
+        notes: (notesEl ? notesEl.value : '').trim(),
+        timestamp: Date.now()
+      };
+
+      try {
+        localStorage.setItem(key, JSON.stringify(draftData));
+        var badge = document.getElementById('editDraftBadge');
+        if (badge) {
+          badge.style.display = 'inline-flex';
+          badge.className = 'cwp-draft-badge saved';
+          badge.innerHTML = '<span class="draft-dot ready"></span> ✓ ड्राफ्ट सुरक्षित';
+        }
+      } catch (e) {
+        console.warn('Edit draft save error:', e);
+      }
+    }
+
+    function checkAndShowEditDraftBanner() {
+      var key = getEditDraftKey();
+      var raw = localStorage.getItem(key);
+      var banner = document.getElementById('editDraftRestoreBanner');
+      var timeEl = document.getElementById('editDraftTimeInfo');
+      if (!raw || !banner) {
+        if (banner) banner.style.display = 'none';
+        return;
+      }
+      try {
+        var d = JSON.parse(raw);
+        if (timeEl) timeEl.textContent = formatRelativeDraftTime(d.timestamp);
+        banner.style.display = 'flex';
+      } catch (e) {
+        localStorage.removeItem(key);
+        banner.style.display = 'none';
+      }
+    }
+
+    function restoreEditDraft() {
+      var key = getEditDraftKey();
+      var raw = localStorage.getItem(key);
+      if (!raw) return;
+      try {
+        var d = JSON.parse(raw);
+        if (d.name !== undefined && document.getElementById('editCustName')) document.getElementById('editCustName').value = d.name;
+        if (d.phone !== undefined && document.getElementById('editCustPhone')) document.getElementById('editCustPhone').value = d.phone;
+        if (d.staff !== undefined && document.getElementById('editCustStaff')) document.getElementById('editCustStaff').value = d.staff;
+        if (d.active !== undefined && document.getElementById('editCustActive')) document.getElementById('editCustActive').value = d.active;
+        if (d.category !== undefined && document.getElementById('editCustCategory')) {
+          document.getElementById('editCustCategory').value = d.category;
+          handleEditCategoryChange(d.category);
+        }
+        if (d.pkg !== undefined && document.getElementById('editCustPkgType')) {
+          document.getElementById('editCustPkgType').value = d.pkg;
+          handleEditPackageTypeChange(d.pkg);
+        }
+        if (d.pkgCustom !== undefined && document.getElementById('editCustPkgTypeCustom')) {
+          document.getElementById('editCustPkgTypeCustom').value = d.pkgCustom;
+        }
+        if (d.vehicles !== undefined && document.getElementById('editCustVehicles')) document.getElementById('editCustVehicles').value = d.vehicles;
+        if (d.maps !== undefined && document.getElementById('editCustMapsUrl')) document.getElementById('editCustMapsUrl').value = d.maps;
+        if (d.address !== undefined && document.getElementById('editCustAddress')) document.getElementById('editCustAddress').value = d.address;
+        if (d.secAddress !== undefined && document.getElementById('editCustSecAddress')) {
+          document.getElementById('editCustSecAddress').value = d.secAddress;
+        }
+        if (d.secMaps !== undefined && document.getElementById('editCustSecMaps')) {
+          document.getElementById('editCustSecMaps').value = d.secMaps;
+        }
+        if (d.notes !== undefined && document.getElementById('editCustNotes')) document.getElementById('editCustNotes').value = d.notes;
+
+        var banner = document.getElementById('editDraftRestoreBanner');
+        if (banner) banner.style.display = 'none';
+        showToast('एडिट ड्राफ्ट भर दिया गया', '✓');
+      } catch (e) {
+        console.warn('Error restoring edit draft:', e);
+      }
+    }
+
+    function discardEditDraft(silent) {
+      var key = getEditDraftKey();
+      localStorage.removeItem(key);
+      var banner = document.getElementById('editDraftRestoreBanner');
+      if (banner) banner.style.display = 'none';
+      var badge = document.getElementById('editDraftBadge');
+      if (badge) badge.style.display = 'none';
+      if (!silent) showToast('एडिट ड्राफ्ट हटाया गया', '🗑️');
+    }
+
+
+    /* =========================================================================
+       PHOTO CROPPER & ROTATION (DEGREE-WISE) SYSTEM
+       ========================================================================= */
+    var cropperInstance = null;
+    var cropperTargetContext = 'add'; /* 'add' or 'edit' */
+    var cropperCurrentDegree = 0;
+    var cropperScaleX = 1;
+    var cropperScaleY = 1;
+
+    function triggerCustPhotoSelect() {
+      if (!state.selectedPhotoBase64) {
+        var fileInput = document.getElementById('custPhotoFile');
+        if (fileInput) fileInput.click();
+      }
+    }
+
+    function openCropperModal(imageSrc, context) {
+      if (!imageSrc) return;
+      cropperTargetContext = context || 'add';
+
+      var modal = document.getElementById('cwpPhotoCropperModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+
+      /* Destroy existing instance if any */
+      if (cropperInstance) {
+        try { cropperInstance.destroy(); } catch (e) {}
+        cropperInstance = null;
+      }
+
+      cropperCurrentDegree = 0;
+      cropperScaleX = 1;
+      cropperScaleY = 1;
+
+      var slider = document.getElementById('cropperAngleSlider');
+      if (slider) slider.value = 0;
+      var badge = document.getElementById('cropperAngleBadge');
+      if (badge) badge.innerText = '0.0°';
+
+      var img = document.getElementById('cwpCropperSourceImg');
+      if (!img) return;
+
+      img.crossOrigin = 'anonymous';
+      img.onload = function() {
+        if (typeof Cropper === 'undefined') {
+          showToast('Cropper लाइब्रेरी लोड नहीं हो सकी', '❌');
+          return;
+        }
+
+        if (cropperInstance) {
+          try { cropperInstance.destroy(); } catch (e) {}
+          cropperInstance = null;
+        }
+
+        cropperInstance = new Cropper(img, {
+          viewMode: 0,
+          dragMode: 'crop',
+          aspectRatio: NaN,
+          autoCropArea: 0.95,
+          responsive: true,
+          restore: false,
+          guides: true,
+          center: true,
+          highlight: false,
+          cropBoxMovable: true,
+          cropBoxResizable: true,
+          toggleDragModeOnDblclick: false,
+          rotatable: true,
+          scalable: true,
+          zoomable: true,
+          checkOrientation: true,
+          ready: function() {
+            cropperSetActiveAspectBtn('free');
+            cropperSetDragMode('crop');
+          }
+        });
+      };
+      img.src = imageSrc;
+    }
+
+    function closeCropperModal() {
+      var modal = document.getElementById('cwpPhotoCropperModal');
+      if (modal) modal.style.display = 'none';
+      document.body.style.overflow = '';
+
+      if (cropperInstance) {
+        try { cropperInstance.destroy(); } catch (e) {}
+        cropperInstance = null;
+      }
+
+      /* If user cancelled without applying and had no prior photo, reset inputs */
+      if (cropperTargetContext === 'add' && !state.selectedPhotoBase64) {
+        var fileInput = document.getElementById('custPhotoFile');
+        if (fileInput) fileInput.value = '';
+        var prev = document.getElementById('custPhotoPreview');
+        if (prev) prev.style.display = 'none';
+        var ph = document.getElementById('custPhotoPlaceholder');
+        if (ph) ph.style.display = 'block';
+      } else if (cropperTargetContext === 'edit' && !state.editPhotoBase64) {
+        var editFileInput = document.getElementById('editCustPhotoFile');
+        if (editFileInput) editFileInput.value = '';
+      }
+    }
+
+    function cropperHandleOverlayClick(event) {
+      if (event.target && event.target.id === 'cwpPhotoCropperModal') {
+        closeCropperModal();
+      }
+    }
+
+    function cropperOnSliderInput(val) {
+      var deg = parseFloat(val) || 0;
+      cropperCurrentDegree = deg;
+      var badge = document.getElementById('cropperAngleBadge');
+      if (badge) {
+        badge.innerText = (deg > 0 ? '+' : '') + deg.toFixed(1) + '°';
+      }
+      if (cropperInstance) {
+        cropperInstance.rotateTo(deg);
+      }
+    }
+
+    function cropperNudgeAngle(delta) {
+      var newDeg = cropperCurrentDegree + delta;
+      if (newDeg > 180) newDeg -= 360;
+      if (newDeg < -180) newDeg += 360;
+      newDeg = Math.round(newDeg * 10) / 10;
+      var slider = document.getElementById('cropperAngleSlider');
+      if (slider) slider.value = newDeg;
+      cropperOnSliderInput(newDeg);
+    }
+
+    function cropperStepRotate(delta) {
+      cropperNudgeAngle(delta);
+    }
+
+    function cropperResetAngle() {
+      cropperCurrentDegree = 0;
+      var slider = document.getElementById('cropperAngleSlider');
+      if (slider) slider.value = 0;
+      cropperOnSliderInput(0);
+    }
+
+    function cropperFlipH() {
+      if (!cropperInstance) return;
+      cropperScaleX = -cropperScaleX;
+      cropperInstance.scaleX(cropperScaleX);
+    }
+
+    function cropperFlipV() {
+      if (!cropperInstance) return;
+      cropperScaleY = -cropperScaleY;
+      cropperInstance.scaleY(cropperScaleY);
+    }
+
+    function cropperSetAspectRatio(ratio, btnKey) {
+      if (!cropperInstance) return;
+      cropperInstance.setAspectRatio(ratio);
+      cropperSetActiveAspectBtn(btnKey);
+    }
+
+    function cropperSetActiveAspectBtn(key) {
+      var btnIds = ['btnAspectFree', 'btnAspect1_1', 'btnAspect4_3', 'btnAspect16_9', 'btnAspect3_4'];
+      for (var i = 0; i < btnIds.length; i++) {
+        var el = document.getElementById(btnIds[i]);
+        if (el) el.classList.remove('active');
+      }
+      var targetId = 'btnAspectFree';
+      if (key === '1_1') targetId = 'btnAspect1_1';
+      else if (key === '4_3') targetId = 'btnAspect4_3';
+      else if (key === '16_9') targetId = 'btnAspect16_9';
+      else if (key === '3_4') targetId = 'btnAspect3_4';
+      var activeEl = document.getElementById(targetId);
+      if (activeEl) activeEl.classList.add('active');
+    }
+
+    function cropperSetDragMode(mode) {
+      if (!cropperInstance) return;
+      cropperInstance.setDragMode(mode);
+      var moveBtn = document.getElementById('cropperBtnModeMove');
+      var cropBtn = document.getElementById('cropperBtnModeCrop');
+      if (moveBtn && cropBtn) {
+        if (mode === 'move') {
+          moveBtn.classList.add('active');
+          cropBtn.classList.remove('active');
+        } else {
+          cropBtn.classList.add('active');
+          moveBtn.classList.remove('active');
+        }
+      }
+    }
+
+    function cropperZoom(ratio) {
+      if (!cropperInstance) return;
+      cropperInstance.zoom(ratio);
+    }
+
+    function cropperResetAll() {
+      if (!cropperInstance) return;
+      cropperInstance.reset();
+      cropperCurrentDegree = 0;
+      cropperScaleX = 1;
+      cropperScaleY = 1;
+      var slider = document.getElementById('cropperAngleSlider');
+      if (slider) slider.value = 0;
+      var badge = document.getElementById('cropperAngleBadge');
+      if (badge) badge.innerText = '0.0°';
+      cropperSetAspectRatio(NaN, 'free');
+      cropperSetDragMode('crop');
+    }
+
+    function applyCroppedPhoto() {
+      if (!cropperInstance) return;
+
+      var canvas = cropperInstance.getCroppedCanvas({
+        maxWidth: 1600,
+        maxHeight: 1600,
+        fillColor: '#ffffff',
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+      });
+
+      if (!canvas) {
+        showToast('फोटो क्रॉप करने में त्रुटि!', '❌');
+        return;
+      }
+
+      var croppedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+      var commaIdx = croppedDataUrl.indexOf(',');
+      var base64 = commaIdx !== -1 ? croppedDataUrl.slice(commaIdx + 1) : croppedDataUrl;
+
+      if (cropperTargetContext === 'add') {
+        state.selectedPhotoBase64 = base64;
+        state.selectedPhotoType = 'image/jpeg';
+        if (!state.selectedPhotoName) {
+          state.selectedPhotoName = 'customer_photo.jpg';
+        } else {
+          state.selectedPhotoName = state.selectedPhotoName.replace(/\.[^/.]+$/, "") + ".jpg";
+        }
+
+        var preview = document.getElementById('custPhotoPreview');
+        if (preview) {
+          preview.src = croppedDataUrl;
+          preview.style.display = 'block';
+        }
+
+        var ph = document.getElementById('custPhotoPlaceholder');
+        if (ph) ph.style.display = 'none';
+
+        var actionsWrap = document.getElementById('custPhotoActionsWrap');
+        if (actionsWrap) actionsWrap.style.display = 'flex';
+
+        triggerCustomerAutoDraft();
+        showToast('फोटो सीधी और क्रॉप हो गई! ✓', '✂️');
+      } else if (cropperTargetContext === 'edit') {
+        state.editPhotoBase64 = base64;
+        state.editPhotoType = 'image/jpeg';
+        if (!state.editPhotoName) {
+          state.editPhotoName = 'customer_edit_photo.jpg';
+        } else {
+          state.editPhotoName = state.editPhotoName.replace(/\.[^/.]+$/, "") + ".jpg";
+        }
+
+        var thumb = document.getElementById('editPhotoThumb');
+        if (thumb) {
+          thumb.src = croppedDataUrl;
+          thumb.style.display = 'block';
+        }
+
+        var editActionsWrap = document.getElementById('editPhotoActionsWrap');
+        if (editActionsWrap) editActionsWrap.style.display = 'flex';
+
+        triggerEditAutoDraft();
+        showToast('एडिट फोटो सीधी और क्रॉप हो गई! ✓', '✂️');
+      }
+
+      closeCropperModal();
+    }
+
+    function openExistingCustPhotoCropper() {
+      var src = state.rawSelectedPhotoDataUrl;
+      if (!src) {
+        var prev = document.getElementById('custPhotoPreview');
+        if (prev && prev.src) src = prev.src;
+      }
+      if (src) {
+        openCropperModal(src, 'add');
+      } else {
+        var fileInput = document.getElementById('custPhotoFile');
+        if (fileInput) fileInput.click();
+      }
+    }
+
+    function openExistingEditPhotoCropper() {
+      var src = state.rawEditPhotoDataUrl;
+      if (!src) {
+        var thumb = document.getElementById('editPhotoThumb');
+        if (thumb && thumb.src) src = thumb.src;
+      }
+      if (!src) {
+        var origUrl = document.getElementById('editPhotoUrl') ? document.getElementById('editPhotoUrl').value : '';
+        if (origUrl) src = origUrl;
+      }
+      if (src) {
+        openCropperModal(src, 'edit');
+      } else {
+        var fileInput = document.getElementById('editCustPhotoFile');
+        if (fileInput) fileInput.click();
+      }
+    }
+
+    function removeCustPhoto(e) {
+      if (e) e.stopPropagation();
+      state.selectedPhotoBase64 = '';
+      state.selectedPhotoName = '';
+      state.selectedPhotoType = '';
+      state.rawSelectedPhotoDataUrl = '';
+      var preview = document.getElementById('custPhotoPreview');
+      if (preview) {
+        preview.src = '';
+        preview.style.display = 'none';
+      }
+      var ph = document.getElementById('custPhotoPlaceholder');
+      if (ph) ph.style.display = 'block';
+      var fileInput = document.getElementById('custPhotoFile');
+      if (fileInput) fileInput.value = '';
+      var actionsWrap = document.getElementById('custPhotoActionsWrap');
+      if (actionsWrap) actionsWrap.style.display = 'none';
+      triggerCustomerAutoDraft();
+      showToast('फोटो हटा दी गई', '🗑️');
+    }
+
+    function removeEditCustPhoto(e) {
+      if (e) e.stopPropagation();
+      state.editPhotoBase64 = '';
+      state.editPhotoName = '';
+      state.editPhotoType = '';
+      state.rawEditPhotoDataUrl = '';
+      var fileInput = document.getElementById('editCustPhotoFile');
+      if (fileInput) fileInput.value = '';
+      var thumb = document.getElementById('editPhotoThumb');
+      var origUrl = document.getElementById('editPhotoUrl') ? document.getElementById('editPhotoUrl').value : '';
+      if (origUrl) {
+        if (thumb) thumb.src = origUrl;
+      } else {
+        if (thumb) {
+          thumb.src = '';
+          thumb.style.display = 'none';
+        }
+        var editActionsWrap = document.getElementById('editPhotoActionsWrap');
+        if (editActionsWrap) editActionsWrap.style.display = 'none';
+      }
+      triggerEditAutoDraft();
+      showToast('नई फोटो हटाई गई', '🗑️');
+    }
+
     function handlePhotoSelect(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
+
+      var pWrap = document.getElementById('custPhotoProgressWrap');
+      var pFill = document.getElementById('custPhotoProgressFill');
+      if (pWrap && pFill) {
+        pWrap.style.display = 'block';
+        pFill.style.width = '30%';
+      }
 
       state.selectedPhotoName = file.name;
       state.selectedPhotoType = file.type || 'image/jpeg';
 
       var reader = new FileReader();
+      reader.onprogress = function(pe) {
+        if (pe.lengthComputable && pFill) {
+          var pct = Math.round((pe.loaded / pe.total) * 90);
+          pFill.style.width = pct + '%';
+        }
+      };
       reader.onload = function(evt) {
-        var dataUrl = evt.target.result;
-        var preview = document.getElementById('custPhotoPreview');
-        preview.src = dataUrl;
-        preview.style.display = 'block';
+        if (pFill) pFill.style.width = '100%';
+        setTimeout(function() {
+          if (pWrap) pWrap.style.display = 'none';
+          if (pFill) pFill.style.width = '0%';
+        }, 300);
 
-        /* Extract base64 without prefix */
-        var commaIdx = dataUrl.indexOf(',');
-        state.selectedPhotoBase64 = commaIdx !== -1 ? dataUrl.slice(commaIdx + 1) : dataUrl;
+        var dataUrl = evt.target.result;
+        state.rawSelectedPhotoDataUrl = dataUrl;
+
+        /* Open Crop & Rotation modal immediately */
+        openCropperModal(dataUrl, 'add');
       };
       reader.readAsDataURL(file);
     }
@@ -5184,7 +6840,8 @@
       e.preventDefault();
       var btn = document.getElementById('btnSaveCust');
       btn.disabled = true;
-      btn.innerHTML = '<span>⏳</span> सेव हो रहा है...';
+      var hasPhoto = !!state.selectedPhotoBase64;
+      btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'फोटो अपलोड और सेव हो रहा है...' : 'गूगल शीट में सेव हो रहा है...');
 
       var staffSelect = document.getElementById('custStaffSelect');
       var staffId = staffSelect.value;
@@ -5242,7 +6899,15 @@
           showToast('ग्राहक सफलतापूर्वक गूगल शीट में सेव हुआ!', '✓');
           document.getElementById('addCustomerForm').reset();
           document.getElementById('custPhotoPreview').style.display = 'none';
+          var ph = document.getElementById('custPhotoPlaceholder');
+          if (ph) ph.style.display = 'block';
+          var act = document.getElementById('custPhotoActionsWrap');
+          if (act) act.style.display = 'none';
           state.selectedPhotoBase64 = '';
+          state.selectedPhotoName = '';
+          state.selectedPhotoType = '';
+          state.rawSelectedPhotoDataUrl = '';
+          discardCustomerDraft(true);
           toggleCategoryFields(document.getElementById('custCategory').value);
           loadAdminRecords();
         }
@@ -5259,9 +6924,50 @@
       onlyMap: false
     };
 
+    function renderAdminTableSkeletons(rowCount) {
+      var count = rowCount || 6;
+      var html = '';
+      for (var i = 0; i < count; i++) {
+        html += '<tr class="skeleton-tr">' +
+          '<td style="text-align:center;"><div class="skeleton-shimmer" style="width:24px; height:18px; margin:0 auto; border-radius:4px;"></div></td>' +
+          '<td>' +
+            '<div class="skeleton-shimmer" style="width:68%; height:16px; margin-bottom:6px; border-radius:4px;"></div>' +
+            '<div class="skeleton-shimmer" style="width:42%; height:12px; margin-bottom:6px; border-radius:4px;"></div>' +
+            '<div style="display:flex; gap:4px; margin-top:2px;">' +
+              '<div class="skeleton-shimmer" style="width:78px; height:18px; border-radius:12px;"></div>' +
+              '<div class="skeleton-shimmer" style="width:52px; height:18px; border-radius:12px;"></div>' +
+            '</div>' +
+          '</td>' +
+          '<td>' +
+            '<div class="skeleton-shimmer" style="width:125px; height:24px; border-radius:6px;"></div>' +
+          '</td>' +
+          '<td>' +
+            '<div class="skeleton-shimmer" style="width:92%; height:14px; margin-bottom:6px; border-radius:4px;"></div>' +
+            '<div class="skeleton-shimmer" style="width:58%; height:12px; border-radius:4px;"></div>' +
+          '</td>' +
+          '<td style="text-align:center;">' +
+            '<div class="skeleton-shimmer" style="width:60px; height:28px; margin:0 auto; border-radius:6px;"></div>' +
+          '</td>' +
+          '<td style="text-align:center;">' +
+            '<div class="skeleton-shimmer" style="width:55px; height:28px; margin:0 auto; border-radius:6px;"></div>' +
+          '</td>' +
+          '<td style="text-align:center;">' +
+            '<div class="skeleton-shimmer" style="width:105px; height:28px; margin:0 auto; border-radius:6px;"></div>' +
+          '</td>' +
+          '<td style="text-align:center;">' +
+            '<div style="display:flex; gap:4px; justify-content:center;">' +
+              '<div class="skeleton-shimmer" style="width:28px; height:28px; border-radius:6px;"></div>' +
+              '<div class="skeleton-shimmer" style="width:28px; height:28px; border-radius:6px;"></div>' +
+            '</div>' +
+          '</td>' +
+        '</tr>';
+      }
+      return html;
+    }
+
     function loadAdminRecords() {
       var tbody = document.getElementById('adminRecordsTableBody');
-      if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 28px; color: var(--text-muted);">🔄 गूगल शीट से लाइव डेटा लोड हो रहा है...</td></tr>';
+      if (tbody) tbody.innerHTML = renderAdminTableSkeletons(6);
 
       apiCall('getAllCustomers', {}, function(res) {
         var records = Array.isArray(res) ? res : (res && res.records ? res.records : []);
@@ -5713,6 +7419,10 @@
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
       }
+
+      /* Initialize Edit Auto-Draft & Check for previous changes */
+      initEditCustomerAutoDraft();
+      checkAndShowEditDraftBanner();
     }
 
     function closeEditCustomerModal() {
@@ -5722,26 +7432,50 @@
       state.editPhotoBase64 = '';
       state.editPhotoName = '';
       state.editPhotoType = '';
+      state.rawEditPhotoDataUrl = '';
       var photoInput = document.getElementById('editCustPhotoFile');
       if (photoInput) photoInput.value = '';
+      var editAct = document.getElementById('editPhotoActionsWrap');
+      if (editAct) editAct.style.display = 'none';
+      var badge = document.getElementById('editDraftBadge');
+      if (badge) badge.style.display = 'none';
+      var banner = document.getElementById('editDraftRestoreBanner');
+      if (banner) banner.style.display = 'none';
     }
 
     function handleEditPhotoSelect(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
 
+      var pWrap = document.getElementById('editPhotoProgressWrap');
+      var pFill = document.getElementById('editPhotoProgressFill');
+      if (pWrap && pFill) {
+        pWrap.style.display = 'block';
+        pFill.style.width = '30%';
+      }
+
       state.editPhotoName = file.name;
       state.editPhotoType = file.type || 'image/jpeg';
 
       var reader = new FileReader();
+      reader.onprogress = function(pe) {
+        if (pe.lengthComputable && pFill) {
+          var pct = Math.round((pe.loaded / pe.total) * 90);
+          pFill.style.width = pct + '%';
+        }
+      };
       reader.onload = function(evt) {
-        var dataUrl = evt.target.result;
-        var thumb = document.getElementById('editPhotoThumb');
-        thumb.src = dataUrl;
-        thumb.style.display = 'block';
+        if (pFill) pFill.style.width = '100%';
+        setTimeout(function() {
+          if (pWrap) pWrap.style.display = 'none';
+          if (pFill) pFill.style.width = '0%';
+        }, 300);
 
-        var commaIdx = dataUrl.indexOf(',');
-        state.editPhotoBase64 = commaIdx !== -1 ? dataUrl.slice(commaIdx + 1) : dataUrl;
+        var dataUrl = evt.target.result;
+        state.rawEditPhotoDataUrl = dataUrl;
+
+        /* Open Crop & Rotation modal immediately */
+        openCropperModal(dataUrl, 'edit');
       };
       reader.readAsDataURL(file);
     }
@@ -5766,7 +7500,8 @@
       e.preventDefault();
       var btn = document.getElementById('btnSaveEditCust');
       btn.disabled = true;
-      btn.innerHTML = '<span>⏳</span> सेव हो रहा है...';
+      var hasPhoto = !!state.editPhotoBase64;
+      btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'फोटो और डेटा अपडेट हो रहा है...' : 'बदलाव सेव हो रहे हैं...');
 
       var sheetName = document.getElementById('editSheetName').value;
       var rowIndex = document.getElementById('editRowIndex').value;
@@ -5830,6 +7565,7 @@
           showToast('त्रुटि: ' + res.error, '❌');
         } else {
           showToast('ग्राहक रिकॉर्ड सफलतापूर्वक अपडेट हो गया!', '✓');
+          discardEditDraft(true);
           closeEditCustomerModal();
           loadAdminRecords();
         }
@@ -6094,6 +7830,11 @@
         var imgModal = document.getElementById('imageModal');
         if (imgModal && (imgModal.classList.contains('open') || imgModal.style.display === 'flex')) {
           closeImageModal();
+          return;
+        }
+        var cropperModal = document.getElementById('cwpPhotoCropperModal');
+        if (cropperModal && cropperModal.style.display === 'flex') {
+          closeCropperModal();
           return;
         }
         var editCust = document.getElementById('editCustomerModal');
