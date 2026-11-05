@@ -304,22 +304,28 @@
 
     /* =========================================================================
        SMART COMPACT CUSTOMER CARD
-       Optimized for mobile field staff (reduces height by 60%+)
+       - Call & Map on Top Row beside Customer Name (1 full row eliminated)
+       - High-density spacing for maximum cards per screen
+       - Dedicated Photo & Address buttons with instant modal popups
+       - Orange strip removed
        ========================================================================= */
     .customer-feed-grid {
       display: flex;
       flex-direction: column;
-      gap: 9px;
+      gap: 7px;
     }
 
     .smart-card {
       background: #ffffff;
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 11px 13px;
+      padding: 8px 12px;
       box-shadow: var(--shadow-xs);
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
     }
 
     .smart-card:hover {
@@ -327,13 +333,12 @@
       box-shadow: var(--shadow-sm);
     }
 
-    /* Top Row: Index + Customer Name + Package Pill */
+    /* Top Row: Index + Customer Name (Left) & Call + Map Buttons (Right) */
     .card-top-line {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      margin-bottom: 6px;
     }
 
     .cust-name-group {
@@ -341,6 +346,7 @@
       align-items: center;
       gap: 6px;
       min-width: 0;
+      flex: 1;
     }
 
     .cust-index-badge {
@@ -349,19 +355,19 @@
       color: #64748b;
       background: #f1f5f9;
       padding: 2px 6px;
-      border-radius: 6px;
+      border-radius: 5px;
       font-family: 'JetBrains Mono', monospace;
       flex-shrink: 0;
     }
 
     .cust-full-name {
-      font-size: 15px;
+      font-size: 14.5px;
       font-weight: 600;
       color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      line-height: 1.35;
+      line-height: 1.3;
       letter-spacing: -0.01em;
     }
 
@@ -369,66 +375,174 @@
       display: none !important;
     }
 
-    /* Vehicle & Service Row */
-    .card-vehicle-line {
+    /* Top Row Action Buttons (Call & Map next to name) */
+    .card-top-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .btn-top-action {
+      height: 28px;
+      min-height: 28px;
+      padding: 0 9px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      text-decoration: none;
+      border: 1px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-top-call {
+      background: var(--call-green);
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(5, 150, 105, 0.25);
+    }
+
+    .btn-top-call:hover {
+      background: var(--call-green-hover);
+    }
+
+    .btn-top-map {
+      background: var(--brand-blue);
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn-top-map:hover {
+      background: var(--brand-blue-hover);
+    }
+
+    .btn-top-disabled {
+      background: #f8fafc;
+      color: #94a3b8;
+      border: 1px dashed #cbd5e1;
+      cursor: not-allowed;
+      box-shadow: none;
+      font-size: 11px;
+    }
+
+    /* Middle Row: Vehicle + Service Tag (Left) & Photo + Address Buttons (Right) */
+    .card-mid-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .card-vehicle-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+      flex-wrap: wrap;
     }
 
     .vehicle-tag {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       background: #f8fafc;
       border: 1px solid #cbd5e1;
-      padding: 3px 9px;
-      border-radius: 7px;
-      font-size: 12.5px;
-      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
       color: #0f172a;
       letter-spacing: 0.2px;
-      word-break: break-word;
+      max-width: 100%;
+    }
+
+    .vehicle-number-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .vehicle-icon {
-      font-size: 12.5px;
+      font-size: 11.5px;
       flex-shrink: 0;
     }
 
     .service-tag {
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 600;
       color: #1e40af;
       background: #eff6ff;
       border: 1px solid #bfdbfe;
-      padding: 2px 7px;
-      border-radius: 6px;
-      letter-spacing: 0.4px;
+      padding: 2px 6px;
+      border-radius: 5px;
+      letter-spacing: 0.3px;
       text-transform: uppercase;
       white-space: nowrap;
       flex-shrink: 0;
     }
 
-    /* Alternate Day 1-Package Alert Strip */
-    .alert-alternate-strip {
-      background: var(--accent-amber-light);
-      border: 1px solid var(--accent-amber-border);
-      color: var(--accent-amber);
-      padding: 5px 9px;
-      border-radius: 6px;
-      font-size: 11.5px;
-      font-weight: 600;
+    /* 2 Dedicated Action Buttons: Photo & Address */
+    .card-sub-actions {
       display: flex;
-      align-items: flex-start;
-      gap: 6px;
-      margin-bottom: 6px;
-      line-height: 1.35;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
     }
 
-    .alert-alternate-strip b {
-      font-weight: 800;
+    .btn-card-sub {
+      height: 26px;
+      min-height: 26px;
+      padding: 0 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .btn-card-sub:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+
+    .btn-sub-photo.has-data {
+      background: #fefce8;
+      border-color: #fde047;
+      color: #854d0e;
+    }
+
+    .btn-sub-photo.has-data:hover {
+      background: #fef9c3;
+      border-color: #eab308;
+    }
+
+    .btn-sub-addr.has-data {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+
+    .btn-sub-addr.has-data:hover {
+      background: #dcfce7;
+      border-color: #86efac;
     }
 
     /* Cleaning Instructions / Notes Strip */
@@ -436,13 +550,12 @@
       background: #f0fdf4;
       border: 1px solid #bbf7d0;
       color: #166534;
-      padding: 5px 9px;
-      border-radius: 6px;
-      font-size: 11.5px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 11px;
       display: flex;
       align-items: flex-start;
-      gap: 6px;
-      margin-bottom: 6px;
+      gap: 5px;
       line-height: 1.35;
     }
 
@@ -451,141 +564,125 @@
       color: #14532d;
     }
 
-    /* Address Row */
-    .card-address-line {
+    /* Centered Logout Confirmation Modal */
+    .logout-confirm-box {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px 20px;
+      max-width: 360px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalScaleIn {
+      from {
+        transform: scale(0.92);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .logout-confirm-icon-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
       display: flex;
-      align-items: flex-start;
-      gap: 5px;
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-      line-height: 1.35;
-    }
-
-    .pin-icon {
-      font-size: 12px;
-      color: var(--brand-blue);
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .address-text-snippet {
-      word-break: break-word;
-    }
-
-    /* Action Bar (Call & Directions) - 1 Balanced Line */
-    .card-actions-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .btn-action-smart {
-      flex: 1;
-      min-width: 0;
-      min-height: 40px;
-      height: 40px;
-      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      padding: 0 10px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      text-decoration: none;
-      cursor: pointer;
-      border: 1px solid transparent;
-      outline: none;
-      transition: all 0.15s ease;
-      white-space: nowrap;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      margin: 0 auto 12px;
     }
 
-    .btn-action-call {
-      background: var(--call-green);
-      color: #ffffff;
-      box-shadow: 0 1px 3px rgba(5, 150, 105, 0.25);
+    .logout-confirm-icon {
+      font-size: 24px;
     }
 
-    .btn-action-call:hover {
-      background: var(--call-green-hover);
-    }
-
-    .btn-action-maps {
-      background: var(--brand-blue);
-      color: #ffffff;
-      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
-    }
-
-    .btn-action-maps:hover {
-      background: var(--brand-blue-hover);
-    }
-
-    .btn-action-disabled {
-      background: #f8fafc;
-      color: #94a3b8;
-      border: 1px dashed #cbd5e1;
-      cursor: not-allowed;
-      box-shadow: none;
-      font-weight: 500;
-      font-size: 12px;
-    }
-
-    /* Optional Details Tray (Photo & Secondary Address) */
-    .details-toggle-btn {
-      background: #f8fafc;
-      border: 1px solid var(--border-color);
-      color: var(--brand-blue);
-      font-size: 11.5px;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 5px 10px;
-      border-radius: 6px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.15s ease;
-    }
-
-    .details-toggle-btn:hover {
-      background: #eff6ff;
-      border-color: var(--brand-blue-border);
-    }
-
-    .details-tray-box {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px dashed var(--border-color);
-      display: none;
-    }
-
-    .details-tray-box.open {
-      display: block;
-    }
-
-    .photo-thumb-strip {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .logout-confirm-heading {
+      font-size: 16.5px;
+      font-weight: 700;
+      color: #0f172a;
       margin-bottom: 6px;
     }
 
-    .photo-thumb-img {
-      width: 50px;
-      height: 50px;
-      border-radius: 6px;
-      object-fit: cover;
-      border: 1px solid var(--border-color);
-      cursor: pointer;
+    .logout-confirm-desc {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 20px;
+      line-height: 1.45;
     }
 
-    .photo-thumb-hint {
-      font-size: 11px;
-      color: var(--text-secondary);
-      cursor: pointer;
+    .logout-confirm-btns {
+      display: flex;
+      gap: 10px;
     }
 
+    .btn-logout-cancel {
+      flex: 1;
+      padding: 9px 12px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-logout-cancel:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .btn-logout-proceed {
+      flex: 1;
+      padding: 9px 12px;
+      background: #dc2626;
+      border: 1px solid #b91c1c;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+      transition: all 0.15s ease;
+    }
+
+    .btn-logout-proceed:hover {
+      background: #b91c1c;
+    }
+
+    /* Screen density optimization for tablets & desktop */
+    @media (min-width: 680px) {
+      body:not(.admin-mode-active) .header-inner {
+        max-width: 760px;
+      }
+      body:not(.admin-mode-active) .main-container {
+        max-width: 760px;
+      }
+    }
+
+    @media (min-width: 880px) {
+      body:not(.admin-mode-active) .header-inner {
+        max-width: 960px;
+      }
+      body:not(.admin-mode-active) .main-container {
+        max-width: 960px;
+      }
+      body:not(.admin-mode-active) #customerFeed {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+    }
+
+    /* Secondary address box for Address Modal */
     .secondary-loc-box {
       background: #f8fafc;
       border: 1px solid var(--border-color);
@@ -2414,7 +2511,7 @@
 
     <div class="image-modal-content" onclick="event.stopPropagation()">
       <div class="image-modal-header">
-        <div class="image-modal-title">
+        <div class="image-modal-title" id="imageModalTitleText">
           <span>🚗</span> ग्राहक / गाड़ी की फोटो (Vehicle Photo)
         </div>
         <div class="image-modal-actions">
@@ -2426,6 +2523,12 @@
       </div>
       <div class="image-modal-body">
         <img id="imageModalImg" src="" alt="Customer Vehicle Photo">
+        <div id="imageModalNoPhoto" style="display: none; padding: 48px 20px; text-align: center; color: #64748b;">
+          <div style="font-size: 40px; margin-bottom: 10px;">📷</div>
+          <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">कोई फोटो उपलब्ध नहीं है</div>
+          <p style="font-size: 13px; color: #64748b;">इस गाड़ी के लिए अभी तक फोटो अपलोड नहीं की गई है।</p>
+          <button type="button" class="btn-primary-smart" onclick="closeImageModal()" style="margin-top: 18px; padding: 8px 24px; font-size: 13px; width: auto;">✕ बंद करें</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2470,6 +2573,25 @@
             ✕ बंद करें
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal (Centered Popup) -->
+  <div id="logoutConfirmModal" class="image-modal-overlay" onclick="closeLogoutModal()" style="display: none; align-items: center; justify-content: center; z-index: 2200;">
+    <div class="logout-confirm-box" onclick="event.stopPropagation()">
+      <div class="logout-confirm-icon-wrap">
+        <span class="logout-confirm-icon">🚪</span>
+      </div>
+      <h3 class="logout-confirm-heading">लॉगआउट कन्फर्म करें</h3>
+      <p class="logout-confirm-desc">क्या आप वाकई पोर्टल से लॉगआउट करना चाहते हैं?</p>
+      <div class="logout-confirm-actions">
+        <button type="button" class="btn-logout-cancel" onclick="closeLogoutModal()">
+          रद्द करें
+        </button>
+        <button type="button" class="btn-logout-proceed" onclick="proceedLogout()">
+          हाँ, लॉगआउट करें
+        </button>
       </div>
     </div>
   </div>
@@ -2824,13 +2946,41 @@
       });
     }
 
+    function openLogoutModal(type) {
+      state.pendingLogoutType = type || 'staff';
+      var modal = document.getElementById('logoutConfirmModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeLogoutModal() {
+      var modal = document.getElementById('logoutConfirmModal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+
+    function proceedLogout() {
+      closeLogoutModal();
+      if (state.pendingLogoutType === 'admin') {
+        sessionStorage.removeItem('cwp_admin_auth');
+        localStorage.removeItem('cwp_admin_auth');
+        showToast('एडमिन पोर्टल लॉक हो गया।', '🔒');
+        checkAdminAuthStatus();
+      } else {
+        var key = getStaffAuthKey(state.activeStaffId);
+        sessionStorage.removeItem(key);
+        localStorage.removeItem(key);
+        showToast('पोर्टल से लॉगआउट हो चुके हैं', '🔒');
+        checkStaffAuthStatus(state.activeStaffId);
+      }
+    }
+
     function handleStaffLogout() {
-      if (!confirm('क्या आप स्टाफ पोर्टल से लॉगआउट करना चाहते हैं?')) return;
-      var key = getStaffAuthKey(state.activeStaffId);
-      sessionStorage.removeItem(key);
-      localStorage.removeItem(key);
-      showToast('पोर्टल से लॉगआउट हो चुके हैं', '🔒');
-      checkStaffAuthStatus(state.activeStaffId);
+      openLogoutModal('staff');
     }
 
     /* Admin Authentication & Security Logic */
@@ -2901,10 +3051,7 @@
     }
 
     function handleAdminLogout() {
-      sessionStorage.removeItem('cwp_admin_auth');
-      localStorage.removeItem('cwp_admin_auth');
-      showToast('एडमिन पोर्टल लॉक हो गया।', '🔒');
-      checkAdminAuthStatus();
+      openLogoutModal('admin');
     }
 
     function togglePasswordVisibility(inputId) {
@@ -3130,8 +3277,13 @@
 
     /* =========================================================================
        SMART COMPACT CARD RENDERER
+       - Call & Map buttons on top row next to Customer Name (saves an entire row)
+       - Hardcoded orange 1-package strip removed
+       - Dedicated pop-up buttons for Car Photo and Car Address
+       - High-density layout showing more customers per screen
        ========================================================================= */
     function renderCustomerCards(items) {
+      state.currentStaffFilteredList = items || [];
       var container = document.getElementById('customerFeed');
       if (!items || items.length === 0) {
         container.innerHTML = '<div class="empty-state-box"><div class="empty-icon">🚗</div><p style="font-weight:700;">कोई गाड़ी नहीं मिली</p><p style="font-size:12px; margin-top:4px;">सर्च या फिल्टर बदल कर देखें।</p></div>';
@@ -3146,116 +3298,71 @@
         var cleanPhone = rawPhone.length === 10 ? rawPhone : (rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone);
 
         var vehicles = isDaily ? (item.vehicleNumbers || 'गाड़ी नंबर दर्ज नहीं') : (item.vehicleOrSite || 'गाड़ी / साइट दर्ज नहीं');
-        var pkgPurchased = isDaily ? (item.packagesPurchased || '1') : '1';
-        var notes = item.staffNotes || '';
-        var address = item.address || '';
+        var notes = (item.staffNotes || '').trim();
+        var address = (item.address || '').trim();
         var mapsUrl = formatGoogleMapsUrl(item.googleMapsUrl, address);
-        var photoUrl = item.photoUrl || '';
-        var cardId = 'card_' + index;
-
-        /* Multiple cars with 1 package alert logic */
-        var isMultipleCarsOnePkg = false;
-        if (isDaily && pkgPurchased.toString().trim() === '1') {
-          var vLower = vehicles.toLowerCase();
-          var nLower = notes.toLowerCase();
-          if (vehicles.indexOf('/') !== -1 || vehicles.indexOf(',') !== -1 || vLower.indexOf('aaj') !== -1 || vLower.indexOf('kal') !== -1 || vLower.indexOf('आज') !== -1 || vLower.indexOf('कल') !== -1 || nLower.indexOf('alternate') !== -1 || nLower.indexOf('1 package') !== -1) {
-            isMultipleCarsOnePkg = true;
-          }
-        }
+        var photoUrl = (item.photoUrl || '').trim();
+        var pkgLabel = item.packageType || item.serviceType || (isDaily ? 'दैनिक सफाई' : 'अन्य कार्य');
 
         html += '<div class="smart-card">';
         
-        /* Line 1: Index + Name + Service / Package Plan */
-        var pkgLabel = item.packageType || item.serviceType || (isDaily ? 'दैनिक सफाई' : 'अन्य कार्य');
+        /* Row 1: Index + Customer Name (Left) & Call + Map Buttons (Right beside Name) */
         html += '  <div class="card-top-line">';
         html += '    <div class="cust-name-group">';
         html += '      <span class="cust-index-badge">#' + (index + 1) + '</span>';
-        html += '      <h3 class="cust-full-name">' + customerName + '</h3>';
+        html += '      <h3 class="cust-full-name" title="' + customerName + '">' + customerName + '</h3>';
         html += '    </div>';
-        html += '    <span class="service-tag">' + escapeHtml(pkgLabel) + '</span>';
-        html += '  </div>';
-
-        /* Line 2: Vehicle Tag */
-        html += '  <div class="card-vehicle-line">';
-        html += '    <div class="vehicle-tag">';
-        html += '      <span class="vehicle-icon">' + (isDaily ? '🚘' : '🔧') + '</span>';
-        html += '      <span>' + escapeHtml(vehicles) + '</span>';
-        html += '    </div>';
-        html += '  </div>';
-
-        /* Line 3: Conditional 1-Package Multiple Cars Rotation Strip */
-        if (isMultipleCarsOnePkg) {
-          html += '  <div class="alert-alternate-strip">';
-          html += '    <span>⚡</span>';
-          html += '    <div><b>1 पैकेज है:</b> दोनों गाड़ियां अलग-अलग दिन (आज / कल) साफ होंगी।</div>';
-          html += '  </div>';
-        }
-
-        /* Line 4: Conditional Notes Strip */
-        if (notes) {
-          html += '  <div class="notes-info-strip">';
-          html += '    <span>📝</span>';
-          html += '    <div><b>निर्देश:</b> ' + escapeHtml(notes) + '</div>';
-          html += '  </div>';
-        }
-
-        /* Line 5: Address Row */
-        if (address) {
-          html += '  <div class="card-address-line">';
-          html += '    <span class="pin-icon">📍</span>';
-          html += '    <span class="address-text-snippet">' + escapeHtml(address) + '</span>';
-          html += '  </div>';
-        }
-
-        /* Line 6: 1-Tap Action Bar (Call & Google Maps) */
-        html += '  <div class="card-actions-row">';
+        html += '    <div class="card-top-actions">';
         if (cleanPhone) {
-          html += '    <a href="tel:' + cleanPhone + '" class="btn-action-smart btn-action-call">';
-          html += '      <span>📞</span><span>कॉल करें</span>';
-          html += '    </a>';
+          html += '      <a href="tel:' + cleanPhone + '" class="btn-top-action btn-top-call" title="कॉल करें (' + cleanPhone + ')">';
+          html += '        <span>📞</span><span>कॉल करें</span>';
+          html += '      </a>';
         } else {
-          html += '    <button type="button" class="btn-action-smart btn-action-disabled" disabled>';
-          html += '      <span>📞</span><span>नंबर नहीं है</span>';
-          html += '    </button>';
+          html += '      <button type="button" class="btn-top-action btn-top-disabled" disabled title="नंबर नहीं है">';
+          html += '        <span>📞</span><span>कॉल नहीं</span>';
+          html += '      </button>';
         }
 
         if (mapsUrl) {
-          html += '    <a href="' + escapeHtml(mapsUrl) + '" target="_blank" class="btn-action-smart btn-action-maps">';
-          html += '      <span>🧭</span><span>मैप / रास्ता</span>';
-          html += '    </a>';
+          html += '      <a href="' + escapeHtml(mapsUrl) + '" target="_blank" rel="noopener noreferrer" class="btn-top-action btn-top-map" title="गूगल मैप्स / रास्ता देखें">';
+          html += '        <span>🧭</span><span>मैप</span>';
+          html += '      </a>';
         } else {
-          html += '    <button type="button" class="btn-action-smart btn-action-disabled" disabled>';
-          html += '      <span>🧭</span><span>मैप नहीं है</span>';
-          html += '    </button>';
+          html += '      <button type="button" class="btn-top-action btn-top-disabled" disabled title="मैप उपलब्ध नहीं है">';
+          html += '        <span>🧭</span><span>मैप नहीं</span>';
+          html += '      </button>';
         }
+        html += '    </div>';
         html += '  </div>';
 
-        /* Line 7: Expandable Details Toggle (Photo / Secondary Location) */
-        var hasDetails = photoUrl || (isDaily && item.secondaryAddress);
-        if (hasDetails) {
-          html += '  <div style="display:flex; justify-content:flex-end;">';
-          html += '    <button type="button" class="details-toggle-btn" onclick="toggleDetailsTray(\'' + cardId + '\')">';
-          html += '      <span>ℹ️ और विवरण (Details)</span>';
-          html += '    </button>';
-          html += '  </div>';
+        /* Row 2: Vehicle Tag + Package Tag (Left) & Photo + Address Buttons (Right) */
+        html += '  <div class="card-mid-line">';
+        html += '    <div class="card-vehicle-group">';
+        html += '      <div class="vehicle-tag" title="' + escapeHtml(vehicles) + '">';
+        html += '        <span class="vehicle-icon">' + (isDaily ? '🚘' : '🔧') + '</span>';
+        html += '        <span class="vehicle-number-text">' + escapeHtml(vehicles) + '</span>';
+        html += '      </div>';
+        if (pkgLabel) {
+          html += '      <span class="service-tag">' + escapeHtml(pkgLabel) + '</span>';
+        }
+        html += '    </div>';
 
-          html += '  <div class="details-tray-box" id="' + cardId + '">';
-          if (photoUrl) {
-            html += '    <div class="photo-thumb-strip" onclick="openImageModal(\'' + escapeHtml(photoUrl) + '\')">';
-            html += '      <img src="' + escapeHtml(photoUrl) + '" class="photo-thumb-img" alt="गाड़ी फोटो" loading="lazy">';
-            html += '      <span class="photo-thumb-hint">🔍 फोटो बड़ी करने के लिए टैप करें</span>';
-            html += '    </div>';
-          }
-          if (isDaily && item.secondaryAddress) {
-            html += '    <div class="secondary-loc-box">';
-            html += '      <div class="secondary-loc-title">🏠 दूसरा पता / लोकेशन:</div>';
-            html += '      <div>' + escapeHtml(item.secondaryAddress) + '</div>';
-            var secMaps = formatGoogleMapsUrl(item.secondaryMapsUrl, item.secondaryAddress);
-            if (secMaps) {
-              html += '    <a href="' + escapeHtml(secMaps) + '" target="_blank" class="secondary-maps-link">🧭 दूसरे पते का मैप खोलें</a>';
-            }
-            html += '    </div>';
-          }
+        /* 2 Dedicated Pop-up Buttons: Car Photo and Car Address */
+        html += '    <div class="card-sub-actions">';
+        html += '      <button type="button" class="btn-card-sub btn-sub-photo ' + (photoUrl ? 'has-data' : '') + '" onclick="openStaffPhotoModal(' + index + ')" title="कार की फोटो देखें">';
+        html += '        <span>📷</span><span>फोटो</span>';
+        html += '      </button>';
+        html += '      <button type="button" class="btn-card-sub btn-sub-addr ' + (address ? 'has-data' : '') + '" onclick="openStaffAddressModal(' + index + ')" title="कार का पता देखें">';
+        html += '        <span>📍</span><span>पता</span>';
+        html += '      </button>';
+        html += '    </div>';
+        html += '  </div>';
+
+        /* Row 3: Optional Cleaning Instructions Strip */
+        if (notes) {
+          html += '  <div class="notes-info-strip">';
+          html += '    <span>📝</span>';
+          html += '    <div class="notes-text"><b>निर्देश:</b> ' + escapeHtml(notes) + '</div>';
           html += '  </div>';
         }
 
@@ -3265,11 +3372,19 @@
       container.innerHTML = html;
     }
 
-    function toggleDetailsTray(cardId) {
-      var el = document.getElementById(cardId);
-      if (el) {
-        el.classList.toggle('open');
-      }
+    function openStaffPhotoModal(index) {
+      var item = state.currentStaffFilteredList && state.currentStaffFilteredList[index];
+      if (!item) return;
+      var photoUrl = (item.photoUrl || '').trim();
+      var custName = item.customerName || 'Customer';
+      var vNum = item.vehicleNumbers || item.vehicleOrSite || '';
+      openImageModal(photoUrl, custName, vNum);
+    }
+
+    function openStaffAddressModal(index) {
+      var item = state.currentStaffFilteredList && state.currentStaffFilteredList[index];
+      if (!item) return;
+      openAddressModal(item);
     }
 
     /* Google Maps Smart Formatter */
@@ -4152,14 +4267,40 @@
     }
 
     /* Modal & Utilities */
-    function openImageModal(url) {
-      if (!url) return;
+    function openImageModal(url, custName, vehicleNum) {
       var modal = document.getElementById('imageModal');
       var img = document.getElementById('imageModalImg');
       var newTab = document.getElementById('imageModalOpenNewTab');
+      var titleEl = document.getElementById('imageModalTitleText');
+      var noPhotoBox = document.getElementById('imageModalNoPhoto');
 
-      if (img) img.src = url;
-      if (newTab) newTab.href = url;
+      if (titleEl) {
+        if (custName || vehicleNum) {
+          titleEl.textContent = '🚗 ' + (custName || '') + (vehicleNum ? ' (' + vehicleNum + ')' : '');
+        } else {
+          titleEl.textContent = '🚗 ग्राहक / गाड़ी की फोटो';
+        }
+      }
+
+      if (url) {
+        if (img) {
+          img.src = url;
+          img.style.display = 'block';
+        }
+        if (newTab) {
+          newTab.href = url;
+          newTab.style.display = 'inline-flex';
+        }
+        if (noPhotoBox) noPhotoBox.style.display = 'none';
+      } else {
+        if (img) {
+          img.src = '';
+          img.style.display = 'none';
+        }
+        if (newTab) newTab.style.display = 'none';
+        if (noPhotoBox) noPhotoBox.style.display = 'block';
+      }
+
       if (modal) {
         modal.classList.add('open');
         modal.style.display = 'flex';
@@ -4178,16 +4319,22 @@
       document.body.style.overflow = '';
     }
 
-    /* Customer Address Modal Logic */
-    function openAddressModal(index) {
-      var r = state.adminRecords && state.adminRecords[index];
+    /* Customer Address Modal Logic (Supports both customer object and admin record index) */
+    function openAddressModal(itemOrIndex) {
+      var r;
+      if (typeof itemOrIndex === 'object' && itemOrIndex !== null) {
+        r = itemOrIndex;
+      } else {
+        r = state.adminRecords && state.adminRecords[itemOrIndex];
+      }
       if (!r) return;
 
       var custName = r.customerName || 'अज्ञात ग्राहक';
-      var custPhone = r.customerNumber || '';
+      var custPhone = (r.customerNumber || '').trim();
+      var rawVehicle = r.vehicle || r.vehicleNumbers || r.vehicleOrSite || '';
       var primaryAddr = (r.address || '').trim() || 'कोई मुख्य पता दर्ज नहीं है।';
       var secAddr = (r.secondaryAddress || '').trim();
-      var mapsUrl = (r.googleMapsUrl || '').trim();
+      var mapsUrl = formatGoogleMapsUrl(r.googleMapsUrl, r.address);
 
       var nameEl = document.getElementById('addrModalCustName');
       var phoneLink = document.getElementById('addrModalPhoneLink');
@@ -4198,7 +4345,9 @@
       var mapLink = document.getElementById('addrModalMapLink');
       var modal = document.getElementById('addressViewModal');
 
-      if (nameEl) nameEl.textContent = custName;
+      if (nameEl) {
+        nameEl.textContent = custName + (rawVehicle ? ' (' + rawVehicle + ')' : '');
+      }
       if (phoneLink && phoneWrapper) {
         if (custPhone) {
           phoneWrapper.style.display = 'block';
@@ -4260,6 +4409,11 @@
     /* Global Keyboard Listener: ESC key closes any open modal */
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' || e.keyCode === 27) {
+        var logoutModal = document.getElementById('logoutConfirmModal');
+        if (logoutModal && logoutModal.style.display === 'flex') {
+          closeLogoutModal();
+          return;
+        }
         var addrModal = document.getElementById('addressViewModal');
         if (addrModal && addrModal.style.display === 'flex') {
           closeAddressModal();
