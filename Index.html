@@ -3434,13 +3434,29 @@
       #addStaffFormGrid {
         grid-template-columns: 1fr !important;
       }
+      .admin-tab-container {
+        width: 100%;
+        overflow: hidden;
+      }
       .admin-tab-nav {
-        gap: 5px;
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        width: 100%;
+        padding: 4px;
+        gap: 6px;
+      }
+      .admin-tab-nav::-webkit-scrollbar {
+        display: none;
       }
       .admin-tab-btn {
-        padding: 7px 8px;
-        font-size: 12px;
-        flex: 1;
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        font-size: 12.5px;
+        white-space: nowrap;
         text-align: center;
         justify-content: center;
       }
@@ -4435,28 +4451,128 @@
     }
 
     /* Mobile Responsiveness for Sequence Manager */
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
+      #adminTabSequence .admin-card-section {
+        padding: 14px 12px;
+      }
+      .seq-header-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .seq-header-bar .admin-card-title {
+        font-size: 16px;
+      }
+      .seq-header-bar .admin-card-desc {
+        font-size: 12px;
+      }
+      .seq-top-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
+      }
+      .seq-top-actions .btn-seq-save {
+        grid-column: 1 / -1;
+        order: -1;
+        width: 100%;
+        min-height: 42px;
+        font-size: 13.5px;
+        justify-content: center;
+      }
+      .seq-top-actions button {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+      .seq-toolbar-box {
+        padding: 10px 12px;
+      }
       .seq-toolbar-row {
         grid-template-columns: 1fr;
-        gap: 8px;
+        gap: 10px;
+      }
+      .seq-staff-select-wrap {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 5px;
+      }
+      .seq-staff-select-wrap .seq-label {
+        font-size: 12.5px;
+      }
+      .seq-staff-select {
+        width: 100%;
+      }
+      .seq-stats-strip {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
       }
       .seq-card-row {
         padding: 8px 10px;
+        gap: 8px;
       }
-      .seq-actions-col {
-        flex-direction: row;
+      .seq-handle-col {
         gap: 6px;
       }
-      .btn-seq-move {
-        width: 38px;
-        height: 38px;
-        font-size: 14px;
+      .seq-drag-handle {
+        font-size: 16px;
+        padding: 4px 2px;
       }
-      .seq-top-actions {
-        width: 100%;
+      .seq-num-badge {
+        min-width: 30px;
+        height: 30px;
+        font-size: 12px;
+        border-radius: 5px;
       }
-      .seq-top-actions button {
+      .seq-info-col {
+        margin: 0;
+        min-width: 0;
         flex: 1;
+      }
+      .seq-cust-name-row {
+        margin-bottom: 2px;
+        gap: 6px;
+      }
+      .seq-cust-name {
+        font-size: 13.5px;
+        word-break: break-word;
+      }
+      .seq-cust-phone {
+        font-size: 11.5px;
+      }
+      .seq-veh-row {
+        gap: 6px;
+        margin-bottom: 2px;
+      }
+      .seq-veh-badge {
+        font-size: 11px;
+        padding: 2px 6px;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .seq-staff-badge {
+        font-size: 10.5px;
+        padding: 1px 5px;
+      }
+      .seq-addr-row {
+        font-size: 11.5px;
+        max-width: 100%;
+      }
+      .seq-actions-col {
+        flex-direction: column;
+        gap: 3px;
+        flex-shrink: 0;
+      }
+      .btn-seq-move {
+        width: 32px;
+        height: 28px;
+        font-size: 11px;
+        padding: 0;
+        border-radius: 4px;
       }
       .route-progress-text {
         text-align: left;
@@ -6386,11 +6502,11 @@ var state = {
       try {
         var urlParams = new URLSearchParams(window.location.search);
         var urlTab = urlParams.get('tab');
-        if (urlTab && (urlTab === 'records' || urlTab === 'staff' || urlTab === 'addCust')) {
+        if (urlTab && (urlTab === 'records' || urlTab === 'sequence' || urlTab === 'staff' || urlTab === 'addCust')) {
           return urlTab;
         }
         var localTab = localStorage.getItem('cwp_admin_active_tab');
-        if (localTab && (localTab === 'records' || localTab === 'staff' || localTab === 'addCust')) {
+        if (localTab && (localTab === 'records' || localTab === 'sequence' || localTab === 'staff' || localTab === 'addCust')) {
           return localTab;
         }
       } catch (e) {
