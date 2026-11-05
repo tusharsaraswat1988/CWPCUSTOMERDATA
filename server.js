@@ -441,7 +441,8 @@ function extractAuthToken(req, payload) {
  */
 let appState = {
   staffList: [],
-  customers: []
+  customers: [],
+  staffSequences: []
 };
 
 function saveLocalData(data) {
@@ -468,6 +469,11 @@ function loadLocalData() {
       if (loaded && Array.isArray(loaded.customers)) {
         appState.customers = loaded.customers;
       }
+      if (loaded && Array.isArray(loaded.staffSequences)) {
+        appState.staffSequences = loaded.staffSequences;
+      } else {
+        appState.staffSequences = appState.staffSequences || [];
+      }
       // Upgrade any legacy plaintext adminPassword to scrypt hash immediately
       if (loaded && loaded.adminPassword) {
         if (!loaded.adminPasswordHash) {
@@ -486,6 +492,218 @@ function loadLocalData() {
 }
 
 loadLocalData();
+
+/**
+ * =========================================================================
+ * STABLE CUSTOMER IDENTIFICATION & SEQUENCE MANAGEMENT (Task P2.5)
+ * =========================================================================
+ */
+function getCustomerStableId(c) {
+  if (!c) return '';
+  if (c.id && typeof c.id === 'string' && c.id.trim()) return c.id.trim();
+  if (c.customerId && typeof c.customerId === 'string' && c.customerId.trim()) return c.customerId.trim();
+
+  const cleanPhone = (c.customerNumber || c.phone || '').toString().replace(/\D/g, '').slice(-10);
+  const cleanVeh = (c.vehicle || c.vehicleNumbers || c.vehicleOrSite || '').toString().trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  const cleanName = (c.customerName || c.custName || '').toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  if (cleanPhone && cleanVeh) {
+    return `CUST_${cleanPhone}_${cleanVeh}`;
+  }
+  if (cleanPhone && cleanName) {
+    return `CUST_${cleanPhone}_${cleanName}`;
+  }
+  if (cleanPhone) {
+    return `CUST_${cleanPhone}`;
+  }
+  if (cleanName && cleanVeh) {
+    return `CUST_${cleanName}_${cleanVeh}`;
+  }
+  return `CUST_${cleanName || 'REC'}_${c.rowIndex || 'R0'}`;
+}
+
+function parseVehicleDetails(vehicleStr) {
+  if (!vehicleStr) return { model: '', reg: '', display: '' };
+  const raw = String(vehicleStr).trim();
+  if (!raw) return { model: '', reg: '', display: '' };
+
+  const regRegex = /\b([A-Z]{2}[ -]?[0-9]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9]{4})\b/i;
+  const match = raw.match(regRegex);
+
+  let reg = '';
+  let model = '';
+
+  if (match) {
+    reg = match[1].toUpperCase().replace(/\s+/g, ' ');
+    const remaining = raw.replace(match[0], '').replace(/^[-–—:,/|\s]+|[-–—:,/|\s]+$/g, '').trim();
+    model = remaining || 'Vehicle';
+  } else if (raw.includes('-')) {
+    const parts = raw.split('-');
+    if (/\d/.test(parts[0]) && !/\d/.test(parts[1])) {
+      reg = parts[0].trim();
+      model = parts[1].trim();
+    } else {
+      model = parts[0].trim();
+      reg = parts.slice(1).join('-').trim();
+    }
+  } else {
+    model = raw;
+    reg = '';
+  }
+
+  return {
+    model: model || raw,
+    reg: reg,
+    display: raw
+  };
+}
+
+function getStaffSequences(staffId) {
+  if (!appState.staffSequences) appState.staffSequences = [];
+  const sId = (staffId || '').toString().trim().toUpperCase();
+  return appState.staffSequences
+    .filter(s => (s.staff_id || '').toUpperCase() === sId)
+    .sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0));
+}
+
+function saveStaffSequence(staffId, orderedCustomerIds, updatedBy) {
+  if (!staffId) throw new Error('Staff ID is required to save sequence.');
+  if (!Array.isArray(orderedCustomerIds)) throw new Error('Ordered customer IDs must be an array.');
+
+  if (!appState.staffSequences) appState.staffSequences = [];
+  const sId = staffId.toString().trim().toUpperCase();
+
+  const uniqueOrderedIds = [];
+  const seenIds = new Set();
+  orderedCustomerIds.forEach(id => {
+    const cleanId = (typeof id === 'object' && id !== null ? (id.customerId || id.customer_id || id.id) : id || '').toString().trim();
+    if (cleanId && !seenIds.has(cleanId)) {
+      seenIds.add(cleanId);
+      uniqueOrderedIds.push(cleanId);
+    }
+  });
+
+  const now = new Date().toISOString();
+  const by = updatedBy || 'admin';
+
+  const existingForStaff = appState.staffSequences.filter(s => (s.staff_id || '').toUpperCase() === sId);
+  const absentSequences = existingForStaff.filter(s => !seenIds.has(s.customer_id));
+
+  const newStaffRecords = uniqueOrderedIds.map((custId, idx) => ({
+    staff_id: sId,
+    customer_id: custId,
+    sequence_order: idx + 1,
+    updated_at: now,
+    updated_by: by
+  }));
+
+  absentSequences.forEach((s, idx) => {
+    newStaffRecords.push({
+      staff_id: sId,
+      customer_id: s.customer_id,
+      sequence_order: uniqueOrderedIds.length + idx + 1,
+      updated_at: s.updated_at || now,
+      updated_by: s.updated_by || by
+    });
+  });
+
+  appState.staffSequences = appState.staffSequences
+    .filter(s => (s.staff_id || '').toUpperCase() !== sId)
+    .concat(newStaffRecords);
+
+  saveLocalData(appState);
+  invalidateLiveCustomersCache();
+  return newStaffRecords;
+}
+
+function resetStaffSequence(staffId) {
+  if (!staffId) throw new Error('Staff ID is required to reset sequence.');
+  if (!appState.staffSequences) appState.staffSequences = [];
+  const sId = staffId.toString().trim().toUpperCase();
+
+  appState.staffSequences = appState.staffSequences.filter(s => (s.staff_id || '').toUpperCase() !== sId);
+  saveLocalData(appState);
+  invalidateLiveCustomersCache();
+  return true;
+}
+
+function applyStaffSequenceOrder(customers, staffId) {
+  if (!customers || customers.length === 0) return [];
+  const sId = (staffId || '').toString().trim().toUpperCase();
+
+  const staffObj = (appState.staffList || []).find(s => 
+    (s.id || '').toUpperCase() === sId || 
+    (s.name || '').toLowerCase() === (staffId || '').toLowerCase()
+  );
+  const matchId = staffObj ? staffObj.id.toUpperCase() : sId;
+
+  if (!appState.staffSequences) appState.staffSequences = [];
+  const sequences = appState.staffSequences.filter(s => 
+    (s.staff_id || '').toUpperCase() === matchId
+  );
+
+  const seqMap = new Map();
+  sequences.forEach(s => {
+    if (s.customer_id && !seqMap.has(s.customer_id)) {
+      seqMap.set(s.customer_id, s.sequence_order);
+    }
+  });
+
+  const prepared = customers.map((c, originalIdx) => {
+    const custId = c.customerId || getCustomerStableId(c);
+    const vehInfo = parseVehicleDetails(c.vehicle || c.vehicleNumbers);
+    return {
+      ...c,
+      customerId: custId,
+      id: custId,
+      vehicleModel: c.vehicleModel || vehInfo.model,
+      vehicleReg: c.vehicleReg || vehInfo.reg,
+      _originalIndex: originalIdx
+    };
+  });
+
+  if (seqMap.size === 0) {
+    return prepared.map((c, idx) => {
+      const seqNum = idx + 1;
+      const seqDisplay = String(seqNum).padStart(2, '0');
+      return {
+        ...c,
+        sequenceOrder: seqNum,
+        _seq: seqDisplay,
+        hasCustomSequence: false
+      };
+    });
+  }
+
+  const sequenced = [];
+  const unsequenced = [];
+
+  prepared.forEach(c => {
+    if (seqMap.has(c.customerId)) {
+      sequenced.push({
+        customer: c,
+        savedOrder: seqMap.get(c.customerId)
+      });
+    } else {
+      unsequenced.push(c);
+    }
+  });
+
+  sequenced.sort((a, b) => a.savedOrder - b.savedOrder);
+
+  const orderedList = sequenced.map(item => ({ ...item.customer, hasCustomSequence: true }))
+    .concat(unsequenced.map(item => ({ ...item, hasCustomSequence: false })));
+
+  return orderedList.map((c, idx) => {
+    const seqNum = idx + 1;
+    const seqDisplay = String(seqNum).padStart(2, '0');
+    return {
+      ...c,
+      sequenceOrder: seqNum,
+      _seq: seqDisplay
+    };
+  });
+}
 
 // Automatic Startup Migration: upgrade legacy plaintext PINs to scrypt
 (function migratePlaintextPins() {
@@ -1074,27 +1292,40 @@ function formatStaffDataResponse(staffId, fetchResult) {
     return isAssigned && isActiveStatus(c.active);
   });
 
-  // Daily Car Cleaning: preserves exact source row order
-  const dailyCarCleaning = assignedActiveCustomers.filter(c => 
+  // Daily Car Cleaning: preserves staff sequence order with source row order fallback
+  const rawDailyCarCleaning = assignedActiveCustomers.filter(c => 
     c.serviceCategory === 'Daily Car Cleaning'
-  ).map(c => ({
-    staffId: staffObj ? staffObj.id : staffId,
-    staffName: c.staffName || (staffObj ? staffObj.name : staffId),
-    customerName: c.customerName,
-    customerNumber: c.customerNumber,
-    googleMapsUrl: c.googleMapsUrl,
-    photoUrl: c.photoUrl,
-    address: c.address,
-    vehicleNumbers: c.vehicle,
-    vehicle: c.vehicle,
-    packageType: c.packageType,
-    serviceCategory: 'Daily Car Cleaning',
-    category: 'daily_car_cleaning',
-    staffNotes: c.notes,
-    secondaryAddress: c.secondaryAddress || '',
-    secondaryMapsUrl: c.secondaryMapsUrl || '',
-    active: c.active
-  }));
+  ).map((c, originalIdx) => {
+    const custId = c.customerId || getCustomerStableId(c);
+    const vehInfo = parseVehicleDetails(c.vehicle || c.vehicleNumbers);
+    return {
+      customerId: custId,
+      id: custId,
+      staffId: staffObj ? staffObj.id : staffId,
+      staffName: c.staffName || (staffObj ? staffObj.name : staffId),
+      customerName: c.customerName,
+      customerNumber: c.customerNumber,
+      googleMapsUrl: c.googleMapsUrl,
+      photoUrl: c.photoUrl,
+      address: c.address,
+      vehicleNumbers: c.vehicle || c.vehicleNumbers,
+      vehicle: c.vehicle || c.vehicleNumbers,
+      vehicleModel: vehInfo.model,
+      vehicleReg: vehInfo.reg,
+      packageType: c.packageType,
+      packagesPurchased: c.packagesPurchased || '1',
+      serviceCategory: 'Daily Car Cleaning',
+      category: 'daily_car_cleaning',
+      staffNotes: c.notes,
+      secondaryAddress: c.secondaryAddress || '',
+      secondaryMapsUrl: c.secondaryMapsUrl || '',
+      active: c.active,
+      rowIndex: c.rowIndex,
+      _originalIndex: originalIdx
+    };
+  });
+
+  const dailyCarCleaning = applyStaffSequenceOrder(rawDailyCarCleaning, staffObj ? staffObj.id : staffId);
 
   const carWashing = assignedActiveCustomers.filter(c => 
     c.serviceCategory === 'Car Washing'
@@ -1143,6 +1374,7 @@ function formatStaffDataResponse(staffId, fetchResult) {
   }));
 
   const formatted = {
+    success: true,
     staffId: staffObj ? staffObj.id : staffId,
     staffName: staffObj ? staffObj.name : staffId,
     dailyCarCleaning: dailyCarCleaning,
@@ -1322,6 +1554,36 @@ const server = http.createServer(async (req, res) => {
     );
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify(sanitized));
+  }
+
+  // GET /api/staff-sequence - Requires valid Admin Session
+  if (req.method === 'GET' && pathname === '/api/staff-sequence') {
+    const token = extractAuthToken(req, null);
+    if (!isValidAdminSession(token)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin session required to view sequence management.' }));
+    }
+
+    const reqStaffId = parsedUrl.searchParams.get('staffId') || 'STF01';
+    try {
+      const fetchResult = await fetchAllLiveCustomers();
+      const staffData = formatStaffDataResponse(reqStaffId, fetchResult);
+      const sequences = getStaffSequences(staffData.staffId || reqStaffId);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({
+        success: true,
+        staffId: staffData.staffId || reqStaffId,
+        staffName: staffData.staffName,
+        customers: staffData.dailyCarCleaning || [],
+        totalCount: (staffData.dailyCarCleaning || []).length,
+        hasCustomSequence: sequences.length > 0,
+        sequences: sequences
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: err.message }));
+    }
   }
 
   // GET /api/staff-data - Requires valid Staff Session or Admin Session (Query token rejected!)
@@ -1704,7 +1966,10 @@ const server = http.createServer(async (req, res) => {
           'syncStaffDropdown',
           'clearInvalidDropdowns',
           'updateAdminPassword',
-          'reorderSheet'
+          'reorderSheet',
+          'getStaffSequence',
+          'saveStaffSequence',
+          'resetStaffSequence'
         ];
 
         if (adminProtectedActions.includes(payload.action)) {
@@ -1716,6 +1981,79 @@ const server = http.createServer(async (req, res) => {
               unauthorized: true
             }));
           }
+        }
+
+        // Admin: Get Staff Sequence
+        if (payload.action === 'getStaffSequence') {
+          const reqStaffId = (payload.staffId || '').toString().trim();
+          if (!reqStaffId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
+          }
+
+          const fetchResult = await fetchAllLiveCustomers();
+          const staffData = formatStaffDataResponse(reqStaffId, fetchResult);
+          const sequences = getStaffSequences(staffData.staffId || reqStaffId);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            staffId: staffData.staffId || reqStaffId,
+            staffName: staffData.staffName,
+            customers: staffData.dailyCarCleaning || [],
+            totalCount: (staffData.dailyCarCleaning || []).length,
+            hasCustomSequence: sequences.length > 0
+          }));
+        }
+
+        // Admin: Save Staff Sequence
+        if (payload.action === 'saveStaffSequence') {
+          const reqStaffId = (payload.staffId || '').toString().trim();
+          const sequenceList = payload.orderedCustomerIds || payload.sequence || payload.customerIds || [];
+          if (!reqStaffId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
+          }
+          if (!Array.isArray(sequenceList)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Sequence list must be an array.' }));
+          }
+
+          const updatedRecords = saveStaffSequence(reqStaffId, sequenceList, 'admin');
+
+          try {
+            await forwardToGoogleAppsScript(payload);
+          } catch (e) {}
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            message: 'स्टाफ का कस्टमर रूट सीक्वेंस सफलतापूर्वक सुरक्षित किया गया।',
+            sequenceCount: updatedRecords.length,
+            data: updatedRecords,
+            sequences: updatedRecords
+          }));
+        }
+
+        // Admin: Reset Staff Sequence to Default
+        if (payload.action === 'resetStaffSequence') {
+          const reqStaffId = (payload.staffId || '').toString().trim();
+          if (!reqStaffId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
+          }
+
+          resetStaffSequence(reqStaffId);
+
+          try {
+            await forwardToGoogleAppsScript(payload);
+          } catch (e) {}
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            message: 'कस्टमर रूट सीक्वेंस डिफ़ॉल्ट क्रम में रीसेट कर दिया गया।'
+          }));
         }
 
         // Admin: Get All Customers
@@ -2136,6 +2474,12 @@ module.exports = {
   invalidateLiveCustomersCache,
   fetchAllLiveCustomers,
   parseCSV,
+  getCustomerStableId,
+  parseVehicleDetails,
+  getStaffSequences,
+  saveStaffSequence,
+  resetStaffSequence,
+  applyStaffSequenceOrder,
   getAppState: () => appState,
   setAppState: (st) => { appState = st; },
   setDataFile: (df) => { DATA_FILE = df; },
