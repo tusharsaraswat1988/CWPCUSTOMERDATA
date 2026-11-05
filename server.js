@@ -1681,6 +1681,7 @@ const server = http.createServer(async (req, res) => {
           if (s) {
             s.active = !!payload.active;
             saveLocalData(appState);
+            invalidateLiveCustomersCache();
             if (!s.active) {
               revokeAllStaffSessionsForId(s.id);
             }
@@ -1702,6 +1703,7 @@ const server = http.createServer(async (req, res) => {
           revokeAllStaffSessionsForId(staffId);
           appState.staffList = (appState.staffList || []).filter(s => (s.id || '').toLowerCase() !== staffId);
           saveLocalData(appState);
+          invalidateLiveCustomersCache();
           try {
             await forwardToGoogleAppsScript(payload);
           } catch (e) {}
@@ -1791,6 +1793,7 @@ const server = http.createServer(async (req, res) => {
             appState.customers.unshift(cust);
           }
           saveLocalData(appState);
+          invalidateLiveCustomersCache();
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify(responseData));
@@ -1848,15 +1851,17 @@ const server = http.createServer(async (req, res) => {
           try {
             responseData = await forwardToGoogleAppsScript(payload);
           } catch (gasErr) {
-            if (appState.customers && appState.customers.length > 0) {
-              const localIdx = appState.customers.findIndex(c => c.sheetName === cust.sheetName && parseInt(c.rowIndex, 10) === rowIdx);
-              if (localIdx >= 0) {
-                appState.customers[localIdx] = Object.assign({}, appState.customers[localIdx], cust);
-                saveLocalData(appState);
-              }
-            }
             responseData = { success: true, message: 'ग्राहक का विवरण स्थानीय रूप से अपडेट हुआ (Google sync pending)' };
           }
+
+          if (appState.customers && appState.customers.length > 0) {
+            const localIdx = appState.customers.findIndex(c => c.sheetName === cust.sheetName && parseInt(c.rowIndex, 10) === rowIdx);
+            if (localIdx >= 0) {
+              appState.customers[localIdx] = Object.assign({}, appState.customers[localIdx], cust);
+              saveLocalData(appState);
+            }
+          }
+          invalidateLiveCustomersCache();
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify(responseData));
