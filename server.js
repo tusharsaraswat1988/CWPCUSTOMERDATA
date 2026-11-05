@@ -261,6 +261,45 @@ setInterval(() => {
 }, 180000);
 
 /**
+ * Classifies a record into one of the three primary customer service categories:
+ * 1. Daily Car Cleaning
+ * 2. Car Washing
+ * 3. Solar Panel Cleaning
+ */
+function classifyServiceCategory(sheetName, serviceType, packageType, packageDetails, vehicleOrSite) {
+  const sName = (sheetName || '').toString().toLowerCase().trim();
+  const sType = (serviceType || '').toString().toLowerCase().trim();
+  const pType = (packageType || '').toString().toLowerCase().trim();
+  const pDetails = (packageDetails || '').toString().toLowerCase().trim();
+  const vSite = (vehicleOrSite || '').toString().toLowerCase().trim();
+
+  // 1. Daily Clean sheet tab is strictly Daily Car Cleaning
+  if (sName === 'daily clean' || sName === 'daily car cleaning' || sName === 'daily') {
+    return 'Daily Car Cleaning';
+  }
+
+  // 2. Direct sheet tab checks if tabs are split directly
+  if (sName === 'solar panel cleaning' || sName === 'solar cleaning' || sName === 'solar') {
+    return 'Solar Panel Cleaning';
+  }
+  if (sName === 'car washing' || sName === 'car wash') {
+    return 'Car Washing';
+  }
+
+  // 3. For 'All Other Work' sheet or general entries, use Service Type & details
+  const combined = sType + ' ' + pType + ' ' + pDetails + ' ' + vSite;
+  if (sType.indexOf('solar') >= 0 || combined.indexOf('solar') >= 0 || combined.indexOf('rooftop') >= 0 || combined.indexOf('panel') >= 0 || vSite.indexOf('site') >= 0) {
+    return 'Solar Panel Cleaning';
+  }
+
+  if (sName.indexOf('other') >= 0 || sType.indexOf('wash') >= 0 || combined.indexOf('wash') >= 0) {
+    return 'Car Washing';
+  }
+
+  return 'Daily Car Cleaning';
+}
+
+/**
  * Fetches all live customers directly from Google Sheets using official Visualization API
  * Ensures zero delay and 100% accurate column mapping (vehicle, address, maps, photo, staff)
  */
@@ -315,11 +354,15 @@ async function fetchAllLiveCustomers() {
 
         const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype']) || 'DCC ONLY';
         const pkgCount = getCell(['packagespurchased', 'pkgcount']) || '1';
+        const serviceType = getCell(['servicetypecarwashsolarcleaning', 'servicetype']);
+        const packageDetails = getCell(['packageservicedetails', 'packagedetails']);
         const staff = getCell(['staffname', 'staff']);
         const notes = getCell(['staffnotescleaninginstructions', 'staffnotesspecialinstructions', 'staffnotes', 'notes']);
         const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress']);
         const secMap = getCell(['secondarymapsurl']);
         const active = getCell(['active', 'status']) || 'Yes';
+
+        const serviceCategory = classifyServiceCategory(sheetName, serviceType, pkgType, packageDetails, vehicle);
 
         allRecords.push({
           sheetName: sheetName,
@@ -332,6 +375,9 @@ async function fetchAllLiveCustomers() {
           vehicle: vehicle,
           packageType: pkgType,
           packagesPurchased: pkgCount,
+          serviceType: serviceType,
+          packageDetails: packageDetails,
+          serviceCategory: serviceCategory,
           staffName: staff,
           secondaryAddress: secAddr,
           secondaryMapsUrl: secMap,
@@ -353,12 +399,19 @@ function formatStaffDataResponse(staffId, allCustomers) {
     (s.id || '').toLowerCase() === staffQuery || 
     (s.name || '').toLowerCase() === staffQuery
   );
+  const matchId = staffObj ? staffObj.id.toLowerCase() : staffQuery;
   const matchName = staffObj ? staffObj.name.toLowerCase() : staffQuery;
 
-  const dailyClean = (allCustomers || []).filter(c => 
-    c.sheetName === 'Daily Clean' && 
-    (c.staffName || '').trim().toLowerCase() === matchName &&
-    (c.active || 'Yes').toLowerCase() === 'yes'
+  // Filter assigned active customer records preserving sheet order
+  const assignedActiveCustomers = (allCustomers || []).filter(c => {
+    const sName = (c.staffName || '').trim().toLowerCase();
+    const sId = (c.staffId || '').trim().toLowerCase();
+    const isAssigned = (sName === matchName || sName === matchId || sId === matchId);
+    return isAssigned && (c.active || 'Yes').toLowerCase() === 'yes';
+  });
+
+  const dailyCarCleaning = assignedActiveCustomers.filter(c => 
+    c.serviceCategory === 'Daily Car Cleaning'
   ).map(c => ({
     staffId: staffObj ? staffObj.id : staffId,
     staffName: c.staffName || (staffObj ? staffObj.name : staffId),
@@ -368,18 +421,18 @@ function formatStaffDataResponse(staffId, allCustomers) {
     photoUrl: c.photoUrl,
     address: c.address,
     vehicleNumbers: c.vehicle,
+    vehicle: c.vehicle,
     packageType: c.packageType,
-    packagesPurchased: c.packagesPurchased,
+    serviceCategory: 'Daily Car Cleaning',
+    category: 'daily_car_cleaning',
     staffNotes: c.notes,
-    secondaryAddress: c.secondaryAddress,
-    secondaryMapsUrl: c.secondaryMapsUrl,
+    secondaryAddress: c.secondaryAddress || '',
+    secondaryMapsUrl: c.secondaryMapsUrl || '',
     active: c.active
   }));
 
-  const allOtherWork = (allCustomers || []).filter(c => 
-    c.sheetName === 'All Other Work' && 
-    (c.staffName || '').trim().toLowerCase() === matchName &&
-    (c.active || 'Yes').toLowerCase() === 'yes'
+  const carWashing = assignedActiveCustomers.filter(c => 
+    c.serviceCategory === 'Car Washing'
   ).map(c => ({
     staffId: staffObj ? staffObj.id : staffId,
     staffName: c.staffName || (staffObj ? staffObj.name : staffId),
@@ -388,19 +441,52 @@ function formatStaffDataResponse(staffId, allCustomers) {
     googleMapsUrl: c.googleMapsUrl,
     photoUrl: c.photoUrl,
     address: c.address,
-    serviceType: c.packageType,
+    vehicleNumbers: c.vehicle,
     vehicleOrSite: c.vehicle,
-    packageDetails: c.packageType,
+    vehicle: c.vehicle,
+    packageType: c.packageType,
+    serviceType: c.serviceType || c.packageType || 'Car Washing',
+    serviceCategory: 'Car Washing',
+    category: 'car_washing',
     staffNotes: c.notes,
+    secondaryAddress: c.secondaryAddress || '',
+    secondaryMapsUrl: c.secondaryMapsUrl || '',
+    active: c.active
+  }));
+
+  const solarCleaning = assignedActiveCustomers.filter(c => 
+    c.serviceCategory === 'Solar Panel Cleaning'
+  ).map(c => ({
+    staffId: staffObj ? staffObj.id : staffId,
+    staffName: c.staffName || (staffObj ? staffObj.name : staffId),
+    customerName: c.customerName,
+    customerNumber: c.customerNumber,
+    googleMapsUrl: c.googleMapsUrl,
+    photoUrl: c.photoUrl,
+    address: c.address,
+    vehicleNumbers: c.vehicle,
+    vehicleOrSite: c.vehicle,
+    vehicle: c.vehicle,
+    packageType: c.packageType,
+    serviceType: c.serviceType || c.packageType || 'Solar Panel Cleaning',
+    serviceCategory: 'Solar Panel Cleaning',
+    category: 'solar_cleaning',
+    staffNotes: c.notes,
+    secondaryAddress: c.secondaryAddress || '',
+    secondaryMapsUrl: c.secondaryMapsUrl || '',
     active: c.active
   }));
 
   return {
     staffId: staffObj ? staffObj.id : staffId,
     staffName: staffObj ? staffObj.name : staffId,
-    dailyClean: dailyClean,
-    allOtherWork: allOtherWork,
-    totalCount: dailyClean.length + allOtherWork.length
+    dailyCarCleaning: dailyCarCleaning,
+    carWashing: carWashing,
+    solarCleaning: solarCleaning,
+    // Backward compatibility for existing consumers:
+    dailyClean: dailyCarCleaning,
+    allOtherWork: carWashing.concat(solarCleaning),
+    totalCount: dailyCarCleaning.length + carWashing.length + solarCleaning.length
   };
 }
 
@@ -779,6 +865,25 @@ const server = http.createServer(async (req, res) => {
             delete cust.photoFile;
             delete cust.photoData;
           }
+
+          // Ensure service category & sheetName are properly mapped
+          const cat = (cust.serviceCategory || cust.category || cust.sheetName || '').toString().trim();
+          const isSave = (payload.action === 'saveCustomer');
+          if (cat === 'Daily Car Cleaning' || cat === 'Daily Clean' || cat === 'daily_car_cleaning') {
+            if (isSave || !cust.sheetName) cust.sheetName = 'Daily Clean';
+            cust.serviceCategory = 'Daily Car Cleaning';
+          } else if (cat === 'Car Washing' || cat === 'car_washing' || cat === 'Car Wash') {
+            if (isSave || !cust.sheetName) cust.sheetName = 'All Other Work';
+            cust.serviceCategory = 'Car Washing';
+            cust.serviceType = cust.serviceType || cust.packageType || 'Car Washing';
+          } else if (cat === 'Solar Panel Cleaning' || cat === 'solar_cleaning' || cat === 'Solar Cleaning') {
+            if (isSave || !cust.sheetName) cust.sheetName = 'All Other Work';
+            cust.serviceCategory = 'Solar Panel Cleaning';
+            cust.serviceType = cust.serviceType || cust.packageType || 'Solar Panel Cleaning';
+          }
+          if (!cust.packagesPurchased) {
+            cust.packagesPurchased = '1';
+          }
         }
 
         // Forward to live Google Apps Script Web App
@@ -794,8 +899,12 @@ const server = http.createServer(async (req, res) => {
             responseData = {
               staffId: payload.staffId,
               staffName: 'Staff Member',
+              dailyCarCleaning: [],
+              carWashing: [],
+              solarCleaning: [],
               dailyClean: [],
-              allOtherWork: []
+              allOtherWork: [],
+              totalCount: 0
             };
           } else if (action === 'reorderSheet') {
             responseData = { success: true, message: 'कस्टमर-फर्स्ट कॉलम संरचना सक्रिय है।' };

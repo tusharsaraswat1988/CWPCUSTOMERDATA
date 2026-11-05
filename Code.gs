@@ -221,6 +221,45 @@ function getVal(row, headerMap, aliases) {
 }
 
 /**
+ * Classifies a customer/work entry into one of the three primary customer service categories:
+ * 1. Daily Car Cleaning
+ * 2. Car Washing
+ * 3. Solar Panel Cleaning
+ */
+function classifyServiceCategory(sheetName, serviceType, packageType, packageDetails, vehicleOrSite) {
+  var sName = (sheetName || "").toString().toLowerCase().trim();
+  var sType = (serviceType || "").toString().toLowerCase().trim();
+  var pType = (packageType || "").toString().toLowerCase().trim();
+  var pDetails = (packageDetails || "").toString().toLowerCase().trim();
+  var vSite = (vehicleOrSite || "").toString().toLowerCase().trim();
+
+  // 1. Daily Clean sheet tab is strictly Daily Car Cleaning
+  if (sName === "daily clean" || sName === "daily car cleaning" || sName === "daily") {
+    return "Daily Car Cleaning";
+  }
+
+  // 2. Direct sheet tab checks if tabs are split directly
+  if (sName === "solar panel cleaning" || sName === "solar cleaning" || sName === "solar") {
+    return "Solar Panel Cleaning";
+  }
+  if (sName === "car washing" || sName === "car wash") {
+    return "Car Washing";
+  }
+
+  // 3. For 'All Other Work' sheet or general entries, use Service Type & details
+  var combined = sType + " " + pType + " " + pDetails + " " + vSite;
+  if (sType.indexOf("solar") >= 0 || combined.indexOf("solar") >= 0 || combined.indexOf("rooftop") >= 0 || combined.indexOf("panel") >= 0 || vSite.indexOf("site") >= 0) {
+    return "Solar Panel Cleaning";
+  }
+
+  if (sName.indexOf("other") >= 0 || sType.indexOf("wash") >= 0 || combined.indexOf("wash") >= 0) {
+    return "Car Washing";
+  }
+
+  return "Daily Car Cleaning";
+}
+
+/**
  * =========================================================================
  * STAFF MANAGEMENT (Stored in Script Properties to NOT pollute Sheet)
  * =========================================================================
@@ -684,7 +723,7 @@ function syncStaffSheet(list) {
  */
 function getStaffCustomerData(requestedStaffId) {
   if (!requestedStaffId) {
-    return { error: "No Staff identifier provided.", staffId: "", staffName: "", dailyClean: [], allOtherWork: [] };
+    return { error: "No Staff identifier provided.", staffId: "", staffName: "", dailyCarCleaning: [], carWashing: [], solarCleaning: [], dailyClean: [], allOtherWork: [] };
   }
   
   var targetQuery = requestedStaffId.toString().trim().toLowerCase();
@@ -704,6 +743,9 @@ function getStaffCustomerData(requestedStaffId) {
         inactive: true,
         staffId: foundStaff.id,
         staffName: foundStaff.name,
+        dailyCarCleaning: [],
+        carWashing: [],
+        solarCleaning: [],
         dailyClean: [],
         allOtherWork: []
       };
@@ -713,10 +755,11 @@ function getStaffCustomerData(requestedStaffId) {
   var staffName = foundStaff ? foundStaff.name : requestedStaffId;
   var staffId = foundStaff ? foundStaff.id : requestedStaffId;
   
-  var dailyCleanList = [];
-  var allOtherWorkList = [];
+  var dailyCarCleaningList = [];
+  var carWashingList = [];
+  var solarCleaningList = [];
   
-  // 1. Process "Daily Clean" tab
+  // 1. Process "Daily Clean" tab (Source row order preserved)
   var dailySheet = ss.getSheetByName("Daily Clean");
   if (dailySheet) {
     var dailyData = dailySheet.getDataRange().getValues();
@@ -736,7 +779,7 @@ function getStaffCustomerData(requestedStaffId) {
         }
         
         if (isMatch && (rowActive === "yes" || rowActive === "true" || rowActive === "")) {
-          dailyCleanList.push({
+          dailyCarCleaningList.push({
             staffId: staffId,
             staffName: getVal(row, dMap, ["staffname", "staff"]) || staffName,
             customerName: getVal(row, dMap, ["customername", "custname"]),
@@ -745,8 +788,11 @@ function getStaffCustomerData(requestedStaffId) {
             photoUrl: getVal(row, dMap, ["customervehiclephotourl", "photourl", "photo"]),
             address: getVal(row, dMap, ["address"]),
             vehicleNumbers: getVal(row, dMap, ["vehiclenumbersmodels", "vehiclenumbers", "vehicle"]),
+            vehicle: getVal(row, dMap, ["vehiclenumbersmodels", "vehiclenumbers", "vehicle"]),
             packageType: getVal(row, dMap, ["packagetype", "pkgtype"]),
             packagesPurchased: getVal(row, dMap, ["packagespurchased", "pkgcount"]) || "1",
+            serviceCategory: "Daily Car Cleaning",
+            category: "daily_car_cleaning",
             staffNotes: getVal(row, dMap, ["staffnotescleaninginstructions", "staffnotes", "notes"]),
             secondaryAddress: getVal(row, dMap, ["secondaryaddressifany", "secondaryaddress"]),
             secondaryMapsUrl: getVal(row, dMap, ["secondarymapsurl"]),
@@ -757,7 +803,7 @@ function getStaffCustomerData(requestedStaffId) {
     }
   }
   
-  // 2. Process "All Other Work" tab
+  // 2. Process "All Other Work" tab (Source row order preserved)
   var otherSheet = ss.getSheetByName("All Other Work");
   if (otherSheet) {
     var otherData = otherSheet.getDataRange().getValues();
@@ -777,7 +823,13 @@ function getStaffCustomerData(requestedStaffId) {
         }
         
         if (isMatchOther && (oActive === "yes" || oActive === "true" || oActive === "")) {
-          allOtherWorkList.push({
+          var sType = getVal(oRow, oMap, ["servicetypecarwashsolarcleaning", "servicetype"]);
+          var pType = getVal(oRow, oMap, ["packagetype", "pkgtype"]);
+          var pDetails = getVal(oRow, oMap, ["packageservicedetails", "packagedetails"]);
+          var vSite = getVal(oRow, oMap, ["vehiclenumbersitename", "vehicleorsite", "vehicle"]);
+          var classifiedCat = classifyServiceCategory("All Other Work", sType, pType, pDetails, vSite);
+
+          var item = {
             staffId: staffId,
             staffName: getVal(oRow, oMap, ["staffname", "staff"]) || staffName,
             customerName: getVal(oRow, oMap, ["customername", "custname"]),
@@ -785,12 +837,26 @@ function getStaffCustomerData(requestedStaffId) {
             googleMapsUrl: getVal(oRow, oMap, ["googlemapsurl", "mapurl", "maps", "location"]),
             photoUrl: getVal(oRow, oMap, ["vehiclesitephotourl", "photourl", "photo"]),
             address: getVal(oRow, oMap, ["address"]),
-            serviceType: getVal(oRow, oMap, ["servicetypecarwashsolarcleaning", "servicetype"]),
-            vehicleOrSite: getVal(oRow, oMap, ["vehiclenumbersitename", "vehicleorsite", "vehicle"]),
-            packageDetails: getVal(oRow, oMap, ["packageservicedetails", "packagedetails"]),
+            serviceType: sType || pType || classifiedCat,
+            vehicleNumbers: vSite,
+            vehicleOrSite: vSite,
+            vehicle: vSite,
+            packageDetails: pDetails || pType || classifiedCat,
+            packageType: pType || pDetails || classifiedCat,
+            packagesPurchased: "1",
+            serviceCategory: classifiedCat,
+            category: classifiedCat === "Solar Panel Cleaning" ? "solar_cleaning" : (classifiedCat === "Daily Car Cleaning" ? "daily_car_cleaning" : "car_washing"),
             staffNotes: getVal(oRow, oMap, ["staffnotesspecialinstructions", "staffnotes", "notes"]),
             active: getVal(oRow, oMap, ["active", "status"]) || "Yes"
-          });
+          };
+
+          if (classifiedCat === "Solar Panel Cleaning") {
+            solarCleaningList.push(item);
+          } else if (classifiedCat === "Daily Car Cleaning") {
+            dailyCarCleaningList.push(item);
+          } else {
+            carWashingList.push(item);
+          }
         }
       }
     }
@@ -799,9 +865,13 @@ function getStaffCustomerData(requestedStaffId) {
   return {
     staffId: staffId,
     staffName: staffName,
-    dailyClean: dailyCleanList,
-    allOtherWork: allOtherWorkList,
-    totalCount: dailyCleanList.length + allOtherWorkList.length
+    dailyCarCleaning: dailyCarCleaningList,
+    carWashing: carWashingList,
+    solarCleaning: solarCleaningList,
+    // Backward compatibility for existing consumers:
+    dailyClean: dailyCarCleaningList,
+    allOtherWork: carWashingList.concat(solarCleaningList),
+    totalCount: dailyCarCleaningList.length + carWashingList.length + solarCleaningList.length
   };
 }
 
@@ -817,7 +887,11 @@ function saveCustomer(customerData) {
   }
   
   var ss = getSpreadsheet();
-  var sheetName = (customerData.category === "other" || customerData.sheetName === "All Other Work") ? "All Other Work" : "Daily Clean";
+  var cat = (customerData.serviceCategory || customerData.category || customerData.sheetName || "").toString().trim();
+  var isDCC = (cat === "Daily Car Cleaning" || cat === "Daily Clean" || cat === "daily" || cat === "daily_car_cleaning");
+  var isCarWash = (cat === "Car Washing" || cat === "car_washing" || cat === "Car Wash");
+  var isSolar = (cat === "Solar Panel Cleaning" || cat === "solar_cleaning" || cat === "Solar Cleaning");
+  var sheetName = isDCC ? "Daily Clean" : "All Other Work";
   var sheet = ss.getSheetByName(sheetName);
   
   if (!sheet) {
@@ -851,7 +925,7 @@ function saveCustomer(customerData) {
     setCol(["googlemapsurl", "mapurl", "maps", "location"], customerData.googleMapsUrl || "");
     setCol(["customervehiclephotourl", "photourl", "photo"], photoUrl);
     setCol(["address"], customerData.address || "");
-    setCol(["vehiclenumbersmodels", "vehiclenumbers", "vehicle"], customerData.vehicleNumbers || "");
+    setCol(["vehiclenumbersmodels", "vehiclenumbers", "vehicle"], customerData.vehicleNumbers || customerData.vehicle || "");
     setCol(["packagetype", "pkgtype"], customerData.packageType || "DCC ONLY");
     setCol(["packagespurchased", "pkgcount"], customerData.packagesPurchased || "1");
     setCol(["staffname", "staff"], customerData.staffName || "");
@@ -861,14 +935,15 @@ function saveCustomer(customerData) {
     setCol(["active", "status"], customerData.active || "Yes");
     setCol(["staffid", "id"], customerData.staffId || "");
   } else {
+    var sType = isSolar ? "Solar Panel Cleaning" : (isCarWash ? "Car Washing" : (customerData.serviceType || "Car Washing"));
     setCol(["customername", "custname"], customerData.customerName || "");
     setCol(["customernumber", "custphone", "number", "phone", "mob"], custNum);
     setCol(["googlemapsurl", "mapurl", "maps", "location"], customerData.googleMapsUrl || "");
     setCol(["vehiclesitephotourl", "photourl", "photo"], photoUrl);
     setCol(["address"], customerData.address || "");
-    setCol(["servicetypecarwashsolarcleaning", "servicetype"], customerData.serviceType || "");
-    setCol(["vehiclenumbersitename", "vehicleorsite", "vehicle"], customerData.vehicleOrSite || "");
-    setCol(["packageservicedetails", "packagedetails"], customerData.packageDetails || "");
+    setCol(["servicetypecarwashsolarcleaning", "servicetype"], sType);
+    setCol(["vehiclenumbersitename", "vehicleorsite", "vehicle"], customerData.vehicleOrSite || customerData.vehicleNumbers || customerData.vehicle || "");
+    setCol(["packageservicedetails", "packagedetails"], customerData.packageDetails || customerData.packageType || sType);
     setCol(["staffname", "staff"], customerData.staffName || "");
     setCol(["staffnotesspecialinstructions", "staffnotes", "notes"], customerData.staffNotes || "");
     setCol(["active", "status"], customerData.active || "Yes");
@@ -903,8 +978,15 @@ function getAllCustomersForAdmin() {
     var hMap = getHeaderIndexMap(sheet);
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
+      var sType = getVal(row, hMap, ["servicetypecarwashsolarcleaning", "servicetype"]);
+      var pType = getVal(row, hMap, ["packagetype", "pkgtype", "servicetypecarwashsolarcleaning", "servicetype"]) || "DCC ONLY";
+      var pDetails = getVal(row, hMap, ["packageservicedetails", "packagedetails"]);
+      var veh = getVal(row, hMap, ["vehiclenumbersmodels", "vehiclenumbersitename", "vehiclenumbers", "vehicle", "models", "site"]);
+      var serviceCategory = classifyServiceCategory(sheetName, sType, pType, pDetails, veh);
+
       records.push({
         sheetName: sheetName,
+        serviceCategory: serviceCategory,
         rowIndex: i + 1,
         staffId: getVal(row, hMap, ["staffid", "id"]) || "",
         staffName: getVal(row, hMap, ["staffname", "staff"]),
@@ -913,8 +995,11 @@ function getAllCustomersForAdmin() {
         googleMapsUrl: getVal(row, hMap, ["googlemapsurl", "mapurl", "maps", "location"]),
         photoUrl: getVal(row, hMap, ["customervehiclephotourl", "vehiclesitephotourl", "photourl", "photo"]),
         address: getVal(row, hMap, ["address"]),
-        vehicle: getVal(row, hMap, ["vehiclenumbersmodels", "vehiclenumbersitename", "vehiclenumbers", "vehicle", "models", "site"]),
-        packageType: getVal(row, hMap, ["packagetype", "pkgtype", "servicetypecarwashsolarcleaning", "servicetype"]) || "DCC ONLY",
+        vehicle: veh,
+        vehicleNumbers: veh,
+        packageType: pType,
+        serviceType: sType,
+        packageDetails: pDetails,
         packagesPurchased: (getVal(row, hMap, ["packagespurchased", "pkgcount"]) || "1").toString(),
         secondaryAddress: getVal(row, hMap, ["secondaryaddressifany", "secondaryaddress"]) || "",
         secondaryMapsUrl: getVal(row, hMap, ["secondarymapsurl"]) || "",
@@ -990,9 +1075,11 @@ function updateCustomer(customerData) {
     updateCell(["secondaryaddressifany", "secondaryaddress"], customerData.secondaryAddress || "");
     updateCell(["secondarymapsurl"], customerData.secondaryMapsUrl || "");
   } else {
+    var sCat = customerData.serviceCategory;
+    var sTypeVal = (sCat === "Solar Panel Cleaning") ? "Solar Panel Cleaning" : ((sCat === "Car Washing") ? "Car Washing" : (customerData.serviceType || customerData.packageType || ""));
     updateCell(["vehiclenumbersitename", "vehicleorsite", "vehicle"], customerData.vehicleOrSite || customerData.vehicleNumbers || customerData.vehicle);
-    updateCell(["servicetypecarwashsolarcleaning", "servicetype"], customerData.serviceType || customerData.packageType || "");
-    updateCell(["packageservicedetails", "packagedetails"], customerData.packageDetails || customerData.packageType || "");
+    updateCell(["servicetypecarwashsolarcleaning", "servicetype"], sTypeVal);
+    updateCell(["packageservicedetails", "packagedetails"], customerData.packageDetails || customerData.packageType || sTypeVal);
   }
   
   return { success: true, message: "ग्राहक का विवरण सफलतापूर्वक अपडेट हुआ!" };

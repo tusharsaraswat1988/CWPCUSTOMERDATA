@@ -1425,10 +1425,22 @@
       border: 1px solid #dbeafe;
     }
 
-    .tag-other {
+    .tag-wash {
+      background: #ccfbf1;
+      color: #0f766e;
+      border: 1px solid #99f6e4;
+    }
+
+    .tag-solar {
       background: #fef3c7;
       color: #b45309;
       border: 1px solid #fde68a;
+    }
+
+    .tag-other {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
     }
 
     .cust-address-cell {
@@ -2528,9 +2540,9 @@
           </div>
 
           <div class="filter-pills-row" id="filterPillsRow">
-            <button type="button" class="filter-pill active" onclick="setStaffFilter('all')">सभी (<span id="countAll">0</span>)</button>
-            <button type="button" class="filter-pill" onclick="setStaffFilter('daily')">दैनिक धुलाई (<span id="countDaily">0</span>)</button>
-            <button type="button" class="filter-pill" onclick="setStaffFilter('other')">अन्य कार्य (<span id="countOther">0</span>)</button>
+            <button type="button" class="filter-pill active" id="pillDailyClean" onclick="setStaffFilter('daily_car_cleaning')">Daily Car Cleaning (<span id="countDailyClean">0</span>)</button>
+            <button type="button" class="filter-pill" id="pillCarWash" onclick="setStaffFilter('car_washing')">Car Washing (<span id="countCarWash">0</span>)</button>
+            <button type="button" class="filter-pill" id="pillSolarClean" onclick="setStaffFilter('solar_cleaning')">Solar Panel Cleaning (<span id="countSolarClean">0</span>)</button>
           </div>
         </div>
 
@@ -2692,77 +2704,35 @@
               </div>
             </div>
 
-            <!-- SECTION 2: VEHICLE & PACKAGE DETAILS -->
+            <!-- SECTION 2: SERVICE CATEGORY & DETAILS -->
             <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
               <div style="font-size: 13.5px; font-weight: 600; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                <span>🚗</span> 2. गाड़ी और पैकेज विवरण (Vehicle & Service Details)
+                <span>🚗</span> 2. सर्विस केटेगरी और विवरण (Service Category & Details)
               </div>
 
               <div class="form-group">
-                <label class="form-label">काम का प्रकार (Category) *</label>
+                <label class="form-label">सर्विस केटेगरी (Service Category) *</label>
                 <select id="custCategory" class="form-select" onchange="toggleCategoryFields(this.value)" required>
-                  <option value="Daily Clean">Daily Clean (दैनिक सफाई)</option>
-                  <option value="All Other Work">All Other Work (अन्य काम)</option>
+                  <option value="Daily Car Cleaning">Daily Car Cleaning (दैनिक कार सफाई)</option>
+                  <option value="Car Washing">Car Washing (कार वॉशिंग)</option>
+                  <option value="Solar Panel Cleaning">Solar Panel Cleaning (सोलर पैनल सफाई)</option>
                 </select>
               </div>
 
-              <!-- Daily Clean Fields -->
-              <div id="dailyFieldsBlock">
-                <div class="form-group">
-                  <label class="form-label">गाड़ी नंबर और मॉडल (Vehicle Number & Model) *</label>
-                  <input type="text" id="custVehicles" class="form-input" placeholder="उदा. UP65 AB 1234 - Creta (आज) / UP65 CD 5678 - Amaze (कल)" required>
-                  <div class="chips-row">
-                    <button type="button" class="chip-btn" onclick="appendVehicleText(' (आज)')">+ (आज)</button>
-                    <button type="button" class="chip-btn" onclick="appendVehicleText(' (कल)')">+ (कल)</button>
-                    <button type="button" class="chip-btn" onclick="appendVehicleText(' / ')">+ अगली गाड़ी ( / )</button>
-                  </div>
-                </div>
-
-                <div class="form-row-2">
-                  <div class="form-group">
-                    <label class="form-label">पैकेज का प्रकार (Package Type) *</label>
-                    <select id="custPkgType" class="form-select" onchange="handlePackageTypeChange(this.value)" required>
-                      <option value="DCC ONLY">DCC ONLY</option>
-                      <option value="DCC SILVER">DCC SILVER</option>
-                      <option value="DCC GOLD">DCC GOLD</option>
-                      <option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>
-                      <option value="CAR WASH SINGLE">CAR WASH SINGLE</option>
-                      <option value="SOLAR SINGLE">SOLAR SINGLE</option>
-                      <option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>
-                      <option value="OTHER">OTHER</option>
-                    </select>
-                    <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="अन्य पैकेज विवरण..." style="display: none; margin-top: 6px;">
-                  </div>
-
-                  <div class="form-group">
-                    <label class="form-label">पैकेज संख्या (Purchased Packages) *</label>
-                    <input type="number" id="custPkgCount" class="form-input" value="1" min="1" max="10" required>
-                  </div>
-                </div>
+              <div class="form-group">
+                <label class="form-label" id="custVehicleLabel">गाड़ी नंबर और मॉडल (Vehicle Number & Model) *</label>
+                <input type="text" id="custVehicles" class="form-input" placeholder="उदा. UP65 AB 1234 - Creta" required>
               </div>
 
-              <!-- Other Work Fields -->
-              <div id="otherFieldsBlock" style="display: none;">
-                <div class="form-row-2">
-                  <div class="form-group">
-                    <label class="form-label">पैकेज / सर्विस का प्रकार (Package Type)</label>
-                    <select id="custOtherPkgType" class="form-select" onchange="handleOtherPackageTypeChange(this.value)">
-                      <option value="SOLAR SINGLE">SOLAR SINGLE</option>
-                      <option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>
-                      <option value="CAR WASH SINGLE">CAR WASH SINGLE</option>
-                      <option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>
-                      <option value="DCC ONLY">DCC ONLY</option>
-                      <option value="DCC SILVER">DCC SILVER</option>
-                      <option value="DCC GOLD">DCC GOLD</option>
-                      <option value="OTHER">OTHER</option>
-                    </select>
-                    <input type="text" id="custOtherCustom" class="form-input" placeholder="अन्य सर्विस विवरण..." style="display: none; margin-top: 6px;">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">गाड़ी / साइट का नाम (Vehicle / Site)</label>
-                    <input type="text" id="custOtherVehicle" class="form-input" placeholder="उदा. UP65 XY 9999 Fortuner / Rooftop Site">
-                  </div>
-                </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">पैकेज का प्रकार (Package Type) *</label>
+                <select id="custPkgType" class="form-select" onchange="handlePackageTypeChange(this.value)" required>
+                  <option value="DCC ONLY">DCC ONLY</option>
+                  <option value="DCC SILVER">DCC SILVER</option>
+                  <option value="DCC GOLD">DCC GOLD</option>
+                  <option value="OTHER">OTHER</option>
+                </select>
+                <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="अन्य पैकेज विवरण..." style="display: none; margin-top: 6px;">
               </div>
             </div>
 
@@ -2785,15 +2755,14 @@
               <!-- Notes -->
               <div class="form-group">
                 <label class="form-label">स्टाफ के लिए खास निर्देश (Cleaning Instructions / Staff Notes)</label>
-                <textarea id="custNotes" class="form-textarea" placeholder="उदा. 1 पैकेज है। दोनों गाड़ियां अलग-अलग दिन साफ होंगी। गार्ड से चाबी लें..."></textarea>
+                <textarea id="custNotes" class="form-textarea" placeholder="उदा. बेसमेंट में कार पार्क है, गार्ड से चाबी लें..."></textarea>
                 <div class="chips-row">
-                  <button type="button" class="chip-btn" onclick="setQuickNote('1 पैकेज है। दोनों गाड़ियां अलग-अलग दिन (Alternate Day) साफ करनी हैं।')">1 Pkg Alternate Day</button>
                   <button type="button" class="chip-btn" onclick="setQuickNote('गाड़ी रोज बाहर से साफ होगी, संडे को अंदर से वैक्यूम होगा।')">Exterior Daily, Sun Vacuum</button>
                   <button type="button" class="chip-btn" onclick="setQuickNote('सोसायटी के गार्ड से पानी और चाबी लेना है।')">Guard Water Supply</button>
                 </div>
               </div>
 
-              <div class="form-group" style="margin-bottom: 0;">
+              <div class="form-group" id="secondaryAddressGroup" style="margin-bottom: 0;">
                 <label class="form-label">दूसरा पता / लोकेशन (Secondary Address - Optional)</label>
                 <input type="text" id="custSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
                 <input type="text" id="custSecMaps" class="form-input" style="margin-top: 4px;" placeholder="दूसरे पते का मैप लिंक (Optional)">
@@ -2898,13 +2867,14 @@
 
             <!-- Row 2: Comprehensive Dropdowns & Quick Filters -->
             <div class="records-filters-row">
-              <!-- Sheet / Category Filter -->
+              <!-- Service Category Filter -->
               <div class="filter-item-group">
-                <label class="filter-item-label">शीट:</label>
-                <select id="filterAdminSheet" class="filter-select" onchange="filterAdminRecords()">
-                  <option value="all">सभी शीट्स (All)</option>
-                  <option value="Daily Clean">दैनिक धुलाई (Daily Clean)</option>
-                  <option value="All Other Work">अन्य कार्य (All Other Work)</option>
+                <label class="filter-item-label">केटेगरी:</label>
+                <select id="filterAdminCategory" class="filter-select" onchange="filterAdminRecords()">
+                  <option value="all">सभी केटेगरी (All)</option>
+                  <option value="Daily Car Cleaning">Daily Car Cleaning</option>
+                  <option value="Car Washing">Car Washing</option>
+                  <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
                 </select>
               </div>
 
@@ -2957,7 +2927,7 @@
                   <th style="width: 4.5%; text-align: center;">क्र. सं.</th>
                   <th style="width: 22%;">ग्राहक का नाम</th>
                   <th style="width: 9.5%; text-align: center;">पता</th>
-                  <th style="width: 16%;">गाड़ी नंबर</th>
+                  <th style="width: 16%;">गाड़ी / साइट विवरण</th>
                   <th style="width: 10%; text-align: center;">फोटो</th>
                   <th style="width: 10%; text-align: center;">मैप लोकेशन</th>
                   <th style="width: 16%; text-align: center;">असाइन स्टाफ</th>
@@ -3110,26 +3080,26 @@
 
         <div class="form-row-2">
           <div class="form-group">
+            <label class="form-label">सर्विस केटेगरी (Service Category) *</label>
+            <select id="editCustCategory" class="form-select" onchange="handleEditCategoryChange(this.value)" required>
+              <option value="Daily Car Cleaning">Daily Car Cleaning</option>
+              <option value="Car Washing">Car Washing</option>
+              <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label class="form-label">पैकेज का प्रकार (Package Type) *</label>
             <select id="editCustPkgType" class="form-select" required>
               <option value="DCC ONLY">DCC ONLY</option>
               <option value="DCC SILVER">DCC SILVER</option>
               <option value="DCC GOLD">DCC GOLD</option>
-              <option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>
-              <option value="CAR WASH SINGLE">CAR WASH SINGLE</option>
-              <option value="SOLAR SINGLE">SOLAR SINGLE</option>
-              <option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>
               <option value="OTHER">OTHER</option>
             </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">पैकेज संख्या (Purchased Packages)</label>
-            <input type="number" id="editCustPkgCount" class="form-input" value="1" min="1" max="10">
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">गाड़ी नंबर और मॉडल (Vehicle Number & Model)</label>
+          <label class="form-label" id="editCustVehiclesLabel">गाड़ी नंबर और मॉडल (Vehicle Number & Model)</label>
           <input type="text" id="editCustVehicles" class="form-input">
         </div>
 
@@ -3250,7 +3220,7 @@
       customers: [],
       filteredCustomers: [],
       searchQuery: '',
-      activeFilter: 'all',
+      activeFilter: 'daily_car_cleaning',
       selectedPhotoBase64: '',
       selectedPhotoType: '',
       selectedPhotoName: ''
@@ -3704,19 +3674,54 @@
       document.getElementById('staffIdHeader').textContent = 'ID: ' + sId;
       document.getElementById('staffAvatarInitial').textContent = sName.charAt(0).toUpperCase();
 
-      /* Merge dailyClean and allOtherWork into a single list */
+      /* Populate customer list classified into 3 service categories */
       var list = [];
-      if (data.dailyClean && Array.isArray(data.dailyClean)) {
-        data.dailyClean.forEach(function(item) {
-          item.category = 'daily';
-          list.push(item);
-        });
-      }
-      if (data.allOtherWork && Array.isArray(data.allOtherWork)) {
-        data.allOtherWork.forEach(function(item) {
-          item.category = 'other';
-          list.push(item);
-        });
+      var hasModern = Boolean(data.dailyCarCleaning || data.carWashing || data.solarCleaning);
+
+      if (hasModern) {
+        if (data.dailyCarCleaning && Array.isArray(data.dailyCarCleaning)) {
+          data.dailyCarCleaning.forEach(function(item) {
+            item.category = 'daily_car_cleaning';
+            item.serviceCategory = 'Daily Car Cleaning';
+            list.push(item);
+          });
+        }
+        if (data.carWashing && Array.isArray(data.carWashing)) {
+          data.carWashing.forEach(function(item) {
+            item.category = 'car_washing';
+            item.serviceCategory = 'Car Washing';
+            list.push(item);
+          });
+        }
+        if (data.solarCleaning && Array.isArray(data.solarCleaning)) {
+          data.solarCleaning.forEach(function(item) {
+            item.category = 'solar_cleaning';
+            item.serviceCategory = 'Solar Panel Cleaning';
+            list.push(item);
+          });
+        }
+      } else {
+        /* Fallback if backend returned legacy format dailyClean / allOtherWork */
+        if (data.dailyClean && Array.isArray(data.dailyClean)) {
+          data.dailyClean.forEach(function(item) {
+            item.category = 'daily_car_cleaning';
+            item.serviceCategory = 'Daily Car Cleaning';
+            list.push(item);
+          });
+        }
+        if (data.allOtherWork && Array.isArray(data.allOtherWork)) {
+          data.allOtherWork.forEach(function(item) {
+            var s = ((item.serviceType || '') + ' ' + (item.packageType || '') + ' ' + (item.packageDetails || '')).toLowerCase();
+            if (s.indexOf('solar') >= 0 || (item.vehicleOrSite || '').toLowerCase().indexOf('site') >= 0) {
+              item.category = 'solar_cleaning';
+              item.serviceCategory = 'Solar Panel Cleaning';
+            } else {
+              item.category = 'car_washing';
+              item.serviceCategory = 'Car Washing';
+            }
+            list.push(item);
+          });
+        }
       }
 
       state.customers = list;
@@ -3725,26 +3730,39 @@
     }
 
     function updateFilterCounts() {
-      var allCount = state.customers.length;
-      var dailyCount = state.customers.filter(function(c) { return c.category === 'daily'; }).length;
-      var otherCount = state.customers.filter(function(c) { return c.category === 'other'; }).length;
+      var dccCount = state.customers.filter(function(c) { return c.category === 'daily_car_cleaning'; }).length;
+      var cwCount = state.customers.filter(function(c) { return c.category === 'car_washing'; }).length;
+      var spcCount = state.customers.filter(function(c) { return c.category === 'solar_cleaning'; }).length;
 
-      document.getElementById('countAll').textContent = allCount;
-      document.getElementById('countDaily').textContent = dailyCount;
-      document.getElementById('countOther').textContent = otherCount;
-      document.getElementById('staffCarCount').textContent = '🚗 ' + allCount + ' गाड़ियां';
+      var elDcc = document.getElementById('countDailyClean');
+      var elCw = document.getElementById('countCarWash');
+      var elSpc = document.getElementById('countSolarClean');
+      if (elDcc) elDcc.textContent = dccCount;
+      if (elCw) elCw.textContent = cwCount;
+      if (elSpc) elSpc.textContent = spcCount;
+
+      var currentTabCount = (state.activeFilter === 'car_washing') ? cwCount : ((state.activeFilter === 'solar_cleaning') ? spcCount : dccCount);
+      var badge = document.getElementById('staffCarCount');
+      if (badge) {
+        if (state.activeFilter === 'solar_cleaning') {
+          badge.textContent = '☀️ ' + currentTabCount + ' साइट्स';
+        } else if (state.activeFilter === 'car_washing') {
+          badge.textContent = '🧼 ' + currentTabCount + ' गाड़ियां';
+        } else {
+          badge.textContent = '🚗 ' + currentTabCount + ' गाड़ियां';
+        }
+      }
     }
 
     function setStaffFilter(filter) {
       state.activeFilter = filter;
-      var pills = document.querySelectorAll('#filterPillsRow .filter-pill');
-      pills.forEach(function(p, i) {
-        p.classList.toggle('active', 
-          (filter === 'all' && i === 0) || 
-          (filter === 'daily' && i === 1) || 
-          (filter === 'other' && i === 2)
-        );
-      });
+      var pillDcc = document.getElementById('pillDailyClean');
+      var pillCw = document.getElementById('pillCarWash');
+      var pillSpc = document.getElementById('pillSolarClean');
+      if (pillDcc) pillDcc.classList.toggle('active', filter === 'daily_car_cleaning');
+      if (pillCw) pillCw.classList.toggle('active', filter === 'car_washing');
+      if (pillSpc) pillSpc.classList.toggle('active', filter === 'solar_cleaning');
+      updateFilterCounts();
       applyCustomerFilterAndSearch();
     }
 
@@ -3755,18 +3773,17 @@
 
     function applyCustomerFilterAndSearch() {
       var filtered = state.customers.filter(function(c) {
-        /* Category filter */
-        if (state.activeFilter === 'daily' && c.category !== 'daily') return false;
-        if (state.activeFilter === 'other' && c.category !== 'other') return false;
+        /* Category filter - strictly match selected tab */
+        if (state.activeFilter && c.category !== state.activeFilter) return false;
 
         /* Search query */
         if (state.searchQuery) {
           var q = state.searchQuery;
           var name = (c.customerName || '').toLowerCase();
           var phone = (c.customerNumber || '').toLowerCase();
-          var vehicles = (c.vehicleNumbers || c.vehicleOrSite || '').toLowerCase();
+          var vehicles = (c.vehicleNumbers || c.vehicleOrSite || c.vehicle || '').toLowerCase();
           var addr = (c.address || '').toLowerCase();
-          var notes = (c.staffNotes || '').toLowerCase();
+          var notes = (c.staffNotes || c.notes || '').toLowerCase();
           return name.indexOf(q) !== -1 || phone.indexOf(q) !== -1 || vehicles.indexOf(q) !== -1 || addr.indexOf(q) !== -1 || notes.indexOf(q) !== -1;
         }
         return true;
@@ -3777,32 +3794,35 @@
 
     /* =========================================================================
        SMART COMPACT CARD RENDERER
-       - Call & Map buttons on top row next to Customer Name (saves an entire row)
-       - Hardcoded orange 1-package strip removed
+       - Call & Map buttons on top row next to Customer Name
        - Dedicated pop-up buttons for Car Photo and Car Address
        - High-density layout showing more customers per screen
+       - Source sheet row order preserved
        ========================================================================= */
     function renderCustomerCards(items) {
       state.currentStaffFilteredList = items || [];
       var container = document.getElementById('customerFeed');
       if (!items || items.length === 0) {
-        container.innerHTML = '<div class="empty-state-box"><div class="empty-icon">🚗</div><p style="font-weight:700;">कोई गाड़ी नहीं मिली</p><p style="font-size:12px; margin-top:4px;">सर्च या फिल्टर बदल कर देखें।</p></div>';
+        container.innerHTML = '<div class="empty-state-box"><div class="empty-icon">🚗</div><p style="font-weight:700;">कोई रिकॉर्ड नहीं मिला</p><p style="font-size:12px; margin-top:4px;">इस केटेगरी में कोई काम असाइन नहीं है।</p></div>';
         return;
       }
 
       var html = '';
       items.forEach(function(item, index) {
-        var isDaily = item.category === 'daily';
+        var isSolar = item.category === 'solar_cleaning';
+        var isCarWash = item.category === 'car_washing';
+        var isDaily = item.category === 'daily_car_cleaning' || (!isSolar && !isCarWash);
         var customerName = escapeHtml(item.customerName || 'Customer');
         var rawPhone = (item.customerNumber || '').replace(/[^0-9]/g, '');
         var cleanPhone = rawPhone.length === 10 ? rawPhone : (rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone);
 
-        var vehicles = isDaily ? (item.vehicleNumbers || 'गाड़ी नंबर दर्ज नहीं') : (item.vehicleOrSite || 'गाड़ी / साइट दर्ज नहीं');
-        var notes = (item.staffNotes || '').trim();
+        var vehicles = item.vehicleNumbers || item.vehicleOrSite || item.vehicle || (isSolar ? 'साइट दर्ज नहीं' : 'गाड़ी नंबर दर्ज नहीं');
+        var notes = (item.staffNotes || item.notes || '').trim();
         var address = (item.address || '').trim();
         var mapsUrl = formatGoogleMapsUrl(item.googleMapsUrl, address);
         var photoUrl = (item.photoUrl || '').trim();
-        var pkgLabel = item.packageType || item.serviceType || (isDaily ? 'दैनिक सफाई' : 'अन्य कार्य');
+        var pkgLabel = item.packageType || item.serviceType || (isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : 'Daily Car Cleaning'));
+        var vIcon = isSolar ? '☀️' : (isCarWash ? '🧼' : '🚘');
 
         html += '<div class="smart-card">';
         
@@ -3839,7 +3859,7 @@
         html += '  <div class="card-mid-line">';
         html += '    <div class="card-vehicle-group">';
         html += '      <div class="vehicle-tag" title="' + escapeHtml(vehicles) + '">';
-        html += '        <span class="vehicle-icon">' + (isDaily ? '🚘' : '🔧') + '</span>';
+        html += '        <span class="vehicle-icon">' + vIcon + '</span>';
         html += '        <span class="vehicle-number-text">' + escapeHtml(vehicles) + '</span>';
         html += '      </div>';
         if (pkgLabel) {
@@ -3850,7 +3870,7 @@
         /* 2 Dedicated Action Buttons: Car Photo and Car Address */
         html += '    <div class="card-sub-actions">';
         if (photoUrl) {
-          html += '      <button type="button" class="btn-card-sub btn-sub-photo has-data" onclick="openStaffPhotoModal(' + index + ')" title="कार की फोटो देखें">';
+          html += '      <button type="button" class="btn-card-sub btn-sub-photo has-data" onclick="openStaffPhotoModal(' + index + ')" title="फोटो देखें">';
           html += '        <span>📷</span><span>फोटो</span>';
           html += '      </button>';
         } else {
@@ -3860,7 +3880,7 @@
         }
 
         if (address) {
-          html += '      <button type="button" class="btn-card-sub btn-sub-addr has-data" onclick="openStaffAddressModal(' + index + ')" title="कार का पता देखें">';
+          html += '      <button type="button" class="btn-card-sub btn-sub-addr has-data" onclick="openStaffAddressModal(' + index + ')" title="पता देखें">';
           html += '        <span>📍</span><span>पता</span>';
           html += '      </button>';
         } else {
@@ -4227,9 +4247,96 @@
 
     /* Customer Form Handling */
     function toggleCategoryFields(cat) {
-      var isDaily = (cat === 'Daily Clean');
-      document.getElementById('dailyFieldsBlock').style.display = isDaily ? 'block' : 'none';
-      document.getElementById('otherFieldsBlock').style.display = isDaily ? 'none' : 'block';
+      var isDaily = (cat === 'Daily Car Cleaning');
+      var isCarWash = (cat === 'Car Washing');
+      var isSolar = (cat === 'Solar Panel Cleaning');
+
+      var vLabel = document.getElementById('custVehicleLabel');
+      var vInput = document.getElementById('custVehicles');
+      var secGroup = document.getElementById('secondaryAddressGroup');
+      var pkgSelect = document.getElementById('custPkgType');
+
+      if (isSolar) {
+        if (vLabel) vLabel.textContent = 'साइट का नाम / लोकेशन (Site Name / Location) *';
+        if (vInput) vInput.placeholder = 'उदा. Rooftop 5KW Site / Flat 402';
+        if (secGroup) secGroup.style.display = 'none';
+        if (pkgSelect) {
+          pkgSelect.innerHTML = 
+            '<option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>' +
+            '<option value="SOLAR SINGLE">SOLAR SINGLE</option>' +
+            '<option value="OTHER">OTHER</option>';
+        }
+      } else if (isCarWash) {
+        if (vLabel) vLabel.textContent = 'गाड़ी नंबर और मॉडल (Vehicle Number & Model) *';
+        if (vInput) vInput.placeholder = 'उदा. UP65 AB 1234 - Creta';
+        if (secGroup) secGroup.style.display = 'none';
+        if (pkgSelect) {
+          pkgSelect.innerHTML = 
+            '<option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>' +
+            '<option value="CAR WASH SINGLE">CAR WASH SINGLE</option>' +
+            '<option value="OTHER">OTHER</option>';
+        }
+      } else {
+        /* Daily Car Cleaning */
+        if (vLabel) vLabel.textContent = 'गाड़ी नंबर और मॉडल (Vehicle Number & Model) *';
+        if (vInput) vInput.placeholder = 'उदा. UP65 AB 1234 - Creta';
+        if (secGroup) secGroup.style.display = 'block';
+        if (pkgSelect) {
+          pkgSelect.innerHTML = 
+            '<option value="DCC ONLY">DCC ONLY</option>' +
+            '<option value="DCC SILVER">DCC SILVER</option>' +
+            '<option value="DCC GOLD">DCC GOLD</option>' +
+            '<option value="OTHER">OTHER</option>';
+        }
+      }
+      handlePackageTypeChange(pkgSelect ? pkgSelect.value : '');
+    }
+
+    function handleEditCategoryChange(cat) {
+      var vLabel = document.getElementById('editCustVehiclesLabel');
+      if (vLabel) {
+        vLabel.textContent = (cat === 'Solar Panel Cleaning') ? 'गाड़ी / साइट विवरण (Vehicle Number / Site Name)' : 'गाड़ी नंबर और मॉडल (Vehicle Number & Model)';
+      }
+      var vInput = document.getElementById('editCustVehicles');
+      if (vInput) {
+        vInput.placeholder = (cat === 'Solar Panel Cleaning') ? 'उदा. Rooftop 5KW Site' : 'उदा. UP65 AB 1234 - Creta';
+      }
+
+      var pkgSelect = document.getElementById('editCustPkgType');
+      if (!pkgSelect) return;
+      var curVal = pkgSelect.value;
+      if (cat === 'Solar Panel Cleaning') {
+        pkgSelect.innerHTML = 
+          '<option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>' +
+          '<option value="SOLAR SINGLE">SOLAR SINGLE</option>' +
+          '<option value="OTHER">OTHER</option>';
+      } else if (cat === 'Car Washing') {
+        pkgSelect.innerHTML = 
+          '<option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>' +
+          '<option value="CAR WASH SINGLE">CAR WASH SINGLE</option>' +
+          '<option value="OTHER">OTHER</option>';
+      } else {
+        pkgSelect.innerHTML = 
+          '<option value="DCC ONLY">DCC ONLY</option>' +
+          '<option value="DCC SILVER">DCC SILVER</option>' +
+          '<option value="DCC GOLD">DCC GOLD</option>' +
+          '<option value="OTHER">OTHER</option>';
+      }
+      if (curVal) {
+        var matched = false;
+        for (var i = 0; i < pkgSelect.options.length; i++) {
+          if (pkgSelect.options[i].value.toLowerCase() === curVal.toLowerCase()) {
+            pkgSelect.selectedIndex = i;
+            matched = true;
+            break;
+          }
+        }
+        if (!matched && pkgSelect.options.length > 0) {
+          pkgSelect.value = pkgSelect.options[0].value;
+        }
+      } else if (pkgSelect.options.length > 0) {
+        pkgSelect.value = pkgSelect.options[0].value;
+      }
     }
 
     function handlePackageTypeChange(val) {
@@ -4242,11 +4349,6 @@
       if (customInput) customInput.style.display = (val === 'OTHER') ? 'block' : 'none';
     }
 
-    function appendVehicleText(str) {
-      var el = document.getElementById('custVehicles');
-      el.value = (el.value || '') + str;
-      el.focus();
-    }
 
     function setQuickNote(str) {
       var el = document.getElementById('custNotes');
@@ -4302,7 +4404,9 @@
       var staffName = staffSelect.options[staffSelect.selectedIndex] ? staffSelect.options[staffSelect.selectedIndex].text.replace(/\s*\(.*\)$/, '') : '';
 
       var category = document.getElementById('custCategory').value;
-      var isDaily = (category === 'Daily Clean');
+      var isDaily = (category === 'Daily Car Cleaning');
+      var isSolar = (category === 'Solar Panel Cleaning');
+      var isCarWash = (category === 'Car Washing');
 
       var photoPayload = state.selectedPhotoBase64 ? {
         base64: state.selectedPhotoBase64,
@@ -4310,8 +4414,18 @@
         fileName: state.selectedPhotoName
       } : null;
 
+      var pkgVal = document.getElementById('custPkgType').value;
+      if (pkgVal === 'OTHER') {
+        var custOther = (document.getElementById('custPkgTypeCustom').value || '').trim();
+        if (custOther) pkgVal = 'OTHER (' + custOther + ')';
+      }
+
+      var vehText = document.getElementById('custVehicles').value.trim();
+
       var customerData = {
-        sheetName: category,
+        sheetName: isDaily ? 'Daily Clean' : 'All Other Work',
+        serviceCategory: category,
+        serviceType: isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : 'Daily Car Cleaning'),
         staffId: staffId,
         staffName: staffName,
         customerName: document.getElementById('custName').value.trim(),
@@ -4320,32 +4434,17 @@
         googleMapsUrl: document.getElementById('custMapsUrl').value.trim(),
         staffNotes: document.getElementById('custNotes').value.trim(),
         active: 'Yes',
+        packageType: pkgVal,
+        packageDetails: pkgVal,
+        packagesPurchased: '1',
+        vehicleNumbers: vehText,
+        vehicleOrSite: vehText,
+        vehicle: vehText,
+        secondaryAddress: isDaily && document.getElementById('custSecAddress') ? document.getElementById('custSecAddress').value.trim() : '',
+        secondaryMapsUrl: isDaily && document.getElementById('custSecMaps') ? document.getElementById('custSecMaps').value.trim() : '',
         photoFile: photoPayload,
         photoData: photoPayload
       };
-
-      if (isDaily) {
-        var pkgVal = document.getElementById('custPkgType').value;
-        if (pkgVal === 'OTHER') {
-          var custOther = document.getElementById('custPkgTypeCustom').value.trim();
-          if (custOther) pkgVal = 'OTHER (' + custOther + ')';
-        }
-        customerData.packageType = pkgVal;
-        customerData.packagesPurchased = document.getElementById('custPkgCount').value;
-        customerData.vehicleNumbers = document.getElementById('custVehicles').value.trim();
-        customerData.secondaryAddress = document.getElementById('custSecAddress').value.trim();
-        customerData.secondaryMapsUrl = document.getElementById('custSecMaps').value.trim();
-      } else {
-        var otherPkgVal = document.getElementById('custOtherPkgType') ? document.getElementById('custOtherPkgType').value : 'OTHER';
-        if (otherPkgVal === 'OTHER') {
-          var custOtherVal = document.getElementById('custOtherCustom') ? document.getElementById('custOtherCustom').value.trim() : '';
-          if (custOtherVal) otherPkgVal = 'OTHER (' + custOtherVal + ')';
-        }
-        customerData.packageType = otherPkgVal;
-        customerData.serviceType = otherPkgVal;
-        customerData.packageDetails = otherPkgVal;
-        customerData.vehicleOrSite = document.getElementById('custOtherVehicle').value.trim();
-      }
 
       apiCall('saveCustomer', { customerData: customerData }, function(res) {
         btn.disabled = false;
@@ -4357,6 +4456,7 @@
           document.getElementById('addCustomerForm').reset();
           document.getElementById('custPhotoPreview').style.display = 'none';
           state.selectedPhotoBase64 = '';
+          toggleCategoryFields(document.getElementById('custCategory').value);
           loadAdminRecords();
         }
       }, function(err) {
@@ -4451,7 +4551,7 @@
     function resetAllAdminFilters() {
       var searchInput = document.getElementById('adminRecordSearch');
       var clearBtn = document.getElementById('btnAdminSearchClear');
-      var sheetSel = document.getElementById('filterAdminSheet');
+      var catSel = document.getElementById('filterAdminCategory') || document.getElementById('filterAdminSheet');
       var staffSel = document.getElementById('filterAdminStaff');
       var statusSel = document.getElementById('filterAdminStatus');
       var btnPhoto = document.getElementById('toggleFilterPhoto');
@@ -4459,7 +4559,7 @@
 
       if (searchInput) searchInput.value = '';
       if (clearBtn) clearBtn.style.display = 'none';
-      if (sheetSel) sheetSel.value = 'all';
+      if (catSel) catSel.value = 'all';
       if (staffSel) staffSel.value = 'all';
       if (statusSel) statusSel.value = 'all';
 
@@ -4475,18 +4575,18 @@
       if (!state.adminRecords) return;
 
       var searchEl = document.getElementById('adminRecordSearch');
-      var sheetEl = document.getElementById('filterAdminSheet');
+      var catEl = document.getElementById('filterAdminCategory') || document.getElementById('filterAdminSheet');
       var staffEl = document.getElementById('filterAdminStaff');
       var statusEl = document.getElementById('filterAdminStatus');
 
       var q = (searchEl ? searchEl.value : '').trim().toLowerCase();
-      var sheet = sheetEl ? sheetEl.value : 'all';
+      var category = catEl ? catEl.value : 'all';
       var staff = staffEl ? staffEl.value : 'all';
       var status = statusEl ? statusEl.value : 'all';
       var onlyPhoto = adminFilterState.onlyPhoto;
       var onlyMap = adminFilterState.onlyMap;
 
-      var isFiltered = (q !== '' || sheet !== 'all' || staff !== 'all' || status !== 'all' || onlyPhoto || onlyMap);
+      var isFiltered = (q !== '' || category !== 'all' || staff !== 'all' || status !== 'all' || onlyPhoto || onlyMap);
       var notice = document.getElementById('filterActiveNotice');
       if (notice) notice.style.display = isFiltered ? 'block' : 'none';
 
@@ -4494,8 +4594,11 @@
         r._origIndex = idx;
         return r;
       }).filter(function(r) {
-        /* Sheet category filter */
-        if (sheet !== 'all' && r.sheetName !== sheet) return false;
+        /* Category filter */
+        if (category !== 'all') {
+          var rCat = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
+          if (rCat !== category) return false;
+        }
 
         /* Staff assignment filter */
         if (staff === 'none') {
@@ -4550,14 +4653,15 @@
         showToast('एक्सपोर्ट करने के लिए कोई रिकॉर्ड उपलब्ध नहीं है।', '⚠️');
         return;
       }
-      var headers = ['क्र. सं.', 'ग्राहक का नाम', 'मोबाइल नंबर', 'शीट', 'गाड़ी नंबर', 'पता', 'सेकेंडरी पता', 'असाइन स्टाफ', 'पैकेज', 'गूगल मैप्स लिंक', 'फोटो लिंक', 'एक्टिव स्टेटस'];
+      var headers = ['क्र. सं.', 'ग्राहक का नाम', 'मोबाइल नंबर', 'सर्विस केटेगरी', 'गाड़ी / साइट विवरण', 'पता', 'सेकेंडरी पता', 'असाइन स्टाफ', 'पैकेज', 'गूगल मैप्स लिंक', 'फोटो लिंक', 'एक्टिव स्टेटस'];
       var rows = [headers];
       records.forEach(function(r, idx) {
+        var cat = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
         rows.push([
           idx + 1,
           r.customerName || '',
           r.customerNumber || '',
-          r.sheetName || '',
+          cat,
           r.vehicle || r.vehicleNumbers || '',
           r.address || '',
           r.secondaryAddress || '',
@@ -4604,11 +4708,16 @@
         var origIndex = r._origIndex !== undefined ? r._origIndex : index;
         var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
 
-        /* 1. Customer Cell (Name + Phone + Sheet Tag) */
+        /* 1. Customer Cell (Name + Phone + Category Tag) */
+        var catName = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
+        var tagClass = 'tag-daily';
+        if (catName === 'Car Washing') tagClass = 'tag-wash';
+        else if (catName === 'Solar Panel Cleaning') tagClass = 'tag-solar';
+
         var custHtml = '<div class="cust-name-cell">' +
           '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + escapeHtml(r.customerName || 'अज्ञात ग्राहक') + '</span>' +
           (r.customerNumber ? '<a href="tel:' + escapeHtml(r.customerNumber) + '" class="cust-phone-link">📞 ' + escapeHtml(r.customerNumber) + '</a>' : '') +
-          '<span class="cust-sheet-tag ' + (r.sheetName === 'Daily Clean' ? 'tag-daily' : 'tag-other') + '">' + escapeHtml(r.sheetName || 'Daily Clean') + '</span>' +
+          '<span class="cust-sheet-tag ' + tagClass + '">' + escapeHtml(catName) + '</span>' +
         '</div>';
 
         /* 2. Address Cell (Compact View Button or Dash) */
@@ -4705,22 +4814,52 @@
       document.getElementById('editCustNotes').value = r.notes || r.staffNotes || '';
       document.getElementById('editCustActive').value = (r.active || 'Yes').toLowerCase() === 'no' ? 'No' : 'Yes';
 
-      /* Set package type */
-      var pkgSelect = document.getElementById('editCustPkgType');
-      var pType = r.packageType || 'DCC ONLY';
-      pkgSelect.value = pType;
-      if (!pkgSelect.value) {
-        pkgSelect.value = 'OTHER';
+      /* Set Category and dynamic package types */
+      var catSelect = document.getElementById('editCustCategory');
+      var catVal = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
+      if (catSelect) {
+        if (r.sheetName === 'Daily Clean') {
+          catSelect.innerHTML = '<option value="Daily Car Cleaning">Daily Car Cleaning</option>';
+          catVal = 'Daily Car Cleaning';
+        } else {
+          catSelect.innerHTML = 
+            '<option value="Car Washing">Car Washing</option>' +
+            '<option value="Solar Panel Cleaning">Solar Panel Cleaning</option>';
+          if (catVal !== 'Solar Panel Cleaning') catVal = 'Car Washing';
+        }
+        catSelect.value = catVal;
+        handleEditCategoryChange(catVal);
       }
-      document.getElementById('editCustPkgCount').value = r.packagesPurchased || '1';
 
-      /* Populate Staff Dropdown with "None" option */
+      /* Set package type with case-insensitive fallback matching */
+      var pkgSelect = document.getElementById('editCustPkgType');
+      var pType = r.packageType || (catVal === 'Daily Car Cleaning' ? 'DCC ONLY' : (catVal === 'Car Washing' ? 'CAR WASH SUBSCRIPTION' : 'SOLAR SUBSCRIPTION'));
+      if (pkgSelect && pType) {
+        var matched = false;
+        for (var i = 0; i < pkgSelect.options.length; i++) {
+          if (pkgSelect.options[i].value.toLowerCase() === pType.toLowerCase()) {
+            pkgSelect.selectedIndex = i;
+            matched = true;
+            break;
+          }
+        }
+        if (!matched && pkgSelect.options.length > 0) {
+          pkgSelect.value = pkgSelect.options[0].value;
+        }
+      }
+
+      /* Populate Staff Dropdown with "None" option and preserve assigned staff */
       var staffSelect = document.getElementById('editCustStaff');
+      var staffFound = false;
       var options = '<option value="">असाइन नहीं (None)</option>';
       (state.staffList || []).forEach(function(s) {
-        var isSel = (s.name && r.staffName && s.name.trim().toLowerCase() === r.staffName.trim().toLowerCase()) ? 'selected' : '';
-        options += '<option value="' + escapeHtml(s.name) + '" ' + isSel + '>' + escapeHtml(s.name) + '</option>';
+        var isSel = (s.name && r.staffName && s.name.trim().toLowerCase() === r.staffName.trim().toLowerCase());
+        if (isSel) staffFound = true;
+        options += '<option value="' + escapeHtml(s.name) + '" ' + (isSel ? 'selected' : '') + '>' + escapeHtml(s.name) + '</option>';
       });
+      if (r.staffName && !staffFound && r.staffName.toLowerCase() !== 'none' && r.staffName.toLowerCase() !== 'unassigned') {
+        options += '<option value="' + escapeHtml(r.staffName) + '" selected>' + escapeHtml(r.staffName) + '</option>';
+      }
       staffSelect.innerHTML = options;
 
       /* Photo thumbnail preview */
@@ -4792,6 +4931,9 @@
       var sheetName = document.getElementById('editSheetName').value;
       var rowIndex = document.getElementById('editRowIndex').value;
       var photoUrl = document.getElementById('editPhotoUrl').value;
+      var catSelect = document.getElementById('editCustCategory');
+      var serviceCategory = catSelect ? catSelect.value : 'Daily Car Cleaning';
+      var serviceType = (serviceCategory === 'Car Washing') ? 'Car Wash' : (serviceCategory === 'Solar Panel Cleaning' ? 'Solar Cleaning' : 'Daily Clean');
 
       var updatedData = {
         sheetName: sheetName,
@@ -4799,8 +4941,10 @@
         customerName: document.getElementById('editCustName').value.trim(),
         customerNumber: document.getElementById('editCustPhone').value.trim(),
         staffName: document.getElementById('editCustStaff').value.trim(),
+        serviceCategory: serviceCategory,
+        serviceType: serviceType,
         packageType: document.getElementById('editCustPkgType').value,
-        packagesPurchased: document.getElementById('editCustPkgCount').value,
+        packagesPurchased: '1',
         vehicleNumbers: document.getElementById('editCustVehicles').value.trim(),
         vehicle: document.getElementById('editCustVehicles').value.trim(),
         address: document.getElementById('editCustAddress').value.trim(),
