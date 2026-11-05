@@ -2118,8 +2118,8 @@
     }
 
     .auth-switch-box {
-      margin-top: 20px;
-      padding-top: 16px;
+      margin-top: 18px;
+      padding-top: 14px;
       border-top: 1px dashed var(--border-color);
       display: flex;
       justify-content: center;
@@ -2145,16 +2145,6 @@
       color: #0f172a;
       border-color: #94a3b8;
       transform: translateY(-1px);
-    }
-
-    .admin-auth-hint {
-      margin-top: 14px;
-      padding: 9px 14px;
-      background: #f8fafc;
-      border: 1px dashed #cbd5e1;
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-      color: #64748b;
     }
 
     .auth-trust-strip {
@@ -2606,13 +2596,9 @@
               </button>
             </form>
 
-            <div class="admin-auth-hint">
-              <span>💡 डिफॉल्ट पासवर्ड: <b>cwp2026</b></span>
-            </div>
-
             <div class="auth-switch-box">
               <button type="button" class="btn-switch-portal" onclick="applyViewMode('staff')">
-                <span>🚗</span> स्टाफ व कस्टमर पोर्टल पर जाएं (Staff View)
+                <span>🚗</span> स्टाफ पोर्टल पर जाएं (Staff View)
               </button>
             </div>
 
@@ -2885,6 +2871,9 @@
               <p class="admin-card-desc" style="margin-bottom: 0;">गूगल शीट से लाइव सिंक डेटा — तुरंत सर्च, फ़िल्टर और रिकॉर्ड एडिट करें।</p>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
+              <button type="button" class="btn-admin-action" onclick="exportAdminRecordsCSV()" title="फ़िल्टर किया हुआ डेटा Excel/CSV में डाउनलोड करें">
+                📥 CSV डाउनलोड
+              </button>
               <button type="button" class="btn-admin-action" onclick="loadAdminRecords()" title="गूगल शीट से नवीनतम डेटा रीलोड करें">
                 🔄 डेटा रीफ्रेश करें
               </button>
