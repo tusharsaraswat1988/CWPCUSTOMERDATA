@@ -34,6 +34,7 @@ function onOpen() {
       .createMenu('🚗 CWP Management')
       .addItem('1. 🔄 Reorder Columns (Customer-First)', 'reorderSheetToCustomerFirst')
       .addItem('2. 👔 Sync Staff Dropdown in Sheet', 'syncStaffDropdownValidation')
+      .addItem('3. 🧹 Fix & Remove Address Dropdown', 'clearInvalidDropdowns')
       .addToUi();
   } catch (e) {
     // UI may not be available in standalone execution contexts
@@ -106,6 +107,8 @@ function doPost(e) {
     } else if (action === "syncStaffDropdown") {
       syncStaffDropdownValidation();
       result = { success: true, staffList: getStaffList() };
+    } else if (action === "clearInvalidDropdowns") {
+      result = clearInvalidDropdowns();
     } else {
       result = { error: "Unknown action: " + action };
     }
@@ -385,12 +388,78 @@ var CWP_PACKAGE_TYPES = [
   "OTHER"
 ];
 
+function clearInvalidDropdowns() {
+  try {
+    var ss = getSpreadsheet();
+    var sheets = ["Daily Clean", "All Other Work"];
+    var textAliases = [
+      "address", "secondaryaddress", "secondaryaddressifany",
+      "custname", "customername",
+      "custphone", "customernumber", "number", "phone", "mob",
+      "mapurl", "googlemapsurl", "maps", "location", "secondarymapsurl",
+      "photo", "customervehiclephotourl", "vehiclesitephotourl",
+      "vehicle", "vehiclenumbersmodels", "vehiclenumbersitename",
+      "notes", "staffnotes", "staffnotescleaninginstructions"
+    ];
+    
+    sheets.forEach(function(sheetName) {
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return;
+      var hMap = getHeaderIndexMap(sheet);
+      var maxRows = Math.max(sheet.getMaxRows(), 100);
+      
+      textAliases.forEach(function(alias) {
+        if (hMap[alias] !== undefined) {
+          try {
+            sheet.getRange(2, hMap[alias] + 1, maxRows - 1, 1).clearDataValidations();
+          } catch (e) {}
+        }
+      });
+    });
+    
+    // Re-apply staff and package validations properly
+    syncStaffDropdownValidation();
+    return { success: true, message: "Address और अन्य टेक्स्ट कॉलम्स से ड्रॉपडाउन सफलतापूर्वक हटा दिया गया है।" };
+  } catch (err) {
+    return { error: err.toString() };
+  }
+}
+
 function syncStaffDropdownValidation() {
   try {
     var ss = getSpreadsheet();
     var staffList = getStaffList();
     if (!staffList || staffList.length === 0) return;
     
+    var sheets = ["Daily Clean", "All Other Work"];
+    
+    // 1. First ensure all TEXT columns (Address, Customer Name, Mobile, etc.) have NO dropdowns
+    var textAliases = [
+      "address", "secondaryaddress", "secondaryaddressifany",
+      "custname", "customername",
+      "custphone", "customernumber", "number", "phone", "mob",
+      "mapurl", "googlemapsurl", "maps", "location", "secondarymapsurl",
+      "photo", "customervehiclephotourl", "vehiclesitephotourl",
+      "vehicle", "vehiclenumbersmodels", "vehiclenumbersitename",
+      "notes", "staffnotes", "staffnotescleaninginstructions"
+    ];
+    
+    sheets.forEach(function(sheetName) {
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return;
+      var hMap = getHeaderIndexMap(sheet);
+      var maxRows = Math.max(sheet.getMaxRows(), 100);
+      
+      textAliases.forEach(function(alias) {
+        if (hMap[alias] !== undefined) {
+          try {
+            sheet.getRange(2, hMap[alias] + 1, maxRows - 1, 1).clearDataValidations();
+          } catch (e) {}
+        }
+      });
+    });
+
+    // 2. Apply Data Validation ONLY on Staff Name column
     var staffNames = staffList.map(function(s) { return s.name; });
     var rule = SpreadsheetApp.newDataValidation()
       .requireValueInList(staffNames, true)
@@ -398,7 +467,6 @@ function syncStaffDropdownValidation() {
       .setHelpText("कृपया बैकएंड में पंजीकृत स्टाफ में से ही नाम चुनें। (Select from registered backend staff list)")
       .build();
       
-    var sheets = ["Daily Clean", "All Other Work"];
     sheets.forEach(function(sheetName) {
       var sheet = ss.getSheetByName(sheetName);
       if (!sheet) return;
@@ -411,7 +479,7 @@ function syncStaffDropdownValidation() {
       }
     });
 
-    // Also apply Data Validation on Package Type in Daily Clean
+    // 3. Also apply Data Validation on Package Type in Daily Clean ONLY
     var dailySheet = ss.getSheetByName("Daily Clean");
     if (dailySheet) {
       var dMap = getHeaderIndexMap(dailySheet);

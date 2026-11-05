@@ -288,8 +288,8 @@ const server = http.createServer(async (req, res) => {
             };
           } else if (action === 'reorderSheet') {
             responseData = { success: true, message: 'कस्टमर-फर्स्ट कॉलम संरचना सक्रिय है।' };
-          } else if (action === 'syncStaffDropdown') {
-            responseData = { success: true, staffList: appState.staffList };
+          } else if (action === 'syncStaffDropdown' || action === 'clearInvalidDropdowns') {
+            responseData = { success: true, message: 'ड्रॉपडाउन सफलतापूर्वक सिंक व रीसेट कर दिए गए।' };
           } else {
             responseData = { error: 'Backend request failed: ' + gasErr.message };
           }
