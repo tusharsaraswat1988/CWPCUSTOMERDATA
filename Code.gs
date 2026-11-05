@@ -233,7 +233,10 @@ function handleApiRequest_(action, payload, callerType) {
     "syncStaffDropdown",
     "clearInvalidDropdowns",
     "updateAdminPassword",
-    "reorderSheet"
+    "reorderSheet",
+    "getStaffSequence",
+    "saveStaffSequence",
+    "resetStaffSequence"
   ];
 
   if (adminActions.indexOf(action) >= 0) {
@@ -275,6 +278,12 @@ function handleApiRequest_(action, payload, callerType) {
       return updateAdminPassword_(payload.newPassword);
     } else if (action === "reorderSheet") {
       return reorderSheetToCustomerFirst_();
+    } else if (action === "getStaffSequence") {
+      return getStaffSequenceGas_(payload.staffId);
+    } else if (action === "saveStaffSequence") {
+      return saveStaffSequenceGas_(payload.staffId, payload.sequence || payload.customerIds, "admin");
+    } else if (action === "resetStaffSequence") {
+      return resetStaffSequenceGas_(payload.staffId);
     }
   }
 
@@ -1327,6 +1336,8 @@ function getStaffCustomerData_(requestedStaffId, authToken, isServiceCall, clien
     }
   }
   
+  dailyCarCleaningList = applyStaffSequenceOrderGas_(dailyCarCleaningList, staffId);
+
   var result = {
     staffId: staffId,
     staffName: staffName,
@@ -1789,4 +1800,271 @@ function updateAdminPassword_(newPassword) {
   }
   PropertiesService.getScriptProperties().setProperty(ADMIN_PASSWORD_PROP_KEY, p);
   return { success: true, message: "एडमिन पासवर्ड सफलतापूर्वक अपडेट हो गया!" };
+}
+
+
+/**
+ * =========================================================================
+ * TASK P2.5: STAFF-WISE DAILY CLEAN SEQUENCE MANAGEMENT (APPS SCRIPT)
+ * =========================================================================
+ */
+var STAFF_SEQUENCES_PROP_KEY = "CWP_STAFF_SEQUENCES";
+
+function getCustomerStableIdGas_(c) {
+  if (!c) return "";
+  if (c.id && typeof c.id === "string" && c.id.trim()) return c.id.trim();
+  if (c.customerId && typeof c.customerId === "string" && c.customerId.trim()) return c.customerId.trim();
+
+  var rawPhone = (c.customerNumber || c.phone || "").toString();
+  var cleanPhone = rawPhone.replace(/\D/g, "").slice(-10);
+  var rawVeh = (c.vehicle || c.vehicleNumbers || c.vehicleOrSite || "").toString().trim();
+  var cleanVeh = rawVeh.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  var rawName = (c.customerName || c.custName || "").toString().trim().toLowerCase();
+  var cleanName = rawName.replace(/[^a-z0-9]/g, "");
+
+  if (cleanPhone && cleanVeh) {
+    return "CUST_" + cleanPhone + "_" + cleanVeh;
+  }
+  if (cleanPhone && cleanName) {
+    return "CUST_" + cleanPhone + "_" + cleanName;
+  }
+  if (cleanPhone) {
+    return "CUST_" + cleanPhone;
+  }
+  if (cleanName && cleanVeh) {
+    return "CUST_" + cleanName + "_" + cleanVeh;
+  }
+  return "CUST_" + (cleanName || "REC") + "_" + (c.rowIndex || "R0");
+}
+
+function parseVehicleDetailsGas_(vehicleStr) {
+  if (!vehicleStr) return { model: "", reg: "", display: "" };
+  var raw = String(vehicleStr).trim();
+  if (!raw) return { model: "", reg: "", display: "" };
+
+  var regRegex = /\b([A-Z]{2}[ -]?[0-9]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9]{4})\b/i;
+  var match = raw.match(regRegex);
+
+  var reg = "";
+  var model = "";
+
+  if (match) {
+    reg = match[1].toUpperCase().replace(/\s+/g, " ");
+    var remaining = raw.replace(match[0], "").replace(/^[-–—:,/|\s]+|[-–—:,/|\s]+$/g, "").trim();
+    model = remaining || "Vehicle";
+  } else if (raw.indexOf("-") !== -1) {
+    var parts = raw.split("-");
+    if (/\d/.test(parts[0]) && !/\d/.test(parts[1])) {
+      reg = parts[0].trim();
+      model = parts[1].trim();
+    } else {
+      model = parts[0].trim();
+      reg = parts.slice(1).join("-").trim();
+    }
+  } else {
+    model = raw;
+    reg = "";
+  }
+
+  return {
+    model: model || raw,
+    reg: reg,
+    display: raw
+  };
+}
+
+function getAllStaffSequencesGas_() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var raw = props.getProperty(STAFF_SEQUENCES_PROP_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveAllStaffSequencesGas_(sequences) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    props.setProperty(STAFF_SEQUENCES_PROP_KEY, JSON.stringify(sequences || []));
+  } catch (e) {}
+}
+
+function getStaffSequencesGas_(staffId) {
+  var sId = (staffId || "").toString().trim().toUpperCase();
+  var all = getAllStaffSequencesGas_();
+  return all
+    .filter(function(s) { return (s.staff_id || "").toUpperCase() === sId; })
+    .sort(function(a, b) { return (a.sequence_order || 0) - (b.sequence_order || 0); });
+}
+
+function saveStaffSequenceGas_(staffId, orderedCustomerIds, updatedBy) {
+  if (!staffId) throw new Error("Staff ID is required to save sequence.");
+  if (!Array.isArray(orderedCustomerIds)) throw new Error("Ordered customer IDs must be an array.");
+
+  var sId = staffId.toString().trim().toUpperCase();
+  var uniqueOrderedIds = [];
+  var seenIds = {};
+
+  orderedCustomerIds.forEach(function(id) {
+    var cleanId = (typeof id === "object" && id !== null ? (id.customerId || id.customer_id || id.id) : id || "").toString().trim();
+    if (cleanId && !seenIds[cleanId]) {
+      seenIds[cleanId] = true;
+      uniqueOrderedIds.push(cleanId);
+    }
+  });
+
+  var now = new Date().toISOString();
+  var by = updatedBy || "admin";
+
+  var all = getAllStaffSequencesGas_();
+  var existingForStaff = all.filter(function(s) { return (s.staff_id || "").toUpperCase() === sId; });
+  var absentSequences = existingForStaff.filter(function(s) { return !seenIds[s.customer_id]; });
+
+  var newStaffRecords = uniqueOrderedIds.map(function(custId, idx) {
+    return {
+      staff_id: sId,
+      customer_id: custId,
+      sequence_order: idx + 1,
+      updated_at: now,
+      updated_by: by
+    };
+  });
+
+  absentSequences.forEach(function(s, idx) {
+    newStaffRecords.push({
+      staff_id: sId,
+      customer_id: s.customer_id,
+      sequence_order: uniqueOrderedIds.length + idx + 1,
+      updated_at: s.updated_at || now,
+      updated_by: s.updated_by || by
+    });
+  });
+
+  var remaining = all.filter(function(s) { return (s.staff_id || "").toUpperCase() !== sId; });
+  var updatedAll = remaining.concat(newStaffRecords);
+  saveAllStaffSequencesGas_(updatedAll);
+
+  return {
+    success: true,
+    message: "स्टाफ का कस्टमर रूट सीक्वेंस सफलतापूर्वक सुरक्षित किया गया।",
+    sequenceCount: newStaffRecords.length,
+    sequences: newStaffRecords
+  };
+}
+
+function resetStaffSequenceGas_(staffId) {
+  if (!staffId) throw new Error("Staff ID is required to reset sequence.");
+  var sId = staffId.toString().trim().toUpperCase();
+
+  var all = getAllStaffSequencesGas_();
+  var remaining = all.filter(function(s) { return (s.staff_id || "").toUpperCase() !== sId; });
+  saveAllStaffSequencesGas_(remaining);
+
+  return {
+    success: true,
+    message: "स्टाफ का रूट सीक्वेंस डिफ़ॉल्ट गूगल शीट क्रम में रीसेट कर दिया गया।"
+  };
+}
+
+function applyStaffSequenceOrderGas_(customers, staffId) {
+  if (!customers || customers.length === 0) return [];
+  var sId = (staffId || "").toString().trim().toUpperCase();
+
+  var sequences = getStaffSequencesGas_(sId);
+  var seqMap = {};
+  sequences.forEach(function(s) {
+    if (s.customer_id && seqMap[s.customer_id] === undefined) {
+      seqMap[s.customer_id] = s.sequence_order;
+    }
+  });
+
+  var prepared = customers.map(function(c, originalIdx) {
+    var custId = c.customerId || getCustomerStableIdGas_(c);
+    var vehInfo = parseVehicleDetailsGas_(c.vehicle || c.vehicleNumbers);
+    return {
+      customerId: custId,
+      id: custId,
+      staffId: c.staffId,
+      staffName: c.staffName,
+      customerName: c.customerName,
+      customerNumber: c.customerNumber,
+      googleMapsUrl: c.googleMapsUrl,
+      photoUrl: c.photoUrl,
+      address: c.address,
+      vehicleNumbers: c.vehicle || c.vehicleNumbers,
+      vehicle: c.vehicle || c.vehicleNumbers,
+      vehicleModel: c.vehicleModel || vehInfo.model,
+      vehicleReg: c.vehicleReg || vehInfo.reg,
+      packageType: c.packageType,
+      packagesPurchased: c.packagesPurchased || "1",
+      serviceCategory: c.serviceCategory || "Daily Car Cleaning",
+      category: "daily_car_cleaning",
+      staffNotes: c.staffNotes || c.notes,
+      secondaryAddress: c.secondaryAddress || "",
+      secondaryMapsUrl: c.secondaryMapsUrl || "",
+      active: c.active,
+      rowIndex: c.rowIndex,
+      _originalIndex: originalIdx
+    };
+  });
+
+  if (sequences.length === 0) {
+    return prepared.map(function(c, idx) {
+      var seqNum = idx + 1;
+      var seqDisplay = seqNum < 10 ? "0" + seqNum : String(seqNum);
+      c.sequenceOrder = seqNum;
+      c._seq = seqDisplay;
+      c.hasCustomSequence = false;
+      return c;
+    });
+  }
+
+  var sequenced = [];
+  var unsequenced = [];
+
+  prepared.forEach(function(c) {
+    if (seqMap[c.customerId] !== undefined) {
+      sequenced.push({
+        customer: c,
+        savedOrder: seqMap[c.customerId]
+      });
+    } else {
+      unsequenced.push(c);
+    }
+  });
+
+  sequenced.sort(function(a, b) { return a.savedOrder - b.savedOrder; });
+
+  var orderedList = sequenced.map(function(item) {
+    item.customer.hasCustomSequence = true;
+    return item.customer;
+  }).concat(unsequenced.map(function(c) {
+    c.hasCustomSequence = false;
+    return c;
+  }));
+
+  return orderedList.map(function(c, idx) {
+    var seqNum = idx + 1;
+    var seqDisplay = seqNum < 10 ? "0" + seqNum : String(seqNum);
+    c.sequenceOrder = seqNum;
+    c._seq = seqDisplay;
+    return c;
+  });
+}
+
+function getStaffSequenceGas_(staffId) {
+  var sId = (staffId || "STF01").toString().trim().toUpperCase();
+  var staffData = getStaffCustomerData_(sId, null, true, null);
+  var sequences = getStaffSequencesGas_(sId);
+
+  return {
+    success: true,
+    staffId: staffData.staffId || sId,
+    staffName: staffData.staffName,
+    customers: staffData.dailyCarCleaning || [],
+    totalCount: (staffData.dailyCarCleaning || []).length,
+    hasCustomSequence: sequences.length > 0,
+    sequences: sequences
+  };
 }

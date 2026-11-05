@@ -3975,6 +3975,497 @@
       background: #fee2e2;
       border-color: #f87171;
     }
+
+    /* =========================================================================
+       TASK P2.5: STAFF-WISE DAILY CLEAN CUSTOMER SEQUENCE MANAGEMENT UI/UX
+       ========================================================================= */
+    .seq-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .seq-top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .seq-unsaved-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      color: #92400e;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 700;
+      animation: pulse-soft 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-soft {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(0.98); }
+    }
+
+    .seq-alert-banner {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .seq-alert-success {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #166534;
+    }
+
+    .seq-alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    .seq-toolbar-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+
+    .seq-toolbar-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .seq-staff-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .seq-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    .seq-staff-select {
+      flex: 1;
+      min-height: 40px;
+      font-weight: 600;
+    }
+
+    .seq-search-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .seq-stats-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .seq-status-badge {
+      font-size: 11.5px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .seq-status-badge.custom {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+
+    .seq-status-badge.default {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    .seq-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 120px;
+    }
+
+    .seq-card-row {
+      display: flex;
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s, opacity 0.15s;
+      user-select: none;
+    }
+
+    .seq-card-row:hover {
+      border-color: #93c5fd;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .seq-card-row.seq-dragging {
+      opacity: 0.45;
+      background: #eff6ff;
+      border: 2px dashed #3b82f6;
+    }
+
+    .seq-card-row.seq-drag-over {
+      border-top: 3px solid #2563eb !important;
+      background: #f0f7ff;
+    }
+
+    .seq-handle-col {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .seq-drag-handle {
+      cursor: grab;
+      color: #94a3b8;
+      font-size: 18px;
+      line-height: 1;
+      padding: 6px 4px;
+      border-radius: 4px;
+      touch-action: none;
+    }
+
+    .seq-drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .seq-drag-handle:hover {
+      color: #475569;
+      background: #f1f5f9;
+    }
+
+    .seq-num-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1e3a8a;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 13px;
+      min-width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .seq-info-col {
+      flex: 1;
+      min-width: 0;
+      margin: 0 14px;
+    }
+
+    .seq-cust-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .seq-cust-name {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .seq-cust-phone {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .seq-veh-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 3px;
+    }
+
+    .seq-veh-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #1e293b;
+      font-weight: 600;
+    }
+
+    .seq-staff-badge {
+      font-size: 11.5px;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .seq-addr-row {
+      font-size: 12px;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 500px;
+    }
+
+    .seq-actions-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .btn-seq-move {
+      width: 34px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-seq-move:hover:not(:disabled) {
+      background: #e2e8f0;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
+    .btn-seq-move:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: #f1f5f9;
+    }
+
+    .btn-seq-save {
+      background: #16a34a !important;
+      border-color: #15803d !important;
+      color: #ffffff !important;
+      font-weight: 700;
+    }
+
+    .btn-seq-save:hover {
+      background: #15803d !important;
+    }
+
+    .btn-seq-reset {
+      background: #fff;
+      border-color: #cbd5e1;
+      color: #475569;
+    }
+
+    .btn-seq-reset:hover {
+      background: #f8fafc;
+      color: #0f172a;
+    }
+
+    /* Staff View Route Header (Task P2.5) */
+    .staff-route-header-box {
+      background: linear-gradient(135deg, #f0f7ff 0%, #f0fdf4 100%);
+      border: 1px solid #bfdbfe;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .route-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .route-header-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .route-header-icon {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .route-header-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #1e3a8a;
+      margin: 0;
+      letter-spacing: -0.2px;
+    }
+
+    .route-header-sub {
+      font-size: 12px;
+      color: #475569;
+      margin-top: 2px;
+    }
+
+    .route-progress-wrap {
+      min-width: 180px;
+    }
+
+    .route-progress-text {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1e40af;
+      margin-bottom: 4px;
+      text-align: right;
+    }
+
+    .route-progress-bar-bg {
+      height: 7px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .route-progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2563eb, #16a34a);
+      transition: width 0.3s ease;
+    }
+
+    .cust-route-seq-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #1e40af;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 13.5px;
+      min-width: 32px;
+      height: 28px;
+      padding: 0 6px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 1px 2px rgba(30, 64, 175, 0.2);
+    }
+
+    .card-completed {
+      background: #f8fafc !important;
+      border-left: 4px solid #16a34a !important;
+      opacity: 0.9;
+    }
+
+    .card-completed .cust-full-name {
+      color: #334155;
+    }
+
+    .card-status-actions-bar {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-clean-done {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-clean-done:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    .btn-clean-done.done-active {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #15803d;
+    }
+
+    /* Mobile Responsiveness for Sequence Manager */
+    @media (max-width: 640px) {
+      .seq-toolbar-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .seq-card-row {
+        padding: 8px 10px;
+      }
+      .seq-actions-col {
+        flex-direction: row;
+        gap: 6px;
+      }
+      .btn-seq-move {
+        width: 38px;
+        height: 38px;
+        font-size: 14px;
+      }
+      .seq-top-actions {
+        width: 100%;
+      }
+      .seq-top-actions button {
+        flex: 1;
+      }
+      .route-progress-text {
+        text-align: left;
+      }
+      .route-progress-wrap {
+        width: 100%;
+        margin-top: 6px;
+      }
+    }
   </style>
 
 </head>
@@ -4147,6 +4638,29 @@
         <!-- Offline Fallback Feedback Banner -->
         <div id="staffOfflineBannerContainer" style="display: none;"></div>
 
+        <!-- Today's Cleaning Route Header Box (Task P2.5) -->
+        <div id="staffDailyRouteHeader" class="staff-route-header-box" style="display: none;">
+          <div class="route-header-top">
+            <div class="route-header-title-wrap">
+              <span class="route-header-icon">🧭</span>
+              <div>
+                <h3 class="route-header-title">Today's Cleaning Route</h3>
+                <div class="route-header-sub">
+                  स्टाफ: <strong id="routeStaffName">स्टाफ</strong> • कुल असाइन गाड़ियां: <strong id="routeTotalCount">0</strong>
+                </div>
+              </div>
+            </div>
+            <div class="route-progress-wrap">
+              <div class="route-progress-text">
+                प्रोग्रेस: <strong id="routeProgressCount">0 / 0</strong> पूर्ण (<span id="routeProgressPercent">0%</span>)
+              </div>
+              <div class="route-progress-bar-bg">
+                <div class="route-progress-bar-fill" id="routeProgressBarFill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Smart Compact Customer Cards Feed -->
         <div class="customer-feed-grid" id="customerFeed">
           <div class="skeleton-feed">
@@ -4269,6 +4783,11 @@
               <span class="tab-icon">📋</span>
               <span class="tab-text">एक्टिव रिकॉर्ड्स</span>
               <span class="admin-tab-badge" id="tabRecordsCount">0</span>
+            </button>
+            <button type="button" class="admin-tab-btn" id="tabBtnSequence" role="tab" onclick="switchAdminTab('sequence')" title="दैनिक कार सफाई रूट सीक्वेंस मैनेजमेंट">
+              <span class="tab-icon">🔢</span>
+              <span class="tab-text">रूट सीक्वेंस (Daily Clean)</span>
+              <span class="admin-tab-badge" id="tabSequenceBadge">Route</span>
             </button>
             <button type="button" class="admin-tab-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')" title="स्टाफ मैनेजमेंट एवं लॉगिन लिंक्स">
               <span class="tab-icon">👥</span>
@@ -4464,6 +4983,92 @@
         </div>
       </div>
 
+      <!-- Admin Tab: Staff-Wise Customer Sequence Management (Task P2.5) -->
+      <div id="adminTabSequence" class="admin-tab-pane" style="display: none;">
+        <div class="admin-card-section">
+          <!-- Header Row -->
+          <div class="seq-header-bar">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <h2 class="admin-card-title">🔢 दैनिक कार सफाई रूट सीक्वेंस मैनेजमेंट (Daily Clean Sequence)</h2>
+                <span id="seqUnsavedBadge" class="seq-unsaved-badge" style="display: none;">⚠️ बिना सहेजे बदलाव (Unsaved Changes)</span>
+              </div>
+              <p class="admin-card-desc" style="margin-bottom: 0;">प्रत्येक स्टाफ सदस्य के लिए कार सफाई का सही क्रम (01, 02, 03...) निर्धारित करें। ड्रैग-एंड-ड्रॉप या ऊपर/नीचे बटनों से क्रम बदलें।</p>
+            </div>
+            
+            <div class="seq-top-actions">
+              <button type="button" class="btn-admin-action" onclick="loadStaffSequenceData(true)" title="डेटा पुनः रीफ्रेश करें">
+                🔄 रीफ्रेश
+              </button>
+              <button type="button" id="btnResetSequence" class="btn-admin-action btn-seq-reset" onclick="confirmResetSequence()" title="डिफ़ॉल्ट क्रम (शीट क्रम) में वापस सेट करें">
+                ↺ डिफ़ॉल्ट क्रम में रीसेट करें
+              </button>
+              <button type="button" id="btnSaveSequence" class="btn-submit-main btn-seq-save" onclick="saveCurrentStaffSequence()" title="नया रूट क्रम सुरक्षित करें">
+                💾 क्रम सुरक्षित करें (Save Order)
+              </button>
+            </div>
+          </div>
+
+          <!-- Alert / Feedback Banner -->
+          <div id="seqAlertBanner" class="seq-alert-banner" style="display: none;"></div>
+
+          <!-- Toolbar: Staff Selector + Search + Stats -->
+          <div class="seq-toolbar-box">
+            <div class="seq-toolbar-row">
+              <!-- Staff Selector -->
+              <div class="seq-staff-select-wrap">
+                <label class="seq-label" for="seqStaffSelect"><strong>स्टाफ चुनें (Select Staff):</strong></label>
+                <select id="seqStaffSelect" class="filter-select seq-staff-select" onchange="handleSeqStaffChange()">
+                  <option value="">स्टाफ लोड हो रहा है...</option>
+                </select>
+              </div>
+
+              <!-- Search Input -->
+              <div class="seq-search-wrap">
+                <span class="records-search-icon">🔍</span>
+                <input type="text" id="seqSearchInput" class="records-search-input" placeholder="ग्राहक का नाम, गाड़ी नंबर या फोन से खोजें..." oninput="handleSeqSearch(this.value)">
+                <button type="button" id="btnSeqSearchClear" class="search-clear-btn" onclick="clearSeqSearch()" style="display: none;" title="सर्च साफ़ करें">✕</button>
+              </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="seq-stats-strip">
+              <div id="seqSummaryText">
+                👤 <strong>स्टाफ:</strong> <span id="seqCurrentStaffName">—</span> • 🚗 <strong>कुल दैनिक सफाई ग्राहक:</strong> <span id="seqTotalCustCount">0</span>
+              </div>
+              <div id="seqCustomStatusBadge" class="seq-status-badge default">मूल शीट क्रम (Default)</div>
+            </div>
+          </div>
+
+          <!-- Sequence List Container (Drag-and-Drop & Up/Down List) -->
+          <div class="seq-list-container" id="seqCustomerList">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Reset Sequence Confirmation Modal -->
+      <div id="seqResetModal" class="cwp-modal-overlay" style="display: none;">
+        <div class="cwp-modal-box seq-confirm-modal" style="max-width: 480px;">
+          <div class="cwp-modal-header">
+            <h3 class="cwp-modal-title">⚠️ क्या आप क्रम रीसेट करना चाहते हैं?</h3>
+            <button type="button" class="btn-modal-close" onclick="closeSeqResetModal()">✕</button>
+          </div>
+          <div class="cwp-modal-body" style="padding: 16px 20px;">
+            <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
+              इस स्टाफ (<strong id="seqResetStaffName"></strong>) के लिए सहेजा गया कस्टम रूट सीक्वेंस हटा दिया जाएगा और क्रम वापस गूगल शीट के मूल क्रम में बदल जाएगा।
+            </p>
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 10px 12px; font-size: 12px; color: #92400e;">
+              💡 <strong>नोट:</strong> अन्य स्टाफ का सीक्वेंस इससे प्रभावित नहीं होगा।
+            </div>
+          </div>
+          <div class="cwp-modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px;">
+            <button type="button" class="btn-admin-action" onclick="closeSeqResetModal()">रद्द करें (Cancel)</button>
+            <button type="button" class="btn-modal-danger" onclick="executeResetSequence()">हाँ, रीसेट करें (Reset)</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Admin Tab 2: Staff Management & Links -->
       <div id="adminTabStaff" class="admin-tab-pane" style="display: none;">
         <div class="admin-card-section">
@@ -4555,6 +5160,9 @@
               <p class="admin-card-desc" style="margin-bottom: 0;">गूगल शीट से लाइव सिंक डेटा — तुरंत सर्च, फ़िल्टर और रिकॉर्ड एडिट करें।</p>
             </div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn-admin-action" onclick="switchAdminTab('sequence')" title="दैनिक सफाई का रूट सीक्वेंस सेट करें" style="background: #eff6ff; border-color: #bfdbfe; color: var(--brand-blue); font-weight: 600;">
+                🔢 रूट सीक्वेंस सेट करें
+              </button>
               <button type="button" class="btn-admin-action" onclick="exportAdminRecordsCSV()" title="फ़िल्टर किया हुआ डेटा Excel/CSV में डाउनलोड करें">
                 📥 CSV डाउनलोड
               </button>
@@ -5900,7 +6508,7 @@ var state = {
 
     /* Switch Admin Sub Tabs with URL & LocalStorage State Persistence */
     function switchAdminTab(tabName, updateUrl) {
-      var validTabs = ['records', 'staff', 'addCust'];
+      var validTabs = ['records', 'sequence', 'staff', 'addCust'];
       if (validTabs.indexOf(tabName) === -1) {
         tabName = 'records';
       }
@@ -5928,6 +6536,7 @@ var state = {
 
       if (tabName === 'staff') loadStaffListForAdmin();
       if (tabName === 'records') loadAdminRecords();
+      if (tabName === 'sequence') initAdminSequenceManager();
     }
 
     // Listen to browser back/forward buttons to switch admin tab seamlessly
@@ -6542,10 +7151,18 @@ function loadStaffCustomerData(staffId) {
 
         html += '<div class="smart-card" id="staffCard-' + index + '">';
         
-        /* Row 1: S.No + Customer Name (Left) & Call + Location Buttons (Right) */
+        var seqDisplay = item._seq || (index < 9 ? '0' + (index + 1) : String(index + 1));
+        var custId = item.customerId || item.id || getCustomerStableId(item);
+        var isDone = isDaily && isCustomerDoneToday(custId);
+
+        /* Row 1: S.No + Customer Name (Left) & Call + Directions + Location Buttons (Right) */
         html += '  <div class="card-header-row">';
         html += '    <div class="card-title-group">';
-        html += '      <span class="cust-index-badge">#' + seqNumber + '</span>';
+        if (isDaily) {
+          html += '      <span class="cust-route-seq-badge" title="रूट क्रम: ' + seqDisplay + '">' + seqDisplay + '</span>';
+        } else {
+          html += '      <span class="cust-index-badge">#' + seqNumber + '</span>';
+        }
         html += '      <h3 class="cust-full-name" title="' + customerName + '">' + customerName + '</h3>';
         html += '    </div>';
         
@@ -6559,6 +7176,7 @@ function loadStaffCustomerData(staffId) {
           html += '        <span>📞</span><span>कॉल नहीं</span>';
           html += '      </button>';
         }
+
 
         if (locationCount >= 2) {
           html += '      <button type="button" class="btn-card-action btn-location btn-location-multi" onclick="openStaffAddressModal(' + index + ')" title="2 लोकेशन उपलब्ध हैं: मुख्य और सेकेंडरी">';
@@ -6584,6 +7202,17 @@ function loadStaffCustomerData(staffId) {
           html += '        <span class="vehicle-plate-icon">☀️</span>';
           html += '        <span class="vehicle-plate-text">' + escapeHtml(vehicles) + '</span>';
           html += '      </div>';
+        } else if (isDaily) {
+          var vehInfo = parseVehicleDetails(vehicles);
+          html += '      <div class="vehicle-plate-badge" title="' + escapeHtml(vehicles) + '">';
+          html += '        <span class="vehicle-plate-icon">🚘</span>';
+          if (vehInfo.reg) {
+            html += '        <span class="vehicle-plate-reg"><strong>' + escapeHtml(vehInfo.reg) + '</strong></span>';
+          }
+          if (vehInfo.model) {
+            html += '        <span class="vehicle-plate-model">' + (vehInfo.reg ? ' • ' : '') + escapeHtml(vehInfo.model) + '</span>';
+          }
+          html += '      </div>';
         } else {
           html += '      <div class="vehicle-plate-badge" title="' + escapeHtml(vehicles) + '">';
           html += '        <span class="vehicle-plate-icon">' + vIcon + '</span>';
@@ -6605,17 +7234,12 @@ function loadStaffCustomerData(staffId) {
         }
         html += '  </div>';
 
-        /* Row 3: Address Row (Direct clickable snippet) */
-        if (address || secAddress) {
+        /* Row 3: Address Row (Direct clickable snippet for single location; multi-location cards use top 2-location button) */
+        if (locationCount < 2 && address) {
           html += '  <div class="card-address-row" onclick="openStaffAddressModal(' + index + ')" title="पूरा पता देखने के लिए क्लिक करें">';
           html += '    <span class="addr-icon">📍</span>';
           html += '    <div class="addr-text-wrap">';
-          if (address) {
-            html += '      <span class="addr-primary">' + escapeHtml(address) + '</span>';
-          }
-          if (secAddress) {
-            html += '      <span class="addr-sec-pill" title="सेकेंडरी पता: ' + escapeHtml(secAddress) + '">🏢 ' + escapeHtml(secAddress) + '</span>';
-          }
+          html += '      <span class="addr-primary">' + escapeHtml(address) + '</span>';
           html += '    </div>';
           html += '    <span class="addr-view-arrow">›</span>';
           html += '  </div>';
@@ -6632,10 +7256,20 @@ function loadStaffCustomerData(staffId) {
           html += '  </div>';
         }
 
+        /* Row 5: Daily Clean Status Action (Mark Cleaned) */
+        if (isDaily) {
+          html += '  <div class="card-status-actions-bar">';
+          html += '    <button type="button" class="btn-clean-done ' + (isDone ? 'done-active' : '') + '" onclick="toggleCustomerDoneToday(\'' + escapeHtml(custId) + '\')">';
+          html += '      <span>' + (isDone ? '✓ साफ हो गई (Done)' : '○ आज साफ करें (Mark Cleaned)') + '</span>';
+          html += '    </button>';
+          html += '  </div>';
+        }
+
         html += '</div>';
       });
 
       container.innerHTML = html;
+      updateRouteProgressBar();
     }
 
     function openStaffPhotoModal(index) {
@@ -8976,6 +9610,546 @@ function loadStaffCustomerData(staffId) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
+  
+    /* =========================================================================
+       TASK P2.5: DAILY CAR CLEANING SEQUENCE MANAGEMENT CLIENT JAVASCRIPT
+       ========================================================================= */
+    function getCustomerStableId(c) {
+      if (!c) return '';
+      if (c.id && typeof c.id === 'string' && c.id.trim()) return c.id.trim();
+      if (c.customerId && typeof c.customerId === 'string' && c.customerId.trim()) return c.customerId.trim();
+
+      var cleanPhone = (c.customerNumber || c.phone || '').toString().replace(/\D/g, '').slice(-10);
+      var cleanVeh = (c.vehicle || c.vehicleNumbers || c.vehicleOrSite || '').toString().trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      var cleanName = (c.customerName || c.custName || '').toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      if (cleanPhone && cleanVeh) return 'CUST_' + cleanPhone + '_' + cleanVeh;
+      if (cleanPhone && cleanName) return 'CUST_' + cleanPhone + '_' + cleanName;
+      if (cleanPhone) return 'CUST_' + cleanPhone;
+      if (cleanName && cleanVeh) return 'CUST_' + cleanName + '_' + cleanVeh;
+      return 'CUST_' + (cleanName || 'REC') + '_' + (c.rowIndex || 'R0');
+    }
+
+    function parseVehicleDetails(vehicleStr) {
+      if (!vehicleStr) return { model: '', reg: '', display: '' };
+      var raw = String(vehicleStr).trim();
+      if (!raw) return { model: '', reg: '', display: '' };
+
+      var regRegex = /\b([A-Z]{2}[ -]?[0-9]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9]{4})\b/i;
+      var match = raw.match(regRegex);
+
+      var reg = '';
+      var model = '';
+
+      if (match) {
+        reg = match[1].toUpperCase().replace(/\s+/g, ' ');
+        var remaining = raw.replace(match[0], '').replace(/^[-–—:,/|\s]+|[-–—:,/|\s]+$/g, '').trim();
+        model = remaining || 'Vehicle';
+      } else if (raw.indexOf('-') !== -1) {
+        var parts = raw.split('-');
+        if (/\d/.test(parts[0]) && !/\d/.test(parts[1])) {
+          reg = parts[0].trim();
+          model = parts[1].trim();
+        } else {
+          model = parts[0].trim();
+          reg = parts.slice(1).join('-').trim();
+        }
+      } else {
+        model = raw;
+        reg = '';
+      }
+
+      return {
+        model: model || raw,
+        reg: reg,
+        display: raw
+      };
+    }
+
+    state.seqManagement = {
+      currentStaffId: '',
+      currentStaffName: '',
+      customers: [],
+      originalOrder: [],
+      hasUnsavedChanges: false,
+      searchQuery: '',
+      draggedIndex: null
+    };
+
+    function initAdminSequenceManager() {
+      var staffSelect = document.getElementById('seqStaffSelect');
+      if (!staffSelect) return;
+
+      var staffList = (state.adminStaffList && state.adminStaffList.length > 0)
+        ? state.adminStaffList
+        : (state.staffList || []);
+
+      if (!staffList || staffList.length === 0) {
+        apiCall('getStaffList', {}, function(res) {
+          state.adminStaffList = res || [];
+          populateSeqStaffDropdown(state.adminStaffList);
+          loadStaffSequenceData();
+        }, function(err) {
+          showSeqAlert('स्टाफ सूची लोड करने में विफल: ' + (err.error || err), 'error');
+        });
+      } else {
+        populateSeqStaffDropdown(staffList);
+        loadStaffSequenceData();
+      }
+    }
+
+    function populateSeqStaffDropdown(staffList) {
+      var staffSelect = document.getElementById('seqStaffSelect');
+      if (!staffSelect) return;
+      var currentVal = staffSelect.value || state.seqManagement.currentStaffId;
+
+      var html = '';
+      (staffList || []).forEach(function(s) {
+        if (!s || !s.name) return;
+        var sId = s.id || '';
+        var sName = s.name || '';
+        html += '<option value="' + escapeHtml(sId) + '">' + escapeHtml(sName) + ' (' + escapeHtml(sId) + ')</option>';
+      });
+
+      staffSelect.innerHTML = html;
+      if (currentVal && (staffList || []).some(function(s) { return s.id === currentVal; })) {
+        staffSelect.value = currentVal;
+      } else if (staffList && staffList.length > 0) {
+        staffSelect.value = staffList[0].id;
+      }
+      state.seqManagement.currentStaffId = staffSelect.value;
+      var selectedStaff = (staffList || []).find(function(s) { return s.id === staffSelect.value; });
+      state.seqManagement.currentStaffName = selectedStaff ? selectedStaff.name : staffSelect.value;
+    }
+
+    function handleSeqStaffChange() {
+      var staffSelect = document.getElementById('seqStaffSelect');
+      if (!staffSelect) return;
+
+      if (state.seqManagement.hasUnsavedChanges) {
+        var conf = confirm('आपके पास बिना सहेजे बदलाव हैं! क्या आप नया स्टाफ चुनने से पहले इन बदलावों को छोड़ना चाहते हैं?');
+        if (!conf) {
+          staffSelect.value = state.seqManagement.currentStaffId;
+          return;
+        }
+      }
+
+      state.seqManagement.currentStaffId = staffSelect.value;
+      var staffList = state.adminStaffList || state.staffList || [];
+      var selectedStaff = staffList.find(function(s) { return s.id === staffSelect.value; });
+      state.seqManagement.currentStaffName = selectedStaff ? selectedStaff.name : staffSelect.value;
+      loadStaffSequenceData();
+    }
+
+    function loadStaffSequenceData(forceRefresh) {
+      var container = document.getElementById('seqCustomerList');
+      if (!container) return;
+      var sId = state.seqManagement.currentStaffId;
+      if (!sId) return;
+
+      container.innerHTML = '<div style="text-align:center; padding:30px 10px; color:var(--text-muted); font-size:13px; font-weight:600;">⏳ स्टाफ ' + escapeHtml(state.seqManagement.currentStaffName) + ' का रूट सीक्वेंस लोड हो रहा है...</div>';
+      hideSeqAlert();
+
+      apiCall('getStaffSequence', { staffId: sId, forceRefresh: !!forceRefresh }, function(res) {
+        state.seqManagement.customers = (res && Array.isArray(res.customers)) ? res.customers : [];
+        state.seqManagement.originalOrder = state.seqManagement.customers.map(function(c) {
+          return c.customerId || getCustomerStableId(c);
+        });
+        state.seqManagement.hasUnsavedChanges = false;
+        updateSeqUnsavedBadge(false);
+
+        var staffNameDisplay = res.staffName || state.seqManagement.currentStaffName;
+        document.getElementById('seqCurrentStaffName').textContent = staffNameDisplay;
+        document.getElementById('seqTotalCustCount').textContent = state.seqManagement.customers.length;
+
+        var statusBadge = document.getElementById('seqCustomStatusBadge');
+        if (statusBadge) {
+          if (res.hasCustomSequence) {
+            statusBadge.className = 'seq-status-badge custom';
+            statusBadge.textContent = '✓ कस्टम रूट सीक्वेंस सक्रिय';
+          } else {
+            statusBadge.className = 'seq-status-badge default';
+            statusBadge.textContent = 'मूल शीट क्रम (Default)';
+          }
+        }
+
+        renderAdminSequenceList();
+      }, function(err) {
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger-red); font-size:13px; font-weight:600;">❌ सीक्वेंस लोड नहीं हो सका: ' + escapeHtml(err.error || err) + '</div>';
+        showSeqAlert('सीक्वेंस लोड नहीं हो सका: ' + (err.error || err), 'error');
+      });
+    }
+
+    function renderAdminSequenceList() {
+      var container = document.getElementById('seqCustomerList');
+      if (!container) return;
+
+      var allCustomers = state.seqManagement.customers || [];
+      if (allCustomers.length === 0) {
+        container.innerHTML = '<div class="empty-state-card">' +
+          '<div class="empty-icon-wrap">🚗</div>' +
+          '<h4 class="empty-title">कोई Daily Clean ग्राहक असाइन नहीं है</h4>' +
+          '<p class="empty-desc">स्टाफ <strong>' + escapeHtml(state.seqManagement.currentStaffName) + '</strong> के पास वर्तमान में कोई Daily Car Cleaning ग्राहक असाइन नहीं है।</p>' +
+          '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="switchAdminTab(\'records\')">📋 ग्राहक रिकॉर्ड्स में जाकर असाइन करें</button></div>' +
+        '</div>';
+        return;
+      }
+
+      var q = (state.seqManagement.searchQuery || '').trim().toLowerCase();
+      var displayItems = allCustomers;
+      if (q) {
+        displayItems = allCustomers.filter(function(c) {
+          var name = (c.customerName || '').toLowerCase();
+          var veh = (c.vehicle || c.vehicleNumbers || '').toLowerCase();
+          var phone = (c.customerNumber || '').toLowerCase();
+          return name.includes(q) || veh.includes(q) || phone.includes(q);
+        });
+      }
+
+      if (displayItems.length === 0) {
+        container.innerHTML = '<div class="empty-state-card">' +
+          '<div class="empty-icon-wrap">🔍</div>' +
+          '<h4 class="empty-title">सर्च के अनुसार कोई गाड़ी नहीं मिली</h4>' +
+          '<p class="empty-desc">\"' + escapeHtml(state.seqManagement.searchQuery) + '\" से कोई ग्राहक नहीं मिला।</p>' +
+          '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="clearSeqSearch()">✕ सर्च साफ़ करें</button></div>' +
+        '</div>';
+        return;
+      }
+
+      var html = '';
+      var total = allCustomers.length;
+
+      displayItems.forEach(function(cust) {
+        var masterIndex = allCustomers.indexOf(cust);
+        var seqNum = masterIndex + 1;
+        var seqDisplay = seqNum < 10 ? '0' + seqNum : String(seqNum);
+        var custName = escapeHtml(cust.customerName || 'Customer');
+        var cleanPhone = normalizeIndianMobile(cust.customerNumber);
+        var formattedPhone = cleanPhone ? formatIndianMobile(cleanPhone) : '';
+        var rawVeh = cust.vehicle || cust.vehicleNumbers || '';
+        var vehInfo = parseVehicleDetails(rawVeh);
+        var address = escapeHtml(cust.address || '');
+        var staffName = escapeHtml(cust.staffName || state.seqManagement.currentStaffName || '');
+        var custId = cust.customerId || getCustomerStableId(cust);
+
+        html += '<div class="seq-card-row" draggable="true" data-id="' + escapeHtml(custId) + '" data-index="' + masterIndex + '" ondragstart="handleSeqDragStart(event)" ondragover="handleSeqDragOver(event)" ondragleave="handleSeqDragLeave(event)" ondrop="handleSeqDrop(event)" ondragend="handleSeqDragEnd(event)">';
+        html += '  <div class="seq-handle-col">';
+        html += '    <div class="seq-drag-handle" title="क्रम बदलने के लिए ऊपर-नीचे खींचें">⋮⋮</div>';
+        html += '    <div class="seq-num-badge">' + seqDisplay + '</div>';
+        html += '  </div>';
+        html += '  <div class="seq-info-col">';
+        html += '    <div class="seq-cust-name-row">';
+        html += '      <strong class="seq-cust-name">' + custName + '</strong>';
+        if (cleanPhone) {
+          html += '      <span class="seq-cust-phone">📞 ' + escapeHtml(formattedPhone) + '</span>';
+        }
+        html += '    </div>';
+        html += '    <div class="seq-veh-row">';
+        html += '      <span class="seq-veh-badge">🚘 <strong>' + escapeHtml(vehInfo.reg || 'गाड़ी') + '</strong>' + (vehInfo.model ? ' • ' + escapeHtml(vehInfo.model) : '') + '</span>';
+        html += '      <span class="seq-staff-badge">👤 ' + staffName + '</span>';
+        html += '    </div>';
+        if (address) {
+          html += '    <div class="seq-addr-row">📍 ' + address + '</div>';
+        }
+        html += '  </div>';
+        html += '  <div class="seq-actions-col">';
+        html += '    <button type="button" class="btn-seq-move btn-seq-up" onclick="moveSeqItemUp(' + masterIndex + ')" title="ऊपर करें (Move Up)" ' + (masterIndex === 0 ? 'disabled' : '') + '>▲</button>';
+        html += '    <button type="button" class="btn-seq-move btn-seq-down" onclick="moveSeqItemDown(' + masterIndex + ')" title="नीचे करें (Move Down)" ' + (masterIndex === total - 1 ? 'disabled' : '') + '>▼</button>';
+        html += '  </div>';
+        html += '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function moveSeqItemUp(index) {
+      if (index <= 0 || index >= state.seqManagement.customers.length) return;
+      var arr = state.seqManagement.customers;
+      var temp = arr[index];
+      arr[index] = arr[index - 1];
+      arr[index - 1] = temp;
+      markSeqChanged();
+      renderAdminSequenceList();
+    }
+
+    function moveSeqItemDown(index) {
+      if (index < 0 || index >= state.seqManagement.customers.length - 1) return;
+      var arr = state.seqManagement.customers;
+      var temp = arr[index];
+      arr[index] = arr[index + 1];
+      arr[index + 1] = temp;
+      markSeqChanged();
+      renderAdminSequenceList();
+    }
+
+    function handleSeqDragStart(e) {
+      var row = e.target.closest('.seq-card-row');
+      if (!row) return;
+      state.seqManagement.draggedIndex = parseInt(row.dataset.index, 10);
+      row.classList.add('seq-dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', row.dataset.index);
+      }
+    }
+
+    function handleSeqDragOver(e) {
+      e.preventDefault();
+      var row = e.target.closest('.seq-card-row');
+      if (row) {
+        row.classList.add('seq-drag-over');
+      }
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'move';
+      }
+    }
+
+    function handleSeqDragLeave(e) {
+      var row = e.target.closest('.seq-card-row');
+      if (row) {
+        row.classList.remove('seq-drag-over');
+      }
+    }
+
+    function handleSeqDrop(e) {
+      e.preventDefault();
+      var row = e.target.closest('.seq-card-row');
+      if (!row) return;
+      row.classList.remove('seq-drag-over');
+
+      var fromIdx = state.seqManagement.draggedIndex;
+      var toIdx = parseInt(row.dataset.index, 10);
+
+      if (isNaN(fromIdx) || isNaN(toIdx) || fromIdx === toIdx) return;
+
+      var arr = state.seqManagement.customers;
+      var movedItem = arr.splice(fromIdx, 1)[0];
+      arr.splice(toIdx, 0, movedItem);
+
+      markSeqChanged();
+      renderAdminSequenceList();
+    }
+
+    function handleSeqDragEnd(e) {
+      state.seqManagement.draggedIndex = null;
+      document.querySelectorAll('.seq-card-row').forEach(function(el) {
+        el.classList.remove('seq-dragging');
+        el.classList.remove('seq-drag-over');
+      });
+    }
+
+    function markSeqChanged() {
+      state.seqManagement.hasUnsavedChanges = true;
+      updateSeqUnsavedBadge(true);
+    }
+
+    function updateSeqUnsavedBadge(show) {
+      var badge = document.getElementById('seqUnsavedBadge');
+      if (badge) {
+        badge.style.display = show ? 'inline-flex' : 'none';
+      }
+    }
+
+    function handleSeqSearch(query) {
+      state.seqManagement.searchQuery = query || '';
+      var clearBtn = document.getElementById('btnSeqSearchClear');
+      if (clearBtn) {
+        clearBtn.style.display = state.seqManagement.searchQuery ? 'inline-block' : 'none';
+      }
+      renderAdminSequenceList();
+    }
+
+    function clearSeqSearch() {
+      state.seqManagement.searchQuery = '';
+      var input = document.getElementById('seqSearchInput');
+      if (input) input.value = '';
+      var clearBtn = document.getElementById('btnSeqSearchClear');
+      if (clearBtn) clearBtn.style.display = 'none';
+      renderAdminSequenceList();
+    }
+
+    function showSeqAlert(msg, type) {
+      var banner = document.getElementById('seqAlertBanner');
+      if (!banner) return;
+      banner.className = 'seq-alert-banner seq-alert-' + (type === 'error' ? 'error' : 'success');
+      var icon = type === 'error' ? '❌' : '✅';
+      banner.innerHTML = '<span>' + icon + '</span> <span>' + escapeHtml(msg) + '</span>';
+      banner.style.display = 'flex';
+    }
+
+    function hideSeqAlert() {
+      var banner = document.getElementById('seqAlertBanner');
+      if (banner) banner.style.display = 'none';
+    }
+
+    function saveCurrentStaffSequence() {
+      var sId = state.seqManagement.currentStaffId;
+      if (!sId) {
+        showSeqAlert('कृपया पहले स्टाफ चुनें।', 'error');
+        return;
+      }
+
+      var saveBtn = document.getElementById('btnSaveSequence');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '⏳ सुरक्षित हो रहा है...';
+      }
+
+      var sequencePayload = state.seqManagement.customers.map(function(c, idx) {
+        return {
+          customerId: c.customerId || getCustomerStableId(c),
+          sequenceOrder: idx + 1
+        };
+      });
+
+      apiCall('saveStaffSequence', { staffId: sId, sequence: sequencePayload }, function(res) {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '💾 क्रम सुरक्षित करें (Save Order)';
+        }
+        state.seqManagement.hasUnsavedChanges = false;
+        updateSeqUnsavedBadge(false);
+        showSeqAlert(res.message || 'स्टाफ ' + state.seqManagement.currentStaffName + ' का रूट सीक्वेंस सफलतापूर्वक सहेज लिया गया!', 'success');
+        
+        var statusBadge = document.getElementById('seqCustomStatusBadge');
+        if (statusBadge) {
+          statusBadge.className = 'seq-status-badge custom';
+          statusBadge.textContent = '✓ कस्टम रूट सीक्वेंस सक्रिय';
+        }
+      }, function(err) {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '💾 क्रम सुरक्षित करें (Save Order)';
+        }
+        showSeqAlert('सीक्वेंस सुरक्षित नहीं हो सका: ' + (err.error || err), 'error');
+      });
+    }
+
+    function confirmResetSequence() {
+      var modal = document.getElementById('seqResetModal');
+      var nameEl = document.getElementById('seqResetStaffName');
+      if (nameEl) nameEl.textContent = state.seqManagement.currentStaffName + ' (' + state.seqManagement.currentStaffId + ')';
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeSeqResetModal() {
+      var modal = document.getElementById('seqResetModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function executeResetSequence() {
+      closeSeqResetModal();
+      var sId = state.seqManagement.currentStaffId;
+      if (!sId) return;
+
+      var resetBtn = document.getElementById('btnResetSequence');
+      if (resetBtn) {
+        resetBtn.disabled = true;
+        resetBtn.innerHTML = '⏳ रीसेट हो रहा है...';
+      }
+
+      apiCall('resetStaffSequence', { staffId: sId }, function(res) {
+        if (resetBtn) {
+          resetBtn.disabled = false;
+          resetBtn.innerHTML = '↺ डिफ़ॉल्ट क्रम में रीसेट करें';
+        }
+        state.seqManagement.hasUnsavedChanges = false;
+        updateSeqUnsavedBadge(false);
+        showSeqAlert('रूट सीक्वेंस डिफ़ॉल्ट गूगल शीट क्रम में रीसेट कर दिया गया।', 'success');
+        loadStaffSequenceData();
+      }, function(err) {
+        if (resetBtn) {
+          resetBtn.disabled = false;
+          resetBtn.innerHTML = '↺ डिफ़ॉल्ट क्रम में रीसेट करें';
+        }
+        showSeqAlert('रीसेट नहीं हो सका: ' + (err.error || err), 'error');
+      });
+    }
+
+    /* Staff Daily Cleaning Route & Completion Functions */
+    function getTodayDateKey() {
+      var d = new Date();
+      var year = d.getFullYear();
+      var month = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    }
+
+    function getCompletedCustomersSet() {
+      var key = 'cwp_clean_done_' + getTodayDateKey() + '_' + (state.activeStaffId || 'STF');
+      try {
+        var raw = localStorage.getItem(key);
+        return raw ? new Set(JSON.parse(raw)) : new Set();
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    function isCustomerDoneToday(custId) {
+      if (!custId) return false;
+      return getCompletedCustomersSet().has(custId);
+    }
+
+    function toggleCustomerDoneToday(custId) {
+      if (!custId) return;
+      var set = getCompletedCustomersSet();
+      if (set.has(custId)) {
+        set.delete(custId);
+      } else {
+        set.add(custId);
+      }
+      var key = 'cwp_clean_done_' + getTodayDateKey() + '_' + (state.activeStaffId || 'STF');
+      try {
+        localStorage.setItem(key, JSON.stringify(Array.from(set)));
+      } catch (e) {}
+
+      updateRouteProgressBar();
+      if (state.currentStaffFilteredList) {
+        renderCustomerCards(state.currentStaffFilteredList);
+      }
+    }
+
+    function updateRouteProgressBar() {
+      var header = document.getElementById('staffDailyRouteHeader');
+      if (!header) return;
+
+      var isDaily = (state.activeFilter === 'daily_car_cleaning');
+      if (!isDaily) {
+        header.style.display = 'none';
+        return;
+      }
+
+      header.style.display = 'block';
+      var allDaily = (state.staffData && state.staffData.dailyCarCleaning) ? state.staffData.dailyCarCleaning : [];
+      var total = allDaily.length;
+
+      var completedSet = getCompletedCustomersSet();
+      var doneCount = 0;
+      allDaily.forEach(function(c) {
+        var cId = c.customerId || c.id || getCustomerStableId(c);
+        if (completedSet.has(cId)) {
+          doneCount++;
+        }
+      });
+
+      var staffName = (state.staffData && state.staffData.staffName) ? state.staffData.staffName : (state.activeStaffName || 'स्टाफ');
+      var nameEl = document.getElementById('routeStaffName');
+      if (nameEl) nameEl.textContent = staffName;
+
+      var totalEl = document.getElementById('routeTotalCount');
+      if (totalEl) totalEl.textContent = total;
+
+      var progressEl = document.getElementById('routeProgressCount');
+      if (progressEl) progressEl.textContent = doneCount + ' / ' + total;
+
+      var percent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+      var percentEl = document.getElementById('routeProgressPercent');
+      if (percentEl) percentEl.textContent = percent + '%';
+
+      var barFill = document.getElementById('routeProgressBarFill');
+      if (barFill) barFill.style.width = percent + '%';
+    }
+
   </script>
 </body>
 </html>

@@ -1618,6 +1618,7 @@ function formatStaffDataResponse(staffId, fetchResult) {
   }));
 
   const formatted = {
+    success: true,
     staffId: staffObj ? staffObj.id : staffId,
     staffName: staffObj ? staffObj.name : staffId,
     dailyCarCleaning: dailyCarCleaning,
@@ -1820,7 +1821,8 @@ const server = http.createServer(async (req, res) => {
         staffName: staffData.staffName,
         customers: staffData.dailyCarCleaning || [],
         totalCount: (staffData.dailyCarCleaning || []).length,
-        hasCustomSequence: sequences.length > 0
+        hasCustomSequence: sequences.length > 0,
+        sequences: sequences
       }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -2253,7 +2255,7 @@ const server = http.createServer(async (req, res) => {
         // Admin: Save Staff Sequence
         if (payload.action === 'saveStaffSequence') {
           const reqStaffId = (payload.staffId || '').toString().trim();
-          const sequenceList = payload.sequence || payload.customerIds || [];
+          const sequenceList = payload.orderedCustomerIds || payload.sequence || payload.customerIds || [];
           if (!reqStaffId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
@@ -2273,7 +2275,9 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({
             success: true,
             message: 'स्टाफ का कस्टमर रूट सीक्वेंस सफलतापूर्वक सुरक्षित किया गया।',
-            sequenceCount: updatedRecords.length
+            sequenceCount: updatedRecords.length,
+            data: updatedRecords,
+            sequences: updatedRecords
           }));
         }
 
@@ -2730,6 +2734,13 @@ const server = http.createServer(async (req, res) => {
 });
 
 if (require.main === module) {
+  process.on('uncaughtException', (err) => {
+    console.error('[Server] Uncaught Exception:', err && err.stack ? err.stack : err);
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('[Server] Unhandled Rejection at:', promise, 'reason:', reason);
+  });
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`=======================================================`);
     console.log(`🚗 CWP Detailers & Motors - Staff Information Viewer`);
