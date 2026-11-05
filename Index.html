@@ -522,7 +522,9 @@
     }
 
     .btn-map,
-    .btn-top-map {
+    .btn-top-map,
+    .btn-location,
+    .btn-top-location {
       background: var(--brand-blue);
       color: #ffffff;
       border-color: #1d4ed8;
@@ -530,9 +532,24 @@
     }
 
     .btn-map:hover,
-    .btn-top-map:hover {
+    .btn-top-map:hover,
+    .btn-location:hover,
+    .btn-top-location:hover {
       background: var(--brand-blue-hover);
       color: #ffffff;
+    }
+
+    .btn-location-multi {
+      background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%) !important;
+      color: #ffffff !important;
+      border-color: #312e81 !important;
+      box-shadow: 0 1px 4px rgba(79, 70, 229, 0.38) !important;
+      font-weight: 800 !important;
+    }
+
+    .btn-location-multi:hover {
+      background: linear-gradient(135deg, #4338ca 0%, #312e81 100%) !important;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.48) !important;
     }
 
     .btn-action-disabled,
@@ -2829,7 +2846,7 @@
             </div>
 
             <h2 class="admin-auth-title" id="staffAuthTitle">स्टाफ पोर्टल लॉगिन</h2>
-            <p class="admin-auth-desc" id="staffAuthDesc">कस्टमर सर्विस व गाड़ियों की लिस्ट देखने के लिए 6-अंकों का पासवर्ड (पिन) दर्ज करें।</p>
+            <p class="admin-auth-desc" id="staffAuthDesc">कस्टमर सर्विस व गाड़ियों की लिस्ट देखने के लिए पंजीकृत मोबाइल नंबर व 6-अंकों का पिन दर्ज करें।</p>
             
             <!-- Inactive Alert Banner (Shown if staff account is disabled by admin) -->
             <div id="staffInactiveMsgBox" style="display: none; background: var(--danger-red-light); border: 1px solid var(--danger-red-border); color: var(--danger-red); padding: 12px 14px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 14px; line-height: 1.5;">
@@ -2837,6 +2854,15 @@
             </div>
 
             <form id="staffAuthForm" onsubmit="handleStaffAuthSubmit(event)">
+              <!-- Registered Mobile Number Input -->
+              <div class="auth-input-group" style="margin-bottom: 12px;">
+                <div class="auth-input-icon">
+                  <span>📱</span>
+                </div>
+                <input type="tel" id="staffPhoneInput" class="auth-field-input" placeholder="पंजीकृत मोबाइल नंबर (10 अंक)..." maxlength="10" pattern="[0-9]{10}" inputmode="numeric" autocomplete="tel" required>
+              </div>
+
+              <!-- 6-Digit PIN Input -->
               <div class="auth-input-group">
                 <div class="auth-input-icon">
                   <span>🔐</span>
@@ -2846,7 +2872,7 @@
               </div>
 
               <div id="staffAuthError" class="admin-auth-error-msg" style="display: none;">
-                ❌ गलत 6-अंकों का पासवर्ड! कृपया सही पिन दर्ज करें।
+                ❌ गलत विवरण! कृपया सही मोबाइल नंबर व पिन दर्ज करें।
               </div>
 
               <div class="admin-remember-row">
@@ -2920,6 +2946,9 @@
             </button>
           </div>
         </div>
+
+        <!-- Offline Fallback Feedback Banner -->
+        <div id="staffOfflineBannerContainer" style="display: none;"></div>
 
         <!-- Smart Compact Customer Cards Feed -->
         <div class="customer-feed-grid" id="customerFeed">
@@ -3209,14 +3238,14 @@
             <div id="addStaffFormGrid" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr auto; gap: 8px; align-items: center;">
               <input type="text" id="newStaffName" class="form-input" placeholder="स्टाफ का पूरा नाम (उदा. Ramesh Kumar)" required>
               <input type="tel" id="newStaffPhone" class="form-input" placeholder="मोबाइल नंबर (10 अंक)" maxlength="10" pattern="[0-9]{10}">
-              <input type="text" id="newStaffPin" class="form-input" placeholder="6-अंक पिन" maxlength="6" pattern="[0-9]{6}" value="123456" title="स्टाफ पोर्टल लॉगिन हेतु 6 अंकों का पासवर्ड">
+              <input type="text" id="newStaffPin" class="form-input" placeholder="6-अंक पिन (उदा. 849201)" maxlength="6" pattern="[0-9]{6}" required title="स्टाफ पोर्टल लॉगिन हेतु 6 अंकों का पासवर्ड">
               <input type="hidden" id="newStaffId" value="">
               <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
                 + नया स्टाफ जोड़ें
               </button>
             </div>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-              ℹ️ नया स्टाफ डिफ़ॉल्ट रूप से एक्टिव रहेगा और डिफ़ॉल्ट पिन <b>123456</b> रहेगा (जिसे बाद में एडिट किया जा सकता है)।
+              ℹ️ नया स्टाफ डिफ़ॉल्ट रूप से एक्टिव रहेगा। पिन सर्वर में साल्टेड SHA-256 हैश के रूप में सुरक्षित रहेगा।
             </div>
           </form>
 
@@ -3246,7 +3275,10 @@
           <!-- Header with Title, Description and Live Refresh -->
           <div class="records-header-row">
             <div>
-              <h2 class="admin-card-title">📋 ग्राहक डेटाबेस एवं एक्टिव रिकॉर्ड्स</h2>
+              <h2 class="admin-card-title" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span>📋 ग्राहक डेटाबेस एवं एक्टिव रिकॉर्ड्स</span>
+                <span id="adminRecordsSourceBadge"></span>
+              </h2>
               <p class="admin-card-desc" style="margin-bottom: 0;">गूगल शीट से लाइव सिंक डेटा — तुरंत सर्च, फ़िल्टर और रिकॉर्ड एडिट करें।</p>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -3387,14 +3419,15 @@
     </div>
   </div>
 
-  <!-- View Customer Address Modal (Compact & Clear popup) -->
+  <!-- View Customer Address / Locations Modal (Dual Location Support) -->
   <div id="addressViewModal" class="image-modal-overlay" onclick="closeAddressModal()" style="display: none; align-items: center; justify-content: center; z-index: 1050;">
-    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 460px; width: 92%;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px; width: 94%; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-card-header">
-        <h3 class="modal-card-title">📍 ग्राहक का पता (Customer Address)</h3>
+        <h3 class="modal-card-title">📍 ग्राहक की लोकेशन (Customer Locations)</h3>
         <button type="button" class="modal-close-x" onclick="closeAddressModal()" title="बंद करें (ESC)">✕</button>
       </div>
-      <div style="padding: 18px 20px;">
+      <div style="padding: 16px 18px; overflow-y: auto;">
+        <!-- Top Customer Details Strip -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
           <div>
             <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">ग्राहक</div>
@@ -3406,24 +3439,57 @@
           </div>
         </div>
 
-        <div style="margin-bottom: 14px;">
-          <label style="font-size: 11.5px; font-weight: 700; color: #475569; display: block; margin-bottom: 5px;">मुख्य पता (Primary Address):</label>
-          <div id="addrModalPrimary" style="font-size: 13.5px; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; line-height: 1.5; word-break: break-word;">-</div>
+        <!-- Multi-location Notice Banner (Visible when 2 locations exist) -->
+        <div id="addrModalMultiNotice" style="display: none; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 9px 12px; margin-bottom: 12px; font-size: 12px; color: #3730a3; align-items: flex-start; gap: 8px; line-height: 1.45;">
+          <span style="font-size: 16px; line-height: 1;">💡</span>
+          <div><strong>ध्यान दें:</strong> इस ग्राहक की <strong>2 लोकेशन</strong> दर्ज हैं। गाड़ी धोने से पहले सुनिश्चित करें कि गाड़ी किस लोकेशन पर खड़ी है।</div>
         </div>
 
-        <div id="addrModalSecWrapper" style="display: none; margin-bottom: 14px;">
-          <label style="font-size: 11.5px; font-weight: 700; color: #475569; display: block; margin-bottom: 5px;">द्वितीय पता (Secondary Address):</label>
-          <div id="addrModalSecondary" style="font-size: 13px; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; line-height: 1.5; word-break: break-word;">-</div>
+        <!-- Location 1 Box: Primary Location -->
+        <div id="addrModalPrimaryCard" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span style="font-size: 12px; font-weight: 700; color: #1e3a8a; display: inline-flex; align-items: center; gap: 4px;">
+              <span>🏠</span> मुख्य लोकेशन (Primary)
+            </span>
+            <span id="addrModalPrimaryBadge" style="font-size: 10.5px; background: #dbeafe; color: #1e40af; padding: 2px 7px; border-radius: 10px; font-weight: 600;">मेन लोकेशन</span>
+          </div>
+          <div id="addrModalPrimary" style="font-size: 13px; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; line-height: 1.45; word-break: break-word; min-height: 38px;">-</div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 10px;">
+            <a id="addrModalPrimaryMapLink" href="" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" style="display: none; padding: 6px 12px; font-size: 12px; width: auto; font-weight: 600;" title="गूगल मैप्स में मुख्य लोकेशन खोलें">
+              <span>🗺️ मैप खोलें / नेविगेट करें ↗</span>
+            </a>
+            <button type="button" class="btn-cell-action" onclick="copyLocationAddress('primary')" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 6px 10px; font-size: 12px; width: auto;" title="मुख्य पता कॉपी करें">
+              <span>📋 कॉपी</span>
+            </button>
+          </div>
         </div>
 
-        <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 18px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
-          <a id="addrModalMapLink" href="" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" style="display: none; padding: 7px 12px; font-size: 12px; width: auto;" title="गूगल मैप्स में लोकेशन देखें">
-            <span>🗺️ मैप पर देखें ↗</span>
-          </a>
-          <button type="button" class="btn-cell-action" onclick="copyAddressText()" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 7px 14px; font-size: 12px; width: auto;" title="पता क्लिपबोर्ड पर कॉपी करें">
-            <span>📋 कॉपी करें</span>
-          </button>
-          <button type="button" class="btn-primary-smart" onclick="closeAddressModal()" style="padding: 7px 18px; font-size: 12px; width: auto;">
+        <!-- Location 2 Box: Secondary Location -->
+        <div id="addrModalSecondaryCard" style="display: none; background: #faf5ff; border: 1.5px solid #e9d5ff; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span style="font-size: 12px; font-weight: 700; color: #6b21a8; display: inline-flex; align-items: center; gap: 4px;">
+              <span>🏢</span> सेकेंडरी लोकेशन (Office / Other)
+            </span>
+            <span style="font-size: 10.5px; background: #f3e8ff; color: #7e22ce; padding: 2px 7px; border-radius: 10px; font-weight: 600;">वैकल्पिक लोकेशन</span>
+          </div>
+          <div id="addrModalSecondary" style="font-size: 13px; color: #1e293b; background: #ffffff; border: 1px solid #e9d5ff; border-radius: 6px; padding: 8px 10px; line-height: 1.45; word-break: break-word; min-height: 38px;">-</div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 10px;">
+            <a id="addrModalSecondaryMapLink" href="" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" style="display: none; padding: 6px 12px; font-size: 12px; width: auto; font-weight: 600; background: #fdf4ff; color: #7e22ce; border-color: #f0abfc;" title="गूगल मैप्स में सेकेंडरी लोकेशन खोलें">
+              <span>🗺️ मैप खोलें / नेविगेट करें ↗</span>
+            </a>
+            <button type="button" class="btn-cell-action" onclick="copyLocationAddress('secondary')" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 6px 10px; font-size: 12px; width: auto;" title="सेकेंडरी पता कॉपी करें">
+              <span>📋 कॉपी</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hidden legacy fallback elements to avoid any JS errors in older references -->
+        <div id="addrModalSecWrapper" style="display: none;"></div>
+        <a id="addrModalMapLink" href="" target="_blank" rel="noopener noreferrer" style="display: none;"></a>
+
+        <!-- Modal Bottom Close -->
+        <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 6px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
+          <button type="button" class="btn-primary-smart" onclick="closeAddressModal()" style="padding: 7px 22px; font-size: 12px; width: auto;">
             ✕ बंद करें
           </button>
         </div>
@@ -3585,9 +3651,9 @@
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">6-अंक पासवर्ड (PIN) *</label>
-            <input type="text" id="editStaffPin" class="form-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="उदा. 123456" required>
-            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">पोर्टल लॉगिन के लिए 6 अंक</div>
+            <label class="form-label">नया पिन सेट करें (Reset PIN - 6 अंक)</label>
+            <input type="text" id="editStaffPin" class="form-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="नया 6-अंक पिन (खाली छोड़ें यदि नहीं बदलना)">
+            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">पिन नहीं बदलना हो तो खाली छोड़ें</div>
           </div>
           <div class="form-group">
             <label class="form-label">स्टेटस (Status) *</label>
@@ -3661,22 +3727,25 @@
       var urlParams = new URLSearchParams(window.location.search);
       var paramStaff = urlParams.get('staff') || urlParams.get('id') || '';
       var paramAdmin = urlParams.get('admin');
+      var path = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
+      var isStaffPath = path === '/staff' || path.startsWith('/staff/');
+      var isAdminPath = path === '/admin' || path.startsWith('/admin/');
 
       /* Decide view mode: Decoupled strict logic */
-      if (paramAdmin !== null && paramAdmin !== undefined) {
+      if (isAdminPath || (paramAdmin !== null && paramAdmin !== undefined)) {
         state.currentView = 'admin';
-      } else if (paramStaff && paramStaff.trim() !== '') {
+      } else if (isStaffPath || (paramStaff && paramStaff.trim() !== '')) {
         state.currentView = 'staff';
-        state.activeStaffId = paramStaff.trim();
-      } else if (initialMode === 'staff' && initialStaffId) {
+        if (paramStaff) state.activeStaffId = paramStaff.trim();
+      } else if (initialMode === 'staff') {
         state.currentView = 'staff';
-        state.activeStaffId = initialStaffId;
+        if (initialStaffId) state.activeStaffId = initialStaffId;
       } else {
         /* Default fallback */
-        state.currentView = 'admin';
+        state.currentView = 'staff';
       }
 
-      applyViewMode(state.currentView);
+      applyViewMode(state.currentView, true);
 
       if (state.currentView === 'staff') {
         checkStaffAuthStatus(state.activeStaffId);
@@ -3686,7 +3755,7 @@
     });
 
     /* Apply View Mode: Completely separates Staff and Admin UI */
-    function applyViewMode(mode) {
+    function applyViewMode(mode, isInitial) {
       state.currentView = mode;
       var staffEl = document.getElementById('staffView');
       var adminEl = document.getElementById('adminView');
@@ -3697,6 +3766,15 @@
       var titleEl = document.getElementById('pageMainTitle');
       var mainContainer = document.querySelector('.main-container');
       var headerInner = document.querySelector('.header-inner');
+
+      // Sync clean browser URL (/staff or /admin) without page reload
+      if (!isInitial && window.history && window.history.pushState) {
+        var currentPath = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
+        var targetPath = mode === 'staff' ? '/staff' : '/admin';
+        if (currentPath !== targetPath) {
+          window.history.pushState({ mode: mode }, '', targetPath);
+        }
+      }
 
       if (mode === 'staff') {
         document.body.classList.remove('admin-mode-active');
@@ -3722,6 +3800,11 @@
         checkAdminAuthStatus();
         syncBrandLogos();
       }
+        if (adminControls) adminControls.style.display = 'flex';
+        if (titleEl) titleEl.textContent = 'Admin App';
+        checkAdminAuthStatus();
+        syncBrandLogos();
+      }
     }
 
     /* Staff Authentication & Security Logic */
@@ -3729,51 +3812,104 @@
       return 'cwp_staff_auth_' + (staffId || state.activeStaffId || 'DEFAULT').toUpperCase();
     }
 
-    function isUserStaffAuthenticated(staffId) {
+    function getStaffToken(staffId) {
+      var key = getStaffAuthKey(staffId) + '_token';
+      return sessionStorage.getItem(key) || localStorage.getItem(key) || '';
+    }
+
+    function clearStaffTokens(staffId) {
       var key = getStaffAuthKey(staffId);
-      return !!(sessionStorage.getItem(key) || localStorage.getItem(key));
+      sessionStorage.removeItem(key);
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key + '_token');
+      localStorage.removeItem(key + '_token');
+    }
+
+    function getActiveStaffId() {
+      if (state.activeStaffId) return state.activeStaffId;
+      var saved = sessionStorage.getItem('cwp_last_staff_id') || localStorage.getItem('cwp_last_staff_id') || '';
+      if (saved) {
+        state.activeStaffId = saved;
+        return saved;
+      }
+      return '';
+    }
+
+    function isUserStaffAuthenticated(staffId) {
+      var id = staffId || getActiveStaffId();
+      return !!getStaffToken(id);
     }
 
     function checkStaffAuthStatus(staffId) {
+      var activeId = staffId || getActiveStaffId();
+      if (activeId) state.activeStaffId = activeId;
+
       var authGate = document.getElementById('staffAuthGate');
       var content = document.getElementById('staffContent');
       var logoutBtn = document.getElementById('staffLogoutBtn');
       var inactiveBox = document.getElementById('staffInactiveMsgBox');
       var errBox = document.getElementById('staffAuthError');
+      var phoneInput = document.getElementById('staffPhoneInput');
       var pinInput = document.getElementById('staffPinInput');
 
       if (inactiveBox) inactiveBox.style.display = 'none';
       if (errBox) errBox.style.display = 'none';
 
-      if (isUserStaffAuthenticated(staffId)) {
+      if (activeId && isUserStaffAuthenticated(activeId)) {
         if (authGate) authGate.style.display = 'none';
         if (content) content.style.display = 'block';
         if (logoutBtn) logoutBtn.style.display = 'inline-flex';
-        loadStaffCustomerData(staffId);
+        loadStaffCustomerData(activeId);
       } else {
         if (authGate) authGate.style.display = 'block';
         if (content) content.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'none';
+
+        // Auto-fill phone if previously entered or saved
+        var savedPhone = sessionStorage.getItem('cwp_last_staff_phone') || localStorage.getItem('cwp_last_staff_phone') || '';
+        if (phoneInput && savedPhone) {
+          phoneInput.value = savedPhone;
+        }
+
         if (pinInput) {
           pinInput.value = '';
-          setTimeout(function() { pinInput.focus(); }, 150);
+          setTimeout(function() {
+            if (phoneInput && !phoneInput.value) {
+              phoneInput.focus();
+            } else if (pinInput) {
+              pinInput.focus();
+            }
+          }, 150);
         }
       }
     }
 
     function handleStaffAuthSubmit(e) {
       e.preventDefault();
+      var phoneInput = document.getElementById('staffPhoneInput');
       var pinInput = document.getElementById('staffPinInput');
+      var rawPhone = (phoneInput ? phoneInput.value : '').replace(/[^0-9]/g, '');
+      var phone = rawPhone.length === 10 ? rawPhone : (rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone);
       var pin = (pinInput ? pinInput.value : '').trim();
       var errBox = document.getElementById('staffAuthError');
       var inactiveBox = document.getElementById('staffInactiveMsgBox');
       var btn = document.getElementById('btnStaffLogin');
+
+      if (!phone || phone.length !== 10) {
+        if (errBox) {
+          errBox.textContent = '❌ कृपया 10-अंकों का पंजीकृत मोबाइल नंबर दर्ज करें।';
+          errBox.style.display = 'block';
+        }
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
 
       if (!pin || pin.length !== 6) {
         if (errBox) {
           errBox.textContent = '❌ कृपया पूरा 6-अंकों का पासवर्ड (पिन) दर्ज करें।';
           errBox.style.display = 'block';
         }
+        if (pinInput) pinInput.focus();
         return;
       }
 
@@ -3784,7 +3920,7 @@
       if (errBox) errBox.style.display = 'none';
       if (inactiveBox) inactiveBox.style.display = 'none';
 
-      apiCall('verifyStaffPin', { staffId: state.activeStaffId, pin: pin }, function(res) {
+      apiCall('verifyStaffPin', { phone: phone, pin: pin, staffId: state.activeStaffId }, function(res) {
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">पोर्टल में प्रवेश करें (Enter Portal)</span>';
@@ -3796,18 +3932,33 @@
           return;
         }
         if (res && res.success) {
+          state.activeStaffId = res.staffId;
           var remember = document.getElementById('rememberStaffDevice') ? document.getElementById('rememberStaffDevice').checked : true;
-          var key = getStaffAuthKey(state.activeStaffId);
+          var key = getStaffAuthKey(res.staffId);
+          var token = res.token || 'authenticated';
+          
+          sessionStorage.setItem('cwp_last_staff_id', res.staffId);
+          sessionStorage.setItem('cwp_last_staff_phone', phone);
           sessionStorage.setItem(key, 'authenticated');
+          sessionStorage.setItem(key + '_token', token);
           if (remember) {
+            localStorage.setItem('cwp_last_staff_id', res.staffId);
+            localStorage.setItem('cwp_last_staff_phone', phone);
             localStorage.setItem(key, 'authenticated');
+            localStorage.setItem(key + '_token', token);
           }
           if (pinInput) pinInput.value = '';
-          showToast('स्टाफ सत्यापन सफल!', '✓');
-          checkStaffAuthStatus(state.activeStaffId);
+          
+          // Keep clean URL: /staff without parameter leakage
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, '', '/staff');
+          }
+
+          showToast('नमस्ते ' + (res.staffName || 'स्टाफ') + '! लॉगिन सफल हुआ।', '✓');
+          checkStaffAuthStatus(res.staffId);
         } else {
           if (errBox) {
-            errBox.textContent = '❌ ' + (res && res.error ? res.error : 'गलत 6-डिजिट पासवर्ड!');
+            errBox.textContent = '❌ ' + (res && res.error ? res.error : 'गलत मोबाइल नंबर या 6-डिजिट पासवर्ड!');
             errBox.style.display = 'block';
           }
           if (pinInput) pinInput.focus();
@@ -3854,16 +4005,28 @@
     function proceedLogout() {
       closeLogoutModal();
       if (state.pendingLogoutType === 'admin') {
-        sessionStorage.removeItem('cwp_admin_auth');
-        localStorage.removeItem('cwp_admin_auth');
+        var aToken = getAdminToken();
+        if (aToken) {
+          apiCall('logoutAdmin', { adminToken: aToken }, function() {}, function() {});
+        }
+        clearAdminTokens();
         showToast('एडमिन पोर्टल लॉक हो गया।', '🔒');
         checkAdminAuthStatus();
       } else {
-        var key = getStaffAuthKey(state.activeStaffId);
-        sessionStorage.removeItem(key);
-        localStorage.removeItem(key);
+        var sId = state.activeStaffId || sessionStorage.getItem('cwp_last_staff_id') || localStorage.getItem('cwp_last_staff_id') || '';
+        var sToken = getStaffToken(sId);
+        if (sToken) {
+          apiCall('logoutStaff', { staffToken: sToken, staffId: sId }, function() {}, function() {});
+        }
+        clearStaffTokens(sId);
+        sessionStorage.removeItem('cwp_last_staff_id');
+        localStorage.removeItem('cwp_last_staff_id');
+        state.activeStaffId = '';
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, '', '/staff');
+        }
         showToast('पोर्टल से लॉगआउट हो चुके हैं', '🔒');
-        checkStaffAuthStatus(state.activeStaffId);
+        checkStaffAuthStatus('');
       }
     }
 
@@ -3872,9 +4035,19 @@
     }
 
     /* Admin Authentication & Security Logic */
+    function getAdminToken() {
+      return sessionStorage.getItem('cwp_admin_token') || localStorage.getItem('cwp_admin_token') || '';
+    }
+
+    function clearAdminTokens() {
+      sessionStorage.removeItem('cwp_admin_token');
+      localStorage.removeItem('cwp_admin_token');
+      sessionStorage.removeItem('cwp_admin_auth');
+      localStorage.removeItem('cwp_admin_auth');
+    }
+
     function isUserAdminAuthenticated() {
-      var token = sessionStorage.getItem('cwp_admin_auth') || localStorage.getItem('cwp_admin_auth');
-      return !!token;
+      return !!getAdminToken();
     }
 
     function checkAdminAuthStatus() {
@@ -3918,8 +4091,10 @@
         if (res && res.success) {
           var remember = document.getElementById('rememberAdminDevice').checked;
           var token = res.token || 'authenticated';
+          sessionStorage.setItem('cwp_admin_token', token);
           sessionStorage.setItem('cwp_admin_auth', token);
           if (remember) {
+            localStorage.setItem('cwp_admin_token', token);
             localStorage.setItem('cwp_admin_auth', token);
           }
           input.value = '';
@@ -3959,10 +4134,6 @@
         if (res && res.success) {
           showToast(res.message || 'पासवर्ड बदल दिया गया!', '✓');
           input.value = '';
-          sessionStorage.setItem('cwp_admin_auth', 'updated');
-          if (localStorage.getItem('cwp_admin_auth')) {
-            localStorage.setItem('cwp_admin_auth', 'updated');
-          }
         } else {
           showToast('त्रुटि: ' + (res ? res.error : 'पासवर्ड नहीं बदला जा सका'), '❌');
         }
@@ -3988,33 +4159,43 @@
        UNIVERSAL API CLIENT (Google Apps Script & Railway / Node.js Server)
        ========================================================================= */
     function apiCall(action, payload, onSuccess, onFailure) {
+      var adminToken = getAdminToken();
+      var staffToken = getStaffToken(state.activeStaffId);
+      var effectiveToken = adminToken || staffToken;
+
+      var reqPayload = Object.assign({}, payload || {});
+      reqPayload.action = action;
+      if (adminToken && !reqPayload.adminToken) reqPayload.adminToken = adminToken;
+      if (staffToken && !reqPayload.staffToken) reqPayload.staffToken = staffToken;
+      if (effectiveToken && !reqPayload.token) reqPayload.token = effectiveToken;
+
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         if (action === 'getStaffData') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).getStaffCustomerData(payload.staffId);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).getStaffCustomerData(reqPayload.staffId, effectiveToken);
         } else if (action === 'getStaffList') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).getStaffList();
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).getStaffListSanitized(!!adminToken);
         } else if (action === 'cleanAndSyncStaff') {
           google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).cleanAndSyncStaff();
         } else if (action === 'saveStaffMember') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).saveStaffMember(payload.staffData || payload.name, payload.id);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).saveStaffMember(reqPayload.staffData || reqPayload.name, reqPayload.id);
         } else if (action === 'verifyStaffPin') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).verifyStaffPin(payload.staffId, payload.pin);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).verifyStaffPin(reqPayload.staffId, reqPayload.pin);
         } else if (action === 'toggleStaffActive') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).toggleStaffActive(payload.staffId, payload.active);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).toggleStaffActive(reqPayload.staffId, reqPayload.active);
         } else if (action === 'deleteStaffMember') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).deleteStaffMember(payload.id);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).deleteStaffMember(reqPayload.id);
         } else if (action === 'saveCustomer') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).saveCustomer(payload.customerData);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).saveCustomer(reqPayload.customerData);
         } else if (action === 'getAllCustomers') {
           google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).getAllCustomersForAdmin();
         } else if (action === 'toggleCustomerActive') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).toggleCustomerActive(payload.sheetName, payload.rowIndex, payload.currentStatus);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).toggleCustomerActive(reqPayload.sheetName, reqPayload.rowIndex, reqPayload.currentStatus);
         } else if (action === 'verifyAdminPassword') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).verifyAdminPassword(payload.password);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).verifyAdminPassword(reqPayload.password);
         } else if (action === 'updateAdminPassword') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).updateAdminPassword(payload.newPassword);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).updateAdminPassword(reqPayload.newPassword);
         } else if (action === 'updateCustomer') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).updateCustomer(payload.customerData);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).updateCustomer(reqPayload.customerData);
         } else if (action === 'reorderSheet') {
           google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).reorderSheetToCustomerFirst();
         } else if (action === 'syncStaffDropdown') {
@@ -4024,17 +4205,32 @@
       }
 
       /* Railway / Node Server Proxy to Google Sheet */
-      var reqBody = Object.assign({ action: action }, payload || {});
+      var headers = { 'Content-Type': 'application/json' };
+      if (effectiveToken) {
+        headers['Authorization'] = 'Bearer ' + effectiveToken;
+      }
+
       fetch('/api', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reqBody)
+        headers: headers,
+        body: JSON.stringify(reqPayload)
       })
       .then(function(res) {
+        if (res.status === 401 || res.status === 403) {
+          return res.json().then(function(errData) {
+            handleUnauthorizedResponse(errData || { unauthorized: true });
+            throw new Error((errData && errData.error) ? errData.error : ('HTTP ' + res.status + ' Unauthorized'));
+          });
+        }
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       })
       .then(function(resData) {
+        if (resData && (resData.unauthorized || resData.forbidden)) {
+          handleUnauthorizedResponse(resData);
+          if (onFailure) onFailure(new Error(resData.error || 'Unauthorized'));
+          return;
+        }
         if (resData && resData.error) {
           if (onFailure) onFailure(new Error(resData.error));
           else showToast('त्रुटि: ' + resData.error, '❌');
@@ -4048,6 +4244,18 @@
       });
     }
 
+    function handleUnauthorizedResponse(resData) {
+      if (state.currentMode === 'admin' || isUserAdminAuthenticated()) {
+        clearAdminTokens();
+        checkAdminAuthStatus();
+        showToast('🔒 एडमिन सत्र समाप्त या अमान्य। कृपया पुनः लॉगिन करें।', '⚠️');
+      } else {
+        clearStaffTokens(state.activeStaffId);
+        checkStaffAuthStatus(state.activeStaffId);
+        showToast('🔒 स्टाफ सत्र समाप्त या अमान्य है। कृपया पिन पुनः दर्ज करें।', '⚠️');
+      }
+    }
+
     /* =========================================================================
        STAFF DATA LOADING & RENDERING
        ========================================================================= */
@@ -4055,11 +4263,12 @@
       var feed = document.getElementById('customerFeed');
       if (feed) feed.innerHTML = renderSkeletonCards(3);
 
-      apiCall('getStaffData', { staffId: staffId }, function(response) {
+      var sToken = getStaffToken(staffId);
+      apiCall('getStaffData', { staffId: staffId, staffToken: sToken }, function(response) {
         handleStaffDataLoaded(response);
       }, function(err) {
         showToast('डेटा लोड करने में त्रुटि: ' + (err.message || err), '❌');
-        if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड नहीं हो सका</h4><p class="empty-desc">कृपया इंटरनेट कनेक्शन जांचें या दोबारा रीफ्रेश करें।</p></div>';
+        if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड नहीं हो सका</h4><p class="empty-desc">' + escapeHtml(err.message || 'कृपया इंटरनेट कनेक्शन जांचें या दोबारा रीफ्रेश करें।') + '</p><div style="margin-top: 14px;"><button type="button" class="btn-primary-smart" style="padding: 8px 16px;" onclick="loadStaffCustomerData(state.activeStaffId)">🔄 पुनः प्रयास करें</button></div></div>';
       });
     }
 
@@ -4082,7 +4291,7 @@
 
       if (!data || data.error) {
         var feed = document.getElementById('customerFeed');
-        if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड विफल</h4><p class="empty-desc">' + escapeHtml(data ? data.error : 'अज्ञात त्रुटि') + '</p></div>';
+        if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड विफल</h4><p class="empty-desc">' + escapeHtml(data ? data.error : 'अज्ञात त्रुटि') + '</p><div style="margin-top: 14px;"><button type="button" class="btn-primary-smart" style="padding: 8px 16px;" onclick="loadStaffCustomerData(state.activeStaffId)">🔄 पुनः प्रयास करें</button></div></div>';
         return;
       }
 
@@ -4092,6 +4301,38 @@
       document.getElementById('staffNameHeader').textContent = sName;
       document.getElementById('staffIdHeader').textContent = 'ID: ' + sId;
       document.getElementById('staffAvatarInitial').textContent = sName.charAt(0).toUpperCase();
+
+      /* Data Source Reliability Feedback */
+      var liveBadge = document.getElementById('staffLiveBadge');
+      var isLive = data.isLive !== false && data.dataSource !== 'local_fallback';
+
+      if (liveBadge) {
+        if (isLive) {
+          liveBadge.innerHTML = '<span class="dot-live">●</span> लाइव';
+          liveBadge.style.background = 'rgba(16, 185, 129, 0.16)';
+          liveBadge.style.color = '#34d399';
+          liveBadge.title = 'लाइव गूगल शीट से कनेक्टेड';
+        } else {
+          liveBadge.innerHTML = '<span style="color: #f59e0b;">⚠️</span> ऑफ़लाइन मोड';
+          liveBadge.style.background = 'rgba(245, 158, 11, 0.16)';
+          liveBadge.style.color = '#fbbf24';
+          liveBadge.title = 'स्थानीय बैकअप डेटा (Google Sheet अनुपलब्ध)';
+        }
+      }
+
+      var bannerContainer = document.getElementById('staffOfflineBannerContainer');
+      if (bannerContainer) {
+        if (!isLive) {
+          bannerContainer.innerHTML = 
+            '<div class="offline-warning-banner" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 13px; font-weight: 500;">' +
+              '<span>⚠️ गूगल शीट से सीधा संपर्क नहीं हो सका। पुराना स्थानीय डेटा प्रदर्शित है।</span>' +
+              '<button type="button" onclick="loadStaffCustomerData(state.activeStaffId)" style="background: #f59e0b; color: #ffffff; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">🔄 पुनः प्रयास</button>' +
+            '</div>';
+          bannerContainer.style.display = 'block';
+        } else {
+          bannerContainer.style.display = 'none';
+        }
+      }
 
       /* Populate customer list classified into 3 service categories */
       var list = [];
@@ -4136,7 +4377,8 @@
           var cwIdx = 0, spcIdx = 0;
           data.allOtherWork.forEach(function(item) {
             var s = ((item.serviceType || '') + ' ' + (item.packageType || '') + ' ' + (item.packageDetails || '')).toLowerCase();
-            if (s.indexOf('solar') >= 0 || (item.vehicleOrSite || '').toLowerCase().indexOf('site') >= 0) {
+            var isSolar = s.indexOf('solar') >= 0 || s.indexOf('pv panel') >= 0 || s.indexOf('rooftop solar') >= 0 || ((item.vehicleOrSite || '').toLowerCase().indexOf('solar') >= 0);
+            if (isSolar) {
               item.category = 'solar_cleaning';
               item.serviceCategory = 'Solar Panel Cleaning';
               item._seq = ++spcIdx;
@@ -4322,6 +4564,10 @@
         var address = (item.address != null ? String(item.address) : '').trim();
         var secAddress = (item.secondaryAddress != null ? String(item.secondaryAddress) : '').trim();
         var mapsUrl = formatGoogleMapsUrl(item.googleMapsUrl, address);
+        var secMapsUrl = formatGoogleMapsUrl(item.secondaryMapsUrl, secAddress);
+        var hasPrimaryLoc = !!(mapsUrl || address);
+        var hasSecLoc = !!(secMapsUrl || secAddress);
+        var locationCount = (hasPrimaryLoc ? 1 : 0) + (hasSecLoc ? 1 : 0);
         var photoUrl = (item.photoUrl != null ? String(item.photoUrl) : '').trim();
         var pkgLabel = (item.packageType || item.serviceType || (isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : 'Daily Car Cleaning'))).toString().trim();
         var vIcon = isSolar ? '☀️' : (isCarWash ? '🧼' : '🚘');
@@ -4337,7 +4583,7 @@
 
         html += '<div class="smart-card" id="staffCard-' + index + '">';
         
-        /* Row 1: S.No + Customer Name (Left) & Call + Map Buttons (Right) */
+        /* Row 1: S.No + Customer Name (Left) & Call + Location Buttons (Right) */
         html += '  <div class="card-header-row">';
         html += '    <div class="card-title-group">';
         html += '      <span class="cust-index-badge">#' + seqNumber + '</span>';
@@ -4355,13 +4601,17 @@
           html += '      </button>';
         }
 
-        if (mapsUrl) {
-          html += '      <a href="' + escapeHtml(mapsUrl) + '" target="_blank" rel="noopener noreferrer" class="btn-card-action btn-map" title="गूगल मैप्स / नेविगेशन खोलें">';
-          html += '        <span>🧭</span><span>मैप</span>';
-          html += '      </a>';
+        if (locationCount >= 2) {
+          html += '      <button type="button" class="btn-card-action btn-location btn-location-multi" onclick="openStaffAddressModal(' + index + ')" title="2 लोकेशन उपलब्ध हैं: मुख्य और सेकेंडरी">';
+          html += '        <span>📍</span><span>2 लोकेशन</span>';
+          html += '      </button>';
+        } else if (locationCount === 1) {
+          html += '      <button type="button" class="btn-card-action btn-location" onclick="openStaffAddressModal(' + index + ')" title="ग्राहक की लोकेशन देखें">';
+          html += '        <span>📍</span><span>लोकेशन</span>';
+          html += '      </button>';
         } else {
-          html += '      <button type="button" class="btn-card-action btn-action-disabled" onclick="handleUnavailableItem(\'map\')" title="मैप लोकेशन उपलब्ध नहीं है">';
-          html += '        <span>🧭</span><span>मैप नहीं</span>';
+          html += '      <button type="button" class="btn-card-action btn-action-disabled" onclick="handleUnavailableItem(\'location\')" title="लोकेशन / पता उपलब्ध नहीं है">';
+          html += '        <span>📍</span><span>लोकेशन नहीं</span>';
           html += '      </button>';
         }
         html += '    </div>';
@@ -4451,8 +4701,8 @@
         showToast('पता उपलब्ध नहीं है', '📍');
       } else if (type === 'phone') {
         showToast('मोबाइल नंबर उपलब्ध नहीं है', '📞');
-      } else if (type === 'map') {
-        showToast('मैप लोकेशन उपलब्ध नहीं है', '🧭');
+      } else if (type === 'map' || type === 'location') {
+        showToast('लोकेशन / पता उपलब्ध नहीं है', '📍');
       } else {
         showToast('उपलब्ध नहीं है', 'ℹ️');
       }
@@ -4535,11 +4785,10 @@
       var cardsHtml = '';
       uniqueStaff.forEach(function(s) {
         var staffUrl = getUniqueStaffUrl(s.id);
-        var sPin = (s.pin || '123456').toString().trim();
         var sPhone = (s.phone || '').toString().trim();
         var isActive = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
         var cleanPhone = sPhone.replace(/[^0-9]/g, '');
-        var waMessage = encodeURIComponent('नमस्ते ' + s.name + ',\nयह आपका CWP Detailers & Motors का कस्टमर वर्क पोर्टल लिंक है:\n' + staffUrl + '\n\nआपका 6-डिजिट लॉगिन पिन है: ' + sPin + '\n\nइस लिंक को खोलकर आप अपने असाइन ग्राहक देख सकते हैं।');
+        var waMessage = encodeURIComponent('नमस्ते ' + s.name + ',\nयह आपका CWP Detailers & Motors का स्टाफ पोर्टल लिंक है:\n' + staffUrl + '\n\nकृपया अपने पंजीकृत मोबाइल नंबर (' + sPhone + ') और 6-अंकों के सुरक्षा पिन से लॉगिन करें।');
         var waHref = cleanPhone.length === 10 ? ('https:\x2F\x2Fwa.me/91' + cleanPhone + '?text=' + waMessage) : ('https:\x2F\x2Fwa.me/?text=' + waMessage);
 
         cardsHtml += '<div class="staff-admin-card">';
@@ -4553,7 +4802,7 @@
         cardsHtml += '    <div class="staff-admin-id" style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted);">';
         cardsHtml += '      <span>ID: <b style="color: var(--text-primary);">' + escapeHtml(s.id) + '</b></span>';
         cardsHtml += '      <span>📱 <b>' + (sPhone ? escapeHtml(sPhone) : '<span style="color:var(--text-muted); font-weight:normal;">दर्ज नहीं</span>') + '</b></span>';
-        cardsHtml += '      <span>🔑 पिन: <b style="font-family: monospace; letter-spacing: 1px; color: var(--brand-blue);">' + escapeHtml(sPin) + '</b></span>';
+        cardsHtml += '      <span>🔑 पिन: <b style="color: #059669;">' + (s.hasPin !== false ? '●●●●●● (सुरक्षित)' : 'सेट नहीं') + '</b></span>';
         cardsHtml += '    </div>';
         cardsHtml += '  </div>';
         cardsHtml += '  <div class="staff-admin-actions">';
@@ -4596,7 +4845,7 @@
       document.getElementById('editStaffIdDisplay').textContent = staff.id;
       document.getElementById('editStaffName').value = staff.name || '';
       document.getElementById('editStaffPhone').value = staff.phone || '';
-      document.getElementById('editStaffPin').value = staff.pin || '123456';
+      document.getElementById('editStaffPin').value = '';
       var isAct = staff.active !== undefined ? (staff.active === true || staff.active === 'Yes' || staff.active === 'yes' || staff.active === 'Active') : true;
       document.getElementById('editStaffActive').value = isAct ? 'true' : 'false';
 
@@ -4640,9 +4889,11 @@
         id: id,
         name: name,
         phone: phone,
-        pin: pin || '123456',
         active: active
       };
+      if (pin) {
+        staffPayload.pin = pin;
+      }
 
       apiCall('saveStaffMember', { staffData: staffPayload }, function(res) {
         if (btn) {
@@ -4668,9 +4919,9 @@
     function getUniqueStaffUrl(staffId) {
       var base = webAppBaseUrl;
       if (!base || base.indexOf('http') !== 0) {
-        base = window.location.origin + window.location.pathname;
+        return window.location.origin + '/staff';
       }
-      return base + '?staff=' + encodeURIComponent(staffId);
+      return base + (base.indexOf('?') === -1 ? '?mode=staff' : '&mode=staff');
     }
 
     function copyStaffLink(link) {
@@ -4696,13 +4947,14 @@
       var pinInput = document.getElementById('newStaffPin');
       var name = (nameInput ? nameInput.value : '').trim();
       var phone = (phoneInput ? phoneInput.value : '').trim();
-      var pin = (pinInput ? pinInput.value : '').trim() || '123456';
+      var pin = (pinInput ? pinInput.value : '').trim();
       var idEl = document.getElementById('newStaffId');
       var id = idEl ? idEl.value.trim() : '';
 
       if (!name) return;
-      if (pin && !/^\d{6}$/.test(pin)) {
-        alert('पिन ठीक 6 अंकों का होना चाहिए।');
+      if (!pin || !/^\d{6}$/.test(pin)) {
+        alert('कृपया नए स्टाफ के लिए ठीक 6-अंकों का लॉगिन पिन दर्ज करें।');
+        if (pinInput) pinInput.focus();
         return;
       }
 
@@ -4717,7 +4969,7 @@
       apiCall('saveStaffMember', { staffData: staffPayload }, function(res) {
         if (nameInput) nameInput.value = '';
         if (phoneInput) phoneInput.value = '';
-        if (pinInput) pinInput.value = '123456';
+        if (pinInput) pinInput.value = '';
         if (idEl) idEl.value = '';
         showToast('स्टाफ "' + name + '" सफलतापूर्वक जोड़ा गया!', '✓');
         if (res && res.staffList) {
@@ -4725,6 +4977,10 @@
         } else {
           loadStaffListForAdmin();
         }
+      }, function(err) {
+        showToast('त्रुटि: ' + (err.message || err), '❌');
+      });
+    }
       }, function(err) {
         showToast('त्रुटि: ' + (err.message || err), '❌');
       });
@@ -5016,12 +5272,25 @@
       var tbody = document.getElementById('adminRecordsTableBody');
       if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 28px; color: var(--text-muted);">🔄 गूगल शीट से लाइव डेटा लोड हो रहा है...</td></tr>';
 
-      apiCall('getAllCustomers', {}, function(records) {
+      apiCall('getAllCustomers', {}, function(res) {
+        var records = Array.isArray(res) ? res : (res && res.records ? res.records : []);
+        var isLive = res && res.isLive !== undefined ? res.isLive : true;
+
         state.adminRecords = records || [];
 
         /* Update badge counter in tab */
         var recCountBadge = document.getElementById('tabRecordsCount');
         if (recCountBadge) recCountBadge.textContent = state.adminRecords.length;
+
+        /* Update Data Source Indicator */
+        var srcBadge = document.getElementById('adminRecordsSourceBadge');
+        if (srcBadge) {
+          if (isLive) {
+            srcBadge.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:12px; background:rgba(16,185,129,0.12); color:#059669;"><span style="color:#10b981;">●</span> Live Google Sheet</span>';
+          } else {
+            srcBadge.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:12px; background:rgba(245,158,11,0.14); color:#d97706;"><span>⚠️</span> Local Fallback (Stale)</span>';
+          }
+        }
 
         /* Populate staff dropdown in filters */
         populateStaffFilterDropdown();
@@ -5029,7 +5298,7 @@
         /* Run filter & render */
         filterAdminRecords();
       }, function(err) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 28px; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 28px; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '<br><button type="button" class="btn-primary-smart" style="margin-top:12px; padding:6px 14px; font-size:12px;" onclick="loadAdminRecords()">🔄 पुनः प्रयास करें</button></td></tr>';
       });
     }
 
@@ -5639,7 +5908,9 @@
       openImageModal(r.photoUrl || '', r.customerName || '', r.vehicle || r.vehicleNumbers || '');
     }
 
-    /* Customer Address Modal Logic (Supports both customer object and admin record index) */
+    /* Customer Address / Locations Modal Logic (Dual Location Support) */
+    var _activeModalRecord = null;
+
     function openAddressModal(itemOrIndex) {
       var r;
       if (typeof itemOrIndex === 'object' && itemOrIndex !== null) {
@@ -5648,21 +5919,29 @@
         r = state.adminRecords && state.adminRecords[itemOrIndex];
       }
       if (!r) return;
+      _activeModalRecord = r;
 
       var custName = r.customerName || 'अज्ञात ग्राहक';
       var custPhone = (r.customerNumber != null ? String(r.customerNumber) : '').trim();
       var rawVehicle = (r.vehicle || r.vehicleNumbers || r.vehicleOrSite != null ? String(r.vehicle || r.vehicleNumbers || r.vehicleOrSite) : '').trim();
       var primaryAddr = (r.address != null ? String(r.address) : '').trim();
       var secAddr = (r.secondaryAddress != null ? String(r.secondaryAddress) : '').trim();
-      var mapsUrl = formatGoogleMapsUrl(r.googleMapsUrl, primaryAddr);
+      var primaryMapUrl = formatGoogleMapsUrl(r.googleMapsUrl, primaryAddr);
+      var secMapUrl = formatGoogleMapsUrl(r.secondaryMapsUrl, secAddr);
+
+      var hasPrimary = !!(primaryMapUrl || primaryAddr);
+      var hasSecondary = !!(secMapUrl || secAddr);
 
       var nameEl = document.getElementById('addrModalCustName');
       var phoneLink = document.getElementById('addrModalPhoneLink');
       var phoneWrapper = document.getElementById('addrModalPhoneWrapper');
+      var multiNotice = document.getElementById('addrModalMultiNotice');
+      var primaryCard = document.getElementById('addrModalPrimaryCard');
       var primaryEl = document.getElementById('addrModalPrimary');
+      var primaryMapLink = document.getElementById('addrModalPrimaryMapLink');
+      var secCard = document.getElementById('addrModalSecondaryCard');
       var secEl = document.getElementById('addrModalSecondary');
-      var secWrapper = document.getElementById('addrModalSecWrapper');
-      var mapLink = document.getElementById('addrModalMapLink');
+      var secMapLink = document.getElementById('addrModalSecondaryMapLink');
       var modal = document.getElementById('addressViewModal');
 
       if (nameEl) {
@@ -5677,21 +5956,65 @@
           phoneWrapper.style.display = 'none';
         }
       }
-      if (primaryEl) primaryEl.textContent = primaryAddr || 'कोई मुख्य पता दर्ज नहीं है।';
-      if (secEl && secWrapper) {
-        if (secAddr) {
-          secWrapper.style.display = 'block';
-          secEl.textContent = secAddr;
+
+      // Multi-location warning banner
+      if (multiNotice) {
+        multiNotice.style.display = (hasPrimary && hasSecondary) ? 'flex' : 'none';
+      }
+
+      // Location 1: Primary Location
+      if (primaryEl) {
+        if (primaryAddr) {
+          primaryEl.textContent = primaryAddr;
+        } else if (primaryMapUrl) {
+          primaryEl.innerHTML = '<span style="color:#2563eb; font-weight:500;">📍 गूगल मैप्स पिन / लोकेशन लिंक उपलब्ध है</span>';
         } else {
-          secWrapper.style.display = 'none';
+          primaryEl.textContent = 'कोई मुख्य पता दर्ज नहीं है।';
         }
       }
-      if (mapLink) {
-        if (mapsUrl) {
-          mapLink.style.display = 'inline-flex';
-          mapLink.href = mapsUrl;
+      if (primaryMapLink) {
+        if (primaryMapUrl) {
+          primaryMapLink.style.display = 'inline-flex';
+          primaryMapLink.href = primaryMapUrl;
         } else {
-          mapLink.style.display = 'none';
+          primaryMapLink.style.display = 'none';
+        }
+      }
+
+      // Location 2: Secondary Location
+      if (secCard) {
+        if (hasSecondary) {
+          secCard.style.display = 'block';
+          if (secEl) {
+            if (secAddr) {
+              secEl.textContent = secAddr;
+            } else if (secMapUrl) {
+              secEl.innerHTML = '<span style="color:#7e22ce; font-weight:500;">📍 गूगल मैप्स पिन / सेकेंडरी लिंक उपलब्ध है</span>';
+            } else {
+              secEl.textContent = 'वैकल्पिक पता दर्ज नहीं है।';
+            }
+          }
+          if (secMapLink) {
+            if (secMapUrl) {
+              secMapLink.style.display = 'inline-flex';
+              secMapLink.href = secMapUrl;
+            } else {
+              secMapLink.style.display = 'none';
+            }
+          }
+        } else {
+          secCard.style.display = 'none';
+        }
+      }
+
+      // Legacy fallback element support
+      var legacyMapLink = document.getElementById('addrModalMapLink');
+      if (legacyMapLink) {
+        if (primaryMapUrl) {
+          legacyMapLink.style.display = 'inline-flex';
+          legacyMapLink.href = primaryMapUrl;
+        } else {
+          legacyMapLink.style.display = 'none';
         }
       }
 
@@ -5705,32 +6028,61 @@
       var modal = document.getElementById('addressViewModal');
       if (modal) modal.style.display = 'none';
       document.body.style.overflow = '';
+      _activeModalRecord = null;
     }
 
-    function copyAddressText() {
-      var primaryEl = document.getElementById('addrModalPrimary');
-      var primary = primaryEl ? primaryEl.textContent.trim() : '';
-      if (primary === 'कोई मुख्य पता दर्ज नहीं है。' || primary === 'कोई मुख्य पता दर्ज नहीं है।') {
-        primary = '';
+    function copyLocationAddress(which) {
+      if (!_activeModalRecord) return;
+      var textToCopy = '';
+      if (which === 'primary') {
+        textToCopy = (_activeModalRecord.address || '').trim() || (_activeModalRecord.googleMapsUrl || '').trim();
+      } else if (which === 'secondary') {
+        textToCopy = (_activeModalRecord.secondaryAddress || '').trim() || (_activeModalRecord.secondaryMapsUrl || '').trim();
+      } else {
+        var p = (_activeModalRecord.address || '').trim();
+        var s = (_activeModalRecord.secondaryAddress || '').trim();
+        textToCopy = p && s ? (p + '\n' + s) : (p || s);
       }
-      var secWrapper = document.getElementById('addrModalSecWrapper');
-      var secEl = document.getElementById('addrModalSecondary');
-      var sec = (secWrapper && secWrapper.style.display !== 'none' && secEl) ? secEl.textContent.trim() : '';
-      var fullText = primary;
-      if (sec) {
-        fullText = fullText ? (fullText + '\n' + sec) : sec;
-      }
-      if (!fullText) {
+
+      if (!textToCopy) {
         showToast('कॉपी करने के लिए कोई पता नहीं है', 'ℹ️');
         return;
       }
+
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(fullText).then(function() {
-          showToast('पता कॉपी कर लिया गया!', '✓');
+        navigator.clipboard.writeText(textToCopy).then(function() {
+          showToast('पता क्लिपबोर्ड पर कॉपी हो गया!', '✓');
         }).catch(function() {
-          showToast('पता कॉपी नहीं हो सका', '❌');
+          fallbackCopyToClipboard(textToCopy);
         });
       } else {
+        fallbackCopyToClipboard(textToCopy);
+      }
+    }
+
+    function copyAddressText() {
+      copyLocationAddress('both');
+    }
+
+    function fallbackCopyToClipboard(text) {
+      try {
+        var textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        var successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        if (successful) {
+          showToast('पता क्लिपबोर्ड पर कॉपी हो गया!', '✓');
+        } else {
+          showToast('कॉपी नहीं हो सका', '❌');
+        }
+      } catch (err) {
         showToast('कॉपी सपोर्ट उपलब्ध नहीं है', 'ℹ️');
       }
     }
