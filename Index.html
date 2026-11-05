@@ -620,6 +620,11 @@
       margin-bottom: 8px;
     }
 
+    /* Global Form & Button Font Inheritance */
+    button, input, select, textarea {
+      font-family: inherit;
+    }
+
     /* =========================================================================
        ADMIN VIEW STYLING (Bright, Modern & Professional)
        ========================================================================= */
@@ -640,13 +645,14 @@
       background: #ffffff;
       border: 1px solid var(--border-color);
       color: var(--text-secondary);
-      padding: 7px 14px;
+      padding: 8px 16px;
       border-radius: var(--radius-sm);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.15s ease;
+      font-family: inherit;
     }
 
     .admin-tab-btn.active {
@@ -654,6 +660,7 @@
       color: #ffffff;
       border-color: var(--brand-blue);
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+      font-weight: 600;
     }
 
     .admin-card-section {
@@ -666,10 +673,11 @@
     }
 
     .admin-card-title {
-      font-size: 16px;
-      font-weight: 800;
+      font-size: 15.5px;
+      font-weight: 600;
       color: var(--text-primary);
       margin-bottom: 4px;
+      letter-spacing: -0.01em;
     }
 
     .admin-card-desc {
@@ -686,9 +694,10 @@
     .form-label {
       display: block;
       font-size: 12px;
-      font-weight: 700;
-      color: var(--text-secondary);
-      margin-bottom: 4px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 5px;
+      line-height: 1.4;
     }
 
     .form-input, .form-select, .form-textarea {
@@ -697,8 +706,8 @@
       border: 1px solid var(--border-color);
       color: var(--text-primary);
       border-radius: var(--radius-sm);
-      padding: 8px 12px;
-      font-size: 13px;
+      padding: 9px 12px;
+      font-size: 13.5px;
       font-family: inherit;
       outline: none;
       transition: border-color 0.2s;
@@ -718,6 +727,43 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
+    }
+
+    /* Integrated Input Addon (e.g. GPS button) */
+    .form-input-addon-group {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+    }
+
+    .form-input-addon-group .form-input {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .form-addon-btn {
+      background: var(--brand-blue-light);
+      border: 1px solid var(--brand-blue-border);
+      border-left: none;
+      color: var(--brand-blue);
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 0 14px;
+      border-top-right-radius: var(--radius-sm);
+      border-bottom-right-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .form-addon-btn:hover {
+      background: #dbeafe;
     }
 
     /* Photo Upload Box */
@@ -772,10 +818,10 @@
       background: var(--brand-blue);
       color: #ffffff;
       border: none;
-      padding: 10px 16px;
+      padding: 11px 16px;
       border-radius: var(--radius-sm);
       font-size: 14px;
-      font-weight: 800;
+      font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -784,6 +830,7 @@
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
       transition: background 0.15s;
       margin-top: 8px;
+      font-family: inherit;
     }
 
     .btn-submit-main:hover {
@@ -808,8 +855,8 @@
     }
 
     .staff-admin-name {
-      font-size: 13.5px;
-      font-weight: 800;
+      font-size: 14px;
+      font-weight: 600;
       color: var(--text-primary);
     }
 
@@ -830,7 +877,7 @@
       padding: 5px 9px;
       border-radius: 6px;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       border: 1px solid var(--border-color);
       background: #ffffff;
@@ -839,6 +886,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      font-family: inherit;
     }
 
     .btn-admin-action:hover {
@@ -872,14 +920,16 @@
     .records-table th {
       background: #f8fafc;
       color: var(--text-secondary);
-      font-weight: 700;
-      padding: 8px 10px;
+      font-weight: 600;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border-color);
       white-space: nowrap;
+      font-size: 11.5px;
+      letter-spacing: 0.2px;
     }
 
     .records-table td {
-      padding: 8px 10px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border-color);
       color: var(--text-primary);
     }
@@ -1064,6 +1114,8 @@
       max-height: 90vh;
       overflow-y: auto;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
     }
     .modal-card-header {
       padding: 14px 18px;
@@ -1078,8 +1130,19 @@
     }
     .modal-card-title {
       font-size: 15px;
-      font-weight: 800;
+      font-weight: 600;
       color: var(--brand-navy);
+    }
+    .modal-card-footer {
+      position: sticky;
+      bottom: 0;
+      background: #ffffff;
+      padding: 12px 18px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      z-index: 10;
     }
     .modal-close-x {
       background: #f1f5f9;
@@ -1096,7 +1159,52 @@
       justify-content: center;
     }
 
-    /* Responsive adjustments */
+    /* Desktop Admin Container Expansion (Unconstrains 600px bottleneck for Admin tables) */
+    @media (min-width: 900px) {
+      .main-container.admin-mode-active,
+      .main-container:has(#adminView:not([style*="display: none"])) {
+        max-width: 1040px;
+      }
+      .header-inner.admin-mode-active,
+      .header-inner:has(#adminHeaderControls:not([style*="display: none"])) {
+        max-width: 1040px;
+      }
+    }
+
+    /* Mobile Responsive Adjustments */
+    @media (max-width: 520px) {
+      .form-row-2 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .admin-tab-nav {
+        gap: 5px;
+      }
+      .admin-tab-btn {
+        padding: 7px 8px;
+        font-size: 12px;
+        flex: 1;
+        text-align: center;
+        justify-content: center;
+      }
+      .staff-admin-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .staff-admin-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr auto;
+        gap: 6px;
+      }
+      .staff-admin-actions .btn-admin-action {
+        justify-content: center;
+        padding: 7px 6px;
+        font-size: 11.5px;
+      }
+    }
+
     @media (max-width: 480px) {
       .main-container {
         padding: 8px 10px 40px;
@@ -1254,8 +1362,8 @@
           <form id="addCustomerForm" onsubmit="handleCustomerSubmit(event)">
             
             <!-- SECTION 1: PRIMARY CUSTOMER IDENTIFIERS (Columns 1 to 5) -->
-            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
-              <div style="font-size: 13px; font-weight: 800; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+              <div style="font-size: 13.5px; font-weight: 600; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
                 <span>👤</span> 1. ग्राहक विवरण (Primary Customer Information - Cols 1-5)
               </div>
 
@@ -1275,9 +1383,9 @@
               <!-- Location & GPS -->
               <div class="form-group">
                 <label class="form-label">गूगल मैप्स लोकेशन (Google Maps Link / Plus Code)</label>
-                <div style="display: flex; gap: 6px;">
+                <div class="form-input-addon-group">
                   <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F) या Coordinates">
-                  <button type="button" class="chip-btn" style="padding: 0 12px; font-size: 12px; white-space: nowrap;" onclick="detectGpsLocation()">📍 GPS</button>
+                  <button type="button" class="form-addon-btn" onclick="detectGpsLocation()">📍 GPS</button>
                 </div>
               </div>
 
@@ -1286,8 +1394,8 @@
                 <label class="form-label">ग्राहक / गाड़ी की फोटो (Photo Upload - Direct)</label>
                 <div class="upload-dropzone" onclick="document.getElementById('custPhotoFile').click()">
                   <div style="font-size: 20px;">📸</div>
-                  <div style="font-size: 12px; font-weight: 700; color: var(--brand-blue); margin-top: 4px;">फोटो चुनें या कैमरा से खींचे</div>
-                  <div style="font-size: 11px; color: var(--text-muted);">कंप्यूटर या फोन से सीधे अपलोड करें</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--brand-blue); margin-top: 4px;">फोटो चुनें या कैमरा से खींचे</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">JPG, PNG • फोन या कंप्यूटर से सीधे अपलोड करें</div>
                   <input type="file" id="custPhotoFile" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
                   <img id="custPhotoPreview" class="upload-preview-img" style="display: none;" alt="Preview">
                 </div>
@@ -1302,7 +1410,7 @@
 
             <!-- SECTION 2: VEHICLE & PACKAGE DETAILS -->
             <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
-              <div style="font-size: 13px; font-weight: 800; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+              <div style="font-size: 13.5px; font-weight: 600; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
                 <span>🚗</span> 2. गाड़ी और पैकेज विवरण (Vehicle & Service Details)
               </div>
 
@@ -1376,7 +1484,7 @@
 
             <!-- SECTION 3: STAFF ASSIGNMENT & INSTRUCTIONS -->
             <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
-              <div style="font-size: 13px; font-weight: 800; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+              <div style="font-size: 13.5px; font-weight: 600; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
                 <span>👔</span> 3. असाइन स्टाफ और निर्देश (Staff Assignment & Notes)
               </div>
 
@@ -1578,9 +1686,9 @@
 
         <div class="form-group">
           <label class="form-label">गूगल मैप्स लोकेशन (Google Maps URL)</label>
-          <div style="display: flex; gap: 6px;">
+          <div class="form-input-addon-group">
             <input type="text" id="editCustMapsUrl" class="form-input" placeholder="Maps Link or Plus Code">
-            <button type="button" class="chip-btn" onclick="detectEditGpsLocation()">📍 GPS</button>
+            <button type="button" class="form-addon-btn" onclick="detectEditGpsLocation()">📍 GPS</button>
           </div>
         </div>
 
@@ -1598,7 +1706,7 @@
           <textarea id="editCustNotes" class="form-textarea" rows="2"></textarea>
         </div>
 
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px;">
+        <div class="modal-card-footer">
           <button type="button" class="btn-admin-action" onclick="closeEditCustomerModal()">रद्द करें (Cancel)</button>
           <button type="submit" id="btnSaveEditCust" class="btn-primary-smart" style="padding: 10px 18px;">
             <span>💾</span> बदलाव सेव करें (Save Changes)
@@ -1680,14 +1788,20 @@
       var liveBadge = document.getElementById('staffLiveBadge');
       var adminControls = document.getElementById('adminHeaderControls');
       var titleEl = document.getElementById('pageMainTitle');
+      var mainContainer = document.querySelector('.main-container');
+      var headerInner = document.querySelector('.header-inner');
 
       if (mode === 'staff') {
+        if (mainContainer) mainContainer.classList.remove('admin-mode-active');
+        if (headerInner) headerInner.classList.remove('admin-mode-active');
         staffEl.style.display = 'block';
         adminEl.style.display = 'none';
         liveBadge.style.display = 'inline-flex';
         if (adminControls) adminControls.style.display = 'none';
         titleEl.textContent = 'स्टाफ पोर्टल (Staff)';
       } else {
+        if (mainContainer) mainContainer.classList.add('admin-mode-active');
+        if (headerInner) headerInner.classList.add('admin-mode-active');
         staffEl.style.display = 'none';
         adminEl.style.display = 'block';
         liveBadge.style.display = 'none';
