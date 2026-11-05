@@ -4,14 +4,14 @@
       "id": "STF01",
       "name": "Chandan Soni",
       "phone": "9919856161",
-      "pin": "sha256:a69447813d2ffc6064fda9747dea499f:9aa85bc4c72df9a181cb028a8345b2065ac809c1b0cc61e44fcaaacb6b3976cf",
+      "pin": "sha256:a0b0c19f3322b136aed77ec28eeb4952:20a3e0247560c380dea1d404b1d5e05d36c1bd385f20fc7999d89dd7ca07a553",
       "active": true
     },
     {
       "id": "STF02",
       "name": "Taufiq Ahmed",
       "phone": "8081913264",
-      "pin": "sha256:9afeb1cb9f5d0d86ee6bb1759276b0b7:fb6f5d1c4b7692007f25af1fb7c9fc8bf148d841d9832b2fe1e6a47551cb644e",
+      "pin": "sha256:1880cbc11bcc72a5eec8327f23fc00ea:da16eecb1811f708750df7cba142c3a021c567cbc6adae4ce1da0c7415db5762",
       "active": true
     }
   ],
