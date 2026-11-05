@@ -1250,8 +1250,11 @@
   <script>
     /* Injected template variables from Google Apps Script */
     var initialStaffId = "<?= typeof initialStaffId !== 'undefined' ? initialStaffId : '' ?>";
+    if (initialStaffId.indexOf('<?') === 0) initialStaffId = '';
     var initialMode = "<?= typeof initialMode !== 'undefined' ? initialMode : 'admin' ?>";
+    if (initialMode.indexOf('<?') === 0) initialMode = 'admin';
     var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
+    if (webAppBaseUrl.indexOf('<?') === 0) webAppBaseUrl = '';
 
     /* Global Application State */
     var state = {
@@ -1335,31 +1338,68 @@
     }
 
     /* =========================================================================
+       UNIVERSAL API CLIENT (Google Apps Script & Railway / Node.js Server)
+       ========================================================================= */
+    function apiCall(action, payload, onSuccess, onFailure) {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        if (action === 'getStaffData') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).getStaffCustomerData(payload.staffId);
+        } else if (action === 'getStaffList') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).getStaffList();
+        } else if (action === 'cleanAndSyncStaff') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).cleanAndSyncStaff();
+        } else if (action === 'saveStaffMember') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).saveStaffMember(payload.name, payload.id);
+        } else if (action === 'deleteStaffMember') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).deleteStaffMember(payload.id);
+        } else if (action === 'saveCustomer') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).saveCustomer(payload.customerData);
+        } else if (action === 'getAllCustomers') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).getAllCustomersForAdmin();
+        } else if (action === 'toggleCustomerActive') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).toggleCustomerActive(payload.sheetName, payload.rowIndex, payload.currentStatus);
+        }
+        return;
+      }
+
+      /* Railway / Node Server Proxy to Google Sheet */
+      var reqBody = Object.assign({ action: action }, payload || {});
+      fetch('/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody)
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function(resData) {
+        if (resData && resData.error) {
+          if (onFailure) onFailure(new Error(resData.error));
+          else showToast('त्रुटि: ' + resData.error, '❌');
+        } else {
+          if (onSuccess) onSuccess(resData);
+        }
+      })
+      .catch(function(err) {
+        if (onFailure) onFailure(err);
+        else showToast('सर्वर से संपर्क नहीं हो सका: ' + err.message, '❌');
+      });
+    }
+
+    /* =========================================================================
        STAFF DATA LOADING & RENDERING
        ========================================================================= */
     function loadStaffCustomerData(staffId) {
       var feed = document.getElementById('customerFeed');
       feed.innerHTML = '<div class="empty-state-box"><div class="empty-icon">⏳</div><p>गाड़ियों की लिस्ट लोड हो रही है...</p></div>';
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(response) {
-            handleStaffDataLoaded(response);
-          })
-          .withFailureHandler(function(err) {
-            showToast('डेटा लोड करने में त्रुटि: ' + (err.message || err), '❌');
-            feed.innerHTML = '<div class="empty-state-box"><div class="empty-icon">⚠️</div><p>डेटा लोड नहीं हो सका। कृपया रीफ्रेश करें।</p></div>';
-          })
-          .getStaffCustomerData(staffId);
-      } else {
-        /* Local Preview Fallback */
-        fetch('http:\x2F\x2Flocalhost:3000/api/staff-data?staffId=' + encodeURIComponent(staffId))
-          .then(function(res) { return res.json(); })
-          .then(function(data) { handleStaffDataLoaded(data); })
-          .catch(function(err) {
-            feed.innerHTML = '<div class="empty-state-box"><div class="empty-icon">⚠️</div><p>लोकल सर्वर कनेक्ट नहीं हुआ।</p></div>';
-          });
-      }
+      apiCall('getStaffData', { staffId: staffId }, function(response) {
+        handleStaffDataLoaded(response);
+      }, function(err) {
+        showToast('डेटा लोड करने में त्रुटि: ' + (err.message || err), '❌');
+        feed.innerHTML = '<div class="empty-state-box"><div class="empty-icon">⚠️</div><p>डेटा लोड नहीं हो सका। कृपया रीफ्रेश करें।</p></div>';
+      });
     }
 
     function handleStaffDataLoaded(data) {
@@ -1621,17 +1661,11 @@
        ADMIN FUNCTIONS (Staff Management, Customer Entry, Active Records)
        ========================================================================= */
     function loadStaffListForAdmin() {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(list) {
-            populateAdminStaffList(list);
-          })
-          .getStaffList();
-      } else {
-        fetch('http:\x2F\x2Flocalhost:3000/api/staff')
-          .then(function(res) { return res.json(); })
-          .then(function(list) { populateAdminStaffList(list); });
-      }
+      apiCall('getStaffList', {}, function(list) {
+        populateAdminStaffList(list);
+      }, function(err) {
+        showToast('स्टाफ लोड करने में त्रुटि: ' + (err.message || err), '❌');
+      });
     }
 
     function populateAdminStaffList(list) {
@@ -1685,7 +1719,7 @@
 
     function getUniqueStaffUrl(staffId) {
       var base = webAppBaseUrl;
-      if (!base || base.indexOf('script.google.com') === -1) {
+      if (!base || base.indexOf('http') !== 0) {
         base = window.location.origin + window.location.pathname;
       }
       return base + '?staff=' + encodeURIComponent(staffId);
@@ -1713,45 +1747,34 @@
       var id = document.getElementById('newStaffId').value.trim();
       if (!name) return;
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            document.getElementById('newStaffName').value = '';
-            document.getElementById('newStaffId').value = '';
-            showToast('स्टाफ सफलतापूर्वक जोड़ा गया!', '✓');
-            loadStaffListForAdmin();
-          })
-          .saveStaffMember(name, id);
-      } else {
-        showToast('लोकल मोड में स्टाफ जोड़ा गया', '✓');
-      }
+      apiCall('saveStaffMember', { name: name, id: id }, function(res) {
+        document.getElementById('newStaffName').value = '';
+        document.getElementById('newStaffId').value = '';
+        showToast('स्टाफ सफलतापूर्वक जोड़ा गया!', '✓');
+        loadStaffListForAdmin();
+      }, function(err) {
+        showToast('त्रुटि: ' + (err.message || err), '❌');
+      });
     }
 
     function handleDeleteStaff(id) {
       if (!confirm('क्या आप सच में इस स्टाफ को हटाना चाहते हैं?')) return;
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function() {
-            showToast('स्टाफ हटा दिया गया', '✓');
-            loadStaffListForAdmin();
-          })
-          .deleteStaffMember(id);
-      }
+      apiCall('deleteStaffMember', { id: id }, function() {
+        showToast('स्टाफ हटा दिया गया', '✓');
+        loadStaffListForAdmin();
+      }, function(err) {
+        showToast('त्रुटि: ' + (err.message || err), '❌');
+      });
     }
 
     function handleSyncStaffSheet() {
       showToast('शीट में स्टाफ आईडी सिंक हो रहा है...', 'ℹ');
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            showToast('सभी शीट रो को सिंगल आईडी में सिंक कर दिया गया!', '✓');
-            loadStaffListForAdmin();
-          })
-          .withFailureHandler(function(err) {
-            showToast('त्रुटि: ' + err, '❌');
-          })
-          .cleanAndSyncStaff();
-      }
+      apiCall('cleanAndSyncStaff', {}, function(res) {
+        showToast('सभी शीट रो को सिंगल आईडी में सिंक कर दिया गया!', '✓');
+        loadStaffListForAdmin();
+      }, function(err) {
+        showToast('त्रुटि: ' + (err.message || err), '❌');
+      });
     }
 
     /* Customer Form Handling */
@@ -1823,6 +1846,12 @@
       var category = document.getElementById('custCategory').value;
       var isDaily = (category === 'Daily Clean');
 
+      var photoPayload = state.selectedPhotoBase64 ? {
+        base64: state.selectedPhotoBase64,
+        mimeType: state.selectedPhotoType,
+        fileName: state.selectedPhotoName
+      } : null;
+
       var customerData = {
         sheetName: category,
         staffId: staffId,
@@ -1833,11 +1862,8 @@
         googleMapsUrl: document.getElementById('custMapsUrl').value.trim(),
         staffNotes: document.getElementById('custNotes').value.trim(),
         active: 'Yes',
-        photoData: state.selectedPhotoBase64 ? {
-          base64: state.selectedPhotoBase64,
-          mimeType: state.selectedPhotoType,
-          fileName: state.selectedPhotoName
-        } : null
+        photoFile: photoPayload,
+        photoData: photoPayload
       };
 
       if (isDaily) {
@@ -1851,44 +1877,34 @@
         customerData.vehicleOrSite = document.getElementById('custOtherVehicle').value.trim();
       }
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            btn.disabled = false;
-            btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
-            if (res && res.error) {
-              showToast('त्रुटि: ' + res.error, '❌');
-            } else {
-              showToast('ग्राहक सफलतापूर्वक गूगल शीट में सेव हुआ!', '✓');
-              document.getElementById('addCustomerForm').reset();
-              document.getElementById('custPhotoPreview').style.display = 'none';
-              state.selectedPhotoBase64 = '';
-            }
-          })
-          .withFailureHandler(function(err) {
-            btn.disabled = false;
-            btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
-            showToast('सेव करने में त्रुटि: ' + err, '❌');
-          })
-          .saveCustomer(customerData);
-      } else {
+      apiCall('saveCustomer', { customerData: customerData }, function(res) {
         btn.disabled = false;
         btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
-        showToast('लोकल मोड में सेव हुआ', '✓');
-      }
+        if (res && res.error) {
+          showToast('त्रुटि: ' + res.error, '❌');
+        } else {
+          showToast('ग्राहक सफलतापूर्वक गूगल शीट में सेव हुआ!', '✓');
+          document.getElementById('addCustomerForm').reset();
+          document.getElementById('custPhotoPreview').style.display = 'none';
+          state.selectedPhotoBase64 = '';
+          loadAdminRecords();
+        }
+      }, function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
+        showToast('सेव करने में त्रुटि: ' + (err.message || err), '❌');
+      });
     }
 
     function loadAdminRecords() {
       var tbody = document.getElementById('adminRecordsTableBody');
       tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">डेटा लोड हो रहा है...</td></tr>';
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(records) {
-            renderAdminRecordsTable(records);
-          })
-          .getAllCustomersForAdmin();
-      }
+      apiCall('getAllCustomers', {}, function(records) {
+        renderAdminRecordsTable(records);
+      }, function(err) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '</td></tr>';
+      });
     }
 
     function renderAdminRecordsTable(records) {

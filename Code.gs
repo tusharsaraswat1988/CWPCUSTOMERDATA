@@ -412,9 +412,10 @@ function saveCustomer(customerData) {
   
   // 1. Handle Photo Upload to Google Drive if photo data exists
   var photoUrl = (customerData.photoUrl || "").trim();
-  if (customerData.photoFile && customerData.photoFile.base64) {
+  var photoObj = customerData.photoFile || customerData.photoData;
+  if (photoObj && photoObj.base64) {
     try {
-      photoUrl = uploadPhotoToDrive(customerData.photoFile);
+      photoUrl = uploadPhotoToDrive(photoObj);
     } catch (e) {
       Logger.log("Drive upload failed: " + e.toString());
       // continue without blocking record save
