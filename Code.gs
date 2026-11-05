@@ -66,6 +66,10 @@ function doPost(e) {
       result = getAllCustomersForAdmin();
     } else if (action === "toggleCustomerActive") {
       result = toggleCustomerActive(requestData.sheetName, requestData.rowIndex, requestData.currentStatus);
+    } else if (action === "verifyAdminPassword") {
+      result = verifyAdminPassword(requestData.password);
+    } else if (action === "updateAdminPassword") {
+      result = updateAdminPassword(requestData.newPassword);
     } else {
       result = { error: "Unknown action" };
     }
@@ -591,4 +595,39 @@ function toggleCustomerActive(sheetName, rowIndex, currentStatus) {
   var newStatus = (currentStatus || "").toString().toLowerCase() === "yes" ? "No" : "Yes";
   sheet.getRange(rowIndex, colIndex).setValue(newStatus);
   return { success: true, newStatus: newStatus };
+}
+
+/**
+ * =========================================================================
+ * ADMIN AUTHENTICATION
+ * =========================================================================
+ */
+var ADMIN_PASSWORD_PROP_KEY = "CWP_ADMIN_PASSWORD";
+var DEFAULT_ADMIN_PASSWORD = "cwp2026";
+
+function getAdminPassword() {
+  var props = PropertiesService.getScriptProperties();
+  var saved = props.getProperty(ADMIN_PASSWORD_PROP_KEY);
+  if (saved && saved.toString().trim()) {
+    return saved.toString().trim();
+  }
+  return DEFAULT_ADMIN_PASSWORD;
+}
+
+function verifyAdminPassword(inputPassword) {
+  var current = getAdminPassword();
+  var input = (inputPassword || "").toString().trim();
+  if (input === current) {
+    return { success: true, message: "प्रमाणित हुआ" };
+  }
+  return { success: false, error: "गलत एडमिन पासवर्ड। कृपया सही पासवर्ड दर्ज करें।" };
+}
+
+function updateAdminPassword(newPassword) {
+  var p = (newPassword || "").toString().trim();
+  if (!p || p.length < 4) {
+    return { success: false, error: "पासवर्ड कम से कम 4 अक्षरों का होना चाहिए।" };
+  }
+  PropertiesService.getScriptProperties().setProperty(ADMIN_PASSWORD_PROP_KEY, p);
+  return { success: true, message: "एडमिन पासवर्ड सफलतापूर्वक अपडेट हो गया!" };
 }

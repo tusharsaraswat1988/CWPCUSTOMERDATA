@@ -932,6 +932,113 @@
       display: block;
     }
 
+    /* Admin Auth Gate Styles */
+    .admin-logout-btn {
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .admin-logout-btn:hover {
+      background: var(--danger-red-light);
+      color: var(--danger-red);
+      border-color: var(--danger-red-border);
+    }
+    .admin-auth-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 28px 22px;
+      max-width: 420px;
+      margin: 30px auto 20px;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+    }
+    .admin-auth-icon {
+      width: 54px;
+      height: 54px;
+      background: var(--brand-blue-light);
+      border: 1px solid var(--brand-blue-border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin: 0 auto 14px;
+    }
+    .admin-auth-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .admin-auth-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      line-height: 1.45;
+    }
+    .admin-pass-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .admin-pass-input {
+      padding-right: 42px;
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+    .btn-toggle-eye {
+      position: absolute;
+      right: 10px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      color: var(--text-muted);
+    }
+    .admin-auth-error-msg {
+      background: var(--danger-red-light);
+      border: 1px solid var(--danger-red-border);
+      color: var(--danger-red);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 10px;
+      text-align: left;
+    }
+    .admin-remember-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .remember-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .admin-auth-hint {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--border-color);
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
     /* Responsive adjustments */
     @media (max-width: 480px) {
       .main-container {
@@ -968,9 +1075,14 @@
         <span class="dot-live">●</span> लाइव
       </div>
 
-      <!-- Admin Top Tag (Only shown in admin view) -->
-      <div class="admin-pill-badge" id="adminTopBadge" style="display: none;">
-        ⚙️ एडमिन
+      <!-- Admin Top Controls (Only shown in admin view) -->
+      <div id="adminHeaderControls" style="display: none; align-items: center; gap: 8px;">
+        <div class="admin-pill-badge" id="adminTopBadge">
+          ⚙️ एडमिन
+        </div>
+        <button type="button" id="adminLogoutBtn" class="admin-logout-btn" onclick="handleAdminLogout()" style="display: none;">
+          🔒 लॉगआउट
+        </button>
       </div>
     </div>
   </header>
@@ -1026,12 +1138,48 @@
          ===================================================================== -->
     <div id="adminView" class="admin-container">
       
-      <!-- Admin Sub Tabs -->
-      <div class="admin-tab-nav">
-        <button type="button" class="admin-tab-btn active" id="tabBtnAddCust" onclick="switchAdminTab('addCust')">➕ ग्राहक जोड़ें</button>
-        <button type="button" class="admin-tab-btn" id="tabBtnStaff" onclick="switchAdminTab('staff')">👥 स्टाफ और लिंक</button>
-        <button type="button" class="admin-tab-btn" id="tabBtnRecords" onclick="switchAdminTab('records')">📋 एक्टिव रिकॉर्ड्स</button>
+      <!-- Admin Security Gate (Password Lock) -->
+      <div id="adminAuthGate" class="admin-auth-card" style="display: none;">
+        <div class="admin-auth-icon">🛡️</div>
+        <h2 class="admin-auth-title">एडमिन सुरक्षा सत्यापन</h2>
+        <p class="admin-auth-desc">कस्टमर डेटा और स्टाफ मैनेजमेंट एक्सेस करने के लिए कृपया एडमिन पासवर्ड दर्ज करें।</p>
+        
+        <form id="adminAuthForm" onsubmit="handleAdminAuth(event)">
+          <div class="admin-pass-wrapper">
+            <input type="password" id="adminPasswordInput" class="form-input admin-pass-input" placeholder="पासवर्ड दर्ज करें..." autocomplete="current-password" required>
+            <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('adminPasswordInput')">👁️</button>
+          </div>
+
+          <div id="adminAuthError" class="admin-auth-error-msg" style="display: none;">
+            ❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।
+          </div>
+
+          <div class="admin-remember-row">
+            <label class="remember-label">
+              <input type="checkbox" id="rememberAdminDevice" checked>
+              <span>इस डिवाइस पर याद रखें</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btnAdminLogin" class="btn-primary-smart" style="width: 100%; margin-top: 14px; padding: 12px; font-size: 14px; justify-content: center;">
+            <span>🔓</span> एडमिन पोर्टल खोलें (Unlock)
+          </button>
+        </form>
+
+        <div class="admin-auth-hint">
+          <span>💡 डिफॉल्ट पासवर्ड: <b>cwp2026</b></span>
+        </div>
       </div>
+
+      <!-- Admin Unlocked Content (Only visible after password verification) -->
+      <div id="adminUnlockedContent" style="display: none;">
+        
+        <!-- Admin Sub Tabs -->
+        <div class="admin-tab-nav">
+          <button type="button" class="admin-tab-btn active" id="tabBtnAddCust" onclick="switchAdminTab('addCust')">➕ ग्राहक जोड़ें</button>
+          <button type="button" class="admin-tab-btn" id="tabBtnStaff" onclick="switchAdminTab('staff')">👥 स्टाफ और लिंक</button>
+          <button type="button" class="admin-tab-btn" id="tabBtnRecords" onclick="switchAdminTab('records')">📋 एक्टिव रिकॉर्ड्स</button>
+        </div>
 
       <!-- Admin Tab 1: Add Customer Form -->
       <div id="adminTabAddCust" class="admin-tab-pane">
@@ -1190,6 +1338,18 @@
           <div id="adminStaffList">
             <div class="empty-state-box">स्टाफ लिस्ट लोड हो रही है...</div>
           </div>
+
+          <!-- Change Admin Password Card -->
+          <div style="margin-top: 24px; border-top: 1px dashed var(--border-color); padding-top: 16px;">
+            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">🔐 एडमिन पासवर्ड बदलें (Change Password)</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">एडमिन पोर्टल की सुरक्षा के लिए नया पासवर्ड सेट करें:</p>
+            <form onsubmit="handleUpdateAdminPassword(event)" style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <input type="password" id="newAdminPasswordInput" class="form-input" style="flex: 2; min-width: 180px;" placeholder="नया पासवर्ड (कम से कम 4 अक्षर)" minlength="4" required>
+              <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
+                💾 पासवर्ड बदलें
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -1224,6 +1384,7 @@
         </div>
       </div>
 
+      </div><!-- /adminUnlockedContent -->
     </div>
 
   </div>
@@ -1295,8 +1456,7 @@
       if (state.currentView === 'staff') {
         loadStaffCustomerData(state.activeStaffId);
       } else {
-        loadStaffListForAdmin();
-        loadAdminRecords();
+        checkAdminAuthStatus();
       }
     });
 
@@ -1306,22 +1466,126 @@
       var staffEl = document.getElementById('staffView');
       var adminEl = document.getElementById('adminView');
       var liveBadge = document.getElementById('staffLiveBadge');
-      var adminBadge = document.getElementById('adminTopBadge');
+      var adminControls = document.getElementById('adminHeaderControls');
       var titleEl = document.getElementById('pageMainTitle');
 
       if (mode === 'staff') {
         staffEl.style.display = 'block';
         adminEl.style.display = 'none';
         liveBadge.style.display = 'inline-flex';
-        adminBadge.style.display = 'none';
+        if (adminControls) adminControls.style.display = 'none';
         titleEl.textContent = 'स्टाफ पोर्टल (Staff)';
       } else {
         staffEl.style.display = 'none';
         adminEl.style.display = 'block';
         liveBadge.style.display = 'none';
-        adminBadge.style.display = 'inline-flex';
+        if (adminControls) adminControls.style.display = 'flex';
         titleEl.textContent = 'एडमिन मैनेजमेंट (Admin)';
+        checkAdminAuthStatus();
       }
+    }
+
+    /* Admin Authentication & Security Logic */
+    function isUserAdminAuthenticated() {
+      var token = sessionStorage.getItem('cwp_admin_auth') || localStorage.getItem('cwp_admin_auth');
+      return !!token;
+    }
+
+    function checkAdminAuthStatus() {
+      var authGate = document.getElementById('adminAuthGate');
+      var unlocked = document.getElementById('adminUnlockedContent');
+      var logoutBtn = document.getElementById('adminLogoutBtn');
+
+      if (isUserAdminAuthenticated()) {
+        if (authGate) authGate.style.display = 'none';
+        if (unlocked) unlocked.style.display = 'block';
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        loadStaffListForAdmin();
+        loadAdminRecords();
+      } else {
+        if (authGate) authGate.style.display = 'block';
+        if (unlocked) unlocked.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        setTimeout(function() {
+          var input = document.getElementById('adminPasswordInput');
+          if (input) input.focus();
+        }, 150);
+      }
+    }
+
+    function handleAdminAuth(e) {
+      e.preventDefault();
+      var input = document.getElementById('adminPasswordInput');
+      var password = (input.value || '').trim();
+      var errBox = document.getElementById('adminAuthError');
+      var btn = document.getElementById('btnAdminLogin');
+
+      if (!password) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> जांच हो रही है...';
+      errBox.style.display = 'none';
+
+      apiCall('verifyAdminPassword', { password: password }, function(res) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔓</span> एडमिन पोर्टल खोलें (Unlock)';
+        if (res && res.success) {
+          var remember = document.getElementById('rememberAdminDevice').checked;
+          var token = res.token || 'authenticated';
+          sessionStorage.setItem('cwp_admin_auth', token);
+          if (remember) {
+            localStorage.setItem('cwp_admin_auth', token);
+          }
+          input.value = '';
+          showToast('सफलतापूर्वक लॉगिन हुआ!', '✓');
+          checkAdminAuthStatus();
+        } else {
+          errBox.textContent = '❌ ' + (res && res.error ? res.error : 'गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।');
+          errBox.style.display = 'block';
+          input.focus();
+        }
+      }, function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔓</span> एडमिन पोर्टल खोलें (Unlock)';
+        errBox.textContent = '❌ ' + (err.message || 'सत्यापन विफल हुआ');
+        errBox.style.display = 'block';
+      });
+    }
+
+    function handleAdminLogout() {
+      sessionStorage.removeItem('cwp_admin_auth');
+      localStorage.removeItem('cwp_admin_auth');
+      showToast('एडमिन पोर्टल लॉक हो गया।', '🔒');
+      checkAdminAuthStatus();
+    }
+
+    function togglePasswordVisibility(inputId) {
+      var el = document.getElementById(inputId);
+      if (el) {
+        el.type = el.type === 'password' ? 'text' : 'password';
+      }
+    }
+
+    function handleUpdateAdminPassword(e) {
+      e.preventDefault();
+      var input = document.getElementById('newAdminPasswordInput');
+      var newPass = (input.value || '').trim();
+      if (!newPass) return;
+
+      apiCall('updateAdminPassword', { newPassword: newPass }, function(res) {
+        if (res && res.success) {
+          showToast(res.message || 'पासवर्ड बदल दिया गया!', '✓');
+          input.value = '';
+          sessionStorage.setItem('cwp_admin_auth', 'updated');
+          if (localStorage.getItem('cwp_admin_auth')) {
+            localStorage.setItem('cwp_admin_auth', 'updated');
+          }
+        } else {
+          showToast('त्रुटि: ' + (res ? res.error : 'पासवर्ड नहीं बदला जा सका'), '❌');
+        }
+      }, function(err) {
+        showToast('त्रुटि: ' + err.message, '❌');
+      });
     }
 
     /* Switch Admin Sub Tabs */
@@ -1358,6 +1622,10 @@
           google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).getAllCustomersForAdmin();
         } else if (action === 'toggleCustomerActive') {
           google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).toggleCustomerActive(payload.sheetName, payload.rowIndex, payload.currentStatus);
+        } else if (action === 'verifyAdminPassword') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).verifyAdminPassword(payload.password);
+        } else if (action === 'updateAdminPassword') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).updateAdminPassword(payload.newPassword);
         }
         return;
       }

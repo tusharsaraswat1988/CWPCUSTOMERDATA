@@ -142,6 +142,44 @@ const server = http.createServer(async (req, res) => {
           payload = JSON.parse(body);
         }
 
+        // Dedicated fast Admin Authentication handler
+        if (payload.action === 'verifyAdminPassword') {
+          const inputPass = (payload.password || '').trim();
+          const envPass = (process.env.ADMIN_PASSWORD || 'cwp2026').trim();
+
+          // 1. Match with Environment Variable or default
+          if (inputPass === envPass) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: true,
+              token: 'auth_' + Buffer.from(inputPass + '_' + Date.now()).toString('base64')
+            }));
+          }
+
+          // 2. Also check Google Apps Script properties
+          try {
+            const gasRes = await forwardToGoogleAppsScript(payload);
+            if (gasRes && gasRes.success) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(gasRes));
+            }
+          } catch (e) {}
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: false, error: 'गलत एडमिन पासवर्ड। कृपया सही पासवर्ड दर्ज करें।' }));
+        }
+
+        if (payload.action === 'updateAdminPassword') {
+          try {
+            const gasRes = await forwardToGoogleAppsScript(payload);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(gasRes));
+          } catch (e) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Failed to update password: ' + e.message }));
+          }
+        }
+
         // Forward to live Google Apps Script Web App
         let responseData;
         try {
