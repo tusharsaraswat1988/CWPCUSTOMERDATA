@@ -614,12 +614,13 @@
     /* Centered Logout Confirmation Modal */
     .logout-confirm-box {
       background: #ffffff;
-      border-radius: 16px;
-      padding: 24px 20px;
-      max-width: 360px;
+      border-radius: 18px;
+      padding: 26px 22px;
+      max-width: 380px;
       width: 90%;
       text-align: center;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.25), 0 10px 15px -5px rgba(15, 23, 42, 0.1);
       animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -634,27 +635,45 @@
       }
     }
 
+    .logout-card-logo {
+      height: 44px;
+      width: auto;
+      max-height: 46px;
+      border-radius: 8px;
+      background: #0d131a;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+      display: block;
+      margin: 0 auto 14px;
+      transition: transform 0.2s ease;
+    }
+
+    .logout-card-logo:hover {
+      transform: scale(1.03);
+    }
+
     .logout-confirm-icon-wrap {
-      width: 52px;
-      height: 52px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       background: #fef2f2;
       border: 1px solid #fecaca;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 12px;
+      margin: 0 auto 10px;
     }
 
     .logout-confirm-icon {
-      font-size: 24px;
+      font-size: 20px;
     }
 
     .logout-confirm-heading {
-      font-size: 16.5px;
+      font-size: 17px;
       font-weight: 700;
       color: #0f172a;
       margin-bottom: 6px;
+      letter-spacing: 0.2px;
     }
 
     .logout-confirm-desc {
@@ -664,7 +683,7 @@
       line-height: 1.45;
     }
 
-    .logout-confirm-btns {
+    .logout-confirm-actions {
       display: flex;
       gap: 10px;
     }
@@ -1768,12 +1787,28 @@
     .admin-auth-card {
       background: var(--bg-surface);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 28px 22px;
-      max-width: 420px;
-      margin: 30px auto 20px;
+      border-radius: 18px;
+      padding: 32px 26px;
+      max-width: 430px;
+      margin: 36px auto 24px;
       text-align: center;
-      box-shadow: var(--shadow-md);
+      box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08), 0 6px 12px -4px rgba(15, 23, 42, 0.04);
+      transition: all 0.25s ease;
+    }
+    .auth-card-logo {
+      height: 52px;
+      width: auto;
+      max-height: 54px;
+      border-radius: 10px;
+      background: #0d131a;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+      display: block;
+      margin: 0 auto 16px;
+      transition: transform 0.2s ease;
+    }
+    .auth-card-logo:hover {
+      transform: scale(1.03);
     }
     .admin-auth-icon {
       width: 54px;
@@ -2082,7 +2117,7 @@
       
       <!-- Staff Security Gate (6-Digit PIN Authentication) -->
       <div id="staffAuthGate" class="admin-auth-card" style="display: none; max-width: 440px; margin: 30px auto;">
-        <div class="admin-auth-icon">🔐</div>
+        <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo auth-brand-logo">
         <h2 class="admin-auth-title" id="staffAuthTitle">स्टाफ पोर्टल लॉगिन</h2>
         <p class="admin-auth-desc" id="staffAuthDesc">आगे बढ़ने के लिए कृपया अपना 6-अंकों का पासवर्ड (पिन) दर्ज करें।</p>
         
@@ -2163,7 +2198,7 @@
       
       <!-- Admin Security Gate (Password Lock) -->
       <div id="adminAuthGate" class="admin-auth-card" style="display: none;">
-        <div class="admin-auth-icon">🛡️</div>
+        <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo auth-brand-logo">
         <h2 class="admin-auth-title">एडमिन सुरक्षा सत्यापन</h2>
         <p class="admin-auth-desc">कस्टमर डेटा और स्टाफ मैनेजमेंट एक्सेस करने के लिए कृपया एडमिन पासवर्ड दर्ज करें।</p>
         
@@ -2634,11 +2669,12 @@
   <!-- Logout Confirmation Modal (Centered Popup) -->
   <div id="logoutConfirmModal" class="image-modal-overlay" onclick="closeLogoutModal()" style="display: none; align-items: center; justify-content: center; z-index: 2200;">
     <div class="logout-confirm-box" onclick="event.stopPropagation()">
+      <img src="/cwp_logo.jpg" alt="CWP Detailers" class="logout-card-logo auth-brand-logo">
       <div class="logout-confirm-icon-wrap">
         <span class="logout-confirm-icon">🚪</span>
       </div>
-      <h3 class="logout-confirm-heading">लॉगआउट कन्फर्म करें</h3>
-      <p class="logout-confirm-desc">क्या आप वाकई पोर्टल से लॉगआउट करना चाहते हैं?</p>
+      <h3 class="logout-confirm-heading">लॉगआउट कन्फर्मेशन (Sign Out)</h3>
+      <p class="logout-confirm-desc">क्या आप वाकई पोर्टल से सुरक्षित लॉगआउट करना चाहते हैं?</p>
       <div class="logout-confirm-actions">
         <button type="button" class="btn-logout-cancel" onclick="closeLogoutModal()">
           रद्द करें
@@ -2835,8 +2871,20 @@
       selectedPhotoName: ''
     };
 
+    /* Sync CWP Brand Logo across all Auth and Modal views */
+    function syncBrandLogos() {
+      var headerLogo = document.querySelector('.brand-logo-img');
+      if (headerLogo && headerLogo.src) {
+        var logos = document.querySelectorAll('.auth-brand-logo');
+        for (var i = 0; i < logos.length; i++) {
+          logos[i].src = headerLogo.src;
+        }
+      }
+    }
+
     /* Initialize Application */
     document.addEventListener('DOMContentLoaded', function() {
+      syncBrandLogos();
       var urlParams = new URLSearchParams(window.location.search);
       var paramStaff = urlParams.get('staff') || urlParams.get('id') || '';
       var paramAdmin = urlParams.get('admin');
@@ -3002,6 +3050,16 @@
 
     function openLogoutModal(type) {
       state.pendingLogoutType = type || 'staff';
+      syncBrandLogos();
+      var heading = document.querySelector('#logoutConfirmModal .logout-confirm-heading');
+      var desc = document.querySelector('#logoutConfirmModal .logout-confirm-desc');
+      if (type === 'admin') {
+        if (heading) heading.textContent = 'एडमिन लॉगआउट (Sign Out)';
+        if (desc) desc.textContent = 'क्या आप वाकई एडमिन पोर्टल से सुरक्षित लॉगआउट करना चाहते हैं?';
+      } else {
+        if (heading) heading.textContent = 'स्टाफ लॉगआउट (Sign Out)';
+        if (desc) desc.textContent = 'क्या आप वाकई स्टाफ पोर्टल से सुरक्षित लॉगआउट करना चाहते हैं?';
+      }
       var modal = document.getElementById('logoutConfirmModal');
       if (modal) {
         modal.style.display = 'flex';
