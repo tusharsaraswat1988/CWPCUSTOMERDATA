@@ -127,9 +127,10 @@ const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
 
-  // Serve static files (Code.gs, appsscript.json, etc.)
-  if (pathname === '/Code.gs' || pathname === '/appsscript.json') {
-    const filePath = path.join(__dirname, pathname);
+  // Serve raw files for Apps Script editor sync
+  if (pathname === '/raw-Code.gs' || pathname === '/Code.gs' || pathname === '/raw-Index.html' || pathname === '/appsscript.json') {
+    const rawFile = (pathname === '/raw-Index.html') ? 'Index.html' : ((pathname === '/raw-Code.gs' || pathname === '/Code.gs') ? 'Code.gs' : path.basename(pathname));
+    const filePath = path.join(__dirname, rawFile);
     if (fs.existsSync(filePath)) {
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
       return fs.createReadStream(filePath).pipe(res);

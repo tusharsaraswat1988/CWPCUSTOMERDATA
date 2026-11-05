@@ -1466,10 +1466,11 @@
                   <th>गाड़ी नंबर</th>
                   <th>पता</th>
                   <th>स्टेटस</th>
+                  <th style="text-align:center;">एक्शन</th>
                 </tr>
               </thead>
               <tbody id="adminRecordsTableBody">
-                <tr><td colspan="7" style="text-align: center;">डेटा लोड हो रहा है...</td></tr>
+                <tr><td colspan="8" style="text-align: center;">डेटा लोड हो रहा है...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1485,6 +1486,105 @@
   <div id="imageModal" class="image-modal-overlay" onclick="closeImageModal()">
     <div class="image-modal-content" onclick="event.stopPropagation()">
       <img id="imageModalImg" src="" alt="Customer Vehicle Photo">
+    </div>
+  </div>
+
+  <!-- Edit Customer Modal -->
+  <div id="editCustomerModal" class="image-modal-overlay" onclick="closeEditCustomerModal()" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box" onclick="event.stopPropagation()">
+      <div class="modal-card-header">
+        <h3 class="modal-card-title">✏️ ग्राहक रिकॉर्ड एडिट करें (Edit Customer)</h3>
+        <button type="button" class="modal-close-x" onclick="closeEditCustomerModal()">✕</button>
+      </div>
+      <form id="editCustomerForm" onsubmit="handleEditCustomerSubmit(event)" style="padding: 16px;">
+        <input type="hidden" id="editSheetName">
+        <input type="hidden" id="editRowIndex">
+        <input type="hidden" id="editPhotoUrl">
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">ग्राहक का नाम (Customer Name) *</label>
+            <input type="text" id="editCustName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">मोबाइल नंबर (Mobile) *</label>
+            <input type="tel" id="editCustPhone" class="form-input" maxlength="10" required>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">असाइन स्टाफ (Staff Name) *</label>
+            <select id="editCustStaff" class="form-select" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">स्टेटस (Active) *</label>
+            <select id="editCustActive" class="form-select">
+              <option value="Yes">Active (सक्रिय)</option>
+              <option value="No">Inactive (निष्क्रिय)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">पैकेज का प्रकार (Package Type) *</label>
+            <select id="editCustPkgType" class="form-select" required>
+              <option value="DCC ONLY">DCC ONLY</option>
+              <option value="DCC SILVER">DCC SILVER</option>
+              <option value="DCC GOLD">DCC GOLD</option>
+              <option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>
+              <option value="CAR WASH SINGLE">CAR WASH SINGLE</option>
+              <option value="SOLAR SINGLE">SOLAR SINGLE</option>
+              <option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>
+              <option value="OTHER">OTHER</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">पैकेज संख्या (Purchased Packages)</label>
+            <input type="number" id="editCustPkgCount" class="form-input" value="1" min="1" max="10">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">गाड़ी नंबर और मॉडल (Vehicle Number & Model)</label>
+          <input type="text" id="editCustVehicles" class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ग्राहक का पता (Address)</label>
+          <textarea id="editCustAddress" class="form-textarea" rows="2"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">गूगल मैप्स लोकेशन (Google Maps URL)</label>
+          <div style="display: flex; gap: 6px;">
+            <input type="text" id="editCustMapsUrl" class="form-input" placeholder="Maps Link or Plus Code">
+            <button type="button" class="chip-btn" onclick="detectEditGpsLocation()">📍 GPS</button>
+          </div>
+        </div>
+
+        <!-- Photo Section -->
+        <div class="form-group">
+          <label class="form-label">गाड़ी की फोटो (Cloudinary CDN)</label>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img id="editPhotoThumb" src="" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover; display: none; border: 1px solid var(--border-color);" alt="Thumb">
+            <input type="file" id="editCustPhotoFile" accept="image/*" class="form-input" style="padding: 6px; font-size: 12px;" onchange="handleEditPhotoSelect(event)">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">स्टाफ निर्देश (Staff Notes)</label>
+          <textarea id="editCustNotes" class="form-textarea" rows="2"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px;">
+          <button type="button" class="btn-admin-action" onclick="closeEditCustomerModal()">रद्द करें (Cancel)</button>
+          <button type="submit" id="btnSaveEditCust" class="btn-primary-smart" style="padding: 10px 18px;">
+            <span>💾</span> बदलाव सेव करें (Save Changes)
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -2308,24 +2408,25 @@
 
     function loadAdminRecords() {
       var tbody = document.getElementById('adminRecordsTableBody');
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">डेटा लोड हो रहा है...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">डेटा लोड हो रहा है...</td></tr>';
 
       apiCall('getAllCustomers', {}, function(records) {
-        renderAdminRecordsTable(records);
+        state.adminRecords = records || [];
+        renderAdminRecordsTable(state.adminRecords);
       }, function(err) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '</td></tr>';
       });
     }
 
     function renderAdminRecordsTable(records) {
       var tbody = document.getElementById('adminRecordsTableBody');
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">कोई रिकॉर्ड नहीं मिला।</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">कोई रिकॉर्ड नहीं मिला।</td></tr>';
         return;
       }
 
       var html = '';
-      records.forEach(function(r) {
+      records.forEach(function(r, index) {
         var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
         var photoCell = r.photoUrl ? 
           '<img src="' + escapeHtml(r.photoUrl) + '" style="width:36px; height:36px; border-radius:6px; object-fit:cover; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.1);" onclick="openImageModal(\'' + escapeHtml(r.photoUrl) + '\')" title="फोटो देखने के लिए क्लिक करें">' :
@@ -2339,10 +2440,152 @@
         html += '  <td>' + escapeHtml(r.vehicle || '--') + '</td>';
         html += '  <td>' + escapeHtml(r.address || '--') + '</td>';
         html += '  <td><span style="color:' + (isActive ? 'var(--call-green)' : 'var(--danger-red)') + '; font-weight:700;">' + (isActive ? 'Active' : 'Inactive') + '</span></td>';
+        html += '  <td style="text-align:center;"><button type="button" class="btn-admin-action" style="padding:4px 8px; font-size:11px; font-weight:700; background:var(--brand-blue-light); color:var(--brand-blue); border-color:var(--brand-blue-border);" onclick="openEditCustomerModal(' + index + ')">✏️ एडिट</button></td>';
         html += '</tr>';
       });
 
       tbody.innerHTML = html;
+    }
+
+    /* Edit Customer Modal Handlers */
+    function openEditCustomerModal(index) {
+      var r = state.adminRecords && state.adminRecords[index];
+      if (!r) return;
+
+      document.getElementById('editSheetName').value = r.sheetName || 'Daily Clean';
+      document.getElementById('editRowIndex').value = r.rowIndex || '';
+      document.getElementById('editPhotoUrl').value = r.photoUrl || '';
+      document.getElementById('editCustName').value = r.customerName || '';
+      document.getElementById('editCustPhone').value = r.customerNumber || '';
+      document.getElementById('editCustVehicles').value = r.vehicle || '';
+      document.getElementById('editCustAddress').value = r.address || '';
+      document.getElementById('editCustMapsUrl').value = r.googleMapsUrl || '';
+      document.getElementById('editCustNotes').value = r.notes || '';
+      document.getElementById('editCustActive').value = (r.active || 'Yes').toLowerCase() === 'no' ? 'No' : 'Yes';
+
+      // Set package type
+      var pkgSelect = document.getElementById('editCustPkgType');
+      var pType = r.packageType || 'DCC ONLY';
+      pkgSelect.value = pType;
+      if (!pkgSelect.value) {
+        pkgSelect.value = 'OTHER';
+      }
+      document.getElementById('editCustPkgCount').value = r.packagesPurchased || '1';
+
+      // Populate Staff Dropdown
+      var staffSelect = document.getElementById('editCustStaff');
+      var options = '<option value="">स्टाफ चुनें...</option>';
+      state.staffList.forEach(function(s) {
+        var isSel = (s.name && r.staffName && s.name.trim().toLowerCase() === r.staffName.trim().toLowerCase()) ? 'selected' : '';
+        options += '<option value="' + escapeHtml(s.name) + '" ' + isSel + '>' + escapeHtml(s.name) + '</option>';
+      });
+      staffSelect.innerHTML = options;
+
+      // Photo thumbnail preview
+      var thumb = document.getElementById('editPhotoThumb');
+      if (r.photoUrl) {
+        thumb.src = r.photoUrl;
+        thumb.style.display = 'block';
+      } else {
+        thumb.style.display = 'none';
+      }
+      document.getElementById('editCustPhotoFile').value = '';
+      state.editPhotoBase64 = '';
+
+      var modal = document.getElementById('editCustomerModal');
+      modal.style.display = 'flex';
+    }
+
+    function closeEditCustomerModal() {
+      document.getElementById('editCustomerModal').style.display = 'none';
+    }
+
+    function handleEditPhotoSelect(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      state.editPhotoName = file.name;
+      state.editPhotoType = file.type || 'image/jpeg';
+
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        var dataUrl = evt.target.result;
+        var thumb = document.getElementById('editPhotoThumb');
+        thumb.src = dataUrl;
+        thumb.style.display = 'block';
+
+        var commaIdx = dataUrl.indexOf(',');
+        state.editPhotoBase64 = commaIdx !== -1 ? dataUrl.slice(commaIdx + 1) : dataUrl;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function detectEditGpsLocation() {
+      if (!navigator.geolocation) {
+        alert('GPS समर्थित नहीं है।');
+        return;
+      }
+      showToast('GPS लोकेशन ली जा रही है...', '📍');
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude.toFixed(6);
+        var lng = pos.coords.longitude.toFixed(6);
+        document.getElementById('editCustMapsUrl').value = 'https:\x2F\x2Fwww.google.com/maps?q=' + lat + ',' + lng;
+        showToast('GPS लोकेशन दर्ज हो गई!', '✓');
+      }, function(err) {
+        showToast('GPS लोकेशन नहीं मिली: ' + err.message, '❌');
+      });
+    }
+
+    function handleEditCustomerSubmit(e) {
+      e.preventDefault();
+      var btn = document.getElementById('btnSaveEditCust');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> सेव हो रहा है...';
+
+      var sheetName = document.getElementById('editSheetName').value;
+      var rowIndex = document.getElementById('editRowIndex').value;
+      var photoUrl = document.getElementById('editPhotoUrl').value;
+
+      var updatedData = {
+        sheetName: sheetName,
+        rowIndex: rowIndex,
+        customerName: document.getElementById('editCustName').value.trim(),
+        customerNumber: document.getElementById('editCustPhone').value.trim(),
+        staffName: document.getElementById('editCustStaff').value.trim(),
+        packageType: document.getElementById('editCustPkgType').value,
+        packagesPurchased: document.getElementById('editCustPkgCount').value,
+        vehicleNumbers: document.getElementById('editCustVehicles').value.trim(),
+        vehicle: document.getElementById('editCustVehicles').value.trim(),
+        address: document.getElementById('editCustAddress').value.trim(),
+        googleMapsUrl: document.getElementById('editCustMapsUrl').value.trim(),
+        staffNotes: document.getElementById('editCustNotes').value.trim(),
+        active: document.getElementById('editCustActive').value,
+        photoUrl: photoUrl
+      };
+
+      if (state.editPhotoBase64) {
+        updatedData.photoFile = {
+          base64: state.editPhotoBase64,
+          mimeType: state.editPhotoType,
+          fileName: state.editPhotoName
+        };
+      }
+
+      apiCall('updateCustomer', { customerData: updatedData }, function(res) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> बदलाव सेव करें (Save Changes)';
+        if (res && res.error) {
+          showToast('त्रुटि: ' + res.error, '❌');
+        } else {
+          showToast('ग्राहक रिकॉर्ड सफलतापूर्वक अपडेट हो गया!', '✓');
+          closeEditCustomerModal();
+          loadAdminRecords();
+        }
+      }, function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> बदलाव सेव करें (Save Changes)';
+        showToast('अपडेट त्रुटि: ' + (err.message || err), '❌');
+      });
     }
 
     /* Modal & Utilities */
