@@ -37,46 +37,44 @@ A simple, lightweight, and mobile-friendly Staff Information Viewer built for **
 
 ---
 
-## 📋 Google Sheet Structure (100% Preserved)
+## 📋 Google Sheet Structure (Customer-First Architecture)
 
-The application uses your existing Google Sheet structure without altering tabs or adding columns:
+The spreadsheet is structured with a **Customer-First** philosophy: customer identity (Name, Mobile, Location, Photo, Address) takes center stage in the first 5 columns. Staff code is eliminated from the sheet, and staff names are populated via backend validation to completely prevent typos.
 
 ### Tab 1: `Daily Clean`
-| # | Column Name | Description |
-|---|---|---|
-| 1 | `Staff ID` | e.g. `STF01` |
-| 2 | `Staff Name` | e.g. `Ramesh Kumar` |
-| 3 | `Customer Name` | Customer full name |
-| 4 | `Customer Number` | 10-digit mobile number |
-| 5 | `Package Type` | e.g. `Daily Exterior`, `Ceramic Maintenance` |
-| 6 | `Packages Purchased` | Number of packages (e.g. `1`) |
-| 7 | `Vehicle Number(s) / Model(s)` | e.g. `UP65 AB 1234 - Creta (Aaj) / UP65 CD 5678 - Amaze (Kal)` |
-| 8 | `Customer / Vehicle Photo URL` | Viewable image link (auto-uploaded to Drive) |
-| 9 | `Address` | Primary society / apartment address |
-| 10 | `Google Maps URL` | Navigation link |
-| 11 | `Secondary Address (if any)` | Alternate address / parking pillar |
-| 12 | `Secondary Maps URL` | Navigation link for secondary address |
-| 13 | `Staff Notes / Cleaning Instructions` | Cleaning instructions & rotation details |
-| 14 | `Active` | `Yes` or `No` |
+| Col | Column Name | Type / Input | Description |
+|---|---|---|---|
+| **A** | **`Customer Name`** | Text | Customer full name (👤 Primary identity) |
+| **B** | **`Customer Number`** | Number / Phone | 10-digit mobile number (📞 One-tap calling & WhatsApp) |
+| **C** | **`Google Maps URL`** | Link / Plus Code | Coordinates / Plus code (🧭 Step-by-step navigation) |
+| **D** | **`Customer / Vehicle Photo URL`** | Image Link | Viewable photo thumbnail / full lightbox |
+| **E** | **`Address`** | Text | Primary society / flat / landmark address |
+| **F** | `Vehicle Number(s) / Model(s)` | Text | e.g. `UP65 AB 1234 - Creta (Aaj) / UP65 CD 5678 - Amaze (Kal)` |
+| **G** | `Package Type` | Dropdown | e.g. `Daily Clean`, `Ceramic Maintenance` |
+| **H** | `Packages Purchased` | Number | Number of packages (Default `1`) |
+| **I** | `Staff Name` | **Backend Dropdown** | Selected from registered backend staff (prevents typos) |
+| **J** | `Staff Notes / Cleaning Instructions` | Text | Alternate day rotation, key notes, instructions |
+| **K** | `Secondary Address (if any)` | Text | Alternate address / parking pillar |
+| **L** | `Secondary Maps URL` | Link | Navigation link for secondary address |
+| **M** | `Active` | Status | `Yes` or `No` |
 
 ### Tab 2: `All Other Work`
-| # | Column Name | Description |
-|---|---|---|
-| 1 | `Staff ID` | e.g. `STF02` |
-| 2 | `Staff Name` | e.g. `Suresh Sharma` |
-| 3 | `Service Type (Car Wash / Solar Cleaning)` | Service type |
-| 4 | `Customer Name` | Customer full name |
-| 5 | `Customer Number` | 10-digit mobile number |
-| 6 | `Vehicle Number / Site Name` | Vehicle or site identifier |
-| 7 | `Vehicle / Site Photo URL` | Photo link |
-| 8 | `Address` | Site address |
-| 9 | `Google Maps URL` | Navigation link |
-| 10 | `Package / Service Details` | Scope of work |
-| 11 | `Staff Notes / Special Instructions` | Safety instructions / notes |
-| 12 | `Active` | `Yes` or `No` |
+| Col | Column Name | Type / Input | Description |
+|---|---|---|---|
+| **A** | **`Customer Name`** | Text | Customer full name |
+| **B** | **`Customer Number`** | Phone | 10-digit mobile number |
+| **C** | **`Google Maps URL`** | Link | Navigation link |
+| **D** | **`Vehicle / Site Photo URL`** | Image Link | Viewable photo |
+| **E** | **`Address`** | Text | Site / customer address |
+| **F** | `Service Type (Car Wash / Solar Cleaning)` | Text | Service scope |
+| **G** | `Vehicle Number / Site Name` | Text | Identifier |
+| **H** | `Package / Service Details` | Text | Work scope |
+| **I** | `Staff Name` | **Backend Dropdown** | Selected from backend staff |
+| **J** | `Staff Notes / Special Instructions` | Text | Safety / operational notes |
+| **K** | `Active` | Status | `Yes` or `No` |
 
 > [!NOTE]
-> Staff member names and links are managed cleanly via Google Apps Script `PropertiesService` and auto-discovery, so **no extra tabs or columns** are created in your Google Sheet!
+> **Why no Staff Code in the Sheet?** Staff IDs (`STF01`, etc.) are internal system identifiers used only for lightweight URL tokens (`?staff=STF01`). Field staff and customers identify people by their name (`Chandan Soni`). Having staff names selected via Google Sheet Data Validation dropdown ensures zero spelling errors.
 
 ---
 
@@ -116,6 +114,21 @@ Then visit:
 - **Staff Portal Preview:** [http://localhost:3000?staff=STF01](http://localhost:3000?staff=STF01)
 - **Admin Dashboard:** [http://localhost:3000?admin=1](http://localhost:3000?admin=1)
 - **Deployment Guide:** [http://localhost:3000/deploy](http://localhost:3000/deploy)
+
+---
+
+## ☁️ Cloudinary Image CDN Setup (High Speed & Direct Google Sheet Links)
+
+Google Drive image links have access restrictions, cookie prompts, and viewing limits. This application uses **Cloudinary CDN** for all vehicle & customer photos:
+
+1. **Direct Public Links**: Photos open anywhere without login barriers.
+2. **Auto Thumbnails**: Instant, lightweight thumbnail loading in mobile staff cards and Google Sheets.
+3. **Environment Variables on Railway**:
+   Add either `CLOUDINARY_URL` OR the 3 credentials:
+   - `CLOUDINARY_CLOUD_NAME` = your_cloud_name
+   - `CLOUDINARY_API_KEY` = your_api_key
+   - `CLOUDINARY_API_SECRET` = your_api_secret
+   *(Sign up free at [cloudinary.com](https://cloudinary.com) — free plan includes 25GB storage and 25,000 monthly transformations)*
 
 ---
 

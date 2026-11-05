@@ -1101,7 +1101,8 @@
           <div class="staff-avatar-circle" id="staffAvatarInitial">S</div>
           <div>
             <div class="staff-name-text" id="staffNameHeader">लोड हो रहा है...</div>
-            <div class="staff-id-text" id="staffIdHeader">ID: --</div>
+            <div class="staff-id-text" id="staffIdHeader" style="display:none;"></div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">CWP Verified Staff Portal</div>
           </div>
         </div>
         <div class="staff-car-count-badge" id="staffCarCount">
@@ -1181,15 +1182,70 @@
           <button type="button" class="admin-tab-btn" id="tabBtnRecords" onclick="switchAdminTab('records')">📋 एक्टिव रिकॉर्ड्स</button>
         </div>
 
-      <!-- Admin Tab 1: Add Customer Form -->
+      <!-- Admin Tab 1: Add Customer Form (Customer-First Organization) -->
       <div id="adminTabAddCust" class="admin-tab-pane">
         <div class="admin-card-section">
-          <h2 class="admin-card-title">नया ग्राहक जोड़ें (Add Customer)</h2>
-          <p class="admin-card-desc">ग्राहक और गाड़ी की जानकारी भरें। यह डेटा सीधे गूगल शीट में सेव होगा।</p>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <h2 class="admin-card-title">👤 नया ग्राहक जोड़ें (Add Customer)</h2>
+            <span class="admin-pill-badge" style="background: var(--call-green-light); color: var(--call-green); border-color: var(--call-green-border);">✓ Customer-First Layout</span>
+          </div>
+          <p class="admin-card-desc">सर्वप्रथम ग्राहक की पहचान (नाम, मोबाइल, मैप लोकेशन, फोटो, पता) दर्ज करें, उसके बाद गाड़ी और स्टाफ निर्देश।</p>
 
           <form id="addCustomerForm" onsubmit="handleCustomerSubmit(event)">
             
-            <div class="form-row-2">
+            <!-- SECTION 1: PRIMARY CUSTOMER IDENTIFIERS (Columns 1 to 5) -->
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+              <div style="font-size: 13px; font-weight: 800; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <span>👤</span> 1. ग्राहक विवरण (Primary Customer Information - Cols 1-5)
+              </div>
+
+              <!-- Customer Name & Mobile -->
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label">ग्राहक का नाम (Customer Name) *</label>
+                  <input type="text" id="custName" class="form-input" placeholder="उदा. श्रेयांश जैन" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">मोबाइल नंबर (Mobile) *</label>
+                  <input type="tel" id="custPhone" class="form-input" placeholder="10 डिजिट मोबाइल नंबर" maxlength="10" required>
+                </div>
+              </div>
+
+              <!-- Location & GPS -->
+              <div class="form-group">
+                <label class="form-label">गूगल मैप्स लोकेशन (Google Maps Link / Plus Code)</label>
+                <div style="display: flex; gap: 6px;">
+                  <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F) या Coordinates">
+                  <button type="button" class="chip-btn" style="padding: 0 12px; font-size: 12px; white-space: nowrap;" onclick="detectGpsLocation()">📍 GPS</button>
+                </div>
+              </div>
+
+              <!-- Photo Upload directly from Camera / File -->
+              <div class="form-group">
+                <label class="form-label">ग्राहक / गाड़ी की फोटो (Photo Upload - Direct)</label>
+                <div class="upload-dropzone" onclick="document.getElementById('custPhotoFile').click()">
+                  <div style="font-size: 20px;">📸</div>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--brand-blue); margin-top: 4px;">फोटो चुनें या कैमरा से खींचे</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">कंप्यूटर या फोन से सीधे अपलोड करें</div>
+                  <input type="file" id="custPhotoFile" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
+                  <img id="custPhotoPreview" class="upload-preview-img" style="display: none;" alt="Preview">
+                </div>
+              </div>
+
+              <!-- Address -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">ग्राहक का पता (Customer Address) *</label>
+                <textarea id="custAddress" class="form-textarea" placeholder="मकान नं, कॉलोनी, लैंडमार्क, शहर..." required></textarea>
+              </div>
+            </div>
+
+            <!-- SECTION 2: VEHICLE & PACKAGE DETAILS -->
+            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+              <div style="font-size: 13px; font-weight: 800; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <span>🚗</span> 2. गाड़ी और पैकेज विवरण (Vehicle & Service Details)
+              </div>
+
               <div class="form-group">
                 <label class="form-label">काम का प्रकार (Category) *</label>
                 <select id="custCategory" class="form-select" onchange="toggleCategoryFields(this.value)" required>
@@ -1198,110 +1254,82 @@
                 </select>
               </div>
 
+              <!-- Daily Clean Fields -->
+              <div id="dailyFieldsBlock">
+                <div class="form-group">
+                  <label class="form-label">गाड़ी नंबर और मॉडल (Vehicle Number & Model) *</label>
+                  <input type="text" id="custVehicles" class="form-input" placeholder="उदा. UP65 AB 1234 - Creta (आज) / UP65 CD 5678 - Amaze (कल)" required>
+                  <div class="chips-row">
+                    <button type="button" class="chip-btn" onclick="appendVehicleText(' (आज)')">+ (आज)</button>
+                    <button type="button" class="chip-btn" onclick="appendVehicleText(' (कल)')">+ (कल)</button>
+                    <button type="button" class="chip-btn" onclick="appendVehicleText(' / ')">+ अगली गाड़ी ( / )</button>
+                  </div>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label">पैकेज का प्रकार (Package Type)</label>
+                    <select id="custPkgType" class="form-select">
+                      <option value="Daily Clean">Daily Clean</option>
+                      <option value="Ceramic Maintenance">Ceramic Maintenance</option>
+                      <option value="Full Detail Subscription">Full Detail Subscription</option>
+                      <option value="Custom Daily">Custom Daily</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">पैकेज संख्या (Purchased Packages) *</label>
+                    <input type="number" id="custPkgCount" class="form-input" value="1" min="1" max="10" required>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Other Work Fields -->
+              <div id="otherFieldsBlock" style="display: none;">
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label">सर्विस का प्रकार (Service Type)</label>
+                    <input type="text" id="custServiceType" class="form-input" placeholder="उदा. Solar Panel / PPF Maintenance">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">गाड़ी / साइट का नाम (Vehicle / Site)</label>
+                    <input type="text" id="custOtherVehicle" class="form-input" placeholder="उदा. UP65 XY 9999 Fortuner / Rooftop Site">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 3: STAFF ASSIGNMENT & INSTRUCTIONS -->
+            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+              <div style="font-size: 13px; font-weight: 800; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <span>👔</span> 3. असाइन स्टाफ और निर्देश (Staff Assignment & Notes)
+              </div>
+
               <div class="form-group">
-                <label class="form-label">असाइन स्टाफ (Staff) *</label>
+                <label class="form-label">असाइन स्टाफ (Assigned Staff) *</label>
                 <select id="custStaffSelect" class="form-select" required>
                   <option value="">स्टाफ चुनें...</option>
                 </select>
-              </div>
-            </div>
-
-            <div class="form-row-2">
-              <div class="form-group">
-                <label class="form-label">ग्राहक का नाम (Customer Name) *</label>
-                <input type="text" id="custName" class="form-input" placeholder="उदा. श्रेयांश जैन" required>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">मोबाइल नंबर (Mobile) *</label>
-                <input type="tel" id="custPhone" class="form-input" placeholder="10 डिजिट मोबाइल नंबर" maxlength="10" required>
-              </div>
-            </div>
-
-            <!-- Daily Clean Fields -->
-            <div id="dailyFieldsBlock">
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label class="form-label">पैकेज का प्रकार (Package Type)</label>
-                  <select id="custPkgType" class="form-select">
-                    <option value="Daily Clean">Daily Clean</option>
-                    <option value="Ceramic Maintenance">Ceramic Maintenance</option>
-                    <option value="Full Detail Subscription">Full Detail Subscription</option>
-                    <option value="Custom Daily">Custom Daily</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">पैकेज संख्या (Purchased Packages) *</label>
-                  <input type="number" id="custPkgCount" class="form-input" value="1" min="1" max="10" required>
+                <div style="font-size: 11px; color: var(--call-green); margin-top: 5px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                  <span>🔒</span> स्टाफ का नाम सीधे बैकएंड से आ रहा है। स्पेलिंग मिस्टेक की कोई गुंजाइश नहीं है।
                 </div>
               </div>
 
+              <!-- Notes -->
               <div class="form-group">
-                <label class="form-label">गाड़ी नंबर और मॉडल (Vehicle Number & Model) *</label>
-                <input type="text" id="custVehicles" class="form-input" placeholder="उदा. UP65 AB 1234 - Creta (आज) / UP65 CD 5678 - Amaze (कल)" required>
+                <label class="form-label">स्टाफ के लिए खास निर्देश (Cleaning Instructions / Staff Notes)</label>
+                <textarea id="custNotes" class="form-textarea" placeholder="उदा. 1 पैकेज है। दोनों गाड़ियां अलग-अलग दिन साफ होंगी। गार्ड से चाबी लें..."></textarea>
                 <div class="chips-row">
-                  <button type="button" class="chip-btn" onclick="appendVehicleText(' (आज)')">+ (आज)</button>
-                  <button type="button" class="chip-btn" onclick="appendVehicleText(' (कल)')">+ (कल)</button>
-                  <button type="button" class="chip-btn" onclick="appendVehicleText(' / ')">+ अगली गाड़ी ( / )</button>
+                  <button type="button" class="chip-btn" onclick="setQuickNote('1 पैकेज है। दोनों गाड़ियां अलग-अलग दिन (Alternate Day) साफ करनी हैं।')">1 Pkg Alternate Day</button>
+                  <button type="button" class="chip-btn" onclick="setQuickNote('गाड़ी रोज बाहर से साफ होगी, संडे को अंदर से वैक्यूम होगा।')">Exterior Daily, Sun Vacuum</button>
+                  <button type="button" class="chip-btn" onclick="setQuickNote('सोसायटी के गार्ड से पानी और चाबी लेना है।')">Guard Water Supply</button>
                 </div>
               </div>
-            </div>
 
-            <!-- Other Work Fields -->
-            <div id="otherFieldsBlock" style="display: none;">
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label class="form-label">सर्विस का प्रकार (Service Type)</label>
-                  <input type="text" id="custServiceType" class="form-input" placeholder="उदा. Solar Panel / PPF Maintenance">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">गाड़ी / साइट का नाम (Vehicle / Site)</label>
-                  <input type="text" id="custOtherVehicle" class="form-input" placeholder="उदा. UP65 XY 9999 Fortuner / Rooftop Site">
-                </div>
-              </div>
-            </div>
-
-            <!-- Photo Upload directly from Camera / File -->
-            <div class="form-group">
-              <label class="form-label">ग्राहक / गाड़ी की फोटो (Photo Upload - Direct)</label>
-              <div class="upload-dropzone" onclick="document.getElementById('custPhotoFile').click()">
-                <div style="font-size: 20px;">📸</div>
-                <div style="font-size: 12px; font-weight: 700; color: var(--brand-blue); margin-top: 4px;">फोटो चुनें या कैमरा से खींचे</div>
-                <div style="font-size: 11px; color: var(--text-muted);">कंप्यूटर या फोन से सीधे अपलोड करें</div>
-                <input type="file" id="custPhotoFile" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
-                <img id="custPhotoPreview" class="upload-preview-img" style="display: none;" alt="Preview">
-              </div>
-            </div>
-
-            <!-- Address and Location -->
-            <div class="form-group">
-              <label class="form-label">ग्राहक का पता (Customer Address) *</label>
-              <textarea id="custAddress" class="form-textarea" placeholder="मकान नं, कॉलोनी, लैंडमार्क, शहर..." required></textarea>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">गूगल मैप्स लोकेशन (Google Maps Link / Plus Code)</label>
-              <div style="display: flex; gap: 6px;">
-                <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F) या Coordinates">
-                <button type="button" class="chip-btn" style="padding: 0 12px; font-size: 12px; white-space: nowrap;" onclick="detectGpsLocation()">📍 GPS</button>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">दूसरा पता / लोकेशन (Secondary Address - Optional)</label>
-              <input type="text" id="custSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
-              <input type="text" id="custSecMaps" class="form-input" style="margin-top: 4px;" placeholder="दूसरे पते का मैप लिंक (Optional)">
-            </div>
-
-            <!-- Notes -->
-            <div class="form-group">
-              <label class="form-label">स्टाफ के लिए खास निर्देश (Cleaning Instructions / Staff Notes)</label>
-              <textarea id="custNotes" class="form-textarea" placeholder="उदा. 1 पैकेज है। दोनों गाड़ियां अलग-अलग दिन साफ होंगी। गार्ड से चाबी लें..."></textarea>
-              <div class="chips-row">
-                <button type="button" class="chip-btn" onclick="setQuickNote('1 पैकेज है। दोनों गाड़ियां अलग-अलग दिन (Alternate Day) साफ करनी हैं।')">1 Pkg Alternate Day</button>
-                <button type="button" class="chip-btn" onclick="setQuickNote('गाड़ी रोज बाहर से साफ होगी, संडे को अंदर से वैक्यूम होगा।')">Exterior Daily, Sun Vacuum</button>
-                <button type="button" class="chip-btn" onclick="setQuickNote('सोसायटी के गार्ड से पानी और चाबी लेना है।')">Guard Water Supply</button>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">दूसरा पता / लोकेशन (Secondary Address - Optional)</label>
+                <input type="text" id="custSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
+                <input type="text" id="custSecMaps" class="form-input" style="margin-top: 4px;" placeholder="दूसरे पते का मैप लिंक (Optional)">
               </div>
             </div>
 
@@ -1315,24 +1343,32 @@
       <!-- Admin Tab 2: Staff Management & Links -->
       <div id="adminTabStaff" class="admin-tab-pane" style="display: none;">
         <div class="admin-card-section">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
             <div>
-              <h2 class="admin-card-title">स्टाफ मेंबर्स और यूनिक लिंक्स</h2>
-              <p class="admin-card-desc" style="margin-bottom: 0;">हर स्टाफ को अपना पर्सनल लिंक दें। वे केवल अपने असाइन ग्राहक देख पाएंगे।</p>
+              <h2 class="admin-card-title">स्टाफ मेंबर्स और क्विक टूल्स</h2>
+              <p class="admin-card-desc" style="margin-bottom: 0;">स्टाफ का नाम बैकएंड से सुरक्षित रहता है जिससे स्पेलिंग मिस्टेक नहीं होती।</p>
             </div>
-            <button type="button" class="btn-admin-action" onclick="handleSyncStaffSheet()" title="शीट के सभी रो को सिंगल स्टाफ आईडी से सिंक करें">
-              🔄 सिंक शीट आईडी
-            </button>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="btn-admin-action" onclick="handleSyncStaffDropdown()" title="गूगल शीट के स्टाफ कॉलम में ड्रॉपडाउन वैलिडेशन लागू करें">
+                👔 सिंक शीट ड्रॉपडाउन
+              </button>
+              <button type="button" class="btn-admin-action" style="background: var(--brand-blue-light); color: var(--brand-blue);" onclick="handleReorderSheet()" title="गूगल शीट के कॉलम्स को कस्टमर-फर्स्ट क्रम में रीऑर्डर करें">
+                🔄 1-क्लिक रीऑर्डर शीट्स
+              </button>
+            </div>
           </div>
 
-          <!-- Add Staff Form -->
-          <form onsubmit="handleAddStaff(event)" style="display: flex; gap: 8px; margin-bottom: 14px;">
-            <input type="text" id="newStaffName" class="form-input" placeholder="स्टाफ का नाम (उदा. Ramesh Kumar)" required style="flex: 2;">
-            <input type="text" id="newStaffId" class="form-input" placeholder="ID (उदा. STF02)" style="flex: 1;">
-            <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700;">
-              जोड़ें
+          <!-- Add Staff Form (Clean - No Staff Code Needed!) -->
+          <form onsubmit="handleAddStaff(event)" style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" id="newStaffName" class="form-input" placeholder="स्टाफ का पूरा नाम (उदा. Chandan Soni, Ramesh Kumar)" required style="flex: 1;">
+            <input type="hidden" id="newStaffId" value="">
+            <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
+              + स्टाफ जोड़ें
             </button>
           </form>
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 16px;">
+            ℹ️ स्टाफ कोड की जरूरत नहीं है — सिस्टम बैकएंड में यूनिक आईडी और लिंक स्वतः तैयार कर देता है।
+          </div>
 
           <!-- Staff Cards List -->
           <div id="adminStaffList">
@@ -1369,6 +1405,7 @@
               <thead>
                 <tr>
                   <th>शीट</th>
+                  <th>फोटो</th>
                   <th>स्टाफ</th>
                   <th>ग्राहक</th>
                   <th>गाड़ी नंबर</th>
@@ -1377,7 +1414,7 @@
                 </tr>
               </thead>
               <tbody id="adminRecordsTableBody">
-                <tr><td colspan="6" style="text-align: center;">डेटा लोड हो रहा है...</td></tr>
+                <tr><td colspan="7" style="text-align: center;">डेटा लोड हो रहा है...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1626,6 +1663,10 @@
           google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).verifyAdminPassword(payload.password);
         } else if (action === 'updateAdminPassword') {
           google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).updateAdminPassword(payload.newPassword);
+        } else if (action === 'reorderSheet') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).reorderSheetToCustomerFirst();
+        } else if (action === 'syncStaffDropdown') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).syncStaffDropdownValidation();
         }
         return;
       }
@@ -1941,10 +1982,10 @@
       var select = document.getElementById('custStaffSelect');
       var listContainer = document.getElementById('adminStaffList');
 
-      /* Update Form Dropdown */
+      /* Update Form Dropdown - Only clean staff name (no codes shown) */
       var optionsHtml = '<option value="">स्टाफ चुनें...</option>';
       state.staffList.forEach(function(s) {
-        optionsHtml += '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(s.name) + ' (' + escapeHtml(s.id) + ')</option>';
+        optionsHtml += '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(s.name) + '</option>';
       });
       select.innerHTML = optionsHtml;
 
@@ -2012,13 +2053,14 @@
     function handleAddStaff(e) {
       e.preventDefault();
       var name = document.getElementById('newStaffName').value.trim();
-      var id = document.getElementById('newStaffId').value.trim();
+      var idEl = document.getElementById('newStaffId');
+      var id = idEl ? idEl.value.trim() : '';
       if (!name) return;
 
       apiCall('saveStaffMember', { name: name, id: id }, function(res) {
         document.getElementById('newStaffName').value = '';
-        document.getElementById('newStaffId').value = '';
-        showToast('स्टाफ सफलतापूर्वक जोड़ा गया!', '✓');
+        if (idEl) idEl.value = '';
+        showToast('स्टाफ "' + name + '" सफलतापूर्वक जोड़ा गया!', '✓');
         loadStaffListForAdmin();
       }, function(err) {
         showToast('त्रुटि: ' + (err.message || err), '❌');
@@ -2036,10 +2078,30 @@
     }
 
     function handleSyncStaffSheet() {
-      showToast('शीट में स्टाफ आईडी सिंक हो रहा है...', 'ℹ');
+      showToast('शीट में स्टाफ सिंक हो रहा है...', 'ℹ');
       apiCall('cleanAndSyncStaff', {}, function(res) {
-        showToast('सभी शीट रो को सिंगल आईडी में सिंक कर दिया गया!', '✓');
+        showToast('सभी शीट रो और ड्रॉपडाउन सिंक हो गए!', '✓');
         loadStaffListForAdmin();
+      }, function(err) {
+        showToast('त्रुटि: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleSyncStaffDropdown() {
+      showToast('गूगल शीट ड्रॉपडाउन सिंक हो रहा है...', 'ℹ');
+      apiCall('syncStaffDropdown', {}, function(res) {
+        showToast('गूगल शीट के Staff Name कॉलम में ड्रॉपडाउन वैलिडेशन लागू हो गया!', '✓');
+      }, function(err) {
+        showToast('त्रुटि: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleReorderSheet() {
+      if (!confirm('क्या आप गूगल शीट के कॉलम्स को कस्टमर-फर्स्ट क्रम (Customer Name, Mob, Location, Photo, Address...) में रीऑर्डर करना चाहते हैं?\n\nसभी मौजूदा 27 रिकॉर्ड्स सुरक्षित रहेंगे।')) return;
+      showToast('शीट्स रीऑर्डर हो रही हैं...', 'ℹ');
+      apiCall('reorderSheet', {}, function(res) {
+        showToast(res && res.message ? res.message : 'शीट्स सफलतापूर्वक रीऑर्डर हो गईं!', '✓');
+        loadAdminRecords();
       }, function(err) {
         showToast('त्रुटि: ' + (err.message || err), '❌');
       });
@@ -2171,22 +2233,27 @@
       apiCall('getAllCustomers', {}, function(records) {
         renderAdminRecordsTable(records);
       }, function(err) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '</td></tr>';
       });
     }
 
     function renderAdminRecordsTable(records) {
       var tbody = document.getElementById('adminRecordsTableBody');
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">कोई रिकॉर्ड नहीं मिला।</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">कोई रिकॉर्ड नहीं मिला।</td></tr>';
         return;
       }
 
       var html = '';
       records.forEach(function(r) {
         var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
+        var photoCell = r.photoUrl ? 
+          '<img src="' + escapeHtml(r.photoUrl) + '" style="width:36px; height:36px; border-radius:6px; object-fit:cover; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.1);" onclick="openImageModal(\'' + escapeHtml(r.photoUrl) + '\')" title="फोटो देखने के लिए क्लिक करें">' :
+          '<span style="color:var(--text-muted); font-size:11px;">--</span>';
+
         html += '<tr>';
         html += '  <td><span style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">' + escapeHtml(r.sheetName) + '</span></td>';
+        html += '  <td style="text-align:center;">' + photoCell + '</td>';
         html += '  <td><b>' + escapeHtml(r.staffName || r.staffId) + '</b></td>';
         html += '  <td>' + escapeHtml(r.customerName) + '<br><small style="color:var(--text-muted);">' + escapeHtml(r.customerNumber) + '</small></td>';
         html += '  <td>' + escapeHtml(r.vehicle || '--') + '</td>';

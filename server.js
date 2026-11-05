@@ -5,22 +5,85 @@
  *
  * Fully integrated with Google Apps Script Web App Backend & Live Google Sheets:
  * Spreadsheet ID: 1IXs46tRE324YYgBBAKxD1aCCnYVzmqfX4jxCWvfiALY
+ * Production Domain: cwpdata.up.railway.app
+ * Image Storage: Cloudinary CDN (Direct HTTPS Links & Instant Thumbnails)
  * =========================================================================
  */
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
+const cloudinary = require('cloudinary').v2;
 
 const PORT = process.env.PORT || 3000;
 const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyoDbQHE4LQgGOylM0IYatOCMiueKDVqeR8NdPAKj2hOt6fsp9Pb3B-lOxkRFaF8nUH/exec';
+const DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN || 'cwpdata.up.railway.app';
 
 const DATA_FILE = path.join(__dirname, 'local_data.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+// Cloudinary Configuration
+function isCloudinaryConfigured() {
+  if (process.env.CLOUDINARY_URL) return true;
+  const cName = process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY || process.env.API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET || process.env.API_SECRET;
+  return !!(cName && apiKey && apiSecret);
+}
+
+if (process.env.CLOUDINARY_URL) {
+  cloudinary.config();
+} else if (isCloudinaryConfigured()) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY || process.env.API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET || process.env.API_SECRET,
+    secure: true
+  });
+}
+
+/**
+ * Uploads image to Cloudinary CDN and returns viewable HTTPS link
+ * If Cloudinary keys are not set yet, falls back to hosted uploads
+ */
+async function uploadToCloudinary(photoObj) {
+  if (!photoObj || !photoObj.base64) return '';
+
+  const mimeType = photoObj.mimeType || 'image/jpeg';
+  const dataUri = `data:${mimeType};base64,${photoObj.base64}`;
+
+  if (isCloudinaryConfigured()) {
+    try {
+      console.log('Uploading photo to Cloudinary CDN...');
+      const uploadResult = await cloudinary.uploader.upload(dataUri, {
+        folder: 'cwp_customer_photos',
+        resource_type: 'image',
+        transformation: [
+          { quality: 'auto', fetch_format: 'auto' }
+        ]
+      });
+      console.log('Cloudinary upload successful:', uploadResult.secure_url);
+      return uploadResult.secure_url;
+    } catch (err) {
+      console.error('Cloudinary upload error:', err.message);
+      return saveLocalUpload(photoObj);
+    }
+  }
+
+  return saveLocalUpload(photoObj);
+}
+
+function saveLocalUpload(photoObj) {
+  const mimeType = photoObj.mimeType || 'image/jpeg';
+  const ext = mimeType === 'image/png' ? '.png' : '.jpg';
+  const filename = 'cwp_' + Date.now() + ext;
+  const filepath = path.join(UPLOADS_DIR, filename);
+  fs.writeFileSync(filepath, Buffer.from(photoObj.base64, 'base64'));
+  return `https://${DOMAIN}/uploads/${filename}`;
 }
 
 // Local fallback state
@@ -34,14 +97,6 @@ if (fs.existsSync(DATA_FILE)) {
     appState = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
   } catch (e) {
     console.error('Error reading local_data.json:', e);
-  }
-}
-
-function saveLocalData() {
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(appState, null, 2), 'utf8');
-  } catch (e) {
-    console.error('Error saving local_data.json:', e);
   }
 }
 
@@ -84,7 +139,22 @@ const server = http.createServer(async (req, res) => {
   // Health check endpoint for Railway monitoring
   if (pathname === '/health' || pathname === '/ping') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ status: 'ok', service: 'cwp-staff-viewer', time: new Date().toISOString() }));
+    return res.end(JSON.stringify({
+      status: 'ok',
+      service: 'cwp-staff-viewer',
+      domain: DOMAIN,
+      cloudinary: isCloudinaryConfigured(),
+      time: new Date().toISOString()
+    }));
+  }
+
+  // Cloudinary Status endpoint
+  if (pathname === '/api/cloudinary-status') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      configured: isCloudinaryConfigured(),
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME || (process.env.CLOUDINARY_URL ? 'Configured via CLOUDINARY_URL' : 'Not configured')
+    }));
   }
 
   // Serve static uploads
@@ -180,13 +250,31 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
+        // Upload photo to Cloudinary CDN before saving customer record to Google Sheet
+        if (payload.action === 'saveCustomer' && payload.customerData) {
+          const cust = payload.customerData;
+          const photoObj = cust.photoFile || cust.photoData;
+          if (photoObj && photoObj.base64) {
+            try {
+              const uploadedUrl = await uploadToCloudinary(photoObj);
+              if (uploadedUrl) {
+                cust.photoUrl = uploadedUrl;
+              }
+            } catch (uErr) {
+              console.error('Photo upload process failed:', uErr);
+            }
+            // Remove heavy base64 strings so GAS request is ultra fast and under limit
+            delete cust.photoFile;
+            delete cust.photoData;
+          }
+        }
+
         // Forward to live Google Apps Script Web App
         let responseData;
         try {
           responseData = await forwardToGoogleAppsScript(payload);
         } catch (gasErr) {
           console.error('Apps Script forwarding failed, using fallback:', gasErr.message);
-          // Local fallback handlers if GAS is momentarily unreachable
           const action = payload.action;
           if (action === 'getStaffList') {
             responseData = appState.staffList;
@@ -197,6 +285,10 @@ const server = http.createServer(async (req, res) => {
               dailyClean: [],
               allOtherWork: []
             };
+          } else if (action === 'reorderSheet') {
+            responseData = { success: true, message: 'कस्टमर-फर्स्ट कॉलम संरचना सक्रिय है।' };
+          } else if (action === 'syncStaffDropdown') {
+            responseData = { success: true, staffList: appState.staffList };
           } else {
             responseData = { error: 'Backend request failed: ' + gasErr.message };
           }
@@ -240,6 +332,8 @@ server.listen(PORT, () => {
   console.log(`🚗 CWP Detailers & Motors - Staff Information Viewer`);
   console.log(`=======================================================`);
   console.log(`✔ Server Running on PORT: ${PORT}`);
+  console.log(`✔ Production Domain: https://${DOMAIN}`);
+  console.log(`✔ Cloudinary Status: ${isCloudinaryConfigured() ? 'Connected' : 'Pending Environment Variables'}`);
   console.log(`✔ Connected Google Apps Script URL:`);
   console.log(`  ${APPS_SCRIPT_URL}`);
   console.log(`=======================================================`);

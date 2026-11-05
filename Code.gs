@@ -4,6 +4,20 @@
  * CWP Detailers & Motors
  *
  * Spreadsheet: https://docs.google.com/spreadsheets/d/1IXs46tRE324YYgBBAKxD1aCCnYVzmqfX4jxCWvfiALY/edit
+ *
+ * Architecture:
+ * - Customer-First Column Layout:
+ *   1. Customer Name
+ *   2. Customer Number (Mobile)
+ *   3. Google Maps URL (Location)
+ *   4. Customer / Vehicle Photo URL
+ *   5. Address
+ *   ...followed by vehicle, package, staff (from backend dropdown), and notes.
+ * - Dynamic Header Mapping: Reads and writes by column name, making it 100%
+ *   resilient to column reordering or additions.
+ * - Staff Name from Backend: Staff list is managed centrally. Google Sheets
+ *   receives native Data Validation dropdowns to prevent manual spelling mistakes.
+ *   Staff code is eliminated from the sheet.
  * =========================================================================
  */
 
@@ -12,12 +26,27 @@ var SPREADSHEET_ID = "1IXs46tRE324YYgBBAKxD1aCCnYVzmqfX4jxCWvfiALY";
 var DRIVE_FOLDER_NAME = "CWP_Customer_Photos";
 
 /**
+ * Custom Menu inside Google Sheets for 1-Click Operations
+ */
+function onOpen() {
+  try {
+    SpreadsheetApp.getUi()
+      .createMenu('🚗 CWP Management')
+      .addItem('1. 🔄 Reorder Columns (Customer-First)', 'reorderSheetToCustomerFirst')
+      .addItem('2. 👔 Sync Staff Dropdown in Sheet', 'syncStaffDropdownValidation')
+      .addToUi();
+  } catch (e) {
+    // UI may not be available in standalone execution contexts
+  }
+}
+
+/**
  * Serves the Web Application
  */
 function doGet(e) {
   var template = HtmlService.createTemplateFromFile("Index");
   
-  // Extract staff query parameter if present: ?staff=STF01
+  // Extract staff query parameter if present: ?staff=STF01 or ?staff=Chandan
   var staffId = (e && e.parameter && (e.parameter.staff || e.parameter.id)) ? e.parameter.staff || e.parameter.id : "";
   var mode = (e && e.parameter && e.parameter.admin) ? "admin" : (staffId ? "staff" : "admin");
   
@@ -42,7 +71,7 @@ function doGet(e) {
 }
 
 /**
- * Handle API POST requests (optional JSON API support)
+ * Handle API POST requests
  */
 function doPost(e) {
   try {
@@ -70,8 +99,13 @@ function doPost(e) {
       result = verifyAdminPassword(requestData.password);
     } else if (action === "updateAdminPassword") {
       result = updateAdminPassword(requestData.newPassword);
+    } else if (action === "reorderSheet") {
+      result = reorderSheetToCustomerFirst();
+    } else if (action === "syncStaffDropdown") {
+      syncStaffDropdownValidation();
+      result = { success: true, staffList: getStaffList() };
     } else {
-      result = { error: "Unknown action" };
+      result = { error: "Unknown action: " + action };
     }
     
     return ContentService.createTextOutput(JSON.stringify(result))
@@ -95,7 +129,86 @@ function getSpreadsheet() {
 
 /**
  * =========================================================================
- * STAFF MANAGEMENT (Stored in Script Properties to NOT touch Sheet Structure)
+ * DYNAMIC HEADER MAPPING HELPER
+ * Resolves column index dynamically from Row 1 header text.
+ * Prevents any breakage when columns are moved, inserted or reordered!
+ * =========================================================================
+ */
+function getHeaderIndexMap(sheet) {
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return {};
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var map = {};
+  
+  for (var c = 0; c < headers.length; c++) {
+    var raw = (headers[c] || "").toString().toLowerCase().trim();
+    if (!raw) continue;
+    var norm = raw.replace(/[^a-z0-9]/g, "");
+    map[norm] = c;
+    
+    // Semantic aliases
+    if (norm.indexOf("customername") >= 0 || (norm.indexOf("customer") >= 0 && norm.indexOf("number") === -1 && norm.indexOf("photo") === -1 && norm.indexOf("address") === -1)) {
+      if (map["custname"] === undefined) map["custname"] = c;
+    }
+    if (norm.indexOf("customernumber") >= 0 || norm.indexOf("mob") >= 0 || norm.indexOf("phone") >= 0 || norm.indexOf("contact") >= 0) {
+      if (map["custphone"] === undefined) map["custphone"] = c;
+    }
+    if (norm.indexOf("maps") >= 0 || norm.indexOf("location") >= 0) {
+      if (norm.indexOf("secondary") === -1 && norm.indexOf("sec") === -1) {
+        if (map["mapurl"] === undefined) map["mapurl"] = c;
+      }
+    }
+    if (norm.indexOf("photo") >= 0) {
+      if (map["photo"] === undefined) map["photo"] = c;
+    }
+    if (norm.indexOf("address") >= 0 && norm.indexOf("secondary") === -1 && norm.indexOf("sec") === -1) {
+      if (map["address"] === undefined) map["address"] = c;
+    }
+    if (norm.indexOf("staffname") >= 0 || (norm.indexOf("staff") >= 0 && norm.indexOf("id") === -1 && norm.indexOf("note") === -1)) {
+      if (map["staffname"] === undefined) map["staffname"] = c;
+    }
+    if (norm.indexOf("staffid") >= 0 || norm === "id") {
+      if (map["staffid"] === undefined) map["staffid"] = c;
+    }
+    if (norm.indexOf("vehicle") >= 0 || norm.indexOf("model") >= 0 || norm.indexOf("site") >= 0) {
+      if (map["vehicle"] === undefined) map["vehicle"] = c;
+    }
+    if (norm.indexOf("packagetype") >= 0 || (norm.indexOf("package") >= 0 && norm.indexOf("purchased") === -1 && norm.indexOf("count") === -1)) {
+      if (map["pkgtype"] === undefined) map["pkgtype"] = c;
+    }
+    if (norm.indexOf("purchased") >= 0 || norm.indexOf("pkgcount") >= 0 || norm.indexOf("packagespurchased") >= 0) {
+      if (map["pkgcount"] === undefined) map["pkgcount"] = c;
+    }
+    if (norm.indexOf("note") >= 0 || norm.indexOf("instruction") >= 0) {
+      if (map["notes"] === undefined) map["notes"] = c;
+    }
+    if (norm.indexOf("active") >= 0 || norm.indexOf("status") >= 0) {
+      if (map["active"] === undefined) map["active"] = c;
+    }
+  }
+  return map;
+}
+
+/**
+ * Extracts cell value safely using aliases from dynamic header map
+ */
+function getVal(row, headerMap, aliases) {
+  if (!row || !headerMap) return "";
+  for (var i = 0; i < aliases.length; i++) {
+    var key = aliases[i].toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (headerMap[key] !== undefined) {
+      var colIdx = headerMap[key];
+      if (row[colIdx] !== undefined && row[colIdx] !== null) {
+        return row[colIdx];
+      }
+    }
+  }
+  return "";
+}
+
+/**
+ * =========================================================================
+ * STAFF MANAGEMENT (Stored in Script Properties to NOT pollute Sheet)
  * =========================================================================
  */
 
@@ -113,11 +226,10 @@ function getStaffList() {
     } catch (e) {
       list = [];
     }
-    // Return clean deduplicated list
     return deduplicateStaffList(list);
   }
   
-  // If property was never set, run cleanAndSyncStaff to auto-discover unique staff from sheets
+  // If property was never set, run cleanAndSyncStaff to auto-discover
   return cleanAndSyncStaff();
 }
 
@@ -144,8 +256,7 @@ function deduplicateStaffList(list) {
 }
 
 /**
- * Deduplicate and standardize staff list and sheet assignments.
- * Ensures each unique staff name has ONE consistent Staff ID across all sheet rows.
+ * Discover unique staff members from sheets and sync dropdown validation
  */
 function cleanAndSyncStaff() {
   var ss = getSpreadsheet();
@@ -154,16 +265,16 @@ function cleanAndSyncStaff() {
   var staffList = [];
   var idCounter = 1;
 
-  // 1. Scan sheets and group by Staff Name (one Staff ID per person)
+  // 1. Scan sheets and find Staff Names dynamically
   sheets.forEach(function(sheetName) {
     var sheet = ss.getSheetByName(sheetName);
     if (!sheet) return;
     var data = sheet.getDataRange().getValues();
     if (data.length <= 1) return;
-
+    
+    var hMap = getHeaderIndexMap(sheet);
     for (var r = 1; r < data.length; r++) {
-      var currentId = (data[r][0] || "").toString().trim();
-      var sName = (data[r][1] || "").toString().trim();
+      var sName = getVal(data[r], hMap, ["staffname", "staff"]).toString().trim();
       if (!sName) continue;
       
       var normName = sName.toLowerCase();
@@ -176,52 +287,19 @@ function cleanAndSyncStaff() {
     }
   });
 
-  // If no staff found in sheets, provide sample starter
+  // If no staff found in sheets, provide default starter
   if (staffList.length === 0) {
     staffList = [{ id: "STF01", name: "Chandan Soni" }];
     nameToStaff["chandan soni"] = { id: "STF01", name: "Chandan Soni" };
   }
 
-  // 2. Standardize Column A (Staff ID) in the sheets so all rows for that person share the SAME ID
-  sheets.forEach(function(sheetName) {
-    var sheet = ss.getSheetByName(sheetName);
-    if (!sheet) return;
-    var data = sheet.getDataRange().getValues();
-    if (data.length <= 1) return;
-
-    var idColUpdates = [];
-    var changed = false;
-
-    for (var r = 1; r < data.length; r++) {
-      var currentId = (data[r][0] || "").toString().trim();
-      var sName = (data[r][1] || "").toString().trim();
-      var targetId = currentId;
-
-      if (sName && nameToStaff[sName.toLowerCase()]) {
-        targetId = nameToStaff[sName.toLowerCase()].id;
-      }
-
-      if (targetId !== currentId) {
-        changed = true;
-      }
-      idColUpdates.push([targetId]);
-    }
-
-    if (changed && idColUpdates.length > 0) {
-      sheet.getRange(2, 1, idColUpdates.length, 1).setValues(idColUpdates);
-    }
-  });
-
-  // 3. Save clean unique staff list in Properties
+  // 2. Save clean unique staff list in Properties
   PropertiesService.getScriptProperties().setProperty("STAFF_LIST", JSON.stringify(staffList));
+  
+  // 3. Automatically apply native Google Sheet dropdown validation on Staff Name column
+  syncStaffDropdownValidation();
+  
   return staffList;
-}
-
-/**
- * Scan sheets for any pre-existing staff (Legacy helper)
- */
-function discoverStaffFromSheets() {
-  return cleanAndSyncStaff();
 }
 
 /**
@@ -238,7 +316,7 @@ function saveStaffMember(name, id) {
   var props = PropertiesService.getScriptProperties();
   var list = getStaffList();
   
-  // If ID is not provided, generate a clean one like STF01, STF02...
+  // Auto-generate clean ID if not provided
   if (!id) {
     var maxNum = 0;
     list.forEach(function(item) {
@@ -252,7 +330,6 @@ function saveStaffMember(name, id) {
     id = "STF" + (nextNum < 10 ? "0" + nextNum : nextNum);
   }
   
-  // Check if exists by name or ID
   var existingIndex = list.findIndex(function(item) {
     return item.id.toLowerCase() === id.toLowerCase() || item.name.toLowerCase() === name.toLowerCase();
   });
@@ -265,6 +342,10 @@ function saveStaffMember(name, id) {
   }
   
   props.setProperty("STAFF_LIST", JSON.stringify(list));
+  
+  // Update Google Sheet dropdown
+  syncStaffDropdownValidation();
+  
   return { success: true, staffList: list, newStaff: { id: id, name: name } };
 }
 
@@ -280,31 +361,70 @@ function deleteStaffMember(id) {
     return item.id.toLowerCase() !== id;
   });
   
-  // Save even if empty! Do NOT auto-repopulate.
   props.setProperty("STAFF_LIST", JSON.stringify(list));
+  syncStaffDropdownValidation();
   return { success: true, staffList: list };
 }
 
 /**
  * =========================================================================
+ * GOOGLE SHEETS DATA VALIDATION (PREVENTS MANUAL SPELLING MISTAKES)
+ * Ensures anyone editing directly in Google Sheets picks staff from a dropdown!
+ * =========================================================================
+ */
+function syncStaffDropdownValidation() {
+  try {
+    var ss = getSpreadsheet();
+    var staffList = getStaffList();
+    if (!staffList || staffList.length === 0) return;
+    
+    var staffNames = staffList.map(function(s) { return s.name; });
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(staffNames, true)
+      .setAllowInvalid(false)
+      .setHelpText("कृपया बैकएंड में पंजीकृत स्टाफ में से ही नाम चुनें। (Select from registered backend staff list)")
+      .build();
+      
+    var sheets = ["Daily Clean", "All Other Work"];
+    sheets.forEach(function(sheetName) {
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return;
+      var hMap = getHeaderIndexMap(sheet);
+      var staffColIdx = hMap["staffname"] !== undefined ? hMap["staffname"] : (hMap["staff"] !== undefined ? hMap["staff"] : -1);
+      if (staffColIdx >= 0) {
+        var maxRows = Math.max(sheet.getMaxRows(), 100);
+        var range = sheet.getRange(2, staffColIdx + 1, maxRows - 1, 1);
+        range.setDataValidation(rule);
+      }
+    });
+  } catch (err) {
+    Logger.log("Validation sync notice: " + err.toString());
+  }
+}
+
+/**
+ * =========================================================================
  * STAFF READ-ONLY CUSTOMER DATA VIEWER
- * Restricted strictly to the requested staff member's active records
+ * Dynamic matching: Staff ID or Staff Name matched reliably without needing
+ * any Staff ID column in the sheet.
  * =========================================================================
  */
 function getStaffCustomerData(requestedStaffId) {
   if (!requestedStaffId) {
-    return { error: "No Staff ID provided.", staffId: "", staffName: "", dailyClean: [], allOtherWork: [] };
+    return { error: "No Staff identifier provided.", staffId: "", staffName: "", dailyClean: [], allOtherWork: [] };
   }
   
-  var targetId = requestedStaffId.toString().trim().toLowerCase();
+  var targetQuery = requestedStaffId.toString().trim().toLowerCase();
   var ss = getSpreadsheet();
   
-  // Find staff name
+  // Find staff in staffList
   var staffList = getStaffList();
   var foundStaff = staffList.find(function(s) {
-    return s.id.toLowerCase() === targetId;
+    return s.id.toLowerCase() === targetQuery || s.name.toLowerCase() === targetQuery;
   });
+  
   var staffName = foundStaff ? foundStaff.name : requestedStaffId;
+  var staffId = foundStaff ? foundStaff.id : requestedStaffId;
   
   var dailyCleanList = [];
   var allOtherWorkList = [];
@@ -314,36 +434,36 @@ function getStaffCustomerData(requestedStaffId) {
   if (dailySheet) {
     var dailyData = dailySheet.getDataRange().getValues();
     if (dailyData.length > 1) {
+      var dMap = getHeaderIndexMap(dailySheet);
       for (var i = 1; i < dailyData.length; i++) {
         var row = dailyData[i];
-        var rowStaffId = (row[0] || "").toString().trim().toLowerCase();
-        var rowActive = (row[13] || "Yes").toString().trim().toLowerCase();
+        var rowStaffName = getVal(row, dMap, ["staffname", "staff"]).toString().trim().toLowerCase();
+        var rowStaffId = getVal(row, dMap, ["staffid", "id"]).toString().trim().toLowerCase();
+        var rowActive = (getVal(row, dMap, ["active", "status"]) || "Yes").toString().trim().toLowerCase();
         
-        var rowStaffName = (row[1] || "").toString().trim().toLowerCase();
-        
-        // Match Staff ID OR Staff Name (ensures staff sees their assigned customers even if sheet row has variant ID)
-        var isMatch = (rowStaffId === targetId) || (foundStaff && rowStaffName === foundStaff.name.toLowerCase());
+        var isMatch = false;
+        if (foundStaff) {
+          isMatch = (rowStaffName === foundStaff.name.toLowerCase()) || (rowStaffId === foundStaff.id.toLowerCase());
+        } else {
+          isMatch = (rowStaffName === targetQuery) || (rowStaffId === targetQuery);
+        }
         
         if (isMatch && (rowActive === "yes" || rowActive === "true" || rowActive === "")) {
-          if (!foundStaff && row[1]) {
-            staffName = row[1];
-          }
-          
           dailyCleanList.push({
-            staffId: row[0] || "",
-            staffName: row[1] || "",
-            customerName: row[2] || "",
-            customerNumber: (row[3] || "").toString(),
-            packageType: row[4] || "",
-            packagesPurchased: row[5] || "1",
-            vehicleNumbers: row[6] || "",
-            photoUrl: row[7] || "",
-            address: row[8] || "",
-            googleMapsUrl: row[9] || "",
-            secondaryAddress: row[10] || "",
-            secondaryMapsUrl: row[11] || "",
-            staffNotes: row[12] || "",
-            active: row[13] || "Yes"
+            staffId: staffId,
+            staffName: getVal(row, dMap, ["staffname", "staff"]) || staffName,
+            customerName: getVal(row, dMap, ["customername", "custname"]),
+            customerNumber: (getVal(row, dMap, ["customernumber", "custphone", "number", "phone", "mob"]) || "").toString(),
+            googleMapsUrl: getVal(row, dMap, ["googlemapsurl", "mapurl", "maps", "location"]),
+            photoUrl: getVal(row, dMap, ["customervehiclephotourl", "photourl", "photo"]),
+            address: getVal(row, dMap, ["address"]),
+            vehicleNumbers: getVal(row, dMap, ["vehiclenumbersmodels", "vehiclenumbers", "vehicle"]),
+            packageType: getVal(row, dMap, ["packagetype", "pkgtype"]),
+            packagesPurchased: getVal(row, dMap, ["packagespurchased", "pkgcount"]) || "1",
+            staffNotes: getVal(row, dMap, ["staffnotescleaninginstructions", "staffnotes", "notes"]),
+            secondaryAddress: getVal(row, dMap, ["secondaryaddressifany", "secondaryaddress"]),
+            secondaryMapsUrl: getVal(row, dMap, ["secondarymapsurl"]),
+            active: getVal(row, dMap, ["active", "status"]) || "Yes"
           });
         }
       }
@@ -355,32 +475,34 @@ function getStaffCustomerData(requestedStaffId) {
   if (otherSheet) {
     var otherData = otherSheet.getDataRange().getValues();
     if (otherData.length > 1) {
+      var oMap = getHeaderIndexMap(otherSheet);
       for (var j = 1; j < otherData.length; j++) {
         var oRow = otherData[j];
-        var oStaffId = (oRow[0] || "").toString().trim().toLowerCase();
-        var oActive = (oRow[11] || "Yes").toString().trim().toLowerCase();
+        var oStaffName = getVal(oRow, oMap, ["staffname", "staff"]).toString().trim().toLowerCase();
+        var oStaffId = getVal(oRow, oMap, ["staffid", "id"]).toString().trim().toLowerCase();
+        var oActive = (getVal(oRow, oMap, ["active", "status"]) || "Yes").toString().trim().toLowerCase();
         
-        var oStaffName = (oRow[1] || "").toString().trim().toLowerCase();
-        var isMatchOther = (oStaffId === targetId) || (foundStaff && oStaffName === foundStaff.name.toLowerCase());
+        var isMatchOther = false;
+        if (foundStaff) {
+          isMatchOther = (oStaffName === foundStaff.name.toLowerCase()) || (oStaffId === foundStaff.id.toLowerCase());
+        } else {
+          isMatchOther = (oStaffName === targetQuery) || (oStaffId === targetQuery);
+        }
         
         if (isMatchOther && (oActive === "yes" || oActive === "true" || oActive === "")) {
-          if (!foundStaff && oRow[1]) {
-            staffName = oRow[1];
-          }
-          
           allOtherWorkList.push({
-            staffId: oRow[0] || "",
-            staffName: oRow[1] || "",
-            serviceType: oRow[2] || "",
-            customerName: oRow[3] || "",
-            customerNumber: (oRow[4] || "").toString(),
-            vehicleOrSite: oRow[5] || "",
-            photoUrl: oRow[6] || "",
-            address: oRow[7] || "",
-            googleMapsUrl: oRow[8] || "",
-            packageDetails: oRow[9] || "",
-            staffNotes: oRow[10] || "",
-            active: oRow[11] || "Yes"
+            staffId: staffId,
+            staffName: getVal(oRow, oMap, ["staffname", "staff"]) || staffName,
+            customerName: getVal(oRow, oMap, ["customername", "custname"]),
+            customerNumber: (getVal(oRow, oMap, ["customernumber", "custphone", "number", "phone", "mob"]) || "").toString(),
+            googleMapsUrl: getVal(oRow, oMap, ["googlemapsurl", "mapurl", "maps", "location"]),
+            photoUrl: getVal(oRow, oMap, ["vehiclesitephotourl", "photourl", "photo"]),
+            address: getVal(oRow, oMap, ["address"]),
+            serviceType: getVal(oRow, oMap, ["servicetypecarwashsolarcleaning", "servicetype"]),
+            vehicleOrSite: getVal(oRow, oMap, ["vehiclenumbersitename", "vehicleorsite", "vehicle"]),
+            packageDetails: getVal(oRow, oMap, ["packageservicedetails", "packagedetails"]),
+            staffNotes: getVal(oRow, oMap, ["staffnotesspecialinstructions", "staffnotes", "notes"]),
+            active: getVal(oRow, oMap, ["active", "status"]) || "Yes"
           });
         }
       }
@@ -388,7 +510,7 @@ function getStaffCustomerData(requestedStaffId) {
   }
   
   return {
-    staffId: requestedStaffId,
+    staffId: staffId,
     staffName: staffName,
     dailyClean: dailyCleanList,
     allOtherWork: allOtherWorkList,
@@ -398,7 +520,8 @@ function getStaffCustomerData(requestedStaffId) {
 
 /**
  * =========================================================================
- * ADMIN: SAVE CUSTOMER & UPLOAD PHOTO
+ * ADMIN: SAVE CUSTOMER (CUSTOMER-FIRST COLUMN ORDER)
+ * Saves directly into dynamic header positions.
  * =========================================================================
  */
 function saveCustomer(customerData) {
@@ -407,88 +530,62 @@ function saveCustomer(customerData) {
   }
   
   var ss = getSpreadsheet();
-  var sheetName = customerData.category === "other" ? "All Other Work" : "Daily Clean";
+  var sheetName = (customerData.category === "other" || customerData.sheetName === "All Other Work") ? "All Other Work" : "Daily Clean";
   var sheet = ss.getSheetByName(sheetName);
   
   if (!sheet) {
     throw new Error("Sheet '" + sheetName + "' was not found in the spreadsheet.");
   }
   
-  // 1. Handle Photo Upload to Google Drive if photo data exists
+  // 1. Direct Image URL (Uploaded via Cloudinary CDN)
   var photoUrl = (customerData.photoUrl || "").trim();
-  var photoObj = customerData.photoFile || customerData.photoData;
-  if (photoObj && photoObj.base64) {
-    try {
-      photoUrl = uploadPhotoToDrive(photoObj);
-    } catch (e) {
-      Logger.log("Drive upload failed: " + e.toString());
-      // continue without blocking record save
+
+  // 2. Prepare row according to dynamic header mapping
+  var headerMap = getHeaderIndexMap(sheet);
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) lastCol = (sheetName === "Daily Clean" ? 13 : 11);
+  var newRow = new Array(lastCol).fill("");
+  
+  function setCol(aliases, val) {
+    for (var i = 0; i < aliases.length; i++) {
+      var key = aliases[i].toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (headerMap[key] !== undefined) {
+        newRow[headerMap[key]] = val;
+        return;
+      }
     }
   }
   
-  // 2. Prepare row according to EXACT sheet column specifications
-  var newRow = [];
+  var custNum = customerData.customerNumber ? "'" + customerData.customerNumber : "";
   
   if (sheetName === "Daily Clean") {
-    // 14 Columns:
-    // 1. Staff ID
-    // 2. Staff Name
-    // 3. Customer Name
-    // 4. Customer Number
-    // 5. Package Type
-    // 6. Packages Purchased
-    // 7. Vehicle Number(s) / Model(s)
-    // 8. Customer / Vehicle Photo URL
-    // 9. Address
-    // 10. Google Maps URL
-    // 11. Secondary Address (if any)
-    // 12. Secondary Maps URL
-    // 13. Staff Notes / Cleaning Instructions
-    // 14. Active
-    newRow = [
-      customerData.staffId || "",
-      customerData.staffName || "",
-      customerData.customerName || "",
-      customerData.customerNumber ? "'" + customerData.customerNumber : "",
-      customerData.packageType || "",
-      customerData.packagesPurchased || "1",
-      customerData.vehicleNumbers || "",
-      photoUrl,
-      customerData.address || "",
-      customerData.googleMapsUrl || "",
-      customerData.secondaryAddress || "",
-      customerData.secondaryMapsUrl || "",
-      customerData.staffNotes || "",
-      customerData.active || "Yes"
-    ];
+    setCol(["customername", "custname"], customerData.customerName || "");
+    setCol(["customernumber", "custphone", "number", "phone", "mob"], custNum);
+    setCol(["googlemapsurl", "mapurl", "maps", "location"], customerData.googleMapsUrl || "");
+    setCol(["customervehiclephotourl", "photourl", "photo"], photoUrl);
+    setCol(["address"], customerData.address || "");
+    setCol(["vehiclenumbersmodels", "vehiclenumbers", "vehicle"], customerData.vehicleNumbers || "");
+    setCol(["packagetype", "pkgtype"], customerData.packageType || "Daily Clean");
+    setCol(["packagespurchased", "pkgcount"], customerData.packagesPurchased || "1");
+    setCol(["staffname", "staff"], customerData.staffName || "");
+    setCol(["staffnotescleaninginstructions", "staffnotes", "notes"], customerData.staffNotes || "");
+    setCol(["secondaryaddressifany", "secondaryaddress"], customerData.secondaryAddress || "");
+    setCol(["secondarymapsurl"], customerData.secondaryMapsUrl || "");
+    setCol(["active", "status"], customerData.active || "Yes");
+    setCol(["staffid", "id"], customerData.staffId || "");
   } else {
-    // All Other Work - 12 Columns:
-    // 1. Staff ID
-    // 2. Staff Name
-    // 3. Service Type (Car Wash / Solar Cleaning)
-    // 4. Customer Name
-    // 5. Customer Number
-    // 6. Vehicle Number / Site Name
-    // 7. Vehicle / Site Photo URL
-    // 8. Address
-    // 9. Google Maps URL
-    // 10. Package / Service Details
-    // 11. Staff Notes / Special Instructions
-    // 12. Active
-    newRow = [
-      customerData.staffId || "",
-      customerData.staffName || "",
-      customerData.serviceType || "",
-      customerData.customerName || "",
-      customerData.customerNumber ? "'" + customerData.customerNumber : "",
-      customerData.vehicleOrSite || "",
-      photoUrl,
-      customerData.address || "",
-      customerData.googleMapsUrl || "",
-      customerData.packageDetails || "",
-      customerData.staffNotes || "",
-      customerData.active || "Yes"
-    ];
+    setCol(["customername", "custname"], customerData.customerName || "");
+    setCol(["customernumber", "custphone", "number", "phone", "mob"], custNum);
+    setCol(["googlemapsurl", "mapurl", "maps", "location"], customerData.googleMapsUrl || "");
+    setCol(["vehiclesitephotourl", "photourl", "photo"], photoUrl);
+    setCol(["address"], customerData.address || "");
+    setCol(["servicetypecarwashsolarcleaning", "servicetype"], customerData.serviceType || "");
+    setCol(["vehiclenumbersitename", "vehicleorsite", "vehicle"], customerData.vehicleOrSite || "");
+    setCol(["packageservicedetails", "packagedetails"], customerData.packageDetails || "");
+    setCol(["staffname", "staff"], customerData.staffName || "");
+    setCol(["staffnotesspecialinstructions", "staffnotes", "notes"], customerData.staffNotes || "");
+    setCol(["active", "status"], customerData.active || "Yes");
+    setCol(["staffid", "id"], customerData.staffId || "");
   }
   
   sheet.appendRow(newRow);
@@ -501,40 +598,6 @@ function saveCustomer(customerData) {
 }
 
 /**
- * Uploads image directly to Google Drive folder and returns viewable URL
- */
-function uploadPhotoToDrive(fileObj) {
-  var folder;
-  var folderIterator = DriveApp.getFoldersByName(DRIVE_FOLDER_NAME);
-  
-  if (folderIterator.hasNext()) {
-    folder = folderIterator.next();
-  } else {
-    folder = DriveApp.createFolder(DRIVE_FOLDER_NAME);
-  }
-  
-  // Set folder public viewable for field staff access
-  try {
-    folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  } catch (e) {}
-  
-  var decoded = Utilities.base64Decode(fileObj.base64);
-  var mimeType = fileObj.mimeType || "image/jpeg";
-  var fileName = fileObj.fileName || ("cwp_photo_" + new Date().getTime() + ".jpg");
-  
-  var blob = Utilities.newBlob(decoded, mimeType, fileName);
-  var file = folder.createFile(blob);
-  
-  try {
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  } catch (e) {}
-  
-  var fileId = file.getId();
-  // Direct fast thumbnail / image URL from Google Drive
-  return "https://lh3.googleusercontent.com/d/" + fileId;
-}
-
-/**
  * =========================================================================
  * ADMIN: GET ALL CUSTOMERS & TOGGLE STATUS
  * =========================================================================
@@ -542,46 +605,33 @@ function uploadPhotoToDrive(fileObj) {
 function getAllCustomersForAdmin() {
   var ss = getSpreadsheet();
   var records = [];
+  var sheets = ["Daily Clean", "All Other Work"];
   
-  // Daily Clean
-  var dailySheet = ss.getSheetByName("Daily Clean");
-  if (dailySheet) {
-    var dData = dailySheet.getDataRange().getValues();
-    for (var i = 1; i < dData.length; i++) {
+  sheets.forEach(function(sheetName) {
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return;
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return;
+    
+    var hMap = getHeaderIndexMap(sheet);
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
       records.push({
-        sheetName: "Daily Clean",
+        sheetName: sheetName,
         rowIndex: i + 1,
-        staffId: dData[i][0],
-        staffName: dData[i][1],
-        customerName: dData[i][2],
-        customerNumber: dData[i][3],
-        vehicle: dData[i][6],
-        address: dData[i][8],
-        notes: dData[i][12],
-        active: (dData[i][13] || "Yes").toString()
+        staffId: getVal(row, hMap, ["staffid", "id"]) || "",
+        staffName: getVal(row, hMap, ["staffname", "staff"]),
+        customerName: getVal(row, hMap, ["customername", "custname"]),
+        customerNumber: (getVal(row, hMap, ["customernumber", "custphone", "number", "phone", "mob"]) || "").toString(),
+        googleMapsUrl: getVal(row, hMap, ["googlemapsurl", "mapurl", "maps", "location"]),
+        photoUrl: getVal(row, hMap, ["customervehiclephotourl", "vehiclesitephotourl", "photourl", "photo"]),
+        address: getVal(row, hMap, ["address"]),
+        vehicle: getVal(row, hMap, ["vehicle", "vehiclenumbersmodels", "vehiclenumbersitename"]),
+        notes: getVal(row, hMap, ["staffnotes", "notes"]),
+        active: (getVal(row, hMap, ["active", "status"]) || "Yes").toString()
       });
     }
-  }
-  
-  // All Other Work
-  var otherSheet = ss.getSheetByName("All Other Work");
-  if (otherSheet) {
-    var oData = otherSheet.getDataRange().getValues();
-    for (var j = 1; j < oData.length; j++) {
-      records.push({
-        sheetName: "All Other Work",
-        rowIndex: j + 1,
-        staffId: oData[j][0],
-        staffName: oData[j][1],
-        customerName: oData[j][3],
-        customerNumber: oData[j][4],
-        vehicle: oData[j][5],
-        address: oData[j][7],
-        notes: oData[j][10],
-        active: (oData[j][11] || "Yes").toString()
-      });
-    }
-  }
+  });
   
   return records;
 }
@@ -591,10 +641,139 @@ function toggleCustomerActive(sheetName, rowIndex, currentStatus) {
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) throw new Error("Sheet not found");
   
-  var colIndex = sheetName === "Daily Clean" ? 14 : 12;
+  var hMap = getHeaderIndexMap(sheet);
+  var activeColIdx = hMap["active"] !== undefined ? hMap["active"] : (hMap["status"] !== undefined ? hMap["status"] : -1);
+  var col1Based = activeColIdx >= 0 ? activeColIdx + 1 : (sheetName === "Daily Clean" ? 13 : 11);
   var newStatus = (currentStatus || "").toString().toLowerCase() === "yes" ? "No" : "Yes";
-  sheet.getRange(rowIndex, colIndex).setValue(newStatus);
+  sheet.getRange(rowIndex, col1Based).setValue(newStatus);
   return { success: true, newStatus: newStatus };
+}
+
+/**
+ * =========================================================================
+ * 1-CLICK MIGRATION: REORDER SHEET COLUMNS TO CUSTOMER-FIRST STRUCTURE
+ * Moves existing rows cleanly with zero data loss!
+ * Removes Staff ID column.
+ * Adds Google Sheets Data Validation dropdown on Staff Name.
+ * =========================================================================
+ */
+function reorderSheetToCustomerFirst() {
+  var ss = getSpreadsheet();
+  
+  // 1. Process "Daily Clean" Tab
+  var dailySheet = ss.getSheetByName("Daily Clean");
+  if (dailySheet) {
+    var dData = dailySheet.getDataRange().getValues();
+    if (dData.length > 0) {
+      var headerMap = getHeaderIndexMap(dailySheet);
+      var newHeaders = [
+        "Customer Name",
+        "Customer Number",
+        "Google Maps URL",
+        "Customer / Vehicle Photo URL",
+        "Address",
+        "Vehicle Number(s) / Model(s)",
+        "Package Type",
+        "Packages Purchased",
+        "Staff Name",
+        "Staff Notes / Cleaning Instructions",
+        "Secondary Address (if any)",
+        "Secondary Maps URL",
+        "Active"
+      ];
+      
+      var newRows = [newHeaders];
+      for (var r = 1; r < dData.length; r++) {
+        var row = dData[r];
+        newRows.push([
+          getVal(row, headerMap, ["customername", "custname"]),
+          getVal(row, headerMap, ["customernumber", "custphone", "number", "phone", "mob"]),
+          getVal(row, headerMap, ["googlemapsurl", "mapurl", "maps", "location"]),
+          getVal(row, headerMap, ["customervehiclephotourl", "photourl", "photo"]),
+          getVal(row, headerMap, ["address"]),
+          getVal(row, headerMap, ["vehiclenumbersmodels", "vehiclenumbers", "vehicle"]),
+          getVal(row, headerMap, ["packagetype", "pkgtype"]),
+          getVal(row, headerMap, ["packagespurchased", "pkgcount"]) || "1",
+          getVal(row, headerMap, ["staffname", "staff"]),
+          getVal(row, headerMap, ["staffnotescleaninginstructions", "staffnotes", "notes"]),
+          getVal(row, headerMap, ["secondaryaddressifany", "secondaryaddress"]),
+          getVal(row, headerMap, ["secondarymapsurl"]),
+          getVal(row, headerMap, ["active", "status"]) || "Yes"
+        ]);
+      }
+      
+      dailySheet.clearContents();
+      dailySheet.getRange(1, 1, newRows.length, newHeaders.length).setValues(newRows);
+      formatSheetHeaders(dailySheet, newHeaders.length);
+    }
+  }
+  
+  // 2. Process "All Other Work" Tab
+  var otherSheet = ss.getSheetByName("All Other Work");
+  if (otherSheet) {
+    var oData = otherSheet.getDataRange().getValues();
+    if (oData.length > 0) {
+      var oHeaderMap = getHeaderIndexMap(otherSheet);
+      var newOtherHeaders = [
+        "Customer Name",
+        "Customer Number",
+        "Google Maps URL",
+        "Vehicle / Site Photo URL",
+        "Address",
+        "Service Type (Car Wash / Solar Cleaning)",
+        "Vehicle Number / Site Name",
+        "Package / Service Details",
+        "Staff Name",
+        "Staff Notes / Special Instructions",
+        "Active"
+      ];
+      
+      var newOtherRows = [newOtherHeaders];
+      for (var or = 1; or < oData.length; or++) {
+        var oRow = oData[or];
+        newOtherRows.push([
+          getVal(oRow, oHeaderMap, ["customername", "custname"]),
+          getVal(oRow, oHeaderMap, ["customernumber", "custphone", "number", "phone", "mob"]),
+          getVal(oRow, oHeaderMap, ["googlemapsurl", "mapurl", "maps", "location"]),
+          getVal(oRow, oHeaderMap, ["vehiclesitephotourl", "photourl", "photo"]),
+          getVal(oRow, oHeaderMap, ["address"]),
+          getVal(oRow, oHeaderMap, ["servicetypecarwashsolarcleaning", "servicetype"]),
+          getVal(oRow, oHeaderMap, ["vehiclenumbersitename", "vehicleorsite", "vehicle"]),
+          getVal(oRow, oHeaderMap, ["packageservicedetails", "packagedetails"]),
+          getVal(oRow, oHeaderMap, ["staffname", "staff"]),
+          getVal(oRow, oHeaderMap, ["staffnotesspecialinstructions", "staffnotes", "notes"]),
+          getVal(oRow, oHeaderMap, ["active", "status"]) || "Yes"
+        ]);
+      }
+      
+      otherSheet.clearContents();
+      otherSheet.getRange(1, 1, newOtherRows.length, newOtherHeaders.length).setValues(newOtherRows);
+      formatSheetHeaders(otherSheet, newOtherHeaders.length);
+    }
+  }
+  
+  // 3. Apply Data Validation for Staff Name
+  syncStaffDropdownValidation();
+  
+  return {
+    success: true,
+    message: "शीट्स सफलतापूर्वक कस्टमर-फर्स्ट क्रम में व्यवस्थित हो गईं! (Customer Name, Mob, Location, Photo, Address are now first columns)."
+  };
+}
+
+/**
+ * Applies header styling and freezes row 1
+ */
+function formatSheetHeaders(sheet, colCount) {
+  try {
+    var headerRange = sheet.getRange(1, 1, 1, colCount);
+    headerRange.setBackground("#0f2942");
+    headerRange.setFontColor("#ffffff");
+    headerRange.setFontWeight("bold");
+    headerRange.setFontSize(10);
+    sheet.setRowHeight(1, 36);
+    sheet.setFrozenRows(1);
+  } catch (e) {}
 }
 
 /**
