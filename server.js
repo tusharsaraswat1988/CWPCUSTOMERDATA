@@ -4,14 +4,18 @@
  * CWP Detailers & Motors
  *
  * Hardened Security & Functional Architecture:
- * - Secure Server-Issued Admin & Staff Sessions with Expiry & Revocation
+ * - Secure Server-Issued Admin & Staff Sessions with 12-Hour TTL & Revocation
  * - Server-Side Authorization Enforcement on Every Admin Operation
  * - Strict Staff Data Isolation (No cross-staff data leakage)
- * - Salted SHA-256 PIN Hashing with Seamless Legacy Plaintext Migration
+ * - crypto.scrypt PIN Hashing with Backward Compatibility & Auto-Upgrade
+ * - Failed Login Rate Limiting (5 Attempts -> 5-Minute Cooldown, No Permanent Lockout)
+ * - Trusted Server-to-Server Service Key Authentication to Google Apps Script
+ * - Staff PIN Synchronization Protection (Never overwrite credentials with [PROTECTED])
+ * - Zero Default PINs (Explicit 6-Digit PIN Mandatory for New Staff)
+ * - No Plaintext Admin Password Storage (Hashed with scrypt locally)
  * - Explicit Service Category Mapping (Daily Car Cleaning / Car Washing / Solar Panel Cleaning)
  * - Sheet Update Integrity (No duplicate, orphaned, or auto-moved rows)
- * - Preserved Daily Clean Source Row Order
- * - Clear Data-Source Reliability & Fallback Feedback
+ * - Preserved Daily Clean Source Row Order & Dual Customer Locations
  *
  * Spreadsheet ID: 1IXs46tRE324YYgBBAKxD1aCCnYVzmqfX4jxCWvfiALY
  * Production Domain: cwpdata.up.railway.app
@@ -27,10 +31,11 @@ const cloudinary = require('cloudinary').v2;
 
 const PORT = process.env.PORT || 3000;
 const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyoDbQHE4LQgGOylM0IYatOCMiueKDVqeR8NdPAKj2hOt6fsp9Pb3B-lOxkRFaF8nUH/exec';
+const APPS_SCRIPT_SERVICE_KEY = process.env.APPS_SCRIPT_SERVICE_KEY || process.env.CWP_SERVICE_KEY || '';
 const DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN || 'cwpdata.up.railway.app';
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1IXs46tRE324YYgBBAKxD1aCCnYVzmqfX4jxCWvfiALY';
 
-const DATA_FILE = path.join(__dirname, 'local_data.json');
+let DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'local_data.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -99,16 +104,26 @@ function saveLocalUpload(photoObj) {
 
 /**
  * =========================================================================
- * SECURITY: PIN HASHING & PIN VERIFICATION (Salted SHA-256)
- * Format: sha256:16byte_hex_salt:64char_hex_hash
- * Fully compatible with Google Apps Script computeDigest(SHA_256)
- * Seamlessly handles migration from legacy plaintext 6-digit PINs.
+ * SECURITY: PIN HASHING & PIN VERIFICATION (crypto.scrypt with legacy migration)
+ * Primary Format: scrypt:16byte_hex_salt:64char_hex_hash
+ * Backward Compatible: sha256:16byte_hex_salt:64char_hex_hash and legacy 6-digit PIN
  * =========================================================================
  */
-function hashPin(pin, salt) {
+function hashPinScrypt(pin, salt) {
   if (!salt) salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.createHash('sha256').update(salt + ':' + pin).digest('hex');
+  const derivedKey = crypto.scryptSync(pin.toString().trim(), salt, 32, { N: 16384, r: 8, p: 1 });
+  return `scrypt:${salt}:${derivedKey.toString('hex')}`;
+}
+
+function hashPinSha256(pin, salt) {
+  if (!salt) salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.createHash('sha256').update(salt + ':' + pin.toString().trim()).digest('hex');
   return `sha256:${salt}:${hash}`;
+}
+
+// Default hash function uses scrypt
+function hashPin(pin, salt) {
+  return hashPinScrypt(pin, salt);
 }
 
 function verifyPin(inputPin, storedValue) {
@@ -116,36 +131,177 @@ function verifyPin(inputPin, storedValue) {
   const str = storedValue.toString().trim();
   const inputStr = inputPin.toString().trim();
 
-  // Migration path: legacy plaintext numeric PIN (e.g. "123456")
-  if (/^\d{4,8}$/.test(str)) {
-    return inputStr === str;
+  // 1. Scrypt format: scrypt:salt:hash
+  if (str.startsWith('scrypt:')) {
+    const parts = str.split(':');
+    if (parts.length === 3) {
+      const salt = parts[1];
+      const expectedHash = parts[2];
+      try {
+        const derived = crypto.scryptSync(inputStr, salt, 32, { N: 16384, r: 8, p: 1 });
+        const expectedBuf = Buffer.from(expectedHash, 'hex');
+        if (derived.length !== expectedBuf.length) return false;
+        return crypto.timingSafeEqual(derived, expectedBuf);
+      } catch (e) {
+        return false;
+      }
+    }
   }
 
-  // Salted SHA-256 hash
+  // 2. Salted SHA-256 hash: sha256:salt:hash
   if (str.startsWith('sha256:')) {
     const parts = str.split(':');
     if (parts.length === 3) {
       const salt = parts[1];
       const expectedHash = parts[2];
       const actualHash = crypto.createHash('sha256').update(salt + ':' + inputStr).digest('hex');
-      return actualHash === expectedHash;
+      const actualBuf = Buffer.from(actualHash, 'hex');
+      const expectedBuf = Buffer.from(expectedHash, 'hex');
+      if (actualBuf.length !== expectedBuf.length) return false;
+      return crypto.timingSafeEqual(actualBuf, expectedBuf);
     }
   }
+
+  // 3. Migration path: legacy plaintext numeric PIN (e.g. "123456")
+  if (/^\d{4,8}$/.test(str)) {
+    const inBuf = Buffer.from(inputStr);
+    const storedBuf = Buffer.from(str);
+    if (inBuf.length !== storedBuf.length) return false;
+    return crypto.timingSafeEqual(inBuf, storedBuf);
+  }
+
+  return false;
+}
+
+function needsRehash(storedValue) {
+  if (!storedValue || typeof storedValue !== 'string') return false;
+  return !storedValue.startsWith('scrypt:');
+}
+
+function isValidCredentialFormat(val) {
+  if (!val || typeof val !== 'string') return false;
+  const s = val.trim();
+  if (s.toUpperCase() === '[PROTECTED]') return false;
+  if (/^\d{6}$/.test(s)) return true;
+  if (s.startsWith('scrypt:') && s.split(':').length === 3) return true;
+  if (s.startsWith('sha256:') && s.split(':').length === 3) return true;
   return false;
 }
 
 /**
  * =========================================================================
- * SECURITY: SERVER-ISSUED SESSIONS (ADMIN & STAFF)
- * Tokens have 24-hour expiry, explicit revocation, and in-memory TTL store.
+ * SECURITY: ADMIN PASSWORD HASHING (scrypt - Never stored in plaintext)
+ * =========================================================================
+ */
+function hashPasswordScrypt(password, salt) {
+  if (!salt) salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = crypto.scryptSync(password.toString().trim(), salt, 32, { N: 16384, r: 8, p: 1 });
+  return `scrypt:${salt}:${derivedKey.toString('hex')}`;
+}
+
+function verifyPasswordScrypt(inputPassword, storedHash) {
+  if (!inputPassword || !storedHash) return false;
+  const parts = storedHash.toString().trim().split(':');
+  if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
+  const salt = parts[1];
+  const expectedHash = parts[2];
+  try {
+    const derived = crypto.scryptSync(inputPassword.toString().trim(), salt, 32, { N: 16384, r: 8, p: 1 });
+    const expectedBuf = Buffer.from(expectedHash, 'hex');
+    if (derived.length !== expectedBuf.length) return false;
+    return crypto.timingSafeEqual(derived, expectedBuf);
+  } catch (e) {
+    return false;
+  }
+}
+
+function verifyAdminPasswordNode(inputPass) {
+  if (!inputPass) return false;
+  const envPass = (process.env.ADMIN_PASSWORD || '').trim();
+  if (envPass) {
+    const inBuf = Buffer.from(inputPass.trim());
+    const envBuf = Buffer.from(envPass);
+    if (inBuf.length === envBuf.length && crypto.timingSafeEqual(inBuf, envBuf)) {
+      return true;
+    }
+  }
+  if (appState && appState.adminPasswordHash) {
+    return verifyPasswordScrypt(inputPass, appState.adminPasswordHash);
+  }
+  return false;
+}
+
+function hasAdminPasswordConfigured() {
+  if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.trim()) return true;
+  if (appState && appState.adminPasswordHash && appState.adminPasswordHash.trim()) return true;
+  return false;
+}
+
+/**
+ * =========================================================================
+ * SECURITY: LOGIN RATE LIMITING (Client IP + Staff Identifier)
+ * 5 failed attempts within 5 minutes trigger a 5-minute cooldown.
+ * Permanent lockouts are explicitly avoided for field staff accessibility.
+ * =========================================================================
+ */
+const failedLogins = new Map();
+const MAX_FAILED_ATTEMPTS = 5;
+const COOLDOWN_PERIOD_MS = 5 * 60 * 1000; // 5 minutes
+
+function checkRateLimit(clientIp, identifier) {
+  const key = `${clientIp}:${(identifier || '').toLowerCase()}`;
+  const now = Date.now();
+  const record = failedLogins.get(key);
+  if (!record) return { allowed: true };
+  if (record.lockedUntil && now < record.lockedUntil) {
+    const remainingSec = Math.ceil((record.lockedUntil - now) / 1000);
+    return {
+      allowed: false,
+      remainingSec: remainingSec,
+      error: `बहुत सारे गलत प्रयास। कृपया ${Math.ceil(remainingSec / 60)} मिनट बाद प्रयास करें। (Account temporarily locked for security)`
+    };
+  }
+  if (record.lockedUntil && now >= record.lockedUntil) {
+    failedLogins.delete(key);
+    return { allowed: true };
+  }
+  return { allowed: true };
+}
+
+function recordFailedLogin(clientIp, identifier) {
+  const key = `${clientIp}:${(identifier || '').toLowerCase()}`;
+  const now = Date.now();
+  const record = failedLogins.get(key) || { count: 0, firstFailAt: now };
+  if (now - record.firstFailAt > COOLDOWN_PERIOD_MS) {
+    record.count = 1;
+    record.firstFailAt = now;
+    record.lockedUntil = 0;
+  } else {
+    record.count++;
+  }
+  if (record.count >= MAX_FAILED_ATTEMPTS) {
+    record.lockedUntil = now + COOLDOWN_PERIOD_MS;
+  }
+  failedLogins.set(key, record);
+}
+
+function clearRateLimit(clientIp, identifier) {
+  const key = `${clientIp}:${(identifier || '').toLowerCase()}`;
+  failedLogins.delete(key);
+}
+
+/**
+ * =========================================================================
+ * SECURITY: SERVER-ISSUED SESSIONS (ADMIN & STAFF) - 12-Hour TTL
+ * Tokens have 12-hour expiry, explicit revocation, and in-memory TTL store.
  * =========================================================================
  */
 const adminSessions = new Map(); // token -> { createdAt, expiresAt }
 const staffSessions = new Map(); // token -> { staffId, staffName, createdAt, expiresAt }
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours (Documented Consistent TTL)
 
 function createAdminSession() {
-  const token = 'adm_' + crypto.randomBytes(24).toString('hex');
+  const token = 'adm_' + crypto.randomBytes(32).toString('hex');
   adminSessions.set(token, {
     createdAt: Date.now(),
     expiresAt: Date.now() + SESSION_TTL_MS
@@ -169,7 +325,7 @@ function revokeAdminSession(token) {
 }
 
 function createStaffSession(staffId, staffName) {
-  const token = 'stf_' + crypto.randomBytes(24).toString('hex');
+  const token = 'stf_' + crypto.randomBytes(32).toString('hex');
   staffSessions.set(token, {
     staffId: staffId,
     staffName: staffName,
@@ -203,15 +359,17 @@ function revokeAllStaffSessionsForId(staffId) {
   }
 }
 
+/**
+ * Extracts authorization token strictly from Bearer headers or POST JSON body.
+ * Tokens from URL query strings are explicitly rejected to prevent leakage.
+ */
 function extractAuthToken(req, payload) {
   const authHeader = req.headers['authorization'] || '';
   if (authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7).trim();
   }
-  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const qToken = parsedUrl.searchParams.get('token') || parsedUrl.searchParams.get('adminToken') || parsedUrl.searchParams.get('staffToken');
-  if (qToken) return qToken.trim();
-  if (payload) {
+  // URL query tokens are rejected. Only secure POST payload is accepted as fallback.
+  if (payload && typeof payload === 'object') {
     return (payload.token || payload.adminToken || payload.staffToken || '').trim();
   }
   return '';
@@ -220,14 +378,11 @@ function extractAuthToken(req, payload) {
 /**
  * =========================================================================
  * LOCAL STATE & SECURE INITIALIZATION
- * Plaintext PINs are automatically upgraded to salted SHA-256 on load.
+ * Plaintext passwords and PINs are strictly eliminated.
  * =========================================================================
  */
 let appState = {
-  staffList: [
-    { id: 'STF01', name: 'Chandan Soni', phone: '9919856161', pin: '123456', active: true },
-    { id: 'STF02', name: 'Taufiq Ahmed', phone: '8081913264', pin: '654321', active: true }
-  ],
+  staffList: [],
   customers: []
 };
 
@@ -235,68 +390,64 @@ function saveLocalData(data) {
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (err) {
-    console.error('Error writing local_data.json:', err.message);
+    console.error('Error writing local data file:', err.message);
   }
 }
 
-if (fs.existsSync(DATA_FILE)) {
-  try {
-    const loaded = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    if (loaded && Array.isArray(loaded.staffList) && loaded.staffList.length > 0) {
-      const filtered = loaded.staffList.filter(s => {
-        if (!s || !s.name) return false;
-        if (/^\d+$/.test(s.name.toString().trim()) || s.name.toString().trim().length < 2) return false;
-        if (!/^STF\d+/i.test((s.id || '').toString().trim())) return false;
-        return true;
-      });
-      if (filtered.length > 0) {
+function loadLocalData() {
+  if (fs.existsSync(DATA_FILE)) {
+    try {
+      const loaded = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+      if (loaded && Array.isArray(loaded.staffList)) {
+        const filtered = loaded.staffList.filter(s => {
+          if (!s || !s.name) return false;
+          if (/^\d+$/.test(s.name.toString().trim()) || s.name.toString().trim().length < 2) return false;
+          if (!/^STF\d+/i.test((s.id || '').toString().trim())) return false;
+          return true;
+        });
         appState.staffList = filtered;
       }
+      if (loaded && Array.isArray(loaded.customers)) {
+        appState.customers = loaded.customers;
+      }
+      // Upgrade any legacy plaintext adminPassword to scrypt hash immediately
+      if (loaded && loaded.adminPassword) {
+        if (!loaded.adminPasswordHash) {
+          appState.adminPasswordHash = hashPasswordScrypt(loaded.adminPassword);
+        }
+        delete loaded.adminPassword;
+        saveLocalData(loaded);
+        console.log('[Security] Legacy plaintext adminPassword removed from storage and migrated to scrypt hash.');
+      } else if (loaded && loaded.adminPasswordHash) {
+        appState.adminPasswordHash = loaded.adminPasswordHash;
+      }
+    } catch (e) {
+      console.error('Error reading local data file:', e);
     }
-    if (loaded && Array.isArray(loaded.customers)) {
-      appState.customers = loaded.customers;
-    }
-    if (loaded && loaded.adminPassword) {
-      appState.adminPassword = loaded.adminPassword;
-    }
-  } catch (e) {
-    console.error('Error reading local_data.json:', e);
   }
 }
 
-// Automatic Startup Migration: upgrade any legacy plaintext PINs to salted SHA-256
+loadLocalData();
+
+// Automatic Startup Migration: upgrade legacy plaintext PINs to scrypt
 (function migratePlaintextPins() {
   let migrated = false;
   if (appState && Array.isArray(appState.staffList)) {
     appState.staffList.forEach(s => {
       if (s && s.pin && /^\d{4,8}$/.test(s.pin.toString().trim())) {
-        s.pin = hashPin(s.pin.toString().trim());
+        s.pin = hashPinScrypt(s.pin.toString().trim());
         migrated = true;
       }
     });
   }
   if (migrated) {
     saveLocalData(appState);
-    console.log('[Security] Legacy plaintext staff PINs migrated to salted SHA-256 hashes.');
+    console.log('[Security] Legacy plaintext staff PINs migrated to scrypt hashes.');
   }
 })();
 
 /**
- * Returns Admin Password.
- * Default production credentials have been strictly removed.
- */
-function getAdminPassword() {
-  if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.trim()) {
-    return process.env.ADMIN_PASSWORD.trim();
-  }
-  if (appState && appState.adminPassword && appState.adminPassword.trim()) {
-    return appState.adminPassword.trim();
-  }
-  return '';
-}
-
-/**
- * Sanitizes staff list for public / staff use (Removes PIN completely)
+ * Sanitizes staff list for public / staff use (Removes PIN and Phone completely)
  */
 function sanitizeStaffForPublic(staff) {
   return {
@@ -307,7 +458,7 @@ function sanitizeStaffForPublic(staff) {
 }
 
 /**
- * Sanitizes staff list for admin use (Removes plaintext PIN, returns hasPin indicator)
+ * Sanitizes staff list for admin use (Removes plaintext PIN/hash, returns hasPin indicator)
  */
 function sanitizeStaffForAdmin(staff) {
   return {
@@ -315,12 +466,15 @@ function sanitizeStaffForAdmin(staff) {
     name: staff.name,
     phone: staff.phone || '',
     active: staff.active !== undefined ? staff.active : true,
-    hasPin: !!staff.pin
+    hasPin: !!(staff.pin && isValidCredentialFormat(staff.pin))
   };
 }
 
 /**
- * Merges remote staff list safely and hashes any plaintext PINs
+ * Merges remote staff list safely without credential corruption.
+ * - [PROTECTED] string NEVER overwrites existing local PIN hash.
+ * - Blank remote PIN NEVER overwrites existing PIN hash.
+ * - Zero default PINs assigned: never falls back to 123456.
  */
 function mergeStaffList(remoteList) {
   if (!Array.isArray(remoteList) || remoteList.length === 0) return;
@@ -345,9 +499,18 @@ function mergeStaffList(remoteList) {
       (loc.name && loc.name.trim().toLowerCase() === rName)
     );
 
-    let rawPin = rem.pin || (idx >= 0 ? appState.staffList[idx].pin : '');
-    if (rawPin && /^\d{4,8}$/.test(rawPin.toString().trim())) {
-      rawPin = hashPin(rawPin.toString().trim());
+    const existingPin = idx >= 0 ? (appState.staffList[idx].pin || '') : '';
+    let incomingPin = (rem.pin || '').toString().trim();
+
+    let finalPin = '';
+    // P0 Fix: Ignore [PROTECTED] and blank PINs. Never overwrite valid hash with [PROTECTED].
+    if (incomingPin && incomingPin.toUpperCase() !== '[PROTECTED]' && isValidCredentialFormat(incomingPin)) {
+      finalPin = /^\d{6}$/.test(incomingPin) ? hashPinScrypt(incomingPin) : incomingPin;
+    } else if (existingPin && isValidCredentialFormat(existingPin)) {
+      finalPin = existingPin;
+    } else {
+      // P1 Fix: Default PIN '123456' removed. Leave empty rather than insecure default.
+      finalPin = '';
     }
 
     if (idx >= 0) {
@@ -356,7 +519,7 @@ function mergeStaffList(remoteList) {
         id: loc.id || rem.id || ('STF0' + (idx + 1)),
         name: rem.name || loc.name,
         phone: rem.phone || loc.phone || '',
-        pin: rawPin || loc.pin || hashPin('123456'),
+        pin: finalPin,
         active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : (loc.active !== undefined ? loc.active : true)
       };
     } else {
@@ -364,7 +527,7 @@ function mergeStaffList(remoteList) {
         id: rem.id || ('STF' + String(appState.staffList.length + 1).padStart(2, '0')),
         name: rem.name,
         phone: rem.phone || '',
-        pin: rawPin || hashPin('123456'),
+        pin: finalPin,
         active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : true
       });
     }
@@ -377,6 +540,10 @@ function mergeStaffList(remoteList) {
  * Fetches live staff from Google Sheet Visualization API (Tab: Staff)
  */
 async function syncLiveStaffFromGoogle() {
+  if (process.env.DISABLE_LIVE_SHEETS === 'true') {
+    return appState.staffList;
+  }
+
   const ssId = SPREADSHEET_ID;
   
   try {
@@ -436,18 +603,20 @@ async function syncLiveStaffFromGoogle() {
   return appState.staffList;
 }
 
-setTimeout(() => {
-  syncLiveStaffFromGoogle().catch(() => {});
-}, 1000);
+if (process.env.DISABLE_LIVE_SHEETS !== 'true') {
+  setTimeout(() => {
+    syncLiveStaffFromGoogle().catch(() => {});
+  }, 1000);
 
-setInterval(() => {
-  syncLiveStaffFromGoogle().catch(() => {});
-}, 180000);
+  setInterval(() => {
+    syncLiveStaffFromGoogle().catch(() => {});
+  }, 180000);
+}
 
 /**
  * =========================================================================
- * CATEGORY CLASSIFICATION (EXPLICIT SERVICE TYPE MAPPING)
- * Categories (Exactly 3):
+ * CATEGORY CLASSIFICATION (EXPLICIT SERVICE TYPE MAPPING - EXACTLY 3)
+ * Categories:
  * 1. Daily Car Cleaning
  * 2. Car Washing
  * 3. Solar Panel Cleaning
@@ -520,11 +689,6 @@ function classifyServiceCategory(sheetName, serviceType, packageType, packageDet
   // If the sheet is 'All Other Work' (which holds car washing and solar):
   // Since solar was already checked and false, unknown work in 'All Other Work'
   // maps safely to 'Car Washing' — NEVER into 'Daily Car Cleaning'!
-  if (sName.includes('other')) {
-    return 'Car Washing';
-  }
-
-  // Safe default: 'Car Washing' as the general ad-hoc service, NEVER 'Daily Car Cleaning'
   return 'Car Washing';
 }
 
@@ -544,6 +708,15 @@ let lastDataSource = 'local_fallback';
 let lastSyncTimestamp = null;
 
 async function fetchAllLiveCustomers() {
+  if (process.env.DISABLE_LIVE_SHEETS === 'true') {
+    return {
+      records: appState.customers || [],
+      dataSource: 'local_fallback',
+      isLive: false,
+      lastSync: new Date().toISOString()
+    };
+  }
+
   const ssId = SPREADSHEET_ID;
   const sheets = ['Daily Clean', 'All Other Work'];
   const allRecords = [];
@@ -636,7 +809,7 @@ async function fetchAllLiveCustomers() {
     const records = [...allRecords];
     if (appState.customers && appState.customers.length > 0) {
       for (const lc of appState.customers) {
-        if (!records.some(r => (r.phone && r.phone === lc.phone) && (r.name && r.name === lc.name))) {
+        if (!records.some(r => (r.customerNumber && r.customerNumber === lc.customerNumber) && (r.customerName && r.customerName === lc.customerName))) {
           records.unshift(lc);
         }
       }
@@ -649,7 +822,7 @@ async function fetchAllLiveCustomers() {
     };
   }
 
-  // Fallback to Apps Script proxy
+  // Fallback to Apps Script proxy with service key
   try {
     const gasRes = await forwardToGoogleAppsScript({ action: 'getAllCustomers' });
     if (Array.isArray(gasRes) && gasRes.length > 0) {
@@ -784,13 +957,24 @@ function formatStaffDataResponse(staffId, fetchResult) {
 }
 
 /**
- * Proxy API request directly to Google Apps Script Web App
+ * Proxy API request to Google Apps Script Web App using trusted service credential.
+ * Service credential is never sent to the browser or returned in API responses.
  */
 async function forwardToGoogleAppsScript(payload) {
+  if (!APPS_SCRIPT_URL) {
+    throw new Error('APPS_SCRIPT_URL is not configured.');
+  }
+
+  const serviceKey = process.env.APPS_SCRIPT_SERVICE_KEY || process.env.CWP_SERVICE_KEY || '';
+  const bodyPayload = Object.assign({}, payload);
+  if (serviceKey) {
+    bodyPayload.serviceKey = serviceKey;
+  }
+
   const response = await fetch(APPS_SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(bodyPayload),
     redirect: 'follow',
     signal: AbortSignal.timeout(8000)
   });
@@ -826,13 +1010,15 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // Health check endpoint for Railway monitoring
+  // Health check endpoint for Railway monitoring (Secrets are never exposed)
   if (pathname === '/health' || pathname === '/ping') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
       status: 'ok',
       service: 'cwp-staff-viewer',
       domain: DOMAIN,
+      adminConfigured: hasAdminPasswordConfigured(),
+      serviceKeyConfigured: !!(process.env.APPS_SCRIPT_SERVICE_KEY || process.env.CWP_SERVICE_KEY),
       cloudinary: isCloudinaryConfigured(),
       lastDataSource: lastDataSource,
       time: new Date().toISOString()
@@ -877,7 +1063,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // GET /api/staff - Sanitized, PIN exposure strictly removed
+  // GET /api/staff - Sanitized (Public list has NO PIN and NO PHONE numbers)
   if (req.method === 'GET' && pathname === '/api/staff') {
     const token = extractAuthToken(req, null);
     const isAdmin = isValidAdminSession(token);
@@ -888,7 +1074,7 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify(sanitized));
   }
 
-  // GET /api/staff-data - Requires valid Staff Session or Admin Session
+  // GET /api/staff-data - Requires valid Staff Session or Admin Session (Query token rejected!)
   if (req.method === 'GET' && pathname === '/api/staff-data') {
     const token = extractAuthToken(req, null);
     const staffSess = getValidStaffSession(token);
@@ -951,10 +1137,28 @@ const server = http.createServer(async (req, res) => {
         // 1. Admin Authentication Handler
         if (payload.action === 'verifyAdminPassword') {
           const inputPass = (payload.password || '').trim();
-          const configuredPass = getAdminPassword();
+          if (!inputPass) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'कृपया एडमिन पासवर्ड दर्ज करें।'
+            }));
+          }
 
-          if (!configuredPass) {
-            // Check Google Apps Script properties if local env variable is not set
+          // Check if password matches configured environment variable or local scrypt hash
+          const isMatch = verifyAdminPasswordNode(inputPass);
+          if (isMatch) {
+            const sessionToken = createAdminSession();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: true,
+              token: sessionToken,
+              expiresIn: SESSION_TTL_MS / 1000
+            }));
+          }
+
+          // If no local password is configured at all, check Google Apps Script via service key
+          if (!hasAdminPasswordConfigured()) {
             try {
               const gasRes = await forwardToGoogleAppsScript(payload);
               if (gasRes && gasRes.success) {
@@ -963,7 +1167,7 @@ const server = http.createServer(async (req, res) => {
                 return res.end(JSON.stringify({
                   success: true,
                   token: sessionToken,
-                  expiresIn: 86400
+                  expiresIn: SESSION_TTL_MS / 1000
                 }));
               }
             } catch (e) {}
@@ -975,30 +1179,6 @@ const server = http.createServer(async (req, res) => {
             }));
           }
 
-          if (inputPass === configuredPass) {
-            const sessionToken = createAdminSession();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
-              success: true,
-              token: sessionToken,
-              expiresIn: 86400
-            }));
-          }
-
-          // Check GAS fallback
-          try {
-            const gasRes = await forwardToGoogleAppsScript(payload);
-            if (gasRes && gasRes.success) {
-              const sessionToken = createAdminSession();
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({
-                success: true,
-                token: sessionToken,
-                expiresIn: 86400
-              }));
-            }
-          } catch (e) {}
-
           res.writeHead(401, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: false,
@@ -1006,7 +1186,7 @@ const server = http.createServer(async (req, res) => {
           }));
         }
 
-        // 2. Admin Logout / Revocation
+        // 2. Admin Logout / Explicit Token Revocation
         if (payload.action === 'logoutAdmin') {
           revokeAdminSession(token);
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1015,10 +1195,24 @@ const server = http.createServer(async (req, res) => {
 
         // 3. Staff Verification & Session Issuance (Supports Registered Phone + 6-Digit PIN)
         if (payload.action === 'verifyStaffPin') {
+          const clientIp = req.socket.remoteAddress || 'unknown';
           const rawPhone = (payload.phone || payload.mobile || payload.staffPhone || '').toString().replace(/[^0-9]/g, '');
           const cleanPhone = rawPhone.length === 10 ? rawPhone : (rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone);
           const staffId = (payload.staffId || '').toString().trim();
           const pin = (payload.pin || '').toString().trim();
+
+          const rateKey = cleanPhone || staffId;
+
+          // Check Rate Limiting
+          const rateCheck = checkRateLimit(clientIp, rateKey);
+          if (!rateCheck.allowed) {
+            res.writeHead(429, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              rateLimited: true,
+              error: rateCheck.error
+            }));
+          }
 
           if ((!cleanPhone && !staffId) || !pin) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1059,8 +1253,9 @@ const server = http.createServer(async (req, res) => {
           }
 
           if (!staff) {
+            recordFailedLogin(clientIp, rateKey);
             res.writeHead(404, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'यह मोबाइल नंबर स्टाफ लिस्ट में पंजीकृत नहीं मिला।' }));
+            return res.end(JSON.stringify({ success: false, error: 'यह मोबाइल नंबर या स्टाफ आईडी पंजीकृत नहीं मिला।' }));
           }
 
           const isActive = staff.active !== undefined ? (staff.active === true || staff.active === 'Yes' || staff.active === 'yes' || staff.active === 'Active') : true;
@@ -1069,14 +1264,21 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, inactive: true, error: 'आपका स्टाफ अकाउंट निष्क्रिय (Inactive) कर दिया गया है। कृपया अपने एडमिन से संपर्क करें।' }));
           }
 
+          if (!staff.pin || !isValidCredentialFormat(staff.pin)) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'इस स्टाफ अकाउंट के लिए पिन सेट नहीं है। कृपया एडमिन से संपर्क करें।' }));
+          }
+
           const isPinValid = verifyPin(pin, staff.pin);
 
           if (isPinValid) {
-            // Migration: Upgrade legacy plaintext PIN to salted SHA-256 hash immediately
-            if (/^\d{4,8}$/.test((staff.pin || '').toString().trim())) {
-              staff.pin = hashPin(pin);
+            clearRateLimit(clientIp, rateKey);
+
+            // Migration: Upgrade legacy plaintext or SHA-256 PIN to scrypt immediately
+            if (needsRehash(staff.pin)) {
+              staff.pin = hashPinScrypt(pin);
               saveLocalData(appState);
-              console.log(`[Security] Plaintext PIN for staff ${staff.id} upgraded to salted SHA-256 hash.`);
+              console.log(`[Security] Plaintext/SHA-256 PIN for staff ${staff.id} upgraded to scrypt hash.`);
             }
 
             const staffToken = createStaffSession(staff.id, staff.name);
@@ -1094,6 +1296,7 @@ const server = http.createServer(async (req, res) => {
             try {
               const gasRes = await forwardToGoogleAppsScript(payload);
               if (gasRes && gasRes.success) {
+                clearRateLimit(clientIp, rateKey);
                 const staffToken = createStaffSession(gasRes.staffId || staff.id, gasRes.staffName || staff.name);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({
@@ -1107,12 +1310,13 @@ const server = http.createServer(async (req, res) => {
               }
             } catch (e) {}
 
+            recordFailedLogin(clientIp, rateKey);
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'गलत 6-डिजिट पासवर्ड! कृपया सही पिन दर्ज करें।' }));
           }
         }
 
-        // 4. Staff Logout / Revocation
+        // 4. Staff Logout / Explicit Token Revocation
         if (payload.action === 'logoutStaff') {
           revokeStaffSession(token);
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1219,7 +1423,7 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify(fetchResult.records || []));
         }
 
-        // Admin: Reset Staff PIN
+        // Admin: Reset Staff PIN (Requires valid 6-digit numeric PIN, revokes existing sessions)
         if (payload.action === 'resetStaffPin') {
           const staffId = (payload.staffId || '').trim();
           const newPin = (payload.newPin || '').trim();
@@ -1240,7 +1444,7 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Staff member not found.' }));
           }
 
-          staff.pin = hashPin(newPin);
+          staff.pin = hashPinScrypt(newPin);
           saveLocalData(appState);
           revokeAllStaffSessionsForId(staff.id);
 
@@ -1255,11 +1459,11 @@ const server = http.createServer(async (req, res) => {
           }));
         }
 
-        // Admin: Save New Staff Member (Hashes PIN before saving)
+        // Admin: Save New Staff Member (P1 Fix: No default PIN 123456)
         if (payload.action === 'saveStaffMember') {
           const sData = payload.staffData || {};
           const name = (sData.name || payload.name || '').trim();
-          let id = (sData.id || payload.id || '').trim();
+          let id = (sData.id || payload.id || '').trim().toUpperCase();
           const phone = (sData.phone || payload.phone || '').trim();
           const rawPin = (sData.pin || payload.pin || '').toString().trim();
           const active = sData.active !== undefined ? (sData.active === true || sData.active === 'true' || sData.active === 'Yes' || sData.active === 'yes') : true;
@@ -1269,24 +1473,34 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Staff name is required.' }));
           }
 
-          if (!id) {
-            id = 'STF' + String((appState.staffList || []).length + 1).padStart(2, '0');
-          }
-
           if (!appState.staffList) appState.staffList = [];
-          const idx = appState.staffList.findIndex(s => (s.id || '').toLowerCase() === id.toLowerCase() || (s.name || '').toLowerCase() === name.toLowerCase());
+          const idx = appState.staffList.findIndex(s => 
+            (s.id || '').toUpperCase() === id || 
+            (s.name || '').toLowerCase() === name.toLowerCase()
+          );
+
+          if (!id) {
+            id = 'STF' + String(appState.staffList.length + 1).padStart(2, '0');
+          }
 
           let pinToStore = '';
           if (rawPin) {
-            if (!/^\d{6}$/.test(rawPin)) {
+            if (rawPin.toUpperCase() === '[PROTECTED]') {
+              if (idx >= 0) pinToStore = appState.staffList[idx].pin || '';
+            } else if (rawPin.startsWith('scrypt:') || rawPin.startsWith('sha256:')) {
+              pinToStore = rawPin;
+            } else if (/^\d{6}$/.test(rawPin)) {
+              pinToStore = hashPinScrypt(rawPin);
+            } else {
               res.writeHead(400, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Staff PIN must be exactly 6 numeric digits.' }));
             }
-            pinToStore = hashPin(rawPin);
           } else if (idx >= 0 && appState.staffList[idx].pin) {
             pinToStore = appState.staffList[idx].pin;
           } else {
-            pinToStore = hashPin('123456');
+            // New staff member with no PIN: Require explicit 6-digit PIN. Never default to 123456!
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'नया स्टाफ बनाने के लिए 6-अंकों का पिन अनिवार्य है। (PIN is required for new staff)' }));
           }
 
           const newObj = { id, name, phone, pin: pinToStore, active };
@@ -1351,24 +1565,39 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ success: true, staffList: sanitizedList }));
         }
 
-        // Admin: Update Admin Password
+        // Admin: Update Admin Password (P1 Fix: Forward to Apps Script, fail closed if GAS fails, never store plaintext)
         if (payload.action === 'updateAdminPassword') {
           const newPass = (payload.newPassword || '').trim();
           if (!newPass || newPass.length < 6) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'Admin password must be at least 6 characters.' }));
           }
-          appState.adminPassword = newPass;
-          saveLocalData(appState);
 
+          // Forward to Google Apps Script first
           try {
             const gasRes = await forwardToGoogleAppsScript(payload);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(gasRes));
-          } catch (e) {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: true, message: 'एडमिन पासवर्ड स्थानीय रूप से सफलतापूर्वक अपडेट हो गया!' }));
+            if (!gasRes || gasRes.error || gasRes.success === false) {
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: 'Failed to update admin password in Google Apps Script: ' + (gasRes ? gasRes.error : 'No response')
+              }));
+            }
+          } catch (gasErr) {
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Google Apps Script में एडमिन पासवर्ड अपडेट नहीं हो सका: ' + gasErr.message
+            }));
           }
+
+          // Hash with scrypt and save (Plaintext is NEVER stored or logged!)
+          appState.adminPasswordHash = hashPasswordScrypt(newPass);
+          delete appState.adminPassword;
+          saveLocalData(appState);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, message: 'एडमिन पासवर्ड सुरक्षित रूप से सफलतापूर्वक अपडेट हो गया!' }));
         }
 
         // Admin: Save Customer
@@ -1409,7 +1638,7 @@ const server = http.createServer(async (req, res) => {
             responseData = { success: true, message: 'Customer saved locally to ' + cust.sheetName };
           }
           if (!appState.customers) appState.customers = [];
-          const existingIdx = appState.customers.findIndex(c => c.phone === cust.phone && c.name === cust.name);
+          const existingIdx = appState.customers.findIndex(c => c.customerNumber === cust.customerNumber && c.customerName === cust.customerName);
           if (existingIdx >= 0) {
             appState.customers[existingIdx] = Object.assign({}, appState.customers[existingIdx], cust);
           } else {
@@ -1536,7 +1765,7 @@ const server = http.createServer(async (req, res) => {
     } else if (isAdminRoute || adminParam !== null) {
       initialMode = 'admin';
     } else {
-      initialMode = 'staff'; // Default root domain/ opens staff portal for field staff simplicity
+      initialMode = 'staff';
     }
 
     content = content.replace(/<\?=\s*typeof\s+initialStaffId\s*!==\s*'undefined'\s*\?\s*initialStaffId\s*:\s*''\s*\?>/g, staffParam);
@@ -1551,14 +1780,52 @@ const server = http.createServer(async (req, res) => {
   res.end('Index.html not found');
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`=======================================================`);
-  console.log(`🚗 CWP Detailers & Motors - Staff Information Viewer`);
-  console.log(`=======================================================`);
-  console.log(`✔ Hardened Security & Functional Architecture Active`);
-  console.log(`✔ Server Running on PORT: ${PORT}`);
-  console.log(`✔ Production Domain: https://${DOMAIN}`);
-  console.log(`✔ Cloudinary Status: ${isCloudinaryConfigured() ? 'Connected' : 'Pending Environment Variables'}`);
-  console.log(`✔ Admin Password: ${getAdminPassword() ? 'Configured' : 'NOT CONFIGURED (Must set ADMIN_PASSWORD)'}`);
-  console.log(`=======================================================`);
-});
+if (require.main === module) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`=======================================================`);
+    console.log(`🚗 CWP Detailers & Motors - Staff Information Viewer`);
+    console.log(`=======================================================`);
+    console.log(`✔ Hardened Security & Functional Architecture Active`);
+    console.log(`✔ Server Running on PORT: ${PORT}`);
+    console.log(`✔ Production Domain: https://${DOMAIN}`);
+    console.log(`✔ Cloudinary Status: ${isCloudinaryConfigured() ? 'Connected' : 'Pending Environment Variables'}`);
+    console.log(`✔ Admin Password: ${hasAdminPasswordConfigured() ? 'Configured' : 'NOT CONFIGURED (Must set ADMIN_PASSWORD)'}`);
+    console.log(`=======================================================`);
+  });
+}
+
+module.exports = {
+  server,
+  classifyServiceCategory,
+  isActiveStatus,
+  formatStaffDataResponse,
+  hashPin,
+  hashPinScrypt,
+  hashPinSha256,
+  verifyPin,
+  needsRehash,
+  hashPasswordScrypt,
+  verifyPasswordScrypt,
+  verifyAdminPasswordNode,
+  hasAdminPasswordConfigured,
+  createAdminSession,
+  isValidAdminSession,
+  revokeAdminSession,
+  createStaffSession,
+  getValidStaffSession,
+  revokeStaffSession,
+  revokeAllStaffSessionsForId,
+  sanitizeStaffForPublic,
+  sanitizeStaffForAdmin,
+  mergeStaffList,
+  isValidCredentialFormat,
+  checkRateLimit,
+  recordFailedLogin,
+  clearRateLimit,
+  SESSION_TTL_MS,
+  getAppState: () => appState,
+  setAppState: (st) => { appState = st; },
+  setDataFile: (df) => { DATA_FILE = df; },
+  saveLocalData,
+  loadLocalData
+};
