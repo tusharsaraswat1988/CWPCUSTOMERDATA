@@ -2080,7 +2080,7 @@
       
       <!-- Center: Admin App Title -->
       <div class="header-center">
-        <h1 class="header-app-title" id="pageMainTitle">Admin App</h1>
+        <h1 class="header-app-title" id="pageMainTitle">एडमिन पोर्टल</h1>
       </div>
 
       <!-- Right: Controls -->
@@ -2845,7 +2845,7 @@
   <!-- =====================================================================
        CLIENT APPLICATION LOGIC
        Strictly adhering to Apps Script preprocessor rules:
-       - ZERO inline `//` comments in `<script>` tags
+       - ZERO inline `//` comments in script blocks
        - Escaped forward slashes in URLs
        ===================================================================== -->
   <script>
@@ -2943,7 +2943,7 @@
         if (adminEl) adminEl.style.display = 'block';
         if (staffControls) staffControls.style.display = 'none';
         if (adminControls) adminControls.style.display = 'flex';
-        if (titleEl) titleEl.textContent = 'Admin App';
+        if (titleEl) titleEl.textContent = 'एडमिन पोर्टल';
         checkAdminAuthStatus();
       }
     }
