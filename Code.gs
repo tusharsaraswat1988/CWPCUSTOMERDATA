@@ -533,34 +533,32 @@ function clearInvalidDropdowns() {
   try {
     var ss = getSpreadsheet();
     var sheets = ["Daily Clean", "All Other Work"];
-    var textAliases = [
-      "address", "secondaryaddress", "secondaryaddressifany",
-      "custname", "customername",
-      "custphone", "customernumber", "number", "phone", "mob",
-      "mapurl", "googlemapsurl", "maps", "location", "secondarymapsurl",
-      "photo", "customervehiclephotourl", "vehiclesitephotourl",
-      "vehicle", "vehiclenumbersmodels", "vehiclenumbersitename",
-      "notes", "staffnotes", "staffnotescleaninginstructions"
-    ];
     
     sheets.forEach(function(sheetName) {
       var sheet = ss.getSheetByName(sheetName);
       if (!sheet) return;
-      var hMap = getHeaderIndexMap(sheet);
+      var lastCol = sheet.getLastColumn();
+      if (lastCol < 1) return;
       var maxRows = Math.max(sheet.getMaxRows(), 100);
+      var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
       
-      textAliases.forEach(function(alias) {
-        if (hMap[alias] !== undefined) {
+      for (var c = 0; c < headers.length; c++) {
+        var hText = (headers[c] || "").toString().toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+        var isStaff = hText.indexOf("staffname") >= 0 || (hText.indexOf("staff") >= 0 && hText.indexOf("notes") === -1 && hText.indexOf("id") === -1);
+        var isPkgType = hText.indexOf("packagetype") >= 0 || hText.indexOf("servicetype") >= 0;
+        
+        // Clear data validation on ANY column that is NOT Staff Name and NOT Package Type
+        if (!isStaff && !isPkgType) {
           try {
-            sheet.getRange(2, hMap[alias] + 1, maxRows - 1, 1).clearDataValidations();
+            sheet.getRange(2, c + 1, maxRows - 1, 1).clearDataValidations();
           } catch (e) {}
         }
-      });
+      }
     });
     
     // Re-apply staff and package validations properly
     syncStaffDropdownValidation();
-    return { success: true, message: "Address और अन्य टेक्स्ट कॉलम्स से ड्रॉपडाउन सफलतापूर्वक हटा दिया गया है।" };
+    return { success: true, message: "Packages Purchased, Address और सभी गैर-स्टाफ कॉलम्स से अवैध ड्रॉपडाउन हटा दिया गया है।" };
   } catch (err) {
     return { error: err.toString() };
   }
@@ -574,30 +572,26 @@ function syncStaffDropdownValidation() {
     
     var sheets = ["Daily Clean", "All Other Work"];
     
-    // 1. First ensure all TEXT columns (Address, Customer Name, Mobile, etc.) have NO dropdowns
-    var textAliases = [
-      "address", "secondaryaddress", "secondaryaddressifany",
-      "custname", "customername",
-      "custphone", "customernumber", "number", "phone", "mob",
-      "mapurl", "googlemapsurl", "maps", "location", "secondarymapsurl",
-      "photo", "customervehiclephotourl", "vehiclesitephotourl",
-      "vehicle", "vehiclenumbersmodels", "vehiclenumbersitename",
-      "notes", "staffnotes", "staffnotescleaninginstructions"
-    ];
-    
+    // 1. Clear Data Validation on all columns except Staff Name and Package Type
     sheets.forEach(function(sheetName) {
       var sheet = ss.getSheetByName(sheetName);
       if (!sheet) return;
-      var hMap = getHeaderIndexMap(sheet);
+      var lastCol = sheet.getLastColumn();
+      if (lastCol < 1) return;
       var maxRows = Math.max(sheet.getMaxRows(), 100);
+      var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
       
-      textAliases.forEach(function(alias) {
-        if (hMap[alias] !== undefined) {
+      for (var c = 0; c < headers.length; c++) {
+        var hText = (headers[c] || "").toString().toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+        var isStaff = hText.indexOf("staffname") >= 0 || (hText.indexOf("staff") >= 0 && hText.indexOf("notes") === -1 && hText.indexOf("id") === -1);
+        var isPkgType = hText.indexOf("packagetype") >= 0 || hText.indexOf("servicetype") >= 0;
+        
+        if (!isStaff && !isPkgType) {
           try {
-            sheet.getRange(2, hMap[alias] + 1, maxRows - 1, 1).clearDataValidations();
+            sheet.getRange(2, c + 1, maxRows - 1, 1).clearDataValidations();
           } catch (e) {}
         }
-      });
+      }
     });
 
     // 2. Apply Data Validation ONLY on Staff Name column
