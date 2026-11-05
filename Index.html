@@ -49,6 +49,12 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    html, body {
+      overflow-x: hidden;
+      max-width: 100%;
+      width: 100%;
+    }
+
     body {
       font-family: 'Poppins', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg-page);
@@ -1296,6 +1302,19 @@
       box-sizing: border-box;
     }
 
+    .btn-addr-view {
+      background: #f8fafc;
+      color: #334155;
+      border-color: #cbd5e1;
+    }
+
+    .btn-addr-view:hover {
+      background: #eff6ff;
+      color: var(--brand-blue);
+      border-color: #bfdbfe;
+      transform: translateY(-0.5px);
+    }
+
     .btn-photo-view {
       background: #eff6ff;
       color: var(--brand-blue);
@@ -2365,13 +2384,13 @@
               <thead>
                 <tr>
                   <th style="width: 4.5%; text-align: center;">क्र. सं.</th>
-                  <th style="width: 18%;">ग्राहक का नाम</th>
-                  <th style="width: 21%;">पता</th>
-                  <th style="width: 14.5%;">गाड़ी नंबर</th>
+                  <th style="width: 22%;">ग्राहक का नाम</th>
+                  <th style="width: 9.5%; text-align: center;">पता</th>
+                  <th style="width: 16%;">गाड़ी नंबर</th>
                   <th style="width: 10%; text-align: center;">फोटो</th>
                   <th style="width: 10%; text-align: center;">मैप लोकेशन</th>
-                  <th style="width: 13%; text-align: center;">असाइन स्टाफ</th>
-                  <th style="width: 9%; text-align: center;">एक्शन</th>
+                  <th style="width: 16%; text-align: center;">असाइन स्टाफ</th>
+                  <th style="width: 12%; text-align: center;">एक्शन</th>
                 </tr>
               </thead>
               <tbody id="adminRecordsTableBody">
@@ -2407,6 +2426,50 @@
       </div>
       <div class="image-modal-body">
         <img id="imageModalImg" src="" alt="Customer Vehicle Photo">
+      </div>
+    </div>
+  </div>
+
+  <!-- View Customer Address Modal (Compact & Clear popup) -->
+  <div id="addressViewModal" class="image-modal-overlay" onclick="closeAddressModal()" style="display: none; align-items: center; justify-content: center; z-index: 1050;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 460px; width: 92%;">
+      <div class="modal-card-header">
+        <h3 class="modal-card-title">📍 ग्राहक का पता (Customer Address)</h3>
+        <button type="button" class="modal-close-x" onclick="closeAddressModal()" title="बंद करें (ESC)">✕</button>
+      </div>
+      <div style="padding: 18px 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">ग्राहक</div>
+            <div id="addrModalCustName" style="font-size: 15px; font-weight: 700; color: #0f172a;">-</div>
+          </div>
+          <div id="addrModalPhoneWrapper" style="text-align: right;">
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">मोबाइल</div>
+            <a id="addrModalPhoneLink" href="#" style="font-size: 13px; font-weight: 600; color: var(--brand-blue); text-decoration: none;">-</a>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 11.5px; font-weight: 700; color: #475569; display: block; margin-bottom: 5px;">मुख्य पता (Primary Address):</label>
+          <div id="addrModalPrimary" style="font-size: 13.5px; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; line-height: 1.5; word-break: break-word;">-</div>
+        </div>
+
+        <div id="addrModalSecWrapper" style="display: none; margin-bottom: 14px;">
+          <label style="font-size: 11.5px; font-weight: 700; color: #475569; display: block; margin-bottom: 5px;">द्वितीय पता (Secondary Address):</label>
+          <div id="addrModalSecondary" style="font-size: 13px; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; line-height: 1.5; word-break: break-word;">-</div>
+        </div>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 18px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
+          <a id="addrModalMapLink" href="" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" style="display: none; padding: 7px 12px; font-size: 12px; width: auto;" title="गूगल मैप्स में लोकेशन देखें">
+            <span>🗺️ मैप पर देखें ↗</span>
+          </a>
+          <button type="button" class="btn-cell-action" onclick="copyAddressText()" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 7px 14px; font-size: 12px; width: auto;" title="पता क्लिपबोर्ड पर कॉपी करें">
+            <span>📋 कॉपी करें</span>
+          </button>
+          <button type="button" class="btn-primary-smart" onclick="closeAddressModal()" style="padding: 7px 18px; font-size: 12px; width: auto;">
+            ✕ बंद करें
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -3320,7 +3383,11 @@
       showToast('स्टेटस बदला जा रहा है...', '⏳');
       apiCall('toggleStaffActive', { staffId: staffId, active: newStatus }, function(res) {
         showToast('स्टाफ ' + actWord + ' कर दिया गया!', '✓');
-        loadStaffListForAdmin();
+        if (res && res.staffList) {
+          populateAdminStaffList(res.staffList);
+        } else {
+          loadStaffListForAdmin();
+        }
       }, function(err) {
         showToast('त्रुटि: ' + (err.message || err), '❌');
       });
@@ -3393,7 +3460,11 @@
         }
         closeEditStaffModal();
         showToast('स्टाफ प्रोफाइल अपडेट हो गई!', '✓');
-        loadStaffListForAdmin();
+        if (res && res.staffList) {
+          populateAdminStaffList(res.staffList);
+        } else {
+          loadStaffListForAdmin();
+        }
       }, function(err) {
         if (btn) {
           btn.disabled = false;
@@ -3458,7 +3529,11 @@
         if (pinInput) pinInput.value = '123456';
         if (idEl) idEl.value = '';
         showToast('स्टाफ "' + name + '" सफलतापूर्वक जोड़ा गया!', '✓');
-        loadStaffListForAdmin();
+        if (res && res.staffList) {
+          populateAdminStaffList(res.staffList);
+        } else {
+          loadStaffListForAdmin();
+        }
       }, function(err) {
         showToast('त्रुटि: ' + (err.message || err), '❌');
       });
@@ -3466,9 +3541,13 @@
 
     function handleDeleteStaff(id) {
       if (!confirm('क्या आप सच में इस स्टाफ को हटाना चाहते हैं?')) return;
-      apiCall('deleteStaffMember', { id: id }, function() {
+      apiCall('deleteStaffMember', { id: id }, function(res) {
         showToast('स्टाफ हटा दिया गया', '✓');
-        loadStaffListForAdmin();
+        if (res && res.staffList) {
+          populateAdminStaffList(res.staffList);
+        } else {
+          loadStaffListForAdmin();
+        }
       }, function(err) {
         showToast('त्रुटि: ' + (err.message || err), '❌');
       });
@@ -3848,17 +3927,16 @@
           '<span class="cust-sheet-tag ' + (r.sheetName === 'Daily Clean' ? 'tag-daily' : 'tag-other') + '">' + escapeHtml(r.sheetName || 'Daily Clean') + '</span>' +
         '</div>';
 
-        /* 2. Address Cell (Address + Secondary Address) */
+        /* 2. Address Cell (Compact View Button or Dash) */
         var addrText = (r.address || '').trim();
         var secAddrText = (r.secondaryAddress || '').trim();
-        var addrHtml = '<div class="cust-address-cell">';
-        if (addrText) {
-          addrHtml += '<span title="' + escapeHtml(addrText) + '">' + escapeHtml(addrText) + '</span>';
+        var addrHtml = '<div style="text-align: center;">';
+        if (addrText || secAddrText) {
+          addrHtml += '<button type="button" class="btn-cell-action btn-addr-view" onclick="openAddressModal(' + origIndex + ')" title="पता देखने के लिए क्लिक करें">' +
+            '<span>📍 पता देखें</span>' +
+          '</button>';
         } else {
           addrHtml += '<span class="cell-empty-dash">—</span>';
-        }
-        if (secAddrText) {
-          addrHtml += '<div style="margin-top: 2px; font-size: 10px; color: var(--text-muted);" title="' + escapeHtml(secAddrText) + '">📍 ' + escapeHtml(secAddrText) + '</div>';
         }
         addrHtml += '</div>';
 
@@ -3915,7 +3993,7 @@
         html += '<tr>';
         html += '  <td style="text-align: center;"><span class="sno-badge">' + sNo + '</span></td>';
         html += '  <td>' + custHtml + '</td>';
-        html += '  <td>' + addrHtml + '</td>';
+        html += '  <td style="text-align: center;">' + addrHtml + '</td>';
         html += '  <td>' + carHtml + '</td>';
         html += '  <td style="text-align: center;">' + photoHtml + '</td>';
         html += '  <td style="text-align: center;">' + mapHtml + '</td>';
@@ -4100,9 +4178,93 @@
       document.body.style.overflow = '';
     }
 
+    /* Customer Address Modal Logic */
+    function openAddressModal(index) {
+      var r = state.adminRecords && state.adminRecords[index];
+      if (!r) return;
+
+      var custName = r.customerName || 'अज्ञात ग्राहक';
+      var custPhone = r.customerNumber || '';
+      var primaryAddr = (r.address || '').trim() || 'कोई मुख्य पता दर्ज नहीं है।';
+      var secAddr = (r.secondaryAddress || '').trim();
+      var mapsUrl = (r.googleMapsUrl || '').trim();
+
+      var nameEl = document.getElementById('addrModalCustName');
+      var phoneLink = document.getElementById('addrModalPhoneLink');
+      var phoneWrapper = document.getElementById('addrModalPhoneWrapper');
+      var primaryEl = document.getElementById('addrModalPrimary');
+      var secEl = document.getElementById('addrModalSecondary');
+      var secWrapper = document.getElementById('addrModalSecWrapper');
+      var mapLink = document.getElementById('addrModalMapLink');
+      var modal = document.getElementById('addressViewModal');
+
+      if (nameEl) nameEl.textContent = custName;
+      if (phoneLink && phoneWrapper) {
+        if (custPhone) {
+          phoneWrapper.style.display = 'block';
+          phoneLink.textContent = '📞 ' + custPhone;
+          phoneLink.href = 'tel:' + custPhone;
+        } else {
+          phoneWrapper.style.display = 'none';
+        }
+      }
+      if (primaryEl) primaryEl.textContent = primaryAddr;
+      if (secEl && secWrapper) {
+        if (secAddr) {
+          secWrapper.style.display = 'block';
+          secEl.textContent = secAddr;
+        } else {
+          secWrapper.style.display = 'none';
+        }
+      }
+      if (mapLink) {
+        if (mapsUrl) {
+          mapLink.style.display = 'inline-flex';
+          mapLink.href = mapsUrl;
+        } else {
+          mapLink.style.display = 'none';
+        }
+      }
+
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeAddressModal() {
+      var modal = document.getElementById('addressViewModal');
+      if (modal) modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function copyAddressText() {
+      var primary = document.getElementById('addrModalPrimary') ? document.getElementById('addrModalPrimary').textContent : '';
+      var secWrapper = document.getElementById('addrModalSecWrapper');
+      var sec = document.getElementById('addrModalSecondary') ? document.getElementById('addrModalSecondary').textContent : '';
+      var fullText = primary;
+      if (secWrapper && secWrapper.style.display !== 'none' && sec) {
+        fullText += '\n' + sec;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(fullText).then(function() {
+          showToast('पता कॉपी कर लिया गया!', '✓');
+        }).catch(function() {
+          showToast('पता कॉपी नहीं हो सका', '❌');
+        });
+      } else {
+        showToast('कॉपी सपोर्ट उपलब्ध नहीं है', 'ℹ️');
+      }
+    }
+
     /* Global Keyboard Listener: ESC key closes any open modal */
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' || e.keyCode === 27) {
+        var addrModal = document.getElementById('addressViewModal');
+        if (addrModal && addrModal.style.display === 'flex') {
+          closeAddressModal();
+          return;
+        }
         var imgModal = document.getElementById('imageModal');
         if (imgModal && (imgModal.classList.contains('open') || imgModal.style.display === 'flex')) {
           closeImageModal();
