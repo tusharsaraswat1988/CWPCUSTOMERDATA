@@ -1268,13 +1268,18 @@
 
                 <div class="form-row-2">
                   <div class="form-group">
-                    <label class="form-label">पैकेज का प्रकार (Package Type)</label>
-                    <select id="custPkgType" class="form-select">
-                      <option value="Daily Clean">Daily Clean</option>
-                      <option value="Ceramic Maintenance">Ceramic Maintenance</option>
-                      <option value="Full Detail Subscription">Full Detail Subscription</option>
-                      <option value="Custom Daily">Custom Daily</option>
+                    <label class="form-label">पैकेज का प्रकार (Package Type) *</label>
+                    <select id="custPkgType" class="form-select" onchange="handlePackageTypeChange(this.value)" required>
+                      <option value="DCC ONLY">DCC ONLY</option>
+                      <option value="DCC SILVER">DCC SILVER</option>
+                      <option value="DCC GOLD">DCC GOLD</option>
+                      <option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>
+                      <option value="CAR WASH SINGLE">CAR WASH SINGLE</option>
+                      <option value="SOLAR SINGLE">SOLAR SINGLE</option>
+                      <option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>
+                      <option value="OTHER">OTHER</option>
                     </select>
+                    <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="अन्य पैकेज विवरण..." style="display: none; margin-top: 6px;">
                   </div>
 
                   <div class="form-group">
@@ -1288,8 +1293,18 @@
               <div id="otherFieldsBlock" style="display: none;">
                 <div class="form-row-2">
                   <div class="form-group">
-                    <label class="form-label">सर्विस का प्रकार (Service Type)</label>
-                    <input type="text" id="custServiceType" class="form-input" placeholder="उदा. Solar Panel / PPF Maintenance">
+                    <label class="form-label">पैकेज / सर्विस का प्रकार (Package Type)</label>
+                    <select id="custOtherPkgType" class="form-select" onchange="handleOtherPackageTypeChange(this.value)">
+                      <option value="SOLAR SINGLE">SOLAR SINGLE</option>
+                      <option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>
+                      <option value="CAR WASH SINGLE">CAR WASH SINGLE</option>
+                      <option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>
+                      <option value="DCC ONLY">DCC ONLY</option>
+                      <option value="DCC SILVER">DCC SILVER</option>
+                      <option value="DCC GOLD">DCC GOLD</option>
+                      <option value="OTHER">OTHER</option>
+                    </select>
+                    <input type="text" id="custOtherCustom" class="form-input" placeholder="अन्य सर्विस विवरण..." style="display: none; margin-top: 6px;">
                   </div>
                   <div class="form-group">
                     <label class="form-label">गाड़ी / साइट का नाम (Vehicle / Site)</label>
@@ -1841,13 +1856,14 @@
         html += '    <span class="badge-pkg-purchased">' + escapeHtml(pkgPurchased) + ' पैकेज</span>';
         html += '  </div>';
 
-        /* Line 2: Vehicle Tag + Service Type */
+        /* Line 2: Vehicle Tag + Service / Package Type */
+        var pkgLabel = item.packageType || item.serviceType || (isDaily ? 'दैनिक सफाई' : 'अन्य कार्य');
         html += '  <div class="card-vehicle-line">';
         html += '    <div class="vehicle-tag">';
         html += '      <span class="vehicle-icon">' + (isDaily ? '🚘' : '🔧') + '</span>';
         html += '      <span>' + escapeHtml(vehicles) + '</span>';
         html += '    </div>';
-        html += '    <span class="service-tag">' + (isDaily ? 'दैनिक सफाई' : 'अन्य कार्य') + '</span>';
+        html += '    <span class="service-tag">' + escapeHtml(pkgLabel) + '</span>';
         html += '  </div>';
 
         /* Line 3: Conditional 1-Package Multiple Cars Rotation Strip */
@@ -2114,6 +2130,16 @@
       document.getElementById('otherFieldsBlock').style.display = isDaily ? 'none' : 'block';
     }
 
+    function handlePackageTypeChange(val) {
+      var customInput = document.getElementById('custPkgTypeCustom');
+      if (customInput) customInput.style.display = (val === 'OTHER') ? 'block' : 'none';
+    }
+
+    function handleOtherPackageTypeChange(val) {
+      var customInput = document.getElementById('custOtherCustom');
+      if (customInput) customInput.style.display = (val === 'OTHER') ? 'block' : 'none';
+    }
+
     function appendVehicleText(str) {
       var el = document.getElementById('custVehicles');
       el.value = (el.value || '') + str;
@@ -2197,13 +2223,25 @@
       };
 
       if (isDaily) {
-        customerData.packageType = document.getElementById('custPkgType').value;
+        var pkgVal = document.getElementById('custPkgType').value;
+        if (pkgVal === 'OTHER') {
+          var custOther = document.getElementById('custPkgTypeCustom').value.trim();
+          if (custOther) pkgVal = 'OTHER (' + custOther + ')';
+        }
+        customerData.packageType = pkgVal;
         customerData.packagesPurchased = document.getElementById('custPkgCount').value;
         customerData.vehicleNumbers = document.getElementById('custVehicles').value.trim();
         customerData.secondaryAddress = document.getElementById('custSecAddress').value.trim();
         customerData.secondaryMapsUrl = document.getElementById('custSecMaps').value.trim();
       } else {
-        customerData.serviceType = document.getElementById('custServiceType').value.trim();
+        var otherPkgVal = document.getElementById('custOtherPkgType') ? document.getElementById('custOtherPkgType').value : 'OTHER';
+        if (otherPkgVal === 'OTHER') {
+          var custOtherVal = document.getElementById('custOtherCustom') ? document.getElementById('custOtherCustom').value.trim() : '';
+          if (custOtherVal) otherPkgVal = 'OTHER (' + custOtherVal + ')';
+        }
+        customerData.packageType = otherPkgVal;
+        customerData.serviceType = otherPkgVal;
+        customerData.packageDetails = otherPkgVal;
         customerData.vehicleOrSite = document.getElementById('custOtherVehicle').value.trim();
       }
 
