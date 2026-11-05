@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/test_hardening_qa.js && node tests/test_photo_crop_rotation.js"
+    "test": "node tests/test_hardening_qa.js && node tests/test_photo_crop_rotation.js && node tests/test_form_ux_phone_qa.js && node tests/test_regression_p2_3.js"
   },
   "keywords": [
     "cwp",

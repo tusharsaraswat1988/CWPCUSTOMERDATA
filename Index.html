@@ -1611,7 +1611,9 @@
       font-size: 13.5px;
       font-family: inherit;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-height: 42px;
+      box-sizing: border-box;
     }
 
     .form-input:focus, .form-select:focus, .form-textarea:focus {
@@ -1627,7 +1629,7 @@
     .form-row-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 12px;
     }
 
     /* Integrated Input Addon (e.g. GPS button) */
@@ -1661,10 +1663,247 @@
       white-space: nowrap;
       transition: all 0.15s ease;
       font-family: inherit;
+      min-height: 42px;
+      box-sizing: border-box;
     }
 
     .form-addon-btn:hover {
       background: #dbeafe;
+    }
+
+    /* Indian Mobile Number Input with Visual Country Code Prefix (Task P2.3) */
+    .cwp-phone-group {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+      position: relative;
+    }
+
+    .cwp-phone-prefix {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-right: none;
+      border-top-left-radius: var(--radius-sm);
+      border-bottom-left-radius: var(--radius-sm);
+      padding: 0 10px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #1e293b;
+      user-select: none;
+      flex-shrink: 0;
+      min-height: 42px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .cwp-phone-prefix .phone-flag {
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .cwp-phone-input {
+      border-top-left-radius: 0 !important;
+      border-bottom-left-radius: 0 !important;
+      flex: 1;
+      min-width: 0;
+      min-height: 42px;
+      box-sizing: border-box;
+      letter-spacing: 0.3px;
+    }
+
+    .cwp-phone-group:focus-within .cwp-phone-prefix {
+      border-color: var(--brand-blue);
+    }
+
+    .cwp-phone-input.is-invalid {
+      border-color: var(--danger-red) !important;
+      background: var(--danger-red-light);
+    }
+
+    /* Compact Customer Form (Task P2.3) */
+    .cwp-compact-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .cwp-form-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .cwp-form-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .cwp-form-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--brand-navy);
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .btn-back-compact {
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-back-compact:hover {
+      background: #e2e8f0;
+    }
+
+    .form-section-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0 6px 0;
+      border-bottom: 1px solid #f1f5f9;
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+
+    .section-num-pill {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--brand-blue-light);
+      color: var(--brand-blue);
+      font-size: 11.5px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .section-title-text {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--brand-navy);
+      letter-spacing: -0.2px;
+    }
+
+    .form-textarea-compact {
+      min-height: 52px;
+      height: 52px;
+      resize: vertical;
+      line-height: 1.4;
+    }
+
+    .optional-tools-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+      margin-bottom: 4px;
+    }
+
+    .btn-optional-tool {
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      color: #475569;
+      border-radius: var(--radius-sm);
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      font-family: inherit;
+      min-height: 38px;
+      box-sizing: border-box;
+    }
+
+    .btn-optional-tool:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      color: var(--text-primary);
+    }
+
+    .btn-optional-tool.active {
+      background: var(--brand-blue-light);
+      border-style: solid;
+      border-color: var(--brand-blue-border);
+      color: var(--brand-blue);
+    }
+
+    .collapsible-panel {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      box-sizing: border-box;
+    }
+
+    .photo-upload-compact-zone {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .upload-preview-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+
+    .quick-chips-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .chip-btn-mini {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      border-radius: 20px;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .chip-btn-mini:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .form-actions-bar {
+      margin-top: 10px;
     }
 
     /* Photo Upload Box */
@@ -1716,6 +1955,8 @@
 
     .btn-submit-main {
       width: 100%;
+      min-height: 46px;
+      box-sizing: border-box;
       background: var(--brand-blue);
       color: #ffffff;
       border: none;
@@ -3787,7 +4028,10 @@
                 <div class="auth-input-icon">
                   <span>📱</span>
                 </div>
-                <input type="tel" id="staffPhoneInput" class="auth-field-input" placeholder="पंजीकृत मोबाइल नंबर (10 अंक)..." maxlength="10" pattern="[0-9]{10}" inputmode="numeric" autocomplete="tel" required>
+                <div class="cwp-phone-group" style="flex: 1;">
+                  <span class="cwp-phone-prefix" style="background: #ffffff; border-color: var(--border-color);" title="भारत (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+                  <input type="tel" id="staffPhoneInput" class="auth-field-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
+                </div>
               </div>
 
               <!-- 6-Digit PIN Input -->
@@ -4003,27 +4247,19 @@
           </div>
         </div>
 
-      <!-- Admin Tab 1: Add Customer Form (Customer-First Organization) -->
+      <!-- Admin Tab 1: Compact Add Customer Form (Task P2.3) -->
       <div id="adminTabAddCust" class="admin-tab-pane" style="display: none;">
         <div class="admin-card-section">
           <!-- Top Return Navigation Strip -->
-          <div class="cwp-form-nav-bar">
-            <button type="button" class="btn-admin-action btn-back-to-records" onclick="switchAdminTab('records')">
-              <span style="font-size: 15px;">←</span> <strong>वापस एक्टिव ग्राहक सूची देखें (Back to Active List)</strong>
-            </button>
-            <div class="cwp-form-nav-hint">
-              💡 फॉर्म सेव करने के बाद डेटा सीधे एक्टिव ग्राहक सूची में जुड़ जाएगा
-            </div>
-          </div>
-
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <h2 class="admin-card-title" style="margin-bottom: 0;">👤 नया ग्राहक जोड़ें (Add Customer)</h2>
+          <div class="cwp-form-header-bar">
+            <div class="cwp-form-title-wrap">
+              <button type="button" class="btn-back-compact" onclick="switchAdminTab('records')" title="वापस एक्टिव ग्राहक सूची देखें">
+                <span>←</span> <strong>वापस रिकॉर्ड्स</strong>
+              </button>
+              <h2 class="cwp-form-title">👤 नया ग्राहक जोड़ें (Add Customer)</h2>
               <div id="custDraftBadge" class="cwp-draft-badge" style="display: none;"></div>
             </div>
-            <span class="admin-pill-badge" style="background: var(--call-green-light); color: var(--call-green); border-color: var(--call-green-border);">✓ Customer-First Layout</span>
           </div>
-          <p class="admin-card-desc">सर्वप्रथम ग्राहक की पहचान (नाम, मोबाइल, मैप लोकेशन, फोटो, पता) दर्ज करें, उसके बाद गाड़ी और स्टाफ निर्देश।</p>
 
           <!-- Auto-Draft Restoration Banner -->
           <div id="custDraftRestoreBanner" class="cwp-draft-banner" style="display: none;">
@@ -4044,145 +4280,155 @@
             </div>
           </div>
 
-          <form id="addCustomerForm" onsubmit="handleCustomerSubmit(event)">
+          <form id="addCustomerForm" onsubmit="handleCustomerSubmit(event)" class="cwp-compact-form">
             
-            <!-- SECTION 1: PRIMARY CUSTOMER IDENTIFIERS (Columns 1 to 5) -->
-            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
-              <div style="font-size: 13.5px; font-weight: 600; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                <span>👤</span> 1. ग्राहक विवरण (Customer Information)
-              </div>
+            <!-- SECTION 1: CUSTOMER DETAILS -->
+            <div class="form-section-head">
+              <span class="section-num-pill">1</span>
+              <span class="section-title-text">ग्राहक विवरण (Customer Details)</span>
+            </div>
 
-              <!-- Customer Name & Mobile -->
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label class="form-label">ग्राहक का नाम (Customer Name) *</label>
-                  <input type="text" id="custName" class="form-input" placeholder="उदा. श्रेयांश जैन" required>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">मोबाइल नंबर (Mobile) *</label>
-                  <input type="tel" id="custPhone" class="form-input" placeholder="10 डिजिट मोबाइल नंबर" maxlength="10" required>
-                </div>
-              </div>
-
-              <!-- Location & GPS -->
+            <!-- Customer Name & Mobile (Two Column on Desktop) -->
+            <div class="form-row-2">
               <div class="form-group">
-                <label class="form-label">गूगल मैप्स लोकेशन (Google Maps Link / Plus Code)</label>
-                <div class="form-input-addon-group">
-                  <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F) या Coordinates">
-                  <button type="button" class="form-addon-btn" onclick="detectGpsLocation()">📍 GPS</button>
-                </div>
+                <label class="form-label" for="custName">ग्राहक का नाम *</label>
+                <input type="text" id="custName" class="form-input" placeholder="उदा. श्रेयांश जैन" required>
               </div>
 
-              <!-- Photo Upload directly from Camera / File with Crop & Rotation -->
               <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                  <label class="form-label" style="margin-bottom: 0;">ग्राहक / गाड़ी की फोटो (Photo Upload - Direct)</label>
-                  <span style="font-size: 11px; color: var(--brand-blue); font-weight: 600;">✨ क्रॉप और सीधा (Rotate) करने की सुविधा</span>
+                <label class="form-label" for="custPhone">मोबाइल नंबर *</label>
+                <div class="cwp-phone-group">
+                  <span class="cwp-phone-prefix" title="भारत (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+                  <input type="tel" id="custPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
                 </div>
-                <div class="upload-dropzone" id="custPhotoDropzone" onclick="triggerCustPhotoSelect()">
-                  <div id="custPhotoPlaceholder">
-                    <div style="font-size: 22px;">📸</div>
-                    <div style="font-size: 12px; font-weight: 600; color: var(--brand-blue); margin-top: 4px;">फोटो चुनें या कैमरा से खींचे</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">JPG, PNG • फोटो चुनने पर क्रॉप और रोटेट टूल खुलेगा</div>
-                  </div>
-                  <input type="file" id="custPhotoFile" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
-                  <img id="custPhotoPreview" class="upload-preview-img" style="display: none; cursor: pointer;" alt="Preview" onclick="event.stopPropagation(); openExistingCustPhotoCropper()" title="फोटो क्रॉप / रोटेट करने के लिए क्लिक करें">
-                  <div id="custPhotoProgressWrap" class="photo-upload-progress-wrap">
-                    <div id="custPhotoProgressFill" class="photo-upload-progress-fill"></div>
-                  </div>
-                </div>
-                <!-- Action Buttons under Preview -->
-                <div id="custPhotoActionsWrap" style="display: none; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
-                  <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingCustPhotoCropper()">
-                    <span>✂️</span> <span>क्रॉप / रोटेट करें</span>
-                  </button>
-                  <button type="button" class="btn-photo-action-sm" onclick="document.getElementById('custPhotoFile').click()">
-                    <span>🔄</span> <span>दूसरी फोटो चुनें</span>
-                  </button>
-                  <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeCustPhoto(event)">
-                    <span>🗑️</span> <span>हटाएं</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Address -->
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">ग्राहक का पता (Customer Address) *</label>
-                <textarea id="custAddress" class="form-textarea" placeholder="मकान नं, कॉलोनी, लैंडमार्क, शहर..." required></textarea>
               </div>
             </div>
 
-            <!-- SECTION 2: SERVICE CATEGORY & DETAILS -->
-            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
-              <div style="font-size: 13.5px; font-weight: 600; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                <span>🚗</span> 2. सर्विस केटेगरी और विवरण (Service Category & Details)
-              </div>
+            <!-- Address (Full Width) -->
+            <div class="form-group" style="margin-bottom: 6px;">
+              <label class="form-label" for="custAddress">ग्राहक का पता *</label>
+              <textarea id="custAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="मकान नं, कॉलोनी, लैंडमार्क, शहर..." required></textarea>
+            </div>
 
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label class="form-label">सर्विस केटेगरी (Service Category) *</label>
-                  <select id="custCategory" class="form-select" onchange="toggleCategoryFields(this.value)" required>
-                    <option value="Daily Car Cleaning">Daily Car Cleaning (दैनिक कार सफाई)</option>
-                    <option value="Car Washing">Car Washing (कार वॉशिंग)</option>
-                    <option value="Solar Panel Cleaning">Solar Panel Cleaning (सोलर पैनल सफाई)</option>
-                  </select>
+            <!-- Optional Maps & Photo Action Bar (Compact & Collapsed by Default) -->
+            <div class="optional-tools-bar">
+              <button type="button" class="btn-optional-tool" id="btnToggleCustMap" onclick="toggleCustMap()">
+                <span>📍</span> <span id="custMapBtnText">+ मैप लोकेशन / GPS जोड़ें</span>
+              </button>
+
+              <div class="photo-upload-compact-zone" id="custPhotoDropzone">
+                <input type="file" id="custPhotoFile" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
+                <button type="button" class="btn-optional-tool" id="custPhotoPlaceholder" onclick="triggerCustPhotoSelect()">
+                  <span>📸</span> <span>+ फोटो जोड़ें (Upload Photo)</span>
+                </button>
+                <img id="custPhotoPreview" class="upload-preview-thumb" style="display: none; cursor: pointer;" alt="Preview" onclick="openExistingCustPhotoCropper()" title="फोटो क्रॉप / रोटेट करने के लिए क्लिक करें">
+                <div id="custPhotoActionsWrap" style="display: none; align-items: center; gap: 4px;">
+                  <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingCustPhotoCropper()" title="क्रॉप व रोटेट करें">
+                    <span>✂️</span> <span>क्रॉप / रोटेट</span>
+                  </button>
+                  <button type="button" class="btn-photo-action-sm" onclick="document.getElementById('custPhotoFile').click()" title="दूसरी फोटो चुनें">
+                    <span>🔄</span> <span>बदलें</span>
+                  </button>
+                  <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeCustPhoto(event)" title="फोटो हटाएं">
+                    <span>🗑️</span>
+                  </button>
                 </div>
-
-                <div class="form-group">
-                  <label class="form-label">पैकेज का प्रकार (Package Type) *</label>
-                  <select id="custPkgType" class="form-select" onchange="handlePackageTypeChange(this.value)" required>
-                    <option value="DCC ONLY">DCC ONLY</option>
-                    <option value="DCC SILVER">DCC SILVER</option>
-                    <option value="DCC GOLD">DCC GOLD</option>
-                    <option value="OTHER">OTHER</option>
-                  </select>
-                  <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="अन्य पैकेज विवरण..." style="display: none; margin-top: 6px;">
+                <div id="custPhotoProgressWrap" class="photo-upload-progress-wrap" style="display: none;">
+                  <div id="custPhotoProgressFill" class="photo-upload-progress-fill"></div>
                 </div>
-              </div>
-
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" id="custVehicleLabel">गाड़ी नंबर और मॉडल (Vehicle Number & Model) *</label>
-                <input type="text" id="custVehicles" class="form-input" placeholder="उदा. UP65 AB 1234 - Creta" required>
               </div>
             </div>
 
-            <!-- SECTION 3: STAFF ASSIGNMENT & INSTRUCTIONS -->
-            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
-              <div style="font-size: 13.5px; font-weight: 600; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                <span>👔</span> 3. असाइन स्टाफ और निर्देश (Staff Assignment & Notes)
+            <!-- Collapsible Maps Input Panel (Hidden by default) -->
+            <div id="custMapCollapse" class="collapsible-panel" style="display: none; margin-bottom: 8px;">
+              <div class="form-input-addon-group">
+                <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F) या Coordinates">
+                <button type="button" class="form-addon-btn" onclick="detectGpsLocation()">📍 GPS</button>
               </div>
+            </div>
 
+            <!-- SECTION 2: SERVICE DETAILS -->
+            <div class="form-section-head">
+              <span class="section-num-pill">2</span>
+              <span class="section-title-text">सर्विस विवरण (Service Details)</span>
+            </div>
+
+            <!-- Service Category & Package Type (Side by Side on Desktop) -->
+            <div class="form-row-2">
               <div class="form-group">
-                <label class="form-label">असाइन स्टाफ (Assigned Staff) *</label>
-                <select id="custStaffSelect" class="form-select" required>
-                  <option value="">स्टाफ चुनें...</option>
+                <label class="form-label" for="custCategory">सर्विस केटेगरी *</label>
+                <select id="custCategory" class="form-select" onchange="toggleCategoryFields(this.value)" required>
+                  <option value="Daily Car Cleaning">Daily Car Cleaning (दैनिक कार सफाई)</option>
+                  <option value="Car Washing">Car Washing (कार वॉशिंग)</option>
+                  <option value="Solar Panel Cleaning">Solar Panel Cleaning (सोलर पैनल सफाई)</option>
                 </select>
-                <div style="font-size: 11px; color: var(--call-green); margin-top: 5px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
-                  <span>🔒</span> स्टाफ का नाम सीधे बैकएंड से आ रहा है। स्पेलिंग मिस्टेक की कोई गुंजाइश नहीं है।
-                </div>
               </div>
 
-              <!-- Notes -->
               <div class="form-group">
-                <label class="form-label">स्टाफ के लिए खास निर्देश (Cleaning Instructions / Staff Notes)</label>
-                <textarea id="custNotes" class="form-textarea" placeholder="उदा. बेसमेंट में कार पार्क है, गार्ड से चाबी लें..."></textarea>
-                <div class="chips-row">
-                  <button type="button" class="chip-btn" onclick="setQuickNote('गाड़ी रोज बाहर से साफ होगी, संडे को अंदर से वैक्यूम होगा।')">Exterior Daily, Sun Vacuum</button>
-                  <button type="button" class="chip-btn" onclick="setQuickNote('सोसायटी के गार्ड से पानी और चाबी लेना है।')">Guard Water Supply</button>
-                </div>
-              </div>
-
-              <div class="form-group" id="secondaryAddressGroup" style="margin-bottom: 0;">
-                <label class="form-label">दूसरा पता / लोकेशन (Secondary Address - Optional)</label>
-                <input type="text" id="custSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
-                <input type="text" id="custSecMaps" class="form-input" style="margin-top: 4px;" placeholder="दूसरे पते का मैप लिंक (Optional)">
+                <label class="form-label" for="custPkgType">पैकेज का प्रकार *</label>
+                <select id="custPkgType" class="form-select" onchange="handlePackageTypeChange(this.value)" required>
+                  <option value="DCC ONLY">DCC ONLY</option>
+                  <option value="DCC SILVER">DCC SILVER</option>
+                  <option value="DCC GOLD">DCC GOLD</option>
+                  <option value="OTHER">OTHER</option>
+                </select>
+                <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="अन्य पैकेज विवरण..." style="display: none; margin-top: 6px;">
               </div>
             </div>
 
-            <button type="submit" id="btnSaveCust" class="btn-submit-main">
-              <span>💾</span> गूगल शीट में सेव करें (Save Customer)
-            </button>
+            <!-- Vehicle / Site (Full Width) -->
+            <div class="form-group">
+              <label class="form-label" id="custVehicleLabel" for="custVehicles">गाड़ी नंबर और मॉडल *</label>
+              <input type="text" id="custVehicles" class="form-input" placeholder="उदा. UP65 AB 1234 - Creta" required>
+            </div>
+
+            <!-- SECTION 3: STAFF ASSIGNMENT -->
+            <div class="form-section-head">
+              <span class="section-num-pill">3</span>
+              <span class="section-title-text">स्टाफ असाइनमेंट (Staff Assignment)</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="custStaffSelect">असाइन स्टाफ *</label>
+              <select id="custStaffSelect" class="form-select" required>
+                <option value="">स्टाफ चुनें...</option>
+              </select>
+            </div>
+
+            <!-- Staff Notes (Compact 2-row with inline chips) -->
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; flex-wrap: wrap; gap: 4px;">
+                <label class="form-label" for="custNotes" style="margin-bottom: 0;">स्टाफ निर्देश (Staff Notes - Optional)</label>
+                <div class="quick-chips-inline">
+                  <button type="button" class="chip-btn-mini" onclick="setQuickNote('गाड़ी रोज बाहर से साफ होगी, संडे को अंदर से वैक्यूम होगा।')">Exterior Daily, Sun Vacuum</button>
+                  <button type="button" class="chip-btn-mini" onclick="setQuickNote('सोसायटी के गार्ड से पानी और चाबी लेना है।')">Guard Water Supply</button>
+                </div>
+              </div>
+              <textarea id="custNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="उदा. बेसमेंट में कार पार्क है, गार्ड से चाबी लें..."></textarea>
+            </div>
+
+            <!-- Collapsible Secondary Location (Daily Car Cleaning Only, Collapsed by Default) -->
+            <div class="form-group" id="secondaryAddressGroup" style="margin-bottom: 8px;">
+              <button type="button" class="btn-optional-tool" id="btnToggleCustSec" onclick="toggleCustSecLocation()">
+                <span>🏢</span> <span id="custSecBtnText">+ दूसरा पता / लोकेशन जोड़ें (Secondary Location)</span>
+              </button>
+              <div id="custSecCollapse" class="collapsible-panel" style="display: none; margin-top: 8px;">
+                <div class="form-group" style="margin-bottom: 8px;">
+                  <label class="form-label" for="custSecAddress">दूसरा पता (Secondary Address)</label>
+                  <input type="text" id="custSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="custSecMaps">दूसरे पते का मैप लिंक (Secondary Map Link)</label>
+                  <input type="text" id="custSecMaps" class="form-input" placeholder="https://maps.google.com/...">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions-bar">
+              <button type="submit" id="btnSaveCust" class="btn-submit-main">
+                <span>💾</span> गूगल शीट में सेव करें (Save Customer)
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -4209,7 +4455,10 @@
           <form onsubmit="handleAddStaff(event)" style="margin-bottom: 16px;">
             <div id="addStaffFormGrid" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr auto; gap: 8px; align-items: center;">
               <input type="text" id="newStaffName" class="form-input" placeholder="स्टाफ का पूरा नाम (उदा. Ramesh Kumar)" required>
-              <input type="tel" id="newStaffPhone" class="form-input" placeholder="मोबाइल नंबर (10 अंक)" maxlength="10" pattern="[0-9]{10}">
+              <div class="cwp-phone-group">
+                <span class="cwp-phone-prefix" title="भारत (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+                <input type="tel" id="newStaffPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel">
+              </div>
               <input type="text" id="newStaffPin" class="form-input" placeholder="6-अंक पिन (उदा. 849201)" maxlength="6" pattern="[0-9]{6}" required title="स्टाफ पोर्टल लॉगिन हेतु 6 अंकों का पासवर्ड">
               <input type="hidden" id="newStaffId" value="">
               <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
@@ -4278,7 +4527,7 @@
               <button type="button" class="btn-admin-action" onclick="exportAdminRecordsCSV()" title="फ़िल्टर किया हुआ डेटा Excel/CSV में डाउनलोड करें">
                 📥 CSV डाउनलोड
               </button>
-              <button type="button" class="btn-admin-action" onclick="loadAdminRecords()" title="गूगल शीट से नवीनतम डेटा रीलोड करें">
+              <button type="button" class="btn-admin-action" onclick="loadAdminRecords(true)" title="गूगल शीट से नवीनतम डेटा रीलोड करें">
                 🔄 डेटा रीफ्रेश करें
               </button>
             </div>
@@ -4540,39 +4789,78 @@
         </div>
       </div>
 
-      <form id="editCustomerForm" onsubmit="handleEditCustomerSubmit(event)" style="padding: 16px;">
+      <form id="editCustomerForm" onsubmit="handleEditCustomerSubmit(event)" style="padding: 16px;" class="cwp-compact-form">
         <input type="hidden" id="editSheetName">
         <input type="hidden" id="editRowIndex">
         <input type="hidden" id="editPhotoUrl">
 
+        <!-- SECTION 1: CUSTOMER DETAILS -->
+        <div class="form-section-head">
+          <span class="section-num-pill">1</span>
+          <span class="section-title-text">ग्राहक विवरण (Customer Details)</span>
+        </div>
+
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">ग्राहक का नाम (Customer Name) *</label>
+            <label class="form-label" for="editCustName">ग्राहक का नाम *</label>
             <input type="text" id="editCustName" class="form-input" required>
           </div>
           <div class="form-group">
-            <label class="form-label">मोबाइल नंबर (Mobile) *</label>
-            <input type="tel" id="editCustPhone" class="form-input" maxlength="10" required>
+            <label class="form-label" for="editCustPhone">मोबाइल नंबर *</label>
+            <div class="cwp-phone-group">
+              <span class="cwp-phone-prefix" title="भारत (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+              <input type="tel" id="editCustPhone" class="form-input cwp-phone-input" maxlength="14" placeholder="98765 43210" inputmode="numeric" autocomplete="tel" required>
+            </div>
           </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 6px;">
+          <label class="form-label" for="editCustAddress">ग्राहक का पता *</label>
+          <textarea id="editCustAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="मकान नं, कॉलोनी, शहर..."></textarea>
+        </div>
+
+        <!-- Optional Maps & Photo Action Bar -->
+        <div class="optional-tools-bar">
+          <button type="button" class="btn-optional-tool" id="btnToggleEditMap" onclick="toggleEditMap()">
+            <span>📍</span> <span id="editMapBtnText">+ मैप लोकेशन / GPS</span>
+          </button>
+          <div class="photo-upload-compact-zone">
+            <input type="file" id="editCustPhotoFile" accept="image/*" class="form-input" style="display: none;" onchange="handleEditPhotoSelect(event)">
+            <button type="button" class="btn-optional-tool" id="btnEditUploadPhoto" onclick="document.getElementById('editCustPhotoFile').click()">
+              <span>📸</span> <span>फोटो बदलें / जोड़ें</span>
+            </button>
+            <img id="editPhotoThumb" src="" class="upload-preview-thumb" style="display: none; cursor: pointer;" alt="Thumb" onclick="openExistingEditPhotoCropper()" title="क्रॉप / रोटेट करने के लिए क्लिक करें">
+            <div id="editPhotoActionsWrap" style="display: none; align-items: center; gap: 4px;">
+              <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingEditPhotoCropper()" title="क्रॉप व रोटेट करें">
+                <span>✂️</span> <span>क्रॉप / रोटेट</span>
+              </button>
+              <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeEditCustPhoto(event)" title="फोटो हटाएं">
+                <span>🗑️</span>
+              </button>
+            </div>
+            <div id="editPhotoProgressWrap" class="photo-upload-progress-wrap" style="display: none;">
+              <div id="editPhotoProgressFill" class="photo-upload-progress-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsible Maps Input Panel -->
+        <div id="editMapCollapse" class="collapsible-panel" style="display: none; margin-bottom: 8px;">
+          <div class="form-input-addon-group">
+            <input type="text" id="editCustMapsUrl" class="form-input" placeholder="Google Maps Link or Plus Code">
+            <button type="button" class="form-addon-btn" onclick="detectEditGpsLocation()">📍 GPS</button>
+          </div>
+        </div>
+
+        <!-- SECTION 2: SERVICE DETAILS -->
+        <div class="form-section-head">
+          <span class="section-num-pill">2</span>
+          <span class="section-title-text">सर्विस विवरण (Service Details)</span>
         </div>
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">असाइन स्टाफ (Staff Name) *</label>
-            <select id="editCustStaff" class="form-select" required></select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">स्टेटस (Active) *</label>
-            <select id="editCustActive" class="form-select">
-              <option value="Yes">Active (सक्रिय)</option>
-              <option value="No">Inactive (निष्क्रिय)</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row-2">
-          <div class="form-group">
-            <label class="form-label">सर्विस केटेगरी (Service Category) *</label>
+            <label class="form-label" for="editCustCategory">सर्विस केटेगरी *</label>
             <select id="editCustCategory" class="form-select" onchange="handleEditCategoryChange(this.value)" required>
               <option value="Daily Car Cleaning">Daily Car Cleaning</option>
               <option value="Car Washing">Car Washing</option>
@@ -4580,7 +4868,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">पैकेज का प्रकार (Package Type) *</label>
+            <label class="form-label" for="editCustPkgType">पैकेज का प्रकार *</label>
             <select id="editCustPkgType" class="form-select" onchange="handleEditPackageTypeChange(this.value)" required>
               <option value="DCC ONLY">DCC ONLY</option>
               <option value="DCC SILVER">DCC SILVER</option>
@@ -4591,57 +4879,54 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label class="form-label" id="editCustVehiclesLabel" for="editCustVehicles">गाड़ी नंबर और मॉडल *</label>
+          <input type="text" id="editCustVehicles" class="form-input" placeholder="उदा. UP65 AB 1234 - Creta">
+        </div>
+
+        <!-- SECTION 3: STAFF & STATUS -->
+        <div class="form-section-head">
+          <span class="section-num-pill">3</span>
+          <span class="section-title-text">स्टाफ और स्टेटस (Staff & Status)</span>
+        </div>
+
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" id="editCustVehiclesLabel">गाड़ी नंबर और मॉडल (Vehicle Number & Model)</label>
-            <input type="text" id="editCustVehicles" class="form-input">
+            <label class="form-label" for="editCustStaff">असाइन स्टाफ *</label>
+            <select id="editCustStaff" class="form-select" required></select>
           </div>
           <div class="form-group">
-            <label class="form-label">गूगल मैप्स लोकेशन (Google Maps URL)</label>
-            <div class="form-input-addon-group">
-              <input type="text" id="editCustMapsUrl" class="form-input" placeholder="Maps Link or Plus Code">
-              <button type="button" class="form-addon-btn" onclick="detectEditGpsLocation()">📍 GPS</button>
-            </div>
+            <label class="form-label" for="editCustActive">स्टेटस *</label>
+            <select id="editCustActive" class="form-select">
+              <option value="Yes">Active (सक्रिय)</option>
+              <option value="No">Inactive (निष्क्रिय)</option>
+            </select>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">ग्राहक का पता (Address)</label>
-          <textarea id="editCustAddress" class="form-textarea" rows="2" placeholder="मकान नं, कॉलोनी, शहर..."></textarea>
+          <label class="form-label" for="editCustNotes">स्टाफ निर्देश (Staff Notes)</label>
+          <textarea id="editCustNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="सफाई निर्देश..."></textarea>
         </div>
 
-        <div class="form-group" id="editSecondaryAddressGroup">
-          <label class="form-label">दूसरा पता / लोकेशन (Secondary Address - Optional)</label>
-          <input type="text" id="editCustSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
-          <input type="text" id="editCustSecMaps" class="form-input" style="margin-top: 4px;" placeholder="दूसरे पते का मैप लिंक (Optional)">
-        </div>
-
-        <div class="form-row-2">
-          <div class="form-group">
-            <label class="form-label">गाड़ी की फोटो (Cloudinary CDN / Direct)</label>
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <img id="editPhotoThumb" src="" style="width: 46px; height: 46px; border-radius: 6px; object-fit: cover; display: none; border: 1px solid var(--border-color); cursor: pointer;" alt="Thumb" onclick="openExistingEditPhotoCropper()" title="क्रॉप / रोटेट करने के लिए क्लिक करें">
-              <input type="file" id="editCustPhotoFile" accept="image/*" class="form-input" style="padding: 6px; font-size: 11px; flex: 1; min-width: 140px;" onchange="handleEditPhotoSelect(event)">
+        <!-- Collapsible Secondary Location (Daily Car Cleaning Only) -->
+        <div class="form-group" id="editSecondaryAddressGroup" style="margin-bottom: 8px;">
+          <button type="button" class="btn-optional-tool" id="btnToggleEditSec" onclick="toggleEditSecLocation()">
+            <span>🏢</span> <span id="editSecBtnText">+ दूसरा पता / लोकेशन जोड़ें (Secondary Location)</span>
+          </button>
+          <div id="editSecCollapse" class="collapsible-panel" style="display: none; margin-top: 8px;">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label class="form-label" for="editCustSecAddress">दूसरा पता (Secondary Address)</label>
+              <input type="text" id="editCustSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
             </div>
-            <div id="editPhotoProgressWrap" class="photo-upload-progress-wrap">
-              <div id="editPhotoProgressFill" class="photo-upload-progress-fill"></div>
-            </div>
-            <div id="editPhotoActionsWrap" style="display: none; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
-              <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingEditPhotoCropper()">
-                <span>✂️</span> <span>क्रॉप / रोटेट करें</span>
-              </button>
-              <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeEditCustPhoto(event)">
-                <span>🗑️</span> <span>हटाएं</span>
-              </button>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="editCustSecMaps">दूसरे पते का मैप लिंक (Secondary Map Link)</label>
+              <input type="text" id="editCustSecMaps" class="form-input" placeholder="https://maps.google.com/...">
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">स्टाफ निर्देश (Staff Notes)</label>
-            <textarea id="editCustNotes" class="form-textarea" rows="2" placeholder="सफाई निर्देश..."></textarea>
-          </div>
         </div>
 
-        <div class="modal-card-footer">
+        <div class="modal-card-footer" style="padding: 12px 0 0 0; margin-top: 6px;">
           <button type="button" class="btn-admin-action" onclick="closeEditCustomerModal()">रद्द करें (Cancel)</button>
           <button type="submit" id="btnSaveEditCust" class="btn-primary-smart" style="padding: 10px 18px;">
             <span>💾</span> बदलाव सेव करें (Save Changes)
@@ -4672,8 +4957,11 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">मोबाइल नंबर (Mobile Number)</label>
-          <input type="tel" id="editStaffPhone" class="form-input" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर (उदा. 9876543210)">
+          <label class="form-label" for="editStaffPhone">मोबाइल नंबर (Mobile Number)</label>
+          <div class="cwp-phone-group">
+            <span class="cwp-phone-prefix" title="भारत (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+            <input type="tel" id="editStaffPhone" class="form-input cwp-phone-input" maxlength="14" placeholder="98765 43210" inputmode="numeric" autocomplete="tel">
+          </div>
         </div>
 
         <div class="form-row-2">
@@ -4835,7 +5123,247 @@
     if (webAppBaseUrl.indexOf('<?') === 0) webAppBaseUrl = '';
 
     /* Global Application State */
-    var state = {
+    /* ==========================================================================
+   SHARED INDIAN MOBILE NUMBER UTILITIES & COLLAPSE HELPERS (Task P2.3)
+   ========================================================================== */
+function normalizeIndianMobile(value) {
+  if (value == null) return '';
+  var str = String(value).trim();
+  if (!str) return '';
+  var cleaned = str.replace(/[^\d+]/g, '');
+  if (cleaned.indexOf('+91') === 0) {
+    cleaned = cleaned.substring(3);
+  } else if (cleaned.indexOf('+') === 0) {
+    cleaned = cleaned.substring(1);
+  }
+  var digits = cleaned.replace(/\D/g, '');
+  if (digits.length === 11 && digits.charAt(0) === '0') {
+    digits = digits.substring(1);
+  } else if (digits.length === 12 && digits.indexOf('91') === 0) {
+    digits = digits.substring(2);
+  }
+  return digits;
+}
+
+function isValidIndianMobile(value) {
+  var digits = normalizeIndianMobile(value);
+  return /^[6-9]\d{9}$/.test(digits);
+}
+
+function formatIndianMobile(value, includePrefix) {
+  if (includePrefix === undefined) includePrefix = true;
+  var digits = normalizeIndianMobile(value);
+  if (!digits) return '';
+  var formattedDigits = digits.length <= 5 ? digits : (digits.slice(0, 5) + ' ' + digits.slice(5, 10));
+  return includePrefix ? ('+91 ' + formattedDigits) : formattedDigits;
+}
+
+function getIndianPhoneLink(value) {
+  var digits = normalizeIndianMobile(value);
+  return digits ? ('tel:+91' + digits) : 'tel:';
+}
+
+function getIndianWhatsAppLink(value, message) {
+  var digits = normalizeIndianMobile(value);
+  var base = digits ? ('https://wa.me/91' + digits) : 'https://wa.me/';
+  return message ? (base + '?text=' + encodeURIComponent(message)) : base;
+}
+
+function attachIndianMobileFormatter(inputEl) {
+  if (!inputEl || inputEl._hasPhoneFormatter) return;
+  inputEl._hasPhoneFormatter = true;
+
+  function onInput() {
+    var rawVal = inputEl.value;
+    var cursorPos = inputEl.selectionStart || 0;
+
+    var digitsBeforeCursor = rawVal.slice(0, cursorPos).replace(/\D/g, '').length;
+
+    var cleaned = rawVal.replace(/[^\d+]/g, '');
+    var hadCountryCode = false;
+    var hadLeadingZero = false;
+
+    if (cleaned.indexOf('+91') === 0) {
+      cleaned = cleaned.substring(3);
+      hadCountryCode = true;
+    } else if (cleaned.indexOf('+') === 0) {
+      cleaned = cleaned.substring(1);
+    }
+
+    var digits = cleaned.replace(/\D/g, '');
+    if (digits.length === 11 && digits.charAt(0) === '0') {
+      digits = digits.substring(1);
+      hadLeadingZero = true;
+    } else if (digits.length === 12 && digits.indexOf('91') === 0) {
+      digits = digits.substring(2);
+      hadCountryCode = true;
+    }
+
+    var maxDigits = digits.slice(0, 10);
+
+    if (hadCountryCode) {
+      digitsBeforeCursor = Math.max(0, digitsBeforeCursor - 2);
+    } else if (hadLeadingZero) {
+      digitsBeforeCursor = Math.max(0, digitsBeforeCursor - 1);
+    }
+    digitsBeforeCursor = Math.min(digitsBeforeCursor, maxDigits.length);
+
+    var formatted = maxDigits.length <= 5 ? maxDigits : (maxDigits.slice(0, 5) + ' ' + maxDigits.slice(5));
+    inputEl.value = formatted;
+
+    var newCursor = 0;
+    var count = 0;
+    for (var i = 0; i < formatted.length; i++) {
+      if (/\d/.test(formatted.charAt(i))) {
+        count++;
+      }
+      if (count === digitsBeforeCursor) {
+        newCursor = i + 1;
+        break;
+      }
+    }
+    if (digitsBeforeCursor === 0) newCursor = 0;
+
+    try {
+      inputEl.setSelectionRange(newCursor, newCursor);
+    } catch (err) {}
+
+    if (maxDigits.length === 10) {
+      if (/^[6-9]/.test(maxDigits)) {
+        inputEl.setCustomValidity('');
+        inputEl.classList.remove('is-invalid');
+      } else {
+        inputEl.setCustomValidity('भारतीय मोबाइल नंबर 6, 7, 8 या 9 से शुरू होना चाहिए');
+        inputEl.classList.add('is-invalid');
+      }
+    } else if (maxDigits.length > 0 && maxDigits.length < 10) {
+      inputEl.setCustomValidity('कृपया 10-अंकों का मोबाइल नंबर दर्ज करें');
+    } else {
+      inputEl.setCustomValidity('');
+      inputEl.classList.remove('is-invalid');
+    }
+  }
+
+  inputEl.addEventListener('input', onInput);
+  inputEl.addEventListener('paste', function() {
+    setTimeout(onInput, 0);
+  });
+
+  if (inputEl.value) {
+    onInput();
+  }
+}
+
+function setPhoneInputValue(inputEl, val) {
+  if (!inputEl) return;
+  var norm = normalizeIndianMobile(val);
+  inputEl.value = norm.length <= 5 ? norm : (norm.slice(0, 5) + ' ' + norm.slice(5));
+  if (typeof attachIndianMobileFormatter === 'function') {
+    attachIndianMobileFormatter(inputEl);
+  }
+}
+
+function initAllPhoneFormatters() {
+  ['custPhone', 'editCustPhone', 'newStaffPhone', 'editStaffPhone', 'staffPhoneInput'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) attachIndianMobileFormatter(el);
+  });
+}
+
+/* Optional Field Collapsible Controls (Task P2.3) */
+function toggleCustMap(forceState) {
+  var panel = document.getElementById('custMapCollapse');
+  var btn = document.getElementById('btnToggleCustMap');
+  var btnText = document.getElementById('custMapBtnText');
+  if (!panel) return;
+  var willOpen = forceState !== undefined ? forceState : (panel.style.display === 'none' || panel.style.display === '');
+  panel.style.display = willOpen ? 'block' : 'none';
+  if (btn) {
+    if (willOpen) btn.classList.add('active');
+    else btn.classList.remove('active');
+  }
+  if (btnText) {
+    btnText.textContent = willOpen ? 'मैप लोकेशन / GPS (सक्रिय)' : '+ मैप लोकेशन / GPS जोड़ें';
+  }
+  if (willOpen) {
+    var input = document.getElementById('custMapsUrl');
+    if (input) input.focus();
+  }
+}
+function expandCustMapField() {
+  toggleCustMap(true);
+}
+
+function toggleEditMap(forceState) {
+  var panel = document.getElementById('editMapCollapse');
+  var btn = document.getElementById('btnToggleEditMap');
+  var btnText = document.getElementById('editMapBtnText');
+  if (!panel) return;
+  var willOpen = forceState !== undefined ? forceState : (panel.style.display === 'none' || panel.style.display === '');
+  panel.style.display = willOpen ? 'block' : 'none';
+  if (btn) {
+    if (willOpen) btn.classList.add('active');
+    else btn.classList.remove('active');
+  }
+  if (btnText) {
+    btnText.textContent = willOpen ? 'मैप लोकेशन / GPS (सक्रिय)' : '+ मैप लोकेशन / GPS';
+  }
+  if (willOpen) {
+    var input = document.getElementById('editCustMapsUrl');
+    if (input) input.focus();
+  }
+}
+function expandEditMap() {
+  toggleEditMap(true);
+}
+
+function toggleCustSecLocation(forceState) {
+  var panel = document.getElementById('custSecCollapse');
+  var btn = document.getElementById('btnToggleCustSec');
+  var btnText = document.getElementById('custSecBtnText');
+  if (!panel) return;
+  var willOpen = forceState !== undefined ? forceState : (panel.style.display === 'none' || panel.style.display === '');
+  panel.style.display = willOpen ? 'block' : 'none';
+  if (btn) {
+    if (willOpen) btn.classList.add('active');
+    else btn.classList.remove('active');
+  }
+  if (btnText) {
+    btnText.textContent = willOpen ? 'दूसरा पता / लोकेशन (सक्रिय)' : '+ दूसरा पता / लोकेशन जोड़ें (Secondary Location)';
+  }
+  if (willOpen) {
+    var input = document.getElementById('custSecAddress');
+    if (input) input.focus();
+  }
+}
+function expandCustSecLocationField() {
+  toggleCustSecLocation(true);
+}
+
+function toggleEditSecLocation(forceState) {
+  var panel = document.getElementById('editSecCollapse');
+  var btn = document.getElementById('btnToggleEditSec');
+  var btnText = document.getElementById('editSecBtnText');
+  if (!panel) return;
+  var willOpen = forceState !== undefined ? forceState : (panel.style.display === 'none' || panel.style.display === '');
+  panel.style.display = willOpen ? 'block' : 'none';
+  if (btn) {
+    if (willOpen) btn.classList.add('active');
+    else btn.classList.remove('active');
+  }
+  if (btnText) {
+    btnText.textContent = willOpen ? 'दूसरा पता / लोकेशन (सक्रिय)' : '+ दूसरा पता / लोकेशन जोड़ें (Secondary Location)';
+  }
+  if (willOpen) {
+    var input = document.getElementById('editCustSecAddress');
+    if (input) input.focus();
+  }
+}
+function expandEditSecLocation() {
+  toggleEditSecLocation(true);
+}
+
+var state = {
       currentView: 'staff',
       activeStaffId: '',
       staffList: [],
@@ -4866,6 +5394,7 @@
 
     /* Initialize Application */
     document.addEventListener('DOMContentLoaded', function() {
+      initAllPhoneFormatters();
       syncBrandLogos();
       var urlParams = new URLSearchParams(window.location.search);
       var paramStaff = urlParams.get('staff') || urlParams.get('id') || '';
@@ -5027,16 +5556,16 @@
       e.preventDefault();
       var phoneInput = document.getElementById('staffPhoneInput');
       var pinInput = document.getElementById('staffPinInput');
-      var rawPhone = (phoneInput ? phoneInput.value : '').replace(/[^0-9]/g, '');
-      var phone = rawPhone.length === 10 ? rawPhone : (rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone);
+      var rawPhone = phoneInput ? phoneInput.value : '';
+      var phone = normalizeIndianMobile(rawPhone);
       var pin = (pinInput ? pinInput.value : '').trim();
       var errBox = document.getElementById('staffAuthError');
       var inactiveBox = document.getElementById('staffInactiveMsgBox');
       var btn = document.getElementById('btnStaffLogin');
 
-      if (!phone || phone.length !== 10) {
+      if (!phone || !isValidIndianMobile(phone)) {
         if (errBox) {
-          errBox.textContent = '❌ कृपया 10-अंकों का पंजीकृत मोबाइल नंबर दर्ज करें।';
+          errBox.textContent = '❌ कृपया 10-अंकों का वैध भारतीय मोबाइल नंबर दर्ज करें (6, 7, 8 या 9 से शुरू)।';
           errBox.style.display = 'block';
         }
         if (phoneInput) phoneInput.focus();
@@ -5767,8 +6296,8 @@
         var isCarWash = item.category === 'car_washing';
         var isDaily = item.category === 'daily_car_cleaning' || (!isSolar && !isCarWash);
         var customerName = escapeHtml(item.customerName || 'Customer');
-        var rawPhone = (item.customerNumber != null ? String(item.customerNumber) : '').replace(/[^0-9]/g, '');
-        var cleanPhone = rawPhone.length === 10 ? rawPhone : (rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone);
+        var cleanPhone = normalizeIndianMobile(item.customerNumber);
+        var formattedPhone = cleanPhone ? formatIndianMobile(cleanPhone) : '';
 
         var rawVeh = item.vehicleNumbers || item.vehicleOrSite || item.vehicle;
         var vehicles = (rawVeh != null ? String(rawVeh) : '').trim() || (isSolar ? 'साइट विवरण दर्ज नहीं' : 'गाड़ी नंबर दर्ज नहीं');
@@ -5804,7 +6333,7 @@
         
         html += '    <div class="card-action-buttons">';
         if (cleanPhone) {
-          html += '      <a href="tel:' + cleanPhone + '" class="btn-card-action btn-call" title="कॉल करें: ' + cleanPhone + '">';
+          html += '      <a href="' + getIndianPhoneLink(cleanPhone) + '" class="btn-card-action btn-call" title="कॉल करें: ' + escapeHtml(formattedPhone) + '">';
           html += '        <span>📞</span><span>कॉल</span>';
           html += '      </a>';
         } else {
@@ -5997,11 +6526,11 @@
       var cardsHtml = '';
       uniqueStaff.forEach(function(s) {
         var staffUrl = getUniqueStaffUrl(s.id);
-        var sPhone = (s.phone || '').toString().trim();
+        var normPhone = normalizeIndianMobile(s.phone);
+        var formattedPhone = normPhone ? formatIndianMobile(normPhone) : '';
         var isActive = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
-        var cleanPhone = sPhone.replace(/[^0-9]/g, '');
-        var waMessage = encodeURIComponent('नमस्ते ' + s.name + ',\nयह आपका CWP Detailers & Motors का स्टाफ पोर्टल लिंक है:\n' + staffUrl + '\n\nकृपया अपने पंजीकृत मोबाइल नंबर (' + sPhone + ') और 6-अंकों के सुरक्षा पिन से लॉगिन करें।');
-        var waHref = cleanPhone.length === 10 ? ('https:\x2F\x2Fwa.me/91' + cleanPhone + '?text=' + waMessage) : ('https:\x2F\x2Fwa.me/?text=' + waMessage);
+        var waMessage = 'नमस्ते ' + s.name + ',\nयह आपका CWP Detailers & Motors का स्टाफ पोर्टल लिंक है:\n' + staffUrl + '\n\nकृपया अपने पंजीकृत मोबाइल नंबर (' + (formattedPhone || s.phone) + ') और 6-अंकों के सुरक्षा पिन से लॉगिन करें।';
+        var waHref = normPhone ? getIndianWhatsAppLink(normPhone, waMessage) : ('https:\x2F\x2Fwa.me/?text=' + encodeURIComponent(waMessage));
 
         cardsHtml += '<div class="staff-admin-card">';
         cardsHtml += '  <div class="staff-admin-info" style="display: flex; flex-direction: column; gap: 4px;">';
@@ -6013,7 +6542,7 @@
         cardsHtml += '    </div>';
         cardsHtml += '    <div class="staff-admin-id" style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted);">';
         cardsHtml += '      <span>ID: <b style="color: var(--text-primary);">' + escapeHtml(s.id) + '</b></span>';
-        cardsHtml += '      <span>📱 <b>' + (sPhone ? escapeHtml(sPhone) : '<span style="color:var(--text-muted); font-weight:normal;">दर्ज नहीं</span>') + '</b></span>';
+        cardsHtml += '      <span>📱 <b>' + (formattedPhone ? escapeHtml(formattedPhone) : '<span style="color:var(--text-muted); font-weight:normal;">दर्ज नहीं</span>') + '</b></span>';
         cardsHtml += '      <span>🔑 पिन: <b style="color: #059669;">' + (s.hasPin !== false ? '●●●●●● (सुरक्षित)' : 'सेट नहीं') + '</b></span>';
         cardsHtml += '    </div>';
         cardsHtml += '  </div>';
@@ -6056,7 +6585,7 @@
       document.getElementById('editStaffId').value = staff.id;
       document.getElementById('editStaffIdDisplay').textContent = staff.id;
       document.getElementById('editStaffName').value = staff.name || '';
-      document.getElementById('editStaffPhone').value = staff.phone || '';
+      setPhoneInputValue(document.getElementById('editStaffPhone'), staff.phone || '');
       document.getElementById('editStaffPin').value = '';
       var isAct = staff.active !== undefined ? (staff.active === true || staff.active === 'Yes' || staff.active === 'yes' || staff.active === 'Active') : true;
       document.getElementById('editStaffActive').value = isAct ? 'true' : 'false';
@@ -6078,8 +6607,15 @@
       e.preventDefault();
       var id = document.getElementById('editStaffId').value.trim();
       var name = document.getElementById('editStaffName').value.trim();
-      var phone = document.getElementById('editStaffPhone').value.trim();
+      var rawPhone = document.getElementById('editStaffPhone').value.trim();
+      var phone = normalizeIndianMobile(rawPhone);
       var pin = document.getElementById('editStaffPin').value.trim();
+
+      if (rawPhone && !isValidIndianMobile(phone)) {
+        alert('कृपया 6, 7, 8 या 9 से शुरू होने वाला वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें।');
+        document.getElementById('editStaffPhone').focus();
+        return;
+      }
       var active = document.getElementById('editStaffActive').value === 'true';
       var btn = document.getElementById('btnSaveEditStaff');
 
@@ -6158,8 +6694,15 @@
       var phoneInput = document.getElementById('newStaffPhone');
       var pinInput = document.getElementById('newStaffPin');
       var name = (nameInput ? nameInput.value : '').trim();
-      var phone = (phoneInput ? phoneInput.value : '').trim();
+      var rawPhone = (phoneInput ? phoneInput.value : '').trim();
+      var phone = normalizeIndianMobile(rawPhone);
       var pin = (pinInput ? pinInput.value : '').trim();
+
+      if (rawPhone && !isValidIndianMobile(phone)) {
+        alert('कृपया 6, 7, 8 या 9 से शुरू होने वाला वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें।');
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
       var idEl = document.getElementById('newStaffId');
       var id = idEl ? idEl.value.trim() : '';
 
@@ -6527,8 +7070,11 @@
       try {
         var d = JSON.parse(raw);
         if (d.name !== undefined && document.getElementById('custName')) document.getElementById('custName').value = d.name;
-        if (d.phone !== undefined && document.getElementById('custPhone')) document.getElementById('custPhone').value = d.phone;
-        if (d.maps !== undefined && document.getElementById('custMapsUrl')) document.getElementById('custMapsUrl').value = d.maps;
+        if (d.phone !== undefined && document.getElementById('custPhone')) setPhoneInputValue(document.getElementById('custPhone'), d.phone);
+        if (d.maps !== undefined && document.getElementById('custMapsUrl')) {
+          document.getElementById('custMapsUrl').value = d.maps;
+          if (d.maps.trim()) toggleCustMap(true);
+        }
         if (d.addr !== undefined && document.getElementById('custAddress')) document.getElementById('custAddress').value = d.addr;
         if (d.cat !== undefined && document.getElementById('custCategory')) {
           document.getElementById('custCategory').value = d.cat;
@@ -6551,6 +7097,9 @@
         }
         if (d.secMaps !== undefined && document.getElementById('custSecMaps')) {
           document.getElementById('custSecMaps').value = d.secMaps;
+        }
+        if ((d.secAddr && d.secAddr.trim()) || (d.secMaps && d.secMaps.trim())) {
+          toggleCustSecLocation(true);
         }
 
         var banner = document.getElementById('custDraftRestoreBanner');
@@ -6690,7 +7239,9 @@
       try {
         var d = JSON.parse(raw);
         if (d.name !== undefined && document.getElementById('editCustName')) document.getElementById('editCustName').value = d.name;
-        if (d.phone !== undefined && document.getElementById('editCustPhone')) document.getElementById('editCustPhone').value = d.phone;
+        if (d.phone !== undefined && document.getElementById('editCustPhone')) setPhoneInputValue(document.getElementById('editCustPhone'), d.phone);
+        if (d.maps !== undefined && d.maps.trim()) toggleEditMap(true);
+        if ((d.secAddress && d.secAddress.trim()) || (d.secMaps && d.secMaps.trim())) toggleEditSecLocation(true);
         if (d.staff !== undefined && document.getElementById('editCustStaff')) document.getElementById('editCustStaff').value = d.staff;
         if (d.active !== undefined && document.getElementById('editCustActive')) document.getElementById('editCustActive').value = d.active;
         if (d.category !== undefined && document.getElementById('editCustCategory')) {
@@ -7136,6 +7687,16 @@
       var hasPhoto = !!state.selectedPhotoBase64;
       btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'फोटो अपलोड और सेव हो रहा है...' : 'गूगल शीट में सेव हो रहा है...');
 
+      var phoneEl = document.getElementById('custPhone');
+      var normCustPhone = normalizeIndianMobile(phoneEl ? phoneEl.value : '');
+      if (!isValidIndianMobile(normCustPhone)) {
+        alert('कृपया 6, 7, 8 या 9 से शुरू होने वाला वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें।');
+        if (phoneEl) phoneEl.focus();
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
+        return;
+      }
+
       var staffSelect = document.getElementById('custStaffSelect');
       var staffId = staffSelect.value;
       var staffName = staffSelect.options[staffSelect.selectedIndex] ? staffSelect.options[staffSelect.selectedIndex].text.replace(/\s*\(.*\)$/, '') : '';
@@ -7166,7 +7727,7 @@
         staffId: staffId,
         staffName: staffName,
         customerName: document.getElementById('custName').value.trim(),
-        customerNumber: document.getElementById('custPhone').value.trim(),
+        customerNumber: normalizeIndianMobile(document.getElementById('custPhone').value),
         address: document.getElementById('custAddress').value.trim(),
         googleMapsUrl: document.getElementById('custMapsUrl').value.trim(),
         staffNotes: document.getElementById('custNotes').value.trim(),
@@ -7191,9 +7752,12 @@
         } else {
           showToast('ग्राहक सफलतापूर्वक सेव हुआ और एक्टिव रिकॉर्ड्स में जुड़ गया!', '✓');
           document.getElementById('addCustomerForm').reset();
-          document.getElementById('custPhotoPreview').style.display = 'none';
+          toggleCustMap(false);
+          toggleCustSecLocation(false);
+          var prev = document.getElementById('custPhotoPreview');
+          if (prev) { prev.src = ''; prev.style.display = 'none'; }
           var ph = document.getElementById('custPhotoPlaceholder');
-          if (ph) ph.style.display = 'block';
+          if (ph) ph.style.display = 'inline-flex';
           var act = document.getElementById('custPhotoActionsWrap');
           if (act) act.style.display = 'none';
           state.selectedPhotoBase64 = '';
@@ -7268,11 +7832,11 @@
       return html;
     }
 
-    function loadAdminRecords() {
+    function loadAdminRecords(forceRefresh) {
       var tbody = document.getElementById('adminRecordsTableBody');
       if (tbody) tbody.innerHTML = renderAdminTableSkeletons(6);
 
-      apiCall('getAllCustomers', {}, function(res) {
+      apiCall('getAllCustomers', { forceRefresh: !!forceRefresh }, function(res) {
         var records = Array.isArray(res) ? res : (res && res.records ? res.records : []);
         var isLive = res && res.isLive !== undefined ? res.isLive : true;
 
@@ -7433,7 +7997,11 @@
         /* Search text matching */
         if (q) {
           var name = (r.customerName || '').toLowerCase();
+          var rawCustPhone = normalizeIndianMobile(r.customerNumber);
+          var formattedCustPhone = formatIndianMobile(r.customerNumber).toLowerCase();
           var phone = (r.customerNumber || '').toString().toLowerCase();
+          var qClean = q.replace(/[^0-9]/g, '');
+          var phoneMatch = (phone.indexOf(q) >= 0 || formattedCustPhone.indexOf(q) >= 0 || (qClean && rawCustPhone.indexOf(qClean) >= 0));
           var veh = (r.vehicle || r.vehicleNumbers || '').toLowerCase();
           var addr = (r.address || '').toLowerCase();
           var secAddr = (r.secondaryAddress || '').toLowerCase();
@@ -7441,7 +8009,7 @@
           var notes = (r.notes || r.staffNotes || '').toLowerCase();
           var pkg = (r.packageType || r.serviceType || '').toLowerCase();
 
-          var match = (name.indexOf(q) >= 0 || phone.indexOf(q) >= 0 || veh.indexOf(q) >= 0 || addr.indexOf(q) >= 0 || secAddr.indexOf(q) >= 0 || stf.indexOf(q) >= 0 || notes.indexOf(q) >= 0 || pkg.indexOf(q) >= 0);
+          var match = (name.indexOf(q) >= 0 || phoneMatch || veh.indexOf(q) >= 0 || addr.indexOf(q) >= 0 || secAddr.indexOf(q) >= 0 || stf.indexOf(q) >= 0 || notes.indexOf(q) >= 0 || pkg.indexOf(q) >= 0);
           if (!match) return false;
         }
 
@@ -7527,7 +8095,10 @@
 
         var custHtml = '<div class="cust-name-cell">' +
           '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + escapeHtml(r.customerName || 'अज्ञात ग्राहक') + '</span>' +
-          (r.customerNumber ? '<a href="tel:' + escapeHtml(r.customerNumber) + '" class="cust-phone-link">📞 ' + escapeHtml(r.customerNumber) + '</a>' : '') +
+          (r.customerNumber ? (function() {
+            var nPhone = normalizeIndianMobile(r.customerNumber);
+            return '<a href="' + getIndianPhoneLink(nPhone) + '" class="cust-phone-link" title="कॉल करें: ' + escapeHtml(formatIndianMobile(nPhone)) + '">📞 ' + escapeHtml(formatIndianMobile(nPhone)) + '</a>';
+          })() : '') +
           '<div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:2px;">' +
             '<span class="cust-sheet-tag ' + tagClass + '">' + escapeHtml(catName) + '</span>' +
             (pkgLabel ? '<span class="package-pill-badge" style="font-size:9.5px; padding:1px 5px;">' + escapeHtml(pkgLabel) + '</span>' : '') +
@@ -7632,18 +8203,22 @@
       document.getElementById('editRowIndex').value = r.rowIndex || '';
       document.getElementById('editPhotoUrl').value = r.photoUrl || '';
       document.getElementById('editCustName').value = r.customerName || '';
-      document.getElementById('editCustPhone').value = r.customerNumber || '';
+      setPhoneInputValue(document.getElementById('editCustPhone'), r.customerNumber || '');
       document.getElementById('editCustVehicles').value = r.vehicle || r.vehicleNumbers || '';
       document.getElementById('editCustAddress').value = r.address || '';
       document.getElementById('editCustMapsUrl').value = r.googleMapsUrl || '';
       document.getElementById('editCustNotes').value = r.notes || r.staffNotes || '';
       document.getElementById('editCustActive').value = (r.active || 'Yes').toLowerCase() === 'no' ? 'No' : 'Yes';
 
-      /* Secondary address fields */
+      /* Auto-expand or collapse map panel based on existing data */
+      toggleEditMap(!!(r.googleMapsUrl && r.googleMapsUrl.trim()));
+
+      /* Secondary address fields & auto-expand */
       var secAddrInput = document.getElementById('editCustSecAddress');
       var secMapsInput = document.getElementById('editCustSecMaps');
       if (secAddrInput) secAddrInput.value = r.secondaryAddress || '';
       if (secMapsInput) secMapsInput.value = r.secondaryMapsUrl || '';
+      toggleEditSecLocation(!!((r.secondaryAddress && r.secondaryAddress.trim()) || (r.secondaryMapsUrl && r.secondaryMapsUrl.trim())));
 
       /* Set Category and dynamic package types */
       var catSelect = document.getElementById('editCustCategory');
@@ -7806,6 +8381,16 @@
       var hasPhoto = !!state.editPhotoBase64;
       btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'फोटो और डेटा अपडेट हो रहा है...' : 'बदलाव सेव हो रहे हैं...');
 
+      var editPhoneEl = document.getElementById('editCustPhone');
+      var normEditPhone = normalizeIndianMobile(editPhoneEl ? editPhoneEl.value : '');
+      if (!isValidIndianMobile(normEditPhone)) {
+        alert('कृपया 6, 7, 8 या 9 से शुरू होने वाला वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें।');
+        if (editPhoneEl) editPhoneEl.focus();
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> बदलाव सेव करें (Save Changes)';
+        return;
+      }
+
       var sheetName = document.getElementById('editSheetName').value;
       var rowIndex = document.getElementById('editRowIndex').value;
       var photoUrl = document.getElementById('editPhotoUrl').value;
@@ -7834,7 +8419,7 @@
         sheetName: sheetName,
         rowIndex: rowIndex,
         customerName: document.getElementById('editCustName').value.trim(),
-        customerNumber: document.getElementById('editCustPhone').value.trim(),
+        customerNumber: normalizeIndianMobile(document.getElementById('editCustPhone').value),
         staffName: document.getElementById('editCustStaff').value.trim(),
         serviceCategory: serviceCategory,
         serviceType: serviceType,
@@ -7870,7 +8455,7 @@
           showToast('ग्राहक रिकॉर्ड सफलतापूर्वक अपडेट हो गया!', '✓');
           discardEditDraft(true);
           closeEditCustomerModal();
-          loadAdminRecords();
+          loadAdminRecords(true);
         }
       }, function(err) {
         btn.disabled = false;
@@ -7978,10 +8563,11 @@
         nameEl.textContent = custName + (rawVehicle ? ' (' + rawVehicle + ')' : '');
       }
       if (phoneLink && phoneWrapper) {
-        if (custPhone) {
+        var normCustPhone = normalizeIndianMobile(custPhone);
+        if (normCustPhone) {
           phoneWrapper.style.display = 'block';
-          phoneLink.textContent = '📞 ' + custPhone;
-          phoneLink.href = 'tel:' + custPhone;
+          phoneLink.textContent = '📞 ' + formatIndianMobile(normCustPhone);
+          phoneLink.href = getIndianPhoneLink(normCustPhone);
         } else {
           phoneWrapper.style.display = 'none';
         }
