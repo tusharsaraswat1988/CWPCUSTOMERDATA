@@ -174,6 +174,36 @@
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.3px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+
+    .staff-live-badge:hover {
+      filter: brightness(1.1);
+      transform: translateY(-0.5px);
+    }
+
+    .staff-live-badge.sync-checking {
+      background: rgba(59, 130, 246, 0.16) !important;
+      color: #60a5fa !important;
+      border-color: rgba(96, 165, 250, 0.4) !important;
+    }
+
+    .staff-live-badge.sync-offline {
+      background: rgba(245, 158, 11, 0.16) !important;
+      color: #fbbf24 !important;
+      border-color: rgba(245, 158, 11, 0.4) !important;
+    }
+
+    .staff-sync-spinner {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border: 1.5px solid rgba(96, 165, 250, 0.3);
+      border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
 
     .dot-live {
@@ -3728,8 +3758,9 @@
       <div class="header-right">
         <!-- Staff Live Indicator & Staff Logout (Only shown in staff view) -->
         <div id="staffHeaderControls" style="display: none; align-items: center; gap: 8px;">
-          <div class="staff-live-badge" id="staffLiveBadge">
-            <span class="dot-live">●</span> लाइव
+          <div class="staff-live-badge" id="staffLiveBadge" onclick="triggerManualStaffSync()" title="ऑटो-सिंक सक्रिय (30s) • लाइव डेटा सिंक चालू (क्लिक करके अभी चेक करें)">
+            <span class="dot-live" id="staffSyncDot">●</span>
+            <span id="staffSyncText">लाइव</span>
           </div>
           <button type="button" id="staffLogoutBtn" class="header-logout-btn" onclick="handleStaffLogout()" style="display: none;" title="स्टाफ पोर्टल से लॉगआउट करें">
             <span class="logout-icon">🚪</span>
@@ -4957,6 +4988,7 @@
     }
 
     function clearStaffTokens(staffId) {
+      stopStaffAutoSync();
       var key = getStaffAuthKey(staffId);
       sessionStorage.removeItem(key);
       localStorage.removeItem(key);
@@ -5169,6 +5201,7 @@
         function finishStaffLogout() {
           if (doneStaff) return;
           doneStaff = true;
+          stopStaffAutoSync();
           clearStaffTokens(sId);
           sessionStorage.removeItem('cwp_last_staff_id');
           localStorage.removeItem('cwp_last_staff_id');
@@ -5469,13 +5502,198 @@
     /* =========================================================================
        STAFF DATA LOADING & RENDERING
        ========================================================================= */
-    function loadStaffCustomerData(staffId) {
-      var feed = document.getElementById('customerFeed');
-      if (feed) feed.innerHTML = renderSkeletonCards(3);
+    /* =========================================================================
+       TASK P2.2: STAFF LIVE DATA AUTO-SYNCHRONIZATION (30s Background Polling)
+       ========================================================================= */
+    var staffSyncTimer = null;
+    var isStaffSyncInProgress = false;
+    var staffDataVersion = '';
+    var lastStaffSyncTimestamp = 0;
+    var STAFF_SYNC_INTERVAL_MS = 30000; // 30 seconds
+
+    function formatSyncTime(ts) {
+      try {
+        var d = ts ? new Date(ts) : new Date();
+        if (isNaN(d.getTime())) return 'अभी-अभी';
+        var hrs = d.getHours();
+        var mins = d.getMinutes();
+        var secs = d.getSeconds();
+        var ampm = hrs >= 12 ? 'PM' : 'AM';
+        hrs = hrs % 12;
+        hrs = hrs ? hrs : 12;
+        var strMins = mins < 10 ? '0' + mins : mins;
+        var strSecs = secs < 10 ? '0' + secs : secs;
+        return hrs + ':' + strMins + ':' + strSecs + ' ' + ampm;
+      } catch (e) {
+        return 'अभी-अभी';
+      }
+    }
+
+    function updateStaffSyncIndicator(status, message, timestamp) {
+      var badge = document.getElementById('staffLiveBadge');
+      var dot = document.getElementById('staffSyncDot');
+      var text = document.getElementById('staffSyncText');
+      if (!badge || !text) return;
+
+      var timeStr = formatSyncTime(timestamp || lastStaffSyncTimestamp);
+
+      if (status === 'checking') {
+        badge.className = 'staff-live-badge sync-checking';
+        badge.title = 'नवीनतम डेटा की जांच हो रही है... (Checking for updates)';
+        if (dot) dot.innerHTML = '<span class="staff-sync-spinner"></span>';
+        text.textContent = 'सिंक...';
+      } else if (status === 'offline') {
+        badge.className = 'staff-live-badge sync-offline';
+        badge.title = 'इंटरनेट कनेक्शन में रुकावट — पिछला उपलब्ध डेटा प्रदर्शित है।';
+        if (dot) dot.innerHTML = '<span style="font-size: 10px;">⚠️</span>';
+        text.textContent = 'ऑफ़लाइन';
+      } else {
+        badge.className = 'staff-live-badge';
+        badge.title = '● ऑटो-सिंक सक्रिय (30s) • ' + (message || 'लाइव') + ' • अंतिम जांच: ' + timeStr + ' (क्लिक करके अभी चेक करें)';
+        if (dot) dot.innerHTML = '<span class="dot-live">●</span>';
+        text.textContent = 'लाइव';
+      }
+    }
+
+    function startStaffAutoSync(staffId) {
+      stopStaffAutoSync();
+      if (!staffId || !getStaffToken(staffId)) return;
+
+      updateStaffSyncIndicator('active', 'Auto Sync Active');
+
+      staffSyncTimer = setInterval(function() {
+        if (document.visibilityState === 'visible' && state.currentView === 'staff' && isUserStaffAuthenticated(staffId)) {
+          pollStaffData(staffId, false);
+        }
+      }, STAFF_SYNC_INTERVAL_MS);
+    }
+
+    function stopStaffAutoSync() {
+      if (staffSyncTimer) {
+        clearInterval(staffSyncTimer);
+        staffSyncTimer = null;
+      }
+      isStaffSyncInProgress = false;
+    }
+
+    function triggerManualStaffSync() {
+      if (state.activeStaffId && isUserStaffAuthenticated(state.activeStaffId)) {
+        pollStaffData(state.activeStaffId, true);
+      }
+    }
+
+    function pollStaffData(staffId, isManual) {
+      if (isStaffSyncInProgress) return; // Prevent duplicate in-flight requests
 
       var sToken = getStaffToken(staffId);
-      apiCall('getStaffData', { staffId: staffId, staffToken: sToken }, function(response) {
+      if (!sToken) {
+        stopStaffAutoSync();
+        return;
+      }
+
+      isStaffSyncInProgress = true;
+      lastStaffSyncTimestamp = Date.now();
+      if (isManual) {
+        updateStaffSyncIndicator('checking', 'जांच हो रही है...');
+      }
+
+      apiCall('getStaffData', {
+        staffId: staffId,
+        staffToken: sToken,
+        version: staffDataVersion
+      }, function(res) {
+        isStaffSyncInProgress = false;
+
+        // Inactive staff check
+        if (res && res.inactive) {
+          stopStaffAutoSync();
+          handleStaffDataLoaded(res);
+          return;
+        }
+
+        // Session expired or cross-staff unauthorized
+        if (res && (res.unauthorized || res.forbidden)) {
+          stopStaffAutoSync();
+          clearStaffTokens(staffId);
+          checkStaffAuthStatus(staffId);
+          showToast('⚠️ आपका सेशन समाप्त हो गया है। कृपया दोबारा पिन दर्ज करें।', '🔒');
+          return;
+        }
+
+        // Data Unchanged: ZERO DOM churn!
+        if (res && res.unchanged) {
+          updateStaffSyncIndicator('active', 'डेटा में कोई बदलाव नहीं', res.lastSync || new Date());
+          return;
+        }
+
+        // Data changed!
+        if (res && res.version) {
+          staffDataVersion = res.version;
+        }
+
+        // Preserve scroll position
+        var prevScroll = window.scrollY || document.documentElement.scrollTop;
+
+        // Preserve active modals (photo modal or address modal should never be abruptly closed)
+        var imgModal = document.getElementById('imageModal');
+        var wasImgModalOpen = imgModal && imgModal.style.display !== 'none';
+        var addrModal = document.getElementById('addressViewModal');
+        var wasAddrModalOpen = addrModal && addrModal.style.display !== 'none';
+
+        handleStaffDataLoaded(res);
+
+        // Restore scroll position
+        window.scrollTo(0, prevScroll);
+
+        // Keep modal open if it was open
+        if (wasImgModalOpen && imgModal) imgModal.style.display = 'flex';
+        if (wasAddrModalOpen && addrModal) addrModal.style.display = 'flex';
+
+        updateStaffSyncIndicator('active', 'लाइव अपडेट हुआ', res.lastSync || new Date());
+      }, function(err) {
+        isStaffSyncInProgress = false;
+        // Non-intrusive network resilience: do NOT spam toasts every 30s
+        updateStaffSyncIndicator('offline', 'नेटवर्क में रुकावट — पिछला डेटा सुरक्षित');
+      });
+    }
+
+    // Visibility change handler: pause polling when tab hidden, immediate fresh check when tab re-opened
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible' && state.currentView === 'staff' && isUserStaffAuthenticated(state.activeStaffId)) {
+        if (Date.now() - lastStaffSyncTimestamp > 25000) {
+          pollStaffData(state.activeStaffId, false);
+        }
+      }
+    });
+
+    // Network online / offline recovery
+    window.addEventListener('online', function() {
+      if (state.currentView === 'staff' && isUserStaffAuthenticated(state.activeStaffId)) {
+        updateStaffSyncIndicator('checking', 'पुनः कनेक्ट हो रहा है...');
+        pollStaffData(state.activeStaffId, false);
+      }
+    });
+
+    window.addEventListener('offline', function() {
+      if (state.currentView === 'staff') {
+        updateStaffSyncIndicator('offline', 'इंटरनेट अनुपलब्ध — पिछला डेटा सुरक्षित');
+      }
+    });
+
+function loadStaffCustomerData(staffId) {
+      var feed = document.getElementById('customerFeed');
+      if (feed && (!state.customers || state.customers.length === 0)) {
+        feed.innerHTML = renderSkeletonCards(3);
+      }
+
+      var sToken = getStaffToken(staffId);
+      apiCall('getStaffData', { staffId: staffId, staffToken: sToken, version: '' }, function(response) {
+        if (response && response.version) {
+          staffDataVersion = response.version;
+        }
         handleStaffDataLoaded(response);
+        startStaffAutoSync(staffId);
+        updateStaffSyncIndicator('active', 'लाइव', response.lastSync || new Date());
       }, function(err) {
         showToast('डेटा लोड करने में त्रुटि: ' + (err.message || err), '❌');
         if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड नहीं हो सका</h4><p class="empty-desc">' + escapeHtml(err.message || 'कृपया इंटरनेट कनेक्शन जांचें या दोबारा रीफ्रेश करें।') + '</p><div style="margin-top: 14px;"><button type="button" class="btn-primary-smart" style="padding: 8px 16px;" onclick="loadStaffCustomerData(state.activeStaffId)">🔄 पुनः प्रयास करें</button></div></div>';
