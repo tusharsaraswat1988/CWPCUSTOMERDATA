@@ -250,8 +250,8 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // Upload photo to Cloudinary CDN before saving customer record to Google Sheet
-        if (payload.action === 'saveCustomer' && payload.customerData) {
+        // Upload photo to Cloudinary CDN before saving/updating customer record in Google Sheet
+        if ((payload.action === 'saveCustomer' || payload.action === 'updateCustomer') && payload.customerData) {
           const cust = payload.customerData;
           const photoObj = cust.photoFile || cust.photoData;
           if (photoObj && photoObj.base64) {

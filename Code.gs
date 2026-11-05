@@ -99,6 +99,8 @@ function doPost(e) {
       result = verifyAdminPassword(requestData.password);
     } else if (action === "updateAdminPassword") {
       result = updateAdminPassword(requestData.newPassword);
+    } else if (action === "updateCustomer") {
+      result = updateCustomer(requestData.customerData);
     } else if (action === "reorderSheet") {
       result = reorderSheetToCustomerFirst();
     } else if (action === "syncStaffDropdown") {
@@ -654,6 +656,10 @@ function getAllCustomersForAdmin() {
         photoUrl: getVal(row, hMap, ["customervehiclephotourl", "vehiclesitephotourl", "photourl", "photo"]),
         address: getVal(row, hMap, ["address"]),
         vehicle: getVal(row, hMap, ["vehicle", "vehiclenumbersmodels", "vehiclenumbersitename"]),
+        packageType: getVal(row, hMap, ["packagetype", "pkgtype", "servicetypecarwashsolarcleaning", "servicetype"]) || "DCC ONLY",
+        packagesPurchased: (getVal(row, hMap, ["packagespurchased", "pkgcount"]) || "1").toString(),
+        secondaryAddress: getVal(row, hMap, ["secondaryaddressifany", "secondaryaddress"]) || "",
+        secondaryMapsUrl: getVal(row, hMap, ["secondarymapsurl"]) || "",
         notes: getVal(row, hMap, ["staffnotes", "notes"]),
         active: (getVal(row, hMap, ["active", "status"]) || "Yes").toString()
       });
@@ -674,6 +680,64 @@ function toggleCustomerActive(sheetName, rowIndex, currentStatus) {
   var newStatus = (currentStatus || "").toString().toLowerCase() === "yes" ? "No" : "Yes";
   sheet.getRange(rowIndex, col1Based).setValue(newStatus);
   return { success: true, newStatus: newStatus };
+}
+
+/**
+ * Updates an existing customer row in Google Sheets
+ */
+function updateCustomer(customerData) {
+  if (!customerData || !customerData.sheetName || !customerData.rowIndex) {
+    throw new Error("Missing sheetName or rowIndex for update.");
+  }
+  
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName(customerData.sheetName);
+  if (!sheet) throw new Error("Sheet '" + customerData.sheetName + "' not found.");
+  
+  var r = parseInt(customerData.rowIndex, 10);
+  if (isNaN(r) || r < 2 || r > sheet.getLastRow()) {
+    throw new Error("Invalid row index: " + customerData.rowIndex);
+  }
+  
+  var hMap = getHeaderIndexMap(sheet);
+  
+  function updateCell(aliases, val) {
+    if (val === undefined || val === null) return;
+    for (var i = 0; i < aliases.length; i++) {
+      var key = aliases[i].toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (hMap[key] !== undefined) {
+        sheet.getRange(r, hMap[key] + 1).setValue(val);
+        return;
+      }
+    }
+  }
+  
+  var custNum = customerData.customerNumber ? "'" + customerData.customerNumber.toString().replace(/^'+/, '') : "";
+  
+  updateCell(["customername", "custname"], customerData.customerName);
+  updateCell(["customernumber", "custphone", "number", "phone", "mob"], custNum);
+  updateCell(["googlemapsurl", "mapurl", "maps", "location"], customerData.googleMapsUrl);
+  if (customerData.photoUrl) {
+    updateCell(["customervehiclephotourl", "vehiclesitephotourl", "photourl", "photo"], customerData.photoUrl);
+  }
+  updateCell(["address"], customerData.address);
+  updateCell(["staffname", "staff"], customerData.staffName);
+  updateCell(["staffnotescleaninginstructions", "staffnotesspecialinstructions", "staffnotes", "notes"], customerData.staffNotes);
+  updateCell(["active", "status"], customerData.active || "Yes");
+  
+  if (customerData.sheetName === "Daily Clean") {
+    updateCell(["vehiclenumbersmodels", "vehiclenumbers", "vehicle"], customerData.vehicleNumbers || customerData.vehicle);
+    updateCell(["packagetype", "pkgtype"], customerData.packageType || "DCC ONLY");
+    updateCell(["packagespurchased", "pkgcount"], customerData.packagesPurchased || "1");
+    updateCell(["secondaryaddressifany", "secondaryaddress"], customerData.secondaryAddress || "");
+    updateCell(["secondarymapsurl"], customerData.secondaryMapsUrl || "");
+  } else {
+    updateCell(["vehiclenumbersitename", "vehicleorsite", "vehicle"], customerData.vehicleOrSite || customerData.vehicleNumbers || customerData.vehicle);
+    updateCell(["servicetypecarwashsolarcleaning", "servicetype"], customerData.serviceType || customerData.packageType || "");
+    updateCell(["packageservicedetails", "packagedetails"], customerData.packageDetails || customerData.packageType || "");
+  }
+  
+  return { success: true, message: "ग्राहक का विवरण सफलतापूर्वक अपडेट हुआ!" };
 }
 
 /**
