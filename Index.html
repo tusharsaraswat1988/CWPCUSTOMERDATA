@@ -3450,41 +3450,282 @@
       });
     }
 
+    /* Admin Active Records Filter & Search System */
+    var adminFilterState = {
+      onlyPhoto: false,
+      onlyMap: false
+    };
+
     function loadAdminRecords() {
       var tbody = document.getElementById('adminRecordsTableBody');
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">डेटा लोड हो रहा है...</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 28px; color: var(--text-muted);">🔄 गूगल शीट से लाइव डेटा लोड हो रहा है...</td></tr>';
 
       apiCall('getAllCustomers', {}, function(records) {
         state.adminRecords = records || [];
-        renderAdminRecordsTable(state.adminRecords);
+
+        // Update badge counter in tab
+        var recCountBadge = document.getElementById('tabRecordsCount');
+        if (recCountBadge) recCountBadge.textContent = state.adminRecords.length;
+
+        // Populate staff dropdown in filters
+        populateStaffFilterDropdown();
+
+        // Run filter & render
+        filterAdminRecords();
       }, function(err) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 28px; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '</td></tr>';
       });
+    }
+
+    function populateStaffFilterDropdown() {
+      var sel = document.getElementById('filterAdminStaff');
+      if (!sel) return;
+      var currentVal = sel.value;
+      var html = '<option value="all">सभी स्टाफ (All Staff)</option>';
+      html += '<option value="none">⚠️ असाइन नहीं (None / Unassigned)</option>';
+
+      var uniqueStaff = {};
+      (state.staffList || []).forEach(function(s) {
+        if (s.name && s.name.trim()) uniqueStaff[s.name.trim()] = true;
+      });
+      (state.adminRecords || []).forEach(function(r) {
+        if (r.staffName && r.staffName.trim() && r.staffName.trim().toLowerCase() !== 'none' && r.staffName.trim().toLowerCase() !== 'unassigned') {
+          uniqueStaff[r.staffName.trim()] = true;
+        }
+      });
+
+      Object.keys(uniqueStaff).sort().forEach(function(name) {
+        html += '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+      });
+
+      sel.innerHTML = html;
+      sel.value = currentVal;
+      if (!sel.value) sel.value = 'all';
+    }
+
+    function handleAdminSearchInput() {
+      var searchInput = document.getElementById('adminRecordSearch');
+      var clearBtn = document.getElementById('btnAdminSearchClear');
+      var val = searchInput ? searchInput.value : '';
+      if (clearBtn) clearBtn.style.display = val.trim() ? 'inline-flex' : 'none';
+      filterAdminRecords();
+    }
+
+    function clearAdminSearch() {
+      var searchInput = document.getElementById('adminRecordSearch');
+      var clearBtn = document.getElementById('btnAdminSearchClear');
+      if (searchInput) searchInput.value = '';
+      if (clearBtn) clearBtn.style.display = 'none';
+      filterAdminRecords();
+    }
+
+    function toggleQuickFilter(type) {
+      if (type === 'photo') {
+        adminFilterState.onlyPhoto = !adminFilterState.onlyPhoto;
+        var btn = document.getElementById('toggleFilterPhoto');
+        if (btn) btn.classList.toggle('active', adminFilterState.onlyPhoto);
+      } else if (type === 'map') {
+        adminFilterState.onlyMap = !adminFilterState.onlyMap;
+        var btnMap = document.getElementById('toggleFilterMap');
+        if (btnMap) btnMap.classList.toggle('active', adminFilterState.onlyMap);
+      }
+      filterAdminRecords();
+    }
+
+    function resetAllAdminFilters() {
+      var searchInput = document.getElementById('adminRecordSearch');
+      var clearBtn = document.getElementById('btnAdminSearchClear');
+      var sheetSel = document.getElementById('filterAdminSheet');
+      var staffSel = document.getElementById('filterAdminStaff');
+      var statusSel = document.getElementById('filterAdminStatus');
+      var btnPhoto = document.getElementById('toggleFilterPhoto');
+      var btnMap = document.getElementById('toggleFilterMap');
+
+      if (searchInput) searchInput.value = '';
+      if (clearBtn) clearBtn.style.display = 'none';
+      if (sheetSel) sheetSel.value = 'all';
+      if (staffSel) staffSel.value = 'all';
+      if (statusSel) statusSel.value = 'all';
+
+      adminFilterState.onlyPhoto = false;
+      adminFilterState.onlyMap = false;
+      if (btnPhoto) btnPhoto.classList.remove('active');
+      if (btnMap) btnMap.classList.remove('active');
+
+      filterAdminRecords();
+    }
+
+    function filterAdminRecords() {
+      if (!state.adminRecords) return;
+
+      var searchEl = document.getElementById('adminRecordSearch');
+      var sheetEl = document.getElementById('filterAdminSheet');
+      var staffEl = document.getElementById('filterAdminStaff');
+      var statusEl = document.getElementById('filterAdminStatus');
+
+      var q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+      var sheet = sheetEl ? sheetEl.value : 'all';
+      var staff = staffEl ? staffEl.value : 'all';
+      var status = statusEl ? statusEl.value : 'all';
+      var onlyPhoto = adminFilterState.onlyPhoto;
+      var onlyMap = adminFilterState.onlyMap;
+
+      var isFiltered = (q !== '' || sheet !== 'all' || staff !== 'all' || status !== 'all' || onlyPhoto || onlyMap);
+      var notice = document.getElementById('filterActiveNotice');
+      if (notice) notice.style.display = isFiltered ? 'block' : 'none';
+
+      var filtered = state.adminRecords.map(function(r, idx) {
+        r._origIndex = idx;
+        return r;
+      }).filter(function(r) {
+        // Sheet category filter
+        if (sheet !== 'all' && r.sheetName !== sheet) return false;
+
+        // Staff assignment filter
+        if (staff === 'none') {
+          if (r.staffName && r.staffName.trim() && r.staffName.trim().toLowerCase() !== 'none' && r.staffName.trim().toLowerCase() !== 'unassigned') {
+            return false;
+          }
+        } else if (staff !== 'all') {
+          if (!r.staffName || r.staffName.trim().toLowerCase() !== staff.trim().toLowerCase()) return false;
+        }
+
+        // Active status filter
+        if (status !== 'all') {
+          var act = (r.active || 'Yes').toLowerCase() === 'yes' ? 'yes' : 'no';
+          if (act !== status) return false;
+        }
+
+        // Photo toggle
+        if (onlyPhoto && (!r.photoUrl || !r.photoUrl.trim())) return false;
+
+        // Map toggle
+        if (onlyMap && (!r.googleMapsUrl || !r.googleMapsUrl.trim())) return false;
+
+        // Search text matching
+        if (q) {
+          var name = (r.customerName || '').toLowerCase();
+          var phone = (r.customerNumber || '').toString().toLowerCase();
+          var veh = (r.vehicle || r.vehicleNumbers || '').toLowerCase();
+          var addr = (r.address || '').toLowerCase();
+          var secAddr = (r.secondaryAddress || '').toLowerCase();
+          var stf = (r.staffName || '').toLowerCase();
+          var notes = (r.notes || r.staffNotes || '').toLowerCase();
+
+          var match = (name.indexOf(q) >= 0 || phone.indexOf(q) >= 0 || veh.indexOf(q) >= 0 || addr.indexOf(q) >= 0 || secAddr.indexOf(q) >= 0 || stf.indexOf(q) >= 0 || notes.indexOf(q) >= 0);
+          if (!match) return false;
+        }
+
+        return true;
+      });
+
+      var filteredCountEl = document.getElementById('filteredRecordsCount');
+      var totalCountEl = document.getElementById('totalRecordsCount');
+      if (filteredCountEl) filteredCountEl.textContent = filtered.length;
+      if (totalCountEl) totalCountEl.textContent = state.adminRecords.length;
+
+      renderAdminRecordsTable(filtered);
     }
 
     function renderAdminRecordsTable(records) {
       var tbody = document.getElementById('adminRecordsTableBody');
+      if (!tbody) return;
+
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">कोई रिकॉर्ड नहीं मिला।</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px 16px; color: var(--text-muted);">' +
+          '<div style="font-size: 28px; margin-bottom: 8px;">🔍</div>' +
+          '<div style="font-weight: 700; font-size: 14px; color: var(--text-primary); margin-bottom: 4px;">कोई रिकॉर्ड नहीं मिला</div>' +
+          '<div style="font-size: 12px;">सर्च या फ़िल्टर बदलकर देखें या <a href="javascript:void(0)" onclick="resetAllAdminFilters()" style="color:var(--brand-blue); text-decoration:underline; font-weight:600;">सभी फ़िल्टर हटाएं</a></div>' +
+          '</td></tr>';
         return;
       }
 
       var html = '';
       records.forEach(function(r, index) {
+        var sNo = index + 1;
+        var origIndex = r._origIndex !== undefined ? r._origIndex : index;
         var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
-        var photoCell = r.photoUrl ? 
-          '<img src="' + escapeHtml(r.photoUrl) + '" style="width:36px; height:36px; border-radius:6px; object-fit:cover; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.1);" onclick="openImageModal(\'' + escapeHtml(r.photoUrl) + '\')" title="फोटो देखने के लिए क्लिक करें">' :
-          '<span style="color:var(--text-muted); font-size:11px;">--</span>';
+
+        // 1. Customer Cell (Name + Phone + Sheet Tag)
+        var custHtml = '<div class="cust-name-cell">' +
+          '<span class="cust-name-text">' + escapeHtml(r.customerName || 'अज्ञात ग्राहक') + '</span>' +
+          (r.customerNumber ? '<a href="tel:' + escapeHtml(r.customerNumber) + '" class="cust-phone-link">📞 ' + escapeHtml(r.customerNumber) + '</a>' : '') +
+          '<span class="cust-sheet-tag ' + (r.sheetName === 'Daily Clean' ? 'tag-daily' : 'tag-other') + '">' + escapeHtml(r.sheetName || 'Daily Clean') + '</span>' +
+        '</div>';
+
+        // 2. Address Cell (Address + Secondary Address)
+        var addrText = (r.address || '').trim();
+        var secAddrText = (r.secondaryAddress || '').trim();
+        var addrHtml = '<div class="cust-address-cell">';
+        if (addrText) {
+          addrHtml += '<span>' + escapeHtml(addrText) + '</span>';
+        } else {
+          addrHtml += '<span class="cell-empty-dash">—</span>';
+        }
+        if (secAddrText) {
+          addrHtml += '<div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">📍 ' + escapeHtml(secAddrText) + '</div>';
+        }
+        addrHtml += '</div>';
+
+        // 3. Car Number Cell (License Plate Badge)
+        var carText = (r.vehicle || r.vehicleNumbers || '').trim();
+        var carHtml = '<div class="cust-car-cell">';
+        if (carText) {
+          carHtml += '<span class="car-number-plate">' + escapeHtml(carText) + '</span>';
+        } else {
+          carHtml += '<span class="cell-empty-dash">—</span>';
+        }
+        carHtml += '</div>';
+
+        // 4. Button to View Photo
+        var photoHtml = '<div style="text-align: center;">';
+        if (r.photoUrl && r.photoUrl.trim()) {
+          photoHtml += '<button type="button" class="btn-cell-action btn-photo-view" onclick="openImageModal(\'' + escapeHtml(r.photoUrl) + '\')" title="फोटो देखने के लिए क्लिक करें">' +
+            '<img src="' + escapeHtml(r.photoUrl) + '" class="cell-thumb-img" alt="Photo" onerror="this.style.display=\'none\'">' +
+            '<span>🖼️ फोटो देखें</span>' +
+          '</button>';
+        } else {
+          photoHtml += '<span class="badge-cell-none">फोटो नहीं</span>';
+        }
+        photoHtml += '</div>';
+
+        // 5. Button to Open Map Location
+        var mapHtml = '<div style="text-align: center;">';
+        if (r.googleMapsUrl && r.googleMapsUrl.trim()) {
+          mapHtml += '<a href="' + escapeHtml(r.googleMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" title="गूगल मैप्स में लोकेशन खोलें">' +
+            '<span>🗺️ मैप खोलें ↗</span>' +
+          '</a>';
+        } else {
+          mapHtml += '<span class="badge-cell-none">मैप नहीं</span>';
+        }
+        mapHtml += '</div>';
+
+        // 6. Staff Assigned Name or else "None"
+        var staffName = (r.staffName || '').trim();
+        var staffHtml = '<div>';
+        if (staffName && staffName.toLowerCase() !== 'none' && staffName.toLowerCase() !== 'unassigned') {
+          staffHtml += '<span class="staff-assigned-badge"><span class="staff-icon">👔</span> ' + escapeHtml(staffName) + '</span>';
+        } else {
+          staffHtml += '<span class="staff-none-badge">असाइन नहीं (None)</span>';
+        }
+        staffHtml += '</div>';
+
+        // 7. Edit Button
+        var editHtml = '<div style="text-align: center;">' +
+          '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="ग्राहक विवरण एडिट करें">' +
+            '<span>✏️</span> <span>एडिट</span>' +
+          '</button>' +
+        '</div>';
 
         html += '<tr>';
-        html += '  <td><span style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">' + escapeHtml(r.sheetName) + '</span></td>';
-        html += '  <td style="text-align:center;">' + photoCell + '</td>';
-        html += '  <td><b>' + escapeHtml(r.staffName || r.staffId) + '</b></td>';
-        html += '  <td>' + escapeHtml(r.customerName) + '<br><small style="color:var(--text-muted);">' + escapeHtml(r.customerNumber) + '</small></td>';
-        html += '  <td>' + escapeHtml(r.vehicle || '--') + '</td>';
-        html += '  <td>' + escapeHtml(r.address || '--') + '</td>';
-        html += '  <td><span style="color:' + (isActive ? 'var(--call-green)' : 'var(--danger-red)') + '; font-weight:700;">' + (isActive ? 'Active' : 'Inactive') + '</span></td>';
-        html += '  <td style="text-align:center;"><button type="button" class="btn-admin-action" style="padding:4px 8px; font-size:11px; font-weight:700; background:var(--brand-blue-light); color:var(--brand-blue); border-color:var(--brand-blue-border);" onclick="openEditCustomerModal(' + index + ')">✏️ एडिट</button></td>';
+        html += '  <td style="text-align: center;"><span class="sno-badge">' + sNo + '</span></td>';
+        html += '  <td>' + custHtml + '</td>';
+        html += '  <td>' + addrHtml + '</td>';
+        html += '  <td>' + carHtml + '</td>';
+        html += '  <td>' + photoHtml + '</td>';
+        html += '  <td>' + mapHtml + '</td>';
+        html += '  <td>' + staffHtml + '</td>';
+        html += '  <td>' + editHtml + '</td>';
         html += '</tr>';
       });
 
@@ -3501,13 +3742,13 @@
       document.getElementById('editPhotoUrl').value = r.photoUrl || '';
       document.getElementById('editCustName').value = r.customerName || '';
       document.getElementById('editCustPhone').value = r.customerNumber || '';
-      document.getElementById('editCustVehicles').value = r.vehicle || '';
+      document.getElementById('editCustVehicles').value = r.vehicle || r.vehicleNumbers || '';
       document.getElementById('editCustAddress').value = r.address || '';
       document.getElementById('editCustMapsUrl').value = r.googleMapsUrl || '';
-      document.getElementById('editCustNotes').value = r.notes || '';
+      document.getElementById('editCustNotes').value = r.notes || r.staffNotes || '';
       document.getElementById('editCustActive').value = (r.active || 'Yes').toLowerCase() === 'no' ? 'No' : 'Yes';
 
-      /* Set package type */
+      // Set package type
       var pkgSelect = document.getElementById('editCustPkgType');
       var pType = r.packageType || 'DCC ONLY';
       pkgSelect.value = pType;
@@ -3516,16 +3757,16 @@
       }
       document.getElementById('editCustPkgCount').value = r.packagesPurchased || '1';
 
-      /* Populate Staff Dropdown */
+      // Populate Staff Dropdown with "None" option
       var staffSelect = document.getElementById('editCustStaff');
-      var options = '<option value="">स्टाफ चुनें...</option>';
-      state.staffList.forEach(function(s) {
+      var options = '<option value="">असाइन नहीं (None)</option>';
+      (state.staffList || []).forEach(function(s) {
         var isSel = (s.name && r.staffName && s.name.trim().toLowerCase() === r.staffName.trim().toLowerCase()) ? 'selected' : '';
         options += '<option value="' + escapeHtml(s.name) + '" ' + isSel + '>' + escapeHtml(s.name) + '</option>';
       });
       staffSelect.innerHTML = options;
 
-      /* Photo thumbnail preview */
+      // Photo thumbnail preview
       var thumb = document.getElementById('editPhotoThumb');
       if (r.photoUrl) {
         thumb.src = r.photoUrl;
