@@ -291,7 +291,7 @@
       border: 1px solid var(--border-color);
       color: var(--text-primary);
       border-radius: var(--radius-sm);
-      padding: 10px 14px 10px 36px;
+      padding: 10px 36px 10px 36px;
       font-size: 13.5px;
       font-family: inherit;
       outline: none;
@@ -308,68 +308,126 @@
       color: var(--text-muted);
     }
 
-    /* Tab Filter Pills */
+    .search-clear-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #64748b;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: all 0.15s ease;
+    }
+
+    .search-clear-btn:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    /* Tab Filter Pills (Swipeable on Mobile, Zero Scrollbar) */
     .filter-pills-row {
       display: flex;
-      gap: 6px;
+      gap: 7px;
       overflow-x: auto;
-      padding-bottom: 2px;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .filter-pills-row::-webkit-scrollbar {
+      display: none;
     }
 
     .filter-pill {
       background: #ffffff;
-      border: 1px solid var(--border-color);
-      color: var(--text-secondary);
-      padding: 6px 14px;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      padding: 7px 13px;
       border-radius: 20px;
-      font-size: 12.5px;
-      font-weight: 500;
+      font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.15s ease;
       user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .filter-pill:hover:not(.active) {
+      background: #f8fafc;
+      border-color: #94a3b8;
+      color: #0f172a;
     }
 
     .filter-pill.active {
       background: var(--brand-blue);
       color: #ffffff;
       border-color: var(--brand-blue);
-      font-weight: 600;
-      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    .pill-icon {
+      font-size: 13px;
+    }
+
+    .pill-badge {
+      background: rgba(0, 0, 0, 0.08);
+      color: inherit;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+
+    .filter-pill.active .pill-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
     }
 
     /* =========================================================================
-       SMART COMPACT CUSTOMER CARD
-       - Call & Map on Top Row beside Customer Name (1 full row eliminated)
-       - High-density spacing for maximum cards per screen
-       - Dedicated Photo & Address buttons with instant modal popups
-       - Orange strip removed
+       SMART COMPACT CUSTOMER CARD (Mobile-First, Professional CWP Brand)
        ========================================================================= */
     .customer-feed-grid {
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 8px;
     }
 
     .smart-card {
       background: #ffffff;
-      border: 1px solid var(--border-color);
+      border: 1px solid #e2e8f0;
       border-radius: var(--radius-md);
-      padding: 8px 12px;
-      box-shadow: var(--shadow-xs);
-      transition: all 0.15s ease;
+      padding: 11px 13px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
       position: relative;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 6px;
     }
 
     .smart-card:hover {
       border-color: #cbd5e1;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.07);
     }
 
     /* Top Row: Index + Customer Name (Left) & Call + Map Buttons (Right) */
+    .card-header-row,
     .card-top-line {
       display: flex;
       align-items: center;
@@ -377,29 +435,32 @@
       gap: 8px;
     }
 
+    .card-title-group,
     .cust-name-group {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
       min-width: 0;
       flex: 1;
     }
 
     .cust-index-badge {
       font-size: 11px;
-      font-weight: 600;
-      color: #64748b;
+      font-weight: 700;
+      color: #475569;
       background: #f1f5f9;
+      border: 1px solid #e2e8f0;
       padding: 2px 6px;
-      border-radius: 5px;
-      font-family: 'JetBrains Mono', monospace;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
       flex-shrink: 0;
+      line-height: 1.3;
     }
 
     .cust-full-name {
-      font-size: 14.5px;
-      font-weight: 600;
-      color: var(--text-primary);
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -411,7 +472,8 @@
       display: none !important;
     }
 
-    /* Top Row Action Buttons (Call & Map next to name) */
+    /* Top Row Action Buttons (Call & Map Touch Targets) */
+    .card-action-buttons,
     .card-top-actions {
       display: flex;
       align-items: center;
@@ -419,45 +481,61 @@
       flex-shrink: 0;
     }
 
+    .btn-card-action,
     .btn-top-action {
-      height: 28px;
-      min-height: 28px;
-      padding: 0 9px;
-      border-radius: 6px;
-      font-size: 11.5px;
-      font-weight: 600;
+      height: 33px;
+      min-height: 33px;
+      padding: 0 11px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 5px;
       text-decoration: none;
       border: 1px solid transparent;
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.15s ease;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+      user-select: none;
     }
 
+    .btn-card-action:active,
+    .btn-top-action:active {
+      transform: scale(0.97);
+    }
+
+    .btn-call,
     .btn-top-call {
       background: var(--call-green);
       color: #ffffff;
-      box-shadow: 0 1px 2px rgba(5, 150, 105, 0.25);
+      border-color: #047857;
+      box-shadow: 0 1px 3px rgba(5, 150, 105, 0.28);
     }
 
+    .btn-call:hover,
     .btn-top-call:hover {
       background: var(--call-green-hover);
+      color: #ffffff;
     }
 
+    .btn-map,
     .btn-top-map {
       background: var(--brand-blue);
       color: #ffffff;
-      box-shadow: 0 1px 2px rgba(37, 99, 235, 0.25);
+      border-color: #1d4ed8;
+      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.28);
     }
 
+    .btn-map:hover,
     .btn-top-map:hover {
       background: var(--brand-blue-hover);
+      color: #ffffff;
     }
 
+    .btn-action-disabled,
     .btn-top-disabled {
       background: #f8fafc;
       color: #94a3b8;
@@ -465,9 +543,11 @@
       cursor: not-allowed;
       box-shadow: none;
       font-size: 11px;
+      opacity: 0.85;
     }
 
-    /* Middle Row: Vehicle + Service Tag (Left) & Photo + Address Buttons (Right) */
+    /* Middle Row: Vehicle Plate + Package Type + Photo Thumbnail */
+    .card-vehicle-row,
     .card-mid-line {
       display: flex;
       align-items: center;
@@ -476,6 +556,7 @@
       flex-wrap: wrap;
     }
 
+    .vehicle-details-wrap,
     .card-vehicle-group {
       display: flex;
       align-items: center;
@@ -485,35 +566,57 @@
       flex-wrap: wrap;
     }
 
+    .vehicle-plate-badge,
     .vehicle-tag {
       display: inline-flex;
       align-items: center;
       gap: 5px;
       background: #f8fafc;
       border: 1px solid #cbd5e1;
-      padding: 2px 7px;
+      border-left: 3px solid var(--brand-blue);
+      padding: 2.5px 7px;
       border-radius: 6px;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       color: #0f172a;
+      font-family: 'JetBrains Mono', Consolas, monospace;
       letter-spacing: 0.2px;
       max-width: 100%;
     }
 
+    .solar-site-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-left: 3px solid #d97706;
+      padding: 2.5px 7px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #92400e;
+      letter-spacing: 0.2px;
+      max-width: 100%;
+    }
+
+    .vehicle-plate-text,
     .vehicle-number-text {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
+    .vehicle-plate-icon,
     .vehicle-icon {
-      font-size: 11.5px;
+      font-size: 12px;
       flex-shrink: 0;
     }
 
+    .package-pill-badge,
     .service-tag {
       font-size: 10.5px;
-      font-weight: 600;
+      font-weight: 700;
       color: #1e40af;
       background: #eff6ff;
       border: 1px solid #bfdbfe;
@@ -525,7 +628,8 @@
       flex-shrink: 0;
     }
 
-    /* 2 Dedicated Action Buttons: Photo & Address */
+    /* Photo Thumbnail Button */
+    .card-photo-wrap,
     .card-sub-actions {
       display: flex;
       align-items: center;
@@ -533,6 +637,43 @@
       flex-shrink: 0;
     }
 
+    .btn-photo-thumb {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 6px 1px 2px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-photo-thumb:hover {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      transform: translateY(-0.5px);
+    }
+
+    .card-mini-thumb {
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      object-fit: cover;
+      display: block;
+      border: 1px solid rgba(0,0,0,0.08);
+      flex-shrink: 0;
+    }
+
+    .photo-thumb-label {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #1e40af;
+      white-space: nowrap;
+    }
+
+    /* Backward compatibility for buttons */
     .btn-card-sub {
       height: 26px;
       min-height: 26px;
@@ -553,32 +694,16 @@
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
-    .btn-card-sub:hover {
-      background: #f8fafc;
-      border-color: #94a3b8;
-      color: #0f172a;
-    }
-
     .btn-sub-photo.has-data {
       background: #fefce8;
       border-color: #fde047;
       color: #854d0e;
     }
 
-    .btn-sub-photo.has-data:hover {
-      background: #fef9c3;
-      border-color: #eab308;
-    }
-
     .btn-sub-addr.has-data {
       background: #f0fdf4;
       border-color: #bbf7d0;
       color: #166534;
-    }
-
-    .btn-sub-addr.has-data:hover {
-      background: #dcfce7;
-      border-color: #86efac;
     }
 
     .btn-sub-disabled {
@@ -590,29 +715,218 @@
       opacity: 0.85;
     }
 
-    .btn-sub-disabled:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
-      color: #64748b;
+    /* Row 3: Address Row */
+    .card-address-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 5px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+      font-size: 11.5px;
+      color: #334155;
+      line-height: 1.35;
     }
 
-    /* Cleaning Instructions / Notes Strip */
+    .card-address-row:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .addr-icon {
+      font-size: 12px;
+      color: #ef4444;
+      flex-shrink: 0;
+    }
+
+    .addr-text-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .addr-primary {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .addr-sec-pill {
+      font-size: 10px;
+      font-weight: 600;
+      color: #0369a1;
+      background: #e0f2fe;
+      border: 1px solid #bae6fd;
+      padding: 1px 5px;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .addr-view-arrow {
+      font-size: 13px;
+      font-weight: 700;
+      color: #94a3b8;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    /* Row 4: Staff Notes / Cleaning Instructions */
+    .card-notes-row,
     .notes-info-strip {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      color: #166534;
-      padding: 3px 8px;
-      border-radius: 5px;
-      font-size: 11px;
       display: flex;
       align-items: flex-start;
-      gap: 5px;
-      line-height: 1.35;
+      gap: 6px;
+      background: #fffbeb;
+      border: 1px solid #fef08a;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      color: #854d0e;
+      line-height: 1.4;
+    }
+
+    .notes-icon {
+      font-size: 12px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .notes-content {
+      min-width: 0;
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .notes-label {
+      font-weight: 700;
+      color: #713f12;
+      margin-right: 4px;
+    }
+
+    .notes-body {
+      color: #1e293b;
     }
 
     .notes-info-strip b {
       font-weight: 700;
-      color: #14532d;
+      color: #713f12;
+    }
+
+    /* Shimmer Skeleton Styles */
+    .skeleton-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .skeleton-card {
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .skeleton-shimmer {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: skeletonShimmer 1.5s infinite;
+      border-radius: 4px;
+    }
+
+    @keyframes skeletonShimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .skeleton-badge {
+      width: 26px;
+      height: 18px;
+    }
+
+    .skeleton-title {
+      width: 120px;
+      height: 18px;
+    }
+
+    .skeleton-btn {
+      width: 48px;
+      height: 30px;
+      border-radius: 6px;
+    }
+
+    .skeleton-plate {
+      width: 130px;
+      height: 22px;
+      border-radius: 6px;
+    }
+
+    .skeleton-thumb {
+      width: 52px;
+      height: 24px;
+      border-radius: 6px;
+    }
+
+    .skeleton-addr {
+      width: 100%;
+      height: 22px;
+      border-radius: 6px;
+    }
+
+    /* Polished Empty State Card */
+    .empty-state-card {
+      background: #ffffff;
+      border: 1px dashed #cbd5e1;
+      border-radius: var(--radius-md);
+      padding: 34px 18px;
+      text-align: center;
+      color: var(--text-secondary);
+      margin: 8px 0;
+    }
+
+    .empty-icon-wrap {
+      font-size: 34px;
+      margin-bottom: 8px;
+      line-height: 1;
+    }
+
+    .empty-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .empty-desc {
+      font-size: 12.5px;
+      color: #64748b;
+      margin-bottom: 12px;
+      line-height: 1.45;
+    }
+
+    .btn-clear-search-empty {
+      background: var(--brand-blue-light);
+      border: 1px solid var(--brand-blue-border);
+      color: var(--brand-blue);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-clear-search-empty:hover {
+      background: #dbeafe;
     }
 
     /* Centered Logout Confirmation Modal */
@@ -746,6 +1060,16 @@
         max-width: 960px;
       }
       body:not(.admin-mode-active) #customerFeed {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+      .empty-state-card,
+      .skeleton-feed {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+      .skeleton-feed {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 8px;
@@ -1316,13 +1640,12 @@
 
     @media (min-width: 768px) {
       .records-table-wrapper {
-        overflow-x: hidden !important; /* Strictly ZERO horizontal scroll on desktop & laptop */
+        overflow-x: auto;
       }
       .records-table {
         width: 100% !important;
         max-width: 100% !important;
-        table-layout: fixed !important; /* Strictly respects 100% width and proportional columns */
-        min-width: 0 !important;
+        min-width: 820px;
       }
     }
 
@@ -1453,6 +1776,45 @@
       overflow: hidden;
       text-overflow: ellipsis;
       word-break: break-word;
+    }
+
+    .table-addr-snippet {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      cursor: pointer;
+      padding: 3px 6px;
+      border-radius: 6px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      transition: all 0.15s ease;
+      max-width: 100%;
+    }
+
+    .table-addr-snippet:hover {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+    }
+
+    .table-addr-text {
+      font-size: 11.5px;
+      color: #1e293b;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+      font-weight: 500;
+    }
+
+    .table-addr-sec {
+      font-size: 10px;
+      color: #0369a1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+      font-weight: 600;
     }
 
     .car-number-plate {
@@ -2537,20 +2899,68 @@
           <div class="search-bar-wrapper">
             <span class="search-icon">🔍</span>
             <input type="text" id="staffSearchInput" class="search-input" placeholder="ग्राहक का नाम, गाड़ी नंबर या पता खोजें..." oninput="handleStaffSearch(this.value)">
+            <button type="button" id="btnStaffSearchClear" class="search-clear-btn" onclick="clearStaffSearch()" style="display: none;" title="सर्च साफ़ करें">✕</button>
           </div>
 
-          <div class="filter-pills-row" id="filterPillsRow">
-            <button type="button" class="filter-pill active" id="pillDailyClean" onclick="setStaffFilter('daily_car_cleaning')">Daily Car Cleaning (<span id="countDailyClean">0</span>)</button>
-            <button type="button" class="filter-pill" id="pillCarWash" onclick="setStaffFilter('car_washing')">Car Washing (<span id="countCarWash">0</span>)</button>
-            <button type="button" class="filter-pill" id="pillSolarClean" onclick="setStaffFilter('solar_cleaning')">Solar Panel Cleaning (<span id="countSolarClean">0</span>)</button>
+          <div class="filter-pills-row" id="filterPillsRow" role="tablist">
+            <button type="button" class="filter-pill active" id="pillDailyClean" role="tab" onclick="setStaffFilter('daily_car_cleaning')">
+              <span class="pill-icon">🚗</span>
+              <span class="pill-text">Daily Car Cleaning</span>
+              <span class="pill-badge" id="countDailyClean">0</span>
+            </button>
+            <button type="button" class="filter-pill" id="pillCarWash" role="tab" onclick="setStaffFilter('car_washing')">
+              <span class="pill-icon">🧼</span>
+              <span class="pill-text">Car Washing</span>
+              <span class="pill-badge" id="countCarWash">0</span>
+            </button>
+            <button type="button" class="filter-pill" id="pillSolarClean" role="tab" onclick="setStaffFilter('solar_cleaning')">
+              <span class="pill-icon">☀️</span>
+              <span class="pill-text">Solar Panel Cleaning</span>
+              <span class="pill-badge" id="countSolarClean">0</span>
+            </button>
           </div>
         </div>
 
         <!-- Smart Compact Customer Cards Feed -->
         <div class="customer-feed-grid" id="customerFeed">
-          <div class="empty-state-box">
-            <div class="empty-icon">⏳</div>
-            <p>गाड़ियों की लिस्ट लोड हो रही है...</p>
+          <div class="skeleton-feed">
+            <div class="smart-card skeleton-card">
+              <div class="card-header-row">
+                <div class="card-title-group" style="gap:8px;">
+                  <div class="skeleton-shimmer skeleton-badge"></div>
+                  <div class="skeleton-shimmer skeleton-title"></div>
+                </div>
+                <div class="card-action-buttons">
+                  <div class="skeleton-shimmer skeleton-btn"></div>
+                  <div class="skeleton-shimmer skeleton-btn"></div>
+                </div>
+              </div>
+              <div class="card-vehicle-row" style="margin-top:6px;">
+                <div class="skeleton-shimmer skeleton-plate"></div>
+                <div class="skeleton-shimmer skeleton-thumb"></div>
+              </div>
+              <div class="skeleton-shimmer skeleton-addr" style="margin-top:6px;"></div>
+            </div>
+            <div class="smart-card skeleton-card">
+              <div class="card-header-row">
+                <div class="card-title-group" style="gap:8px;">
+                  <div class="skeleton-shimmer skeleton-badge"></div>
+                  <div class="skeleton-shimmer skeleton-title"></div>
+                </div>
+                <div class="card-action-buttons">
+                  <div class="skeleton-shimmer skeleton-btn"></div>
+                  <div class="skeleton-shimmer skeleton-btn"></div>
+                </div>
+              </div>
+              <div class="card-vehicle-row" style="margin-top:6px;">
+                <div class="skeleton-shimmer skeleton-plate"></div>
+                <div class="skeleton-shimmer skeleton-thumb"></div>
+              </div>
+              <div class="skeleton-shimmer skeleton-addr" style="margin-top:6px;"></div>
+            </div>
+          </div>
+          <div style="text-align: center; padding: 10px; font-size: 12px; color: var(--text-muted); font-weight: 600;">
+            ⏳ गाड़ियों की लिस्ट लोड हो रही है...
           </div>
         </div>
       </div>
@@ -2660,7 +3070,7 @@
             <!-- SECTION 1: PRIMARY CUSTOMER IDENTIFIERS (Columns 1 to 5) -->
             <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
               <div style="font-size: 13.5px; font-weight: 600; color: var(--brand-navy); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                <span>👤</span> 1. ग्राहक विवरण (Primary Customer Information - Cols 1-5)
+                <span>👤</span> 1. ग्राहक विवरण (Customer Information)
               </div>
 
               <!-- Customer Name & Mobile -->
@@ -2924,14 +3334,14 @@
             <table class="records-table">
               <thead>
                 <tr>
-                  <th style="width: 4.5%; text-align: center;">क्र. सं.</th>
-                  <th style="width: 22%;">ग्राहक का नाम</th>
-                  <th style="width: 9.5%; text-align: center;">पता</th>
-                  <th style="width: 16%;">गाड़ी / साइट विवरण</th>
-                  <th style="width: 10%; text-align: center;">फोटो</th>
-                  <th style="width: 10%; text-align: center;">मैप लोकेशन</th>
-                  <th style="width: 16%; text-align: center;">असाइन स्टाफ</th>
-                  <th style="width: 12%; text-align: center;">एक्शन</th>
+                  <th style="width: 44px; text-align: center;">क्र. सं.</th>
+                  <th style="width: 21%;">ग्राहक का नाम</th>
+                  <th style="width: 17%;">गाड़ी / साइट विवरण</th>
+                  <th style="width: 22%;">पता (Address)</th>
+                  <th style="width: 85px; text-align: center;">फोटो</th>
+                  <th style="width: 80px; text-align: center;">मैप</th>
+                  <th style="width: 14%; text-align: center;">असाइन स्टाफ</th>
+                  <th style="width: 75px; text-align: center;">एक्शन</th>
                 </tr>
               </thead>
               <tbody id="adminRecordsTableBody">
@@ -3089,45 +3499,53 @@
           </div>
           <div class="form-group">
             <label class="form-label">पैकेज का प्रकार (Package Type) *</label>
-            <select id="editCustPkgType" class="form-select" required>
+            <select id="editCustPkgType" class="form-select" onchange="handleEditPackageTypeChange(this.value)" required>
               <option value="DCC ONLY">DCC ONLY</option>
               <option value="DCC SILVER">DCC SILVER</option>
               <option value="DCC GOLD">DCC GOLD</option>
               <option value="OTHER">OTHER</option>
             </select>
+            <input type="text" id="editCustPkgTypeCustom" class="form-input" placeholder="अन्य पैकेज विवरण..." style="display: none; margin-top: 6px;">
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" id="editCustVehiclesLabel">गाड़ी नंबर और मॉडल (Vehicle Number & Model)</label>
-          <input type="text" id="editCustVehicles" class="form-input">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" id="editCustVehiclesLabel">गाड़ी नंबर और मॉडल (Vehicle Number & Model)</label>
+            <input type="text" id="editCustVehicles" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">गूगल मैप्स लोकेशन (Google Maps URL)</label>
+            <div class="form-input-addon-group">
+              <input type="text" id="editCustMapsUrl" class="form-input" placeholder="Maps Link or Plus Code">
+              <button type="button" class="form-addon-btn" onclick="detectEditGpsLocation()">📍 GPS</button>
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
           <label class="form-label">ग्राहक का पता (Address)</label>
-          <textarea id="editCustAddress" class="form-textarea" rows="2"></textarea>
+          <textarea id="editCustAddress" class="form-textarea" rows="2" placeholder="मकान नं, कॉलोनी, शहर..."></textarea>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">गूगल मैप्स लोकेशन (Google Maps URL)</label>
-          <div class="form-input-addon-group">
-            <input type="text" id="editCustMapsUrl" class="form-input" placeholder="Maps Link or Plus Code">
-            <button type="button" class="form-addon-btn" onclick="detectEditGpsLocation()">📍 GPS</button>
+        <div class="form-group" id="editSecondaryAddressGroup">
+          <label class="form-label">दूसरा पता / लोकेशन (Secondary Address - Optional)</label>
+          <input type="text" id="editCustSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
+          <input type="text" id="editCustSecMaps" class="form-input" style="margin-top: 4px;" placeholder="दूसरे पते का मैप लिंक (Optional)">
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">गाड़ी की फोटो (Cloudinary CDN)</label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img id="editPhotoThumb" src="" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover; display: none; border: 1px solid var(--border-color);" alt="Thumb">
+              <input type="file" id="editCustPhotoFile" accept="image/*" class="form-input" style="padding: 6px; font-size: 11px;" onchange="handleEditPhotoSelect(event)">
+            </div>
           </div>
-        </div>
-
-        <!-- Photo Section -->
-        <div class="form-group">
-          <label class="form-label">गाड़ी की फोटो (Cloudinary CDN)</label>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <img id="editPhotoThumb" src="" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover; display: none; border: 1px solid var(--border-color);" alt="Thumb">
-            <input type="file" id="editCustPhotoFile" accept="image/*" class="form-input" style="padding: 6px; font-size: 12px;" onchange="handleEditPhotoSelect(event)">
+          <div class="form-group">
+            <label class="form-label">स्टाफ निर्देश (Staff Notes)</label>
+            <textarea id="editCustNotes" class="form-textarea" rows="2" placeholder="सफाई निर्देश..."></textarea>
           </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">स्टाफ निर्देश (Staff Notes)</label>
-          <textarea id="editCustNotes" class="form-textarea" rows="2"></textarea>
         </div>
 
         <div class="modal-card-footer">
@@ -3635,13 +4053,13 @@
        ========================================================================= */
     function loadStaffCustomerData(staffId) {
       var feed = document.getElementById('customerFeed');
-      feed.innerHTML = '<div class="empty-state-box"><div class="empty-icon">⏳</div><p>गाड़ियों की लिस्ट लोड हो रही है...</p></div>';
+      if (feed) feed.innerHTML = renderSkeletonCards(3);
 
       apiCall('getStaffData', { staffId: staffId }, function(response) {
         handleStaffDataLoaded(response);
       }, function(err) {
         showToast('डेटा लोड करने में त्रुटि: ' + (err.message || err), '❌');
-        feed.innerHTML = '<div class="empty-state-box"><div class="empty-icon">⚠️</div><p>डेटा लोड नहीं हो सका। कृपया रीफ्रेश करें।</p></div>';
+        if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड नहीं हो सका</h4><p class="empty-desc">कृपया इंटरनेट कनेक्शन जांचें या दोबारा रीफ्रेश करें।</p></div>';
       });
     }
 
@@ -3663,7 +4081,8 @@
       }
 
       if (!data || data.error) {
-        document.getElementById('customerFeed').innerHTML = '<div class="empty-state-box"><div class="empty-icon">⚠️</div><p>' + escapeHtml(data ? data.error : 'अज्ञात त्रुटि') + '</p></div>';
+        var feed = document.getElementById('customerFeed');
+        if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड विफल</h4><p class="empty-desc">' + escapeHtml(data ? data.error : 'अज्ञात त्रुटि') + '</p></div>';
         return;
       }
 
@@ -3680,44 +4099,51 @@
 
       if (hasModern) {
         if (data.dailyCarCleaning && Array.isArray(data.dailyCarCleaning)) {
-          data.dailyCarCleaning.forEach(function(item) {
+          data.dailyCarCleaning.forEach(function(item, idx) {
             item.category = 'daily_car_cleaning';
             item.serviceCategory = 'Daily Car Cleaning';
+            item._seq = idx + 1;
             list.push(item);
           });
         }
         if (data.carWashing && Array.isArray(data.carWashing)) {
-          data.carWashing.forEach(function(item) {
+          data.carWashing.forEach(function(item, idx) {
             item.category = 'car_washing';
             item.serviceCategory = 'Car Washing';
+            item._seq = idx + 1;
             list.push(item);
           });
         }
         if (data.solarCleaning && Array.isArray(data.solarCleaning)) {
-          data.solarCleaning.forEach(function(item) {
+          data.solarCleaning.forEach(function(item, idx) {
             item.category = 'solar_cleaning';
             item.serviceCategory = 'Solar Panel Cleaning';
+            item._seq = idx + 1;
             list.push(item);
           });
         }
       } else {
         /* Fallback if backend returned legacy format dailyClean / allOtherWork */
         if (data.dailyClean && Array.isArray(data.dailyClean)) {
-          data.dailyClean.forEach(function(item) {
+          data.dailyClean.forEach(function(item, idx) {
             item.category = 'daily_car_cleaning';
             item.serviceCategory = 'Daily Car Cleaning';
+            item._seq = idx + 1;
             list.push(item);
           });
         }
         if (data.allOtherWork && Array.isArray(data.allOtherWork)) {
+          var cwIdx = 0, spcIdx = 0;
           data.allOtherWork.forEach(function(item) {
             var s = ((item.serviceType || '') + ' ' + (item.packageType || '') + ' ' + (item.packageDetails || '')).toLowerCase();
             if (s.indexOf('solar') >= 0 || (item.vehicleOrSite || '').toLowerCase().indexOf('site') >= 0) {
               item.category = 'solar_cleaning';
               item.serviceCategory = 'Solar Panel Cleaning';
+              item._seq = ++spcIdx;
             } else {
               item.category = 'car_washing';
               item.serviceCategory = 'Car Washing';
+              item._seq = ++cwIdx;
             }
             list.push(item);
           });
@@ -3768,10 +4194,25 @@
 
     function handleStaffSearch(query) {
       state.searchQuery = (query || '').toLowerCase().trim();
+      var clr = document.getElementById('btnStaffSearchClear');
+      if (clr) clr.style.display = state.searchQuery ? 'inline-flex' : 'none';
+      applyCustomerFilterAndSearch();
+    }
+
+    function clearStaffSearch() {
+      var inp = document.getElementById('staffSearchInput');
+      var clr = document.getElementById('btnStaffSearchClear');
+      if (inp) inp.value = '';
+      if (clr) clr.style.display = 'none';
+      state.searchQuery = '';
       applyCustomerFilterAndSearch();
     }
 
     function applyCustomerFilterAndSearch() {
+      var tabTotal = state.customers.filter(function(c) {
+        return !state.activeFilter || c.category === state.activeFilter;
+      }).length;
+
       var filtered = state.customers.filter(function(c) {
         /* Category filter - strictly match selected tab */
         if (state.activeFilter && c.category !== state.activeFilter) return false;
@@ -3779,31 +4220,90 @@
         /* Search query */
         if (state.searchQuery) {
           var q = state.searchQuery;
-          var name = (c.customerName || '').toLowerCase();
-          var phone = (c.customerNumber || '').toLowerCase();
-          var vehicles = (c.vehicleNumbers || c.vehicleOrSite || c.vehicle || '').toLowerCase();
-          var addr = (c.address || '').toLowerCase();
-          var notes = (c.staffNotes || c.notes || '').toLowerCase();
-          return name.indexOf(q) !== -1 || phone.indexOf(q) !== -1 || vehicles.indexOf(q) !== -1 || addr.indexOf(q) !== -1 || notes.indexOf(q) !== -1;
+          var name = (c.customerName != null ? String(c.customerName) : '').toLowerCase();
+          var phone = (c.customerNumber != null ? String(c.customerNumber) : '').toLowerCase();
+          var veh = (c.vehicleNumbers || c.vehicleOrSite || c.vehicle != null ? String(c.vehicleNumbers || c.vehicleOrSite || c.vehicle) : '').toLowerCase();
+          var addr = (c.address != null ? String(c.address) : '').toLowerCase();
+          var secAddr = (c.secondaryAddress != null ? String(c.secondaryAddress) : '').toLowerCase();
+          var notes = (c.staffNotes || c.notes != null ? String(c.staffNotes || c.notes) : '').toLowerCase();
+          var pkg = (c.packageType || c.serviceType != null ? String(c.packageType || c.serviceType) : '').toLowerCase();
+          return name.indexOf(q) !== -1 || phone.indexOf(q) !== -1 || veh.indexOf(q) !== -1 || addr.indexOf(q) !== -1 || secAddr.indexOf(q) !== -1 || notes.indexOf(q) !== -1 || pkg.indexOf(q) !== -1;
         }
         return true;
       });
 
+      /* Dynamic matching counter */
+      var badge = document.getElementById('staffCarCount');
+      if (badge) {
+        var icon = (state.activeFilter === 'solar_cleaning') ? '☀️ ' : ((state.activeFilter === 'car_washing') ? '🧼 ' : '🚗 ');
+        var label = (state.activeFilter === 'solar_cleaning') ? ' साइट्स' : ' गाड़ियां';
+        if (state.searchQuery) {
+          badge.textContent = icon + filtered.length + ' / ' + tabTotal + label;
+        } else {
+          badge.textContent = icon + tabTotal + label;
+        }
+      }
+
       renderCustomerCards(filtered);
     }
 
+    function renderSkeletonCards(count) {
+      var n = count || 3;
+      var html = '<div class="skeleton-feed">';
+      for (var i = 0; i < n; i++) {
+        html += '<div class="smart-card skeleton-card">' +
+          '<div class="card-header-row">' +
+            '<div class="card-title-group" style="gap:8px;">' +
+              '<div class="skeleton-shimmer skeleton-badge"></div>' +
+              '<div class="skeleton-shimmer skeleton-title"></div>' +
+            '</div>' +
+            '<div class="card-action-buttons">' +
+              '<div class="skeleton-shimmer skeleton-btn"></div>' +
+              '<div class="skeleton-shimmer skeleton-btn"></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="card-vehicle-row" style="margin-top:6px;">' +
+            '<div class="skeleton-shimmer skeleton-plate"></div>' +
+            '<div class="skeleton-shimmer skeleton-thumb"></div>' +
+          '</div>' +
+          '<div class="skeleton-shimmer skeleton-addr" style="margin-top:6px;"></div>' +
+        '</div>';
+      }
+      html += '</div>' +
+        '<div style="text-align: center; padding: 10px; font-size: 12px; color: var(--text-muted); font-weight: 600;">' +
+          '⏳ गाड़ियों की लिस्ट लोड हो रही है...' +
+        '</div>';
+      return html;
+    }
+
     /* =========================================================================
-       SMART COMPACT CARD RENDERER
-       - Call & Map buttons on top row next to Customer Name
-       - Dedicated pop-up buttons for Car Photo and Car Address
-       - High-density layout showing more customers per screen
-       - Source sheet row order preserved
+       SMART COMPACT CARD RENDERER (Mobile-First, Professional Layout)
+       - Customer name & sequence hierarchy
+       - High-visibility Call & Google Maps navigation touch targets
+       - Prominent vehicle/site plate & package pill
+       - Direct car photo thumbnail preview (click to enlarge)
+       - Direct readable address snippet (click for full modal)
+       - Staff cleaning notes callout banner
+       - Exact Google Sheet row order strictly preserved
        ========================================================================= */
     function renderCustomerCards(items) {
       state.currentStaffFilteredList = items || [];
       var container = document.getElementById('customerFeed');
+      if (!container) return;
+
       if (!items || items.length === 0) {
-        container.innerHTML = '<div class="empty-state-box"><div class="empty-icon">🚗</div><p style="font-weight:700;">कोई रिकॉर्ड नहीं मिला</p><p style="font-size:12px; margin-top:4px;">इस केटेगरी में कोई काम असाइन नहीं है।</p></div>';
+        var isSearchActive = Boolean(state.searchQuery);
+        var emptyMsg = isSearchActive 
+          ? 'सर्च के अनुसार कोई रिकॉर्ड नहीं मिला। ("' + escapeHtml(state.searchQuery) + '")'
+          : (state.activeFilter === 'solar_cleaning' ? 'इस केटेगरी में कोई सोलर साइट असाइन नहीं है।' : (state.activeFilter === 'car_washing' ? 'इस केटेगरी में कोई कार वॉशिंग असाइन नहीं है।' : 'इस केटेगरी में कोई दैनिक कार सफाई असाइन नहीं है।'));
+        var emptyIcon = isSearchActive ? '🔍' : (state.activeFilter === 'solar_cleaning' ? '☀️' : (state.activeFilter === 'car_washing' ? '🧼' : '🚗'));
+        var clearBtnHtml = isSearchActive ? '<div style="margin-top:10px;"><button type="button" class="btn-clear-search-empty" onclick="clearStaffSearch()">✕ सर्च साफ़ करें</button></div>' : '';
+        container.innerHTML = '<div class="empty-state-card">' +
+          '<div class="empty-icon-wrap">' + emptyIcon + '</div>' +
+          '<h4 class="empty-title">कोई रिकॉर्ड नहीं मिला</h4>' +
+          '<p class="empty-desc">' + emptyMsg + '</p>' +
+          clearBtnHtml +
+        '</div>';
         return;
       }
 
@@ -3813,89 +4313,113 @@
         var isCarWash = item.category === 'car_washing';
         var isDaily = item.category === 'daily_car_cleaning' || (!isSolar && !isCarWash);
         var customerName = escapeHtml(item.customerName || 'Customer');
-        var rawPhone = (item.customerNumber || '').replace(/[^0-9]/g, '');
+        var rawPhone = (item.customerNumber != null ? String(item.customerNumber) : '').replace(/[^0-9]/g, '');
         var cleanPhone = rawPhone.length === 10 ? rawPhone : (rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone);
 
-        var vehicles = item.vehicleNumbers || item.vehicleOrSite || item.vehicle || (isSolar ? 'साइट दर्ज नहीं' : 'गाड़ी नंबर दर्ज नहीं');
-        var notes = (item.staffNotes || item.notes || '').trim();
-        var address = (item.address || '').trim();
+        var rawVeh = item.vehicleNumbers || item.vehicleOrSite || item.vehicle;
+        var vehicles = (rawVeh != null ? String(rawVeh) : '').trim() || (isSolar ? 'साइट विवरण दर्ज नहीं' : 'गाड़ी नंबर दर्ज नहीं');
+        var notes = (item.staffNotes || item.notes != null ? String(item.staffNotes || item.notes) : '').trim();
+        var address = (item.address != null ? String(item.address) : '').trim();
+        var secAddress = (item.secondaryAddress != null ? String(item.secondaryAddress) : '').trim();
         var mapsUrl = formatGoogleMapsUrl(item.googleMapsUrl, address);
-        var photoUrl = (item.photoUrl || '').trim();
-        var pkgLabel = item.packageType || item.serviceType || (isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : 'Daily Car Cleaning'));
+        var photoUrl = (item.photoUrl != null ? String(item.photoUrl) : '').trim();
+        var pkgLabel = (item.packageType || item.serviceType || (isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : 'Daily Car Cleaning'))).toString().trim();
         var vIcon = isSolar ? '☀️' : (isCarWash ? '🧼' : '🚘');
 
-        html += '<div class="smart-card">';
+        /* Route Sequence Number */
+        var seqNumber = item._seq !== undefined ? item._seq : (index + 1);
+
+        /* Lightweight thumbnail for Cloudinary CDN */
+        var thumbUrl = photoUrl;
+        if (photoUrl && photoUrl.indexOf('res.cloudinary.com') !== -1 && photoUrl.indexOf('/upload/') !== -1 && photoUrl.indexOf('/upload/w_') === -1) {
+          thumbUrl = photoUrl.replace('/upload/', '/upload/w_120,h_120,c_fill,q_auto,f_auto/');
+        }
+
+        html += '<div class="smart-card" id="staffCard-' + index + '">';
         
-        /* Row 1: Index + Customer Name (Left) & Call + Map Buttons (Right beside Name) */
-        html += '  <div class="card-top-line">';
-        html += '    <div class="cust-name-group">';
-        html += '      <span class="cust-index-badge">#' + (index + 1) + '</span>';
+        /* Row 1: S.No + Customer Name (Left) & Call + Map Buttons (Right) */
+        html += '  <div class="card-header-row">';
+        html += '    <div class="card-title-group">';
+        html += '      <span class="cust-index-badge">#' + seqNumber + '</span>';
         html += '      <h3 class="cust-full-name" title="' + customerName + '">' + customerName + '</h3>';
         html += '    </div>';
-        html += '    <div class="card-top-actions">';
+        
+        html += '    <div class="card-action-buttons">';
         if (cleanPhone) {
-          html += '      <a href="tel:' + cleanPhone + '" class="btn-top-action btn-top-call" title="कॉल करें (' + cleanPhone + ')">';
-          html += '        <span>📞</span><span>कॉल करें</span>';
+          html += '      <a href="tel:' + cleanPhone + '" class="btn-card-action btn-call" title="कॉल करें: ' + cleanPhone + '">';
+          html += '        <span>📞</span><span>कॉल</span>';
           html += '      </a>';
         } else {
-          html += '      <button type="button" class="btn-top-action btn-top-disabled" onclick="handleUnavailableItem(\'phone\')" title="मोबाइल नंबर उपलब्ध नहीं है">';
+          html += '      <button type="button" class="btn-card-action btn-action-disabled" onclick="handleUnavailableItem(\'phone\')" title="मोबाइल नंबर उपलब्ध नहीं है">';
           html += '        <span>📞</span><span>कॉल नहीं</span>';
           html += '      </button>';
         }
 
         if (mapsUrl) {
-          html += '      <a href="' + escapeHtml(mapsUrl) + '" target="_blank" rel="noopener noreferrer" class="btn-top-action btn-top-map" title="गूगल मैप्स / रास्ता देखें">';
+          html += '      <a href="' + escapeHtml(mapsUrl) + '" target="_blank" rel="noopener noreferrer" class="btn-card-action btn-map" title="गूगल मैप्स / नेविगेशन खोलें">';
           html += '        <span>🧭</span><span>मैप</span>';
           html += '      </a>';
         } else {
-          html += '      <button type="button" class="btn-top-action btn-top-disabled" onclick="handleUnavailableItem(\'map\')" title="मैप लोकेशन उपलब्ध नहीं है">';
+          html += '      <button type="button" class="btn-card-action btn-action-disabled" onclick="handleUnavailableItem(\'map\')" title="मैप लोकेशन उपलब्ध नहीं है">';
           html += '        <span>🧭</span><span>मैप नहीं</span>';
           html += '      </button>';
         }
         html += '    </div>';
         html += '  </div>';
 
-        /* Row 2: Vehicle Tag + Package Tag (Left) & Photo + Address Buttons (Right) */
-        html += '  <div class="card-mid-line">';
-        html += '    <div class="card-vehicle-group">';
-        html += '      <div class="vehicle-tag" title="' + escapeHtml(vehicles) + '">';
-        html += '        <span class="vehicle-icon">' + vIcon + '</span>';
-        html += '        <span class="vehicle-number-text">' + escapeHtml(vehicles) + '</span>';
-        html += '      </div>';
+        /* Row 2: Vehicle / Site Plate + Package Badge + Photo Thumbnail */
+        html += '  <div class="card-vehicle-row">';
+        html += '    <div class="vehicle-details-wrap">';
+        if (isSolar) {
+          html += '      <div class="solar-site-badge" title="' + escapeHtml(vehicles) + '">';
+          html += '        <span class="vehicle-plate-icon">☀️</span>';
+          html += '        <span class="vehicle-plate-text">' + escapeHtml(vehicles) + '</span>';
+          html += '      </div>';
+        } else {
+          html += '      <div class="vehicle-plate-badge" title="' + escapeHtml(vehicles) + '">';
+          html += '        <span class="vehicle-plate-icon">' + vIcon + '</span>';
+          html += '        <span class="vehicle-plate-text">' + escapeHtml(vehicles) + '</span>';
+          html += '      </div>';
+        }
         if (pkgLabel) {
-          html += '      <span class="service-tag">' + escapeHtml(pkgLabel) + '</span>';
+          html += '      <span class="package-pill-badge">' + escapeHtml(pkgLabel) + '</span>';
         }
         html += '    </div>';
 
-        /* 2 Dedicated Action Buttons: Car Photo and Car Address */
-        html += '    <div class="card-sub-actions">';
         if (photoUrl) {
-          html += '      <button type="button" class="btn-card-sub btn-sub-photo has-data" onclick="openStaffPhotoModal(' + index + ')" title="फोटो देखें">';
-          html += '        <span>📷</span><span>फोटो</span>';
+          html += '    <div class="card-photo-wrap">';
+          html += '      <button type="button" class="btn-photo-thumb" onclick="openStaffPhotoModal(' + index + ')" title="गाड़ी की फोटो देखें">';
+          html += '        <img src="' + escapeHtml(thumbUrl) + '" class="card-mini-thumb" alt="Photo" onerror="this.style.display=\'none\'">';
+          html += '        <span class="photo-thumb-label">🖼️ फोटो</span>';
           html += '      </button>';
-        } else {
-          html += '      <button type="button" class="btn-card-sub btn-sub-disabled" onclick="handleUnavailableItem(\'photo\')" title="फोटो उपलब्ध नहीं है">';
-          html += '        <span>📷</span><span>उपलब्ध नहीं</span>';
-          html += '      </button>';
+          html += '    </div>';
         }
-
-        if (address) {
-          html += '      <button type="button" class="btn-card-sub btn-sub-addr has-data" onclick="openStaffAddressModal(' + index + ')" title="पता देखें">';
-          html += '        <span>📍</span><span>पता</span>';
-          html += '      </button>';
-        } else {
-          html += '      <button type="button" class="btn-card-sub btn-sub-disabled" onclick="handleUnavailableItem(\'address\')" title="पता उपलब्ध नहीं है">';
-          html += '        <span>📍</span><span>उपलब्ध नहीं</span>';
-          html += '      </button>';
-        }
-        html += '    </div>';
         html += '  </div>';
 
-        /* Row 3: Optional Cleaning Instructions Strip */
+        /* Row 3: Address Row (Direct clickable snippet) */
+        if (address || secAddress) {
+          html += '  <div class="card-address-row" onclick="openStaffAddressModal(' + index + ')" title="पूरा पता देखने के लिए क्लिक करें">';
+          html += '    <span class="addr-icon">📍</span>';
+          html += '    <div class="addr-text-wrap">';
+          if (address) {
+            html += '      <span class="addr-primary">' + escapeHtml(address) + '</span>';
+          }
+          if (secAddress) {
+            html += '      <span class="addr-sec-pill" title="सेकेंडरी पता: ' + escapeHtml(secAddress) + '">🏢 ' + escapeHtml(secAddress) + '</span>';
+          }
+          html += '    </div>';
+          html += '    <span class="addr-view-arrow">›</span>';
+          html += '  </div>';
+        }
+
+        /* Row 4: Staff Notes / Cleaning Instructions */
         if (notes) {
-          html += '  <div class="notes-info-strip">';
-          html += '    <span>📝</span>';
-          html += '    <div class="notes-text"><b>निर्देश:</b> ' + escapeHtml(notes) + '</div>';
+          html += '  <div class="card-notes-row">';
+          html += '    <span class="notes-icon">📝</span>';
+          html += '    <div class="notes-content">';
+          html += '      <span class="notes-label">निर्देश:</span>';
+          html += '      <span class="notes-body">' + escapeHtml(notes) + '</span>';
+          html += '    </div>';
           html += '  </div>';
         }
 
@@ -3955,6 +4479,11 @@
       /* If starts with double slash */
       if (loc.indexOf('\x2F\x2F') === 0) {
         return 'https:' + loc;
+      }
+
+      /* If shortened link without protocol (e.g. maps.app.goo.gl or goo.gl/maps) */
+      if (lowerLoc.indexOf('maps.app.goo.gl') === 0 || lowerLoc.indexOf('goo.gl/maps') === 0 || lowerLoc.indexOf('google.com/maps') === 0) {
+        return 'https://' + loc;
       }
 
       /* Coordinates, Plus Code (7XQV+H8F Varanasi), or text address */
@@ -4302,6 +4831,11 @@
         vInput.placeholder = (cat === 'Solar Panel Cleaning') ? 'उदा. Rooftop 5KW Site' : 'उदा. UP65 AB 1234 - Creta';
       }
 
+      var secGroup = document.getElementById('editSecondaryAddressGroup');
+      if (secGroup) {
+        secGroup.style.display = (cat === 'Daily Car Cleaning') ? 'block' : 'none';
+      }
+
       var pkgSelect = document.getElementById('editCustPkgType');
       if (!pkgSelect) return;
       var curVal = pkgSelect.value;
@@ -4337,6 +4871,12 @@
       } else if (pkgSelect.options.length > 0) {
         pkgSelect.value = pkgSelect.options[0].value;
       }
+      handleEditPackageTypeChange(pkgSelect.value);
+    }
+
+    function handleEditPackageTypeChange(val) {
+      var customInput = document.getElementById('editCustPkgTypeCustom');
+      if (customInput) customInput.style.display = (val === 'OTHER') ? 'block' : 'none';
     }
 
     function handlePackageTypeChange(val) {
@@ -4630,8 +5170,9 @@
           var secAddr = (r.secondaryAddress || '').toLowerCase();
           var stf = (r.staffName || '').toLowerCase();
           var notes = (r.notes || r.staffNotes || '').toLowerCase();
+          var pkg = (r.packageType || r.serviceType || '').toLowerCase();
 
-          var match = (name.indexOf(q) >= 0 || phone.indexOf(q) >= 0 || veh.indexOf(q) >= 0 || addr.indexOf(q) >= 0 || secAddr.indexOf(q) >= 0 || stf.indexOf(q) >= 0 || notes.indexOf(q) >= 0);
+          var match = (name.indexOf(q) >= 0 || phone.indexOf(q) >= 0 || veh.indexOf(q) >= 0 || addr.indexOf(q) >= 0 || secAddr.indexOf(q) >= 0 || stf.indexOf(q) >= 0 || notes.indexOf(q) >= 0 || pkg.indexOf(q) >= 0);
           if (!match) return false;
         }
 
@@ -4708,36 +5249,49 @@
         var origIndex = r._origIndex !== undefined ? r._origIndex : index;
         var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
 
-        /* 1. Customer Cell (Name + Phone + Category Tag) */
+        /* 1. Customer Cell (Name + Phone + Category Tag + Package Badge) */
         var catName = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
         var tagClass = 'tag-daily';
         if (catName === 'Car Washing') tagClass = 'tag-wash';
         else if (catName === 'Solar Panel Cleaning') tagClass = 'tag-solar';
+        var pkgLabel = (r.packageType || r.serviceType || '').trim();
 
         var custHtml = '<div class="cust-name-cell">' +
           '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + escapeHtml(r.customerName || 'अज्ञात ग्राहक') + '</span>' +
           (r.customerNumber ? '<a href="tel:' + escapeHtml(r.customerNumber) + '" class="cust-phone-link">📞 ' + escapeHtml(r.customerNumber) + '</a>' : '') +
-          '<span class="cust-sheet-tag ' + tagClass + '">' + escapeHtml(catName) + '</span>' +
+          '<div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:2px;">' +
+            '<span class="cust-sheet-tag ' + tagClass + '">' + escapeHtml(catName) + '</span>' +
+            (pkgLabel ? '<span class="package-pill-badge" style="font-size:9.5px; padding:1px 5px;">' + escapeHtml(pkgLabel) + '</span>' : '') +
+          '</div>' +
         '</div>';
 
-        /* 2. Address Cell (Compact View Button or Dash) */
-        var addrText = (r.address || '').trim();
-        var secAddrText = (r.secondaryAddress || '').trim();
-        var addrHtml = '<div style="text-align: center;">';
+        /* 2. Address Cell (Direct Snippet + Click to Open Modal) */
+        var addrText = (r.address != null ? String(r.address) : '').trim();
+        var secAddrText = (r.secondaryAddress != null ? String(r.secondaryAddress) : '').trim();
+        var addrHtml = '<div style="min-width: 0;">';
         if (addrText || secAddrText) {
-          addrHtml += '<button type="button" class="btn-cell-action btn-addr-view" onclick="openAddressModal(' + origIndex + ')" title="पता देखने के लिए क्लिक करें">' +
-            '<span>📍 पता देखें</span>' +
-          '</button>';
+          addrHtml += '<div class="table-addr-snippet" onclick="openAddressModal(' + origIndex + ')" title="पूरा पता देखने के लिए क्लिक करें: ' + escapeHtml(addrText + (secAddrText ? ' | 2nd: ' + secAddrText : '')) + '">';
+          if (addrText) {
+            addrHtml += '<span class="table-addr-text">📍 ' + escapeHtml(addrText) + '</span>';
+          }
+          if (secAddrText) {
+            addrHtml += '<span class="table-addr-sec">🏢 ' + escapeHtml(secAddrText) + '</span>';
+          }
+          addrHtml += '</div>';
         } else {
-          addrHtml += '<span class="cell-empty-dash">—</span>';
+          addrHtml += '<div style="text-align:center;"><span class="cell-empty-dash">—</span></div>';
         }
         addrHtml += '</div>';
 
-        /* 3. Car Number Cell (License Plate Badge) */
+        /* 3. Car Number Cell (License Plate Badge or Solar Site Badge) */
         var carText = (r.vehicle || r.vehicleNumbers || '').trim();
         var carHtml = '<div class="cust-car-cell">';
         if (carText) {
-          carHtml += '<span class="car-number-plate" title="' + escapeHtml(carText) + '">' + escapeHtml(carText) + '</span>';
+          if (catName === 'Solar Panel Cleaning') {
+            carHtml += '<span class="solar-site-badge" style="font-size:11px;" title="' + escapeHtml(carText) + '"><span class="vehicle-plate-icon">☀️</span> ' + escapeHtml(carText) + '</span>';
+          } else {
+            carHtml += '<span class="car-number-plate" title="' + escapeHtml(carText) + '">' + escapeHtml(carText) + '</span>';
+          }
         } else {
           carHtml += '<span class="cell-empty-dash">—</span>';
         }
@@ -4746,8 +5300,10 @@
         /* 4. Button to View Photo */
         var photoHtml = '<div style="text-align: center;">';
         if (r.photoUrl && r.photoUrl.trim()) {
-          photoHtml += '<button type="button" class="btn-cell-action btn-photo-view" onclick="openImageModal(\'' + escapeHtml(r.photoUrl) + '\')" title="फोटो देखने के लिए क्लिक करें">' +
-            '<img src="' + escapeHtml(r.photoUrl) + '" class="cell-thumb-img" alt="Photo" onerror="this.style.display=\'none\'">' +
+          photoHtml += '<button type="button" class="btn-cell-action btn-photo-view" onclick="openAdminPhotoModal(' + origIndex + ')" title="फोटो देखने के लिए क्लिक करें">';
+          /* Lightweight thumbnail */
+          var aThumb = r.photoUrl.indexOf('res.cloudinary.com') !== -1 && r.photoUrl.indexOf('/upload/') !== -1 ? r.photoUrl.replace('/upload/', '/upload/w_80,h_80,c_fill,q_auto,f_auto/') : r.photoUrl;
+          photoHtml += '<img src="' + escapeHtml(aThumb) + '" class="cell-thumb-img" alt="Photo" onerror="this.style.display=\'none\'">' +
             '<span>🖼️ फोटो</span>' +
           '</button>';
         } else {
@@ -4786,8 +5342,8 @@
         html += '<tr>';
         html += '  <td style="text-align: center;"><span class="sno-badge">' + sNo + '</span></td>';
         html += '  <td>' + custHtml + '</td>';
-        html += '  <td style="text-align: center;">' + addrHtml + '</td>';
         html += '  <td>' + carHtml + '</td>';
+        html += '  <td>' + addrHtml + '</td>';
         html += '  <td style="text-align: center;">' + photoHtml + '</td>';
         html += '  <td style="text-align: center;">' + mapHtml + '</td>';
         html += '  <td style="text-align: center;">' + staffHtml + '</td>';
@@ -4814,6 +5370,12 @@
       document.getElementById('editCustNotes').value = r.notes || r.staffNotes || '';
       document.getElementById('editCustActive').value = (r.active || 'Yes').toLowerCase() === 'no' ? 'No' : 'Yes';
 
+      /* Secondary address fields */
+      var secAddrInput = document.getElementById('editCustSecAddress');
+      var secMapsInput = document.getElementById('editCustSecMaps');
+      if (secAddrInput) secAddrInput.value = r.secondaryAddress || '';
+      if (secMapsInput) secMapsInput.value = r.secondaryMapsUrl || '';
+
       /* Set Category and dynamic package types */
       var catSelect = document.getElementById('editCustCategory');
       var catVal = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
@@ -4833,7 +5395,8 @@
 
       /* Set package type with case-insensitive fallback matching */
       var pkgSelect = document.getElementById('editCustPkgType');
-      var pType = r.packageType || (catVal === 'Daily Car Cleaning' ? 'DCC ONLY' : (catVal === 'Car Washing' ? 'CAR WASH SUBSCRIPTION' : 'SOLAR SUBSCRIPTION'));
+      var customPkgInput = document.getElementById('editCustPkgTypeCustom');
+      var pType = (r.packageType || (catVal === 'Daily Car Cleaning' ? 'DCC ONLY' : (catVal === 'Car Washing' ? 'CAR WASH SUBSCRIPTION' : 'SOLAR SUBSCRIPTION'))).trim();
       if (pkgSelect && pType) {
         var matched = false;
         for (var i = 0; i < pkgSelect.options.length; i++) {
@@ -4843,8 +5406,18 @@
             break;
           }
         }
-        if (!matched && pkgSelect.options.length > 0) {
-          pkgSelect.value = pkgSelect.options[0].value;
+        if (!matched && pType) {
+          /* Preserve custom/legacy package type without overwriting */
+          var opt = document.createElement('option');
+          opt.value = pType;
+          opt.textContent = pType;
+          opt.selected = true;
+          pkgSelect.appendChild(opt);
+          matched = true;
+        }
+        if (customPkgInput) {
+          customPkgInput.style.display = (pkgSelect.value === 'OTHER') ? 'block' : 'none';
+          customPkgInput.value = '';
         }
       }
 
@@ -4872,6 +5445,8 @@
       }
       document.getElementById('editCustPhotoFile').value = '';
       state.editPhotoBase64 = '';
+      state.editPhotoName = '';
+      state.editPhotoType = '';
 
       var modal = document.getElementById('editCustomerModal');
       if (modal) {
@@ -4884,6 +5459,11 @@
       var modal = document.getElementById('editCustomerModal');
       if (modal) modal.style.display = 'none';
       document.body.style.overflow = '';
+      state.editPhotoBase64 = '';
+      state.editPhotoName = '';
+      state.editPhotoType = '';
+      var photoInput = document.getElementById('editCustPhotoFile');
+      if (photoInput) photoInput.value = '';
     }
 
     function handleEditPhotoSelect(e) {
@@ -4935,6 +5515,23 @@
       var serviceCategory = catSelect ? catSelect.value : 'Daily Car Cleaning';
       var serviceType = (serviceCategory === 'Car Washing') ? 'Car Wash' : (serviceCategory === 'Solar Panel Cleaning' ? 'Solar Cleaning' : 'Daily Clean');
 
+      var pkgVal = document.getElementById('editCustPkgType').value;
+      if (pkgVal === 'OTHER') {
+        var customPkg = (document.getElementById('editCustPkgTypeCustom') ? document.getElementById('editCustPkgTypeCustom').value : '').trim();
+        if (customPkg) pkgVal = 'OTHER (' + customPkg + ')';
+      }
+
+      var secAddressVal = '';
+      var secMapsVal = '';
+      if (serviceCategory === 'Daily Car Cleaning') {
+        var secAddrInput = document.getElementById('editCustSecAddress');
+        var secMapsInput = document.getElementById('editCustSecMaps');
+        secAddressVal = secAddrInput ? secAddrInput.value.trim() : '';
+        secMapsVal = secMapsInput ? secMapsInput.value.trim() : '';
+      }
+
+      var vehText = document.getElementById('editCustVehicles').value.trim();
+
       var updatedData = {
         sheetName: sheetName,
         rowIndex: rowIndex,
@@ -4943,11 +5540,15 @@
         staffName: document.getElementById('editCustStaff').value.trim(),
         serviceCategory: serviceCategory,
         serviceType: serviceType,
-        packageType: document.getElementById('editCustPkgType').value,
+        packageType: pkgVal,
+        packageDetails: pkgVal,
         packagesPurchased: '1',
-        vehicleNumbers: document.getElementById('editCustVehicles').value.trim(),
-        vehicle: document.getElementById('editCustVehicles').value.trim(),
+        vehicleNumbers: vehText,
+        vehicleOrSite: vehText,
+        vehicle: vehText,
         address: document.getElementById('editCustAddress').value.trim(),
+        secondaryAddress: secAddressVal,
+        secondaryMapsUrl: secMapsVal,
         googleMapsUrl: document.getElementById('editCustMapsUrl').value.trim(),
         staffNotes: document.getElementById('editCustNotes').value.trim(),
         active: document.getElementById('editCustActive').value,
@@ -5032,6 +5633,12 @@
       document.body.style.overflow = '';
     }
 
+    function openAdminPhotoModal(origIndex) {
+      var r = state.adminRecords && state.adminRecords[origIndex];
+      if (!r) return;
+      openImageModal(r.photoUrl || '', r.customerName || '', r.vehicle || r.vehicleNumbers || '');
+    }
+
     /* Customer Address Modal Logic (Supports both customer object and admin record index) */
     function openAddressModal(itemOrIndex) {
       var r;
@@ -5043,11 +5650,11 @@
       if (!r) return;
 
       var custName = r.customerName || 'अज्ञात ग्राहक';
-      var custPhone = (r.customerNumber || '').trim();
-      var rawVehicle = r.vehicle || r.vehicleNumbers || r.vehicleOrSite || '';
-      var primaryAddr = (r.address || '').trim() || 'कोई मुख्य पता दर्ज नहीं है।';
-      var secAddr = (r.secondaryAddress || '').trim();
-      var mapsUrl = formatGoogleMapsUrl(r.googleMapsUrl, r.address);
+      var custPhone = (r.customerNumber != null ? String(r.customerNumber) : '').trim();
+      var rawVehicle = (r.vehicle || r.vehicleNumbers || r.vehicleOrSite != null ? String(r.vehicle || r.vehicleNumbers || r.vehicleOrSite) : '').trim();
+      var primaryAddr = (r.address != null ? String(r.address) : '').trim();
+      var secAddr = (r.secondaryAddress != null ? String(r.secondaryAddress) : '').trim();
+      var mapsUrl = formatGoogleMapsUrl(r.googleMapsUrl, primaryAddr);
 
       var nameEl = document.getElementById('addrModalCustName');
       var phoneLink = document.getElementById('addrModalPhoneLink');
@@ -5070,7 +5677,7 @@
           phoneWrapper.style.display = 'none';
         }
       }
-      if (primaryEl) primaryEl.textContent = primaryAddr;
+      if (primaryEl) primaryEl.textContent = primaryAddr || 'कोई मुख्य पता दर्ज नहीं है।';
       if (secEl && secWrapper) {
         if (secAddr) {
           secWrapper.style.display = 'block';
@@ -5101,12 +5708,21 @@
     }
 
     function copyAddressText() {
-      var primary = document.getElementById('addrModalPrimary') ? document.getElementById('addrModalPrimary').textContent : '';
+      var primaryEl = document.getElementById('addrModalPrimary');
+      var primary = primaryEl ? primaryEl.textContent.trim() : '';
+      if (primary === 'कोई मुख्य पता दर्ज नहीं है。' || primary === 'कोई मुख्य पता दर्ज नहीं है।') {
+        primary = '';
+      }
       var secWrapper = document.getElementById('addrModalSecWrapper');
-      var sec = document.getElementById('addrModalSecondary') ? document.getElementById('addrModalSecondary').textContent : '';
+      var secEl = document.getElementById('addrModalSecondary');
+      var sec = (secWrapper && secWrapper.style.display !== 'none' && secEl) ? secEl.textContent.trim() : '';
       var fullText = primary;
-      if (secWrapper && secWrapper.style.display !== 'none' && sec) {
-        fullText += '\n' + sec;
+      if (sec) {
+        fullText = fullText ? (fullText + '\n' + sec) : sec;
+      }
+      if (!fullText) {
+        showToast('कॉपी करने के लिए कोई पता नहीं है', 'ℹ️');
+        return;
       }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(fullText).then(function() {
