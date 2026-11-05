@@ -333,14 +333,8 @@ const server = http.createServer(async (req, res) => {
 
   // Backwards compatibility GET routes
   if (req.method === 'GET' && pathname === '/api/staff') {
-    try {
-      const data = await forwardToGoogleAppsScript({ action: 'getStaffList' });
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify(data));
-    } catch (err) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify(appState.staffList));
-    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(appState.staffList || []));
   }
 
   if (req.method === 'GET' && pathname === '/api/staff-data') {
@@ -459,67 +453,87 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // Staff management save handler
-        if (payload.action === 'saveStaffMember') {
+        // Dedicated persistent Staff List handler
+        if (payload.action === 'getStaffList') {
+          if (appState.staffList && appState.staffList.length > 0) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(appState.staffList));
+          }
           try {
             const gasRes = await forwardToGoogleAppsScript(payload);
-            if (gasRes && !gasRes.error && gasRes.staffList) {
-              appState.staffList = gasRes.staffList;
+            if (Array.isArray(gasRes) && gasRes.length > 0) {
+              appState.staffList = gasRes;
               saveLocalData(appState);
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(gasRes));
             }
-          } catch (e) {
-            console.warn('GAS saveStaffMember error, using local fallback:', e.message);
+          } catch (e) {}
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify(appState.staffList || []));
+        }
+
+        // Staff management save handler
+        if (payload.action === 'saveStaffMember') {
+          const sData = payload.staffData || {};
+          const name = (sData.name || payload.name || '').trim();
+          let id = (sData.id || payload.id || '').trim();
+          const phone = (sData.phone || '').trim();
+          const pin = (sData.pin || '123456').toString().trim();
+          const active = sData.active !== undefined ? (sData.active === true || sData.active === 'true' || sData.active === 'Yes' || sData.active === 'yes') : true;
+
+          if (!id) {
+            id = 'STF' + String((appState.staffList || []).length + 1).padStart(2, '0');
           }
 
-          const sData = payload.staffData || {};
-          const name = sData.name || payload.name || '';
-          let id = sData.id || payload.id || '';
-          const phone = sData.phone || '';
-          const pin = sData.pin || '123456';
-          const active = sData.active !== undefined ? sData.active : true;
-          if (!id) {
-            id = 'STF' + String(appState.staffList.length + 1).padStart(2, '0');
-          }
-          const idx = appState.staffList.findIndex(s => (s.id || '').toLowerCase() === id.toLowerCase() || (s.name || '').toLowerCase() === name.toLowerCase());
+          if (!appState.staffList) appState.staffList = [];
+          const idx = appState.staffList.findIndex(s => (s.id || '').toLowerCase() === id.toLowerCase());
           const newObj = { id, name, phone, pin, active };
+
           if (idx >= 0) {
-            if (!phone && appState.staffList[idx].phone) newObj.phone = appState.staffList[idx].phone;
-            if (!pin && appState.staffList[idx].pin) newObj.pin = appState.staffList[idx].pin;
-            appState.staffList[idx] = Object.assign(appState.staffList[idx], newObj);
+            appState.staffList[idx] = Object.assign({}, appState.staffList[idx], newObj);
           } else {
             appState.staffList.push(newObj);
           }
           saveLocalData(appState);
+
+          // Asynchronously sync with Google Apps Script
+          try {
+            await forwardToGoogleAppsScript(payload);
+          } catch (e) {
+            console.warn('GAS saveStaffMember sync warning:', e.message);
+          }
+
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, staffList: appState.staffList, staff: newObj }));
         }
 
         // Staff active status toggle handler
         if (payload.action === 'toggleStaffActive') {
-          try {
-            const gasRes = await forwardToGoogleAppsScript(payload);
-            if (gasRes && !gasRes.error && gasRes.staffList) {
-              appState.staffList = gasRes.staffList;
-              saveLocalData(appState);
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify(gasRes));
-            }
-          } catch (e) {
-            console.warn('GAS toggleStaffActive error, using local fallback:', e.message);
-          }
-
           const s = (appState.staffList || []).find(x => (x.id || '').toLowerCase() === (payload.staffId || '').toLowerCase());
           if (s) {
             s.active = !!payload.active;
             saveLocalData(appState);
+            try {
+              await forwardToGoogleAppsScript(payload);
+            } catch (e) {}
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, staffList: appState.staffList }));
           } else {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'स्टाफ सदस्य नहीं मिला।' }));
           }
+        }
+
+        // Staff delete handler
+        if (payload.action === 'deleteStaffMember') {
+          const staffId = (payload.id || payload.staffId || '').toString().trim().toLowerCase();
+          appState.staffList = (appState.staffList || []).filter(s => (s.id || '').toLowerCase() !== staffId);
+          saveLocalData(appState);
+          try {
+            await forwardToGoogleAppsScript(payload);
+          } catch (e) {}
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, staffList: appState.staffList }));
         }
 
         // Live All Customers handler for Admin Active Records
