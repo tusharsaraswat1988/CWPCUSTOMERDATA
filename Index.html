@@ -1119,43 +1119,53 @@
       gap: 6px;
     }
 
-    /* Professional Customer Records Table */
+    /* Professional Customer Records Table - 100% Fluid & Zero Horizontal Scroll */
     .records-table-wrapper {
-      overflow-x: auto;
+      overflow-x: hidden !important; /* Absolutely NO horizontal scroll */
       border: 1px solid #e2e8f0;
       border-radius: var(--radius-md);
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
       background: #ffffff;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     .records-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 12.5px;
+      width: 100% !important;
+      max-width: 100% !important;
+      table-layout: fixed !important; /* Strictly respects 100% width and proportional columns */
+      border-collapse: collapse;
+      font-size: 12px;
       text-align: left;
+      box-sizing: border-box !important;
     }
 
     .records-table thead th {
       background: #f8fafc;
       color: #475569;
       font-weight: 700;
-      padding: 12px 14px;
+      padding: 8px 6px; /* Tight compact padding eliminates gaps */
       border-bottom: 2px solid #e2e8f0;
       white-space: nowrap;
-      font-size: 12px;
-      letter-spacing: 0.3px;
+      font-size: 11.5px;
+      letter-spacing: 0.2px;
       position: sticky;
       top: 0;
       z-index: 2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-sizing: border-box;
     }
 
     .records-table tbody td {
-      padding: 12px 14px;
+      padding: 8px 6px; /* Tight compact padding eliminates gaps */
       border-bottom: 1px solid #f1f5f9;
       color: #1e293b;
       vertical-align: middle;
-      line-height: 1.45;
+      line-height: 1.35;
+      overflow: hidden;
+      box-sizing: border-box;
     }
 
     .records-table tbody tr:hover td {
@@ -1171,32 +1181,35 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 26px;
-      height: 26px;
-      padding: 0 6px;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 4px;
       background: #f1f5f9;
       color: #475569;
       border-radius: 6px;
       font-weight: 700;
-      font-size: 11.5px;
+      font-size: 11px;
       font-family: monospace;
     }
 
     .cust-name-cell {
       display: flex;
       flex-direction: column;
-      gap: 3px;
-      min-width: 130px;
+      gap: 2px;
+      min-width: 0;
     }
 
     .cust-name-text {
       font-weight: 700;
-      font-size: 13.5px;
+      font-size: 12.5px;
       color: #0f172a;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .cust-phone-link {
-      font-size: 11.5px;
+      font-size: 11px;
       color: var(--brand-blue);
       text-decoration: none;
       font-weight: 600;
@@ -1211,12 +1224,12 @@
 
     .cust-sheet-tag {
       display: inline-block;
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
-      padding: 1px 6px;
+      padding: 1px 5px;
       border-radius: 4px;
       width: fit-content;
-      margin-top: 2px;
+      margin-top: 1px;
       text-transform: uppercase;
       letter-spacing: 0.3px;
     }
@@ -1234,10 +1247,14 @@
     }
 
     .cust-address-cell {
-      max-width: 220px;
+      font-size: 11px;
+      line-height: 1.35;
       color: #334155;
-      font-size: 12px;
-      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
       word-break: break-word;
     }
 
@@ -1248,23 +1265,25 @@
       border: 1px solid #cbd5e1;
       border-left: 3px solid var(--brand-blue);
       color: #0f172a;
-      padding: 4px 8px;
-      border-radius: 5px;
+      padding: 2px 6px;
+      border-radius: 4px;
       font-family: 'Consolas', 'Courier New', monospace;
       font-weight: 700;
-      font-size: 12px;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      font-size: 11px;
+      letter-spacing: 0.3px;
+      word-break: break-word;
+      line-height: 1.25;
+      max-width: 100%;
     }
 
     .btn-cell-action {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 6px 11px;
+      justify-content: center;
+      gap: 3px;
+      padding: 4px 6px;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
@@ -1272,6 +1291,9 @@
       transition: all 0.15s ease;
       font-family: inherit;
       border: 1px solid transparent;
+      width: auto;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .btn-photo-view {
@@ -1287,11 +1309,12 @@
     }
 
     .cell-thumb-img {
-      width: 22px;
-      height: 22px;
-      border-radius: 4px;
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
       object-fit: cover;
       border: 1px solid rgba(0,0,0,0.1);
+      flex-shrink: 0;
     }
 
     .btn-map-view {
@@ -1309,27 +1332,32 @@
     .staff-assigned-badge {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      justify-content: center;
+      gap: 4px;
       background: #f1f5f9;
       color: #1e293b;
-      padding: 4px 9px;
-      border-radius: 14px;
+      padding: 3px 6px;
+      border-radius: 12px;
       font-weight: 700;
-      font-size: 11.5px;
+      font-size: 11px;
       border: 1px solid #cbd5e1;
       white-space: nowrap;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .staff-none-badge {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      justify-content: center;
+      gap: 3px;
       background: #fff1f2;
       color: #be123c;
-      padding: 4px 8px;
-      border-radius: 14px;
+      padding: 3px 6px;
+      border-radius: 12px;
       font-weight: 600;
-      font-size: 11px;
+      font-size: 10.5px;
       border: 1px solid #fecdd3;
       white-space: nowrap;
     }
@@ -1338,9 +1366,13 @@
       background: #f8fafc;
       color: #334155;
       border-color: #cbd5e1;
-      padding: 6px 12px;
+      padding: 5px 6px;
       border-radius: 6px;
       font-weight: 700;
+      font-size: 11px;
+      width: 100%;
+      max-width: 70px;
+      margin: 0 auto;
     }
 
     .btn-edit-record:hover {
@@ -1742,16 +1774,41 @@
       background: #fee2e2;
     }
 
-    /* Desktop Admin Container Expansion (Unconstrains 600px bottleneck for Admin tables) */
-    @media (min-width: 900px) {
-      .main-container.admin-mode-active,
-      .main-container:has(#adminView:not([style*="display: none"])) {
-        max-width: 1040px;
-      }
-      .header-inner.admin-mode-active,
-      .header-inner:has(#adminHeaderControls:not([style*="display: none"])) {
-        max-width: 1040px;
-      }
+    /* Full-Width Fluid Desktop & Laptop Layout for Admin Mode (Eliminates right-side wasted space & mid-screen scroll) */
+    body.admin-mode-active .main-container,
+    .main-container.admin-mode-active,
+    .main-container:has(#adminView:not([style*="display: none"])) {
+      max-width: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 16px 24px 50px !important;
+      box-sizing: border-box !important;
+    }
+
+    body.admin-mode-active .header-inner,
+    .header-inner.admin-mode-active,
+    .header-inner:has(#adminHeaderControls:not([style*="display: none"])) {
+      max-width: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 16px !important;
+      box-sizing: border-box !important;
+    }
+
+    body.admin-mode-active .admin-container,
+    .admin-container {
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    .admin-tab-container,
+    .admin-tab-pane,
+    .admin-card-section {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     /* Mobile Responsive Adjustments */
@@ -1811,21 +1868,21 @@
     }
   </style>
 </head>
-<body>
+<body class="admin-mode-active">
 
   <!-- Top Brand Navigation (Notice: ZERO admin links shown in Staff view!) -->
   <header class="top-header">
-    <div class="header-inner">
+    <div class="header-inner admin-mode-active">
       <div class="brand-group">
         <div class="brand-badge">CWP</div>
         <div>
           <div class="brand-sub">Detailers & Motors</div>
-          <h1 class="brand-title" id="pageMainTitle">स्टाफ पोर्टल</h1>
+          <h1 class="brand-title" id="pageMainTitle">एडमिन पोर्टल</h1>
         </div>
       </div>
       
       <!-- Staff Live Indicator & Staff Logout (Only shown in staff view) -->
-      <div id="staffHeaderControls" style="display: flex; align-items: center; gap: 8px;">
+      <div id="staffHeaderControls" style="display: none; align-items: center; gap: 8px;">
         <div class="staff-live-badge" id="staffLiveBadge">
           <span class="dot-live">●</span> लाइव
         </div>
@@ -1836,7 +1893,7 @@
       </div>
 
       <!-- Admin Top Controls (Only shown in admin view - No duplicate admin badge) -->
-      <div id="adminHeaderControls" style="display: none; align-items: center; gap: 8px;">
+      <div id="adminHeaderControls" style="display: flex; align-items: center; gap: 8px;">
         <button type="button" id="adminLogoutBtn" class="header-logout-btn" onclick="handleAdminLogout()" style="display: none;" title="एडमिन पोर्टल से लॉगआउट करें">
           <span class="logout-icon">🚪</span>
           <span class="logout-text">लॉगआउट (Logout)</span>
@@ -1846,7 +1903,7 @@
   </header>
 
   <!-- Main Content Container -->
-  <div class="main-container">
+  <div class="main-container admin-mode-active">
 
     <!-- =====================================================================
          1. STAFF VIEWER SECTION (Completely isolated, NO Admin navigation)
@@ -2307,14 +2364,14 @@
             <table class="records-table">
               <thead>
                 <tr>
-                  <th style="width: 50px; text-align: center;">क्र. सं.</th>
-                  <th style="min-width: 140px;">ग्राहक का नाम</th>
-                  <th style="min-width: 180px;">पता</th>
-                  <th style="min-width: 130px;">गाड़ी नंबर</th>
-                  <th style="width: 110px; text-align: center;">फोटो</th>
-                  <th style="width: 120px; text-align: center;">मैप लोकेशन</th>
-                  <th style="min-width: 130px;">असाइन स्टाफ</th>
-                  <th style="width: 90px; text-align: center;">एक्शन</th>
+                  <th style="width: 4.5%; text-align: center;">क्र. सं.</th>
+                  <th style="width: 18%;">ग्राहक का नाम</th>
+                  <th style="width: 21%;">पता</th>
+                  <th style="width: 14.5%;">गाड़ी नंबर</th>
+                  <th style="width: 10%; text-align: center;">फोटो</th>
+                  <th style="width: 10%; text-align: center;">मैप लोकेशन</th>
+                  <th style="width: 13%; text-align: center;">असाइन स्टाफ</th>
+                  <th style="width: 9%; text-align: center;">एक्शन</th>
                 </tr>
               </thead>
               <tbody id="adminRecordsTableBody">
@@ -2582,6 +2639,7 @@
       var headerInner = document.querySelector('.header-inner');
 
       if (mode === 'staff') {
+        document.body.classList.remove('admin-mode-active');
         if (mainContainer) mainContainer.classList.remove('admin-mode-active');
         if (headerInner) headerInner.classList.remove('admin-mode-active');
         if (staffEl) staffEl.style.display = 'block';
@@ -2591,6 +2649,7 @@
         if (adminControls) adminControls.style.display = 'none';
         if (titleEl) titleEl.textContent = 'स्टाफ पोर्टल';
       } else {
+        document.body.classList.add('admin-mode-active');
         if (mainContainer) mainContainer.classList.add('admin-mode-active');
         if (headerInner) headerInner.classList.add('admin-mode-active');
         if (staffEl) staffEl.style.display = 'none';
@@ -3784,7 +3843,7 @@
 
         /* 1. Customer Cell (Name + Phone + Sheet Tag) */
         var custHtml = '<div class="cust-name-cell">' +
-          '<span class="cust-name-text">' + escapeHtml(r.customerName || 'अज्ञात ग्राहक') + '</span>' +
+          '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + escapeHtml(r.customerName || 'अज्ञात ग्राहक') + '</span>' +
           (r.customerNumber ? '<a href="tel:' + escapeHtml(r.customerNumber) + '" class="cust-phone-link">📞 ' + escapeHtml(r.customerNumber) + '</a>' : '') +
           '<span class="cust-sheet-tag ' + (r.sheetName === 'Daily Clean' ? 'tag-daily' : 'tag-other') + '">' + escapeHtml(r.sheetName || 'Daily Clean') + '</span>' +
         '</div>';
@@ -3794,12 +3853,12 @@
         var secAddrText = (r.secondaryAddress || '').trim();
         var addrHtml = '<div class="cust-address-cell">';
         if (addrText) {
-          addrHtml += '<span>' + escapeHtml(addrText) + '</span>';
+          addrHtml += '<span title="' + escapeHtml(addrText) + '">' + escapeHtml(addrText) + '</span>';
         } else {
           addrHtml += '<span class="cell-empty-dash">—</span>';
         }
         if (secAddrText) {
-          addrHtml += '<div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">📍 ' + escapeHtml(secAddrText) + '</div>';
+          addrHtml += '<div style="margin-top: 2px; font-size: 10px; color: var(--text-muted);" title="' + escapeHtml(secAddrText) + '">📍 ' + escapeHtml(secAddrText) + '</div>';
         }
         addrHtml += '</div>';
 
@@ -3807,7 +3866,7 @@
         var carText = (r.vehicle || r.vehicleNumbers || '').trim();
         var carHtml = '<div class="cust-car-cell">';
         if (carText) {
-          carHtml += '<span class="car-number-plate">' + escapeHtml(carText) + '</span>';
+          carHtml += '<span class="car-number-plate" title="' + escapeHtml(carText) + '">' + escapeHtml(carText) + '</span>';
         } else {
           carHtml += '<span class="cell-empty-dash">—</span>';
         }
@@ -3818,7 +3877,7 @@
         if (r.photoUrl && r.photoUrl.trim()) {
           photoHtml += '<button type="button" class="btn-cell-action btn-photo-view" onclick="openImageModal(\'' + escapeHtml(r.photoUrl) + '\')" title="फोटो देखने के लिए क्लिक करें">' +
             '<img src="' + escapeHtml(r.photoUrl) + '" class="cell-thumb-img" alt="Photo" onerror="this.style.display=\'none\'">' +
-            '<span>🖼️ फोटो देखें</span>' +
+            '<span>🖼️ फोटो</span>' +
           '</button>';
         } else {
           photoHtml += '<span class="badge-cell-none">फोटो नहीं</span>';
@@ -3829,7 +3888,7 @@
         var mapHtml = '<div style="text-align: center;">';
         if (r.googleMapsUrl && r.googleMapsUrl.trim()) {
           mapHtml += '<a href="' + escapeHtml(r.googleMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" title="गूगल मैप्स में लोकेशन खोलें">' +
-            '<span>🗺️ मैप खोलें ↗</span>' +
+            '<span>🗺️ मैप ↗</span>' +
           '</a>';
         } else {
           mapHtml += '<span class="badge-cell-none">मैप नहीं</span>';
@@ -3838,11 +3897,11 @@
 
         /* 6. Staff Assigned Name or else "None" */
         var staffName = (r.staffName || '').trim();
-        var staffHtml = '<div>';
+        var staffHtml = '<div style="text-align: center;">';
         if (staffName && staffName.toLowerCase() !== 'none' && staffName.toLowerCase() !== 'unassigned') {
-          staffHtml += '<span class="staff-assigned-badge"><span class="staff-icon">👔</span> ' + escapeHtml(staffName) + '</span>';
+          staffHtml += '<span class="staff-assigned-badge" title="' + escapeHtml(staffName) + '"><span class="staff-icon">👔</span> ' + escapeHtml(staffName) + '</span>';
         } else {
-          staffHtml += '<span class="staff-none-badge">असाइन नहीं (None)</span>';
+          staffHtml += '<span class="staff-none-badge">असाइन नहीं</span>';
         }
         staffHtml += '</div>';
 
@@ -3858,10 +3917,10 @@
         html += '  <td>' + custHtml + '</td>';
         html += '  <td>' + addrHtml + '</td>';
         html += '  <td>' + carHtml + '</td>';
-        html += '  <td>' + photoHtml + '</td>';
-        html += '  <td>' + mapHtml + '</td>';
-        html += '  <td>' + staffHtml + '</td>';
-        html += '  <td>' + editHtml + '</td>';
+        html += '  <td style="text-align: center;">' + photoHtml + '</td>';
+        html += '  <td style="text-align: center;">' + mapHtml + '</td>';
+        html += '  <td style="text-align: center;">' + staffHtml + '</td>';
+        html += '  <td style="text-align: center;">' + editHtml + '</td>';
         html += '</tr>';
       });
 
