@@ -1139,7 +1139,7 @@ function syncStaffSheet_(list) {
  * - Daily Clean source row order is strictly preserved
  * =========================================================================
  */
-function getStaffCustomerData_(requestedStaffId, authToken, isServiceCall) {
+function getStaffCustomerData_(requestedStaffId, authToken, isServiceCall, clientVersion) {
   if (!requestedStaffId) {
     return { 
       error: "No Staff identifier provided.", 
@@ -1290,7 +1290,7 @@ function getStaffCustomerData_(requestedStaffId, authToken, isServiceCall) {
     }
   }
   
-  return {
+  var result = {
     staffId: staffId,
     staffName: staffName,
     dailyCarCleaning: dailyCarCleaningList,
@@ -1303,6 +1303,69 @@ function getStaffCustomerData_(requestedStaffId, authToken, isServiceCall) {
     isLive: true,
     lastSync: new Date().toISOString()
   };
+
+  var currentVersion = computeStaffDataVersion_(result);
+  result.version = currentVersion;
+
+  if (clientVersion && clientVersion === currentVersion) {
+    return {
+      unchanged: true,
+      version: currentVersion,
+      staffId: staffId,
+      staffName: staffName,
+      totalCount: result.totalCount,
+      dataSource: "apps_script",
+      isLive: true,
+      lastSync: result.lastSync
+    };
+  }
+
+  result.unchanged = false;
+  return result;
+}
+
+/**
+ * Deterministic version / content hash for Google Apps Script staff records.
+ */
+function computeStaffDataVersion_(staffData) {
+  if (!staffData) return "v0_empty";
+  var str = (staffData.staffId || "").toString().trim().toUpperCase() + "|" + (staffData.staffName || "").toString().trim() + ";;";
+  var allRecords = (staffData.dailyCarCleaning || []).concat(staffData.carWashing || []).concat(staffData.solarCleaning || []);
+  str += "count:" + allRecords.length + ";;";
+
+  for (var i = 0; i < allRecords.length; i++) {
+    var r = allRecords[i];
+    var sig = [
+      i,
+      r.customerName || "",
+      r.customerNumber || "",
+      r.vehicle || r.vehicleNumbers || r.vehicleOrSite || "",
+      r.serviceCategory || r.category || "",
+      r.packageType || "",
+      r.serviceType || "",
+      r.address || "",
+      r.secondaryAddress || "",
+      r.googleMapsUrl || "",
+      r.secondaryMapsUrl || "",
+      r.photoUrl || "",
+      r.staffNotes || r.notes || "",
+      r.active !== undefined ? String(r.active) : "Yes",
+      r.staffName || "",
+      r.staffId || ""
+    ].join("::");
+    str += sig + ";;";
+  }
+
+  var rawHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, str, Utilities.Charset.UTF_8);
+  var hex = "";
+  for (var j = 0; j < rawHash.length; j++) {
+    var b = rawHash[j];
+    if (b < 0) b += 256;
+    var h = b.toString(16);
+    if (h.length === 1) h = "0" + h;
+    hex += h;
+  }
+  return hex.substring(0, 16);
 }
 
 /**
