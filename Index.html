@@ -545,6 +545,21 @@
       border-color: #86efac;
     }
 
+    .btn-sub-disabled {
+      background: #f8fafc;
+      color: #94a3b8;
+      border: 1px dashed #cbd5e1;
+      cursor: not-allowed;
+      box-shadow: none;
+      opacity: 0.85;
+    }
+
+    .btn-sub-disabled:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      color: #64748b;
+    }
+
     /* Cleaning Instructions / Notes Strip */
     .notes-info-strip {
       background: #f0fdf4;
@@ -3318,7 +3333,7 @@
           html += '        <span>📞</span><span>कॉल करें</span>';
           html += '      </a>';
         } else {
-          html += '      <button type="button" class="btn-top-action btn-top-disabled" disabled title="नंबर नहीं है">';
+          html += '      <button type="button" class="btn-top-action btn-top-disabled" onclick="handleUnavailableItem(\'phone\')" title="मोबाइल नंबर उपलब्ध नहीं है">';
           html += '        <span>📞</span><span>कॉल नहीं</span>';
           html += '      </button>';
         }
@@ -3328,7 +3343,7 @@
           html += '        <span>🧭</span><span>मैप</span>';
           html += '      </a>';
         } else {
-          html += '      <button type="button" class="btn-top-action btn-top-disabled" disabled title="मैप उपलब्ध नहीं है">';
+          html += '      <button type="button" class="btn-top-action btn-top-disabled" onclick="handleUnavailableItem(\'map\')" title="मैप लोकेशन उपलब्ध नहीं है">';
           html += '        <span>🧭</span><span>मैप नहीं</span>';
           html += '      </button>';
         }
@@ -3347,14 +3362,27 @@
         }
         html += '    </div>';
 
-        /* 2 Dedicated Pop-up Buttons: Car Photo and Car Address */
+        /* 2 Dedicated Action Buttons: Car Photo and Car Address */
         html += '    <div class="card-sub-actions">';
-        html += '      <button type="button" class="btn-card-sub btn-sub-photo ' + (photoUrl ? 'has-data' : '') + '" onclick="openStaffPhotoModal(' + index + ')" title="कार की फोटो देखें">';
-        html += '        <span>📷</span><span>फोटो</span>';
-        html += '      </button>';
-        html += '      <button type="button" class="btn-card-sub btn-sub-addr ' + (address ? 'has-data' : '') + '" onclick="openStaffAddressModal(' + index + ')" title="कार का पता देखें">';
-        html += '        <span>📍</span><span>पता</span>';
-        html += '      </button>';
+        if (photoUrl) {
+          html += '      <button type="button" class="btn-card-sub btn-sub-photo has-data" onclick="openStaffPhotoModal(' + index + ')" title="कार की फोटो देखें">';
+          html += '        <span>📷</span><span>फोटो</span>';
+          html += '      </button>';
+        } else {
+          html += '      <button type="button" class="btn-card-sub btn-sub-disabled" onclick="handleUnavailableItem(\'photo\')" title="फोटो उपलब्ध नहीं है">';
+          html += '        <span>📷</span><span>उपलब्ध नहीं</span>';
+          html += '      </button>';
+        }
+
+        if (address) {
+          html += '      <button type="button" class="btn-card-sub btn-sub-addr has-data" onclick="openStaffAddressModal(' + index + ')" title="कार का पता देखें">';
+          html += '        <span>📍</span><span>पता</span>';
+          html += '      </button>';
+        } else {
+          html += '      <button type="button" class="btn-card-sub btn-sub-disabled" onclick="handleUnavailableItem(\'address\')" title="पता उपलब्ध नहीं है">';
+          html += '        <span>📍</span><span>उपलब्ध नहीं</span>';
+          html += '      </button>';
+        }
         html += '    </div>';
         html += '  </div>';
 
@@ -3385,6 +3413,20 @@
       var item = state.currentStaffFilteredList && state.currentStaffFilteredList[index];
       if (!item) return;
       openAddressModal(item);
+    }
+
+    function handleUnavailableItem(type) {
+      if (type === 'photo') {
+        showToast('फोटो उपलब्ध नहीं है', '📷');
+      } else if (type === 'address') {
+        showToast('पता उपलब्ध नहीं है', '📍');
+      } else if (type === 'phone') {
+        showToast('मोबाइल नंबर उपलब्ध नहीं है', '📞');
+      } else if (type === 'map') {
+        showToast('मैप लोकेशन उपलब्ध नहीं है', '🧭');
+      } else {
+        showToast('उपलब्ध नहीं है', 'ℹ️');
+      }
     }
 
     /* Google Maps Smart Formatter */

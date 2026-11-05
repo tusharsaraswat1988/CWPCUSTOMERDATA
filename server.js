@@ -311,6 +311,15 @@ const server = http.createServer(async (req, res) => {
     }));
   }
 
+  // Serve static logo
+  if (pathname === '/cwp_logo.jpg' || pathname === '/logo.jpg') {
+    const logoPath = path.join(__dirname, 'cwp_logo.jpg');
+    if (fs.existsSync(logoPath)) {
+      res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+      return fs.createReadStream(logoPath).pipe(res);
+    }
+  }
+
   // Serve static uploads
   if (pathname.startsWith('/uploads/')) {
     const filename = path.basename(pathname);
