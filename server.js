@@ -579,21 +579,43 @@ const server = http.createServer(async (req, res) => {
 
         // Dedicated persistent Staff List handler
         if (payload.action === 'getStaffList') {
-          if (appState.staffList && appState.staffList.length > 0) {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(appState.staffList));
+          // If requested with force sync or staffList has only default 1 item
+          if (payload.sync || !appState.staffList || appState.staffList.length <= 1) {
+            try {
+              await syncLiveStaffFromGoogle();
+            } catch (e) {}
           }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify(appState.staffList || []));
+        }
+
+        // Dedicated Clean & Sync Staff handler
+        if (payload.action === 'cleanAndSyncStaff') {
           try {
             const gasRes = await forwardToGoogleAppsScript(payload);
             if (Array.isArray(gasRes) && gasRes.length > 0) {
-              appState.staffList = gasRes;
-              saveLocalData(appState);
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify(gasRes));
+              mergeStaffList(gasRes);
+            }
+          } catch (e) {
+            console.warn('cleanAndSyncStaff GAS warning:', e.message);
+          }
+          try {
+            await syncLiveStaffFromGoogle();
+          } catch (e) {}
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, staffList: appState.staffList || [] }));
+        }
+
+        // Dedicated Sync Staff Sheet tab handler
+        if (payload.action === 'syncStaffSheet' || payload.action === 'syncStaffDropdown') {
+          try {
+            const gasRes = await forwardToGoogleAppsScript(payload);
+            if (gasRes && gasRes.staffList) {
+              mergeStaffList(gasRes.staffList);
             }
           } catch (e) {}
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify(appState.staffList || []));
+          return res.end(JSON.stringify({ success: true, staffList: appState.staffList || [] }));
         }
 
         // Staff management save handler
@@ -601,8 +623,8 @@ const server = http.createServer(async (req, res) => {
           const sData = payload.staffData || {};
           const name = (sData.name || payload.name || '').trim();
           let id = (sData.id || payload.id || '').trim();
-          const phone = (sData.phone || '').trim();
-          const pin = (sData.pin || '123456').toString().trim();
+          const phone = (sData.phone || payload.phone || '').trim();
+          const pin = (sData.pin || payload.pin || '123456').toString().trim();
           const active = sData.active !== undefined ? (sData.active === true || sData.active === 'true' || sData.active === 'Yes' || sData.active === 'yes') : true;
 
           if (!id) {
@@ -610,7 +632,7 @@ const server = http.createServer(async (req, res) => {
           }
 
           if (!appState.staffList) appState.staffList = [];
-          const idx = appState.staffList.findIndex(s => (s.id || '').toLowerCase() === id.toLowerCase());
+          const idx = appState.staffList.findIndex(s => (s.id || '').toLowerCase() === id.toLowerCase() || (s.name || '').toLowerCase() === name.toLowerCase());
           const newObj = { id, name, phone, pin, active };
 
           if (idx >= 0) {
@@ -620,9 +642,17 @@ const server = http.createServer(async (req, res) => {
           }
           saveLocalData(appState);
 
-          // Asynchronously sync with Google Apps Script
+          // Asynchronously sync with Google Apps Script (dual format for maximum compatibility)
           try {
-            await forwardToGoogleAppsScript(payload);
+            await forwardToGoogleAppsScript({
+              action: 'saveStaffMember',
+              staffData: newObj,
+              name: newObj.name,
+              id: newObj.id,
+              phone: newObj.phone,
+              pin: newObj.pin,
+              active: newObj.active
+            });
           } catch (e) {
             console.warn('GAS saveStaffMember sync warning:', e.message);
           }

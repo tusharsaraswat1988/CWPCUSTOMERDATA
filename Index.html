@@ -2538,35 +2538,67 @@
     <div id="adminView" class="admin-container">
       
       <!-- Admin Security Gate (Password Lock) -->
-      <div id="adminAuthGate" class="admin-auth-card" style="display: none;">
-        <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo auth-brand-logo">
-        <h2 class="admin-auth-title">एडमिन सुरक्षा सत्यापन</h2>
-        <p class="admin-auth-desc">कस्टमर डेटा और स्टाफ मैनेजमेंट एक्सेस करने के लिए कृपया एडमिन पासवर्ड दर्ज करें।</p>
-        
-        <form id="adminAuthForm" onsubmit="handleAdminAuth(event)">
-          <div class="admin-pass-wrapper">
-            <input type="password" id="adminPasswordInput" class="form-input admin-pass-input" placeholder="पासवर्ड दर्ज करें..." autocomplete="current-password" required>
-            <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('adminPasswordInput')">👁️</button>
+      <div id="adminAuthGate" class="auth-gate-box" style="display: none;">
+        <div class="auth-ambient-glow glow-cyan"></div>
+        <div class="auth-ambient-glow glow-blue"></div>
+
+        <div class="admin-auth-card">
+          <div class="auth-accent-bar admin-accent"></div>
+          
+          <div class="auth-card-content">
+            <div class="auth-brand-emblem" title="CWP Detailers">
+              <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo">
+            </div>
+
+            <div class="auth-role-pill admin-pill">
+              <span class="pill-dot"></span> सेंट्रल एडमिन कंट्रोल पैनल
+            </div>
+
+            <h2 class="admin-auth-title">एडमिन सुरक्षा सत्यापन</h2>
+            <p class="admin-auth-desc">कस्टमर डेटाबेस, स्टाफ मैनेजमेंट व सेटिंग्स एक्सेस करने के लिए पासवर्ड दर्ज करें।</p>
+            
+            <form id="adminAuthForm" onsubmit="handleAdminAuth(event)">
+              <div class="auth-input-group">
+                <div class="auth-input-icon">
+                  <span>🛡️</span>
+                </div>
+                <input type="password" id="adminPasswordInput" class="auth-field-input" placeholder="एडमिन पासवर्ड दर्ज करें..." autocomplete="current-password" required>
+                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('adminPasswordInput')" title="पासवर्ड देखें / छिपाएं">👁️</button>
+              </div>
+
+              <div id="adminAuthError" class="admin-auth-error-msg" style="display: none;">
+                ❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।
+              </div>
+
+              <div class="admin-remember-row">
+                <label class="remember-label">
+                  <input type="checkbox" id="rememberAdminDevice" checked>
+                  <span>इस डिवाइस पर याद रखें</span>
+                </label>
+              </div>
+
+              <button type="submit" id="btnAdminLogin" class="auth-submit-btn admin-submit-btn">
+                <span class="btn-icon">🔓</span>
+                <span class="btn-label">एडमिन पोर्टल खोलें (Unlock Dashboard)</span>
+              </button>
+            </form>
+
+            <div class="admin-auth-hint">
+              <span>💡 डिफॉल्ट पासवर्ड: <b>cwp2026</b></span>
+            </div>
+
+            <div class="auth-switch-box">
+              <button type="button" class="btn-switch-portal" onclick="applyViewMode('staff')">
+                <span>🚗</span> स्टाफ व कस्टमर पोर्टल पर जाएं (Staff View)
+              </button>
+            </div>
+
+            <div class="auth-trust-strip">
+              <span class="trust-item">🔒 256-Bit SSL Encrypted</span>
+              <span class="trust-divider">•</span>
+              <span class="trust-item">⚡ Super Admin Security</span>
+            </div>
           </div>
-
-          <div id="adminAuthError" class="admin-auth-error-msg" style="display: none;">
-            ❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।
-          </div>
-
-          <div class="admin-remember-row">
-            <label class="remember-label">
-              <input type="checkbox" id="rememberAdminDevice" checked>
-              <span>इस डिवाइस पर याद रखें</span>
-            </label>
-          </div>
-
-          <button type="submit" id="btnAdminLogin" class="btn-primary-smart" style="width: 100%; margin-top: 14px; padding: 12px; font-size: 14px; justify-content: center;">
-            <span>🔓</span> एडमिन पोर्टल खोलें (Unlock)
-          </button>
-        </form>
-
-        <div class="admin-auth-hint">
-          <span>💡 डिफॉल्ट पासवर्ड: <b>cwp2026</b></span>
         </div>
       </div>
 
