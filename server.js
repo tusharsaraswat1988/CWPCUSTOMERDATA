@@ -93,6 +93,86 @@ function parseCSV(text) {
   return lines;
 }
 
+/**
+ * =========================================================================
+ * INDIAN MOBILE VALIDATION & NORMALIZATION UTILITIES (Task P2.4)
+ * =========================================================================
+ * Normalizes valid Indian mobile numbers to exactly 10 digits as a string.
+ *
+ * Valid representations:
+ *  - 10 digits: "9876543210"
+ *  - Spaced: "98765 43210", "  98765 43210  "
+ *  - +91 prefixed: "+91 98765 43210", "+919876543210", "+91-98765-43210"
+ *  - 91 prefixed without plus: "919876543210"
+ *  - Leading zero: "09876543210"
+ *  - Google Sheets text format: "'9876543210"
+ *
+ * Strictly rejects:
+ *  - Alphabetic input (e.g. "98765abc43210", "abcdefghij")
+ *  - Non-+91 country prefixes (e.g. "+1", "+44")
+ *  - Short / long numbers (<10 or >10 digits after country-code normalization)
+ *  - Numbers with arbitrary malformed punctuation
+ *
+ * NOTE: String handling only. Never uses parseInt, parseFloat, or Number conversion.
+ */
+function normalizeIndianMobile(value) {
+  if (value === null || value === undefined) return '';
+  let str = String(value).trim();
+  if (!str) return '';
+
+  // Remove leading single apostrophe commonly used by Google Sheets for text format
+  str = str.replace(/^'+/, '').trim();
+  if (!str) return '';
+
+  // Reject any alphabetic input immediately
+  if (/[a-zA-Z]/.test(str)) {
+    return '';
+  }
+
+  // If string contains '+', ensure it is an Indian prefix (+91)
+  if (str.includes('+')) {
+    if (!/^\s*\+\s*91/.test(str)) {
+      return '';
+    }
+  }
+
+  // Only allow digits, +, -, spaces, and parentheses
+  if (/[^\d+\s\-()]/.test(str)) {
+    return '';
+  }
+
+  // Strip non-digits and non-plus
+  let cleaned = str.replace(/[^\d+]/g, '');
+
+  if (cleaned.startsWith('+91')) {
+    cleaned = cleaned.substring(3);
+  } else if (cleaned.startsWith('+')) {
+    return '';
+  }
+
+  let digits = cleaned.replace(/\D/g, '');
+
+  // Strip leading zero for 11-digit representation (e.g. 09876543210)
+  if (digits.length === 11 && digits.startsWith('0')) {
+    digits = digits.substring(1);
+  } else if (digits.length === 12 && digits.startsWith('91')) {
+    // Strip 91 country code for 12-digit representation (e.g. 919876543210)
+    digits = digits.substring(2);
+  }
+
+  return digits;
+}
+
+/**
+ * Validates whether a value is a valid Indian mobile number.
+ * Must normalize to exactly 10 digits and begin with 6, 7, 8, or 9.
+ */
+function isValidIndianMobile(value) {
+  if (value === null || value === undefined) return false;
+  const digits = normalizeIndianMobile(value);
+  return /^[6-9]\d{9}$/.test(digits);
+}
+
 let DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'local_data.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
@@ -441,7 +521,8 @@ function extractAuthToken(req, payload) {
  */
 let appState = {
   staffList: [],
-  customers: []
+  customers: [],
+  staffSequences: []
 };
 
 function saveLocalData(data) {
@@ -468,6 +549,11 @@ function loadLocalData() {
       if (loaded && Array.isArray(loaded.customers)) {
         appState.customers = loaded.customers;
       }
+      if (loaded && Array.isArray(loaded.staffSequences)) {
+        appState.staffSequences = loaded.staffSequences;
+      } else {
+        appState.staffSequences = appState.staffSequences || [];
+      }
       // Upgrade any legacy plaintext adminPassword to scrypt hash immediately
       if (loaded && loaded.adminPassword) {
         if (!loaded.adminPasswordHash) {
@@ -486,6 +572,218 @@ function loadLocalData() {
 }
 
 loadLocalData();
+
+/**
+ * =========================================================================
+ * STABLE CUSTOMER IDENTIFICATION & SEQUENCE MANAGEMENT (Task P2.5)
+ * =========================================================================
+ */
+function getCustomerStableId(c) {
+  if (!c) return '';
+  if (c.id && typeof c.id === 'string' && c.id.trim()) return c.id.trim();
+  if (c.customerId && typeof c.customerId === 'string' && c.customerId.trim()) return c.customerId.trim();
+
+  const cleanPhone = (c.customerNumber || c.phone || '').toString().replace(/\D/g, '').slice(-10);
+  const cleanVeh = (c.vehicle || c.vehicleNumbers || c.vehicleOrSite || '').toString().trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  const cleanName = (c.customerName || c.custName || '').toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  if (cleanPhone && cleanVeh) {
+    return `CUST_${cleanPhone}_${cleanVeh}`;
+  }
+  if (cleanPhone && cleanName) {
+    return `CUST_${cleanPhone}_${cleanName}`;
+  }
+  if (cleanPhone) {
+    return `CUST_${cleanPhone}`;
+  }
+  if (cleanName && cleanVeh) {
+    return `CUST_${cleanName}_${cleanVeh}`;
+  }
+  return `CUST_${cleanName || 'REC'}_${c.rowIndex || 'R0'}`;
+}
+
+function parseVehicleDetails(vehicleStr) {
+  if (!vehicleStr) return { model: '', reg: '', display: '' };
+  const raw = String(vehicleStr).trim();
+  if (!raw) return { model: '', reg: '', display: '' };
+
+  const regRegex = /\b([A-Z]{2}[ -]?[0-9]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9]{4})\b/i;
+  const match = raw.match(regRegex);
+
+  let reg = '';
+  let model = '';
+
+  if (match) {
+    reg = match[1].toUpperCase().replace(/\s+/g, ' ');
+    const remaining = raw.replace(match[0], '').replace(/^[-–—:,/|\s]+|[-–—:,/|\s]+$/g, '').trim();
+    model = remaining || 'Vehicle';
+  } else if (raw.includes('-')) {
+    const parts = raw.split('-');
+    if (/\d/.test(parts[0]) && !/\d/.test(parts[1])) {
+      reg = parts[0].trim();
+      model = parts[1].trim();
+    } else {
+      model = parts[0].trim();
+      reg = parts.slice(1).join('-').trim();
+    }
+  } else {
+    model = raw;
+    reg = '';
+  }
+
+  return {
+    model: model || raw,
+    reg: reg,
+    display: raw
+  };
+}
+
+function getStaffSequences(staffId) {
+  if (!appState.staffSequences) appState.staffSequences = [];
+  const sId = (staffId || '').toString().trim().toUpperCase();
+  return appState.staffSequences
+    .filter(s => (s.staff_id || '').toUpperCase() === sId)
+    .sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0));
+}
+
+function saveStaffSequence(staffId, orderedCustomerIds, updatedBy) {
+  if (!staffId) throw new Error('Staff ID is required to save sequence.');
+  if (!Array.isArray(orderedCustomerIds)) throw new Error('Ordered customer IDs must be an array.');
+
+  if (!appState.staffSequences) appState.staffSequences = [];
+  const sId = staffId.toString().trim().toUpperCase();
+
+  const uniqueOrderedIds = [];
+  const seenIds = new Set();
+  orderedCustomerIds.forEach(id => {
+    const cleanId = (typeof id === 'object' && id !== null ? (id.customerId || id.customer_id || id.id) : id || '').toString().trim();
+    if (cleanId && !seenIds.has(cleanId)) {
+      seenIds.add(cleanId);
+      uniqueOrderedIds.push(cleanId);
+    }
+  });
+
+  const now = new Date().toISOString();
+  const by = updatedBy || 'admin';
+
+  const existingForStaff = appState.staffSequences.filter(s => (s.staff_id || '').toUpperCase() === sId);
+  const absentSequences = existingForStaff.filter(s => !seenIds.has(s.customer_id));
+
+  const newStaffRecords = uniqueOrderedIds.map((custId, idx) => ({
+    staff_id: sId,
+    customer_id: custId,
+    sequence_order: idx + 1,
+    updated_at: now,
+    updated_by: by
+  }));
+
+  absentSequences.forEach((s, idx) => {
+    newStaffRecords.push({
+      staff_id: sId,
+      customer_id: s.customer_id,
+      sequence_order: uniqueOrderedIds.length + idx + 1,
+      updated_at: s.updated_at || now,
+      updated_by: s.updated_by || by
+    });
+  });
+
+  appState.staffSequences = appState.staffSequences
+    .filter(s => (s.staff_id || '').toUpperCase() !== sId)
+    .concat(newStaffRecords);
+
+  saveLocalData(appState);
+  invalidateLiveCustomersCache();
+  return newStaffRecords;
+}
+
+function resetStaffSequence(staffId) {
+  if (!staffId) throw new Error('Staff ID is required to reset sequence.');
+  if (!appState.staffSequences) appState.staffSequences = [];
+  const sId = staffId.toString().trim().toUpperCase();
+
+  appState.staffSequences = appState.staffSequences.filter(s => (s.staff_id || '').toUpperCase() !== sId);
+  saveLocalData(appState);
+  invalidateLiveCustomersCache();
+  return true;
+}
+
+function applyStaffSequenceOrder(customers, staffId) {
+  if (!customers || customers.length === 0) return [];
+  const sId = (staffId || '').toString().trim().toUpperCase();
+
+  const staffObj = (appState.staffList || []).find(s => 
+    (s.id || '').toUpperCase() === sId || 
+    (s.name || '').toLowerCase() === (staffId || '').toLowerCase()
+  );
+  const matchId = staffObj ? staffObj.id.toUpperCase() : sId;
+
+  if (!appState.staffSequences) appState.staffSequences = [];
+  const sequences = appState.staffSequences.filter(s => 
+    (s.staff_id || '').toUpperCase() === matchId
+  );
+
+  const seqMap = new Map();
+  sequences.forEach(s => {
+    if (s.customer_id && !seqMap.has(s.customer_id)) {
+      seqMap.set(s.customer_id, s.sequence_order);
+    }
+  });
+
+  const prepared = customers.map((c, originalIdx) => {
+    const custId = c.customerId || getCustomerStableId(c);
+    const vehInfo = parseVehicleDetails(c.vehicle || c.vehicleNumbers);
+    return {
+      ...c,
+      customerId: custId,
+      id: custId,
+      vehicleModel: c.vehicleModel || vehInfo.model,
+      vehicleReg: c.vehicleReg || vehInfo.reg,
+      _originalIndex: originalIdx
+    };
+  });
+
+  if (seqMap.size === 0) {
+    return prepared.map((c, idx) => {
+      const seqNum = idx + 1;
+      const seqDisplay = String(seqNum).padStart(2, '0');
+      return {
+        ...c,
+        sequenceOrder: seqNum,
+        _seq: seqDisplay,
+        hasCustomSequence: false
+      };
+    });
+  }
+
+  const sequenced = [];
+  const unsequenced = [];
+
+  prepared.forEach(c => {
+    if (seqMap.has(c.customerId)) {
+      sequenced.push({
+        customer: c,
+        savedOrder: seqMap.get(c.customerId)
+      });
+    } else {
+      unsequenced.push(c);
+    }
+  });
+
+  sequenced.sort((a, b) => a.savedOrder - b.savedOrder);
+
+  const orderedList = sequenced.map(item => ({ ...item.customer, hasCustomSequence: true }))
+    .concat(unsequenced.map(item => ({ ...item, hasCustomSequence: false })));
+
+  return orderedList.map((c, idx) => {
+    const seqNum = idx + 1;
+    const seqDisplay = String(seqNum).padStart(2, '0');
+    return {
+      ...c,
+      sequenceOrder: seqNum,
+      _seq: seqDisplay
+    };
+  });
+}
 
 // Automatic Startup Migration: upgrade legacy plaintext PINs to scrypt
 (function migratePlaintextPins() {
@@ -571,12 +869,15 @@ function mergeStaffList(remoteList) {
       finalPin = '';
     }
 
+    const rawStaffPhone = rem.phone || (idx >= 0 ? appState.staffList[idx].phone : '') || '';
+    const cleanStaffPhone = isValidIndianMobile(rawStaffPhone) ? normalizeIndianMobile(rawStaffPhone) : rawStaffPhone;
+
     if (idx >= 0) {
       const loc = appState.staffList[idx];
       appState.staffList[idx] = {
         id: loc.id || rem.id || ('STF0' + (idx + 1)),
         name: rem.name || loc.name,
-        phone: rem.phone || loc.phone || '',
+        phone: cleanStaffPhone,
         pin: finalPin,
         active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : (loc.active !== undefined ? loc.active : true)
       };
@@ -584,7 +885,7 @@ function mergeStaffList(remoteList) {
       appState.staffList.push({
         id: rem.id || ('STF' + String(appState.staffList.length + 1).padStart(2, '0')),
         name: rem.name,
-        phone: rem.phone || '',
+        phone: cleanStaffPhone,
         pin: finalPin,
         active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : true
       });
@@ -628,7 +929,8 @@ async function syncLiveStaffFromGoogle() {
               const vals = (rows[idx].c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
               const id = vals[0] || ('STF' + String(idx).padStart(2, '0'));
               const name = vals[1] || '';
-              const phone = vals[2] || '';
+              const rawPhone = vals[2] || '';
+              const phone = isValidIndianMobile(rawPhone) ? normalizeIndianMobile(rawPhone) : rawPhone;
               const pin = vals[3] || '';
               const status = (vals[4] || 'Active').toLowerCase();
               const active = status !== 'inactive' && status !== 'no' && status !== 'false';
@@ -775,10 +1077,155 @@ let liveCustomersCacheExpiry = 0;
 const LIVE_CACHE_TTL_MS = 20000; // 20 seconds
 let liveCustomersInFlightPromise = null;
 
+// Documented complete last-known-good dataset
+let lastKnownGoodDataset = null;
+
+// Configurable bounded timeout and retry settings (Task P2.4)
+const CSV_FETCH_TIMEOUT_MS = parseInt(process.env.LIVE_FETCH_TIMEOUT_MS, 10) || 7000;
+const CSV_FETCH_RETRIES = process.env.LIVE_FETCH_RETRIES !== undefined ? parseInt(process.env.LIVE_FETCH_RETRIES, 10) : 1;
+const CSV_RETRY_DELAY_MS = parseInt(process.env.LIVE_FETCH_RETRY_DELAY_MS, 10) || 200;
+
 function invalidateLiveCustomersCache() {
   liveCustomersCache = null;
   liveCustomersCacheExpiry = 0;
   liveCustomersInFlightPromise = null;
+}
+
+function getCell(aliases, normCols, rowVals) {
+  for (let alias of aliases) {
+    const key = alias.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const idx = normCols.indexOf(key);
+    if (idx >= 0 && rowVals[idx] !== undefined && rowVals[idx] !== '') {
+      return rowVals[idx];
+    }
+  }
+  return '';
+}
+
+/**
+ * Fetches a single sheet's CSV with bounded timeout and retries.
+ * Validates HTTP status and CSV structure before returning rows.
+ */
+async function fetchSheetCSVWithRetry(sheetName, gid, maxRetries = CSV_FETCH_RETRIES, timeoutMs = CSV_FETCH_TIMEOUT_MS) {
+  if (!gid) {
+    throw new Error(`Missing gid for sheet ${sheetName}`);
+  }
+  const ssId = SPREADSHEET_ID;
+  const url = `https://docs.google.com/spreadsheets/d/${ssId}/export?format=csv&gid=${encodeURIComponent(gid)}`;
+
+  let lastError = null;
+  const totalAttempts = 1 + Math.max(0, maxRetries);
+
+  for (let attempt = 1; attempt <= totalAttempts; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText || ''}`.trim());
+      }
+      const text = await res.text();
+
+      // Check for HTML/XML error or login page returned instead of CSV
+      const trimmed = text.trim();
+      if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html') || trimmed.startsWith('<?xml')) {
+        throw new Error(`Received HTML/XML response instead of CSV for sheet ${sheetName}`);
+      }
+
+      const rows = parseCSV(text);
+      if (!Array.isArray(rows) || rows.length < 1) {
+        throw new Error(`Empty or unparseable CSV response for sheet ${sheetName}`);
+      }
+
+      const headers = rows[0];
+      if (!Array.isArray(headers) || headers.length === 0 || (headers.length === 1 && !headers[0].trim())) {
+        throw new Error(`Invalid header structure in sheet ${sheetName}`);
+      }
+
+      return { sheetName, rows };
+    } catch (err) {
+      lastError = err;
+      if (attempt < totalAttempts) {
+        const delay = CSV_RETRY_DELAY_MS * attempt;
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+  }
+
+  throw new Error(`Failed to fetch sheet ${sheetName} after ${totalAttempts} attempt(s): ${lastError ? lastError.message : 'Unknown error'}`);
+}
+
+/**
+ * Fetches a single sheet table via Google Sheet Visualization API (GViz).
+ */
+async function fetchSheetGViz(sheetName, timeoutMs = 6000) {
+  const ssId = SPREADSHEET_ID;
+  const url = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (!res.ok) throw new Error(`GViz HTTP ${res.status}`);
+  const text = await res.text();
+  const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+  if (!json || !json.table || !json.table.rows) throw new Error(`Invalid GViz table for ${sheetName}`);
+  return json.table;
+}
+
+function parseGVizTableIntoRecords(sheetName, table, outRecords) {
+  if (!table || !table.rows) return;
+  const rawCols = (table.cols || []).map(c => (c.label || '').trim());
+  const normCols = rawCols.map(c => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  const rows = table.rows;
+
+  rows.forEach((row, rIdx) => {
+    const rowVals = (row.c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
+    const custName = getCell(['customername', 'custname'], normCols, rowVals);
+    if (!custName && !rowVals.some(v => v !== '')) return;
+
+    const custPhone = getCell(['customernumber', 'custphone', 'number', 'phone', 'mob'], normCols, rowVals);
+    const mapUrl = getCell(['googlemapsurl', 'mapurl', 'maps', 'location'], normCols, rowVals);
+    const photo = getCell(['customervehiclephotourl', 'vehiclesitephotourl', 'photourl', 'photo'], normCols, rowVals);
+    const address = getCell(['address'], normCols, rowVals);
+
+    let vehicle = '';
+    if (sheetName === 'Daily Clean') {
+      vehicle = getCell(['vehiclenumbersmodels', 'vehiclenumbers', 'vehicle'], normCols, rowVals);
+    } else {
+      vehicle = getCell(['vehiclenumbersitename', 'vehicleorsite', 'vehicle'], normCols, rowVals);
+    }
+
+    const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals) || (sheetName === 'Daily Clean' ? 'DCC ONLY' : 'Car Washing');
+    const pkgCount = getCell(['packagespurchased', 'pkgcount'], normCols, rowVals) || '1';
+    const serviceType = getCell(['servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals);
+    const packageDetails = getCell(['packageservicedetails', 'packagedetails'], normCols, rowVals);
+    const staff = getCell(['staffname', 'staff'], normCols, rowVals);
+    const staffId = getCell(['staffid', 'id'], normCols, rowVals);
+    const notes = getCell(['staffnotescleaninginstructions', 'staffnotesspecialinstructions', 'staffnotes', 'notes'], normCols, rowVals);
+    const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress'], normCols, rowVals);
+    const secMap = getCell(['secondarymapsurl'], normCols, rowVals);
+    const active = getCell(['active', 'status'], normCols, rowVals) || 'Yes';
+
+    const serviceCategory = classifyServiceCategory(sheetName, serviceType, pkgType, packageDetails, vehicle);
+    const normPhone = isValidIndianMobile(custPhone) ? normalizeIndianMobile(custPhone) : custPhone;
+
+    outRecords.push({
+      sheetName: sheetName,
+      rowIndex: rIdx + 2,
+      customerName: custName,
+      customerNumber: normPhone,
+      googleMapsUrl: mapUrl,
+      photoUrl: photo,
+      address: address,
+      vehicle: vehicle,
+      packageType: pkgType,
+      packagesPurchased: pkgCount,
+      serviceType: serviceType,
+      packageDetails: packageDetails,
+      serviceCategory: serviceCategory,
+      staffName: staff,
+      staffId: staffId,
+      secondaryAddress: secAddr,
+      secondaryMapsUrl: secMap,
+      notes: notes,
+      active: active
+    });
+  });
 }
 
 async function fetchAllLiveCustomers(forceBypass = false) {
@@ -803,91 +1250,92 @@ async function fetchAllLiveCustomers(forceBypass = false) {
   }
 
   // 3. Initiate fetch and share promise with concurrent callers
-  liveCustomersInFlightPromise = (async () => {
+  const currentFetchPromise = (async () => {
     try {
       const result = await doFetchLiveCustomersInternal();
-      liveCustomersCache = result;
-      liveCustomersCacheExpiry = Date.now() + LIVE_CACHE_TTL_MS;
+      // Cache only if complete live data was retrieved
+      if (result && result.isLive && Array.isArray(result.records)) {
+        liveCustomersCache = result;
+        liveCustomersCacheExpiry = Date.now() + LIVE_CACHE_TTL_MS;
+      }
       return result;
     } finally {
-      liveCustomersInFlightPromise = null;
+      if (liveCustomersInFlightPromise === currentFetchPromise) {
+        liveCustomersInFlightPromise = null;
+      }
     }
   })();
 
-  return liveCustomersInFlightPromise;
+  if (!forceBypass) {
+    liveCustomersInFlightPromise = currentFetchPromise;
+  }
+
+  return currentFetchPromise;
 }
 
 async function doFetchLiveCustomersInternal() {
-  const ssId = SPREADSHEET_ID;
   const sheets = [
     { name: 'Daily Clean', gid: DEFAULT_SHEET_GIDS['Daily Clean'] },
     { name: 'All Other Work', gid: DEFAULT_SHEET_GIDS['All Other Work'] }
   ];
-  const allRecords = [];
-  let csvSuccess = false;
 
-  // Primary: Fetch via direct Google Sheets CSV export
-  // 100% immune to GViz type inference which drops numbers stored as text (mixed types in phone columns)
-  for (const sheet of sheets) {
-    try {
-      const gid = sheet.gid;
-      if (!gid) throw new Error(`Missing gid for sheet ${sheet.name}`);
-      const url = `https://docs.google.com/spreadsheets/d/${ssId}/export?format=csv&gid=${encodeURIComponent(gid)}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      const rows = parseCSV(text);
-      if (!rows || rows.length <= 1) continue;
+  // 1. Primary: Fetch via direct Google Sheets CSV export
+  // Atomic requirement: BOTH master sheets must succeed before combining!
+  let csvAtomicSuccess = false;
+  let parsedDailyClean = null;
+  let parsedAllOtherWork = null;
 
-      const rawCols = rows[0].map(c => (c || '').trim());
+  try {
+    const [dcRes, aowRes] = await Promise.all([
+      fetchSheetCSVWithRetry('Daily Clean', sheets[0].gid),
+      fetchSheetCSVWithRetry('All Other Work', sheets[1].gid)
+    ]);
+    parsedDailyClean = dcRes;
+    parsedAllOtherWork = aowRes;
+    csvAtomicSuccess = true;
+  } catch (csvErr) {
+    console.warn('[LiveFetch] Atomic CSV fetch failed:', csvErr.message);
+    csvAtomicSuccess = false;
+  }
+
+  if (csvAtomicSuccess && parsedDailyClean && parsedAllOtherWork) {
+    const allRecords = [];
+
+    // Parse Daily Clean rows (preserving exact Google Sheet row order)
+    const dcRows = parsedDailyClean.rows;
+    if (dcRows.length > 1) {
+      const rawCols = dcRows[0].map(c => (c || '').trim());
       const normCols = rawCols.map(c => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
-      for (let rIdx = 1; rIdx < rows.length; rIdx++) {
-        const rowVals = rows[rIdx];
-
-        function getCell(aliases) {
-          for (let alias of aliases) {
-            const key = alias.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const idx = normCols.indexOf(key);
-            if (idx >= 0 && rowVals[idx] !== undefined && rowVals[idx] !== '') {
-              return rowVals[idx];
-            }
-          }
-          return '';
-        }
-
-        const custName = getCell(['customername', 'custname']);
+      for (let rIdx = 1; rIdx < dcRows.length; rIdx++) {
+        const rowVals = dcRows[rIdx];
+        const custName = getCell(['customername', 'custname'], normCols, rowVals);
         if (!custName && !rowVals.some(v => v !== '')) continue;
 
-        const custPhone = getCell(['customernumber', 'custphone', 'number', 'phone', 'mob']);
-        const mapUrl = getCell(['googlemapsurl', 'mapurl', 'maps', 'location']);
-        const photo = getCell(['customervehiclephotourl', 'vehiclesitephotourl', 'photourl', 'photo']);
-        const address = getCell(['address']);
+        const custPhone = getCell(['customernumber', 'custphone', 'number', 'phone', 'mob'], normCols, rowVals);
+        const mapUrl = getCell(['googlemapsurl', 'mapurl', 'maps', 'location'], normCols, rowVals);
+        const photo = getCell(['customervehiclephotourl', 'vehiclesitephotourl', 'photourl', 'photo'], normCols, rowVals);
+        const address = getCell(['address'], normCols, rowVals);
+        const vehicle = getCell(['vehiclenumbersmodels', 'vehiclenumbers', 'vehicle'], normCols, rowVals);
+        const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals) || 'DCC ONLY';
+        const pkgCount = getCell(['packagespurchased', 'pkgcount'], normCols, rowVals) || '1';
+        const serviceType = getCell(['servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals);
+        const packageDetails = getCell(['packageservicedetails', 'packagedetails'], normCols, rowVals);
+        const staff = getCell(['staffname', 'staff'], normCols, rowVals);
+        const staffId = getCell(['staffid', 'id'], normCols, rowVals);
+        const notes = getCell(['staffnotescleaninginstructions', 'staffnotesspecialinstructions', 'staffnotes', 'notes'], normCols, rowVals);
+        const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress'], normCols, rowVals);
+        const secMap = getCell(['secondarymapsurl'], normCols, rowVals);
+        const active = getCell(['active', 'status'], normCols, rowVals) || 'Yes';
 
-        let vehicle = '';
-        if (sheet.name === 'Daily Clean') {
-          vehicle = getCell(['vehiclenumbersmodels', 'vehiclenumbers', 'vehicle']);
-        } else {
-          vehicle = getCell(['vehiclenumbersitename', 'vehicleorsite', 'vehicle']);
-        }
-
-        const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype']) || 'DCC ONLY';
-        const pkgCount = getCell(['packagespurchased', 'pkgcount']) || '1';
-        const serviceType = getCell(['servicetypecarwashsolarcleaning', 'servicetype']);
-        const packageDetails = getCell(['packageservicedetails', 'packagedetails']);
-        const staff = getCell(['staffname', 'staff']);
-        const notes = getCell(['staffnotescleaninginstructions', 'staffnotesspecialinstructions', 'staffnotes', 'notes']);
-        const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress']);
-        const secMap = getCell(['secondarymapsurl']);
-        const active = getCell(['active', 'status']) || 'Yes';
-
-        const serviceCategory = classifyServiceCategory(sheet.name, serviceType, pkgType, packageDetails, vehicle);
+        const serviceCategory = classifyServiceCategory('Daily Clean', serviceType, pkgType, packageDetails, vehicle);
+        const normPhone = isValidIndianMobile(custPhone) ? normalizeIndianMobile(custPhone) : custPhone;
 
         allRecords.push({
-          sheetName: sheet.name,
+          sheetName: 'Daily Clean',
           rowIndex: rIdx + 1,
           customerName: custName,
-          customerNumber: custPhone,
+          customerNumber: normPhone,
           googleMapsUrl: mapUrl,
           photoUrl: photo,
           address: address,
@@ -898,19 +1346,69 @@ async function doFetchLiveCustomersInternal() {
           packageDetails: packageDetails,
           serviceCategory: serviceCategory,
           staffName: staff,
+          staffId: staffId,
           secondaryAddress: secAddr,
           secondaryMapsUrl: secMap,
           notes: notes,
           active: active
         });
       }
-      csvSuccess = true;
-    } catch (e) {
-      console.warn(`[LiveFetch] CSV fetch failed for ${sheet.name}:`, e.message);
     }
-  }
 
-  if (csvSuccess && allRecords.length > 0) {
+    // Parse All Other Work rows
+    const aowRows = parsedAllOtherWork.rows;
+    if (aowRows.length > 1) {
+      const rawCols = aowRows[0].map(c => (c || '').trim());
+      const normCols = rawCols.map(c => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+      for (let rIdx = 1; rIdx < aowRows.length; rIdx++) {
+        const rowVals = aowRows[rIdx];
+        const custName = getCell(['customername', 'custname'], normCols, rowVals);
+        if (!custName && !rowVals.some(v => v !== '')) continue;
+
+        const custPhone = getCell(['customernumber', 'custphone', 'number', 'phone', 'mob'], normCols, rowVals);
+        const mapUrl = getCell(['googlemapsurl', 'mapurl', 'maps', 'location'], normCols, rowVals);
+        const photo = getCell(['customervehiclephotourl', 'vehiclesitephotourl', 'photourl', 'photo'], normCols, rowVals);
+        const address = getCell(['address'], normCols, rowVals);
+        const vehicle = getCell(['vehiclenumbersitename', 'vehicleorsite', 'vehicle'], normCols, rowVals);
+        const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals) || 'Car Washing';
+        const pkgCount = getCell(['packagespurchased', 'pkgcount'], normCols, rowVals) || '1';
+        const serviceType = getCell(['servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals);
+        const packageDetails = getCell(['packageservicedetails', 'packagedetails'], normCols, rowVals);
+        const staff = getCell(['staffname', 'staff'], normCols, rowVals);
+        const staffId = getCell(['staffid', 'id'], normCols, rowVals);
+        const notes = getCell(['staffnotesspecialinstructions', 'staffnotescleaninginstructions', 'staffnotes', 'notes'], normCols, rowVals);
+        const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress'], normCols, rowVals);
+        const secMap = getCell(['secondarymapsurl'], normCols, rowVals);
+        const active = getCell(['active', 'status'], normCols, rowVals) || 'Yes';
+
+        const serviceCategory = classifyServiceCategory('All Other Work', serviceType, pkgType, packageDetails, vehicle);
+        const normPhone = isValidIndianMobile(custPhone) ? normalizeIndianMobile(custPhone) : custPhone;
+
+        allRecords.push({
+          sheetName: 'All Other Work',
+          rowIndex: rIdx + 1,
+          customerName: custName,
+          customerNumber: normPhone,
+          googleMapsUrl: mapUrl,
+          photoUrl: photo,
+          address: address,
+          vehicle: vehicle,
+          packageType: pkgType,
+          packagesPurchased: pkgCount,
+          serviceType: serviceType,
+          packageDetails: packageDetails,
+          serviceCategory: serviceCategory,
+          staffName: staff,
+          staffId: staffId,
+          secondaryAddress: secAddr,
+          secondaryMapsUrl: secMap,
+          notes: notes,
+          active: active
+        });
+      }
+    }
+
     lastDataSource = 'live_sheet';
     lastSyncTimestamp = new Date().toISOString();
     const records = [...allRecords];
@@ -921,140 +1419,104 @@ async function doFetchLiveCustomersInternal() {
         }
       }
     }
-    return {
+
+    const liveResult = {
       records: records,
       dataSource: 'live_sheet',
       isLive: true,
       lastSync: lastSyncTimestamp
     };
+    lastKnownGoodDataset = liveResult;
+    return liveResult;
   }
 
-  // Secondary Fallback: Apps Script Web App proxy with service key
+  // 2. Secondary Fallback: Apps Script Web App proxy with service key
   try {
     const gasRes = await forwardToGoogleAppsScript({ action: 'getAllCustomers' });
     if (Array.isArray(gasRes) && gasRes.length > 0) {
       lastDataSource = 'apps_script';
       lastSyncTimestamp = new Date().toISOString();
-      return {
+      const gasResult = {
         records: gasRes,
         dataSource: 'apps_script',
         isLive: true,
         lastSync: lastSyncTimestamp
       };
+      lastKnownGoodDataset = gasResult;
+      return gasResult;
     }
   } catch (gasErr) {
     console.warn('[LiveFetch] GAS fallback also failed:', gasErr.message);
   }
 
-  // Tertiary Fallback: GViz endpoint
-  const gvizRecords = [];
-  let gvizSuccess = false;
-  for (const sheet of sheets) {
-    try {
-      const url = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet.name)}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-      if (!res.ok) continue;
-      const text = await res.text();
-      const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
-      if (!json || !json.table || !json.table.rows) continue;
-
-      const rawCols = json.table.cols.map(c => (c.label || '').trim());
-      const normCols = rawCols.map(c => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
-      const rows = json.table.rows;
-
-      rows.forEach((row, rIdx) => {
-        const rowVals = (row.c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
-        function getCell(aliases) {
-          for (let alias of aliases) {
-            const key = alias.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const idx = normCols.indexOf(key);
-            if (idx >= 0 && rowVals[idx] !== undefined && rowVals[idx] !== '') {
-              return rowVals[idx];
-            }
-          }
-          return '';
-        }
-
-        const custName = getCell(['customername', 'custname']);
-        if (!custName && !rowVals.some(v => v !== '')) return;
-
-        const custPhone = getCell(['customernumber', 'custphone', 'number', 'phone', 'mob']);
-        const mapUrl = getCell(['googlemapsurl', 'mapurl', 'maps', 'location']);
-        const photo = getCell(['customervehiclephotourl', 'vehiclesitephotourl', 'photourl', 'photo']);
-        const address = getCell(['address']);
-
-        let vehicle = '';
-        if (sheet.name === 'Daily Clean') {
-          vehicle = getCell(['vehiclenumbersmodels', 'vehiclenumbers', 'vehicle']);
-        } else {
-          vehicle = getCell(['vehiclenumbersitename', 'vehicleorsite', 'vehicle']);
-        }
-
-        const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype']) || 'DCC ONLY';
-        const pkgCount = getCell(['packagespurchased', 'pkgcount']) || '1';
-        const serviceType = getCell(['servicetypecarwashsolarcleaning', 'servicetype']);
-        const packageDetails = getCell(['packageservicedetails', 'packagedetails']);
-        const staff = getCell(['staffname', 'staff']);
-        const notes = getCell(['staffnotescleaninginstructions', 'staffnotesspecialinstructions', 'staffnotes', 'notes']);
-        const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress']);
-        const secMap = getCell(['secondarymapsurl']);
-        const active = getCell(['active', 'status']) || 'Yes';
-
-        const serviceCategory = classifyServiceCategory(sheet.name, serviceType, pkgType, packageDetails, vehicle);
-
-        gvizRecords.push({
-          sheetName: sheet.name,
-          rowIndex: rIdx + 2,
-          customerName: custName,
-          customerNumber: custPhone,
-          googleMapsUrl: mapUrl,
-          photoUrl: photo,
-          address: address,
-          vehicle: vehicle,
-          packageType: pkgType,
-          packagesPurchased: pkgCount,
-          serviceType: serviceType,
-          packageDetails: packageDetails,
-          serviceCategory: serviceCategory,
-          staffName: staff,
-          secondaryAddress: secAddr,
-          secondaryMapsUrl: secMap,
-          notes: notes,
-          active: active
-        });
-      });
-      gvizSuccess = true;
-    } catch (e) {
-      console.warn(`[LiveFetch] GViz fallback failed for ${sheet.name}:`, e.message);
-    }
+  // 3. Tertiary Fallback: GViz endpoint (Atomic: both sheets must succeed!)
+  let gvizAtomicSuccess = false;
+  let gvizDailyCleanTable = null;
+  let gvizAllOtherTable = null;
+  try {
+    const [dcTable, aowTable] = await Promise.all([
+      fetchSheetGViz('Daily Clean'),
+      fetchSheetGViz('All Other Work')
+    ]);
+    gvizDailyCleanTable = dcTable;
+    gvizAllOtherTable = aowTable;
+    gvizAtomicSuccess = true;
+  } catch (gvizErr) {
+    console.warn('[LiveFetch] GViz fallback failed:', gvizErr.message);
+    gvizAtomicSuccess = false;
   }
 
-  if (gvizSuccess && gvizRecords.length > 0) {
+  if (gvizAtomicSuccess && gvizDailyCleanTable && gvizAllOtherTable) {
+    const gvizRecords = [];
+    parseGVizTableIntoRecords('Daily Clean', gvizDailyCleanTable, gvizRecords);
+    parseGVizTableIntoRecords('All Other Work', gvizAllOtherTable, gvizRecords);
+
     lastDataSource = 'live_sheet_gviz';
     lastSyncTimestamp = new Date().toISOString();
-    return {
+    const gvizResult = {
       records: gvizRecords,
       dataSource: 'live_sheet_gviz',
       isLive: true,
       lastSync: lastSyncTimestamp
     };
+    lastKnownGoodDataset = gvizResult;
+    return gvizResult;
   }
 
-  // Quaternary Fallback: local data
-  lastDataSource = 'local_fallback';
-  lastSyncTimestamp = new Date().toISOString();
-  return {
-    records: appState.customers || [],
-    dataSource: 'local_fallback',
-    isLive: false,
-    warning: 'गूगल शीट से लाइव कनेक्शन नहीं बन पाया। स्थानीय पुराना डेटा दिखाया जा रहा है।',
-    lastSync: lastSyncTimestamp
-  };
+  // 4. Fallback Handling (Requirements 4 & 9)
+  // If live data cannot be fetched:
+  // - Never return partial live data or set isLive: true
+  // - Return explicitly documented complete last-known-good dataset if available
+  // - Or return local appState.customers if present
+  // - If neither exists, throw a controlled error (do not silently return empty lists)
+  if (lastKnownGoodDataset && Array.isArray(lastKnownGoodDataset.records) && lastKnownGoodDataset.records.length > 0) {
+    lastDataSource = lastKnownGoodDataset.dataSource || 'last_known_good';
+    return {
+      records: [...lastKnownGoodDataset.records],
+      dataSource: lastKnownGoodDataset.dataSource || 'last_known_good',
+      isLive: false,
+      warning: 'गूगल शीट से लाइव कनेक्शन नहीं बन पाया। पिछला पूर्ण डेटा दिखाया जा रहा है। (Using complete last-known-good data)',
+      lastSync: lastKnownGoodDataset.lastSync || new Date().toISOString()
+    };
+  }
+
+  if (appState.customers && Array.isArray(appState.customers) && appState.customers.length > 0) {
+    lastDataSource = 'local_fallback';
+    lastSyncTimestamp = new Date().toISOString();
+    return {
+      records: [...appState.customers],
+      dataSource: 'local_fallback',
+      isLive: false,
+      warning: 'गूगल शीट से लाइव कनेक्शन नहीं बन पाया। स्थानीय पुराना डेटा दिखाया जा रहा है।',
+      lastSync: lastSyncTimestamp
+    };
+  }
+
+  // No complete dataset available -> controlled error
+  throw new Error('Google Sheets live fetch failed atomically and no complete last-known-good dataset exists.');
 }
 
 /**
- * Formats Staff Customer Data response.
- * Preserves exact Daily Clean source row sequence.
  */
 function formatStaffDataResponse(staffId, fetchResult) {
   const allCustomers = fetchResult.records || [];
@@ -1074,27 +1536,40 @@ function formatStaffDataResponse(staffId, fetchResult) {
     return isAssigned && isActiveStatus(c.active);
   });
 
-  // Daily Car Cleaning: preserves exact source row order
-  const dailyCarCleaning = assignedActiveCustomers.filter(c => 
+  // Daily Car Cleaning: preserves staff sequence order with source row order fallback
+  const rawDailyCarCleaning = assignedActiveCustomers.filter(c => 
     c.serviceCategory === 'Daily Car Cleaning'
-  ).map(c => ({
-    staffId: staffObj ? staffObj.id : staffId,
-    staffName: c.staffName || (staffObj ? staffObj.name : staffId),
-    customerName: c.customerName,
-    customerNumber: c.customerNumber,
-    googleMapsUrl: c.googleMapsUrl,
-    photoUrl: c.photoUrl,
-    address: c.address,
-    vehicleNumbers: c.vehicle,
-    vehicle: c.vehicle,
-    packageType: c.packageType,
-    serviceCategory: 'Daily Car Cleaning',
-    category: 'daily_car_cleaning',
-    staffNotes: c.notes,
-    secondaryAddress: c.secondaryAddress || '',
-    secondaryMapsUrl: c.secondaryMapsUrl || '',
-    active: c.active
-  }));
+  ).map((c, originalIdx) => {
+    const custId = c.customerId || getCustomerStableId(c);
+    const vehInfo = parseVehicleDetails(c.vehicle || c.vehicleNumbers);
+    return {
+      customerId: custId,
+      id: custId,
+      staffId: staffObj ? staffObj.id : staffId,
+      staffName: c.staffName || (staffObj ? staffObj.name : staffId),
+      customerName: c.customerName,
+      customerNumber: c.customerNumber,
+      googleMapsUrl: c.googleMapsUrl,
+      photoUrl: c.photoUrl,
+      address: c.address,
+      vehicleNumbers: c.vehicle || c.vehicleNumbers,
+      vehicle: c.vehicle || c.vehicleNumbers,
+      vehicleModel: vehInfo.model,
+      vehicleReg: vehInfo.reg,
+      packageType: c.packageType,
+      packagesPurchased: c.packagesPurchased || '1',
+      serviceCategory: 'Daily Car Cleaning',
+      category: 'daily_car_cleaning',
+      staffNotes: c.notes,
+      secondaryAddress: c.secondaryAddress || '',
+      secondaryMapsUrl: c.secondaryMapsUrl || '',
+      active: c.active,
+      rowIndex: c.rowIndex,
+      _originalIndex: originalIdx
+    };
+  });
+
+  const dailyCarCleaning = applyStaffSequenceOrder(rawDailyCarCleaning, staffObj ? staffObj.id : staffId);
 
   const carWashing = assignedActiveCustomers.filter(c => 
     c.serviceCategory === 'Car Washing'
@@ -1324,6 +1799,35 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify(sanitized));
   }
 
+  // GET /api/staff-sequence - Requires valid Admin Session
+  if (req.method === 'GET' && pathname === '/api/staff-sequence') {
+    const token = extractAuthToken(req, null);
+    if (!isValidAdminSession(token)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin session required to view sequence management.' }));
+    }
+
+    const reqStaffId = parsedUrl.searchParams.get('staffId') || 'STF01';
+    try {
+      const fetchResult = await fetchAllLiveCustomers();
+      const staffData = formatStaffDataResponse(reqStaffId, fetchResult);
+      const sequences = getStaffSequences(staffData.staffId || reqStaffId);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({
+        success: true,
+        staffId: staffData.staffId || reqStaffId,
+        staffName: staffData.staffName,
+        customers: staffData.dailyCarCleaning || [],
+        totalCount: (staffData.dailyCarCleaning || []).length,
+        hasCustomSequence: sequences.length > 0
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+  }
+
   // GET /api/staff-data - Requires valid Staff Session or Admin Session (Query token rejected!)
   if (req.method === 'GET' && pathname === '/api/staff-data') {
     const token = extractAuthToken(req, null);
@@ -1472,8 +1976,10 @@ const server = http.createServer(async (req, res) => {
         // 3. Staff Verification & Session Issuance (Supports Registered Phone + 6-Digit PIN)
         if (payload.action === 'verifyStaffPin') {
           const clientIp = req.socket.remoteAddress || 'unknown';
-          const rawPhone = (payload.phone || payload.mobile || payload.staffPhone || '').toString().replace(/[^0-9]/g, '');
-          const cleanPhone = rawPhone.length === 10 ? rawPhone : (rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone);
+          const rawInputPhone = (payload.phone || payload.mobile || payload.staffPhone || '').toString().trim();
+          const cleanPhone = isValidIndianMobile(rawInputPhone)
+            ? normalizeIndianMobile(rawInputPhone)
+            : rawInputPhone.replace(/[^0-9]/g, '').slice(-10);
           const staffId = (payload.staffId || '').toString().trim();
           const pin = (payload.pin || '').toString().trim();
 
@@ -1704,7 +2210,10 @@ const server = http.createServer(async (req, res) => {
           'syncStaffDropdown',
           'clearInvalidDropdowns',
           'updateAdminPassword',
-          'reorderSheet'
+          'reorderSheet',
+          'getStaffSequence',
+          'saveStaffSequence',
+          'resetStaffSequence'
         ];
 
         if (adminProtectedActions.includes(payload.action)) {
@@ -1716,6 +2225,77 @@ const server = http.createServer(async (req, res) => {
               unauthorized: true
             }));
           }
+        }
+
+        // Admin: Get Staff Sequence
+        if (payload.action === 'getStaffSequence') {
+          const reqStaffId = (payload.staffId || '').toString().trim();
+          if (!reqStaffId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
+          }
+
+          const fetchResult = await fetchAllLiveCustomers();
+          const staffData = formatStaffDataResponse(reqStaffId, fetchResult);
+          const sequences = getStaffSequences(staffData.staffId || reqStaffId);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            staffId: staffData.staffId || reqStaffId,
+            staffName: staffData.staffName,
+            customers: staffData.dailyCarCleaning || [],
+            totalCount: (staffData.dailyCarCleaning || []).length,
+            hasCustomSequence: sequences.length > 0
+          }));
+        }
+
+        // Admin: Save Staff Sequence
+        if (payload.action === 'saveStaffSequence') {
+          const reqStaffId = (payload.staffId || '').toString().trim();
+          const sequenceList = payload.sequence || payload.customerIds || [];
+          if (!reqStaffId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
+          }
+          if (!Array.isArray(sequenceList)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Sequence list must be an array.' }));
+          }
+
+          const updatedRecords = saveStaffSequence(reqStaffId, sequenceList, 'admin');
+
+          try {
+            await forwardToGoogleAppsScript(payload);
+          } catch (e) {}
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            message: 'स्टाफ का कस्टमर रूट सीक्वेंस सफलतापूर्वक सुरक्षित किया गया।',
+            sequenceCount: updatedRecords.length
+          }));
+        }
+
+        // Admin: Reset Staff Sequence to Default
+        if (payload.action === 'resetStaffSequence') {
+          const reqStaffId = (payload.staffId || '').toString().trim();
+          if (!reqStaffId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
+          }
+
+          resetStaffSequence(reqStaffId);
+
+          try {
+            await forwardToGoogleAppsScript(payload);
+          } catch (e) {}
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            message: 'कस्टमर रूट सीक्वेंस डिफ़ॉल्ट क्रम में रीसेट कर दिया गया।'
+          }));
         }
 
         // Admin: Get All Customers
@@ -1786,6 +2366,21 @@ const server = http.createServer(async (req, res) => {
             id = 'STF' + String(appState.staffList.length + 1).padStart(2, '0');
           }
 
+          // Strict Indian Mobile Validation & Normalization for Staff (Task P2.4)
+          let normalizedPhone = '';
+          if (phone) {
+            if (!isValidIndianMobile(phone)) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: 'कृपया स्टाफ के लिए वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें (शुरुआत 6, 7, 8 या 9 से होनी चाहिए)। (Invalid Indian mobile number for staff)'
+              }));
+            }
+            normalizedPhone = normalizeIndianMobile(phone);
+          } else if (idx >= 0 && appState.staffList[idx].phone) {
+            normalizedPhone = appState.staffList[idx].phone;
+          }
+
           let pinToStore = '';
           if (rawPin) {
             if (rawPin.toUpperCase() === '[PROTECTED]') {
@@ -1806,7 +2401,7 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'नया स्टाफ बनाने के लिए 6-अंकों का पिन अनिवार्य है। (PIN is required for new staff)' }));
           }
 
-          const newObj = { id, name, phone, pin: pinToStore, active };
+          const newObj = { id, name, phone: normalizedPhone, pin: pinToStore, active };
 
           if (idx >= 0) {
             appState.staffList[idx] = Object.assign({}, appState.staffList[idx], newObj);
@@ -1906,9 +2501,24 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ success: true, message: 'एडमिन पासवर्ड सुरक्षित रूप से सफलतापूर्वक अपडेट हो गया!' }));
         }
 
-        // Admin: Save Customer
+        // Admin: Save Customer (Task P2.4: Strict Server-Side Indian Mobile Validation & Normalization)
         if (payload.action === 'saveCustomer' && payload.customerData) {
           const cust = payload.customerData;
+
+          const rawCustPhone = (cust.customerNumber || cust.phone || cust.custPhone || cust.mobile || '').toString().trim();
+          if (!rawCustPhone || !isValidIndianMobile(rawCustPhone)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'कृपया एक वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें (शुरुआत 6, 7, 8 या 9 से होनी चाहिए)। (Invalid Indian mobile number)'
+            }));
+          }
+
+          const normCustPhone = normalizeIndianMobile(rawCustPhone);
+          cust.customerNumber = normCustPhone;
+          if (cust.phone) cust.phone = normCustPhone;
+          if (cust.custPhone) cust.custPhone = normCustPhone;
+          if (cust.mobile) cust.mobile = normCustPhone;
           const photoObj = cust.photoFile || cust.photoData;
           if (photoObj && photoObj.base64) {
             try {
@@ -1992,6 +2602,36 @@ const server = http.createServer(async (req, res) => {
                 error: 'Cannot move record from All Other Work to Daily Clean during edit. Cross-sheet moves require explicit migration.'
               }));
             }
+          }
+
+          // Mobile Validation & Normalization for Customer (Task P2.4)
+          const rawCustPhone = (cust.customerNumber || cust.phone || cust.custPhone || cust.mobile || '').toString().trim();
+          let localCust = null;
+          if (appState.customers && appState.customers.length > 0) {
+            localCust = appState.customers.find(c => c.sheetName === cust.sheetName && parseInt(c.rowIndex, 10) === rowIdx);
+          }
+
+          if (rawCustPhone) {
+            if (!isValidIndianMobile(rawCustPhone)) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: 'कृपया एक वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें (शुरुआत 6, 7, 8 या 9 से होनी चाहिए)। (Invalid Indian mobile number)'
+              }));
+            }
+            const normCustPhone = normalizeIndianMobile(rawCustPhone);
+            cust.customerNumber = normCustPhone;
+            if (cust.phone) cust.phone = normCustPhone;
+            if (cust.custPhone) cust.custPhone = normCustPhone;
+            if (cust.mobile) cust.mobile = normCustPhone;
+          } else if (localCust && localCust.customerNumber) {
+            cust.customerNumber = localCust.customerNumber;
+          } else {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'कृपया एक वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें (शुरुआत 6, 7, 8 या 9 से होनी चाहिए)। (Invalid Indian mobile number)'
+            }));
           }
 
           const photoObj = cust.photoFile || cust.photoData;
@@ -2136,6 +2776,17 @@ module.exports = {
   invalidateLiveCustomersCache,
   fetchAllLiveCustomers,
   parseCSV,
+  normalizeIndianMobile,
+  isValidIndianMobile,
+  fetchSheetCSVWithRetry,
+  setLastKnownGoodDataset: (d) => { lastKnownGoodDataset = d; },
+  getLastKnownGoodDataset: () => lastKnownGoodDataset,
+  getCustomerStableId,
+  parseVehicleDetails,
+  getStaffSequences,
+  saveStaffSequence,
+  resetStaffSequence,
+  applyStaffSequenceOrder,
   getAppState: () => appState,
   setAppState: (st) => { appState = st; },
   setDataFile: (df) => { DATA_FILE = df; },

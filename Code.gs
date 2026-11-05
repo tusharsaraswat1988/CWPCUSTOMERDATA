@@ -302,6 +302,37 @@ function isValidServiceKeyGas_(providedKey) {
  * Format: sha256:16char_salt:64char_hex_hash
  * =========================================================================
  */
+/**
+ * Strict Indian Mobile Validation & Normalization for Apps Script (Task P2.4)
+ */
+function normalizeIndianMobile_(value) {
+  if (value === null || value === undefined) return "";
+  var str = String(value).trim().replace(/^'+/, "").trim();
+  if (!str) return "";
+  if (/[a-zA-Z]/.test(str)) return "";
+  if (str.indexOf("+") >= 0 && !/^\s*\+\s*91/.test(str)) return "";
+  if (/[^\d+\s\-()]/.test(str)) return "";
+  var cleaned = str.replace(/[^\d+]/g, "");
+  if (cleaned.indexOf("+91") === 0) {
+    cleaned = cleaned.substring(3);
+  } else if (cleaned.indexOf("+") === 0) {
+    return "";
+  }
+  var digits = cleaned.replace(/\D/g, "");
+  if (digits.length === 11 && digits.indexOf("0") === 0) {
+    digits = digits.substring(1);
+  } else if (digits.length === 12 && digits.indexOf("91") === 0) {
+    digits = digits.substring(2);
+  }
+  return digits;
+}
+
+function isValidIndianMobile_(value) {
+  if (value === null || value === undefined) return false;
+  var digits = normalizeIndianMobile_(value);
+  return /^[6-9]\d{9}$/.test(digits);
+}
+
 function hashPin_(pin, salt) {
   if (!salt) {
     salt = Utilities.getUuid().replace(/-/g, "").substring(0, 16);
@@ -788,6 +819,12 @@ function saveStaffMember_(staffData, legacyId) {
   
   if (!name) {
     throw new Error("Staff name is required.");
+  }
+  if (phone) {
+    if (!isValidIndianMobile_(phone)) {
+      throw new Error("Invalid Indian mobile number for staff.");
+    }
+    phone = normalizeIndianMobile_(phone);
   }
   
   var props = PropertiesService.getScriptProperties();
@@ -1407,7 +1444,10 @@ function saveCustomer_(customerData) {
   }
   
   var rawNum = (customerData.customerNumber || "").toString().trim();
-  var custNum = rawNum.replace(/^'+/, "");
+  if (!rawNum || !isValidIndianMobile_(rawNum)) {
+    return { success: false, error: "कृपया एक वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें (6-9 से शुरू)।" };
+  }
+  var custNum = normalizeIndianMobile_(rawNum);
   
   if (sheetName === "Daily Clean") {
     setCol(["customername", "custname"], customerData.customerName || "");
