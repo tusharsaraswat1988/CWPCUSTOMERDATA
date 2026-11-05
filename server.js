@@ -633,8 +633,16 @@ async function fetchAllLiveCustomers() {
   if (liveSuccess && allRecords.length > 0) {
     lastDataSource = 'live_sheet';
     lastSyncTimestamp = new Date().toISOString();
+    const records = [...allRecords];
+    if (appState.customers && appState.customers.length > 0) {
+      for (const lc of appState.customers) {
+        if (!records.some(r => (r.phone && r.phone === lc.phone) && (r.name && r.name === lc.name))) {
+          records.unshift(lc);
+        }
+      }
+    }
     return {
-      records: allRecords,
+      records: records,
       dataSource: 'live_sheet',
       isLive: true,
       lastSync: lastSyncTimestamp
@@ -1398,12 +1406,17 @@ const server = http.createServer(async (req, res) => {
           try {
             responseData = await forwardToGoogleAppsScript(payload);
           } catch (gasErr) {
-            if (!appState.customers) appState.customers = [];
-            cust.rowIndex = appState.customers.length + 2;
-            appState.customers.push(cust);
-            saveLocalData(appState);
             responseData = { success: true, message: 'Customer saved locally to ' + cust.sheetName };
           }
+          if (!appState.customers) appState.customers = [];
+          const existingIdx = appState.customers.findIndex(c => c.phone === cust.phone && c.name === cust.name);
+          if (existingIdx >= 0) {
+            appState.customers[existingIdx] = Object.assign({}, appState.customers[existingIdx], cust);
+          } else {
+            cust.rowIndex = appState.customers.length + 2;
+            appState.customers.unshift(cust);
+          }
+          saveLocalData(appState);
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify(responseData));
