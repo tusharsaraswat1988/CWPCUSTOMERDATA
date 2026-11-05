@@ -100,7 +100,15 @@ if (fs.existsSync(DATA_FILE)) {
   try {
     const loaded = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     if (loaded && Array.isArray(loaded.staffList) && loaded.staffList.length > 0) {
-      appState.staffList = loaded.staffList;
+      const filtered = loaded.staffList.filter(s => {
+        if (!s || !s.name) return false;
+        if (/^\d+$/.test(s.name.toString().trim()) || s.name.toString().trim().length < 2) return false;
+        if (!/^STF\d+/i.test((s.id || '').toString().trim())) return false;
+        return true;
+      });
+      if (filtered.length > 0) {
+        appState.staffList = filtered;
+      }
     }
     if (loaded && Array.isArray(loaded.customers)) {
       appState.customers = loaded.customers;
@@ -125,8 +133,22 @@ function mergeStaffList(remoteList) {
   if (!Array.isArray(remoteList) || remoteList.length === 0) return;
   if (!appState.staffList) appState.staffList = [];
 
-  remoteList.forEach(rem => {
-    if (!rem || !rem.name) return;
+  // Filter out any invalid items (like customer records mistakenly parsed)
+  const validRemote = remoteList.filter(rem => {
+    if (!rem || !rem.name) return false;
+    const nameStr = rem.name.toString().trim();
+    const idStr = (rem.id || '').toString().trim();
+    // A name shouldn't be pure numbers, single characters, or URL
+    if (/^\d+$/.test(nameStr) || nameStr.length < 2) return false;
+    if (nameStr.startsWith('http://') || nameStr.startsWith('https://')) return false;
+    // An ID shouldn't be a URL
+    if (idStr.startsWith('http://') || idStr.startsWith('https://')) return false;
+    // An ID for staff should be an alphanumeric code like STF01, STF02
+    if (!/^STF\d+/i.test(idStr) && !/^[a-zA-Z0-9_-]+$/.test(idStr)) return false;
+    return true;
+  });
+
+  validRemote.forEach(rem => {
     const rId = (rem.id || '').toUpperCase();
     const rName = rem.name.trim().toLowerCase();
     const idx = appState.staffList.findIndex(loc => 
@@ -174,24 +196,38 @@ async function syncLiveStaffFromGoogle() {
       const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
       if (json && json.table && json.table.rows && json.table.rows.length > 0) {
         const rawCols = (json.table.cols || []).map(c => (c.label || '').trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
-        if (rawCols.some(c => c.includes('staff'))) {
+        // If col 0 is customer name, this is the Daily Clean sheet, NOT Staff!
+        if (rawCols.length > 0 && rawCols[0].includes('customer')) {
+          console.log('[syncLiveStaffFromGoogle] gviz returned customer sheet, skipping sheet parsing.');
+        } else {
           const rows = json.table.rows;
-          const sheetStaff = [];
-          rows.forEach((row, idx) => {
-            const vals = (row.c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
-            const id = vals[0] || ('STF' + String(idx + 1).padStart(2, '0'));
-            const name = vals[1] || '';
-            const phone = vals[2] || '';
-            const pin = vals[3] || '123456';
-            const status = (vals[4] || 'Active').toLowerCase();
-            const active = status !== 'inactive' && status !== 'no' && status !== 'false';
-            if (name) {
-              sheetStaff.push({ id, name, phone, pin, active });
+          const firstRowVals = (rows[0].c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
+          
+          if (firstRowVals[0].toLowerCase().includes('customer')) {
+            console.log('[syncLiveStaffFromGoogle] First row is customer data, skipping.');
+          } else {
+            let startIndex = 0;
+            // Check if Row 0 contains the text 'Staff ID' or 'Staff Name'
+            if (firstRowVals[0].toLowerCase().includes('staff') || firstRowVals[1].toLowerCase().includes('staff')) {
+              startIndex = 1; // Row 0 is header
             }
-          });
-          if (sheetStaff.length > 0) {
-            mergeStaffList(sheetStaff);
-            return appState.staffList;
+            const sheetStaff = [];
+            for (let idx = startIndex; idx < rows.length; idx++) {
+              const vals = (rows[idx].c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
+              const id = vals[0] || ('STF' + String(idx).padStart(2, '0'));
+              const name = vals[1] || '';
+              const phone = vals[2] || '';
+              const pin = vals[3] || '123456';
+              const status = (vals[4] || 'Active').toLowerCase();
+              const active = status !== 'inactive' && status !== 'no' && status !== 'false';
+              if (name && !/^\d{7,15}$/.test(name) && !name.startsWith('http')) {
+                sheetStaff.push({ id, name, phone, pin, active });
+              }
+            }
+            if (sheetStaff.length > 0) {
+              mergeStaffList(sheetStaff);
+              return appState.staffList;
+            }
           }
         }
       }

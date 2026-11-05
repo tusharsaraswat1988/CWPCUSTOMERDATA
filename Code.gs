@@ -295,7 +295,9 @@ function cleanAndSyncStaff() {
   if (Array.isArray(existingList)) {
     existingList.forEach(function(s) {
       if (!s || !s.name) return;
-      var norm = s.name.toString().trim().toLowerCase();
+      var strName = s.name.toString().trim();
+      if (/^\d+$/.test(strName) || strName.length < 2 || strName.startsWith("http")) return;
+      var norm = strName.toLowerCase();
       if (!nameToStaff[norm]) {
         nameToStaff[norm] = s;
         staffList.push(s);
@@ -318,7 +320,7 @@ function cleanAndSyncStaff() {
     var hMap = getHeaderIndexMap(sheet);
     for (var r = 1; r < data.length; r++) {
       var sName = getVal(data[r], hMap, ["staffname", "staff"]).toString().trim();
-      if (!sName) continue;
+      if (!sName || /^\d+$/.test(sName) || sName.length < 2 || sName.startsWith("http")) continue;
       
       var normName = sName.toLowerCase();
       if (!nameToStaff[normName]) {
