@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CWP Deployment Guide - Google Apps Script</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card: #131d33;
+      --border: #243556;
+      --accent: #3b82f6;
+      --gold: #f59e0b;
+      --green: #10b981;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 30px 16px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #60a5fa;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin-bottom: 28px;
+    }
+    .step-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .step-num {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .step-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .step-body {
+      color: #cbd5e1;
+      font-size: 14px;
+      padding-left: 46px;
+    }
+    .step-body ul, .step-body ol {
+      margin-left: 18px;
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+    .step-body li {
+      margin-bottom: 6px;
+    }
+    .code-box-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0a0f1d;
+      border: 1px solid #1e293b;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      padding: 8px 14px;
+      margin-top: 14px;
+    }
+    .code-filename {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .btn-copy {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #ffffff;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .code-snippet {
+      background: #060911;
+      border: 1px solid #1e293b;
+      border-radius: 0 0 8px 8px;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #94a3b8;
+      max-height: 180px;
+      overflow-y: auto;
+      white-space: pre;
+    }
+    .alert-box {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #fed7aa;
+      font-size: 13px;
+      margin-top: 14px;
+    }
+    .quick-links {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">Google Apps Script Deployment</span>
+    <h1>Deploy CWP Staff Information Viewer</h1>
+    <p class="subtitle">Follow these 5 simple steps to connect the app with your Google Sheet in less than 2 minutes.</p>
+
+    <!-- STEP 1 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-title">Open Google Apps Script in your Google Sheet</div>
+      </div>
+      <div class="step-body">
+        <p>1. Open your Google Sheet: <a href="https://docs.google.com/spreadsheets/d/1IXs46tRE324YYgBBAKxD1aCCnYVzmqfX4jxCWvfiALY/edit" target="_blank" style="color: #60a5fa; font-weight: 600;">CWP Google Sheet Link</a></p>
+        <p>2. In the top menu bar, click <strong>Extensions</strong> &rarr; <strong>Apps Script</strong>.</p>
+        <p>3. A new Apps Script editor tab will open.</p>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-title">Paste Code.gs</div>
+      </div>
+      <div class="step-body">
+        <p>1. In the Apps Script editor, open the existing <code>Code.gs</code> file (or replace all code inside it).</p>
+        <p>2. Copy the full content of <code>Code.gs</code> from your project folder using the button below:</p>
+
+        <div class="code-box-header">
+          <span class="code-filename">Code.gs</span>
+          <button type="button" class="btn-copy" onclick="copyFileContent('code')">📋 Copy Full Code.gs</button>
+        </div>
+        <div class="code-snippet" id="snippetCode">Loading Code.gs snippet...</div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-title">Add Index.html</div>
+      </div>
+      <div class="step-body">
+        <p>1. In Apps Script, click the <strong>+</strong> (Add file) button next to Files, and choose <strong>HTML</strong>.</p>
+        <p>2. Name the file <code>Index</code> (it will become <code>Index.html</code>).</p>
+        <p>3. Copy and paste the full content of <code>Index.html</code> using the button below:</p>
+
+        <div class="code-box-header">
+          <span class="code-filename">Index.html</span>
+          <button type="button" class="btn-copy" onclick="copyFileContent('html')">📋 Copy Full Index.html</button>
+        </div>
+        <div class="code-snippet" id="snippetHtml">Loading Index.html snippet...</div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div class="step-title">Deploy as a Web App</div>
+      </div>
+      <div class="step-body">
+        <p>1. Click the blue <strong>Deploy</strong> button at the top right &rarr; <strong>New deployment</strong>.</p>
+        <p>2. In the modal, click the gear icon (Select type) and choose <strong>Web app</strong>.</p>
+        <p>3. Set the configuration:</p>
+        <ul>
+          <li><strong>Description:</strong> <code>CWP Staff Information Viewer</code></li>
+          <li><strong>Execute as:</strong> <strong>Me (your email)</strong></li>
+          <li><strong>Who has access:</strong> <strong>Anyone</strong> (this allows staff to view their cards directly from their phones without requiring Google accounts)</li>
+        </ul>
+        <p>4. Click <strong>Deploy</strong>.</p>
+        <div class="alert-box">
+          ⚠️ When deploying for the first time, Google will ask you to "Authorize Access". Click <em>Review permissions</em> &rarr; choose your Google account &rarr; click <em>Advanced</em> &rarr; click <em>Go to CWP Staff Information Viewer (unsafe)</em> &rarr; click <em>Allow</em>.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <div class="step-title">Start Using Your App</div>
+      </div>
+      <div class="step-body">
+        <p>Google Apps Script will provide your <strong>Web App URL</strong> (looks like <code>https://script.google.com/macros/s/.../exec</code>).</p>
+        <ul style="margin-top: 10px;">
+          <li><strong>Admin Page:</strong> Open <code>Web App URL</code> or <code>Web App URL?admin=1</code> to add staff, upload photos, and add customers.</li>
+          <li><strong>Staff Unique Links:</strong> Share <code>Web App URL?staff=STAFF_ID</code> directly via WhatsApp from the Admin page!</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="quick-links">
+      <a href="/" class="btn-action">🏠 Open Local Preview App</a>
+      <a href="/?admin=1" class="btn-action" style="background: linear-gradient(135deg, #10b981, #059669);">⚙️ Open Admin Page</a>
+    </div>
+  </div>
+
+  <script>
+    // Fetch and display snippets
+    fetch('/Code.gs').then(r => r.text()).then(t => {
+      window._codeGsText = t;
+      document.getElementById('snippetCode').textContent = t.slice(0, 500) + '\n... [click Copy button for complete 350+ lines]';
+    }).catch(() => {
+      document.getElementById('snippetCode').textContent = '// Open Code.gs in workspace';
+    });
+
+    fetch('/Index.html').then(r => r.text()).then(t => {
+      window._indexHtmlText = t;
+      document.getElementById('snippetHtml').textContent = t.slice(0, 500) + '\n... [click Copy button for complete 900+ lines]';
+    }).catch(() => {
+      document.getElementById('snippetHtml').textContent = '// Open Index.html in workspace';
+    });
+
+    function copyFileContent(type) {
+      const text = type === 'code' ? window._codeGsText : window._indexHtmlText;
+      if (text) {
+        navigator.clipboard.writeText(text).then(() => {
+          alert('Copied ' + (type === 'code' ? 'Code.gs' : 'Index.html') + ' to clipboard!');
+        });
+      } else {
+        alert('Please open the file directly in your workspace editor to copy.');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "cwp-staff-viewer",
+  "version": "1.0.0",
+  "description": "Lightweight Staff Information Viewer for CWP Detailers & Motors",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "cwp",
+    "google-apps-script",
+    "staff-viewer",
+    "detailing"
+  ],
+  "author": "CWP Detailers & Motors",
+  "license": "ISC"
+}

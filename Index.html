@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CWP Detailers & Motors - Staff Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-page: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-subtle: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-focus: #3b82f6;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --brand-navy: #0f2942;
+      --brand-blue: #2563eb;
+      --brand-blue-hover: #1d4ed8;
+      --brand-blue-light: #eff6ff;
+      --brand-blue-border: #bfdbfe;
+      --accent-amber: #b45309;
+      --accent-amber-light: #fef3c7;
+      --accent-amber-border: #fde68a;
+      --call-green: #059669;
+      --call-green-hover: #047857;
+      --call-green-light: #ecfdf5;
+      --call-green-border: #a7f3d0;
+      --danger-red: #dc2626;
+      --danger-red-light: #fef2f2;
+      --danger-red-border: #fecaca;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      line-height: 1.45;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Brand Navigation */
+    .top-header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .header-inner {
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 15px;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+      flex-shrink: 0;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--brand-blue);
+      line-height: 1.1;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .staff-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--call-green-light);
+      color: var(--call-green);
+      border: 1px solid var(--call-green-border);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .dot-live {
+      color: var(--call-green);
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .admin-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--brand-blue-light);
+      color: var(--brand-blue);
+      border: 1px solid var(--brand-blue-border);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* Container */
+    .main-container {
+      max-width: 680px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 12px 14px 40px;
+      flex: 1;
+    }
+
+    /* Staff Profile Strip */
+    .staff-profile-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: var(--shadow-xs);
+      margin-bottom: 10px;
+    }
+
+    .staff-avatar-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .staff-avatar-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--brand-blue);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .staff-name-text {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .staff-id-text {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+
+    .staff-car-count-badge {
+      background: var(--brand-blue-light);
+      color: var(--brand-blue);
+      border: 1px solid var(--brand-blue-border);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Quick Search & Filters */
+    .search-filter-box {
+      margin-bottom: 12px;
+    }
+
+    .search-bar-wrapper {
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px 8px 34px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-xs);
+    }
+
+    .search-input:focus {
+      border-color: var(--brand-blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Tab Filter Pills */
+    .filter-pills-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .filter-pill {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .filter-pill.active {
+      background: var(--brand-blue);
+      color: #ffffff;
+      border-color: var(--brand-blue);
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    }
+
+    /* =========================================================================
+       SMART COMPACT CUSTOMER CARD
+       Optimized for mobile field staff (reduces height by 60%+)
+       ========================================================================= */
+    .customer-feed-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .smart-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 11px 13px;
+      box-shadow: var(--shadow-xs);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .smart-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Top Row: Index + Customer Name + Package Pill */
+    .card-top-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .cust-name-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .cust-index-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      flex-shrink: 0;
+    }
+
+    .cust-full-name {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+
+    .badge-pkg-purchased {
+      background: var(--brand-blue-light);
+      color: var(--brand-blue);
+      border: 1px solid var(--brand-blue-border);
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Vehicle & Service Row */
+    .card-vehicle-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .vehicle-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg-surface-subtle);
+      border: 1px solid #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1e293b;
+      word-break: break-word;
+    }
+
+    .vehicle-icon {
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .service-tag {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: #f8fafc;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Alternate Day 1-Package Alert Strip */
+    .alert-alternate-strip {
+      background: var(--accent-amber-light);
+      border: 1px solid var(--accent-amber-border);
+      color: var(--accent-amber);
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-bottom: 6px;
+      line-height: 1.35;
+    }
+
+    .alert-alternate-strip b {
+      font-weight: 800;
+    }
+
+    /* Cleaning Instructions / Notes Strip */
+    .notes-info-strip {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-bottom: 6px;
+      line-height: 1.35;
+    }
+
+    .notes-info-strip b {
+      font-weight: 700;
+      color: #14532d;
+    }
+
+    /* Address Row */
+    .card-address-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1.35;
+    }
+
+    .pin-icon {
+      font-size: 12px;
+      color: var(--brand-blue);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .address-text-snippet {
+      word-break: break-word;
+    }
+
+    /* Action Bar (Call & Directions) */
+    .card-actions-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-action-smart {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-action-call {
+      background: var(--call-green);
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(5, 150, 105, 0.25);
+    }
+
+    .btn-action-call:hover {
+      background: var(--call-green-hover);
+    }
+
+    .btn-action-maps {
+      background: var(--brand-blue);
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn-action-maps:hover {
+      background: var(--brand-blue-hover);
+    }
+
+    .btn-action-disabled {
+      background: #e2e8f0;
+      color: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Optional Details Tray (Photo & Secondary Address) */
+    .details-toggle-btn {
+      background: none;
+      border: none;
+      color: var(--brand-blue);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 4px 0 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .details-tray-box {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border-color);
+      display: none;
+    }
+
+    .details-tray-box.open {
+      display: block;
+    }
+
+    .photo-thumb-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .photo-thumb-img {
+      width: 50px;
+      height: 50px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+
+    .photo-thumb-hint {
+      font-size: 11px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .secondary-loc-box {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 11.5px;
+      margin-top: 6px;
+    }
+
+    .secondary-loc-title {
+      font-weight: 700;
+      color: var(--accent-amber);
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    .secondary-maps-link {
+      display: inline-block;
+      margin-top: 4px;
+      color: var(--brand-blue);
+      font-weight: 700;
+      text-decoration: underline;
+      font-size: 11px;
+    }
+
+    /* Empty state */
+    .empty-state-box {
+      background: #ffffff;
+      border: 1px dashed var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 30px 20px;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .empty-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    /* =========================================================================
+       ADMIN VIEW STYLING (Bright, Modern & Professional)
+       ========================================================================= */
+    .admin-container {
+      display: none;
+    }
+
+    .admin-tab-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      overflow-x: auto;
+    }
+
+    .admin-tab-btn {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .admin-tab-btn.active {
+      background: var(--brand-blue);
+      color: #ffffff;
+      border-color: var(--brand-blue);
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+    }
+
+    .admin-card-section {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 16px;
+    }
+
+    .admin-card-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .admin-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 14px;
+    }
+
+    /* Form Inputs */
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--brand-blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Photo Upload Box */
+    .upload-dropzone {
+      border: 2px dashed #cbd5e1;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      background: #f8fafc;
+      transition: all 0.2s;
+    }
+
+    .upload-dropzone:hover {
+      border-color: var(--brand-blue);
+      background: #eff6ff;
+    }
+
+    .upload-preview-img {
+      max-height: 120px;
+      border-radius: 6px;
+      margin: 8px auto 0;
+      display: block;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Quick Chips */
+    .chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .chip-btn {
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .chip-btn:hover {
+      background: #e2e8f0;
+    }
+
+    .btn-submit-main {
+      width: 100%;
+      background: var(--brand-blue);
+      color: #ffffff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+      transition: background 0.15s;
+      margin-top: 8px;
+    }
+
+    .btn-submit-main:hover {
+      background: var(--brand-blue-hover);
+    }
+
+    /* Staff List Cards in Admin */
+    .staff-admin-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .staff-admin-info {
+      min-width: 0;
+    }
+
+    .staff-admin-name {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .staff-admin-id {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .staff-admin-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn-admin-action {
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      color: var(--text-secondary);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-admin-action:hover {
+      background: #f1f5f9;
+    }
+
+    .btn-admin-danger {
+      color: var(--danger-red);
+      border-color: var(--danger-red-border);
+      background: var(--danger-red-light);
+    }
+
+    .btn-admin-danger:hover {
+      background: #fee2e2;
+    }
+
+    /* Table for Records */
+    .records-table-wrapper {
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+
+    .records-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .records-table th {
+      background: #f8fafc;
+      color: var(--text-secondary);
+      font-weight: 700;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    .records-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .records-table tr:hover {
+      background: #f8fafc;
+    }
+
+    /* Toast Notification */
+    .toast-popup {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1e293b;
+      color: #ffffff;
+      padding: 9px 16px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .toast-popup.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Image Modal */
+    .image-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .image-modal-overlay.open {
+      display: flex;
+    }
+
+    .image-modal-content {
+      max-width: 90%;
+      max-height: 80vh;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .image-modal-content img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .main-container {
+        padding: 8px 10px 40px;
+      }
+      .smart-card {
+        padding: 10px 11px;
+      }
+      .cust-full-name {
+        font-size: 14px;
+      }
+      .btn-action-smart {
+        font-size: 12px;
+        padding: 8px 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Brand Navigation (Notice: ZERO admin links shown in Staff view!) -->
+  <header class="top-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="brand-badge">CWP</div>
+        <div>
+          <div class="brand-sub">Detailers & Motors</div>
+          <h1 class="brand-title" id="pageMainTitle">स्टाफ पोर्टल</h1>
+        </div>
+      </div>
+      
+      <!-- Staff Live Indicator (Only shown in staff view) -->
+      <div class="staff-live-badge" id="staffLiveBadge">
+        <span class="dot-live">●</span> लाइव
+      </div>
+
+      <!-- Admin Top Tag (Only shown in admin view) -->
+      <div class="admin-pill-badge" id="adminTopBadge" style="display: none;">
+        ⚙️ एडमिन
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <div class="main-container">
+
+    <!-- =====================================================================
+         1. STAFF VIEWER SECTION (Completely isolated, NO Admin navigation)
+         ===================================================================== -->
+    <div id="staffView" style="display: block;">
+      
+      <!-- Staff Profile Summary Strip -->
+      <div class="staff-profile-card">
+        <div class="staff-avatar-group">
+          <div class="staff-avatar-circle" id="staffAvatarInitial">S</div>
+          <div>
+            <div class="staff-name-text" id="staffNameHeader">लोड हो रहा है...</div>
+            <div class="staff-id-text" id="staffIdHeader">ID: --</div>
+          </div>
+        </div>
+        <div class="staff-car-count-badge" id="staffCarCount">
+          🚗 0 गाड़ियां
+        </div>
+      </div>
+
+      <!-- Search & Category Filters -->
+      <div class="search-filter-box">
+        <div class="search-bar-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="staffSearchInput" class="search-input" placeholder="ग्राहक का नाम, गाड़ी नंबर या पता खोजें..." oninput="handleStaffSearch(this.value)">
+        </div>
+
+        <div class="filter-pills-row" id="filterPillsRow">
+          <button type="button" class="filter-pill active" onclick="setStaffFilter('all')">सभी (<span id="countAll">0</span>)</button>
+          <button type="button" class="filter-pill" onclick="setStaffFilter('daily')">दैनिक धुलाई (<span id="countDaily">0</span>)</button>
+          <button type="button" class="filter-pill" onclick="setStaffFilter('other')">अन्य कार्य (<span id="countOther">0</span>)</button>
+        </div>
+      </div>
+
+      <!-- Smart Compact Customer Cards Feed -->
+      <div class="customer-feed-grid" id="customerFeed">
+        <div class="empty-state-box">
+          <div class="empty-icon">⏳</div>
+          <p>गाड़ियों की लिस्ट लोड हो रही है...</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- =====================================================================
+         2. ADMIN VIEW SECTION (Dedicated admin portal for management)
+         ===================================================================== -->
+    <div id="adminView" class="admin-container">
+      
+      <!-- Admin Sub Tabs -->
+      <div class="admin-tab-nav">
+        <button type="button" class="admin-tab-btn active" id="tabBtnAddCust" onclick="switchAdminTab('addCust')">➕ ग्राहक जोड़ें</button>
+        <button type="button" class="admin-tab-btn" id="tabBtnStaff" onclick="switchAdminTab('staff')">👥 स्टाफ और लिंक</button>
+        <button type="button" class="admin-tab-btn" id="tabBtnRecords" onclick="switchAdminTab('records')">📋 एक्टिव रिकॉर्ड्स</button>
+      </div>
+
+      <!-- Admin Tab 1: Add Customer Form -->
+      <div id="adminTabAddCust" class="admin-tab-pane">
+        <div class="admin-card-section">
+          <h2 class="admin-card-title">नया ग्राहक जोड़ें (Add Customer)</h2>
+          <p class="admin-card-desc">ग्राहक और गाड़ी की जानकारी भरें। यह डेटा सीधे गूगल शीट में सेव होगा।</p>
+
+          <form id="addCustomerForm" onsubmit="handleCustomerSubmit(event)">
+            
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label">काम का प्रकार (Category) *</label>
+                <select id="custCategory" class="form-select" onchange="toggleCategoryFields(this.value)" required>
+                  <option value="Daily Clean">Daily Clean (दैनिक सफाई)</option>
+                  <option value="All Other Work">All Other Work (अन्य काम)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">असाइन स्टाफ (Staff) *</label>
+                <select id="custStaffSelect" class="form-select" required>
+                  <option value="">स्टाफ चुनें...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label">ग्राहक का नाम (Customer Name) *</label>
+                <input type="text" id="custName" class="form-input" placeholder="उदा. श्रेयांश जैन" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">मोबाइल नंबर (Mobile) *</label>
+                <input type="tel" id="custPhone" class="form-input" placeholder="10 डिजिट मोबाइल नंबर" maxlength="10" required>
+              </div>
+            </div>
+
+            <!-- Daily Clean Fields -->
+            <div id="dailyFieldsBlock">
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label">पैकेज का प्रकार (Package Type)</label>
+                  <select id="custPkgType" class="form-select">
+                    <option value="Daily Clean">Daily Clean</option>
+                    <option value="Ceramic Maintenance">Ceramic Maintenance</option>
+                    <option value="Full Detail Subscription">Full Detail Subscription</option>
+                    <option value="Custom Daily">Custom Daily</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">पैकेज संख्या (Purchased Packages) *</label>
+                  <input type="number" id="custPkgCount" class="form-input" value="1" min="1" max="10" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">गाड़ी नंबर और मॉडल (Vehicle Number & Model) *</label>
+                <input type="text" id="custVehicles" class="form-input" placeholder="उदा. UP65 AB 1234 - Creta (आज) / UP65 CD 5678 - Amaze (कल)" required>
+                <div class="chips-row">
+                  <button type="button" class="chip-btn" onclick="appendVehicleText(' (आज)')">+ (आज)</button>
+                  <button type="button" class="chip-btn" onclick="appendVehicleText(' (कल)')">+ (कल)</button>
+                  <button type="button" class="chip-btn" onclick="appendVehicleText(' / ')">+ अगली गाड़ी ( / )</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Other Work Fields -->
+            <div id="otherFieldsBlock" style="display: none;">
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label">सर्विस का प्रकार (Service Type)</label>
+                  <input type="text" id="custServiceType" class="form-input" placeholder="उदा. Solar Panel / PPF Maintenance">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">गाड़ी / साइट का नाम (Vehicle / Site)</label>
+                  <input type="text" id="custOtherVehicle" class="form-input" placeholder="उदा. UP65 XY 9999 Fortuner / Rooftop Site">
+                </div>
+              </div>
+            </div>
+
+            <!-- Photo Upload directly from Camera / File -->
+            <div class="form-group">
+              <label class="form-label">ग्राहक / गाड़ी की फोटो (Photo Upload - Direct)</label>
+              <div class="upload-dropzone" onclick="document.getElementById('custPhotoFile').click()">
+                <div style="font-size: 20px;">📸</div>
+                <div style="font-size: 12px; font-weight: 700; color: var(--brand-blue); margin-top: 4px;">फोटो चुनें या कैमरा से खींचे</div>
+                <div style="font-size: 11px; color: var(--text-muted);">कंप्यूटर या फोन से सीधे अपलोड करें</div>
+                <input type="file" id="custPhotoFile" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
+                <img id="custPhotoPreview" class="upload-preview-img" style="display: none;" alt="Preview">
+              </div>
+            </div>
+
+            <!-- Address and Location -->
+            <div class="form-group">
+              <label class="form-label">ग्राहक का पता (Customer Address) *</label>
+              <textarea id="custAddress" class="form-textarea" placeholder="मकान नं, कॉलोनी, लैंडमार्क, शहर..." required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">गूगल मैप्स लोकेशन (Google Maps Link / Plus Code)</label>
+              <div style="display: flex; gap: 6px;">
+                <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F) या Coordinates">
+                <button type="button" class="chip-btn" style="padding: 0 12px; font-size: 12px; white-space: nowrap;" onclick="detectGpsLocation()">📍 GPS</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">दूसरा पता / लोकेशन (Secondary Address - Optional)</label>
+              <input type="text" id="custSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
+              <input type="text" id="custSecMaps" class="form-input" style="margin-top: 4px;" placeholder="दूसरे पते का मैप लिंक (Optional)">
+            </div>
+
+            <!-- Notes -->
+            <div class="form-group">
+              <label class="form-label">स्टाफ के लिए खास निर्देश (Cleaning Instructions / Staff Notes)</label>
+              <textarea id="custNotes" class="form-textarea" placeholder="उदा. 1 पैकेज है। दोनों गाड़ियां अलग-अलग दिन साफ होंगी। गार्ड से चाबी लें..."></textarea>
+              <div class="chips-row">
+                <button type="button" class="chip-btn" onclick="setQuickNote('1 पैकेज है। दोनों गाड़ियां अलग-अलग दिन (Alternate Day) साफ करनी हैं।')">1 Pkg Alternate Day</button>
+                <button type="button" class="chip-btn" onclick="setQuickNote('गाड़ी रोज बाहर से साफ होगी, संडे को अंदर से वैक्यूम होगा।')">Exterior Daily, Sun Vacuum</button>
+                <button type="button" class="chip-btn" onclick="setQuickNote('सोसायटी के गार्ड से पानी और चाबी लेना है।')">Guard Water Supply</button>
+              </div>
+            </div>
+
+            <button type="submit" id="btnSaveCust" class="btn-submit-main">
+              <span>💾</span> गूगल शीट में सेव करें (Save Customer)
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Admin Tab 2: Staff Management & Links -->
+      <div id="adminTabStaff" class="admin-tab-pane" style="display: none;">
+        <div class="admin-card-section">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <div>
+              <h2 class="admin-card-title">स्टाफ मेंबर्स और यूनिक लिंक्स</h2>
+              <p class="admin-card-desc" style="margin-bottom: 0;">हर स्टाफ को अपना पर्सनल लिंक दें। वे केवल अपने असाइन ग्राहक देख पाएंगे।</p>
+            </div>
+            <button type="button" class="btn-admin-action" onclick="handleSyncStaffSheet()" title="शीट के सभी रो को सिंगल स्टाफ आईडी से सिंक करें">
+              🔄 सिंक शीट आईडी
+            </button>
+          </div>
+
+          <!-- Add Staff Form -->
+          <form onsubmit="handleAddStaff(event)" style="display: flex; gap: 8px; margin-bottom: 14px;">
+            <input type="text" id="newStaffName" class="form-input" placeholder="स्टाफ का नाम (उदा. Ramesh Kumar)" required style="flex: 2;">
+            <input type="text" id="newStaffId" class="form-input" placeholder="ID (उदा. STF02)" style="flex: 1;">
+            <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700;">
+              जोड़ें
+            </button>
+          </form>
+
+          <!-- Staff Cards List -->
+          <div id="adminStaffList">
+            <div class="empty-state-box">स्टाफ लिस्ट लोड हो रही है...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab 3: Active Records Table -->
+      <div id="adminTabRecords" class="admin-tab-pane" style="display: none;">
+        <div class="admin-card-section">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <h2 class="admin-card-title">एक्टिव ग्राहक रिकॉर्ड्स (Active Records)</h2>
+            <button type="button" class="btn-admin-action" onclick="loadAdminRecords()">
+              🔄 रीलोड
+            </button>
+          </div>
+          <p class="admin-card-desc">गूगल शीट में दर्ज सभी एक्टिव और इन-एक्टिव कस्टमर्स की सूची:</p>
+
+          <div class="records-table-wrapper">
+            <table class="records-table">
+              <thead>
+                <tr>
+                  <th>शीट</th>
+                  <th>स्टाफ</th>
+                  <th>ग्राहक</th>
+                  <th>गाड़ी नंबर</th>
+                  <th>पता</th>
+                  <th>स्टेटस</th>
+                </tr>
+              </thead>
+              <tbody id="adminRecordsTableBody">
+                <tr><td colspan="6" style="text-align: center;">डेटा लोड हो रहा है...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Image Modal for Full Preview -->
+  <div id="imageModal" class="image-modal-overlay" onclick="closeImageModal()">
+    <div class="image-modal-content" onclick="event.stopPropagation()">
+      <img id="imageModalImg" src="" alt="Customer Vehicle Photo">
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="toast-popup">
+    <span id="toastIcon">✓</span>
+    <span id="toastMessage">Success</span>
+  </div>
+
+  <!-- =====================================================================
+       CLIENT APPLICATION LOGIC
+       Strictly adhering to Apps Script preprocessor rules:
+       - ZERO inline `//` comments in `<script>` tags
+       - Escaped forward slashes in URLs
+       ===================================================================== -->
+  <script>
+    /* Injected template variables from Google Apps Script */
+    var initialStaffId = "<?= typeof initialStaffId !== 'undefined' ? initialStaffId : '' ?>";
+    var initialMode = "<?= typeof initialMode !== 'undefined' ? initialMode : 'admin' ?>";
+    var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
+
+    /* Global Application State */
+    var state = {
+      currentView: 'staff',
+      activeStaffId: '',
+      staffList: [],
+      customers: [],
+      filteredCustomers: [],
+      searchQuery: '',
+      activeFilter: 'all',
+      selectedPhotoBase64: '',
+      selectedPhotoType: '',
+      selectedPhotoName: ''
+    };
+
+    /* Initialize Application */
+    document.addEventListener('DOMContentLoaded', function() {
+      var urlParams = new URLSearchParams(window.location.search);
+      var paramStaff = urlParams.get('staff') || urlParams.get('id') || '';
+      var paramAdmin = urlParams.get('admin');
+
+      /* Decide view mode: Decoupled strict logic */
+      if (paramAdmin !== null && paramAdmin !== undefined) {
+        state.currentView = 'admin';
+      } else if (paramStaff && paramStaff.trim() !== '') {
+        state.currentView = 'staff';
+        state.activeStaffId = paramStaff.trim();
+      } else if (initialMode === 'staff' && initialStaffId) {
+        state.currentView = 'staff';
+        state.activeStaffId = initialStaffId;
+      } else {
+        /* Default fallback */
+        state.currentView = 'admin';
+      }
+
+      applyViewMode(state.currentView);
+
+      if (state.currentView === 'staff') {
+        loadStaffCustomerData(state.activeStaffId);
+      } else {
+        loadStaffListForAdmin();
+        loadAdminRecords();
+      }
+    });
+
+    /* Apply View Mode: Completely separates Staff and Admin UI */
+    function applyViewMode(mode) {
+      state.currentView = mode;
+      var staffEl = document.getElementById('staffView');
+      var adminEl = document.getElementById('adminView');
+      var liveBadge = document.getElementById('staffLiveBadge');
+      var adminBadge = document.getElementById('adminTopBadge');
+      var titleEl = document.getElementById('pageMainTitle');
+
+      if (mode === 'staff') {
+        staffEl.style.display = 'block';
+        adminEl.style.display = 'none';
+        liveBadge.style.display = 'inline-flex';
+        adminBadge.style.display = 'none';
+        titleEl.textContent = 'स्टाफ पोर्टल (Staff)';
+      } else {
+        staffEl.style.display = 'none';
+        adminEl.style.display = 'block';
+        liveBadge.style.display = 'none';
+        adminBadge.style.display = 'inline-flex';
+        titleEl.textContent = 'एडमिन मैनेजमेंट (Admin)';
+      }
+    }
+
+    /* Switch Admin Sub Tabs */
+    function switchAdminTab(tabName) {
+      var tabs = ['addCust', 'staff', 'records'];
+      tabs.forEach(function(t) {
+        var pane = document.getElementById('adminTab' + t.charAt(0).toUpperCase() + t.slice(1));
+        var btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (pane) pane.style.display = (t === tabName) ? 'block' : 'none';
+        if (btn) btn.classList.toggle('active', t === tabName);
+      });
+      if (tabName === 'staff') loadStaffListForAdmin();
+      if (tabName === 'records') loadAdminRecords();
+    }
+
+    /* =========================================================================
+       STAFF DATA LOADING & RENDERING
+       ========================================================================= */
+    function loadStaffCustomerData(staffId) {
+      var feed = document.getElementById('customerFeed');
+      feed.innerHTML = '<div class="empty-state-box"><div class="empty-icon">⏳</div><p>गाड़ियों की लिस्ट लोड हो रही है...</p></div>';
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(response) {
+            handleStaffDataLoaded(response);
+          })
+          .withFailureHandler(function(err) {
+            showToast('डेटा लोड करने में त्रुटि: ' + (err.message || err), '❌');
+            feed.innerHTML = '<div class="empty-state-box"><div class="empty-icon">⚠️</div><p>डेटा लोड नहीं हो सका। कृपया रीफ्रेश करें।</p></div>';
+          })
+          .getStaffCustomerData(staffId);
+      } else {
+        /* Local Preview Fallback */
+        fetch('http:\x2F\x2Flocalhost:3000/api/staff-data?staffId=' + encodeURIComponent(staffId))
+          .then(function(res) { return res.json(); })
+          .then(function(data) { handleStaffDataLoaded(data); })
+          .catch(function(err) {
+            feed.innerHTML = '<div class="empty-state-box"><div class="empty-icon">⚠️</div><p>लोकल सर्वर कनेक्ट नहीं हुआ।</p></div>';
+          });
+      }
+    }
+
+    function handleStaffDataLoaded(data) {
+      if (!data || data.error) {
+        document.getElementById('customerFeed').innerHTML = '<div class="empty-state-box"><div class="empty-icon">⚠️</div><p>' + escapeHtml(data ? data.error : 'अज्ञात त्रुटि') + '</p></div>';
+        return;
+      }
+
+      /* Update Staff Header */
+      var sName = data.staffName || 'स्टाफ मेंबर';
+      var sId = data.staffId || state.activeStaffId || 'STF';
+      document.getElementById('staffNameHeader').textContent = sName;
+      document.getElementById('staffIdHeader').textContent = 'ID: ' + sId;
+      document.getElementById('staffAvatarInitial').textContent = sName.charAt(0).toUpperCase();
+
+      /* Merge dailyClean and allOtherWork into a single list */
+      var list = [];
+      if (data.dailyClean && Array.isArray(data.dailyClean)) {
+        data.dailyClean.forEach(function(item) {
+          item.category = 'daily';
+          list.push(item);
+        });
+      }
+      if (data.allOtherWork && Array.isArray(data.allOtherWork)) {
+        data.allOtherWork.forEach(function(item) {
+          item.category = 'other';
+          list.push(item);
+        });
+      }
+
+      state.customers = list;
+      updateFilterCounts();
+      applyCustomerFilterAndSearch();
+    }
+
+    function updateFilterCounts() {
+      var allCount = state.customers.length;
+      var dailyCount = state.customers.filter(function(c) { return c.category === 'daily'; }).length;
+      var otherCount = state.customers.filter(function(c) { return c.category === 'other'; }).length;
+
+      document.getElementById('countAll').textContent = allCount;
+      document.getElementById('countDaily').textContent = dailyCount;
+      document.getElementById('countOther').textContent = otherCount;
+      document.getElementById('staffCarCount').textContent = '🚗 ' + allCount + ' गाड़ियां';
+    }
+
+    function setStaffFilter(filter) {
+      state.activeFilter = filter;
+      var pills = document.querySelectorAll('#filterPillsRow .filter-pill');
+      pills.forEach(function(p, i) {
+        p.classList.toggle('active', 
+          (filter === 'all' && i === 0) || 
+          (filter === 'daily' && i === 1) || 
+          (filter === 'other' && i === 2)
+        );
+      });
+      applyCustomerFilterAndSearch();
+    }
+
+    function handleStaffSearch(query) {
+      state.searchQuery = (query || '').toLowerCase().trim();
+      applyCustomerFilterAndSearch();
+    }
+
+    function applyCustomerFilterAndSearch() {
+      var filtered = state.customers.filter(function(c) {
+        /* Category filter */
+        if (state.activeFilter === 'daily' && c.category !== 'daily') return false;
+        if (state.activeFilter === 'other' && c.category !== 'other') return false;
+
+        /* Search query */
+        if (state.searchQuery) {
+          var q = state.searchQuery;
+          var name = (c.customerName || '').toLowerCase();
+          var phone = (c.customerNumber || '').toLowerCase();
+          var vehicles = (c.vehicleNumbers || c.vehicleOrSite || '').toLowerCase();
+          var addr = (c.address || '').toLowerCase();
+          var notes = (c.staffNotes || '').toLowerCase();
+          return name.indexOf(q) !== -1 || phone.indexOf(q) !== -1 || vehicles.indexOf(q) !== -1 || addr.indexOf(q) !== -1 || notes.indexOf(q) !== -1;
+        }
+        return true;
+      });
+
+      renderCustomerCards(filtered);
+    }
+
+    /* =========================================================================
+       SMART COMPACT CARD RENDERER
+       ========================================================================= */
+    function renderCustomerCards(items) {
+      var container = document.getElementById('customerFeed');
+      if (!items || items.length === 0) {
+        container.innerHTML = '<div class="empty-state-box"><div class="empty-icon">🚗</div><p style="font-weight:700;">कोई गाड़ी नहीं मिली</p><p style="font-size:12px; margin-top:4px;">सर्च या फिल्टर बदल कर देखें।</p></div>';
+        return;
+      }
+
+      var html = '';
+      items.forEach(function(item, index) {
+        var isDaily = item.category === 'daily';
+        var customerName = escapeHtml(item.customerName || 'Customer');
+        var rawPhone = (item.customerNumber || '').replace(/[^0-9]/g, '');
+        var cleanPhone = rawPhone.length === 10 ? rawPhone : (rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone);
+
+        var vehicles = isDaily ? (item.vehicleNumbers || 'गाड़ी नंबर दर्ज नहीं') : (item.vehicleOrSite || 'गाड़ी / साइट दर्ज नहीं');
+        var pkgPurchased = isDaily ? (item.packagesPurchased || '1') : '1';
+        var notes = item.staffNotes || '';
+        var address = item.address || '';
+        var mapsUrl = formatGoogleMapsUrl(item.googleMapsUrl, address);
+        var photoUrl = item.photoUrl || '';
+        var cardId = 'card_' + index;
+
+        /* Multiple cars with 1 package alert logic */
+        var isMultipleCarsOnePkg = false;
+        if (isDaily && pkgPurchased.toString().trim() === '1') {
+          var vLower = vehicles.toLowerCase();
+          var nLower = notes.toLowerCase();
+          if (vehicles.indexOf('/') !== -1 || vehicles.indexOf(',') !== -1 || vLower.indexOf('aaj') !== -1 || vLower.indexOf('kal') !== -1 || vLower.indexOf('आज') !== -1 || vLower.indexOf('कल') !== -1 || nLower.indexOf('alternate') !== -1 || nLower.indexOf('1 package') !== -1) {
+            isMultipleCarsOnePkg = true;
+          }
+        }
+
+        html += '<div class="smart-card">';
+        
+        /* Line 1: Index + Name + Package Badge */
+        html += '  <div class="card-top-line">';
+        html += '    <div class="cust-name-group">';
+        html += '      <span class="cust-index-badge">#' + (index + 1) + '</span>';
+        html += '      <h3 class="cust-full-name">' + customerName + '</h3>';
+        html += '    </div>';
+        html += '    <span class="badge-pkg-purchased">' + escapeHtml(pkgPurchased) + ' पैकेज</span>';
+        html += '  </div>';
+
+        /* Line 2: Vehicle Tag + Service Type */
+        html += '  <div class="card-vehicle-line">';
+        html += '    <div class="vehicle-tag">';
+        html += '      <span class="vehicle-icon">' + (isDaily ? '🚘' : '🔧') + '</span>';
+        html += '      <span>' + escapeHtml(vehicles) + '</span>';
+        html += '    </div>';
+        html += '    <span class="service-tag">' + (isDaily ? 'दैनिक सफाई' : 'अन्य कार्य') + '</span>';
+        html += '  </div>';
+
+        /* Line 3: Conditional 1-Package Multiple Cars Rotation Strip */
+        if (isMultipleCarsOnePkg) {
+          html += '  <div class="alert-alternate-strip">';
+          html += '    <span>⚡</span>';
+          html += '    <div><b>1 पैकेज है:</b> दोनों गाड़ियां अलग-अलग दिन (आज / कल) साफ होंगी।</div>';
+          html += '  </div>';
+        }
+
+        /* Line 4: Conditional Notes Strip */
+        if (notes) {
+          html += '  <div class="notes-info-strip">';
+          html += '    <span>📝</span>';
+          html += '    <div><b>निर्देश:</b> ' + escapeHtml(notes) + '</div>';
+          html += '  </div>';
+        }
+
+        /* Line 5: Address Row */
+        if (address) {
+          html += '  <div class="card-address-line">';
+          html += '    <span class="pin-icon">📍</span>';
+          html += '    <span class="address-text-snippet">' + escapeHtml(address) + '</span>';
+          html += '  </div>';
+        }
+
+        /* Line 6: 1-Tap Action Bar (Call & Google Maps) */
+        html += '  <div class="card-actions-row">';
+        if (cleanPhone) {
+          html += '    <a href="tel:' + cleanPhone + '" class="btn-action-smart btn-action-call">';
+          html += '      <span>📞</span><span>कॉल करें</span>';
+          html += '    </a>';
+        } else {
+          html += '    <button type="button" class="btn-action-smart btn-action-disabled" disabled>';
+          html += '      <span>📞</span><span>नंबर नहीं है</span>';
+          html += '    </button>';
+        }
+
+        if (mapsUrl) {
+          html += '    <a href="' + escapeHtml(mapsUrl) + '" target="_blank" class="btn-action-smart btn-action-maps">';
+          html += '      <span>🧭</span><span>मैप / रास्ता</span>';
+          html += '    </a>';
+        } else {
+          html += '    <button type="button" class="btn-action-smart btn-action-disabled" disabled>';
+          html += '      <span>🧭</span><span>मैप नहीं है</span>';
+          html += '    </button>';
+        }
+        html += '  </div>';
+
+        /* Line 7: Expandable Details Toggle (Photo / Secondary Location) */
+        var hasDetails = photoUrl || (isDaily && item.secondaryAddress);
+        if (hasDetails) {
+          html += '  <div style="display:flex; justify-content:flex-end;">';
+          html += '    <button type="button" class="details-toggle-btn" onclick="toggleDetailsTray(\'' + cardId + '\')">';
+          html += '      <span>ℹ️ और विवरण (Details)</span>';
+          html += '    </button>';
+          html += '  </div>';
+
+          html += '  <div class="details-tray-box" id="' + cardId + '">';
+          if (photoUrl) {
+            html += '    <div class="photo-thumb-strip" onclick="openImageModal(\'' + escapeHtml(photoUrl) + '\')">';
+            html += '      <img src="' + escapeHtml(photoUrl) + '" class="photo-thumb-img" alt="गाड़ी फोटो" loading="lazy">';
+            html += '      <span class="photo-thumb-hint">🔍 फोटो बड़ी करने के लिए टैप करें</span>';
+            html += '    </div>';
+          }
+          if (isDaily && item.secondaryAddress) {
+            html += '    <div class="secondary-loc-box">';
+            html += '      <div class="secondary-loc-title">🏠 दूसरा पता / लोकेशन:</div>';
+            html += '      <div>' + escapeHtml(item.secondaryAddress) + '</div>';
+            var secMaps = formatGoogleMapsUrl(item.secondaryMapsUrl, item.secondaryAddress);
+            if (secMaps) {
+              html += '    <a href="' + escapeHtml(secMaps) + '" target="_blank" class="secondary-maps-link">🧭 दूसरे पते का मैप खोलें</a>';
+            }
+            html += '    </div>';
+          }
+          html += '  </div>';
+        }
+
+        html += '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function toggleDetailsTray(cardId) {
+      var el = document.getElementById(cardId);
+      if (el) {
+        el.classList.toggle('open');
+      }
+    }
+
+    /* Google Maps Smart Formatter */
+    function formatGoogleMapsUrl(rawLocation, fallbackAddress) {
+      var loc = (rawLocation || '').toString().trim();
+      var addr = (fallbackAddress || '').toString().trim();
+      
+      if (!loc && !addr) return '';
+      
+      /* If no specific location link provided, search by customer address */
+      if (!loc) {
+        return 'https:\x2F\x2Fwww.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr);
+      }
+      
+      /* If already a full http/https link */
+      var lowerLoc = loc.toLowerCase();
+      if (lowerLoc.indexOf('http:') === 0 || lowerLoc.indexOf('https:') === 0) {
+        return loc;
+      }
+      
+      /* If starts with double slash */
+      if (loc.indexOf('\x2F\x2F') === 0) {
+        return 'https:' + loc;
+      }
+
+      /* Coordinates, Plus Code (7XQV+H8F Varanasi), or text address */
+      return 'https:\x2F\x2Fwww.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc);
+    }
+
+    /* =========================================================================
+       ADMIN FUNCTIONS (Staff Management, Customer Entry, Active Records)
+       ========================================================================= */
+    function loadStaffListForAdmin() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(list) {
+            populateAdminStaffList(list);
+          })
+          .getStaffList();
+      } else {
+        fetch('http:\x2F\x2Flocalhost:3000/api/staff')
+          .then(function(res) { return res.json(); })
+          .then(function(list) { populateAdminStaffList(list); });
+      }
+    }
+
+    function populateAdminStaffList(list) {
+      state.staffList = list || [];
+      var select = document.getElementById('custStaffSelect');
+      var listContainer = document.getElementById('adminStaffList');
+
+      /* Update Form Dropdown */
+      var optionsHtml = '<option value="">स्टाफ चुनें...</option>';
+      state.staffList.forEach(function(s) {
+        optionsHtml += '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(s.name) + ' (' + escapeHtml(s.id) + ')</option>';
+      });
+      select.innerHTML = optionsHtml;
+
+      /* Update Staff Management List */
+      if (!state.staffList || state.staffList.length === 0) {
+        listContainer.innerHTML = '<div class="empty-state-box">कोई स्टाफ सदस्य नहीं मिला।</div>';
+        return;
+      }
+
+      /* Deduplicate for visual rendering */
+      var seen = {};
+      var uniqueStaff = state.staffList.filter(function(s) {
+        var key = (s.name || '').trim().toLowerCase();
+        if (!key || seen[key]) return false;
+        seen[key] = true;
+        return true;
+      });
+
+      var cardsHtml = '';
+      uniqueStaff.forEach(function(s) {
+        var staffUrl = getUniqueStaffUrl(s.id);
+        var waMessage = encodeURIComponent('नमस्ते ' + s.name + ',\nयह आपका CWP Detailers & Motors का कस्टमर वर्क पोर्टल लिंक है:\n' + staffUrl + '\n\nइस लिंक को खोलकर आप अपने असाइन ग्राहक देख सकते हैं।');
+
+        cardsHtml += '<div class="staff-admin-card">';
+        cardsHtml += '  <div class="staff-admin-info">';
+        cardsHtml += '    <div class="staff-admin-name">' + escapeHtml(s.name) + '</div>';
+        cardsHtml += '    <div class="staff-admin-id">ID: ' + escapeHtml(s.id) + '</div>';
+        cardsHtml += '  </div>';
+        cardsHtml += '  <div class="staff-admin-actions">';
+        cardsHtml += '    <button type="button" class="btn-admin-action" onclick="copyStaffLink(\'' + escapeHtml(staffUrl) + '\')">📋 कॉपी लिंक</button>';
+        cardsHtml += '    <a href="https:\x2F\x2Fwa.me/?text=' + waMessage + '" target="_blank" class="btn-admin-action">💬 व्हाट्सएप</a>';
+        cardsHtml += '    <a href="' + escapeHtml(staffUrl) + '" target="_blank" class="btn-admin-action">👁️ खोलें</a>';
+        cardsHtml += '    <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteStaff(\'' + escapeHtml(s.id) + '\')">🗑️</button>';
+        cardsHtml += '  </div>';
+        cardsHtml += '</div>';
+      });
+
+      listContainer.innerHTML = cardsHtml;
+    }
+
+    function getUniqueStaffUrl(staffId) {
+      var base = webAppBaseUrl;
+      if (!base || base.indexOf('script.google.com') === -1) {
+        base = window.location.origin + window.location.pathname;
+      }
+      return base + '?staff=' + encodeURIComponent(staffId);
+    }
+
+    function copyStaffLink(link) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(function() {
+          showToast('लिंक कॉपी हो गया!', '✓');
+        });
+      } else {
+        var input = document.createElement('input');
+        input.value = link;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast('लिंक कॉपी हो गया!', '✓');
+      }
+    }
+
+    function handleAddStaff(e) {
+      e.preventDefault();
+      var name = document.getElementById('newStaffName').value.trim();
+      var id = document.getElementById('newStaffId').value.trim();
+      if (!name) return;
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            document.getElementById('newStaffName').value = '';
+            document.getElementById('newStaffId').value = '';
+            showToast('स्टाफ सफलतापूर्वक जोड़ा गया!', '✓');
+            loadStaffListForAdmin();
+          })
+          .saveStaffMember(name, id);
+      } else {
+        showToast('लोकल मोड में स्टाफ जोड़ा गया', '✓');
+      }
+    }
+
+    function handleDeleteStaff(id) {
+      if (!confirm('क्या आप सच में इस स्टाफ को हटाना चाहते हैं?')) return;
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function() {
+            showToast('स्टाफ हटा दिया गया', '✓');
+            loadStaffListForAdmin();
+          })
+          .deleteStaffMember(id);
+      }
+    }
+
+    function handleSyncStaffSheet() {
+      showToast('शीट में स्टाफ आईडी सिंक हो रहा है...', 'ℹ');
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            showToast('सभी शीट रो को सिंगल आईडी में सिंक कर दिया गया!', '✓');
+            loadStaffListForAdmin();
+          })
+          .withFailureHandler(function(err) {
+            showToast('त्रुटि: ' + err, '❌');
+          })
+          .cleanAndSyncStaff();
+      }
+    }
+
+    /* Customer Form Handling */
+    function toggleCategoryFields(cat) {
+      var isDaily = (cat === 'Daily Clean');
+      document.getElementById('dailyFieldsBlock').style.display = isDaily ? 'block' : 'none';
+      document.getElementById('otherFieldsBlock').style.display = isDaily ? 'none' : 'block';
+    }
+
+    function appendVehicleText(str) {
+      var el = document.getElementById('custVehicles');
+      el.value = (el.value || '') + str;
+      el.focus();
+    }
+
+    function setQuickNote(str) {
+      var el = document.getElementById('custNotes');
+      el.value = str;
+      el.focus();
+    }
+
+    function detectGpsLocation() {
+      if (!navigator.geolocation) {
+        alert('आपके ब्राउज़र में GPS सपोर्ट नहीं है।');
+        return;
+      }
+      showToast('GPS लोकेशन ली जा रही है...', '📍');
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude.toFixed(6);
+        var lng = pos.coords.longitude.toFixed(6);
+        document.getElementById('custMapsUrl').value = 'https:\x2F\x2Fwww.google.com/maps?q=' + lat + ',' + lng;
+        showToast('GPS लोकेशन दर्ज हो गई!', '✓');
+      }, function(err) {
+        showToast('GPS लोकेशन नहीं मिल सकी: ' + err.message, '❌');
+      }, { timeout: 10000 });
+    }
+
+    function handlePhotoSelect(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      state.selectedPhotoName = file.name;
+      state.selectedPhotoType = file.type || 'image/jpeg';
+
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        var dataUrl = evt.target.result;
+        var preview = document.getElementById('custPhotoPreview');
+        preview.src = dataUrl;
+        preview.style.display = 'block';
+
+        /* Extract base64 without prefix */
+        var commaIdx = dataUrl.indexOf(',');
+        state.selectedPhotoBase64 = commaIdx !== -1 ? dataUrl.slice(commaIdx + 1) : dataUrl;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleCustomerSubmit(e) {
+      e.preventDefault();
+      var btn = document.getElementById('btnSaveCust');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> सेव हो रहा है...';
+
+      var staffSelect = document.getElementById('custStaffSelect');
+      var staffId = staffSelect.value;
+      var staffName = staffSelect.options[staffSelect.selectedIndex] ? staffSelect.options[staffSelect.selectedIndex].text.replace(/\s*\(.*\)$/, '') : '';
+
+      var category = document.getElementById('custCategory').value;
+      var isDaily = (category === 'Daily Clean');
+
+      var customerData = {
+        sheetName: category,
+        staffId: staffId,
+        staffName: staffName,
+        customerName: document.getElementById('custName').value.trim(),
+        customerNumber: document.getElementById('custPhone').value.trim(),
+        address: document.getElementById('custAddress').value.trim(),
+        googleMapsUrl: document.getElementById('custMapsUrl').value.trim(),
+        staffNotes: document.getElementById('custNotes').value.trim(),
+        active: 'Yes',
+        photoData: state.selectedPhotoBase64 ? {
+          base64: state.selectedPhotoBase64,
+          mimeType: state.selectedPhotoType,
+          fileName: state.selectedPhotoName
+        } : null
+      };
+
+      if (isDaily) {
+        customerData.packageType = document.getElementById('custPkgType').value;
+        customerData.packagesPurchased = document.getElementById('custPkgCount').value;
+        customerData.vehicleNumbers = document.getElementById('custVehicles').value.trim();
+        customerData.secondaryAddress = document.getElementById('custSecAddress').value.trim();
+        customerData.secondaryMapsUrl = document.getElementById('custSecMaps').value.trim();
+      } else {
+        customerData.serviceType = document.getElementById('custServiceType').value.trim();
+        customerData.vehicleOrSite = document.getElementById('custOtherVehicle').value.trim();
+      }
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
+            if (res && res.error) {
+              showToast('त्रुटि: ' + res.error, '❌');
+            } else {
+              showToast('ग्राहक सफलतापूर्वक गूगल शीट में सेव हुआ!', '✓');
+              document.getElementById('addCustomerForm').reset();
+              document.getElementById('custPhotoPreview').style.display = 'none';
+              state.selectedPhotoBase64 = '';
+            }
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
+            showToast('सेव करने में त्रुटि: ' + err, '❌');
+          })
+          .saveCustomer(customerData);
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
+        showToast('लोकल मोड में सेव हुआ', '✓');
+      }
+    }
+
+    function loadAdminRecords() {
+      var tbody = document.getElementById('adminRecordsTableBody');
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">डेटा लोड हो रहा है...</td></tr>';
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(records) {
+            renderAdminRecordsTable(records);
+          })
+          .getAllCustomersForAdmin();
+      }
+    }
+
+    function renderAdminRecordsTable(records) {
+      var tbody = document.getElementById('adminRecordsTableBody');
+      if (!records || records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">कोई रिकॉर्ड नहीं मिला।</td></tr>';
+        return;
+      }
+
+      var html = '';
+      records.forEach(function(r) {
+        var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
+        html += '<tr>';
+        html += '  <td><span style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">' + escapeHtml(r.sheetName) + '</span></td>';
+        html += '  <td><b>' + escapeHtml(r.staffName || r.staffId) + '</b></td>';
+        html += '  <td>' + escapeHtml(r.customerName) + '<br><small style="color:var(--text-muted);">' + escapeHtml(r.customerNumber) + '</small></td>';
+        html += '  <td>' + escapeHtml(r.vehicle || '--') + '</td>';
+        html += '  <td>' + escapeHtml(r.address || '--') + '</td>';
+        html += '  <td><span style="color:' + (isActive ? 'var(--call-green)' : 'var(--danger-red)') + '; font-weight:700;">' + (isActive ? 'Active' : 'Inactive') + '</span></td>';
+        html += '</tr>';
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    /* Modal & Utilities */
+    function openImageModal(url) {
+      document.getElementById('imageModalImg').src = url;
+      document.getElementById('imageModal').classList.add('open');
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.remove('open');
+      document.getElementById('imageModalImg').src = '';
+    }
+
+    function showToast(msg, icon) {
+      var t = document.getElementById('toastNotification');
+      document.getElementById('toastMessage').textContent = msg;
+      document.getElementById('toastIcon').textContent = icon || '✓';
+      t.classList.add('show');
+      setTimeout(function() {
+        t.classList.remove('show');
+      }, 3500);
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
