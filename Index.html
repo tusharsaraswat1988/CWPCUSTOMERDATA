@@ -1391,36 +1391,152 @@
       opacity: 1;
     }
 
-    /* Image Modal */
+    /* Enhanced Fullscreen Image Modal */
     .image-modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 999;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 9999;
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 16px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
 
     .image-modal-overlay.open {
       display: flex;
     }
 
-    .image-modal-content {
-      max-width: 90%;
-      max-height: 80vh;
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-lg);
-      background: #ffffff;
-      overflow: hidden;
+    /* Floating Close Button: Always visible at top-right on screen */
+    .image-modal-floating-close {
+      position: fixed;
+      top: 16px;
+      right: 18px;
+      z-index: 10001;
+      background: rgba(220, 38, 38, 0.95);
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      line-height: 1;
+    }
+    .image-modal-floating-close:hover {
+      background: #b91c1c;
+      transform: scale(1.1);
     }
 
-    .image-modal-content img {
-      width: 100%;
-      height: 100%;
+    .image-modal-content {
+      position: relative;
+      max-width: min(94vw, 860px);
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+      margin: auto;
+    }
+
+    .image-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #1e293b;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+      gap: 12px;
+    }
+
+    .image-modal-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .image-modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .image-modal-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .image-modal-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+
+    .image-modal-close-icon {
+      background: rgba(239, 68, 68, 0.9);
+      border: none;
+      color: #ffffff;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .image-modal-close-icon:hover {
+      background: #dc2626;
+      transform: scale(1.1);
+    }
+
+    .image-modal-body {
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #020617;
+      overflow-y: auto;
+      max-height: calc(88vh - 54px);
+    }
+
+    .image-modal-body img {
+      max-width: 100%;
+      max-height: calc(84vh - 60px);
       object-fit: contain;
+      border-radius: 6px;
       display: block;
+      margin: auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     }
 
     /* Admin Auth Gate Styles */
@@ -2216,9 +2332,25 @@
   </div>
 
   <!-- Image Modal for Full Preview -->
-  <div id="imageModal" class="image-modal-overlay" onclick="closeImageModal()">
+  <div id="imageModal" class="image-modal-overlay" onclick="closeImageModal()" style="display: none;">
+    <!-- Universal Floating Close Button (Always visible on mobile & desktop) -->
+    <button type="button" class="image-modal-floating-close" onclick="closeImageModal()" title="बंद करें (Close / ESC)">✕</button>
+
     <div class="image-modal-content" onclick="event.stopPropagation()">
-      <img id="imageModalImg" src="" alt="Customer Vehicle Photo">
+      <div class="image-modal-header">
+        <div class="image-modal-title">
+          <span>🚗</span> ग्राहक / गाड़ी की फोटो (Vehicle Photo)
+        </div>
+        <div class="image-modal-actions">
+          <a id="imageModalOpenNewTab" href="" target="_blank" class="image-modal-btn" title="नए टैब में पूरी फोटो देखें">
+            ↗ नए टैब में खोलें
+          </a>
+          <button type="button" class="image-modal-close-icon" onclick="closeImageModal()" title="बंद करें (Close / ESC)">✕</button>
+        </div>
+      </div>
+      <div class="image-modal-body">
+        <img id="imageModalImg" src="" alt="Customer Vehicle Photo">
+      </div>
     </div>
   </div>
 
@@ -3152,12 +3284,16 @@
       document.getElementById('editStaffActive').value = isAct ? 'true' : 'false';
 
       var modal = document.getElementById('staffEditModal');
-      if (modal) modal.style.display = 'flex';
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
     }
 
     function closeEditStaffModal() {
       var modal = document.getElementById('staffEditModal');
       if (modal) modal.style.display = 'none';
+      document.body.style.overflow = '';
     }
 
     function handleEditStaffSubmit(e) {
@@ -3463,14 +3599,14 @@
       apiCall('getAllCustomers', {}, function(records) {
         state.adminRecords = records || [];
 
-        // Update badge counter in tab
+        /* Update badge counter in tab */
         var recCountBadge = document.getElementById('tabRecordsCount');
         if (recCountBadge) recCountBadge.textContent = state.adminRecords.length;
 
-        // Populate staff dropdown in filters
+        /* Populate staff dropdown in filters */
         populateStaffFilterDropdown();
 
-        // Run filter & render
+        /* Run filter & render */
         filterAdminRecords();
       }, function(err) {
         if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 28px; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '</td></tr>';
@@ -3578,10 +3714,10 @@
         r._origIndex = idx;
         return r;
       }).filter(function(r) {
-        // Sheet category filter
+        /* Sheet category filter */
         if (sheet !== 'all' && r.sheetName !== sheet) return false;
 
-        // Staff assignment filter
+        /* Staff assignment filter */
         if (staff === 'none') {
           if (r.staffName && r.staffName.trim() && r.staffName.trim().toLowerCase() !== 'none' && r.staffName.trim().toLowerCase() !== 'unassigned') {
             return false;
@@ -3590,19 +3726,19 @@
           if (!r.staffName || r.staffName.trim().toLowerCase() !== staff.trim().toLowerCase()) return false;
         }
 
-        // Active status filter
+        /* Active status filter */
         if (status !== 'all') {
           var act = (r.active || 'Yes').toLowerCase() === 'yes' ? 'yes' : 'no';
           if (act !== status) return false;
         }
 
-        // Photo toggle
+        /* Photo toggle */
         if (onlyPhoto && (!r.photoUrl || !r.photoUrl.trim())) return false;
 
-        // Map toggle
+        /* Map toggle */
         if (onlyMap && (!r.googleMapsUrl || !r.googleMapsUrl.trim())) return false;
 
-        // Search text matching
+        /* Search text matching */
         if (q) {
           var name = (r.customerName || '').toLowerCase();
           var phone = (r.customerNumber || '').toString().toLowerCase();
@@ -3646,14 +3782,14 @@
         var origIndex = r._origIndex !== undefined ? r._origIndex : index;
         var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
 
-        // 1. Customer Cell (Name + Phone + Sheet Tag)
+        /* 1. Customer Cell (Name + Phone + Sheet Tag) */
         var custHtml = '<div class="cust-name-cell">' +
           '<span class="cust-name-text">' + escapeHtml(r.customerName || 'अज्ञात ग्राहक') + '</span>' +
           (r.customerNumber ? '<a href="tel:' + escapeHtml(r.customerNumber) + '" class="cust-phone-link">📞 ' + escapeHtml(r.customerNumber) + '</a>' : '') +
           '<span class="cust-sheet-tag ' + (r.sheetName === 'Daily Clean' ? 'tag-daily' : 'tag-other') + '">' + escapeHtml(r.sheetName || 'Daily Clean') + '</span>' +
         '</div>';
 
-        // 2. Address Cell (Address + Secondary Address)
+        /* 2. Address Cell (Address + Secondary Address) */
         var addrText = (r.address || '').trim();
         var secAddrText = (r.secondaryAddress || '').trim();
         var addrHtml = '<div class="cust-address-cell">';
@@ -3667,7 +3803,7 @@
         }
         addrHtml += '</div>';
 
-        // 3. Car Number Cell (License Plate Badge)
+        /* 3. Car Number Cell (License Plate Badge) */
         var carText = (r.vehicle || r.vehicleNumbers || '').trim();
         var carHtml = '<div class="cust-car-cell">';
         if (carText) {
@@ -3677,7 +3813,7 @@
         }
         carHtml += '</div>';
 
-        // 4. Button to View Photo
+        /* 4. Button to View Photo */
         var photoHtml = '<div style="text-align: center;">';
         if (r.photoUrl && r.photoUrl.trim()) {
           photoHtml += '<button type="button" class="btn-cell-action btn-photo-view" onclick="openImageModal(\'' + escapeHtml(r.photoUrl) + '\')" title="फोटो देखने के लिए क्लिक करें">' +
@@ -3689,7 +3825,7 @@
         }
         photoHtml += '</div>';
 
-        // 5. Button to Open Map Location
+        /* 5. Button to Open Map Location */
         var mapHtml = '<div style="text-align: center;">';
         if (r.googleMapsUrl && r.googleMapsUrl.trim()) {
           mapHtml += '<a href="' + escapeHtml(r.googleMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" title="गूगल मैप्स में लोकेशन खोलें">' +
@@ -3700,7 +3836,7 @@
         }
         mapHtml += '</div>';
 
-        // 6. Staff Assigned Name or else "None"
+        /* 6. Staff Assigned Name or else "None" */
         var staffName = (r.staffName || '').trim();
         var staffHtml = '<div>';
         if (staffName && staffName.toLowerCase() !== 'none' && staffName.toLowerCase() !== 'unassigned') {
@@ -3710,7 +3846,7 @@
         }
         staffHtml += '</div>';
 
-        // 7. Edit Button
+        /* 7. Edit Button */
         var editHtml = '<div style="text-align: center;">' +
           '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="ग्राहक विवरण एडिट करें">' +
             '<span>✏️</span> <span>एडिट</span>' +
@@ -3748,7 +3884,7 @@
       document.getElementById('editCustNotes').value = r.notes || r.staffNotes || '';
       document.getElementById('editCustActive').value = (r.active || 'Yes').toLowerCase() === 'no' ? 'No' : 'Yes';
 
-      // Set package type
+      /* Set package type */
       var pkgSelect = document.getElementById('editCustPkgType');
       var pType = r.packageType || 'DCC ONLY';
       pkgSelect.value = pType;
@@ -3757,7 +3893,7 @@
       }
       document.getElementById('editCustPkgCount').value = r.packagesPurchased || '1';
 
-      // Populate Staff Dropdown with "None" option
+      /* Populate Staff Dropdown with "None" option */
       var staffSelect = document.getElementById('editCustStaff');
       var options = '<option value="">असाइन नहीं (None)</option>';
       (state.staffList || []).forEach(function(s) {
@@ -3766,7 +3902,7 @@
       });
       staffSelect.innerHTML = options;
 
-      // Photo thumbnail preview
+      /* Photo thumbnail preview */
       var thumb = document.getElementById('editPhotoThumb');
       if (r.photoUrl) {
         thumb.src = r.photoUrl;
@@ -3778,11 +3914,16 @@
       state.editPhotoBase64 = '';
 
       var modal = document.getElementById('editCustomerModal');
-      modal.style.display = 'flex';
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
     }
 
     function closeEditCustomerModal() {
-      document.getElementById('editCustomerModal').style.display = 'none';
+      var modal = document.getElementById('editCustomerModal');
+      if (modal) modal.style.display = 'none';
+      document.body.style.overflow = '';
     }
 
     function handleEditPhotoSelect(e) {
@@ -3875,14 +4016,51 @@
 
     /* Modal & Utilities */
     function openImageModal(url) {
-      document.getElementById('imageModalImg').src = url;
-      document.getElementById('imageModal').classList.add('open');
+      if (!url) return;
+      var modal = document.getElementById('imageModal');
+      var img = document.getElementById('imageModalImg');
+      var newTab = document.getElementById('imageModalOpenNewTab');
+
+      if (img) img.src = url;
+      if (newTab) newTab.href = url;
+      if (modal) {
+        modal.classList.add('open');
+        modal.style.display = 'flex';
+      }
+      document.body.style.overflow = 'hidden';
     }
 
     function closeImageModal() {
-      document.getElementById('imageModal').classList.remove('open');
-      document.getElementById('imageModalImg').src = '';
+      var modal = document.getElementById('imageModal');
+      var img = document.getElementById('imageModalImg');
+      if (modal) {
+        modal.classList.remove('open');
+        modal.style.display = 'none';
+      }
+      if (img) img.src = '';
+      document.body.style.overflow = '';
     }
+
+    /* Global Keyboard Listener: ESC key closes any open modal */
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        var imgModal = document.getElementById('imageModal');
+        if (imgModal && (imgModal.classList.contains('open') || imgModal.style.display === 'flex')) {
+          closeImageModal();
+          return;
+        }
+        var editCust = document.getElementById('editCustomerModal');
+        if (editCust && editCust.style.display === 'flex') {
+          closeEditCustomerModal();
+          return;
+        }
+        var editStaff = document.getElementById('staffEditModal');
+        if (editStaff && editStaff.style.display === 'flex') {
+          closeEditStaffModal();
+          return;
+        }
+      }
+    });
 
     function showToast(msg, icon) {
       var t = document.getElementById('toastNotification');
