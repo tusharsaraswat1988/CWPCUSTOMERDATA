@@ -179,16 +179,18 @@ function handleApiRequest_(action, payload, callerType) {
       };
     }
 
+    var clientVersion = (payload.version || "").toString().trim();
+
     if (isServiceAuth) {
       // Trusted Node server request; target staff specified by server
       var targetStaffId = payload.staffId || "STF01";
-      return getStaffCustomerData_(targetStaffId, token, true);
+      return getStaffCustomerData_(targetStaffId, token, true, clientVersion);
     }
 
     if (isAdminAuth) {
       // Admin previewing staff data
       var adminTargetStaffId = payload.staffId || "STF01";
-      return getStaffCustomerData_(adminTargetStaffId, token, false);
+      return getStaffCustomerData_(adminTargetStaffId, token, false, clientVersion);
     }
 
     if (staffSession) {
@@ -203,7 +205,7 @@ function handleApiRequest_(action, payload, callerType) {
           forbidden: true
         };
       }
-      return getStaffCustomerData_(boundStaff, token, false);
+      return getStaffCustomerData_(boundStaff, token, false, clientVersion);
     }
 
     // Token was supplied but is invalid, revoked, or expired
