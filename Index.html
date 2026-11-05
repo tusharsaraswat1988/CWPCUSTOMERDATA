@@ -6,7 +6,7 @@
   <title>CWP Detailers & Motors - Staff Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   
   <style>
     :root {
@@ -50,13 +50,16 @@
     }
 
     body {
-      font-family: 'Plus Jakarta Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Poppins', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg-page);
       color: var(--text-primary);
       line-height: 1.45;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
 
     /* Top Brand Navigation */
@@ -71,7 +74,7 @@
     }
 
     .header-inner {
-      max-width: 680px;
+      max-width: 600px;
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -93,7 +96,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 800;
+      font-weight: 700;
       font-size: 15px;
       color: #ffffff;
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
@@ -102,7 +105,7 @@
 
     .brand-sub {
       font-size: 10px;
-      font-weight: 700;
+      font-weight: 600;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       color: var(--brand-blue);
@@ -111,7 +114,7 @@
 
     .brand-title {
       font-size: 15px;
-      font-weight: 800;
+      font-weight: 600;
       color: var(--text-primary);
       line-height: 1.2;
     }
@@ -126,7 +129,7 @@
       padding: 3px 10px;
       border-radius: 20px;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
     }
 
     .dot-live {
@@ -145,12 +148,12 @@
       padding: 4px 10px;
       border-radius: 20px;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
     }
 
     /* Container */
     .main-container {
-      max-width: 680px;
+      max-width: 600px;
       width: 100%;
       margin: 0 auto;
       padding: 12px 14px 40px;
@@ -184,7 +187,7 @@
       border-radius: 50%;
       background: var(--brand-blue);
       color: #ffffff;
-      font-weight: 800;
+      font-weight: 700;
       font-size: 14px;
       display: flex;
       align-items: center;
@@ -193,8 +196,8 @@
     }
 
     .staff-name-text {
-      font-size: 14px;
-      font-weight: 800;
+      font-size: 14.5px;
+      font-weight: 600;
       color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
@@ -215,7 +218,7 @@
       padding: 4px 10px;
       border-radius: 8px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
       white-space: nowrap;
       flex-shrink: 0;
     }
@@ -246,8 +249,8 @@
       border: 1px solid var(--border-color);
       color: var(--text-primary);
       border-radius: var(--radius-sm);
-      padding: 8px 12px 8px 34px;
-      font-size: 13px;
+      padding: 10px 14px 10px 36px;
+      font-size: 13.5px;
       font-family: inherit;
       outline: none;
       transition: all 0.2s ease;
@@ -275,10 +278,10 @@
       background: #ffffff;
       border: 1px solid var(--border-color);
       color: var(--text-secondary);
-      padding: 5px 12px;
+      padding: 6px 14px;
       border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 12.5px;
+      font-weight: 500;
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.15s ease;
@@ -289,6 +292,7 @@
       background: var(--brand-blue);
       color: #ffffff;
       border-color: var(--brand-blue);
+      font-weight: 600;
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
     }
 
@@ -335,71 +339,70 @@
 
     .cust-index-badge {
       font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
+      font-weight: 600;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 6px;
       font-family: 'JetBrains Mono', monospace;
       flex-shrink: 0;
     }
 
     .cust-full-name {
-      font-size: 14.5px;
-      font-weight: 800;
+      font-size: 15px;
+      font-weight: 600;
       color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      line-height: 1.2;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
     }
 
     .badge-pkg-purchased {
-      background: var(--brand-blue-light);
-      color: var(--brand-blue);
-      border: 1px solid var(--brand-blue-border);
-      padding: 2px 7px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      white-space: nowrap;
-      flex-shrink: 0;
+      display: none !important;
     }
 
     /* Vehicle & Service Row */
     .card-vehicle-line {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       gap: 8px;
       margin-bottom: 6px;
-      flex-wrap: wrap;
     }
 
     .vehicle-tag {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      background: var(--bg-surface-subtle);
-      border: 1px solid #e2e8f0;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #1e293b;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      padding: 3px 9px;
+      border-radius: 7px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #0f172a;
+      letter-spacing: 0.2px;
       word-break: break-word;
     }
 
     .vehicle-icon {
-      font-size: 12px;
+      font-size: 12.5px;
       flex-shrink: 0;
     }
 
     .service-tag {
       font-size: 11px;
       font-weight: 600;
-      color: var(--text-secondary);
-      background: #f8fafc;
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid #e2e8f0;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 2px 7px;
+      border-radius: 6px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     /* Alternate Day 1-Package Alert Strip */
@@ -464,29 +467,33 @@
       word-break: break-word;
     }
 
-    /* Action Bar (Call & Directions) */
+    /* Action Bar (Call & Directions) - 1 Balanced Line */
     .card-actions-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
       gap: 8px;
-      margin-top: 4px;
+      margin-top: 8px;
     }
 
     .btn-action-smart {
-      display: flex;
+      flex: 1;
+      min-width: 0;
+      min-height: 40px;
+      height: 40px;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      padding: 8px 10px;
-      border-radius: var(--radius-sm);
-      font-size: 12.5px;
-      font-weight: 700;
+      padding: 0 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
       text-decoration: none;
       cursor: pointer;
-      border: none;
+      border: 1px solid transparent;
       outline: none;
       transition: all 0.15s ease;
       white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
     .btn-action-call {
@@ -510,24 +517,34 @@
     }
 
     .btn-action-disabled {
-      background: #e2e8f0;
+      background: #f8fafc;
       color: #94a3b8;
+      border: 1px dashed #cbd5e1;
       cursor: not-allowed;
       box-shadow: none;
+      font-weight: 500;
+      font-size: 12px;
     }
 
     /* Optional Details Tray (Photo & Secondary Address) */
     .details-toggle-btn {
-      background: none;
-      border: none;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
       color: var(--brand-blue);
-      font-size: 11px;
-      font-weight: 700;
+      font-size: 11.5px;
+      font-weight: 600;
       cursor: pointer;
-      padding: 4px 0 0;
+      padding: 5px 10px;
+      border-radius: 6px;
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .details-toggle-btn:hover {
+      background: #eff6ff;
+      border-color: var(--brand-blue-border);
     }
 
     .details-tray-box {
@@ -1088,11 +1105,14 @@
         padding: 10px 11px;
       }
       .cust-full-name {
-        font-size: 14px;
+        font-size: 14.5px;
       }
       .btn-action-smart {
-        font-size: 12px;
-        padding: 8px 6px;
+        font-size: 12.5px;
+        height: 38px;
+        min-height: 38px;
+        padding: 0 6px;
+        gap: 5px;
       }
     }
   </style>
@@ -1989,23 +2009,22 @@
 
         html += '<div class="smart-card">';
         
-        /* Line 1: Index + Name + Package Badge */
+        /* Line 1: Index + Name + Service / Package Plan */
+        var pkgLabel = item.packageType || item.serviceType || (isDaily ? 'दैनिक सफाई' : 'अन्य कार्य');
         html += '  <div class="card-top-line">';
         html += '    <div class="cust-name-group">';
         html += '      <span class="cust-index-badge">#' + (index + 1) + '</span>';
         html += '      <h3 class="cust-full-name">' + customerName + '</h3>';
         html += '    </div>';
-        html += '    <span class="badge-pkg-purchased">' + escapeHtml(pkgPurchased) + ' पैकेज</span>';
+        html += '    <span class="service-tag">' + escapeHtml(pkgLabel) + '</span>';
         html += '  </div>';
 
-        /* Line 2: Vehicle Tag + Service / Package Type */
-        var pkgLabel = item.packageType || item.serviceType || (isDaily ? 'दैनिक सफाई' : 'अन्य कार्य');
+        /* Line 2: Vehicle Tag */
         html += '  <div class="card-vehicle-line">';
         html += '    <div class="vehicle-tag">';
         html += '      <span class="vehicle-icon">' + (isDaily ? '🚘' : '🔧') + '</span>';
         html += '      <span>' + escapeHtml(vehicles) + '</span>';
         html += '    </div>';
-        html += '    <span class="service-tag">' + escapeHtml(pkgLabel) + '</span>';
         html += '  </div>';
 
         /* Line 3: Conditional 1-Package Multiple Cars Rotation Strip */
