@@ -100,6 +100,14 @@ if (fs.existsSync(DATA_FILE)) {
   }
 }
 
+function saveLocalData(data) {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Error writing local_data.json:', err.message);
+  }
+}
+
 /**
  * Proxy API request directly to Google Apps Script Web App
  */
@@ -248,6 +256,118 @@ const server = http.createServer(async (req, res) => {
           } catch (e) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: 'Failed to update password: ' + e.message }));
+          }
+        }
+
+        // Dedicated Staff PIN verification handler
+        if (payload.action === 'verifyStaffPin') {
+          const staffId = (payload.staffId || '').trim();
+          const pin = (payload.pin || '').trim();
+
+          // 1. Forward to Google Apps Script
+          try {
+            const gasRes = await forwardToGoogleAppsScript(payload);
+            if (gasRes && !gasRes.error && (gasRes.success !== undefined || gasRes.inactive !== undefined)) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(gasRes));
+            }
+          } catch (e) {
+            console.warn('GAS verifyStaffPin error, using local fallback:', e.message);
+          }
+
+          // 2. Fallback to local staffList check
+          const staff = (appState.staffList || []).find(s => 
+            (s.id || '').toUpperCase() === staffId.toUpperCase() || 
+            (s.name || '').toLowerCase() === staffId.toLowerCase()
+          );
+
+          if (!staff) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'स्टाफ आईडी नहीं मिली।' }));
+          }
+
+          const isActive = staff.active !== undefined ? (staff.active === true || staff.active === 'Yes' || staff.active === 'yes' || staff.active === 'Active') : true;
+          if (!isActive) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, inactive: true, error: 'आपका स्टाफ अकाउंट निष्क्रिय (Inactive) कर दिया गया है। कृपया अपने एडमिन से संपर्क करें।' }));
+          }
+
+          const expectedPin = (staff.pin || '123456').toString().trim();
+          if (pin === expectedPin) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: true,
+              staffId: staff.id,
+              staffName: staff.name,
+              phone: staff.phone || '',
+              active: true
+            }));
+          } else {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'गलत 6-डिजिट पासवर्ड! कृपया सही पिन दर्ज करें।' }));
+          }
+        }
+
+        // Staff management save handler
+        if (payload.action === 'saveStaffMember') {
+          try {
+            const gasRes = await forwardToGoogleAppsScript(payload);
+            if (gasRes && !gasRes.error && gasRes.staffList) {
+              appState.staffList = gasRes.staffList;
+              saveLocalData(appState);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(gasRes));
+            }
+          } catch (e) {
+            console.warn('GAS saveStaffMember error, using local fallback:', e.message);
+          }
+
+          const sData = payload.staffData || {};
+          const name = sData.name || payload.name || '';
+          let id = sData.id || payload.id || '';
+          const phone = sData.phone || '';
+          const pin = sData.pin || '123456';
+          const active = sData.active !== undefined ? sData.active : true;
+          if (!id) {
+            id = 'STF' + String(appState.staffList.length + 1).padStart(2, '0');
+          }
+          const idx = appState.staffList.findIndex(s => (s.id || '').toLowerCase() === id.toLowerCase() || (s.name || '').toLowerCase() === name.toLowerCase());
+          const newObj = { id, name, phone, pin, active };
+          if (idx >= 0) {
+            if (!phone && appState.staffList[idx].phone) newObj.phone = appState.staffList[idx].phone;
+            if (!pin && appState.staffList[idx].pin) newObj.pin = appState.staffList[idx].pin;
+            appState.staffList[idx] = Object.assign(appState.staffList[idx], newObj);
+          } else {
+            appState.staffList.push(newObj);
+          }
+          saveLocalData(appState);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, staffList: appState.staffList, staff: newObj }));
+        }
+
+        // Staff active status toggle handler
+        if (payload.action === 'toggleStaffActive') {
+          try {
+            const gasRes = await forwardToGoogleAppsScript(payload);
+            if (gasRes && !gasRes.error && gasRes.staffList) {
+              appState.staffList = gasRes.staffList;
+              saveLocalData(appState);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(gasRes));
+            }
+          } catch (e) {
+            console.warn('GAS toggleStaffActive error, using local fallback:', e.message);
+          }
+
+          const s = (appState.staffList || []).find(x => (x.id || '').toLowerCase() === (payload.staffId || '').toLowerCase());
+          if (s) {
+            s.active = !!payload.active;
+            saveLocalData(appState);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, staffList: appState.staffList }));
+          } else {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'स्टाफ सदस्य नहीं मिला।' }));
           }
         }
 

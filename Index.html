@@ -1159,6 +1159,38 @@
       justify-content: center;
     }
 
+    /* Staff Status Badges (Active / Inactive) */
+    .badge-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .badge-status-pill.badge-active {
+      background: var(--call-green-light);
+      color: var(--call-green);
+      border-color: var(--call-green-border);
+    }
+    .badge-status-pill.badge-active:hover {
+      background: #d1fae5;
+    }
+    .badge-status-pill.badge-inactive {
+      background: var(--danger-red-light);
+      color: var(--danger-red);
+      border-color: var(--danger-red-border);
+    }
+    .badge-status-pill.badge-inactive:hover {
+      background: #fee2e2;
+    }
+
     /* Desktop Admin Container Expansion (Unconstrains 600px bottleneck for Admin tables) */
     @media (min-width: 900px) {
       .main-container.admin-mode-active,
@@ -1176,6 +1208,9 @@
       .form-row-2 {
         grid-template-columns: 1fr;
         gap: 12px;
+      }
+      #addStaffFormGrid {
+        grid-template-columns: 1fr !important;
       }
       .admin-tab-nav {
         gap: 5px;
@@ -1238,9 +1273,14 @@
         </div>
       </div>
       
-      <!-- Staff Live Indicator (Only shown in staff view) -->
-      <div class="staff-live-badge" id="staffLiveBadge">
-        <span class="dot-live">●</span> लाइव
+      <!-- Staff Live Indicator & Staff Logout (Only shown in staff view) -->
+      <div id="staffHeaderControls" style="display: flex; align-items: center; gap: 8px;">
+        <div class="staff-live-badge" id="staffLiveBadge">
+          <span class="dot-live">●</span> लाइव
+        </div>
+        <button type="button" id="staffLogoutBtn" class="admin-logout-btn" onclick="handleStaffLogout()" style="display: none;">
+          🔒 लॉगआउट
+        </button>
       </div>
 
       <!-- Admin Top Controls (Only shown in admin view) -->
@@ -1263,40 +1303,77 @@
          ===================================================================== -->
     <div id="staffView" style="display: block;">
       
-      <!-- Staff Profile Summary Strip -->
-      <div class="staff-profile-card">
-        <div class="staff-avatar-group">
-          <div class="staff-avatar-circle" id="staffAvatarInitial">S</div>
-          <div>
-            <div class="staff-name-text" id="staffNameHeader">लोड हो रहा है...</div>
-            <div class="staff-id-text" id="staffIdHeader" style="display:none;"></div>
-            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">CWP Verified Staff Portal</div>
+      <!-- Staff Security Gate (6-Digit PIN Authentication) -->
+      <div id="staffAuthGate" class="admin-auth-card" style="display: none; max-width: 440px; margin: 30px auto;">
+        <div class="admin-auth-icon">🔐</div>
+        <h2 class="admin-auth-title" id="staffAuthTitle">स्टाफ पोर्टल लॉगिन</h2>
+        <p class="admin-auth-desc" id="staffAuthDesc">आगे बढ़ने के लिए कृपया अपना 6-अंकों का पासवर्ड (पिन) दर्ज करें।</p>
+        
+        <!-- Inactive Alert Banner (Shown if staff account is disabled by admin) -->
+        <div id="staffInactiveMsgBox" style="display: none; background: var(--danger-red-light); border: 1px solid var(--danger-red-border); color: var(--danger-red); padding: 12px 14px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 14px; line-height: 1.5;">
+          🚫 आपका स्टाफ अकाउंट निष्क्रिय (Inactive) कर दिया गया है।<br>कृपया अपने एडमिन से संपर्क करें।
+        </div>
+
+        <form id="staffAuthForm" onsubmit="handleStaffAuthSubmit(event)">
+          <div class="admin-pass-wrapper">
+            <input type="password" id="staffPinInput" class="form-input admin-pass-input" placeholder="6-अंकों का पासवर्ड दर्ज करें..." maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="current-password" required>
+            <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('staffPinInput')">👁️</button>
+          </div>
+
+          <div id="staffAuthError" class="admin-auth-error-msg" style="display: none;">
+            ❌ गलत 6-अंकों का पासवर्ड! कृपया सही पिन दर्ज करें।
+          </div>
+
+          <div class="admin-remember-row">
+            <label class="remember-label">
+              <input type="checkbox" id="rememberStaffDevice" checked>
+              <span>इस डिवाइस पर लॉगिन याद रखें</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btnStaffLogin" class="btn-admin-login">
+            🚀 पोर्टल में प्रवेश करें (Enter Portal)
+          </button>
+        </form>
+      </div>
+
+      <!-- Staff Unlocked Content (Shown only after correct PIN & Active status) -->
+      <div id="staffContent" style="display: none;">
+        <!-- Staff Profile Summary Strip -->
+        <div class="staff-profile-card">
+          <div class="staff-avatar-group">
+            <div class="staff-avatar-circle" id="staffAvatarInitial">S</div>
+            <div>
+              <div class="staff-name-text" id="staffNameHeader">लोड हो रहा है...</div>
+              <div class="staff-id-text" id="staffIdHeader" style="display:none;"></div>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">CWP Verified Staff Portal</div>
+            </div>
+          </div>
+          <div class="staff-car-count-badge" id="staffCarCount">
+            🚗 0 गाड़ियां
           </div>
         </div>
-        <div class="staff-car-count-badge" id="staffCarCount">
-          🚗 0 गाड़ियां
-        </div>
-      </div>
 
-      <!-- Search & Category Filters -->
-      <div class="search-filter-box">
-        <div class="search-bar-wrapper">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="staffSearchInput" class="search-input" placeholder="ग्राहक का नाम, गाड़ी नंबर या पता खोजें..." oninput="handleStaffSearch(this.value)">
+        <!-- Search & Category Filters -->
+        <div class="search-filter-box">
+          <div class="search-bar-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="staffSearchInput" class="search-input" placeholder="ग्राहक का नाम, गाड़ी नंबर या पता खोजें..." oninput="handleStaffSearch(this.value)">
+          </div>
+
+          <div class="filter-pills-row" id="filterPillsRow">
+            <button type="button" class="filter-pill active" onclick="setStaffFilter('all')">सभी (<span id="countAll">0</span>)</button>
+            <button type="button" class="filter-pill" onclick="setStaffFilter('daily')">दैनिक धुलाई (<span id="countDaily">0</span>)</button>
+            <button type="button" class="filter-pill" onclick="setStaffFilter('other')">अन्य कार्य (<span id="countOther">0</span>)</button>
+          </div>
         </div>
 
-        <div class="filter-pills-row" id="filterPillsRow">
-          <button type="button" class="filter-pill active" onclick="setStaffFilter('all')">सभी (<span id="countAll">0</span>)</button>
-          <button type="button" class="filter-pill" onclick="setStaffFilter('daily')">दैनिक धुलाई (<span id="countDaily">0</span>)</button>
-          <button type="button" class="filter-pill" onclick="setStaffFilter('other')">अन्य कार्य (<span id="countOther">0</span>)</button>
-        </div>
-      </div>
-
-      <!-- Smart Compact Customer Cards Feed -->
-      <div class="customer-feed-grid" id="customerFeed">
-        <div class="empty-state-box">
-          <div class="empty-icon">⏳</div>
-          <p>गाड़ियों की लिस्ट लोड हो रही है...</p>
+        <!-- Smart Compact Customer Cards Feed -->
+        <div class="customer-feed-grid" id="customerFeed">
+          <div class="empty-state-box">
+            <div class="empty-icon">⏳</div>
+            <p>गाड़ियों की लिस्ट लोड हो रही है...</p>
+          </div>
         </div>
       </div>
 
@@ -1541,17 +1618,21 @@
             </div>
           </div>
 
-          <!-- Add Staff Form (Clean - No Staff Code Needed!) -->
-          <form onsubmit="handleAddStaff(event)" style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <input type="text" id="newStaffName" class="form-input" placeholder="स्टाफ का पूरा नाम (उदा. Chandan Soni, Ramesh Kumar)" required style="flex: 1;">
-            <input type="hidden" id="newStaffId" value="">
-            <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
-              + स्टाफ जोड़ें
-            </button>
+          <!-- Add Staff Form (Name, Mobile Number, 6-digit PIN) -->
+          <form onsubmit="handleAddStaff(event)" style="margin-bottom: 16px;">
+            <div id="addStaffFormGrid" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr auto; gap: 8px; align-items: center;">
+              <input type="text" id="newStaffName" class="form-input" placeholder="स्टाफ का पूरा नाम (उदा. Ramesh Kumar)" required>
+              <input type="tel" id="newStaffPhone" class="form-input" placeholder="मोबाइल नंबर (10 अंक)" maxlength="10" pattern="[0-9]{10}">
+              <input type="text" id="newStaffPin" class="form-input" placeholder="6-अंक पिन" maxlength="6" pattern="[0-9]{6}" value="123456" title="स्टाफ पोर्टल लॉगिन हेतु 6 अंकों का पासवर्ड">
+              <input type="hidden" id="newStaffId" value="">
+              <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
+                + नया स्टाफ जोड़ें
+              </button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+              ℹ️ नया स्टाफ डिफ़ॉल्ट रूप से एक्टिव रहेगा और डिफ़ॉल्ट पिन <b>123456</b> रहेगा (जिसे बाद में एडिट किया जा सकता है)।
+            </div>
           </form>
-          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 16px;">
-            ℹ️ स्टाफ कोड की जरूरत नहीं है — सिस्टम बैकएंड में यूनिक आईडी और लिंक स्वतः तैयार कर देता है।
-          </div>
 
           <!-- Staff Cards List -->
           <div id="adminStaffList">
@@ -1716,6 +1797,57 @@
     </div>
   </div>
 
+  <!-- Edit Staff Modal -->
+  <div id="staffEditModal" class="image-modal-overlay" onclick="closeEditStaffModal()" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px;">
+      <div class="modal-card-header">
+        <h3 class="modal-card-title">✏️ स्टाफ प्रोफाइल एडिट करें (Edit Staff)</h3>
+        <button type="button" class="modal-close-x" onclick="closeEditStaffModal()">✕</button>
+      </div>
+      <form id="editStaffForm" onsubmit="handleEditStaffSubmit(event)" style="padding: 16px;">
+        <input type="hidden" id="editStaffId">
+
+        <div style="background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">स्टाफ आईडी (Staff ID)</span>
+          <span id="editStaffIdDisplay" style="font-size: 13px; font-weight: 700; color: var(--brand-blue); font-family: monospace;">STF01</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">स्टाफ का नाम (Full Name) *</label>
+          <input type="text" id="editStaffName" class="form-input" required placeholder="स्टाफ का नाम दर्ज करें">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">मोबाइल नंबर (Mobile Number)</label>
+          <input type="tel" id="editStaffPhone" class="form-input" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर (उदा. 9876543210)">
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">6-अंक पासवर्ड (PIN) *</label>
+            <input type="text" id="editStaffPin" class="form-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="उदा. 123456" required>
+            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">पोर्टल लॉगिन के लिए 6 अंक</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">स्टेटस (Status) *</label>
+            <select id="editStaffActive" class="form-select">
+              <option value="true">✅ Active (लॉगिन चालू)</option>
+              <option value="false">🚫 Inactive (लॉगिन बंद)</option>
+            </select>
+            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">Inactive होने पर लॉगिन बंद</div>
+          </div>
+        </div>
+
+        <div class="modal-card-footer">
+          <button type="button" class="btn-admin-action" onclick="closeEditStaffModal()">रद्द करें (Cancel)</button>
+          <button type="submit" id="btnSaveEditStaff" class="btn-primary-smart" style="padding: 10px 18px;">
+            <span>💾</span> स्टाफ अपडेट करें (Save Staff)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toastNotification" class="toast-popup">
     <span id="toastIcon">✓</span>
@@ -1774,7 +1906,7 @@
       applyViewMode(state.currentView);
 
       if (state.currentView === 'staff') {
-        loadStaffCustomerData(state.activeStaffId);
+        checkStaffAuthStatus(state.activeStaffId);
       } else {
         checkAdminAuthStatus();
       }
@@ -1785,7 +1917,9 @@
       state.currentView = mode;
       var staffEl = document.getElementById('staffView');
       var adminEl = document.getElementById('adminView');
+      var staffControls = document.getElementById('staffHeaderControls');
       var liveBadge = document.getElementById('staffLiveBadge');
+      var staffLogout = document.getElementById('staffLogoutBtn');
       var adminControls = document.getElementById('adminHeaderControls');
       var titleEl = document.getElementById('pageMainTitle');
       var mainContainer = document.querySelector('.main-container');
@@ -1794,21 +1928,131 @@
       if (mode === 'staff') {
         if (mainContainer) mainContainer.classList.remove('admin-mode-active');
         if (headerInner) headerInner.classList.remove('admin-mode-active');
-        staffEl.style.display = 'block';
-        adminEl.style.display = 'none';
-        liveBadge.style.display = 'inline-flex';
+        if (staffEl) staffEl.style.display = 'block';
+        if (adminEl) adminEl.style.display = 'none';
+        if (staffControls) staffControls.style.display = 'flex';
+        if (liveBadge) liveBadge.style.display = 'inline-flex';
         if (adminControls) adminControls.style.display = 'none';
-        titleEl.textContent = 'स्टाफ पोर्टल (Staff)';
+        if (titleEl) titleEl.textContent = 'स्टाफ पोर्टल (Staff)';
       } else {
         if (mainContainer) mainContainer.classList.add('admin-mode-active');
         if (headerInner) headerInner.classList.add('admin-mode-active');
-        staffEl.style.display = 'none';
-        adminEl.style.display = 'block';
-        liveBadge.style.display = 'none';
+        if (staffEl) staffEl.style.display = 'none';
+        if (adminEl) adminEl.style.display = 'block';
+        if (staffControls) staffControls.style.display = 'none';
         if (adminControls) adminControls.style.display = 'flex';
-        titleEl.textContent = 'एडमिन मैनेजमेंट (Admin)';
+        if (titleEl) titleEl.textContent = 'एडमिन मैनेजमेंट (Admin)';
         checkAdminAuthStatus();
       }
+    }
+
+    /* Staff Authentication & Security Logic */
+    function getStaffAuthKey(staffId) {
+      return 'cwp_staff_auth_' + (staffId || state.activeStaffId || 'DEFAULT').toUpperCase();
+    }
+
+    function isUserStaffAuthenticated(staffId) {
+      var key = getStaffAuthKey(staffId);
+      return !!(sessionStorage.getItem(key) || localStorage.getItem(key));
+    }
+
+    function checkStaffAuthStatus(staffId) {
+      var authGate = document.getElementById('staffAuthGate');
+      var content = document.getElementById('staffContent');
+      var logoutBtn = document.getElementById('staffLogoutBtn');
+      var inactiveBox = document.getElementById('staffInactiveMsgBox');
+      var errBox = document.getElementById('staffAuthError');
+      var pinInput = document.getElementById('staffPinInput');
+
+      if (inactiveBox) inactiveBox.style.display = 'none';
+      if (errBox) errBox.style.display = 'none';
+
+      if (isUserStaffAuthenticated(staffId)) {
+        if (authGate) authGate.style.display = 'none';
+        if (content) content.style.display = 'block';
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        loadStaffCustomerData(staffId);
+      } else {
+        if (authGate) authGate.style.display = 'block';
+        if (content) content.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (pinInput) {
+          pinInput.value = '';
+          setTimeout(function() { pinInput.focus(); }, 150);
+        }
+      }
+    }
+
+    function handleStaffAuthSubmit(e) {
+      e.preventDefault();
+      var pinInput = document.getElementById('staffPinInput');
+      var pin = (pinInput ? pinInput.value : '').trim();
+      var errBox = document.getElementById('staffAuthError');
+      var inactiveBox = document.getElementById('staffInactiveMsgBox');
+      var btn = document.getElementById('btnStaffLogin');
+
+      if (!pin || pin.length !== 6) {
+        if (errBox) {
+          errBox.textContent = '❌ कृपया पूरा 6-अंकों का पासवर्ड (पिन) दर्ज करें।';
+          errBox.style.display = 'block';
+        }
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> जांच हो रही है...';
+      }
+      if (errBox) errBox.style.display = 'none';
+      if (inactiveBox) inactiveBox.style.display = 'none';
+
+      apiCall('verifyStaffPin', { staffId: state.activeStaffId, pin: pin }, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '🚀 पोर्टल में प्रवेश करें (Enter Portal)';
+        }
+        if (res && res.inactive) {
+          if (inactiveBox) inactiveBox.style.display = 'block';
+          if (errBox) errBox.style.display = 'none';
+          showToast('🚫 आपका अकाउंट निष्क्रिय है!', '⚠️');
+          return;
+        }
+        if (res && res.success) {
+          var remember = document.getElementById('rememberStaffDevice') ? document.getElementById('rememberStaffDevice').checked : true;
+          var key = getStaffAuthKey(state.activeStaffId);
+          sessionStorage.setItem(key, 'authenticated');
+          if (remember) {
+            localStorage.setItem(key, 'authenticated');
+          }
+          if (pinInput) pinInput.value = '';
+          showToast('स्टाफ सत्यापन सफल!', '✓');
+          checkStaffAuthStatus(state.activeStaffId);
+        } else {
+          if (errBox) {
+            errBox.textContent = '❌ ' + (res && res.error ? res.error : 'गलत 6-डिजिट पासवर्ड!');
+            errBox.style.display = 'block';
+          }
+          if (pinInput) pinInput.focus();
+        }
+      }, function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '🚀 पोर्टल में प्रवेश करें (Enter Portal)';
+        }
+        if (errBox) {
+          errBox.textContent = '❌ ' + (err.message || 'सत्यापन विफल हुआ');
+          errBox.style.display = 'block';
+        }
+      });
+    }
+
+    function handleStaffLogout() {
+      if (!confirm('क्या आप स्टाफ पोर्टल से लॉगआउट करना चाहते हैं?')) return;
+      var key = getStaffAuthKey(state.activeStaffId);
+      sessionStorage.removeItem(key);
+      localStorage.removeItem(key);
+      showToast('पोर्टल से लॉगआउट हो चुके हैं', '🔒');
+      checkStaffAuthStatus(state.activeStaffId);
     }
 
     /* Admin Authentication & Security Logic */
@@ -1939,7 +2183,11 @@
         } else if (action === 'cleanAndSyncStaff') {
           google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).cleanAndSyncStaff();
         } else if (action === 'saveStaffMember') {
-          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).saveStaffMember(payload.name, payload.id);
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).saveStaffMember(payload.staffData || payload.name, payload.id);
+        } else if (action === 'verifyStaffPin') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).verifyStaffPin(payload.staffId, payload.pin);
+        } else if (action === 'toggleStaffActive') {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).toggleStaffActive(payload.staffId, payload.active);
         } else if (action === 'deleteStaffMember') {
           google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).deleteStaffMember(payload.id);
         } else if (action === 'saveCustomer') {
@@ -2003,6 +2251,22 @@
     }
 
     function handleStaffDataLoaded(data) {
+      if (data && data.inactive) {
+        var key = getStaffAuthKey(state.activeStaffId);
+        sessionStorage.removeItem(key);
+        localStorage.removeItem(key);
+        var authGate = document.getElementById('staffAuthGate');
+        var content = document.getElementById('staffContent');
+        var inactiveBox = document.getElementById('staffInactiveMsgBox');
+        var logoutBtn = document.getElementById('staffLogoutBtn');
+        if (content) content.style.display = 'none';
+        if (authGate) authGate.style.display = 'block';
+        if (inactiveBox) inactiveBox.style.display = 'block';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        showToast('🚫 आपका स्टाफ अकाउंट निष्क्रिय कर दिया गया है।', '⚠️');
+        return;
+      }
+
       if (!data || data.error) {
         document.getElementById('customerFeed').innerHTML = '<div class="empty-state-box"><div class="empty-icon">⚠️</div><p>' + escapeHtml(data ? data.error : 'अज्ञात त्रुटि') + '</p></div>';
         return;
@@ -2273,12 +2537,14 @@
       var select = document.getElementById('custStaffSelect');
       var listContainer = document.getElementById('adminStaffList');
 
-      /* Update Form Dropdown - Only clean staff name (no codes shown) */
+      /* Update Form Dropdown - Show active staff cleanly */
       var optionsHtml = '<option value="">स्टाफ चुनें...</option>';
       state.staffList.forEach(function(s) {
-        optionsHtml += '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(s.name) + '</option>';
+        var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+        var label = s.name + (isAct ? '' : ' (निष्क्रिय)');
+        optionsHtml += '<option value="' + escapeHtml(s.name) + '">' + escapeHtml(label) + '</option>';
       });
-      select.innerHTML = optionsHtml;
+      if (select) select.innerHTML = optionsHtml;
 
       /* Update Staff Management List */
       if (!state.staffList || state.staffList.length === 0) {
@@ -2298,16 +2564,31 @@
       var cardsHtml = '';
       uniqueStaff.forEach(function(s) {
         var staffUrl = getUniqueStaffUrl(s.id);
-        var waMessage = encodeURIComponent('नमस्ते ' + s.name + ',\nयह आपका CWP Detailers & Motors का कस्टमर वर्क पोर्टल लिंक है:\n' + staffUrl + '\n\nइस लिंक को खोलकर आप अपने असाइन ग्राहक देख सकते हैं।');
+        var sPin = (s.pin || '123456').toString().trim();
+        var sPhone = (s.phone || '').toString().trim();
+        var isActive = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+        var cleanPhone = sPhone.replace(/[^0-9]/g, '');
+        var waMessage = encodeURIComponent('नमस्ते ' + s.name + ',\nयह आपका CWP Detailers & Motors का कस्टमर वर्क पोर्टल लिंक है:\n' + staffUrl + '\n\nआपका 6-डिजिट लॉगिन पिन है: ' + sPin + '\n\nइस लिंक को खोलकर आप अपने असाइन ग्राहक देख सकते हैं।');
+        var waHref = cleanPhone.length === 10 ? ('https:\x2F\x2Fwa.me/91' + cleanPhone + '?text=' + waMessage) : ('https:\x2F\x2Fwa.me/?text=' + waMessage);
 
         cardsHtml += '<div class="staff-admin-card">';
-        cardsHtml += '  <div class="staff-admin-info">';
-        cardsHtml += '    <div class="staff-admin-name">' + escapeHtml(s.name) + '</div>';
-        cardsHtml += '    <div class="staff-admin-id">ID: ' + escapeHtml(s.id) + '</div>';
+        cardsHtml += '  <div class="staff-admin-info" style="display: flex; flex-direction: column; gap: 4px;">';
+        cardsHtml += '    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">';
+        cardsHtml += '      <span class="staff-admin-name">' + escapeHtml(s.name) + '</span>';
+        cardsHtml += '      <button type="button" class="badge-status-pill ' + (isActive ? 'badge-active' : 'badge-inactive') + '" onclick="toggleStaffActiveStatus(\'' + escapeHtml(s.id) + '\', ' + (!isActive) + ')" title="स्टेटस बदलने के लिए क्लिक करें">';
+        cardsHtml += '        ' + (isActive ? '● सक्रिय (Active)' : '○ निष्क्रिय (Inactive)');
+        cardsHtml += '      </button>';
+        cardsHtml += '    </div>';
+        cardsHtml += '    <div class="staff-admin-id" style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted);">';
+        cardsHtml += '      <span>ID: <b style="color: var(--text-primary);">' + escapeHtml(s.id) + '</b></span>';
+        cardsHtml += '      <span>📱 <b>' + (sPhone ? escapeHtml(sPhone) : '<span style="color:var(--text-muted); font-weight:normal;">दर्ज नहीं</span>') + '</b></span>';
+        cardsHtml += '      <span>🔑 पिन: <b style="font-family: monospace; letter-spacing: 1px; color: var(--brand-blue);">' + escapeHtml(sPin) + '</b></span>';
+        cardsHtml += '    </div>';
         cardsHtml += '  </div>';
         cardsHtml += '  <div class="staff-admin-actions">';
+        cardsHtml += '    <button type="button" class="btn-admin-action" onclick="openEditStaffModal(\'' + escapeHtml(s.id) + '\')">✏️ एडिट</button>';
         cardsHtml += '    <button type="button" class="btn-admin-action" onclick="copyStaffLink(\'' + escapeHtml(staffUrl) + '\')">📋 कॉपी लिंक</button>';
-        cardsHtml += '    <a href="https:\x2F\x2Fwa.me/?text=' + waMessage + '" target="_blank" class="btn-admin-action">💬 व्हाट्सएप</a>';
+        cardsHtml += '    <a href="' + waHref + '" target="_blank" class="btn-admin-action">💬 व्हाट्सएप</a>';
         cardsHtml += '    <a href="' + escapeHtml(staffUrl) + '" target="_blank" class="btn-admin-action">👁️ खोलें</a>';
         cardsHtml += '    <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteStaff(\'' + escapeHtml(s.id) + '\')">🗑️</button>';
         cardsHtml += '  </div>';
@@ -2315,6 +2596,90 @@
       });
 
       listContainer.innerHTML = cardsHtml;
+    }
+
+    function toggleStaffActiveStatus(staffId, newStatus) {
+      var actWord = newStatus ? 'सक्रिय (Active)' : 'निष्क्रिय (Inactive)';
+      showToast('स्टेटस बदला जा रहा है...', '⏳');
+      apiCall('toggleStaffActive', { staffId: staffId, active: newStatus }, function(res) {
+        showToast('स्टाफ ' + actWord + ' कर दिया गया!', '✓');
+        loadStaffListForAdmin();
+      }, function(err) {
+        showToast('त्रुटि: ' + (err.message || err), '❌');
+      });
+    }
+
+    function openEditStaffModal(staffId) {
+      var staff = (state.staffList || []).find(function(s) {
+        return (s.id || '').toUpperCase() === (staffId || '').toUpperCase();
+      });
+      if (!staff) {
+        showToast('स्टाफ जानकारी नहीं मिली', '❌');
+        return;
+      }
+      document.getElementById('editStaffId').value = staff.id;
+      document.getElementById('editStaffIdDisplay').textContent = staff.id;
+      document.getElementById('editStaffName').value = staff.name || '';
+      document.getElementById('editStaffPhone').value = staff.phone || '';
+      document.getElementById('editStaffPin').value = staff.pin || '123456';
+      var isAct = staff.active !== undefined ? (staff.active === true || staff.active === 'Yes' || staff.active === 'yes' || staff.active === 'Active') : true;
+      document.getElementById('editStaffActive').value = isAct ? 'true' : 'false';
+
+      var modal = document.getElementById('staffEditModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeEditStaffModal() {
+      var modal = document.getElementById('staffEditModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleEditStaffSubmit(e) {
+      e.preventDefault();
+      var id = document.getElementById('editStaffId').value.trim();
+      var name = document.getElementById('editStaffName').value.trim();
+      var phone = document.getElementById('editStaffPhone').value.trim();
+      var pin = document.getElementById('editStaffPin').value.trim();
+      var active = document.getElementById('editStaffActive').value === 'true';
+      var btn = document.getElementById('btnSaveEditStaff');
+
+      if (!name) {
+        alert('स्टाफ का नाम आवश्यक है।');
+        return;
+      }
+      if (pin && !/^\d{6}$/.test(pin)) {
+        alert('पासवर्ड (पिन) ठीक 6 अंकों (numbers) का होना चाहिए।');
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> सेव हो रहा है...';
+      }
+
+      var staffPayload = {
+        id: id,
+        name: name,
+        phone: phone,
+        pin: pin || '123456',
+        active: active
+      };
+
+      apiCall('saveStaffMember', { staffData: staffPayload }, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>💾</span> स्टाफ अपडेट करें (Save Staff)';
+        }
+        closeEditStaffModal();
+        showToast('स्टाफ प्रोफाइल अपडेट हो गई!', '✓');
+        loadStaffListForAdmin();
+      }, function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>💾</span> स्टाफ अपडेट करें (Save Staff)';
+        }
+        showToast('त्रुटि: ' + (err.message || err), '❌');
+      });
     }
 
     function getUniqueStaffUrl(staffId) {
@@ -2343,13 +2708,33 @@
 
     function handleAddStaff(e) {
       e.preventDefault();
-      var name = document.getElementById('newStaffName').value.trim();
+      var nameInput = document.getElementById('newStaffName');
+      var phoneInput = document.getElementById('newStaffPhone');
+      var pinInput = document.getElementById('newStaffPin');
+      var name = (nameInput ? nameInput.value : '').trim();
+      var phone = (phoneInput ? phoneInput.value : '').trim();
+      var pin = (pinInput ? pinInput.value : '').trim() || '123456';
       var idEl = document.getElementById('newStaffId');
       var id = idEl ? idEl.value.trim() : '';
-      if (!name) return;
 
-      apiCall('saveStaffMember', { name: name, id: id }, function(res) {
-        document.getElementById('newStaffName').value = '';
+      if (!name) return;
+      if (pin && !/^\d{6}$/.test(pin)) {
+        alert('पिन ठीक 6 अंकों का होना चाहिए।');
+        return;
+      }
+
+      var staffPayload = {
+        name: name,
+        id: id,
+        phone: phone,
+        pin: pin,
+        active: true
+      };
+
+      apiCall('saveStaffMember', { staffData: staffPayload }, function(res) {
+        if (nameInput) nameInput.value = '';
+        if (phoneInput) phoneInput.value = '';
+        if (pinInput) pinInput.value = '123456';
         if (idEl) idEl.value = '';
         showToast('स्टाफ "' + name + '" सफलतापूर्वक जोड़ा गया!', '✓');
         loadStaffListForAdmin();
@@ -2596,7 +2981,7 @@
       document.getElementById('editCustNotes').value = r.notes || '';
       document.getElementById('editCustActive').value = (r.active || 'Yes').toLowerCase() === 'no' ? 'No' : 'Yes';
 
-      // Set package type
+      /* Set package type */
       var pkgSelect = document.getElementById('editCustPkgType');
       var pType = r.packageType || 'DCC ONLY';
       pkgSelect.value = pType;
@@ -2605,7 +2990,7 @@
       }
       document.getElementById('editCustPkgCount').value = r.packagesPurchased || '1';
 
-      // Populate Staff Dropdown
+      /* Populate Staff Dropdown */
       var staffSelect = document.getElementById('editCustStaff');
       var options = '<option value="">स्टाफ चुनें...</option>';
       state.staffList.forEach(function(s) {
@@ -2614,7 +2999,7 @@
       });
       staffSelect.innerHTML = options;
 
-      // Photo thumbnail preview
+      /* Photo thumbnail preview */
       var thumb = document.getElementById('editPhotoThumb');
       if (r.photoUrl) {
         thumb.src = r.photoUrl;

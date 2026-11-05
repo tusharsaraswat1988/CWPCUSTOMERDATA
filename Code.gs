@@ -87,7 +87,11 @@ function doPost(e) {
     } else if (action === "cleanAndSyncStaff") {
       result = cleanAndSyncStaff();
     } else if (action === "saveStaffMember") {
-      result = saveStaffMember(requestData.name, requestData.id);
+      result = saveStaffMember(requestData.staffData || requestData.name, requestData.id);
+    } else if (action === "verifyStaffPin") {
+      result = verifyStaffPin(requestData.staffId, requestData.pin);
+    } else if (action === "toggleStaffActive") {
+      result = toggleStaffActive(requestData.staffId, requestData.active);
     } else if (action === "deleteStaffMember") {
       result = deleteStaffMember(requestData.id);
     } else if (action === "saveCustomer") {
@@ -239,7 +243,7 @@ function getStaffList() {
 }
 
 /**
- * Deduplicate staff array by name
+ * Deduplicate staff array by name while preserving phone, pin, and active status
  */
 function deduplicateStaffList(list) {
   if (!list || !Array.isArray(list)) return [];
@@ -253,7 +257,10 @@ function deduplicateStaffList(list) {
     seenNames[normName] = true;
     clean.push({
       id: (item.id || "STF0" + (clean.length + 1)).toString().trim().toUpperCase(),
-      name: item.name.toString().trim()
+      name: item.name.toString().trim(),
+      phone: (item.phone || "").toString().trim(),
+      pin: (item.pin || "123456").toString().trim(),
+      active: item.active !== undefined ? (item.active === true || item.active === "Yes" || item.active === "yes" || item.active === "Active") : true
     });
   });
   
@@ -286,16 +293,15 @@ function cleanAndSyncStaff() {
       if (!nameToStaff[normName]) {
         var cleanId = "STF" + (idCounter < 10 ? "0" + idCounter : idCounter);
         idCounter++;
-        nameToStaff[normName] = { id: cleanId, name: sName };
-        staffList.push({ id: cleanId, name: sName });
+        nameToStaff[normName] = { id: cleanId, name: sName, phone: "", pin: "123456", active: true };
+        staffList.push({ id: cleanId, name: sName, phone: "", pin: "123456", active: true });
       }
     }
   });
 
   // If no staff found in sheets, provide default starter
   if (staffList.length === 0) {
-    staffList = [{ id: "STF01", name: "Chandan Soni" }];
-    nameToStaff["chandan soni"] = { id: "STF01", name: "Chandan Soni" };
+    staffList = [{ id: "STF01", name: "Chandan Soni", phone: "", pin: "123456", active: true }];
   }
 
   // 2. Save clean unique staff list in Properties
@@ -308,14 +314,34 @@ function cleanAndSyncStaff() {
 }
 
 /**
- * Add or update a staff member
+ * Add or update a staff member with name, phone, 6-digit pin, and active status
  */
-function saveStaffMember(name, id) {
-  name = (name || "").toString().trim();
-  id = (id || "").toString().trim();
+function saveStaffMember(staffData, legacyId) {
+  var name = "", id = "", phone = "", pin = "", active = true;
+  
+  if (typeof staffData === "object" && staffData !== null) {
+    name = (staffData.name || "").toString().trim();
+    id = (staffData.id || "").toString().trim();
+    phone = (staffData.phone || "").toString().trim();
+    pin = (staffData.pin || "").toString().trim();
+    if (staffData.active !== undefined) {
+      active = (staffData.active === true || staffData.active === "Yes" || staffData.active === "yes" || staffData.active === "Active");
+    }
+  } else {
+    name = (staffData || "").toString().trim();
+    id = (legacyId || "").toString().trim();
+  }
   
   if (!name) {
     throw new Error("Staff name is required.");
+  }
+  
+  // Validate PIN if provided
+  if (pin && !/^\d{6}$/.test(pin)) {
+    throw new Error("Staff PIN must be exactly 6 digits.");
+  }
+  if (!pin) {
+    pin = "123456";
   }
   
   var props = PropertiesService.getScriptProperties();
@@ -336,14 +362,24 @@ function saveStaffMember(name, id) {
   }
   
   var existingIndex = list.findIndex(function(item) {
-    return item.id.toLowerCase() === id.toLowerCase() || item.name.toLowerCase() === name.toLowerCase();
+    return (item.id && item.id.toLowerCase() === id.toLowerCase()) || 
+           (item.name && item.name.toLowerCase() === name.toLowerCase());
   });
   
+  var updatedStaff = {
+    id: id,
+    name: name,
+    phone: phone,
+    pin: pin,
+    active: active
+  };
+  
   if (existingIndex >= 0) {
-    list[existingIndex].name = name;
-    list[existingIndex].id = id;
+    if (!phone && list[existingIndex].phone) updatedStaff.phone = list[existingIndex].phone;
+    if (!pin && list[existingIndex].pin) updatedStaff.pin = list[existingIndex].pin;
+    list[existingIndex] = updatedStaff;
   } else {
-    list.push({ id: id, name: name });
+    list.push(updatedStaff);
   }
   
   props.setProperty("STAFF_LIST", JSON.stringify(list));
@@ -351,7 +387,72 @@ function saveStaffMember(name, id) {
   // Update Google Sheet dropdown
   syncStaffDropdownValidation();
   
-  return { success: true, staffList: list, newStaff: { id: id, name: name } };
+  return { success: true, staffList: list, staff: updatedStaff };
+}
+
+/**
+ * Toggle Staff Active/Inactive status
+ */
+function toggleStaffActive(id, newStatus) {
+  id = (id || "").toString().trim().toLowerCase();
+  var list = getStaffList();
+  var found = false;
+  
+  list.forEach(function(item) {
+    if ((item.id || "").toLowerCase() === id) {
+      item.active = !!newStatus;
+      found = true;
+    }
+  });
+  
+  if (found) {
+    PropertiesService.getScriptProperties().setProperty("STAFF_LIST", JSON.stringify(list));
+    syncStaffDropdownValidation();
+  }
+  
+  return { success: found, staffList: list };
+}
+
+/**
+ * Verify Staff 6-digit PIN & Check Active Status
+ */
+function verifyStaffPin(staffId, pin) {
+  var list = getStaffList();
+  var sId = (staffId || "").toString().trim().toLowerCase();
+  var staff = list.find(function(item) {
+    return (item.id || "").toLowerCase() === sId || (item.name || "").toLowerCase() === sId;
+  });
+  
+  if (!staff) {
+    return { success: false, error: "स्टाफ आईडी नहीं मिली।" };
+  }
+  
+  var isActive = staff.active !== undefined ? (staff.active === true || staff.active === "Yes" || staff.active === "yes" || staff.active === "Active") : true;
+  if (!isActive) {
+    return {
+      success: false,
+      inactive: true,
+      error: "आपका स्टाफ अकाउंट निष्क्रिय (Inactive) कर दिया गया है। कृपया अपने एडमिन से संपर्क करें।"
+    };
+  }
+  
+  var expected = (staff.pin || "123456").toString().trim();
+  var input = (pin || "").toString().trim();
+  
+  if (input === expected) {
+    return {
+      success: true,
+      staffId: staff.id,
+      staffName: staff.name,
+      phone: staff.phone || "",
+      active: true
+    };
+  } else {
+    return {
+      success: false,
+      error: "गलत 6-डिजिट पासवर्ड! कृपया सही पिन दर्ज करें।"
+    };
+  }
 }
 
 /**
@@ -519,6 +620,20 @@ function getStaffCustomerData(requestedStaffId) {
   var foundStaff = staffList.find(function(s) {
     return s.id.toLowerCase() === targetQuery || s.name.toLowerCase() === targetQuery;
   });
+  
+  if (foundStaff) {
+    var isActive = foundStaff.active !== undefined ? (foundStaff.active === true || foundStaff.active === "Yes" || foundStaff.active === "yes" || foundStaff.active === "Active") : true;
+    if (!isActive) {
+      return {
+        error: "आपका स्टाफ अकाउंट निष्क्रिय (Inactive) कर दिया गया है। कृपया अपने एडमिन से संपर्क करें।",
+        inactive: true,
+        staffId: foundStaff.id,
+        staffName: foundStaff.name,
+        dailyClean: [],
+        allOtherWork: []
+      };
+    }
+  }
   
   var staffName = foundStaff ? foundStaff.name : requestedStaffId;
   var staffId = foundStaff ? foundStaff.id : requestedStaffId;
