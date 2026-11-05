@@ -1419,6 +1419,151 @@
       color: var(--brand-blue);
     }
 
+    /* Prominent Call-to-Action Bar for Adding Customer */
+    .cwp-prominent-add-bar {
+      background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+      border: 1.5px solid #bfdbfe;
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 3px 12px rgba(37, 99, 235, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .prominent-add-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .prominent-add-icon-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+      flex-shrink: 0;
+    }
+
+    .prominent-add-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f2942;
+      line-height: 1.25;
+    }
+
+    .prominent-add-desc {
+      font-size: 12.5px;
+      color: #475569;
+      margin-top: 3px;
+      display: block;
+      line-height: 1.4;
+    }
+
+    .btn-add-customer-prominent {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 55%, #3b82f6 100%);
+      color: #ffffff !important;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35), 0 1px 2px rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      text-decoration: none;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+
+    .btn-add-customer-prominent:hover {
+      background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 55%, #2563eb 100%);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45), 0 2px 4px rgba(0, 0, 0, 0.12);
+      transform: translateY(-1.5px);
+      color: #ffffff;
+    }
+
+    .btn-add-customer-prominent:active {
+      transform: scale(0.97);
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-add-customer-prominent .btn-prominent-icon {
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      line-height: 1;
+    }
+
+    .btn-add-customer-header {
+      padding: 7px 14px;
+      font-size: 12.5px;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    }
+
+    /* Top Return Navigation Strip inside Add Customer Form */
+    .cwp-form-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn-back-to-records {
+      background: #ffffff !important;
+      color: #1e293b !important;
+      font-weight: 700 !important;
+      border: 1px solid #cbd5e1 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      padding: 8px 14px !important;
+      border-radius: 8px !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-back-to-records:hover {
+      background: #f1f5f9 !important;
+      border-color: #94a3b8 !important;
+      transform: translateY(-1px);
+    }
+
+    .cwp-form-nav-hint {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 500;
+    }
+
     .admin-card-section {
       background: #ffffff;
       border: 1px solid var(--border-color);
@@ -2985,6 +3130,16 @@
         padding: 7px 6px;
         font-size: 11.5px;
       }
+      .cwp-prominent-add-bar {
+        padding: 12px 14px;
+      }
+      .btn-add-customer-prominent {
+        width: 100%;
+        text-align: center;
+      }
+      .btn-add-customer-header {
+        display: none;
+      }
     }
 
     @media (max-width: 480px) {
@@ -3612,12 +3767,6 @@
               </button>
             </form>
 
-            <div class="auth-switch-box">
-              <button type="button" class="btn-switch-portal" onclick="applyViewMode('admin')">
-                <span>🛡️</span> एडमिन लॉगिन पर जाएं (Admin Mode)
-              </button>
-            </div>
-
             <div class="auth-trust-strip">
               <span class="trust-item">🔒 256-Bit SSL Encrypted</span>
               <span class="trust-divider">•</span>
@@ -3792,26 +3941,36 @@
         <!-- Admin Sub Tabs (Modern UI/UX Segmented Control) -->
         <div class="admin-tab-container">
           <div class="admin-tab-nav" role="tablist">
-            <button type="button" class="admin-tab-btn active" id="tabBtnAddCust" role="tab" onclick="switchAdminTab('addCust')">
-              <span class="tab-icon">➕</span>
-              <span class="tab-text">ग्राहक जोड़ें</span>
-            </button>
-            <button type="button" class="admin-tab-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')">
-              <span class="tab-icon">👥</span>
-              <span class="tab-text">स्टाफ और लिंक</span>
-              <span class="admin-tab-badge" id="tabStaffCount">0</span>
-            </button>
-            <button type="button" class="admin-tab-btn" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')">
+            <button type="button" class="admin-tab-btn active" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')" title="एक्टिव ग्राहक व रिकॉर्ड्स देखें">
               <span class="tab-icon">📋</span>
               <span class="tab-text">एक्टिव रिकॉर्ड्स</span>
               <span class="admin-tab-badge" id="tabRecordsCount">0</span>
+            </button>
+            <button type="button" class="admin-tab-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')" title="स्टाफ मैनेजमेंट एवं लॉगिन लिंक्स">
+              <span class="tab-icon">👥</span>
+              <span class="tab-text">स्टाफ पैनल</span>
+              <span class="admin-tab-badge" id="tabStaffCount">0</span>
+            </button>
+            <button type="button" class="admin-tab-btn" id="tabBtnAddCust" role="tab" onclick="switchAdminTab('addCust')" title="नया ग्राहक जोड़ने का फॉर्म खोलें">
+              <span class="tab-icon">➕</span>
+              <span class="tab-text">ग्राहक जोड़ें</span>
             </button>
           </div>
         </div>
 
       <!-- Admin Tab 1: Add Customer Form (Customer-First Organization) -->
-      <div id="adminTabAddCust" class="admin-tab-pane">
+      <div id="adminTabAddCust" class="admin-tab-pane" style="display: none;">
         <div class="admin-card-section">
+          <!-- Top Return Navigation Strip -->
+          <div class="cwp-form-nav-bar">
+            <button type="button" class="btn-admin-action btn-back-to-records" onclick="switchAdminTab('records')">
+              <span style="font-size: 15px;">←</span> <strong>वापस एक्टिव ग्राहक सूची देखें (Back to Active List)</strong>
+            </button>
+            <div class="cwp-form-nav-hint">
+              💡 फॉर्म सेव करने के बाद डेटा सीधे एक्टिव ग्राहक सूची में जुड़ जाएगा
+            </div>
+          </div>
+
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <h2 class="admin-card-title" style="margin-bottom: 0;">👤 नया ग्राहक जोड़ें (Add Customer)</h2>
@@ -3986,8 +4145,8 @@
         <div class="admin-card-section">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
             <div>
-              <h2 class="admin-card-title">स्टाफ मेंबर्स और क्विक टूल्स</h2>
-              <p class="admin-card-desc" style="margin-bottom: 0;">स्टाफ का नाम बैकएंड से सुरक्षित रहता है जिससे स्पेलिंग मिस्टेक नहीं होती।</p>
+              <h2 class="admin-card-title">👥 स्टाफ पैनल (Staff Management)</h2>
+              <p class="admin-card-desc" style="margin-bottom: 0;">स्टाफ मेंबर्स का प्रबंधन, डिजिटल डायरी लॉगिन लिंक्स, पिन रीसेट एवं एक्टिव/इनएक्टिव स्टेटस।</p>
             </div>
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
               <button type="button" class="btn-admin-action" onclick="handleSyncStaffDropdown()" title="गूगल शीट के स्टाफ कॉलम में ड्रॉपडाउन वैलिडेशन लागू करें">
@@ -4034,10 +4193,31 @@
         </div>
       </div>
 
-      <!-- Admin Tab 3: Active Records Table -->
-      <div id="adminTabRecords" class="admin-tab-pane" style="display: none;">
+      <!-- Admin Tab 3: Active Records Table (Default Primary Dashboard) -->
+      <div id="adminTabRecords" class="admin-tab-pane">
         <div class="admin-card-section">
           
+          <!-- Top Prominent Call-to-Action Bar for Adding Customer -->
+          <div class="cwp-prominent-add-bar">
+            <div class="prominent-add-info">
+              <div class="prominent-add-icon-wrap">
+                <span class="prominent-add-icon">👤➕</span>
+              </div>
+              <div>
+                <div class="prominent-add-title">
+                  नया ग्राहक जोड़ना चाहते हैं? (Add New Customer)
+                </div>
+                <div class="prominent-add-desc">
+                  नया ग्राहक जोड़ने के लिए फॉर्म खोलें — सेव करते ही रिकॉर्ड यहाँ लाइव दिखेगा।
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn-add-customer-prominent" onclick="switchAdminTab('addCust')" title="नया ग्राहक जोड़ने के लिए फॉर्म खोलें">
+              <span class="btn-prominent-icon">➕</span>
+              <span class="btn-prominent-text">+ नया ग्राहक जोड़ें (Add Customer)</span>
+            </button>
+          </div>
+
           <!-- Header with Title, Description and Live Refresh -->
           <div class="records-header-row">
             <div>
@@ -4047,7 +4227,11 @@
               </h2>
               <p class="admin-card-desc" style="margin-bottom: 0;">गूगल शीट से लाइव सिंक डेटा — तुरंत सर्च, फ़िल्टर और रिकॉर्ड एडिट करें।</p>
             </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn-add-customer-prominent btn-add-customer-header" onclick="switchAdminTab('addCust')" title="नया ग्राहक जोड़ने के लिए फॉर्म खोलें">
+                <span class="btn-prominent-icon">➕</span>
+                <span class="btn-prominent-text">+ नया ग्राहक</span>
+              </button>
               <button type="button" class="btn-admin-action" onclick="exportAdminRecordsCSV()" title="फ़िल्टर किया हुआ डेटा Excel/CSV में डाउनलोड करें">
                 📥 CSV डाउनलोड
               </button>
@@ -4688,7 +4872,8 @@
         var currentPath = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
         var targetPath = mode === 'staff' ? '/staff' : '/admin';
         if (currentPath !== targetPath) {
-          window.history.pushState({ mode: mode }, '', targetPath);
+          var targetSearch = window.location.search || '';
+          window.history.pushState({ mode: mode }, '', targetPath + targetSearch);
         }
       }
 
@@ -4958,10 +5143,31 @@
       localStorage.removeItem('cwp_admin_token');
       sessionStorage.removeItem('cwp_admin_auth');
       localStorage.removeItem('cwp_admin_auth');
+      try {
+        localStorage.removeItem('cwp_admin_active_tab');
+      } catch (e) {}
     }
 
     function isUserAdminAuthenticated() {
       return !!getAdminToken();
+    }
+
+    /* Get Saved Admin Tab (Persisted across browser refresh, defaults to Active Members list) */
+    function getSavedAdminTab() {
+      try {
+        var urlParams = new URLSearchParams(window.location.search);
+        var urlTab = urlParams.get('tab');
+        if (urlTab && (urlTab === 'records' || urlTab === 'staff' || urlTab === 'addCust')) {
+          return urlTab;
+        }
+        var localTab = localStorage.getItem('cwp_admin_active_tab');
+        if (localTab && (localTab === 'records' || localTab === 'staff' || localTab === 'addCust')) {
+          return localTab;
+        }
+      } catch (e) {
+        console.warn('Error reading admin tab:', e);
+      }
+      return 'records'; // User requirement: Active members list first!
     }
 
     function checkAdminAuthStatus() {
@@ -4973,9 +5179,14 @@
         if (authGate) authGate.style.display = 'none';
         if (unlocked) unlocked.style.display = 'block';
         if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        
         loadStaffListForAdmin();
         loadAdminRecords();
         initCustomerAutoDraft();
+
+        // Restore current active tab (keeps same panel on refresh, or records on login)
+        var currentTab = getSavedAdminTab();
+        switchAdminTab(currentTab, true);
       } else {
         if (authGate) authGate.style.display = 'block';
         if (unlocked) unlocked.style.display = 'none';
@@ -5011,6 +5222,13 @@
           if (remember) {
             localStorage.setItem('cwp_admin_token', token);
             localStorage.setItem('cwp_admin_auth', token);
+          }
+          // On fresh login: Active members list opens first as requested!
+          var urlParams = new URLSearchParams(window.location.search);
+          if (!urlParams.get('tab')) {
+            try {
+              localStorage.setItem('cwp_admin_active_tab', 'records');
+            } catch (e) {}
           }
           input.value = '';
           showToast('सफलतापूर्वक लॉगिन हुआ!', '✓');
@@ -5059,18 +5277,46 @@
       });
     }
 
-    /* Switch Admin Sub Tabs */
-    function switchAdminTab(tabName) {
-      var tabs = ['addCust', 'staff', 'records'];
-      tabs.forEach(function(t) {
+    /* Switch Admin Sub Tabs with URL & LocalStorage State Persistence */
+    function switchAdminTab(tabName, updateUrl) {
+      var validTabs = ['records', 'staff', 'addCust'];
+      if (validTabs.indexOf(tabName) === -1) {
+        tabName = 'records';
+      }
+
+      validTabs.forEach(function(t) {
         var pane = document.getElementById('adminTab' + t.charAt(0).toUpperCase() + t.slice(1));
         var btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
         if (pane) pane.style.display = (t === tabName) ? 'block' : 'none';
         if (btn) btn.classList.toggle('active', t === tabName);
       });
+
+      // Persist active tab across refreshes
+      try {
+        localStorage.setItem('cwp_admin_active_tab', tabName);
+      } catch (e) {}
+
+      // Keep browser URL in sync without full reload
+      if (updateUrl !== false && window.history && window.history.replaceState) {
+        try {
+          var currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.set('tab', tabName);
+          window.history.replaceState({ tab: tabName }, '', currentUrl.pathname + currentUrl.search);
+        } catch (e) {}
+      }
+
       if (tabName === 'staff') loadStaffListForAdmin();
       if (tabName === 'records') loadAdminRecords();
     }
+
+    // Listen to browser back/forward buttons to switch admin tab seamlessly
+    window.addEventListener('popstate', function(e) {
+      if (state.currentView === 'admin' && isUserAdminAuthenticated()) {
+        var urlParams = new URLSearchParams(window.location.search);
+        var t = urlParams.get('tab') || 'records';
+        switchAdminTab(t, false);
+      }
+    });
 
     /* =========================================================================
        UNIVERSAL API CLIENT (Google Apps Script & Railway / Node.js Server)
@@ -6896,7 +7142,7 @@
         if (res && res.error) {
           showToast('त्रुटि: ' + res.error, '❌');
         } else {
-          showToast('ग्राहक सफलतापूर्वक गूगल शीट में सेव हुआ!', '✓');
+          showToast('ग्राहक सफलतापूर्वक सेव हुआ और एक्टिव रिकॉर्ड्स में जुड़ गया!', '✓');
           document.getElementById('addCustomerForm').reset();
           document.getElementById('custPhotoPreview').style.display = 'none';
           var ph = document.getElementById('custPhotoPlaceholder');
@@ -6909,7 +7155,17 @@
           state.rawSelectedPhotoDataUrl = '';
           discardCustomerDraft(true);
           toggleCategoryFields(document.getElementById('custCategory').value);
+
+          // Switch back to Active Records tab and reload list so new customer reflects immediately
+          switchAdminTab('records');
           loadAdminRecords();
+
+          setTimeout(function() {
+            var recCard = document.getElementById('adminTabRecords');
+            if (recCard) {
+              recCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 150);
         }
       }, function(err) {
         btn.disabled = false;
