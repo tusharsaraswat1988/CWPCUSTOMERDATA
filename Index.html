@@ -1769,21 +1769,21 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     }
 
-    /* Admin Auth Gate Styles */
+    /* Header Logout Buttons (CWP Dark Theme) */
     .header-logout-btn,
     .admin-logout-btn {
-      background: #ffffff;
-      border: 1px solid #fca5a5;
-      color: #dc2626;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      color: #fca5a5;
       padding: 6px 14px;
       border-radius: 20px;
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 1px 2px rgba(220, 38, 38, 0.08);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -1791,8 +1791,8 @@
     .admin-logout-btn:hover {
       background: #dc2626;
       color: #ffffff;
-      border-color: #dc2626;
-      box-shadow: 0 3px 8px rgba(220, 38, 38, 0.25);
+      border-color: #ef4444;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
       transform: translateY(-1px);
     }
 
@@ -3248,7 +3248,7 @@
     function syncBrandLogos() {
       var headerLogo = document.querySelector('.brand-logo-img');
       if (headerLogo && headerLogo.src) {
-        var logos = document.querySelectorAll('.auth-brand-logo');
+        var logos = document.querySelectorAll('.auth-brand-logo, .auth-card-logo');
         for (var i = 0; i < logos.length; i++) {
           logos[i].src = headerLogo.src;
         }
@@ -3307,7 +3307,9 @@
         if (staffControls) staffControls.style.display = 'flex';
         if (liveBadge) liveBadge.style.display = 'inline-flex';
         if (adminControls) adminControls.style.display = 'none';
-        if (titleEl) titleEl.textContent = 'स्टाफ पोर्टल';
+        if (titleEl) titleEl.textContent = 'Staff Portal';
+        checkStaffAuthStatus(state.activeStaffId);
+        syncBrandLogos();
       } else {
         document.body.classList.add('admin-mode-active');
         if (mainContainer) mainContainer.classList.add('admin-mode-active');
@@ -3316,8 +3318,9 @@
         if (adminEl) adminEl.style.display = 'block';
         if (staffControls) staffControls.style.display = 'none';
         if (adminControls) adminControls.style.display = 'flex';
-        if (titleEl) titleEl.textContent = 'एडमिन पोर्टल';
+        if (titleEl) titleEl.textContent = 'Admin App';
         checkAdminAuthStatus();
+        syncBrandLogos();
       }
     }
 
@@ -3376,7 +3379,7 @@
 
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span>⏳</span> जांच हो रही है...';
+        btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">जांच हो रही है...</span>';
       }
       if (errBox) errBox.style.display = 'none';
       if (inactiveBox) inactiveBox.style.display = 'none';
@@ -3384,7 +3387,7 @@
       apiCall('verifyStaffPin', { staffId: state.activeStaffId, pin: pin }, function(res) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '🚀 पोर्टल में प्रवेश करें (Enter Portal)';
+          btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">पोर्टल में प्रवेश करें (Enter Portal)</span>';
         }
         if (res && res.inactive) {
           if (inactiveBox) inactiveBox.style.display = 'block';
@@ -3412,7 +3415,7 @@
       }, function(err) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '🚀 पोर्टल में प्रवेश करें (Enter Portal)';
+          btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">पोर्टल में प्रवेश करें (Enter Portal)</span>';
         }
         if (errBox) {
           errBox.textContent = '❌ ' + (err.message || 'सत्यापन विफल हुआ');
@@ -3506,12 +3509,12 @@
       if (!password) return;
 
       btn.disabled = true;
-      btn.innerHTML = '<span>⏳</span> जांच हो रही है...';
+      btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">जांच हो रही है...</span>';
       errBox.style.display = 'none';
 
       apiCall('verifyAdminPassword', { password: password }, function(res) {
         btn.disabled = false;
-        btn.innerHTML = '<span>🔓</span> एडमिन पोर्टल खोलें (Unlock)';
+        btn.innerHTML = '<span class="btn-icon">🔓</span> <span class="btn-label">एडमिन पोर्टल खोलें (Unlock Dashboard)</span>';
         if (res && res.success) {
           var remember = document.getElementById('rememberAdminDevice').checked;
           var token = res.token || 'authenticated';
@@ -3529,7 +3532,7 @@
         }
       }, function(err) {
         btn.disabled = false;
-        btn.innerHTML = '<span>🔓</span> एडमिन पोर्टल खोलें (Unlock)';
+        btn.innerHTML = '<span class="btn-icon">🔓</span> <span class="btn-label">एडमिन पोर्टल खोलें (Unlock Dashboard)</span>';
         errBox.textContent = '❌ ' + (err.message || 'सत्यापन विफल हुआ');
         errBox.style.display = 'block';
       });
