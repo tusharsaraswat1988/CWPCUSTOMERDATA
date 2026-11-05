@@ -89,13 +89,22 @@ function saveLocalUpload(photoObj) {
 
 // Local fallback state
 let appState = {
-  staffList: [{ id: 'STF01', name: 'Chandan Soni' }],
+  staffList: [
+    { id: 'STF01', name: 'Chandan Soni', phone: '9919856161', pin: '123456', active: true },
+    { id: 'STF02', name: 'Taufiq Ahmed', phone: '8081913264', pin: '654321', active: true }
+  ],
   customers: []
 };
 
 if (fs.existsSync(DATA_FILE)) {
   try {
-    appState = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const loaded = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    if (loaded && Array.isArray(loaded.staffList) && loaded.staffList.length > 0) {
+      appState.staffList = loaded.staffList;
+    }
+    if (loaded && Array.isArray(loaded.customers)) {
+      appState.customers = loaded.customers;
+    }
   } catch (e) {
     console.error('Error reading local_data.json:', e);
   }
@@ -108,6 +117,112 @@ function saveLocalData(data) {
     console.error('Error writing local_data.json:', err.message);
   }
 }
+
+/**
+ * Merges remote staff list into appState.staffList safely without overwriting phone/pin
+ */
+function mergeStaffList(remoteList) {
+  if (!Array.isArray(remoteList) || remoteList.length === 0) return;
+  if (!appState.staffList) appState.staffList = [];
+
+  remoteList.forEach(rem => {
+    if (!rem || !rem.name) return;
+    const rId = (rem.id || '').toUpperCase();
+    const rName = rem.name.trim().toLowerCase();
+    const idx = appState.staffList.findIndex(loc => 
+      (loc.id && loc.id.toUpperCase() === rId) || 
+      (loc.name && loc.name.trim().toLowerCase() === rName)
+    );
+
+    if (idx >= 0) {
+      const loc = appState.staffList[idx];
+      appState.staffList[idx] = {
+        id: loc.id || rem.id || ('STF0' + (idx + 1)),
+        name: rem.name || loc.name,
+        phone: rem.phone || loc.phone || '',
+        pin: rem.pin || loc.pin || '123456',
+        active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : (loc.active !== undefined ? loc.active : true)
+      };
+    } else {
+      appState.staffList.push({
+        id: rem.id || ('STF' + String(appState.staffList.length + 1).padStart(2, '0')),
+        name: rem.name,
+        phone: rem.phone || '',
+        pin: rem.pin || '123456',
+        active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : true
+      });
+    }
+  });
+
+  saveLocalData(appState);
+}
+
+/**
+ * Fetches live staff from Google Sheet Visualization API (Tab: Staff)
+ * or falls back to Google Apps Script Web App (action: getStaffList).
+ * Keeps local and production 100% in sync with Google Sheets!
+ */
+async function syncLiveStaffFromGoogle() {
+  const ssId = SPREADSHEET_ID;
+  
+  // 1. Try reading directly from Google Sheet 'Staff' tab via Visualization API
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json&sheet=Staff`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const text = await res.text();
+      const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+      if (json && json.table && json.table.rows && json.table.rows.length > 0) {
+        const rawCols = (json.table.cols || []).map(c => (c.label || '').trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
+        if (rawCols.some(c => c.includes('staff'))) {
+          const rows = json.table.rows;
+          const sheetStaff = [];
+          rows.forEach((row, idx) => {
+            const vals = (row.c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
+            const id = vals[0] || ('STF' + String(idx + 1).padStart(2, '0'));
+            const name = vals[1] || '';
+            const phone = vals[2] || '';
+            const pin = vals[3] || '123456';
+            const status = (vals[4] || 'Active').toLowerCase();
+            const active = status !== 'inactive' && status !== 'no' && status !== 'false';
+            if (name) {
+              sheetStaff.push({ id, name, phone, pin, active });
+            }
+          });
+          if (sheetStaff.length > 0) {
+            mergeStaffList(sheetStaff);
+            return appState.staffList;
+          }
+        }
+      }
+    }
+  } catch (sheetErr) {
+    // Non-blocking
+  }
+
+  // 2. Fetch from Google Apps Script Web App
+  try {
+    const gasRes = await forwardToGoogleAppsScript({ action: 'getStaffList' });
+    if (Array.isArray(gasRes) && gasRes.length > 0) {
+      mergeStaffList(gasRes);
+      return appState.staffList;
+    }
+  } catch (gasErr) {
+    // Non-blocking
+  }
+
+  return appState.staffList;
+}
+
+// Background live sync with Google on startup
+setTimeout(() => {
+  syncLiveStaffFromGoogle().catch(() => {});
+}, 1000);
+
+// Recurring background sync every 3 minutes
+setInterval(() => {
+  syncLiveStaffFromGoogle().catch(() => {});
+}, 180000);
 
 /**
  * Fetches all live customers directly from Google Sheets using official Visualization API

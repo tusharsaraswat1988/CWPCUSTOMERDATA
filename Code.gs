@@ -34,7 +34,8 @@ function onOpen() {
       .createMenu('🚗 CWP Management')
       .addItem('1. 🔄 Reorder Columns (Customer-First)', 'reorderSheetToCustomerFirst')
       .addItem('2. 👔 Sync Staff Dropdown in Sheet', 'syncStaffDropdownValidation')
-      .addItem('3. 🧹 Fix & Remove Address Dropdown', 'clearInvalidDropdowns')
+      .addItem('3. 👥 Sync Dedicated Staff Sheet Tab', 'syncStaffSheet')
+      .addItem('4. 🧹 Fix & Remove Address Dropdown', 'clearInvalidDropdowns')
       .addToUi();
   } catch (e) {
     // UI may not be available in standalone execution contexts
@@ -87,13 +88,16 @@ function doPost(e) {
     } else if (action === "cleanAndSyncStaff") {
       result = cleanAndSyncStaff();
     } else if (action === "saveStaffMember") {
-      result = saveStaffMember(requestData.staffData || requestData.name, requestData.id);
+      result = saveStaffMember(requestData.staffData || requestData, requestData.id);
     } else if (action === "verifyStaffPin") {
       result = verifyStaffPin(requestData.staffId, requestData.pin);
     } else if (action === "toggleStaffActive") {
       result = toggleStaffActive(requestData.staffId, requestData.active);
     } else if (action === "deleteStaffMember") {
       result = deleteStaffMember(requestData.id);
+    } else if (action === "syncStaffSheet") {
+      syncStaffSheet();
+      result = { success: true, staffList: getStaffList() };
     } else if (action === "saveCustomer") {
       result = saveCustomer(requestData.customerData);
     } else if (action === "getAllCustomers") {
@@ -269,16 +273,42 @@ function deduplicateStaffList(list) {
 }
 
 /**
- * Discover unique staff members from sheets and sync dropdown validation
+ * Discover unique staff members from sheets and sync dropdown validation,
+ * while preserving all existing registered staff members.
  */
 function cleanAndSyncStaff() {
   var ss = getSpreadsheet();
   var sheets = ["Daily Clean", "All Other Work"];
+  
+  // 1. First retrieve all existing registered staff to preserve them
+  var existingList = [];
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var staffJson = props.getProperty("STAFF_LIST");
+    if (staffJson) existingList = JSON.parse(staffJson);
+  } catch (e) {}
+
   var nameToStaff = {};
   var staffList = [];
   var idCounter = 1;
 
-  // 1. Scan sheets and find Staff Names dynamically
+  if (Array.isArray(existingList)) {
+    existingList.forEach(function(s) {
+      if (!s || !s.name) return;
+      var norm = s.name.toString().trim().toLowerCase();
+      if (!nameToStaff[norm]) {
+        nameToStaff[norm] = s;
+        staffList.push(s);
+        var match = (s.id || "").match(/^STF0*(\d+)$/i);
+        if (match) {
+          var num = parseInt(match[1], 10);
+          if (num >= idCounter) idCounter = num + 1;
+        }
+      }
+    });
+  }
+
+  // 2. Scan customer sheets and discover any additional staff names
   sheets.forEach(function(sheetName) {
     var sheet = ss.getSheetByName(sheetName);
     if (!sheet) return;
@@ -294,22 +324,29 @@ function cleanAndSyncStaff() {
       if (!nameToStaff[normName]) {
         var cleanId = "STF" + (idCounter < 10 ? "0" + idCounter : idCounter);
         idCounter++;
-        nameToStaff[normName] = { id: cleanId, name: sName, phone: "", pin: "123456", active: true };
-        staffList.push({ id: cleanId, name: sName, phone: "", pin: "123456", active: true });
+        var newStaffObj = { id: cleanId, name: sName, phone: "", pin: "123456", active: true };
+        nameToStaff[normName] = newStaffObj;
+        staffList.push(newStaffObj);
       }
     }
   });
 
-  // If no staff found in sheets, provide default starter
+  // If no staff found anywhere, provide default starter
   if (staffList.length === 0) {
-    staffList = [{ id: "STF01", name: "Chandan Soni", phone: "", pin: "123456", active: true }];
+    staffList = [
+      { id: "STF01", name: "Chandan Soni", phone: "9919856161", pin: "123456", active: true },
+      { id: "STF02", name: "Taufiq Ahmed", phone: "8081913264", pin: "654321", active: true }
+    ];
   }
 
-  // 2. Save clean unique staff list in Properties
+  // 3. Save clean unique staff list in Properties
   PropertiesService.getScriptProperties().setProperty("STAFF_LIST", JSON.stringify(staffList));
   
-  // 3. Automatically apply native Google Sheet dropdown validation on Staff Name column
+  // 4. Automatically apply native Google Sheet dropdown validation on Staff Name column
   syncStaffDropdownValidation();
+  
+  // 5. Update dedicated Staff tab in Google Sheet
+  syncStaffSheet(staffList);
   
   return staffList;
 }
@@ -596,8 +633,49 @@ function syncStaffDropdownValidation() {
         dailySheet.getRange(2, pkgColIdx + 1, maxR - 1, 1).setDataValidation(pkgRule);
       }
     }
+
+    // 4. Also synchronize the dedicated "Staff" sheet tab in the Google Spreadsheet
+    syncStaffSheet(staffList);
   } catch (err) {
     Logger.log("Validation sync notice: " + err.toString());
+  }
+}
+
+/**
+ * Automatically maintains a dedicated "Staff" sheet tab in the Google Spreadsheet.
+ * This stores the master staff list directly inside Google Sheets, making it
+ * accessible via instant Google Visualization API for all environments!
+ */
+function syncStaffSheet(list) {
+  try {
+    var ss = getSpreadsheet();
+    var sheet = ss.getSheetByName("Staff");
+    if (!sheet) {
+      sheet = ss.insertSheet("Staff");
+    }
+    if (!list || !Array.isArray(list)) list = getStaffList();
+    
+    // Clear and write clean headers
+    sheet.clear();
+    var headers = ["Staff ID", "Staff Name", "Mobile Number", "PIN", "Status"];
+    sheet.appendRow(headers);
+    var hRange = sheet.getRange(1, 1, 1, headers.length);
+    hRange.setFontWeight("bold");
+    hRange.setBackground("#002B49");
+    hRange.setFontColor("#FFFFFF");
+    
+    list.forEach(function(s) {
+      var status = (s.active === true || s.active === "Yes" || s.active === "Active" || s.active === undefined) ? "Active" : "Inactive";
+      sheet.appendRow([
+        s.id || "",
+        s.name || "",
+        s.phone ? "'" + s.phone : "",
+        s.pin ? "'" + s.pin : "123456",
+        status
+      ]);
+    });
+  } catch (err) {
+    Logger.log("syncStaffSheet notice: " + err.toString());
   }
 }
 
