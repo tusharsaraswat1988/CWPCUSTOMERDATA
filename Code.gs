@@ -372,6 +372,17 @@ function deleteStaffMember(id) {
  * Ensures anyone editing directly in Google Sheets picks staff from a dropdown!
  * =========================================================================
  */
+var CWP_PACKAGE_TYPES = [
+  "DCC ONLY",
+  "DCC SILVER",
+  "DCC GOLD",
+  "CAR WASH SUBSCRIPTION",
+  "CAR WASH SINGLE",
+  "SOLAR SINGLE",
+  "SOLAR SUBSCRIPTION",
+  "OTHER"
+];
+
 function syncStaffDropdownValidation() {
   try {
     var ss = getSpreadsheet();
@@ -397,6 +408,22 @@ function syncStaffDropdownValidation() {
         range.setDataValidation(rule);
       }
     });
+
+    // Also apply Data Validation on Package Type in Daily Clean
+    var dailySheet = ss.getSheetByName("Daily Clean");
+    if (dailySheet) {
+      var dMap = getHeaderIndexMap(dailySheet);
+      var pkgColIdx = dMap["packagetype"] !== undefined ? dMap["packagetype"] : (dMap["pkgtype"] !== undefined ? dMap["pkgtype"] : -1);
+      if (pkgColIdx >= 0) {
+        var pkgRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList(CWP_PACKAGE_TYPES, true)
+          .setAllowInvalid(true)
+          .setHelpText("पैकेज प्रकार चुनें (Select Package Type)")
+          .build();
+        var maxR = Math.max(dailySheet.getMaxRows(), 100);
+        dailySheet.getRange(2, pkgColIdx + 1, maxR - 1, 1).setDataValidation(pkgRule);
+      }
+    }
   } catch (err) {
     Logger.log("Validation sync notice: " + err.toString());
   }
@@ -565,7 +592,7 @@ function saveCustomer(customerData) {
     setCol(["customervehiclephotourl", "photourl", "photo"], photoUrl);
     setCol(["address"], customerData.address || "");
     setCol(["vehiclenumbersmodels", "vehiclenumbers", "vehicle"], customerData.vehicleNumbers || "");
-    setCol(["packagetype", "pkgtype"], customerData.packageType || "Daily Clean");
+    setCol(["packagetype", "pkgtype"], customerData.packageType || "DCC ONLY");
     setCol(["packagespurchased", "pkgcount"], customerData.packagesPurchased || "1");
     setCol(["staffname", "staff"], customerData.staffName || "");
     setCol(["staffnotescleaninginstructions", "staffnotes", "notes"], customerData.staffNotes || "");
