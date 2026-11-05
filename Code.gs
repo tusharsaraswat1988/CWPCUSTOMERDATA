@@ -1406,7 +1406,8 @@ function saveCustomer_(customerData) {
     }
   }
   
-  var custNum = customerData.customerNumber ? "'" + customerData.customerNumber : "";
+  var rawNum = (customerData.customerNumber || "").toString().trim();
+  var custNum = rawNum.replace(/^'+/, "");
   
   if (sheetName === "Daily Clean") {
     setCol(["customername", "custname"], customerData.customerName || "");
@@ -1560,7 +1561,8 @@ function updateCustomer_(customerData) {
     }
   }
   
-  var custNum = customerData.customerNumber ? "'" + customerData.customerNumber.toString().replace(/^'+/, '') : "";
+  var rawNum = (customerData.customerNumber || "").toString().trim();
+  var custNum = rawNum.replace(/^'+/, "");
   
   updateCell(["customername", "custname"], customerData.customerName);
   updateCell(["customernumber", "custphone", "number", "phone", "mob"], custNum);

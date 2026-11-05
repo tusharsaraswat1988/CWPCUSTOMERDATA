@@ -34,6 +34,64 @@ const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.co
 const APPS_SCRIPT_SERVICE_KEY = process.env.APPS_SCRIPT_SERVICE_KEY || process.env.CWP_SERVICE_KEY || '';
 const DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN || 'cwpdata.up.railway.app';
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1IXs46tRE324YYgBBAKxD1aCCnYVzmqfX4jxCWvfiALY';
+const DEFAULT_SHEET_GIDS = {
+  'Daily Clean': process.env.GID_DAILY_CLEAN || '508927146',
+  'All Other Work': process.env.GID_ALL_OTHER_WORK || '866987332'
+};
+
+/**
+ * RFC 4180 compliant CSV parser that preserves exact cell text types,
+ * quotes, commas, and newlines without dropping values.
+ */
+function parseCSV(text) {
+  const lines = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (inQuotes) {
+      if (ch === '"') {
+        if (next === '"') {
+          cell += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cell += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        row.push(cell.trim());
+        cell = '';
+      } else if (ch === '\r') {
+        // ignore carriage return
+      } else if (ch === '\n') {
+        row.push(cell.trim());
+        if (row.some(v => v !== '')) {
+          lines.push(row);
+        }
+        row = [];
+        cell = '';
+      } else {
+        cell += ch;
+      }
+    }
+  }
+  if (cell || row.length > 0) {
+    row.push(cell.trim());
+    if (row.some(v => v !== '')) {
+      lines.push(row);
+    }
+  }
+  return lines;
+}
 
 let DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'local_data.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -761,13 +819,139 @@ async function fetchAllLiveCustomers(forceBypass = false) {
 
 async function doFetchLiveCustomersInternal() {
   const ssId = SPREADSHEET_ID;
-  const sheets = ['Daily Clean', 'All Other Work'];
+  const sheets = [
+    { name: 'Daily Clean', gid: DEFAULT_SHEET_GIDS['Daily Clean'] },
+    { name: 'All Other Work', gid: DEFAULT_SHEET_GIDS['All Other Work'] }
+  ];
   const allRecords = [];
-  let liveSuccess = false;
+  let csvSuccess = false;
 
-  for (const sheetName of sheets) {
+  // Primary: Fetch via direct Google Sheets CSV export
+  // 100% immune to GViz type inference which drops numbers stored as text (mixed types in phone columns)
+  for (const sheet of sheets) {
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+      const gid = sheet.gid;
+      if (!gid) throw new Error(`Missing gid for sheet ${sheet.name}`);
+      const url = `https://docs.google.com/spreadsheets/d/${ssId}/export?format=csv&gid=${encodeURIComponent(gid)}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const rows = parseCSV(text);
+      if (!rows || rows.length <= 1) continue;
+
+      const rawCols = rows[0].map(c => (c || '').trim());
+      const normCols = rawCols.map(c => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+      for (let rIdx = 1; rIdx < rows.length; rIdx++) {
+        const rowVals = rows[rIdx];
+
+        function getCell(aliases) {
+          for (let alias of aliases) {
+            const key = alias.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const idx = normCols.indexOf(key);
+            if (idx >= 0 && rowVals[idx] !== undefined && rowVals[idx] !== '') {
+              return rowVals[idx];
+            }
+          }
+          return '';
+        }
+
+        const custName = getCell(['customername', 'custname']);
+        if (!custName && !rowVals.some(v => v !== '')) continue;
+
+        const custPhone = getCell(['customernumber', 'custphone', 'number', 'phone', 'mob']);
+        const mapUrl = getCell(['googlemapsurl', 'mapurl', 'maps', 'location']);
+        const photo = getCell(['customervehiclephotourl', 'vehiclesitephotourl', 'photourl', 'photo']);
+        const address = getCell(['address']);
+
+        let vehicle = '';
+        if (sheet.name === 'Daily Clean') {
+          vehicle = getCell(['vehiclenumbersmodels', 'vehiclenumbers', 'vehicle']);
+        } else {
+          vehicle = getCell(['vehiclenumbersitename', 'vehicleorsite', 'vehicle']);
+        }
+
+        const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype']) || 'DCC ONLY';
+        const pkgCount = getCell(['packagespurchased', 'pkgcount']) || '1';
+        const serviceType = getCell(['servicetypecarwashsolarcleaning', 'servicetype']);
+        const packageDetails = getCell(['packageservicedetails', 'packagedetails']);
+        const staff = getCell(['staffname', 'staff']);
+        const notes = getCell(['staffnotescleaninginstructions', 'staffnotesspecialinstructions', 'staffnotes', 'notes']);
+        const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress']);
+        const secMap = getCell(['secondarymapsurl']);
+        const active = getCell(['active', 'status']) || 'Yes';
+
+        const serviceCategory = classifyServiceCategory(sheet.name, serviceType, pkgType, packageDetails, vehicle);
+
+        allRecords.push({
+          sheetName: sheet.name,
+          rowIndex: rIdx + 1,
+          customerName: custName,
+          customerNumber: custPhone,
+          googleMapsUrl: mapUrl,
+          photoUrl: photo,
+          address: address,
+          vehicle: vehicle,
+          packageType: pkgType,
+          packagesPurchased: pkgCount,
+          serviceType: serviceType,
+          packageDetails: packageDetails,
+          serviceCategory: serviceCategory,
+          staffName: staff,
+          secondaryAddress: secAddr,
+          secondaryMapsUrl: secMap,
+          notes: notes,
+          active: active
+        });
+      }
+      csvSuccess = true;
+    } catch (e) {
+      console.warn(`[LiveFetch] CSV fetch failed for ${sheet.name}:`, e.message);
+    }
+  }
+
+  if (csvSuccess && allRecords.length > 0) {
+    lastDataSource = 'live_sheet';
+    lastSyncTimestamp = new Date().toISOString();
+    const records = [...allRecords];
+    if (appState.customers && appState.customers.length > 0) {
+      for (const lc of appState.customers) {
+        if (!records.some(r => (r.customerNumber && r.customerNumber === lc.customerNumber) && (r.customerName && r.customerName === lc.customerName))) {
+          records.unshift(lc);
+        }
+      }
+    }
+    return {
+      records: records,
+      dataSource: 'live_sheet',
+      isLive: true,
+      lastSync: lastSyncTimestamp
+    };
+  }
+
+  // Secondary Fallback: Apps Script Web App proxy with service key
+  try {
+    const gasRes = await forwardToGoogleAppsScript({ action: 'getAllCustomers' });
+    if (Array.isArray(gasRes) && gasRes.length > 0) {
+      lastDataSource = 'apps_script';
+      lastSyncTimestamp = new Date().toISOString();
+      return {
+        records: gasRes,
+        dataSource: 'apps_script',
+        isLive: true,
+        lastSync: lastSyncTimestamp
+      };
+    }
+  } catch (gasErr) {
+    console.warn('[LiveFetch] GAS fallback also failed:', gasErr.message);
+  }
+
+  // Tertiary Fallback: GViz endpoint
+  const gvizRecords = [];
+  let gvizSuccess = false;
+  for (const sheet of sheets) {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet.name)}`;
       const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
       if (!res.ok) continue;
       const text = await res.text();
@@ -780,7 +964,6 @@ async function doFetchLiveCustomersInternal() {
 
       rows.forEach((row, rIdx) => {
         const rowVals = (row.c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
-
         function getCell(aliases) {
           for (let alias of aliases) {
             const key = alias.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -801,7 +984,7 @@ async function doFetchLiveCustomersInternal() {
         const address = getCell(['address']);
 
         let vehicle = '';
-        if (sheetName === 'Daily Clean') {
+        if (sheet.name === 'Daily Clean') {
           vehicle = getCell(['vehiclenumbersmodels', 'vehiclenumbers', 'vehicle']);
         } else {
           vehicle = getCell(['vehiclenumbersitename', 'vehicleorsite', 'vehicle']);
@@ -817,10 +1000,10 @@ async function doFetchLiveCustomersInternal() {
         const secMap = getCell(['secondarymapsurl']);
         const active = getCell(['active', 'status']) || 'Yes';
 
-        const serviceCategory = classifyServiceCategory(sheetName, serviceType, pkgType, packageDetails, vehicle);
+        const serviceCategory = classifyServiceCategory(sheet.name, serviceType, pkgType, packageDetails, vehicle);
 
-        allRecords.push({
-          sheetName: sheetName,
+        gvizRecords.push({
+          sheetName: sheet.name,
           rowIndex: rIdx + 2,
           customerName: custName,
           customerNumber: custPhone,
@@ -840,49 +1023,24 @@ async function doFetchLiveCustomersInternal() {
           active: active
         });
       });
-      liveSuccess = true;
+      gvizSuccess = true;
     } catch (e) {
-      console.warn(`[LiveFetch] Error fetching live sheet ${sheetName}:`, e.message);
+      console.warn(`[LiveFetch] GViz fallback failed for ${sheet.name}:`, e.message);
     }
   }
 
-  if (liveSuccess && allRecords.length > 0) {
-    lastDataSource = 'live_sheet';
+  if (gvizSuccess && gvizRecords.length > 0) {
+    lastDataSource = 'live_sheet_gviz';
     lastSyncTimestamp = new Date().toISOString();
-    const records = [...allRecords];
-    if (appState.customers && appState.customers.length > 0) {
-      for (const lc of appState.customers) {
-        if (!records.some(r => (r.customerNumber && r.customerNumber === lc.customerNumber) && (r.customerName && r.customerName === lc.customerName))) {
-          records.unshift(lc);
-        }
-      }
-    }
     return {
-      records: records,
-      dataSource: 'live_sheet',
+      records: gvizRecords,
+      dataSource: 'live_sheet_gviz',
       isLive: true,
       lastSync: lastSyncTimestamp
     };
   }
 
-  // Fallback to Apps Script proxy with service key
-  try {
-    const gasRes = await forwardToGoogleAppsScript({ action: 'getAllCustomers' });
-    if (Array.isArray(gasRes) && gasRes.length > 0) {
-      lastDataSource = 'apps_script';
-      lastSyncTimestamp = new Date().toISOString();
-      return {
-        records: gasRes,
-        dataSource: 'apps_script',
-        isLive: true,
-        lastSync: lastSyncTimestamp
-      };
-    }
-  } catch (gasErr) {
-    console.warn('[LiveFetch] GAS fallback also failed:', gasErr.message);
-  }
-
-  // Fallback to local data
+  // Quaternary Fallback: local data
   lastDataSource = 'local_fallback';
   lastSyncTimestamp = new Date().toISOString();
   return {
@@ -1562,7 +1720,8 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Get All Customers
         if (payload.action === 'getAllCustomers') {
-          const fetchResult = await fetchAllLiveCustomers();
+          const forceRefresh = !!payload.forceRefresh;
+          const fetchResult = await fetchAllLiveCustomers(forceRefresh);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify(fetchResult.records || []));
         }
@@ -1976,6 +2135,7 @@ module.exports = {
   computeStaffDataVersion,
   invalidateLiveCustomersCache,
   fetchAllLiveCustomers,
+  parseCSV,
   getAppState: () => appState,
   setAppState: (st) => { appState = st; },
   setDataFile: (df) => { DATA_FILE = df; },
