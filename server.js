@@ -707,7 +707,23 @@ function isActiveStatus(val) {
 let lastDataSource = 'local_fallback';
 let lastSyncTimestamp = null;
 
-async function fetchAllLiveCustomers() {
+/**
+ * Shared in-memory cache for live customer data.
+ * TTL of 20 seconds avoids hammering Google Sheets when multiple staff members poll every 30s.
+ * In-flight promise sharing prevents duplicate concurrent requests.
+ */
+let liveCustomersCache = null;
+let liveCustomersCacheExpiry = 0;
+const LIVE_CACHE_TTL_MS = 20000; // 20 seconds
+let liveCustomersInFlightPromise = null;
+
+function invalidateLiveCustomersCache() {
+  liveCustomersCache = null;
+  liveCustomersCacheExpiry = 0;
+  liveCustomersInFlightPromise = null;
+}
+
+async function fetchAllLiveCustomers(forceBypass = false) {
   if (process.env.DISABLE_LIVE_SHEETS === 'true') {
     return {
       records: appState.customers || [],
@@ -717,6 +733,33 @@ async function fetchAllLiveCustomers() {
     };
   }
 
+  // 1. Check in-memory cache if not explicitly bypassed
+  const now = Date.now();
+  if (!forceBypass && liveCustomersCache && now < liveCustomersCacheExpiry) {
+    return liveCustomersCache;
+  }
+
+  // 2. In-flight request deduplication: if a request is already running, wait for it
+  if (!forceBypass && liveCustomersInFlightPromise) {
+    return liveCustomersInFlightPromise;
+  }
+
+  // 3. Initiate fetch and share promise with concurrent callers
+  liveCustomersInFlightPromise = (async () => {
+    try {
+      const result = await doFetchLiveCustomersInternal();
+      liveCustomersCache = result;
+      liveCustomersCacheExpiry = Date.now() + LIVE_CACHE_TTL_MS;
+      return result;
+    } finally {
+      liveCustomersInFlightPromise = null;
+    }
+  })();
+
+  return liveCustomersInFlightPromise;
+}
+
+async function doFetchLiveCustomersInternal() {
   const ssId = SPREADSHEET_ID;
   const sheets = ['Daily Clean', 'All Other Work'];
   const allRecords = [];
@@ -941,7 +984,7 @@ function formatStaffDataResponse(staffId, fetchResult) {
     active: c.active
   }));
 
-  return {
+  const formatted = {
     staffId: staffObj ? staffObj.id : staffId,
     staffName: staffObj ? staffObj.name : staffId,
     dailyCarCleaning: dailyCarCleaning,
@@ -954,6 +997,55 @@ function formatStaffDataResponse(staffId, fetchResult) {
     isLive: fetchResult.isLive !== false,
     lastSync: fetchResult.lastSync || new Date().toISOString()
   };
+  formatted.version = computeStaffDataVersion(formatted);
+  return formatted;
+}
+
+/**
+ * Deterministic version / content hash for a staff member's assigned records.
+ * Incorporates all customer fields and sequence so any addition, update, 
+ * deletion, photo, note, address, vehicle, or re-assignment triggers a new version.
+ */
+function computeStaffDataVersion(staffData) {
+  if (!staffData) return 'v0_empty';
+  const hash = crypto.createHash('sha256');
+
+  // Staff identity
+  hash.update(String(staffData.staffId || '').trim().toUpperCase() + '|' + String(staffData.staffName || '').trim() + ';;');
+
+  // Combine categories preserving source order
+  const allRecords = [
+    ...(staffData.dailyCarCleaning || []),
+    ...(staffData.carWashing || []),
+    ...(staffData.solarCleaning || [])
+  ];
+
+  hash.update('count:' + allRecords.length + ';;');
+
+  for (let i = 0; i < allRecords.length; i++) {
+    const r = allRecords[i];
+    const signature = [
+      i,
+      r.customerName || '',
+      r.customerNumber || '',
+      r.vehicle || r.vehicleNumbers || r.vehicleOrSite || '',
+      r.serviceCategory || r.category || '',
+      r.packageType || '',
+      r.serviceType || '',
+      r.address || '',
+      r.secondaryAddress || '',
+      r.googleMapsUrl || '',
+      r.secondaryMapsUrl || '',
+      r.photoUrl || '',
+      r.staffNotes || r.notes || '',
+      r.active !== undefined ? String(r.active) : 'Yes',
+      r.staffName || '',
+      r.staffId || ''
+    ].join('::');
+    hash.update(signature + ';;');
+  }
+
+  return hash.digest('hex').substring(0, 16);
 }
 
 /**
@@ -1111,7 +1203,33 @@ const server = http.createServer(async (req, res) => {
     try {
       const fetchResult = await fetchAllLiveCustomers();
       const staffData = formatStaffDataResponse(targetStaffId, fetchResult);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      const currentVersion = staffData.version || computeStaffDataVersion(staffData);
+      staffData.version = currentVersion;
+
+      const clientVersion = (parsedUrl.searchParams.get('version') || (req.headers['if-none-match'] || '').replace(/^"|"$/g, '')).trim();
+
+      if (clientVersion && clientVersion === currentVersion) {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'ETag': `"${currentVersion}"`
+        });
+        return res.end(JSON.stringify({
+          unchanged: true,
+          version: currentVersion,
+          staffId: targetStaffId,
+          staffName: staffData.staffName,
+          totalCount: staffData.totalCount,
+          dataSource: staffData.dataSource,
+          isLive: staffData.isLive,
+          lastSync: staffData.lastSync
+        }));
+      }
+
+      staffData.unchanged = false;
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'ETag': `"${currentVersion}"`
+      });
       return res.end(JSON.stringify(staffData));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1352,15 +1470,41 @@ const server = http.createServer(async (req, res) => {
             targetStaffId = payload.staffId || 'STF01';
           }
 
+          const clientVersion = String(payload.version || (req.headers['if-none-match'] || '').replace(/^"|"$/g, '')).trim();
+
           try {
             const fetchResult = await fetchAllLiveCustomers();
             const staffData = formatStaffDataResponse(targetStaffId, fetchResult);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
+            const currentVersion = staffData.version || computeStaffDataVersion(staffData);
+            staffData.version = currentVersion;
+
+            if (clientVersion && clientVersion === currentVersion) {
+              res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'ETag': `"${currentVersion}"`
+              });
+              return res.end(JSON.stringify({
+                unchanged: true,
+                version: currentVersion,
+                staffId: targetStaffId,
+                staffName: staffData.staffName,
+                totalCount: staffData.totalCount,
+                dataSource: staffData.dataSource,
+                isLive: staffData.isLive,
+                lastSync: staffData.lastSync
+              }));
+            }
+
+            staffData.unchanged = false;
+            res.writeHead(200, {
+              'Content-Type': 'application/json',
+              'ETag': `"${currentVersion}"`
+            });
             return res.end(JSON.stringify(staffData));
           } catch (liveErr) {
             console.warn('Live getStaffData failed, proxying to Apps Script:', liveErr.message);
             try {
-              const gasRes = await forwardToGoogleAppsScript({ action: 'getStaffData', staffId: targetStaffId });
+              const gasRes = await forwardToGoogleAppsScript({ action: 'getStaffData', staffId: targetStaffId, version: clientVersion });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(gasRes));
             } catch (e) {
@@ -1511,6 +1655,7 @@ const server = http.createServer(async (req, res) => {
             appState.staffList.push(newObj);
           }
           saveLocalData(appState);
+          invalidateLiveCustomersCache();
 
           try {
             await forwardToGoogleAppsScript({
