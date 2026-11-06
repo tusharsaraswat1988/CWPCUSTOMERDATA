@@ -4,7 +4,7 @@
   "description": "Lightweight Staff Information Viewer for CWP Detailers & Motors",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --env-file-if-exists=.env server.js",
     "test": "node tests/test_hardening_qa.js && node tests/test_photo_crop_rotation.js && node tests/test_form_ux_phone_qa.js && node tests/test_regression_p2_3.js && node tests/test_csv_live_fetch.js && node tests/test_p2_4_phone_validation.js && node tests/test_card_location_display.js && node tests/test_staff_auto_sync_qa.js && node tests/test_daily_clean_sequence_qa.js && node tests/test_staff_phone_edit_session_qa.js && node tests/test_p3_mobile_and_login_persistence.js && node tests/test_daily_clean_local_completion_qa.js"
   },
   "keywords": [

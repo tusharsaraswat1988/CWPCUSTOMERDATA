@@ -353,14 +353,50 @@ function verifyPasswordScrypt(inputPassword, storedHash) {
   }
 }
 
+function reloadEnvFile() {
+  if (process.env.NODE_ENV === 'test') return;
+  try {
+    const envPath = path.resolve(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      const lines = content.split(/\r?\n/);
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          let val = trimmed.slice(eqIdx + 1).trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1);
+          }
+          process.env[key] = val;
+        }
+      }
+    }
+  } catch (e) { }
+}
+
 function verifyAdminPasswordNode(inputPass) {
   if (!inputPass) return false;
-  const envPass = (process.env.ADMIN_PASSWORD || '').trim();
+  let envPass = (process.env.ADMIN_PASSWORD || '').trim();
   if (envPass) {
     const inBuf = Buffer.from(inputPass.trim());
     const envBuf = Buffer.from(envPass);
     if (inBuf.length === envBuf.length && crypto.timingSafeEqual(inBuf, envBuf)) {
       return true;
+    }
+  }
+  // If not matched, reload .env in case user changed .env file live
+  if (process.env.NODE_ENV !== 'test') {
+    reloadEnvFile();
+    envPass = (process.env.ADMIN_PASSWORD || '').trim();
+    if (envPass) {
+      const inBuf = Buffer.from(inputPass.trim());
+      const envBuf = Buffer.from(envPass);
+      if (inBuf.length === envBuf.length && crypto.timingSafeEqual(inBuf, envBuf)) {
+        return true;
+      }
     }
   }
   if (appState && appState.adminPasswordHash) {
@@ -371,6 +407,10 @@ function verifyAdminPasswordNode(inputPass) {
 
 function hasAdminPasswordConfigured() {
   if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.trim()) return true;
+  if (process.env.NODE_ENV !== 'test') {
+    reloadEnvFile();
+    if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.trim()) return true;
+  }
   if (appState && appState.adminPasswordHash && appState.adminPasswordHash.trim()) return true;
   return false;
 }
@@ -731,14 +771,14 @@ function applyStaffSequenceOrder(customers, staffId) {
   if (!customers || customers.length === 0) return [];
   const sId = (staffId || '').toString().trim().toUpperCase();
 
-  const staffObj = (appState.staffList || []).find(s => 
-    (s.id || '').toUpperCase() === sId || 
+  const staffObj = (appState.staffList || []).find(s =>
+    (s.id || '').toUpperCase() === sId ||
     (s.name || '').toLowerCase() === (staffId || '').toLowerCase()
   );
   const matchId = staffObj ? staffObj.id.toUpperCase() : sId;
 
   if (!appState.staffSequences) appState.staffSequences = [];
-  const sequences = appState.staffSequences.filter(s => 
+  const sequences = appState.staffSequences.filter(s =>
     (s.staff_id || '').toUpperCase() === matchId
   );
 
@@ -870,8 +910,8 @@ function mergeStaffList(remoteList) {
   validRemote.forEach(rem => {
     const rId = (rem.id || '').toUpperCase();
     const rName = rem.name.trim().toLowerCase();
-    const idx = appState.staffList.findIndex(loc => 
-      (loc.id && loc.id.toUpperCase() === rId) || 
+    const idx = appState.staffList.findIndex(loc =>
+      (loc.id && loc.id.toUpperCase() === rId) ||
       (loc.name && loc.name.trim().toLowerCase() === rName)
     );
 
@@ -930,7 +970,7 @@ async function syncLiveStaffFromGoogle() {
   }
 
   const ssId = SPREADSHEET_ID;
-  
+
   try {
     const url = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json&sheet=Staff`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
@@ -944,7 +984,7 @@ async function syncLiveStaffFromGoogle() {
         } else {
           const rows = json.table.rows;
           const firstRowVals = (rows[0].c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
-          
+
           if (!firstRowVals[0].toLowerCase().includes('customer')) {
             let startIndex = 0;
             if (firstRowVals[0].toLowerCase().includes('staff') || firstRowVals[1].toLowerCase().includes('staff')) {
@@ -991,11 +1031,11 @@ async function syncLiveStaffFromGoogle() {
 
 if (process.env.DISABLE_LIVE_SHEETS !== 'true') {
   setTimeout(() => {
-    syncLiveStaffFromGoogle().catch(() => {});
+    syncLiveStaffFromGoogle().catch(() => { });
   }, 1000);
 
   setInterval(() => {
-    syncLiveStaffFromGoogle().catch(() => {});
+    syncLiveStaffFromGoogle().catch(() => { });
   }, 180000);
 }
 
@@ -1035,9 +1075,9 @@ function classifyServiceCategory(sheetName, serviceType, packageType, packageDet
 
   // 2. Explicit Solar Panel Cleaning indicators
   // NEVER classify solar solely from generic words like "site"!
-  const hasSolarKeyword = 
-    serviceScope.includes('solar') || 
-    serviceScope.includes('pv panel') || 
+  const hasSolarKeyword =
+    serviceScope.includes('solar') ||
+    serviceScope.includes('pv panel') ||
     serviceScope.includes('rooftop solar') ||
     vSite.includes('solar');
 
@@ -1046,10 +1086,10 @@ function classifyServiceCategory(sheetName, serviceType, packageType, packageDet
   }
 
   // 3. Explicit Daily Car Cleaning indicators
-  const hasDailyKeyword = 
-    serviceScope.includes('daily clean') || 
-    serviceScope.includes('daily car cleaning') || 
-    serviceScope.includes('daily') || 
+  const hasDailyKeyword =
+    serviceScope.includes('daily clean') ||
+    serviceScope.includes('daily car cleaning') ||
+    serviceScope.includes('daily') ||
     serviceScope.includes('dcc');
 
   if (hasDailyKeyword) {
@@ -1057,14 +1097,14 @@ function classifyServiceCategory(sheetName, serviceType, packageType, packageDet
   }
 
   // 4. Explicit Car Washing indicators
-  const hasWashKeyword = 
-    serviceScope.includes('wash') || 
-    serviceScope.includes('detailing') || 
-    serviceScope.includes('foam') || 
-    serviceScope.includes('rubbing') || 
-    serviceScope.includes('polish') || 
-    serviceScope.includes('ceramic') || 
-    serviceScope.includes('teflon') || 
+  const hasWashKeyword =
+    serviceScope.includes('wash') ||
+    serviceScope.includes('detailing') ||
+    serviceScope.includes('foam') ||
+    serviceScope.includes('rubbing') ||
+    serviceScope.includes('polish') ||
+    serviceScope.includes('ceramic') ||
+    serviceScope.includes('teflon') ||
     serviceScope.includes('interior');
 
   if (hasWashKeyword) {
@@ -1547,8 +1587,8 @@ async function doFetchLiveCustomersInternal() {
 function formatStaffDataResponse(staffId, fetchResult) {
   const allCustomers = fetchResult.records || [];
   const staffQuery = (staffId || '').trim().toLowerCase();
-  const staffObj = (appState.staffList || []).find(s => 
-    (s.id || '').toLowerCase() === staffQuery || 
+  const staffObj = (appState.staffList || []).find(s =>
+    (s.id || '').toLowerCase() === staffQuery ||
     (s.name || '').toLowerCase() === staffQuery
   );
   const matchId = staffObj ? staffObj.id.toLowerCase() : staffQuery;
@@ -1563,7 +1603,7 @@ function formatStaffDataResponse(staffId, fetchResult) {
   });
 
   // Daily Car Cleaning: preserves staff sequence order with source row order fallback
-  const rawDailyCarCleaning = assignedActiveCustomers.filter(c => 
+  const rawDailyCarCleaning = assignedActiveCustomers.filter(c =>
     c.serviceCategory === 'Daily Car Cleaning'
   ).map((c, originalIdx) => {
     const custId = c.customerId || getCustomerStableId(c);
@@ -1597,7 +1637,7 @@ function formatStaffDataResponse(staffId, fetchResult) {
 
   const dailyCarCleaning = applyStaffSequenceOrder(rawDailyCarCleaning, staffObj ? staffObj.id : staffId);
 
-  const carWashing = assignedActiveCustomers.filter(c => 
+  const carWashing = assignedActiveCustomers.filter(c =>
     c.serviceCategory === 'Car Washing'
   ).map(c => ({
     staffId: staffObj ? staffObj.id : staffId,
@@ -1620,7 +1660,7 @@ function formatStaffDataResponse(staffId, fetchResult) {
     active: c.active
   }));
 
-  const solarCleaning = assignedActiveCustomers.filter(c => 
+  const solarCleaning = assignedActiveCustomers.filter(c =>
     c.serviceCategory === 'Solar Panel Cleaning'
   ).map(c => ({
     staffId: staffObj ? staffObj.id : staffId,
@@ -1819,7 +1859,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && pathname === '/api/staff') {
     const token = extractAuthToken(req, null);
     const isAdmin = isValidAdminSession(token);
-    const sanitized = (appState.staffList || []).map(s => 
+    const sanitized = (appState.staffList || []).map(s =>
       isAdmin ? sanitizeStaffForAdmin(s) : sanitizeStaffForPublic(s)
     );
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1978,7 +2018,7 @@ const server = http.createServer(async (req, res) => {
                   expiresIn: SESSION_TTL_MS / 1000
                 }));
               }
-            } catch (e) {}
+            } catch (e) { }
 
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
@@ -2036,8 +2076,8 @@ const server = http.createServer(async (req, res) => {
               return p === cleanPhone;
             });
           } else if (staffId) {
-            staff = (appState.staffList || []).find(s => 
-              (s.id || '').toUpperCase() === staffId.toUpperCase() || 
+            staff = (appState.staffList || []).find(s =>
+              (s.id || '').toUpperCase() === staffId.toUpperCase() ||
               (s.name || '').toLowerCase() === staffId.toLowerCase()
             );
           }
@@ -2052,12 +2092,12 @@ const server = http.createServer(async (req, res) => {
                   return p === cleanPhone;
                 });
               } else if (staffId) {
-                staff = (appState.staffList || []).find(s => 
-                  (s.id || '').toUpperCase() === staffId.toUpperCase() || 
+                staff = (appState.staffList || []).find(s =>
+                  (s.id || '').toUpperCase() === staffId.toUpperCase() ||
                   (s.name || '').toLowerCase() === staffId.toLowerCase()
                 );
               }
-            } catch (e) {}
+            } catch (e) { }
           }
 
           if (!staff) {
@@ -2121,7 +2161,7 @@ const server = http.createServer(async (req, res) => {
                   active: true
                 }));
               }
-            } catch (e) {}
+            } catch (e) { }
 
             recordFailedLogin(clientIp, rateKey);
             res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -2215,9 +2255,9 @@ const server = http.createServer(async (req, res) => {
           if (payload.sync || !appState.staffList || appState.staffList.length <= 1) {
             try {
               await syncLiveStaffFromGoogle();
-            } catch (e) {}
+            } catch (e) { }
           }
-          const sanitized = (appState.staffList || []).map(s => 
+          const sanitized = (appState.staffList || []).map(s =>
             isAdmin ? sanitizeStaffForAdmin(s) : sanitizeStaffForPublic(s)
           );
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -2298,7 +2338,7 @@ const server = http.createServer(async (req, res) => {
 
           try {
             await forwardToGoogleAppsScript(payload);
-          } catch (e) {}
+          } catch (e) { }
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
@@ -2322,7 +2362,7 @@ const server = http.createServer(async (req, res) => {
 
           try {
             await forwardToGoogleAppsScript(payload);
-          } catch (e) {}
+          } catch (e) { }
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
@@ -2366,7 +2406,7 @@ const server = http.createServer(async (req, res) => {
 
           try {
             await forwardToGoogleAppsScript(payload);
-          } catch (e) {}
+          } catch (e) { }
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
@@ -2390,8 +2430,8 @@ const server = http.createServer(async (req, res) => {
           }
 
           if (!appState.staffList) appState.staffList = [];
-          const idx = appState.staffList.findIndex(s => 
-            (s.id || '').toUpperCase() === id || 
+          const idx = appState.staffList.findIndex(s =>
+            (s.id || '').toUpperCase() === id ||
             (s.name || '').toLowerCase() === name.toLowerCase()
           );
 
@@ -2485,7 +2525,7 @@ const server = http.createServer(async (req, res) => {
             }
             try {
               await forwardToGoogleAppsScript(payload);
-            } catch (e) {}
+            } catch (e) { }
             const sanitizedList = appState.staffList.map(item => sanitizeStaffForAdmin(item));
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, staffList: sanitizedList }));
@@ -2504,7 +2544,7 @@ const server = http.createServer(async (req, res) => {
           invalidateLiveCustomersCache();
           try {
             await forwardToGoogleAppsScript(payload);
-          } catch (e) {}
+          } catch (e) { }
           const sanitizedList = appState.staffList.map(item => sanitizeStaffForAdmin(item));
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, staffList: sanitizedList }));
