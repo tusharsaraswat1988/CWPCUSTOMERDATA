@@ -479,6 +479,11 @@
       will-change: transform, opacity;
     }
 
+    .smart-card.card-cleaned-done {
+      border-left: 4px solid #10b981;
+      background: #f8fafc;
+    }
+
     @keyframes cardEntrance {
       from {
         opacity: 0;
@@ -6933,6 +6938,9 @@ var state = {
     function pollStaffData(staffId, isManual) {
       if (isStaffSyncInProgress) return; // Prevent duplicate in-flight requests
 
+      // Check for midnight/date rollover on every poll (Asia/Kolkata)
+      checkAndHandleDateChange();
+
       var sToken = getStaffToken(staffId);
       if (!sToken) {
         stopStaffAutoSync();
@@ -7007,6 +7015,9 @@ var state = {
 
     // Visibility change handler: pause polling when tab hidden, immediate fresh check when tab re-opened
     document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        checkAndHandleDateChange();
+      }
       if (document.visibilityState === 'visible' && state.currentView === 'staff' && isUserStaffAuthenticated(state.activeStaffId)) {
         if (Date.now() - lastStaffSyncTimestamp > 25000) {
           pollStaffData(state.activeStaffId, false);
@@ -7016,6 +7027,7 @@ var state = {
 
     // Network online / offline recovery
     window.addEventListener('online', function() {
+      checkAndHandleDateChange();
       if (state.currentView === 'staff' && isUserStaffAuthenticated(state.activeStaffId)) {
         updateStaffSyncIndicator('checking', 'पुनः कनेक्ट हो रहा है...');
         pollStaffData(state.activeStaffId, false);
@@ -7029,6 +7041,8 @@ var state = {
     });
 
 function loadStaffCustomerData(staffId) {
+      checkAndHandleDateChange();
+      scheduleMidnightCheck();
       var feed = document.getElementById('customerFeed');
       if (feed && (!state.customers || state.customers.length === 0)) {
         feed.innerHTML = renderSkeletonCards(3);
@@ -7074,6 +7088,9 @@ function loadStaffCustomerData(staffId) {
       /* Update Staff Header */
       var sName = data.staffName || 'स्टाफ मेंबर';
       var sId = data.staffId || state.activeStaffId || 'STF';
+      state.staffData = data;
+      state.activeStaffName = sName;
+      if (sId) state.activeStaffId = sId;
       document.getElementById('staffNameHeader').textContent = sName;
       document.getElementById('staffIdHeader').textContent = 'ID: ' + sId;
       document.getElementById('staffAvatarInitial').textContent = sName.charAt(0).toUpperCase();
@@ -7305,6 +7322,7 @@ function loadStaffCustomerData(staffId) {
        - Exact Google Sheet row order strictly preserved
        ========================================================================= */
     function renderCustomerCards(items) {
+      if (!state.currentDateKey) state.currentDateKey = getTodayDateKey();
       state.currentStaffFilteredList = items || [];
       var container = document.getElementById('customerFeed');
       if (!container) return;
@@ -7359,11 +7377,11 @@ function loadStaffCustomerData(staffId) {
           thumbUrl = photoUrl.replace('/upload/', '/upload/w_120,h_120,c_fill,q_auto,f_auto/');
         }
 
-        html += '<div class="smart-card" id="staffCard-' + index + '">';
-        
         var seqDisplay = item._seq || (index < 9 ? '0' + (index + 1) : String(index + 1));
         var custId = item.customerId || item.id || getCustomerStableId(item);
         var isDone = isDaily && isCustomerDoneToday(custId);
+
+        html += '<div class="smart-card' + (isDone ? ' card-cleaned-done' : '') + '" id="staffCard-' + index + '" data-customer-id="' + escapeHtml(custId) + '">';
 
         /* Row 1: S.No + Customer Name (Left) & Call + Directions + Location Buttons (Right) */
         html += '  <div class="card-header-row">';
@@ -10276,41 +10294,175 @@ function loadStaffCustomerData(staffId) {
       });
     }
 
-    /* Staff Daily Cleaning Route & Completion Functions */
+    /* =========================================================================
+       TASK P2.6: STAFF DAILY CLEAN LOCAL COMPLETION TRACKING & AUTO DAILY RESET
+       - Entirely client-side browser localStorage tracking. Never synced to backend.
+       - Asia/Kolkata timezone calendar date key (YYYY-MM-DD).
+       - Structured localStorage layout:
+           dailyCleanCompletion:
+             staffId:
+               date:
+                 customerId: true
+       - Preserved across live polling, sequence reorders, same-day page refresh,
+         and same-day staff logout & login.
+       - Automatic midnight fresh reset without manual reload or timer churn.
+       ========================================================================= */
+    var DAILY_CLEAN_STORAGE_KEY = 'cwp_daily_clean_completion';
+
+    function getAsiaKolkataDateKey(dateObj) {
+      var d = dateObj || new Date();
+      try {
+        var formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        var parts = formatter.formatToParts(d);
+        var y = '', m = '', day = '';
+        for (var i = 0; i < parts.length; i++) {
+          if (parts[i].type === 'year') y = parts[i].value;
+          if (parts[i].type === 'month') m = parts[i].value;
+          if (parts[i].type === 'day') day = parts[i].value;
+        }
+        if (y && m && day) return y + '-' + m + '-' + day;
+      } catch (e) {}
+
+      // Reliable UTC offset fallback for Asia/Kolkata (UTC +05:30)
+      var utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+      var kolkataTime = new Date(utc + (5.5 * 3600000));
+      var yr = kolkataTime.getFullYear();
+      var mo = String(kolkataTime.getMonth() + 1).padStart(2, '0');
+      var dy = String(kolkataTime.getDate()).padStart(2, '0');
+      return yr + '-' + mo + '-' + dy;
+    }
+
     function getTodayDateKey() {
-      var d = new Date();
-      var year = d.getFullYear();
-      var month = String(d.getMonth() + 1).padStart(2, '0');
-      var day = String(d.getDate()).padStart(2, '0');
-      return year + '-' + month + '-' + day;
+      return getAsiaKolkataDateKey();
     }
 
-    function getCompletedCustomersSet() {
-      var key = 'cwp_clean_done_' + getTodayDateKey() + '_' + (state.activeStaffId || 'STF');
+    function getMsUntilMidnightAsiaKolkata(dateObj) {
+      var d = dateObj || new Date();
+      var istOffsetMs = 5.5 * 60 * 60 * 1000;
+      var istTime = d.getTime() + istOffsetMs;
+      var istDate = new Date(istTime);
+      var nextMidnightIst = new Date(Date.UTC(istDate.getUTCFullYear(), istDate.getUTCMonth(), istDate.getUTCDate() + 1, 0, 0, 1, 0));
+      var diff = nextMidnightIst.getTime() - istDate.getTime();
+      return Math.max(1000, diff);
+    }
+
+    function getCleanStaffId(optStaffId) {
+      var raw = optStaffId || state.activeStaffId || getActiveStaffId() || '';
+      return String(raw).trim().toUpperCase() || 'STF';
+    }
+
+    function getDailyCleanStore() {
       try {
-        var raw = localStorage.getItem(key);
-        return raw ? new Set(JSON.parse(raw)) : new Set();
+        var raw = localStorage.getItem(DAILY_CLEAN_STORAGE_KEY);
+        var parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object') ? parsed : {};
       } catch (e) {
-        return new Set();
+        return {};
       }
     }
 
-    function isCustomerDoneToday(custId) {
-      if (!custId) return false;
-      return getCompletedCustomersSet().has(custId);
-    }
-
-    function toggleCustomerDoneToday(custId) {
-      if (!custId) return;
-      var set = getCompletedCustomersSet();
-      if (set.has(custId)) {
-        set.delete(custId);
-      } else {
-        set.add(custId);
-      }
-      var key = 'cwp_clean_done_' + getTodayDateKey() + '_' + (state.activeStaffId || 'STF');
+    function saveDailyCleanStore(store) {
       try {
-        localStorage.setItem(key, JSON.stringify(Array.from(set)));
+        localStorage.setItem(DAILY_CLEAN_STORAGE_KEY, JSON.stringify(store));
+      } catch (e) {
+        console.error('Failed to save dailyCleanCompletion to localStorage:', e);
+      }
+    }
+
+    function cleanupOldDatesInStore(store, activeStaffId, todayKey) {
+      if (!store || typeof store !== 'object') return;
+      try {
+        var todayMs = new Date(todayKey + 'T00:00:00+05:30').getTime();
+        var maxAgeMs = 7 * 24 * 60 * 60 * 1000;
+        Object.keys(store).forEach(function(sId) {
+          if (store[sId] && typeof store[sId] === 'object') {
+            Object.keys(store[sId]).forEach(function(dKey) {
+              var dMs = new Date(dKey + 'T00:00:00+05:30').getTime();
+              if (!isNaN(dMs) && (todayMs - dMs > maxAgeMs)) {
+                delete store[sId][dKey];
+              }
+            });
+          }
+        });
+      } catch (e) {}
+    }
+
+    function getCompletedCustomersSet(optStaffId, optDateKey) {
+      var staffId = getCleanStaffId(optStaffId);
+      var dateKey = optDateKey || getTodayDateKey();
+      var set = new Set();
+
+      // Read from structured store: dailyCleanCompletion -> staffId -> date -> customerId
+      var store = getDailyCleanStore();
+      var staffMap = store[staffId] || store[staffId.toLowerCase()] || store[staffId.toUpperCase()];
+      if (staffMap && staffMap[dateKey]) {
+        var dayMap = staffMap[dateKey];
+        Object.keys(dayMap).forEach(function(cId) {
+          if (dayMap[cId] === true) {
+            set.add(cId);
+          }
+        });
+      }
+
+      // Backward compatibility with legacy key (e.g. cwp_clean_done_2026-11-06_STF01)
+      var legacyKeys = [
+        'cwp_clean_done_' + dateKey + '_' + staffId,
+        'cwp_clean_done_' + dateKey + '_' + staffId.toLowerCase()
+      ];
+      legacyKeys.forEach(function(legKey) {
+        try {
+          var rawLegacy = localStorage.getItem(legKey);
+          if (rawLegacy) {
+            var arr = JSON.parse(rawLegacy);
+            if (Array.isArray(arr)) {
+              arr.forEach(function(id) { set.add(id); });
+            }
+          }
+        } catch (e) {}
+      });
+
+      return set;
+    }
+
+    function isCustomerDoneToday(custId, optStaffId) {
+      if (!custId) return false;
+      return getCompletedCustomersSet(optStaffId).has(custId);
+    }
+
+    function toggleCustomerDoneToday(custId, optStaffId) {
+      if (!custId) return;
+      if (!state.currentDateKey) state.currentDateKey = getTodayDateKey();
+      var staffId = getCleanStaffId(optStaffId);
+      var dateKey = getTodayDateKey();
+
+      var store = getDailyCleanStore();
+      if (!store[staffId]) store[staffId] = {};
+      if (!store[staffId][dateKey]) store[staffId][dateKey] = {};
+
+      var currentSet = getCompletedCustomersSet(staffId, dateKey);
+      var willBeDone = !currentSet.has(custId);
+
+      if (willBeDone) {
+        store[staffId][dateKey][custId] = true;
+      } else {
+        delete store[staffId][dateKey][custId];
+      }
+
+      cleanupOldDatesInStore(store, staffId, dateKey);
+      saveDailyCleanStore(store);
+
+      // Keep legacy mirror in sync
+      try {
+        var legacyKey = 'cwp_clean_done_' + dateKey + '_' + staffId;
+        var completedList = Object.keys(store[staffId][dateKey] || {}).filter(function(k) {
+          return store[staffId][dateKey][k] === true;
+        });
+        localStorage.setItem(legacyKey, JSON.stringify(completedList));
       } catch (e) {}
 
       updateRouteProgressBar();
@@ -10330,7 +10482,12 @@ function loadStaffCustomerData(staffId) {
       }
 
       header.style.display = 'block';
-      var allDaily = (state.staffData && state.staffData.dailyCarCleaning) ? state.staffData.dailyCarCleaning : [];
+      var allDaily = (state.customers || []).filter(function(c) {
+        return c.category === 'daily_car_cleaning';
+      });
+      if (allDaily.length === 0 && state.staffData && Array.isArray(state.staffData.dailyCarCleaning)) {
+        allDaily = state.staffData.dailyCarCleaning;
+      }
       var total = allDaily.length;
 
       var completedSet = getCompletedCustomersSet();
@@ -10360,6 +10517,48 @@ function loadStaffCustomerData(staffId) {
       if (barFill) barFill.style.width = percent + '%';
     }
 
+    var midnightTimer = null;
+    function scheduleMidnightCheck() {
+      if (midnightTimer) clearTimeout(midnightTimer);
+      var ms = getMsUntilMidnightAsiaKolkata();
+      midnightTimer = setTimeout(function() {
+        checkAndHandleDateChange();
+        scheduleMidnightCheck();
+      }, ms);
+    }
+
+    function checkAndHandleDateChange() {
+      var todayKey = getTodayDateKey();
+      if (!state.currentDateKey) {
+        state.currentDateKey = todayKey;
+        return;
+      }
+      if (state.currentDateKey !== todayKey) {
+        console.log('[DailyClean] Date changed from ' + state.currentDateKey + ' to ' + todayKey + ' (Asia/Kolkata). Auto-resetting daily checklist.');
+        state.currentDateKey = todayKey;
+        if (state.currentView === 'staff' && state.currentStaffFilteredList) {
+          renderCustomerCards(state.currentStaffFilteredList);
+          updateRouteProgressBar();
+        }
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.DAILY_CLEAN_STORAGE_KEY = DAILY_CLEAN_STORAGE_KEY;
+      window.getAsiaKolkataDateKey = getAsiaKolkataDateKey;
+      window.getTodayDateKey = getTodayDateKey;
+      window.getMsUntilMidnightAsiaKolkata = getMsUntilMidnightAsiaKolkata;
+      window.getCompletedCustomersSet = getCompletedCustomersSet;
+      window.isCustomerDoneToday = isCustomerDoneToday;
+      window.toggleCustomerDoneToday = toggleCustomerDoneToday;
+      window.updateRouteProgressBar = updateRouteProgressBar;
+      window.checkAndHandleDateChange = checkAndHandleDateChange;
+      window.scheduleMidnightCheck = scheduleMidnightCheck;
+      window.getDailyCleanStore = getDailyCleanStore;
+      window.saveDailyCleanStore = saveDailyCleanStore;
+      window.getCleanStaffId = getCleanStaffId;
+      window.getCustomerStableId = getCustomerStableId;
+    }
   </script>
 </body>
 </html>
