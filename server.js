@@ -462,11 +462,17 @@ function revokeAdminSession(token) {
   if (token) adminSessions.delete(token);
 }
 
-function createStaffSession(staffId, staffName) {
+function createStaffSession(staffId, staffName, phone) {
   const token = 'stf_' + crypto.randomBytes(32).toString('hex');
+  let staffPhone = phone || '';
+  if (!staffPhone && appState && appState.staffList) {
+    const found = appState.staffList.find(s => (s.id || '').toUpperCase() === (staffId || '').toUpperCase());
+    if (found && found.phone) staffPhone = found.phone;
+  }
   staffSessions.set(token, {
     staffId: staffId,
     staffName: staffName,
+    staffPhone: staffPhone,
     createdAt: Date.now(),
     expiresAt: Date.now() + SESSION_TTL_MS
   });
@@ -480,6 +486,20 @@ function getValidStaffSession(token) {
   if (Date.now() > sess.expiresAt) {
     staffSessions.delete(token);
     return null;
+  }
+  if (appState && appState.staffList && sess.staffId) {
+    const currentStaff = appState.staffList.find(s => (s.id || '').toUpperCase() === sess.staffId.toUpperCase());
+    if (currentStaff) {
+      const isActive = currentStaff.active !== undefined ? (currentStaff.active === true || currentStaff.active === 'Yes' || currentStaff.active === 'yes' || currentStaff.active === 'Active') : true;
+      if (!isActive) {
+        staffSessions.delete(token);
+        return null;
+      }
+      if (sess.staffPhone && currentStaff.phone && sess.staffPhone !== currentStaff.phone) {
+        staffSessions.delete(token);
+        return null;
+      }
+    }
   }
   return sess;
 }
@@ -874,12 +894,18 @@ function mergeStaffList(remoteList) {
 
     if (idx >= 0) {
       const loc = appState.staffList[idx];
+      const oldPhone = loc.phone || '';
+      const oldActive = loc.active !== false;
+      const newActive = rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : (loc.active !== undefined ? loc.active : true);
+      if ((oldPhone && cleanStaffPhone && oldPhone !== cleanStaffPhone) || (oldActive && !newActive)) {
+        revokeAllStaffSessionsForId(loc.id);
+      }
       appState.staffList[idx] = {
         id: loc.id || rem.id || ('STF0' + (idx + 1)),
         name: rem.name || loc.name,
         phone: cleanStaffPhone,
         pin: finalPin,
-        active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : (loc.active !== undefined ? loc.active : true)
+        active: newActive
       };
     } else {
       appState.staffList.push({
@@ -2009,8 +2035,7 @@ const server = http.createServer(async (req, res) => {
               const p = (s.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
               return p === cleanPhone;
             });
-          }
-          if (!staff && staffId) {
+          } else if (staffId) {
             staff = (appState.staffList || []).find(s => 
               (s.id || '').toUpperCase() === staffId.toUpperCase() || 
               (s.name || '').toLowerCase() === staffId.toLowerCase()
@@ -2026,8 +2051,7 @@ const server = http.createServer(async (req, res) => {
                   const p = (s.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
                   return p === cleanPhone;
                 });
-              }
-              if (!staff && staffId) {
+              } else if (staffId) {
                 staff = (appState.staffList || []).find(s => 
                   (s.id || '').toUpperCase() === staffId.toUpperCase() || 
                   (s.name || '').toLowerCase() === staffId.toLowerCase()
@@ -2065,7 +2089,7 @@ const server = http.createServer(async (req, res) => {
               console.log(`[Security] Plaintext/SHA-256 PIN for staff ${staff.id} upgraded to scrypt hash.`);
             }
 
-            const staffToken = createStaffSession(staff.id, staff.name);
+            const staffToken = createStaffSession(staff.id, staff.name, staff.phone);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: true,
@@ -2081,7 +2105,7 @@ const server = http.createServer(async (req, res) => {
               const gasRes = await forwardToGoogleAppsScript(payload);
               if (gasRes && gasRes.success) {
                 clearRateLimit(clientIp, rateKey);
-                const staffToken = createStaffSession(gasRes.staffId || staff.id, gasRes.staffName || staff.name);
+                const staffToken = createStaffSession(gasRes.staffId || staff.id, gasRes.staffName || staff.name, gasRes.phone || staff.phone);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({
                   success: true,
@@ -2405,6 +2429,11 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'नया स्टाफ बनाने के लिए 6-अंकों का पिन अनिवार्य है। (PIN is required for new staff)' }));
           }
 
+          const existingStaff = idx >= 0 ? appState.staffList[idx] : null;
+          const phoneChanged = existingStaff && (existingStaff.phone || '') !== (normalizedPhone || '');
+          const pinChanged = existingStaff && pinToStore && existingStaff.pin && existingStaff.pin !== pinToStore;
+          const deactivated = existingStaff && existingStaff.active && !active;
+
           const newObj = { id, name, phone: normalizedPhone, pin: pinToStore, active };
 
           if (idx >= 0) {
@@ -2414,6 +2443,12 @@ const server = http.createServer(async (req, res) => {
           }
           saveLocalData(appState);
           invalidateLiveCustomersCache();
+
+          // Invalidate active sessions immediately if phone, PIN, or active status changed
+          if (existingStaff && (phoneChanged || pinChanged || deactivated)) {
+            revokeAllStaffSessionsForId(newObj.id);
+            console.log(`[Security] Revoked all active sessions for staff ${newObj.id} (phoneChanged: ${phoneChanged}, pinChanged: ${pinChanged}, deactivated: ${deactivated})`);
+          }
 
           try {
             await forwardToGoogleAppsScript({

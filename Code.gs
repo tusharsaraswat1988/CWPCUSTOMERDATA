@@ -441,7 +441,7 @@ function revokeAdminSessionGas_(token) {
   } catch (e) {}
 }
 
-function createStaffSessionGas_(staffId) {
+function createStaffSessionGas_(staffId, staffPhone) {
   var token = "stf_" + Utilities.getUuid().replace(/-/g, "") + Utilities.getUuid().replace(/-/g, "").substring(0, 16);
   var props = PropertiesService.getScriptProperties();
   var sessions = {};
@@ -454,7 +454,7 @@ function createStaffSessionGas_(staffId) {
   for (var k in sessions) {
     if (sessions[k] && sessions[k].expiresAt > now) clean[k] = sessions[k];
   }
-  clean[token] = { staffId: staffId, expiresAt: now + SESSION_TTL_MS };
+  clean[token] = { staffId: staffId, phone: staffPhone || "", expiresAt: now + SESSION_TTL_MS };
   props.setProperty("STAFF_SESSIONS", JSON.stringify(clean));
   return token;
 }
@@ -466,8 +466,24 @@ function getValidStaffSessionGas_(token) {
     var raw = props.getProperty("STAFF_SESSIONS");
     if (!raw) return null;
     var sessions = JSON.parse(raw);
-    if (sessions[token] && sessions[token].expiresAt > Date.now()) {
-      return sessions[token];
+    var sess = sessions[token];
+    if (sess && sess.expiresAt > Date.now()) {
+      var list = getStaffList_();
+      var currentStaff = list.find(function(s) {
+        return (s.id || "").toUpperCase() === (sess.staffId || "").toUpperCase();
+      });
+      if (currentStaff) {
+        var isActive = currentStaff.active !== undefined ? (currentStaff.active === true || currentStaff.active === "Yes" || currentStaff.active === "yes" || currentStaff.active === "Active") : true;
+        if (!isActive) {
+          revokeStaffSessionGas_(token);
+          return null;
+        }
+        if (sess.phone && currentStaff.phone && sess.phone !== currentStaff.phone) {
+          revokeStaffSessionGas_(token);
+          return null;
+        }
+      }
+      return sess;
     }
   } catch (e) {}
   return null;
@@ -888,6 +904,13 @@ function saveStaffMember_(staffData, legacyId) {
   };
   
   if (existingIndex >= 0) {
+    var oldStaff = list[existingIndex];
+    var phoneChangedGas = oldStaff.phone && oldStaff.phone !== phone;
+    var pinChangedGas = pinToStore && oldStaff.pin && oldStaff.pin !== pinToStore;
+    var deactivatedGas = oldStaff.active && !active;
+    if (phoneChangedGas || pinChangedGas || deactivatedGas) {
+      revokeAllStaffSessionsForIdGas_(id);
+    }
     if (!phone && list[existingIndex].phone) updatedStaff.phone = list[existingIndex].phone;
     list[existingIndex] = updatedStaff;
   } else {
@@ -957,7 +980,7 @@ function verifyStaffPin_(identifier, pin) {
   var staff = list.find(function(item) {
     if (cleanPhone) {
       var p = (item.phone || "").toString().replace(/[^0-9]/g, "").slice(-10);
-      if (p === cleanPhone) return true;
+      return p === cleanPhone;
     }
     return (item.id || "").toLowerCase() === sId || (item.name || "").toLowerCase() === sId;
   });
@@ -992,7 +1015,7 @@ function verifyStaffPin_(identifier, pin) {
       PropertiesService.getScriptProperties().setProperty("STAFF_LIST", JSON.stringify(list));
       syncStaffSheet_(list);
     }
-    var token = createStaffSessionGas_(staff.id);
+    var token = createStaffSessionGas_(staff.id, staff.phone);
     return {
       success: true,
       token: token,

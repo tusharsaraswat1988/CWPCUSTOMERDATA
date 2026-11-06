@@ -504,7 +504,7 @@
     .card-header-row,
     .card-top-line {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 8px;
     }
@@ -512,7 +512,7 @@
     .card-title-group,
     .cust-name-group {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 7px;
       min-width: 0;
       flex: 1;
@@ -529,16 +529,19 @@
       font-family: 'JetBrains Mono', Consolas, monospace;
       flex-shrink: 0;
       line-height: 1.3;
+      margin-top: 2px;
     }
 
     .cust-full-name {
       font-size: 15px;
       font-weight: 700;
       color: #0f172a;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.3;
+      white-space: normal;
+      overflow: visible;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      text-overflow: clip;
+      line-height: 1.35;
       letter-spacing: -0.01em;
     }
 
@@ -3487,6 +3490,38 @@
       }
       .cust-full-name {
         font-size: 14.5px;
+        line-height: 1.35;
+      }
+      .card-header-row,
+      .card-top-line {
+        gap: 6px;
+        align-items: flex-start;
+      }
+      .card-title-group,
+      .cust-name-group {
+        gap: 6px;
+        align-items: flex-start;
+      }
+      .card-action-buttons,
+      .card-top-actions {
+        gap: 4px;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .btn-card-action,
+      .btn-top-action {
+        height: 31px;
+        min-height: 31px;
+        padding: 0 8px;
+        font-size: 11.5px;
+        gap: 4px;
+      }
+      .cust-route-seq-badge {
+        font-size: 13px;
+        min-width: 30px;
+        height: 26px;
+        padding: 0 5px;
+        margin-top: 1px;
       }
       .btn-action-smart {
         font-size: 12.5px;
@@ -4404,6 +4439,8 @@
       border-radius: 6px;
       letter-spacing: 0.5px;
       box-shadow: 0 1px 2px rgba(30, 64, 175, 0.2);
+      flex-shrink: 0;
+      margin-top: 1px;
     }
 
     .card-completed {
@@ -6158,27 +6195,34 @@ var state = {
       var isStaffPath = path === '/staff' || path.startsWith('/staff/');
       var isAdminPath = path === '/admin' || path.startsWith('/admin/');
 
-      /* Decide view mode: Decoupled strict logic */
+      var savedRole = '';
+      try {
+        savedRole = sessionStorage.getItem('cwp_user_role') || '';
+      } catch (e) {}
+
+      /* Decide view mode: Decoupled strict logic with role persistence */
       if (isAdminPath || (paramAdmin !== null && paramAdmin !== undefined)) {
         state.currentView = 'admin';
       } else if (isStaffPath || (paramStaff && paramStaff.trim() !== '')) {
         state.currentView = 'staff';
         if (paramStaff) state.activeStaffId = paramStaff.trim();
+      } else if (savedRole === 'admin') {
+        state.currentView = 'admin';
+      } else if (savedRole === 'staff') {
+        state.currentView = 'staff';
+      } else if (initialMode === 'admin') {
+        state.currentView = 'admin';
       } else if (initialMode === 'staff') {
         state.currentView = 'staff';
         if (initialStaffId) state.activeStaffId = initialStaffId;
+      } else if (isUserAdminAuthenticated()) {
+        state.currentView = 'admin';
       } else {
         /* Default fallback */
         state.currentView = 'staff';
       }
 
       applyViewMode(state.currentView, true);
-
-      if (state.currentView === 'staff') {
-        checkStaffAuthStatus(state.activeStaffId);
-      } else {
-        checkAdminAuthStatus();
-      }
     });
 
     /* Apply View Mode: Completely separates Staff and Admin UI */
@@ -6194,13 +6238,22 @@ var state = {
       var mainContainer = document.querySelector('.main-container');
       var headerInner = document.querySelector('.header-inner');
 
+      try {
+        sessionStorage.setItem('cwp_user_role', mode);
+      } catch (e) {}
+
       // Sync clean browser URL (/staff or /admin) without page reload
-      if (!isInitial && window.history && window.history.pushState) {
+      if (window.history && (window.history.replaceState || window.history.pushState)) {
         var currentPath = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
         var targetPath = mode === 'staff' ? '/staff' : '/admin';
-        if (currentPath !== targetPath) {
-          var targetSearch = window.location.search || '';
-          window.history.pushState({ mode: mode }, '', targetPath + targetSearch);
+        var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
+        if (!isGas && currentPath !== targetPath) {
+          var targetSearch = mode === 'admin' ? '' : (window.location.search || '');
+          if (isInitial && window.history.replaceState) {
+            window.history.replaceState({ mode: mode }, '', targetPath + targetSearch);
+          } else if (window.history.pushState) {
+            window.history.pushState({ mode: mode }, '', targetPath + targetSearch);
+          }
         }
       }
 
@@ -6344,7 +6397,7 @@ var state = {
       if (errBox) errBox.style.display = 'none';
       if (inactiveBox) inactiveBox.style.display = 'none';
 
-      apiCall('verifyStaffPin', { phone: phone, pin: pin, staffId: state.activeStaffId }, function(res) {
+      apiCall('verifyStaffPin', { phone: phone, pin: pin }, function(res) {
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">पोर्टल में प्रवेश करें (Enter Portal)</span>';
@@ -6438,6 +6491,13 @@ var state = {
           if (doneAdmin) return;
           doneAdmin = true;
           clearAdminTokens();
+          try {
+            sessionStorage.setItem('cwp_user_role', 'admin');
+          } catch (e) {}
+          if (window.history && window.history.replaceState) {
+            var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
+            window.history.replaceState({ mode: 'admin' }, '', isGas ? '?admin=1' : '/admin');
+          }
           showToast('एडमिन पोर्टल लॉक हो गया।', '🔒');
           checkAdminAuthStatus();
         }
@@ -6458,9 +6518,19 @@ var state = {
           clearStaffTokens(sId);
           sessionStorage.removeItem('cwp_last_staff_id');
           localStorage.removeItem('cwp_last_staff_id');
+          sessionStorage.removeItem('cwp_last_staff_phone');
+          localStorage.removeItem('cwp_last_staff_phone');
           state.activeStaffId = '';
+          try {
+            sessionStorage.setItem('cwp_user_role', 'staff');
+          } catch (e) {}
+          var phoneInput = document.getElementById('staffPhoneInput');
+          var pinInput = document.getElementById('staffPinInput');
+          if (phoneInput) phoneInput.value = '';
+          if (pinInput) pinInput.value = '';
           if (window.history && window.history.replaceState) {
-            window.history.replaceState({}, '', '/staff');
+            var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
+            window.history.replaceState({ mode: 'staff' }, '', isGas ? '?staff=' : '/staff');
           }
           showToast('पोर्टल से लॉगआउट हो चुके हैं', '🔒');
           checkStaffAuthStatus('');
@@ -6742,14 +6812,38 @@ var state = {
     }
 
     function handleUnauthorizedResponse(resData) {
-      if (state.currentMode === 'admin' || isUserAdminAuthenticated()) {
+      if (state.currentView === 'admin' || isUserAdminAuthenticated()) {
         clearAdminTokens();
+        try {
+          sessionStorage.setItem('cwp_user_role', 'admin');
+        } catch (e) {}
+        if (window.history && window.history.replaceState) {
+          var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
+          window.history.replaceState({ mode: 'admin' }, '', isGas ? '?admin=1' : '/admin');
+        }
         checkAdminAuthStatus();
         showToast('🔒 एडमिन सत्र समाप्त या अमान्य। कृपया पुनः लॉगिन करें।', '⚠️');
       } else {
-        clearStaffTokens(state.activeStaffId);
-        checkStaffAuthStatus(state.activeStaffId);
-        showToast('🔒 स्टाफ सत्र समाप्त या अमान्य है। कृपया पिन पुनः दर्ज करें।', '⚠️');
+        var prevId = state.activeStaffId;
+        clearStaffTokens(prevId);
+        sessionStorage.removeItem('cwp_last_staff_id');
+        localStorage.removeItem('cwp_last_staff_id');
+        sessionStorage.removeItem('cwp_last_staff_phone');
+        localStorage.removeItem('cwp_last_staff_phone');
+        state.activeStaffId = '';
+        try {
+          sessionStorage.setItem('cwp_user_role', 'staff');
+        } catch (e) {}
+        var phoneInput = document.getElementById('staffPhoneInput');
+        var pinInput = document.getElementById('staffPinInput');
+        if (phoneInput) phoneInput.value = '';
+        if (pinInput) pinInput.value = '';
+        if (window.history && window.history.replaceState) {
+          var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
+          window.history.replaceState({ mode: 'staff' }, '', isGas ? '?staff=' : '/staff');
+        }
+        checkStaffAuthStatus('');
+        showToast('🔒 स्टाफ सत्र समाप्त या मोबाइल नंबर बदल चुका है। कृपया नए क्रेडेंशियल्स से पुनः लॉगिन करें।', '⚠️');
       }
     }
 
