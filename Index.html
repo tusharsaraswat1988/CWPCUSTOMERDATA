@@ -6790,11 +6790,30 @@ var state = {
       .then(function(res) {
         if (res.status === 401 || res.status === 403) {
           return res.json().then(function(errData) {
-            handleUnauthorizedResponse(errData || { unauthorized: true });
+            if (action !== 'verifyStaffPin' && action !== 'verifyAdminPassword') {
+              handleUnauthorizedResponse(errData || { unauthorized: true });
+            }
             throw new Error((errData && errData.error) ? errData.error : ('HTTP ' + res.status + ' Unauthorized'));
+          }).catch(function(jsonErr) {
+            if (jsonErr && jsonErr.message && !jsonErr.message.startsWith('Unexpected') && !jsonErr.message.startsWith('JSON')) {
+              throw jsonErr;
+            }
+            if (action !== 'verifyStaffPin' && action !== 'verifyAdminPassword') {
+              handleUnauthorizedResponse({ unauthorized: true });
+            }
+            throw new Error('HTTP ' + res.status);
           });
         }
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.ok) {
+          return res.json().then(function(errData) {
+            throw new Error((errData && (errData.error || errData.message)) ? (errData.error || errData.message) : ('HTTP ' + res.status));
+          }).catch(function(jsonErr) {
+            if (jsonErr && jsonErr.message && !jsonErr.message.startsWith('Unexpected') && !jsonErr.message.startsWith('JSON')) {
+              throw jsonErr;
+            }
+            throw new Error('HTTP ' + res.status);
+          });
+        }
         return res.json();
       })
       .then(function(resData) {

@@ -2102,9 +2102,14 @@ const server = http.createServer(async (req, res) => {
           } else {
             // Check GAS fallback if local PIN failed
             try {
-              const gasRes = await forwardToGoogleAppsScript(payload);
+              const gasPayload = Object.assign({}, payload, { staffId: staff.id, phone: staff.phone || cleanPhone });
+              const gasRes = await forwardToGoogleAppsScript(gasPayload);
               if (gasRes && gasRes.success) {
                 clearRateLimit(clientIp, rateKey);
+                if (pin && /^\d{6}$/.test(pin)) {
+                  staff.pin = hashPinScrypt(pin);
+                  saveLocalData(appState);
+                }
                 const staffToken = createStaffSession(gasRes.staffId || staff.id, gasRes.staffName || staff.name, gasRes.phone || staff.phone);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({
@@ -2837,5 +2842,6 @@ module.exports = {
   setAppState: (st) => { appState = st; },
   setDataFile: (df) => { DATA_FILE = df; },
   saveLocalData,
-  loadLocalData
+  loadLocalData,
+  forwardToGoogleAppsScript
 };
