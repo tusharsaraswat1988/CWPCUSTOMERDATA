@@ -373,16 +373,19 @@ const sampleDailyCustomers = [
   context.state.customers = sampleDailyCustomers;
   context.renderCustomerCards(sampleDailyCustomers);
 
+  // Set explicit Day 1
+  const day1Key = '2026-11-01';
+  context.getTodayDateKey = () => day1Key;
+  context.state.currentDateKey = day1Key;
+
   // Mark customer on Day 1
   const custId = 'CUST_9919856161_UP32AB1234';
   context.toggleCustomerDoneToday(custId);
   assert.strictEqual(context.isCustomerDoneToday(custId), true);
-
-  const day1Key = context.getTodayDateKey();
   assert.strictEqual(context.state.currentDateKey, day1Key);
 
   // Simulate Indian date rolling over to tomorrow
-  const tomorrowKey = '2026-11-07'; // Next day
+  const tomorrowKey = '2026-11-02'; // Next day
   context.getTodayDateKey = () => tomorrowKey;
 
   // Portal detects midnight date rollover
