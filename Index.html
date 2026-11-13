@@ -7982,12 +7982,32 @@ function loadStaffCustomerData(staffId) {
           btn.innerHTML = '<span>💾</span> Save Staff';
         }
         closeEditStaffModal();
-        showToast('Staff profile updated successfully!', '✓');
-        if (res && res.staffList) {
-          populateAdminStaffList(res.staffList);
+
+        var updatedList = res && res.staffList ? res.staffList : null;
+        if (updatedList) {
+          state.staffList = updatedList;
+          state.adminStaffList = updatedList;
+          populateAdminStaffList(updatedList);
+          populateSeqStaffDropdown(updatedList);
+          populateStaffFilterDropdown();
         } else {
           loadStaffListForAdmin();
         }
+
+        // Auto-refresh Customer Records table across the panel with forceRefresh
+        loadAdminRecords(true);
+
+        // Auto-refresh Route Sequence for this staff member
+        if (state.seqManagement) {
+          state.seqManagement.currentStaffId = id;
+          state.seqManagement.currentStaffName = name;
+          loadStaffSequenceData(true);
+        }
+
+        var msg = res && res.cascaded 
+          ? ('Staff profile updated & ' + (res.reallocatedCount || '') + ' customer records auto-updated!')
+          : 'Staff profile updated successfully!';
+        showToast(msg, '✓');
       }, function(err) {
         if (btn) {
           btn.disabled = false;
@@ -8074,10 +8094,19 @@ function loadStaffCustomerData(staffId) {
       if (!confirm('Are you sure you want to delete this staff member?')) return;
       apiCall('deleteStaffMember', { id: id }, function(res) {
         showToast('Staff member deleted successfully', '✓');
-        if (res && res.staffList) {
-          populateAdminStaffList(res.staffList);
+        var updatedList = res && res.staffList ? res.staffList : null;
+        if (updatedList) {
+          state.staffList = updatedList;
+          state.adminStaffList = updatedList;
+          populateAdminStaffList(updatedList);
+          populateSeqStaffDropdown(updatedList);
+          populateStaffFilterDropdown();
         } else {
           loadStaffListForAdmin();
+        }
+        loadAdminRecords(true);
+        if (state.seqManagement) {
+          initAdminSequenceManager();
         }
       }, function(err) {
         showToast('Error: ' + (err.message || err), '❌');
@@ -9772,6 +9801,9 @@ function loadStaffCustomerData(staffId) {
           discardEditDraft(true);
           closeEditCustomerModal();
           loadAdminRecords(true);
+          if (typeof loadStaffSequenceData === 'function' && state.seqManagement && state.seqManagement.currentStaffId) {
+            loadStaffSequenceData(true);
+          }
         }
       }, function(err) {
         btn.disabled = false;
