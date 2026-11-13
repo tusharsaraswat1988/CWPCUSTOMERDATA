@@ -4777,71 +4777,59 @@
       
       <!-- Staff Security Gate (6-Digit PIN Authentication) -->
       <div id="staffAuthGate" class="auth-gate-box" style="display: none;">
-        <div class="auth-ambient-glow glow-cyan"></div>
-        <div class="auth-ambient-glow glow-blue"></div>
-
-        <div class="admin-auth-card">
+        <div class="admin-auth-card" style="box-shadow: 0 20px 40px -10px rgba(2, 43, 73, 0.12), 0 1px 3px rgba(0,0,0,0.06);">
           <div class="auth-accent-bar staff-accent"></div>
           
-          <div class="auth-card-content">
-            <div class="auth-brand-emblem" title="CWP Detailers">
-              <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo">
+          <div class="auth-card-content" style="padding: 28px 24px 24px;">
+            <div class="auth-brand-emblem" title="CWP Detailers" style="margin-bottom: 10px;">
+              <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo" style="width: 58px; height: 58px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
             </div>
 
-            <div class="auth-role-pill staff-pill">
-              <span class="pill-dot"></span> फील्ड स्टाफ एवं कस्टमर केयर पोर्टल
-            </div>
-
-            <h2 class="admin-auth-title" id="staffAuthTitle">स्टाफ पोर्टल लॉगिन</h2>
-            <p class="admin-auth-desc" id="staffAuthDesc">कस्टमर सर्विस व गाड़ियों की लिस्ट देखने के लिए पंजीकृत मोबाइल नंबर व 6-अंकों का पिन दर्ज करें।</p>
+            <h2 class="admin-auth-title" id="staffAuthTitle" style="font-size: 21px; font-weight: 700; margin-bottom: 4px; color: var(--navy-dark, #002B49);">स्टाफ पोर्टल लॉगिन</h2>
+            <p class="admin-auth-desc" id="staffAuthDesc" style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.4;">पंजीकृत मोबाइल नंबर और 6-अंकों का पिन दर्ज करें</p>
             
             <!-- Inactive Alert Banner (Shown if staff account is disabled by admin) -->
-            <div id="staffInactiveMsgBox" style="display: none; background: var(--danger-red-light); border: 1px solid var(--danger-red-border); color: var(--danger-red); padding: 12px 14px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 14px; line-height: 1.5;">
+            <div id="staffInactiveMsgBox" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 12px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 14px; line-height: 1.5;">
               🚫 आपका स्टाफ अकाउंट Inactive कर दिया गया है।<br>कृपया अपने एडमिन से संपर्क करें।
             </div>
 
             <form id="staffAuthForm" onsubmit="handleStaffAuthSubmit(event)">
               <!-- Registered Mobile Number Input -->
-              <div class="auth-input-group" style="margin-bottom: 12px;">
-                <div class="auth-input-icon">
-                  <span>📱</span>
-                </div>
-                <div class="cwp-phone-group" style="flex: 1;">
-                  <span class="cwp-phone-prefix" style="background: #ffffff; border-color: var(--border-color);" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
-                  <input type="tel" id="staffPhoneInput" class="auth-field-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
-                </div>
+              <div class="auth-input-group" style="margin-bottom: 14px; border: 1.5px solid #cbd5e1; border-radius: 12px;">
+                <span class="cwp-phone-prefix" style="display: flex; align-items: center; padding: 0 12px; font-weight: 600; font-size: 14px; color: #475569; background: #f1f5f9; border: none; border-right: 1.5px solid #cbd5e1; border-top-left-radius: 10px; border-bottom-left-radius: 10px;" title="India (+91)"><span class="phone-flag" style="margin-right: 5px;">🇮🇳</span> +91</span>
+                <input type="tel" id="staffPhoneInput" class="auth-field-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required style="font-size: 16px; padding: 0 14px; height: 50px; font-weight: 500;">
               </div>
 
               <!-- 6-Digit PIN Input -->
-              <div class="auth-input-group">
-                <div class="auth-input-icon">
+              <div class="auth-input-group" style="margin-bottom: 14px; border: 1.5px solid #cbd5e1; border-radius: 12px;">
+                <div class="auth-input-icon" style="width: 44px; display: flex; align-items: center; justify-content: center;">
                   <span>🔐</span>
                 </div>
-                <input type="password" id="staffPinInput" class="auth-field-input" placeholder="6-अंकों का पासवर्ड (पिन) दर्ज करें..." maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="current-password" required>
-                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('staffPinInput')" title="Show / hide password">👁️</button>
+                <input type="password" id="staffPinInput" class="auth-field-input" placeholder="6-अंकों का पिन दर्ज करें" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="current-password" required style="font-size: 16px; letter-spacing: 2px; height: 50px;">
+                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('staffPinInput', this)" title="पिन देखें / छिपाएं" style="border: none; background: transparent; padding: 0 14px; font-size: 18px; cursor: pointer; color: #64748b;">👁️</button>
               </div>
 
-              <div id="staffAuthError" class="admin-auth-error-msg" style="display: none;">
+              <div id="staffAuthError" class="admin-auth-error-msg" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; margin-bottom: 14px; text-align: left;">
                 ❌ गलत विवरण! कृपया सही मोबाइल नंबर व पिन दर्ज करें।
               </div>
 
-              <div class="admin-remember-row">
-                <label class="remember-label">
-                  <input type="checkbox" id="rememberStaffDevice" checked>
-                  <span>इस डिवाइस पर लॉगिन याद रखें</span>
+              <div class="admin-remember-row" style="margin-bottom: 18px; display: flex; align-items: center; justify-content: flex-start;">
+                <label class="remember-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; cursor: pointer;">
+                  <input type="checkbox" id="rememberStaffDevice" checked style="width: 17px; height: 17px; accent-color: #0284c7; cursor: pointer;">
+                  <span>इस फोन पर लॉगिन याद रखें</span>
                 </label>
               </div>
 
-              <button type="submit" id="btnStaffLogin" class="auth-submit-btn staff-submit-btn">
+              <button type="submit" id="btnStaffLogin" class="auth-submit-btn staff-submit-btn" style="height: 50px; font-size: 16px; border-radius: 12px; font-weight: 700; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
                 <span class="btn-icon">🚀</span>
-                <span class="btn-label">पोर्टल में प्रवेश करें (Enter Portal)</span>
+                <span class="btn-label">लॉगिन करें (Log In)</span>
               </button>
             </form>
 
-            <div class="auth-trust-strip">
-              <span class="trust-item">🔒 256-Bit SSL Encrypted</span>
-              <span class="trust-divider">•</span>
-              <span class="trust-item">✨ CWP Detailers Official</span>
+            <div class="auth-trust-strip" style="margin-top: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11.5px; color: #94a3b8;">
+              <span>🔒 CWP Detailers Official</span>
+              <span>•</span>
+              <span>सुरक्षित स्टाफ पोर्टल</span>
             </div>
           </div>
         </div>
@@ -6254,7 +6242,9 @@ var state = {
       if (headerLogo && headerLogo.src) {
         var logos = document.querySelectorAll('.auth-brand-logo, .auth-card-logo');
         for (var i = 0; i < logos.length; i++) {
-          logos[i].src = headerLogo.src;
+          if (logos[i].src !== headerLogo.src) {
+            logos[i].src = headerLogo.src;
+          }
         }
       }
     }
@@ -6360,7 +6350,8 @@ var state = {
 
     /* Staff Authentication & Security Logic */
     function getStaffAuthKey(staffId) {
-      return 'cwp_staff_auth_' + (staffId || state.activeStaffId || 'DEFAULT').toUpperCase();
+      var id = staffId || (typeof getActiveStaffId === 'function' ? getActiveStaffId() : state.activeStaffId) || 'DEFAULT';
+      return 'cwp_staff_auth_' + id.toUpperCase();
     }
 
     function getStaffToken(staffId) {
@@ -6370,7 +6361,8 @@ var state = {
 
     function clearStaffTokens(staffId) {
       stopStaffAutoSync();
-      var key = getStaffAuthKey(staffId);
+      var id = staffId || (typeof getActiveStaffId === 'function' ? getActiveStaffId() : state.activeStaffId) || 'DEFAULT';
+      var key = getStaffAuthKey(id);
       sessionStorage.removeItem(key);
       localStorage.removeItem(key);
       sessionStorage.removeItem(key + '_token');
@@ -6467,7 +6459,7 @@ var state = {
 
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">Verifying...</span>';
+        btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">लॉगिन हो रहा है...</span>';
       }
       if (errBox) errBox.style.display = 'none';
       if (inactiveBox) inactiveBox.style.display = 'none';
@@ -6475,7 +6467,7 @@ var state = {
       apiCall('verifyStaffPin', { phone: phone, pin: pin }, function(res) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">पोर्टल में प्रवेश करें (Enter Portal)</span>';
+          btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">लॉगिन करें (Log In)</span>';
         }
         if (res && res.inactive) {
           if (inactiveBox) inactiveBox.style.display = 'block';
@@ -6493,6 +6485,7 @@ var state = {
           sessionStorage.setItem('cwp_last_staff_phone', phone);
           sessionStorage.setItem(key, 'authenticated');
           sessionStorage.setItem(key + '_token', token);
+          sessionStorage.setItem('cwp_user_role', 'staff');
           if (remember) {
             localStorage.setItem('cwp_last_staff_id', res.staffId);
             localStorage.setItem('cwp_last_staff_phone', phone);
@@ -6503,7 +6496,7 @@ var state = {
           
           // Keep clean URL: /staff without parameter leakage
           if (window.history && window.history.replaceState) {
-            window.history.replaceState({}, '', '/staff');
+            window.history.replaceState({ mode: 'staff' }, '', '/staff');
           }
 
           showToast('नमस्ते ' + (res.staffName || 'स्टाफ') + '! लॉगिन सफल हुआ।', '✓');
@@ -6521,7 +6514,7 @@ var state = {
       }, function(err) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">पोर्टल में प्रवेश करें (Enter Portal)</span>';
+          btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">लॉगिन करें (Log In)</span>';
         }
         if (errBox) {
           errBox.textContent = '❌ ' + (err.message || 'Verification failed');
@@ -6742,10 +6735,16 @@ var state = {
       openLogoutModal('admin');
     }
 
-    function togglePasswordVisibility(inputId) {
+    function togglePasswordVisibility(inputId, btnEl) {
       var el = document.getElementById(inputId);
       if (el) {
-        el.type = el.type === 'password' ? 'text' : 'password';
+        var isNowText = el.type === 'password';
+        el.type = isNowText ? 'text' : 'password';
+        var btn = btnEl || (el.parentElement ? el.parentElement.querySelector('.btn-toggle-eye') : null);
+        if (btn) {
+          btn.textContent = isNowText ? '🙈' : '👁️';
+          btn.title = isNowText ? 'पिन छिपाएं (Hide PIN)' : 'पिन देखें (Show PIN)';
+        }
       }
     }
 
@@ -6818,15 +6817,36 @@ var state = {
        UNIVERSAL API CLIENT (Google Apps Script & Railway / Node.js Server)
        ========================================================================= */
     function apiCall(action, payload, onSuccess, onFailure) {
+      var isStaffOp = (state.currentView === 'staff' ||
+                       action === 'getStaffData' ||
+                       action === 'logoutStaff' ||
+                       action === 'verifyStaffPin');
+      var isAdminOp = (state.currentView === 'admin' ||
+                       action === 'verifyAdminPassword' ||
+                       action === 'logoutAdmin' ||
+                       action === 'updateAdminPassword');
+
       var adminToken = getAdminToken();
-      var staffToken = getStaffToken(state.activeStaffId);
-      var effectiveToken = adminToken || staffToken;
+      var targetStaffId = (payload && payload.staffId) || state.activeStaffId || (typeof getActiveStaffId === 'function' ? getActiveStaffId() : '');
+      var staffToken = (payload && payload.staffToken) || getStaffToken(targetStaffId);
+      var effectiveToken = isStaffOp ? staffToken : (adminToken || staffToken);
 
       var reqPayload = Object.assign({}, payload || {});
       reqPayload.action = action;
-      if (adminToken && !reqPayload.adminToken) reqPayload.adminToken = adminToken;
+      if (!isStaffOp && adminToken && !reqPayload.adminToken) reqPayload.adminToken = adminToken;
       if (staffToken && !reqPayload.staffToken) reqPayload.staffToken = staffToken;
       if (effectiveToken && !reqPayload.token) reqPayload.token = effectiveToken;
+
+      if (action === 'verifyStaffPin') {
+        // Staff PIN verification sends phone + pin; no previous tokens
+        delete reqPayload.token;
+        delete reqPayload.adminToken;
+        delete reqPayload.staffToken;
+      } else if (action === 'verifyAdminPassword') {
+        // Admin verification sends password; no previous tokens
+        delete reqPayload.token;
+        delete reqPayload.adminToken;
+      }
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
@@ -6853,7 +6873,7 @@ var state = {
 
       /* Railway / Node Server Proxy to Google Sheet */
       var headers = { 'Content-Type': 'application/json' };
-      if (effectiveToken) {
+      if (effectiveToken && action !== 'verifyStaffPin' && action !== 'verifyAdminPassword') {
         headers['Authorization'] = 'Bearer ' + effectiveToken;
       }
 
@@ -6911,7 +6931,7 @@ var state = {
     }
 
     function handleUnauthorizedResponse(resData) {
-      if (state.currentView === 'admin' || isUserAdminAuthenticated()) {
+      if (state.currentView === 'admin') {
         clearAdminTokens();
         try {
           sessionStorage.setItem('cwp_user_role', 'admin');
@@ -6923,26 +6943,21 @@ var state = {
         checkAdminAuthStatus();
         showToast('🔒 Admin session expired or invalid. Please log in again.', '⚠️');
       } else {
-        var prevId = state.activeStaffId;
+        var prevId = state.activeStaffId || (typeof getActiveStaffId === 'function' ? getActiveStaffId() : '');
         clearStaffTokens(prevId);
         sessionStorage.removeItem('cwp_last_staff_id');
-        localStorage.removeItem('cwp_last_staff_id');
-        sessionStorage.removeItem('cwp_last_staff_phone');
-        localStorage.removeItem('cwp_last_staff_phone');
         state.activeStaffId = '';
         try {
           sessionStorage.setItem('cwp_user_role', 'staff');
         } catch (e) {}
-        var phoneInput = document.getElementById('staffPhoneInput');
         var pinInput = document.getElementById('staffPinInput');
-        if (phoneInput) phoneInput.value = '';
         if (pinInput) pinInput.value = '';
         if (window.history && window.history.replaceState) {
           var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
           window.history.replaceState({ mode: 'staff' }, '', isGas ? '?staff=' : '/staff');
         }
         checkStaffAuthStatus('');
-        showToast('🔒 स्टाफ सत्र समाप्त या मोबाइल नंबर बदल चुका है। कृपया नए क्रेडेंशियल्स से पुनः लॉगिन करें।', '⚠️');
+        showToast('🔒 स्टाफ सत्र समाप्त या अमान्य है। कृपया पुनः 6-डिजिट पिन डालकर लॉगिन करें।', '⚠️');
       }
     }
 

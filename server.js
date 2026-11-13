@@ -317,9 +317,9 @@ function needsRehash(storedValue) {
 }
 
 function isValidCredentialFormat(val) {
-  if (!val || typeof val !== 'string') return false;
-  const s = val.trim();
-  if (s.toUpperCase() === '[PROTECTED]') return false;
+  if (val === null || val === undefined) return false;
+  const s = String(val).trim();
+  if (!s || s.toUpperCase() === '[PROTECTED]') return false;
   if (/^\d{6}$/.test(s)) return true;
   if (s.startsWith('scrypt:') && s.split(':').length === 3) return true;
   if (s.startsWith('sha256:') && s.split(':').length === 3) return true;
@@ -509,22 +509,37 @@ function createStaffSession(staffId, staffName, phone) {
     const found = appState.staffList.find(s => (s.id || '').toUpperCase() === (staffId || '').toUpperCase());
     if (found && found.phone) staffPhone = found.phone;
   }
-  staffSessions.set(token, {
+  const sessObj = {
     staffId: staffId,
     staffName: staffName,
     staffPhone: staffPhone,
     createdAt: Date.now(),
     expiresAt: Date.now() + SESSION_TTL_MS
-  });
+  };
+  staffSessions.set(token, sessObj);
+  if (!appState.staffSessions) appState.staffSessions = {};
+  appState.staffSessions[token] = sessObj;
+  saveLocalData(appState);
   return token;
 }
 
 function getValidStaffSession(token) {
   if (!token) return null;
-  const sess = staffSessions.get(token);
+  let sess = staffSessions.get(token);
+  // Restore from persisted local state if server recently restarted
+  if (!sess && appState && appState.staffSessions && appState.staffSessions[token]) {
+    sess = appState.staffSessions[token];
+    if (Date.now() <= sess.expiresAt) {
+      staffSessions.set(token, sess);
+    } else {
+      delete appState.staffSessions[token];
+      return null;
+    }
+  }
   if (!sess) return null;
   if (Date.now() > sess.expiresAt) {
     staffSessions.delete(token);
+    if (appState.staffSessions) delete appState.staffSessions[token];
     return null;
   }
   if (appState && appState.staffList && sess.staffId) {
@@ -533,10 +548,14 @@ function getValidStaffSession(token) {
       const isActive = currentStaff.active !== undefined ? (currentStaff.active === true || currentStaff.active === 'Yes' || currentStaff.active === 'yes' || currentStaff.active === 'Active') : true;
       if (!isActive) {
         staffSessions.delete(token);
+        if (appState.staffSessions) delete appState.staffSessions[token];
         return null;
       }
-      if (sess.staffPhone && currentStaff.phone && sess.staffPhone !== currentStaff.phone) {
+      const sessP = (sess.staffPhone || '').replace(/\D/g, '').slice(-10);
+      const currP = (currentStaff.phone || '').replace(/\D/g, '').slice(-10);
+      if (sessP && currP && sessP !== currP) {
         staffSessions.delete(token);
+        if (appState.staffSessions) delete appState.staffSessions[token];
         return null;
       }
     }
@@ -545,7 +564,13 @@ function getValidStaffSession(token) {
 }
 
 function revokeStaffSession(token) {
-  if (token) staffSessions.delete(token);
+  if (token) {
+    staffSessions.delete(token);
+    if (appState && appState.staffSessions && appState.staffSessions[token]) {
+      delete appState.staffSessions[token];
+      saveLocalData(appState);
+    }
+  }
 }
 
 function revokeAllStaffSessionsForId(staffId) {
@@ -555,6 +580,14 @@ function revokeAllStaffSessionsForId(staffId) {
       staffSessions.delete(token);
     }
   }
+  if (appState && appState.staffSessions) {
+    for (const token of Object.keys(appState.staffSessions)) {
+      if ((appState.staffSessions[token].staffId || '').toUpperCase() === sId) {
+        delete appState.staffSessions[token];
+      }
+    }
+    saveLocalData(appState);
+  }
 }
 
 /**
@@ -562,6 +595,14 @@ function revokeAllStaffSessionsForId(staffId) {
  * Tokens from URL query strings are explicitly rejected to prevent leakage.
  */
 function extractAuthToken(req, payload) {
+  if (payload && typeof payload === 'object') {
+    if (payload.action === 'getStaffData' && payload.staffToken) {
+      return payload.staffToken.trim();
+    }
+    if (payload.action === 'logoutStaff' && payload.staffToken) {
+      return payload.staffToken.trim();
+    }
+  }
   const authHeader = req.headers['authorization'] || '';
   if (authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7).trim();
@@ -917,31 +958,61 @@ function mergeStaffList(remoteList) {
       (loc.name && loc.name.trim().toLowerCase() === rName)
     );
 
-    const existingPin = idx >= 0 ? (appState.staffList[idx].pin || '') : '';
-    const existingDisplayPin = idx >= 0 ? (appState.staffList[idx].displayPin || '') : '';
+    const loc = idx >= 0 ? appState.staffList[idx] : null;
+    const existingPin = loc ? (loc.pin || '') : '';
+    const existingDisplayPin = loc ? (loc.displayPin || '') : '';
+    const lastKnownSheetPin = loc ? (loc.lastKnownSheetPin || '') : '';
     let incomingPin = (rem.pin || '').toString().trim();
     const incomingDisplayPin = (incomingPin && /^\d{6}$/.test(incomingPin)) ? incomingPin : (rem.displayPin || '');
 
     let finalPin = '';
+    let finalDisplayPin = existingDisplayPin;
+    let updatedLastKnownSheetPin = lastKnownSheetPin;
+
     // P0 Fix: Ignore [PROTECTED] and blank PINs. Never overwrite valid hash with [PROTECTED].
+    // Also protect locally reset PINs from being clobbered by stale Google Sheet cells.
     if (incomingPin && incomingPin.toUpperCase() !== '[PROTECTED]' && isValidCredentialFormat(incomingPin)) {
-      finalPin = /^\d{6}$/.test(incomingPin) ? hashPinScrypt(incomingPin) : incomingPin;
+      if (existingPin && isValidCredentialFormat(existingPin)) {
+        if (lastKnownSheetPin && incomingPin === lastKnownSheetPin) {
+          finalPin = existingPin;
+          finalDisplayPin = existingDisplayPin || incomingDisplayPin;
+        } else if (existingDisplayPin && incomingPin === existingDisplayPin) {
+          finalPin = existingPin;
+          finalDisplayPin = existingDisplayPin;
+          updatedLastKnownSheetPin = incomingPin;
+        } else if (!lastKnownSheetPin && existingDisplayPin && existingDisplayPin !== incomingPin) {
+          // Local PIN was reset by admin; preserve local PIN and record stale sheet pin
+          finalPin = existingPin;
+          finalDisplayPin = existingDisplayPin;
+          updatedLastKnownSheetPin = incomingPin;
+        } else {
+          finalPin = /^\d{6}$/.test(incomingPin) ? hashPinScrypt(incomingPin) : incomingPin;
+          finalDisplayPin = incomingDisplayPin || incomingPin;
+          updatedLastKnownSheetPin = incomingPin;
+        }
+      } else {
+        finalPin = /^\d{6}$/.test(incomingPin) ? hashPinScrypt(incomingPin) : incomingPin;
+        finalDisplayPin = incomingDisplayPin || incomingPin;
+        updatedLastKnownSheetPin = incomingPin;
+      }
     } else if (existingPin && isValidCredentialFormat(existingPin)) {
       finalPin = existingPin;
+      finalDisplayPin = existingDisplayPin;
     } else {
-      // P1 Fix: Default PIN '123456' removed. Leave empty rather than insecure default.
       finalPin = '';
+      finalDisplayPin = '';
     }
 
     const rawStaffPhone = rem.phone || (idx >= 0 ? appState.staffList[idx].phone : '') || '';
     const cleanStaffPhone = isValidIndianMobile(rawStaffPhone) ? normalizeIndianMobile(rawStaffPhone) : rawStaffPhone;
 
     if (idx >= 0) {
-      const loc = appState.staffList[idx];
       const oldPhone = loc.phone || '';
       const oldActive = loc.active !== false;
       const newActive = rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : (loc.active !== undefined ? loc.active : true);
-      if ((oldPhone && cleanStaffPhone && oldPhone !== cleanStaffPhone) || (oldActive && !newActive)) {
+      const oldPhoneNorm = (oldPhone || '').replace(/\D/g, '').slice(-10);
+      const cleanPhoneNorm = (cleanStaffPhone || '').replace(/\D/g, '').slice(-10);
+      if ((oldPhoneNorm && cleanPhoneNorm && oldPhoneNorm !== cleanPhoneNorm) || (oldActive && !newActive)) {
         revokeAllStaffSessionsForId(loc.id);
       }
       appState.staffList[idx] = {
@@ -949,7 +1020,8 @@ function mergeStaffList(remoteList) {
         name: rem.name || loc.name,
         phone: cleanStaffPhone,
         pin: finalPin,
-        displayPin: incomingDisplayPin || loc.displayPin || existingDisplayPin,
+        displayPin: finalDisplayPin,
+        lastKnownSheetPin: updatedLastKnownSheetPin,
         active: newActive
       };
     } else {
@@ -958,7 +1030,8 @@ function mergeStaffList(remoteList) {
         name: rem.name,
         phone: cleanStaffPhone,
         pin: finalPin,
-        displayPin: incomingDisplayPin,
+        displayPin: finalDisplayPin || incomingDisplayPin,
+        lastKnownSheetPin: updatedLastKnownSheetPin,
         active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : true
       });
     }

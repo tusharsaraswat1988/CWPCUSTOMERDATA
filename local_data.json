@@ -4,16 +4,18 @@
       "id": "STF01",
       "name": "Chandan Soni",
       "phone": "8887759207",
-      "pin": "scrypt:73fc428ef0f232a05a093428c1c9cd18:720c5fe651809fc345b137b8de68e2aad065868f909639e9830b792e67f5423a",
+      "pin": "scrypt:269b7f57b792507f83288f4136ccdffc:deb9d7d0bf569904357928c59eff8606243583abb8da485c7743cce203d285ff",
       "displayPin": "123456",
+      "lastKnownSheetPin": "123456",
       "active": true
     },
     {
       "id": "STF02",
-      "name": "Taufiq Ahmed",
+      "name": "Gaurav Kr Gupta",
       "phone": "8081913264",
-      "pin": "scrypt:cf92e0f55c69574c0d30500295d06a0f:eff040e5de707374002df2c97bdff9446237c3988f5b7d2955753bfb8bc31767",
+      "pin": "scrypt:ee64fd5847429f9247539351b83b82c7:89bcab29dbdedc1f4764059f5e1611e37061c8453aee96da7a48f8c68f901d0a",
       "displayPin": "654321",
+      "lastKnownSheetPin": "654321",
       "active": true
     }
   ],
