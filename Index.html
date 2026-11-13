@@ -5189,9 +5189,9 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="custStaffSelect">Assign Staff *</label>
-              <select id="custStaffSelect" class="form-select" required>
-                <option value="">Select staff...</option>
+              <label class="form-label" for="custStaffSelect">Assign Staff <span style="font-weight: normal; color: var(--text-muted); font-size: 11px;">(Optional)</span></label>
+              <select id="custStaffSelect" class="form-select">
+                <option value="">Unassigned</option>
               </select>
             </div>
 
@@ -5741,8 +5741,8 @@
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" for="editCustStaff">Assign Staff *</label>
-            <select id="editCustStaff" class="form-select" required></select>
+            <label class="form-label" for="editCustStaff">Assign Staff <span style="font-weight: normal; color: var(--text-muted); font-size: 11px;">(Optional)</span></label>
+            <select id="editCustStaff" class="form-select"></select>
           </div>
           <div class="form-group">
             <label class="form-label" for="editCustActive">Status *</label>
@@ -7688,8 +7688,8 @@ function loadStaffCustomerData(staffId) {
       var select = document.getElementById('custStaffSelect');
       var listContainer = document.getElementById('adminStaffList');
 
-      /* Update Form Dropdown - Show active staff cleanly */
-      var optionsHtml = '<option value="">Select staff...</option>';
+      /* Update Form Dropdown - Show active staff cleanly with Unassigned option */
+      var optionsHtml = '<option value="">Unassigned</option>';
       state.staffList.forEach(function(s) {
         var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
         var label = s.name + (isAct ? '' : ' (Inactive)');
@@ -9080,8 +9080,21 @@ function loadStaffCustomerData(staffId) {
       }
 
       var staffSelect = document.getElementById('custStaffSelect');
-      var staffId = staffSelect.value;
-      var staffName = staffSelect.options[staffSelect.selectedIndex] ? staffSelect.options[staffSelect.selectedIndex].text.replace(/\s*\(.*\)$/, '') : '';
+      var rawStaffVal = staffSelect ? staffSelect.value.trim() : '';
+      var staffName = '';
+      var staffId = '';
+      if (rawStaffVal && rawStaffVal.toLowerCase() !== 'unassigned' && rawStaffVal.toLowerCase() !== 'none') {
+        var foundStaff = (state.staffList || []).find(function(s) {
+          return (s.name && s.name.trim().toLowerCase() === rawStaffVal.toLowerCase()) ||
+                 (s.id && s.id.trim().toLowerCase() === rawStaffVal.toLowerCase());
+        });
+        if (foundStaff) {
+          staffName = foundStaff.name;
+          staffId = foundStaff.id || '';
+        } else {
+          staffName = rawStaffVal;
+        }
+      }
 
       var category = document.getElementById('custCategory').value;
       var isDaily = (category === 'Daily Car Cleaning');
@@ -9529,13 +9542,13 @@ function loadStaffCustomerData(staffId) {
         }
         addrHtml += '</div>';
 
-        /* 4. Staff Assigned Name or Dash */
+        /* 4. Staff Assigned Name or Unassigned Badge */
         var staffName = (r.staffName || '').trim();
         var staffHtml = '<div style="text-align: center;">';
         if (staffName && staffName.toLowerCase() !== 'none' && staffName.toLowerCase() !== 'unassigned') {
           staffHtml += '<span class="staff-assigned-badge" title="' + escapeHtml(staffName) + '">' + escapeHtml(staffName) + '</span>';
         } else {
-          staffHtml += '<span class="cell-empty-dash">—</span>';
+          staffHtml += '<span class="staff-none-badge" title="No staff assigned">Unassigned</span>';
         }
         staffHtml += '</div>';
 
@@ -9630,10 +9643,10 @@ function loadStaffCustomerData(staffId) {
         }
       }
 
-      /* Populate Staff Dropdown with "None" option and preserve assigned staff */
+      /* Populate Staff Dropdown with Unassigned option and preserve assigned staff */
       var staffSelect = document.getElementById('editCustStaff');
       var staffFound = false;
-      var options = '<option value="">Unassigned (None)</option>';
+      var options = '<option value="">Unassigned</option>';
       (state.staffList || []).forEach(function(s) {
         var isSel = (s.name && r.staffName && s.name.trim().toLowerCase() === r.staffName.trim().toLowerCase());
         if (isSel) staffFound = true;
@@ -9780,12 +9793,29 @@ function loadStaffCustomerData(staffId) {
 
       var vehText = document.getElementById('editCustVehicles').value.trim();
 
+      var rawEditStaffVal = (document.getElementById('editCustStaff') ? document.getElementById('editCustStaff').value : '').trim();
+      var editStaffName = '';
+      var editStaffId = '';
+      if (rawEditStaffVal && rawEditStaffVal.toLowerCase() !== 'unassigned' && rawEditStaffVal.toLowerCase() !== 'none') {
+        var foundEditStaff = (state.staffList || []).find(function(s) {
+          return (s.name && s.name.trim().toLowerCase() === rawEditStaffVal.toLowerCase()) ||
+                 (s.id && s.id.trim().toLowerCase() === rawEditStaffVal.toLowerCase());
+        });
+        if (foundEditStaff) {
+          editStaffName = foundEditStaff.name;
+          editStaffId = foundEditStaff.id || '';
+        } else {
+          editStaffName = rawEditStaffVal;
+        }
+      }
+
       var updatedData = {
         sheetName: sheetName,
         rowIndex: rowIndex,
         customerName: document.getElementById('editCustName').value.trim(),
         customerNumber: normalizeIndianMobile(document.getElementById('editCustPhone').value),
-        staffName: document.getElementById('editCustStaff').value.trim(),
+        staffName: editStaffName,
+        staffId: editStaffId,
         serviceCategory: serviceCategory,
         serviceType: serviceType,
         packageType: pkgVal,

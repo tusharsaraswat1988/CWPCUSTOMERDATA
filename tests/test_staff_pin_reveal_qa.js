@@ -72,6 +72,7 @@ async function runTests() {
     console.log('===============================================================');
     console.log('🎉 ALL 5 ADMIN STAFF PIN REVEAL & TOGGLE QA TESTS PASSED!');
     console.log('===============================================================');
+    process.exit(0);
   } finally {
     // Always restore local_data.json
     fs.writeFileSync(localDataPath, originalLocalData, 'utf8');

@@ -1752,7 +1752,10 @@ function updateCustomer_(customerData) {
     updateCell(["customervehiclephotourl", "vehiclesitephotourl", "photourl", "photo"], customerData.photoUrl);
   }
   updateCell(["address"], customerData.address);
-  updateCell(["staffname", "staff"], customerData.staffName);
+  updateCell(["staffname", "staff"], customerData.staffName !== undefined ? customerData.staffName : "");
+  if (customerData.staffId !== undefined) {
+    updateCell(["staffid", "id"], customerData.staffId || "");
+  }
   updateCell(["staffnotescleaninginstructions", "staffnotesspecialinstructions", "staffnotes", "notes"], customerData.staffNotes);
   updateCell(["active", "status"], customerData.active || "Yes");
   

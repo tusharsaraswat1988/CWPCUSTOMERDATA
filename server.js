@@ -2784,6 +2784,20 @@ const server = http.createServer(async (req, res) => {
 
           if (!cust.packagesPurchased) cust.packagesPurchased = '1';
 
+          if (cust.staffName !== undefined || cust.staffId !== undefined) {
+            const sNameRaw = (cust.staffName || '').toString().trim();
+            if (!sNameRaw || sNameRaw.toLowerCase() === 'unassigned' || sNameRaw.toLowerCase() === 'none') {
+              cust.staffName = '';
+              cust.staffId = '';
+            } else {
+              cust.staffName = sNameRaw;
+              if (!cust.staffId && appState.staffList) {
+                const sObj = appState.staffList.find(s => (s.name || '').trim().toLowerCase() === sNameRaw.toLowerCase());
+                if (sObj && sObj.id) cust.staffId = sObj.id;
+              }
+            }
+          }
+
           let responseData;
           try {
             responseData = await forwardToGoogleAppsScript(payload);
@@ -2881,6 +2895,20 @@ const server = http.createServer(async (req, res) => {
             }
             delete cust.photoFile;
             delete cust.photoData;
+          }
+
+          if (cust.staffName !== undefined || cust.staffId !== undefined) {
+            const sNameRaw = (cust.staffName || '').toString().trim();
+            if (!sNameRaw || sNameRaw.toLowerCase() === 'unassigned' || sNameRaw.toLowerCase() === 'none') {
+              cust.staffName = '';
+              cust.staffId = '';
+            } else {
+              cust.staffName = sNameRaw;
+              if (!cust.staffId && appState.staffList) {
+                const sObj = appState.staffList.find(s => (s.name || '').trim().toLowerCase() === sNameRaw.toLowerCase());
+                if (sObj && sObj.id) cust.staffId = sObj.id;
+              }
+            }
           }
 
           let responseData;
