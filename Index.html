@@ -6796,8 +6796,13 @@ var state = {
       }
 
       if (tabName === 'staff') loadStaffListForAdmin();
-      if (tabName === 'records') loadAdminRecords();
-      if (tabName === 'sequence') initAdminSequenceManager();
+      if (tabName === 'records') loadAdminRecords(true);
+      if (tabName === 'sequence') {
+        initAdminSequenceManager();
+        if (typeof loadStaffSequenceData === 'function' && state.seqManagement && state.seqManagement.currentStaffId) {
+          loadStaffSequenceData(true);
+        }
+      }
     }
 
     // Listen to browser back/forward buttons to switch admin tab seamlessly
