@@ -3050,6 +3050,56 @@
       transform: scale(1.1);
     }
 
+    .btn-toggle-pin {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--bg-surface, #f8fafc);
+      border: 1px solid var(--border-color, #e2e8f0);
+      border-radius: 5px;
+      cursor: pointer;
+      line-height: 1.35;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn-toggle-pin:hover {
+      background: #f1f5f9;
+      color: var(--brand-blue, #2563eb);
+      border-color: #cbd5e1;
+    }
+
+    .btn-toggle-pin.active {
+      background: #eff6ff;
+      color: var(--brand-blue, #2563eb);
+      border-color: #93c5fd;
+      font-weight: 700;
+    }
+
+    .staff-pin-val {
+      font-family: 'JetBrains Mono', monospace, sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      transition: all 0.15s ease;
+    }
+
+    .staff-pin-val.masked {
+      color: #059669;
+    }
+
+    .staff-pin-val.revealed {
+      color: var(--brand-blue, #2563eb);
+      letter-spacing: 2px;
+      background: rgba(37, 99, 235, 0.08);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
     .admin-auth-error-msg {
       background: var(--danger-red-light);
       border: 1px solid var(--danger-red-border);
@@ -5777,7 +5827,13 @@
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">Reset PIN (6 Digits)</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px;">
+              <label class="form-label" style="margin: 0;">Reset PIN (6 Digits)</label>
+              <span style="font-size: 11px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px;">
+                Current: <b id="editStaffCurrentPinDisplay" class="staff-pin-val masked">●●●●●●</b>
+                <button type="button" class="btn-toggle-pin" id="btnToggleModalPin" onclick="toggleModalCurrentPin()" title="Show / Hide Current PIN" style="padding: 1px 6px; font-size: 10px;">👁️ Show</button>
+              </span>
+            </div>
             <input type="text" id="editStaffPin" class="form-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="New 6-digit PIN (leave blank to keep current)">
             <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">Leave blank to keep existing PIN</div>
           </div>
@@ -7642,7 +7698,8 @@ function loadStaffCustomerData(staffId) {
         var normPhone = normalizeIndianMobile(s.phone);
         var formattedPhone = normPhone ? formatIndianMobile(normPhone) : '';
         var isActive = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
-        var waMessage = 'Hello ' + s.name + ',\nHere is your CWP Detailers & Motors staff portal link:\n' + staffUrl + '\n\nPlease log in using your registered mobile number (' + (formattedPhone || s.phone) + ') and 6-digit security PIN.';
+        var sPin = (s.pin || s.displayPin || '').toString().trim();
+        var waMessage = 'Hello ' + s.name + ',\nHere is your CWP Detailers & Motors staff portal link:\n' + staffUrl + '\n\nPlease log in using your registered mobile number (' + (formattedPhone || s.phone) + ')' + (sPin ? (' and 6-digit security PIN: ' + sPin) : ' and 6-digit security PIN') + '.';
         var waHref = normPhone ? getIndianWhatsAppLink(normPhone, waMessage) : ('https:\x2F\x2Fwa.me/?text=' + encodeURIComponent(waMessage));
 
         cardsHtml += '<div class="staff-admin-card">';
@@ -7653,10 +7710,18 @@ function loadStaffCustomerData(staffId) {
         cardsHtml += '        ' + (isActive ? '● Active' : '○ Inactive');
         cardsHtml += '      </button>';
         cardsHtml += '    </div>';
-        cardsHtml += '    <div class="staff-admin-id" style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted);">';
+        cardsHtml += '    <div class="staff-admin-id" style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted); align-items: center;">';
         cardsHtml += '      <span>ID: <b style="color: var(--text-primary);">' + escapeHtml(s.id) + '</b></span>';
         cardsHtml += '      <span>📱 <b>' + (formattedPhone ? escapeHtml(formattedPhone) : '<span style="color:var(--text-muted); font-weight:normal;">Not provided</span>') + '</b></span>';
-        cardsHtml += '      <span>🔑 PIN: <b style="color: #059669;">' + (s.hasPin !== false ? '●●●●●● (Secured)' : 'Not Set') + '</b></span>';
+        cardsHtml += '      <span style="display: inline-flex; align-items: center; gap: 6px;">';
+        cardsHtml += '        <span>🔑 PIN:</span>';
+        if (s.hasPin === false && !sPin) {
+          cardsHtml += '        <b style="color: var(--text-muted);">Not Set</b>';
+        } else {
+          cardsHtml += '        <b id="staffPinVal_' + escapeHtml(s.id) + '" class="staff-pin-val masked" data-pin="' + escapeHtml(sPin) + '" data-masked="true">●●●●●●</b>';
+          cardsHtml += '        <button type="button" class="btn-toggle-pin" id="btnTogglePin_' + escapeHtml(s.id) + '" onclick="toggleStaffPinDisplay(\'' + escapeHtml(s.id) + '\')" title="Show / Hide PIN">👁️ Show</button>';
+        }
+        cardsHtml += '      </span>';
         cardsHtml += '    </div>';
         cardsHtml += '  </div>';
         cardsHtml += '  <div class="staff-admin-actions">';
@@ -7670,6 +7735,144 @@ function loadStaffCustomerData(staffId) {
       });
 
       listContainer.innerHTML = cardsHtml;
+    }
+
+    function toggleStaffPinDisplay(staffId) {
+      var valEl = document.getElementById('staffPinVal_' + staffId);
+      var btnEl = document.getElementById('btnTogglePin_' + staffId);
+      if (!valEl || !btnEl) return;
+
+      var isMasked = valEl.getAttribute('data-masked') !== 'false';
+
+      if (!isMasked) {
+        valEl.textContent = '●●●●●●';
+        valEl.setAttribute('data-masked', 'true');
+        valEl.className = 'staff-pin-val masked';
+        btnEl.innerHTML = '👁️ Show';
+        btnEl.classList.remove('active');
+        btnEl.title = 'Show PIN';
+        return;
+      }
+
+      var pin = valEl.getAttribute('data-pin') || '';
+      if (!pin) {
+        var staffObj = (state.staffList || []).find(function(s) {
+          return (s.id || '').toUpperCase() === (staffId || '').toUpperCase();
+        });
+        if (staffObj && (staffObj.pin || staffObj.displayPin)) {
+          pin = staffObj.pin || staffObj.displayPin;
+        }
+      }
+
+      if (pin) {
+        valEl.textContent = pin;
+        valEl.setAttribute('data-masked', 'false');
+        valEl.setAttribute('data-pin', pin);
+        valEl.className = 'staff-pin-val revealed';
+        btnEl.innerHTML = '🔒 Hide';
+        btnEl.classList.add('active');
+        btnEl.title = 'Hide PIN';
+        return;
+      }
+
+      btnEl.disabled = true;
+      btnEl.innerHTML = '⏳';
+      apiCall('revealStaffPin', { staffId: staffId }, function(res) {
+        btnEl.disabled = false;
+        var fetchedPin = (res && res.pin) ? res.pin : '';
+        if (fetchedPin) {
+          valEl.textContent = fetchedPin;
+          valEl.setAttribute('data-masked', 'false');
+          valEl.setAttribute('data-pin', fetchedPin);
+          valEl.className = 'staff-pin-val revealed';
+          btnEl.innerHTML = '🔒 Hide';
+          btnEl.classList.add('active');
+          btnEl.title = 'Hide PIN';
+          var sObj = (state.staffList || []).find(function(s) {
+            return (s.id || '').toUpperCase() === (staffId || '').toUpperCase();
+          });
+          if (sObj) {
+            sObj.pin = fetchedPin;
+            sObj.displayPin = fetchedPin;
+          }
+        } else {
+          btnEl.innerHTML = '👁️ Show';
+          showToast('PIN is not set or unavailable for this staff', 'ℹ️');
+        }
+      }, function(err) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = '👁️ Show';
+        showToast('Failed to load PIN: ' + (err.message || err), '❌');
+      });
+    }
+
+    function toggleModalCurrentPin() {
+      var valEl = document.getElementById('editStaffCurrentPinDisplay');
+      var btnEl = document.getElementById('btnToggleModalPin');
+      if (!valEl || !btnEl) return;
+
+      var isMasked = valEl.getAttribute('data-masked') !== 'false';
+      if (!isMasked) {
+        valEl.textContent = '●●●●●●';
+        valEl.setAttribute('data-masked', 'true');
+        valEl.className = 'staff-pin-val masked';
+        btnEl.innerHTML = '👁️ Show';
+        btnEl.classList.remove('active');
+        btnEl.title = 'Show Current PIN';
+        return;
+      }
+
+      var staffId = valEl.getAttribute('data-staff-id');
+      var pin = valEl.getAttribute('data-pin') || '';
+      if (!pin && staffId) {
+        var staffObj = (state.staffList || []).find(function(s) {
+          return (s.id || '').toUpperCase() === (staffId || '').toUpperCase();
+        });
+        if (staffObj && (staffObj.pin || staffObj.displayPin)) {
+          pin = staffObj.pin || staffObj.displayPin;
+        }
+      }
+
+      if (pin) {
+        valEl.textContent = pin;
+        valEl.setAttribute('data-masked', 'false');
+        valEl.className = 'staff-pin-val revealed';
+        btnEl.innerHTML = '🔒 Hide';
+        btnEl.classList.add('active');
+        btnEl.title = 'Hide Current PIN';
+        return;
+      }
+
+      if (!staffId) return;
+      btnEl.disabled = true;
+      btnEl.innerHTML = '⏳';
+      apiCall('revealStaffPin', { staffId: staffId }, function(res) {
+        btnEl.disabled = false;
+        var fetchedPin = (res && res.pin) ? res.pin : '';
+        if (fetchedPin) {
+          valEl.textContent = fetchedPin;
+          valEl.setAttribute('data-masked', 'false');
+          valEl.setAttribute('data-pin', fetchedPin);
+          valEl.className = 'staff-pin-val revealed';
+          btnEl.innerHTML = '🔒 Hide';
+          btnEl.classList.add('active');
+          btnEl.title = 'Hide Current PIN';
+          var sObj = (state.staffList || []).find(function(s) {
+            return (s.id || '').toUpperCase() === (staffId || '').toUpperCase();
+          });
+          if (sObj) {
+            sObj.pin = fetchedPin;
+            sObj.displayPin = fetchedPin;
+          }
+        } else {
+          btnEl.innerHTML = '👁️ Show';
+          showToast('PIN is not set or unavailable', 'ℹ️');
+        }
+      }, function(err) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = '👁️ Show';
+        showToast('Failed to load PIN: ' + (err.message || err), '❌');
+      });
     }
 
     function toggleStaffActiveStatus(staffId, newStatus) {
@@ -7700,6 +7903,23 @@ function loadStaffCustomerData(staffId) {
       document.getElementById('editStaffName').value = staff.name || '';
       setPhoneInputValue(document.getElementById('editStaffPhone'), staff.phone || '');
       document.getElementById('editStaffPin').value = '';
+
+      var curPinEl = document.getElementById('editStaffCurrentPinDisplay');
+      var curPinBtn = document.getElementById('btnToggleModalPin');
+      var curPinVal = (staff.pin || staff.displayPin || '').toString().trim();
+      if (curPinEl) {
+        curPinEl.textContent = '●●●●●●';
+        curPinEl.setAttribute('data-masked', 'true');
+        curPinEl.setAttribute('data-pin', curPinVal);
+        curPinEl.setAttribute('data-staff-id', staff.id);
+        curPinEl.className = 'staff-pin-val masked';
+      }
+      if (curPinBtn) {
+        curPinBtn.innerHTML = '👁️ Show';
+        curPinBtn.classList.remove('active');
+        curPinBtn.title = 'Show Current PIN';
+      }
+
       var isAct = staff.active !== undefined ? (staff.active === true || staff.active === 'Yes' || staff.active === 'yes' || staff.active === 'Active') : true;
       document.getElementById('editStaffActive').value = isAct ? 'true' : 'false';
 

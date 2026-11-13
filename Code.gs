@@ -257,7 +257,7 @@ function handleApiRequest_(action, payload, callerType) {
     } else if (action === "toggleCustomerActive") {
       return toggleCustomerActive_(payload.sheetName, payload.rowIndex, payload.currentStatus);
     } else if (action === "saveStaffMember") {
-      return saveStaffMember_(payload.staffData || payload, payload.id);
+      return saveStaffMember_(payload.staffData || payload, payload.id, payload.oldName);
     } else if (action === "deleteStaffMember") {
       return deleteStaffMember_(payload.id || payload.staffId);
     } else if (action === "toggleStaffActive") {
@@ -284,6 +284,8 @@ function handleApiRequest_(action, payload, callerType) {
       return saveStaffSequenceGas_(payload.staffId, payload.sequence || payload.customerIds, "admin");
     } else if (action === "resetStaffSequence") {
       return resetStaffSequenceGas_(payload.staffId);
+    } else if (action === "revealStaffPin") {
+      return revealStaffPinGas_(payload.staffId);
     }
   }
 
@@ -707,7 +709,8 @@ function getStaffListSanitized_(isAdmin) {
         name: s.name,
         phone: s.phone || "",
         active: s.active !== undefined ? s.active : true,
-        hasPin: !!(s.pin && isValidCredentialFormat_(s.pin))
+        hasPin: !!(s.pin && isValidCredentialFormat_(s.pin)),
+        pin: s.displayPin || (s.pin && /^\d{6}$/.test(s.pin) ? s.pin : "")
       };
     }
     // Public staff list: Absolutely NO PIN or phone number exposed!
@@ -731,7 +734,9 @@ function deduplicateStaffList_(list) {
     seenIds[normId] = true;
 
     var rawPin = item.pin ? item.pin.toString().trim() : "";
+    var displayPin = item.displayPin ? item.displayPin.toString().trim() : "";
     if (rawPin && /^\d{6}$/.test(rawPin)) {
+      if (!displayPin) displayPin = rawPin;
       rawPin = hashPin_(rawPin);
     } else if (rawPin.toUpperCase() === "[PROTECTED]") {
       rawPin = "";
@@ -742,6 +747,7 @@ function deduplicateStaffList_(list) {
       name: item.name.toString().trim(),
       phone: (item.phone || "").toString().trim(),
       pin: rawPin,
+      displayPin: displayPin,
       active: item.active !== undefined ? (item.active === true || item.active === "Yes" || item.active === "yes" || item.active === "Active") : true
     });
   });
@@ -826,8 +832,9 @@ function cleanAndSyncStaff_() {
   return getStaffListSanitized_(true);
 }
 
-function saveStaffMember_(staffData, legacyId) {
+function saveStaffMember_(staffData, legacyId, optionalOldName) {
   var name = "", id = "", phone = "", pin = "", active = true;
+  var passedOldName = (optionalOldName || (staffData && staffData.oldName) || "").toString().trim();
   
   if (typeof staffData === "object" && staffData !== null) {
     name = (staffData.name || "").toString().trim();
@@ -860,6 +867,11 @@ function saveStaffMember_(staffData, legacyId) {
            (item.name && item.name.toLowerCase() === name.toLowerCase());
   });
 
+  var oldStaffName = passedOldName;
+  if (!oldStaffName && existingIndex >= 0) {
+    oldStaffName = (list[existingIndex].name || "").toString().trim();
+  }
+
   // P1 Fix: Default PIN '123456' removed.
   // New staff creation strictly requires a 6-digit numeric PIN.
   // Blank PIN on edit preserves existing credential.
@@ -882,6 +894,9 @@ function saveStaffMember_(staffData, legacyId) {
     throw new Error("A valid 6-digit PIN is required to create a new staff member.");
   }
 
+  var rawDisplayPin = (staffData && staffData.displayPin) ? staffData.displayPin.toString().trim() : "";
+  if (!rawDisplayPin && pin && /^\d{6}$/.test(pin)) rawDisplayPin = pin;
+
   if (!id) {
     var maxNum = 0;
     list.forEach(function(item) {
@@ -900,6 +915,7 @@ function saveStaffMember_(staffData, legacyId) {
     name: name,
     phone: phone,
     pin: pinToStore,
+    displayPin: rawDisplayPin || (existingIndex >= 0 ? (list[existingIndex].displayPin || "") : ""),
     active: active
   };
   
@@ -920,11 +936,26 @@ function saveStaffMember_(staffData, legacyId) {
   props.setProperty("STAFF_LIST", JSON.stringify(list));
   syncStaffDropdownValidation_();
   syncStaffSheet_(list);
+
+  // Automatic Cascading Staff Rename across customer sheets
+  var reallocatedCount = 0;
+  if (oldStaffName && name && oldStaffName.toLowerCase() !== name.toLowerCase()) {
+    try {
+      reallocatedCount = cascadeStaffRenameAcrossSheets_(oldStaffName, name);
+      Logger.log("Cascaded staff rename from '" + oldStaffName + "' to '" + name + "' across " + reallocatedCount + " customer records.");
+    } catch (cascadeErr) {
+      Logger.log("Cascade staff rename error: " + cascadeErr.toString());
+    }
+  }
   
   return { 
     success: true, 
     staffList: getStaffListSanitized_(true), 
-    staff: { id: updatedStaff.id, name: updatedStaff.name, phone: updatedStaff.phone, active: updatedStaff.active, hasPin: !!updatedStaff.pin } 
+    staff: { id: updatedStaff.id, name: updatedStaff.name, phone: updatedStaff.phone, active: updatedStaff.active, hasPin: !!updatedStaff.pin },
+    cascaded: !!(oldStaffName && oldStaffName.toLowerCase() !== name.toLowerCase()),
+    oldName: oldStaffName,
+    newName: name,
+    reallocatedCount: reallocatedCount
   };
 }
 
@@ -939,11 +970,20 @@ function resetStaffPin_(staffId, newPin) {
   if (!staff) throw new Error("Staff member not found: " + sId);
 
   staff.pin = hashPin_(pinStr);
+  staff.displayPin = pinStr;
   PropertiesService.getScriptProperties().setProperty("STAFF_LIST", JSON.stringify(list));
   revokeAllStaffSessionsForIdGas_(staff.id);
   syncStaffSheet_(list);
 
-  return { success: true, message: "Staff member PIN reset successfully." };
+  return { success: true, staffId: staff.id, pin: pinStr, message: "Staff member PIN reset successfully." };
+}
+
+function revealStaffPinGas_(staffId) {
+  var sId = (staffId || "").toString().trim().toUpperCase();
+  var staff = getStaffList_().find(function(item) { return (item.id || "").toUpperCase() === sId; });
+  if (!staff) return { success: false, error: "Staff member not found: " + sId };
+  var pinVal = staff.displayPin || (staff.pin && /^\d{6}$/.test(staff.pin) ? staff.pin : "");
+  return { success: true, staffId: staff.id, pin: pinVal };
 }
 
 function toggleStaffActive_(id, newStatus) {
@@ -1037,15 +1077,82 @@ function deleteStaffMember_(id) {
   var props = PropertiesService.getScriptProperties();
   var list = getStaffList_();
   
+  var deletedStaff = list.find(function(item) { return (item.id || "").toLowerCase() === id; });
+  var deletedStaffName = deletedStaff ? (deletedStaff.name || "").toString().trim() : "";
+
   revokeAllStaffSessionsForIdGas_(id);
   list = list.filter(function(item) {
-    return item.id.toLowerCase() !== id;
+    return (item.id || "").toLowerCase() !== id;
   });
   
   props.setProperty("STAFF_LIST", JSON.stringify(list));
   syncStaffDropdownValidation_();
   syncStaffSheet_(list);
-  return { success: true, staffList: getStaffListSanitized_(true) };
+
+  var unassignedCount = 0;
+  if (deletedStaffName) {
+    try {
+      unassignedCount = cascadeStaffRenameAcrossSheets_(deletedStaffName, "");
+      Logger.log("Staff member deleted: '" + deletedStaffName + "' unassigned across " + unassignedCount + " customer records.");
+    } catch (e) {
+      Logger.log("Cascade unassign error on delete: " + e.toString());
+    }
+  }
+
+  return { success: true, staffList: getStaffListSanitized_(true), unassignedCount: unassignedCount };
+}
+
+/**
+ * Cascades a staff rename across customer sheets (Daily Clean, All Other Work).
+ * Batch-updates all rows where Staff Name matches oldStaffName to newStaffName.
+ */
+function cascadeStaffRenameAcrossSheets_(oldStaffName, newStaffName) {
+  if (!oldStaffName) return 0;
+  var ss = getSpreadsheet_();
+  var sheets = ["Daily Clean", "All Other Work"];
+  var totalUpdated = 0;
+  var oldLower = oldStaffName.toString().trim().toLowerCase();
+  var newTrimmed = (newStaffName || "").toString().trim();
+
+  sheets.forEach(function(sheetName) {
+    try {
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return;
+      var lastRow = sheet.getLastRow();
+      var lastCol = sheet.getLastColumn();
+      if (lastRow < 2 || lastCol < 1) return;
+
+      var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+      var staffColIdx = -1;
+      for (var c = 0; c < headers.length; c++) {
+        var h = (headers[c] || "").toString().toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+        if (h.indexOf("staffname") >= 0 || (h.indexOf("staff") >= 0 && h.indexOf("notes") === -1 && h.indexOf("id") === -1)) {
+          staffColIdx = c + 1;
+          break;
+        }
+      }
+
+      if (staffColIdx >= 1) {
+        var values = sheet.getRange(2, staffColIdx, lastRow - 1, 1).getValues();
+        var batchUpdated = false;
+        for (var r = 0; r < values.length; r++) {
+          var cellVal = (values[r][0] || "").toString().trim();
+          if (cellVal.toLowerCase() === oldLower) {
+            values[r][0] = newTrimmed;
+            totalUpdated++;
+            batchUpdated = true;
+          }
+        }
+        if (batchUpdated) {
+          sheet.getRange(2, staffColIdx, values.length, 1).setValues(values);
+        }
+      }
+    } catch (e) {
+      Logger.log("cascadeStaffRenameAcrossSheets error on sheet " + sheetName + ": " + e.toString());
+    }
+  });
+
+  return totalUpdated;
 }
 
 /**

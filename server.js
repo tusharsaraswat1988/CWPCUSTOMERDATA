@@ -874,15 +874,17 @@ function sanitizeStaffForPublic(staff) {
 }
 
 /**
- * Sanitizes staff list for admin use (Removes plaintext PIN/hash, returns hasPin indicator)
+ * Sanitizes staff list for admin use (Provides masked/viewable PIN and hasPin indicator for Admin Portal)
  */
 function sanitizeStaffForAdmin(staff) {
+  const pinVal = staff.displayPin || (staff.pin && /^\d{6}$/.test(staff.pin) ? staff.pin : '');
   return {
     id: staff.id,
     name: staff.name,
     phone: staff.phone || '',
     active: staff.active !== undefined ? staff.active : true,
-    hasPin: !!(staff.pin && isValidCredentialFormat(staff.pin))
+    hasPin: !!(staff.pin && isValidCredentialFormat(staff.pin)),
+    pin: pinVal
   };
 }
 
@@ -916,7 +918,9 @@ function mergeStaffList(remoteList) {
     );
 
     const existingPin = idx >= 0 ? (appState.staffList[idx].pin || '') : '';
+    const existingDisplayPin = idx >= 0 ? (appState.staffList[idx].displayPin || '') : '';
     let incomingPin = (rem.pin || '').toString().trim();
+    const incomingDisplayPin = (incomingPin && /^\d{6}$/.test(incomingPin)) ? incomingPin : (rem.displayPin || '');
 
     let finalPin = '';
     // P0 Fix: Ignore [PROTECTED] and blank PINs. Never overwrite valid hash with [PROTECTED].
@@ -945,6 +949,7 @@ function mergeStaffList(remoteList) {
         name: rem.name || loc.name,
         phone: cleanStaffPhone,
         pin: finalPin,
+        displayPin: incomingDisplayPin || loc.displayPin || existingDisplayPin,
         active: newActive
       };
     } else {
@@ -953,6 +958,7 @@ function mergeStaffList(remoteList) {
         name: rem.name,
         phone: cleanStaffPhone,
         pin: finalPin,
+        displayPin: incomingDisplayPin,
         active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : true
       });
     }
@@ -2125,8 +2131,12 @@ const server = http.createServer(async (req, res) => {
             // Migration: Upgrade legacy plaintext or SHA-256 PIN to scrypt immediately
             if (needsRehash(staff.pin)) {
               staff.pin = hashPinScrypt(pin);
+              staff.displayPin = pin;
               saveLocalData(appState);
               console.log(`[Security] Plaintext/SHA-256 PIN for staff ${staff.id} upgraded to scrypt hash.`);
+            } else if (!staff.displayPin && pin && /^\d{6}$/.test(pin)) {
+              staff.displayPin = pin;
+              saveLocalData(appState);
             }
 
             const staffToken = createStaffSession(staff.id, staff.name, staff.phone);
@@ -2284,7 +2294,8 @@ const server = http.createServer(async (req, res) => {
           'reorderSheet',
           'getStaffSequence',
           'saveStaffSequence',
-          'resetStaffSequence'
+          'resetStaffSequence',
+          'revealStaffPin'
         ];
 
         if (adminProtectedActions.includes(payload.action)) {
@@ -2401,6 +2412,7 @@ const server = http.createServer(async (req, res) => {
           }
 
           staff.pin = hashPinScrypt(newPin);
+          staff.displayPin = newPin;
           saveLocalData(appState);
           revokeAllStaffSessionsForId(staff.id);
 
@@ -2411,7 +2423,30 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: true,
+            staffId: staff.id,
+            pin: newPin,
             message: `6-digit PIN for staff member (${staff.name}) reset successfully.`
+          }));
+        }
+
+        // Admin: Reveal Staff PIN (Protected Admin Operation)
+        if (payload.action === 'revealStaffPin') {
+          const staffId = (payload.staffId || '').toString().trim().toUpperCase();
+          if (!staffId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
+          }
+          const staff = (appState.staffList || []).find(s => (s.id || '').toUpperCase() === staffId);
+          if (!staff) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Staff member not found.' }));
+          }
+          const pin = staff.displayPin || (staff.pin && /^\d{6}$/.test(staff.pin) ? staff.pin : '');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            staffId: staff.id,
+            pin: pin
           }));
         }
 
@@ -2455,19 +2490,26 @@ const server = http.createServer(async (req, res) => {
           }
 
           let pinToStore = '';
+          let displayPinToStore = '';
           if (rawPin) {
             if (rawPin.toUpperCase() === '[PROTECTED]') {
-              if (idx >= 0) pinToStore = appState.staffList[idx].pin || '';
+              if (idx >= 0) {
+                pinToStore = appState.staffList[idx].pin || '';
+                displayPinToStore = appState.staffList[idx].displayPin || '';
+              }
             } else if (rawPin.startsWith('scrypt:') || rawPin.startsWith('sha256:')) {
               pinToStore = rawPin;
+              displayPinToStore = idx >= 0 ? (appState.staffList[idx].displayPin || '') : '';
             } else if (/^\d{6}$/.test(rawPin)) {
               pinToStore = hashPinScrypt(rawPin);
+              displayPinToStore = rawPin;
             } else {
               res.writeHead(400, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Staff PIN must be exactly 6 numeric digits.' }));
             }
           } else if (idx >= 0 && appState.staffList[idx].pin) {
             pinToStore = appState.staffList[idx].pin;
+            displayPinToStore = appState.staffList[idx].displayPin || '';
           } else {
             // New staff member with no PIN: Require explicit 6-digit PIN. Never default to 123456!
             res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -2475,17 +2517,33 @@ const server = http.createServer(async (req, res) => {
           }
 
           const existingStaff = idx >= 0 ? appState.staffList[idx] : null;
+          const oldStaffName = (existingStaff && existingStaff.name ? existingStaff.name : (payload.oldName || '')).trim();
+          const nameChanged = !!(oldStaffName && oldStaffName.toLowerCase() !== name.toLowerCase());
           const phoneChanged = existingStaff && (existingStaff.phone || '') !== (normalizedPhone || '');
           const pinChanged = existingStaff && pinToStore && existingStaff.pin && existingStaff.pin !== pinToStore;
           const deactivated = existingStaff && existingStaff.active && !active;
 
-          const newObj = { id, name, phone: normalizedPhone, pin: pinToStore, active };
+          const newObj = { id, name, phone: normalizedPhone, pin: pinToStore, displayPin: displayPinToStore, active };
 
           if (idx >= 0) {
             appState.staffList[idx] = Object.assign({}, appState.staffList[idx], newObj);
           } else {
             appState.staffList.push(newObj);
           }
+
+          // Cascade staff rename in local customers cache if present
+          let localReassignedCount = 0;
+          if (nameChanged && appState.customers && Array.isArray(appState.customers)) {
+            appState.customers.forEach(c => {
+              if ((c.staffName || '').trim().toLowerCase() === oldStaffName.toLowerCase() ||
+                  (c.staffId || '').trim().toUpperCase() === id) {
+                c.staffName = name;
+                c.staffId = id;
+                localReassignedCount++;
+              }
+            });
+          }
+
           saveLocalData(appState);
           invalidateLiveCustomersCache();
 
@@ -2495,11 +2553,16 @@ const server = http.createServer(async (req, res) => {
             console.log(`[Security] Revoked all active sessions for staff ${newObj.id} (phoneChanged: ${phoneChanged}, pinChanged: ${pinChanged}, deactivated: ${deactivated})`);
           }
 
+          let gasReallocatedCount = 0;
           try {
-            await forwardToGoogleAppsScript({
+            const gasRes = await forwardToGoogleAppsScript({
               action: 'saveStaffMember',
-              staffData: { id: newObj.id, name: newObj.name, phone: newObj.phone, pin: newObj.pin, active: newObj.active }
+              staffData: { id: newObj.id, name: newObj.name, phone: newObj.phone, pin: newObj.pin, displayPin: newObj.displayPin, active: newObj.active },
+              oldName: oldStaffName
             });
+            if (gasRes && gasRes.reallocatedCount !== undefined) {
+              gasReallocatedCount = gasRes.reallocatedCount;
+            }
           } catch (e) {
             console.warn('GAS saveStaffMember sync warning:', e.message);
           }
@@ -2509,7 +2572,11 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({
             success: true,
             staffList: sanitizedList,
-            staff: sanitizeStaffForAdmin(newObj)
+            staff: sanitizeStaffForAdmin(newObj),
+            cascaded: nameChanged,
+            oldName: oldStaffName,
+            newName: newObj.name,
+            reallocatedCount: gasReallocatedCount || localReassignedCount
           }));
         }
 
@@ -2538,8 +2605,21 @@ const server = http.createServer(async (req, res) => {
         // Admin: Delete Staff Member
         if (payload.action === 'deleteStaffMember') {
           const staffId = (payload.id || payload.staffId || '').toString().trim().toLowerCase();
+          const targetStaff = (appState.staffList || []).find(s => (s.id || '').toLowerCase() === staffId);
+          const deletedName = targetStaff ? (targetStaff.name || '').trim() : '';
           revokeAllStaffSessionsForId(staffId);
           appState.staffList = (appState.staffList || []).filter(s => (s.id || '').toLowerCase() !== staffId);
+
+          if (deletedName && appState.customers && Array.isArray(appState.customers)) {
+            appState.customers.forEach(c => {
+              if ((c.staffName || '').trim().toLowerCase() === deletedName.toLowerCase() ||
+                  (c.staffId || '').trim().toLowerCase() === staffId) {
+                c.staffName = '';
+                c.staffId = '';
+              }
+            });
+          }
+
           saveLocalData(appState);
           invalidateLiveCustomersCache();
           try {

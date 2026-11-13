@@ -4,14 +4,24 @@
       "id": "STF01",
       "name": "Chandan Soni",
       "phone": "8887759207",
-      "pin": "scrypt:73fc428ef0f232a05a093428c1c9cd18:720c5fe651809fc345b137b8de68e2aad065868f909639e9830b792e67f5423a",
+      "pin": "scrypt:0918873547702382bb22e7df40242a66:a7922fc272a4a32b945db69e295ba2f31b15baaad9dff966dbbd363532ca61e3",
+      "displayPin": "123456",
       "active": true
     },
     {
       "id": "STF02",
-      "name": "Taufiq Ahmed",
+      "name": "Gaurav Kr Gupta",
       "phone": "8081913264",
-      "pin": "scrypt:cf92e0f55c69574c0d30500295d06a0f:eff040e5de707374002df2c97bdff9446237c3988f5b7d2955753bfb8bc31767",
+      "pin": "scrypt:e749d9b55309aeb386efceffad6d8028:043421e45ed5a68aca1c1b8406f737cf385854cbfc4263f5a607113d3ec36171",
+      "displayPin": "654321",
+      "active": true
+    },
+    {
+      "id": "STF98",
+      "name": "New Staff Merged",
+      "phone": "9123456789",
+      "pin": "scrypt:70ca2025a429f61d35d78029202f8caf:ff83d4836dc44e2c41a53ea3341a90a1e99d6667e4d2444d7cbe2c7f6d74d01f",
+      "displayPin": "654321",
       "active": true
     }
   ],
