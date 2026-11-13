@@ -4689,7 +4689,7 @@
       
       <!-- Center: Admin App Title -->
       <div class="header-center">
-        <h1 class="header-app-title" id="pageMainTitle">एडमिन पोर्टल</h1>
+        <h1 class="header-app-title" id="pageMainTitle">Admin Portal</h1>
       </div>
 
       <!-- Right: Controls -->
@@ -4708,9 +4708,9 @@
 
         <!-- Admin Top Controls (Only shown in admin view - No duplicate admin badge) -->
         <div id="adminHeaderControls" style="display: flex; align-items: center; gap: 8px;">
-          <button type="button" id="adminLogoutBtn" class="header-logout-btn" onclick="handleAdminLogout()" style="display: none;" title="एडमिन पोर्टल से लॉगआउट करें">
+          <button type="button" id="adminLogoutBtn" class="header-logout-btn" onclick="handleAdminLogout()" style="display: none;" title="Logout from Admin Portal">
             <span class="logout-icon">🚪</span>
-            <span class="logout-text">लॉगआउट (Logout)</span>
+            <span class="logout-text">Logout</span>
           </button>
         </div>
       </div>
@@ -4747,7 +4747,7 @@
             
             <!-- Inactive Alert Banner (Shown if staff account is disabled by admin) -->
             <div id="staffInactiveMsgBox" style="display: none; background: var(--danger-red-light); border: 1px solid var(--danger-red-border); color: var(--danger-red); padding: 12px 14px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 14px; line-height: 1.5;">
-              🚫 आपका स्टाफ अकाउंट निष्क्रिय (Inactive) कर दिया गया है।<br>कृपया अपने एडमिन से संपर्क करें।
+              🚫 आपका स्टाफ अकाउंट Inactive कर दिया गया है।<br>कृपया अपने एडमिन से संपर्क करें।
             </div>
 
             <form id="staffAuthForm" onsubmit="handleStaffAuthSubmit(event)">
@@ -4757,7 +4757,7 @@
                   <span>📱</span>
                 </div>
                 <div class="cwp-phone-group" style="flex: 1;">
-                  <span class="cwp-phone-prefix" style="background: #ffffff; border-color: var(--border-color);" title="भारत (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+                  <span class="cwp-phone-prefix" style="background: #ffffff; border-color: var(--border-color);" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
                   <input type="tel" id="staffPhoneInput" class="auth-field-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
                 </div>
               </div>
@@ -4768,7 +4768,7 @@
                   <span>🔐</span>
                 </div>
                 <input type="password" id="staffPinInput" class="auth-field-input" placeholder="6-अंकों का पासवर्ड (पिन) दर्ज करें..." maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="current-password" required>
-                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('staffPinInput')" title="पासवर्ड देखें / छिपाएं">👁️</button>
+                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('staffPinInput')" title="Show / hide password">👁️</button>
               </div>
 
               <div id="staffAuthError" class="admin-auth-error-msg" style="display: none;">
@@ -4819,7 +4819,7 @@
           <div class="search-bar-wrapper">
             <span class="search-icon">🔍</span>
             <input type="text" id="staffSearchInput" class="search-input" placeholder="ग्राहक का नाम, गाड़ी नंबर या पता खोजें..." oninput="handleStaffSearch(this.value)">
-            <button type="button" id="btnStaffSearchClear" class="search-clear-btn" onclick="clearStaffSearch()" style="display: none;" title="सर्च साफ़ करें">✕</button>
+            <button type="button" id="btnStaffSearchClear" class="search-clear-btn" onclick="clearStaffSearch()" style="display: none;" title="Clear search">✕</button>
           </div>
 
           <div class="filter-pills-row" id="filterPillsRow" role="tablist">
@@ -4932,41 +4932,41 @@
             </div>
 
             <div class="auth-role-pill admin-pill">
-              <span class="pill-dot"></span> सेंट्रल एडमिन कंट्रोल पैनल
+              <span class="pill-dot"></span> Central Admin Control Panel
             </div>
 
-            <h2 class="admin-auth-title">एडमिन सुरक्षा सत्यापन</h2>
-            <p class="admin-auth-desc">कस्टमर डेटाबेस, स्टाफ मैनेजमेंट व सेटिंग्स एक्सेस करने के लिए पासवर्ड दर्ज करें।</p>
+            <h2 class="admin-auth-title">Admin Security Verification</h2>
+            <p class="admin-auth-desc">Enter password to access customer database, staff management, and settings.</p>
             
             <form id="adminAuthForm" onsubmit="handleAdminAuth(event)">
               <div class="auth-input-group">
                 <div class="auth-input-icon">
                   <span>🛡️</span>
                 </div>
-                <input type="password" id="adminPasswordInput" class="auth-field-input" placeholder="एडमिन पासवर्ड दर्ज करें..." autocomplete="current-password" required>
-                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('adminPasswordInput')" title="पासवर्ड देखें / छिपाएं">👁️</button>
+                <input type="password" id="adminPasswordInput" class="auth-field-input" placeholder="Enter admin password..." autocomplete="current-password" required>
+                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('adminPasswordInput')" title="Show / hide password">👁️</button>
               </div>
 
               <div id="adminAuthError" class="admin-auth-error-msg" style="display: none;">
-                ❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।
+                ❌ Incorrect password! Please enter the correct password.
               </div>
 
               <div class="admin-remember-row">
                 <label class="remember-label">
                   <input type="checkbox" id="rememberAdminDevice" checked>
-                  <span>इस डिवाइस पर याद रखें</span>
+                  <span>Remember on this device</span>
                 </label>
               </div>
 
               <button type="submit" id="btnAdminLogin" class="auth-submit-btn admin-submit-btn">
                 <span class="btn-icon">🔓</span>
-                <span class="btn-label">एडमिन पोर्टल खोलें (Unlock Dashboard)</span>
+                <span class="btn-label">Unlock Admin Dashboard</span>
               </button>
             </form>
 
             <div class="auth-switch-box">
               <button type="button" class="btn-switch-portal" onclick="applyViewMode('staff')">
-                <span>🚗</span> स्टाफ पोर्टल पर जाएं (Staff View)
+                <span>🚗</span> Go to Staff Portal
               </button>
             </div>
 
@@ -4985,25 +4985,25 @@
         <!-- Admin Sub Tabs (Modern UI/UX Segmented Control) -->
         <div class="admin-tab-container">
           <div class="admin-tab-nav" role="tablist">
-            <button type="button" class="admin-tab-btn active" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')" title="एक्टिव ग्राहक व रिकॉर्ड्स देखें">
+            <button type="button" class="admin-tab-btn active" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')" title="View customer records">
               <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                 <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
               </svg>
-              <span class="tab-text">ग्राहक रिकॉर्ड्स</span>
+              <span class="tab-text">Customer Records</span>
               <span class="admin-tab-badge" id="tabRecordsCount">0</span>
             </button>
-            <button type="button" class="admin-tab-btn" id="tabBtnSequence" role="tab" onclick="switchAdminTab('sequence')" title="दैनिक कार सफाई रूट सीक्वेंस मैनेजमेंट">
+            <button type="button" class="admin-tab-btn" id="tabBtnSequence" role="tab" onclick="switchAdminTab('sequence')" title="Daily car cleaning route sequence management">
               <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                 <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
               </svg>
-              <span class="tab-text">रूट सीक्वेंस</span>
+              <span class="tab-text">Route Sequence</span>
               <span class="admin-tab-badge" id="tabSequenceBadge">Route</span>
             </button>
-            <button type="button" class="admin-tab-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')" title="स्टाफ मैनेजमेंट एवं लॉगिन लिंक्स">
+            <button type="button" class="admin-tab-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')" title="Staff management and login links">
               <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
               </svg>
-              <span class="tab-text">स्टाफ पैनल</span>
+              <span class="tab-text">Staff Management</span>
               <span class="admin-tab-badge" id="tabStaffCount">0</span>
             </button>
           </div>
@@ -5015,10 +5015,10 @@
           <!-- Top Return Navigation Strip -->
           <div class="cwp-form-header-bar">
             <div class="cwp-form-title-wrap">
-              <button type="button" class="btn-back-compact" onclick="switchAdminTab('records')" title="वापस एक्टिव ग्राहक सूची देखें">
-                <span>←</span> <strong>वापस रिकॉर्ड्स</strong>
+              <button type="button" class="btn-back-compact" onclick="switchAdminTab('records')" title="Back to customer records">
+                <span>←</span> <strong>Back to Records</strong>
               </button>
-              <h2 class="cwp-form-title">नया ग्राहक जोड़ें (Add Customer)</h2>
+              <h2 class="cwp-form-title">Add New Customer</h2>
               <div id="custDraftBadge" class="cwp-draft-badge" style="display: none;"></div>
             </div>
           </div>
@@ -5028,16 +5028,16 @@
             <div class="cwp-draft-banner-content">
               <span class="cwp-draft-banner-icon">📝</span>
               <div class="cwp-draft-banner-text">
-                <strong style="color: #15803d;">पिछला अधूरा ड्राफ्ट मिला:</strong>
+                <strong style="color: #15803d;">Previous draft found:</strong>
                 <span id="custDraftTimeInfo" style="color: #374151; font-size: 12px; margin-left: 4px;"></span>
               </div>
             </div>
             <div class="cwp-draft-banner-actions">
               <button type="button" class="btn-draft-action btn-draft-restore" onclick="restoreCustomerDraft()">
-                <span>✓</span> ड्राफ्ट भरें (Restore)
+                <span>✓</span> Restore Draft
               </button>
               <button type="button" class="btn-draft-action btn-draft-discard" onclick="discardCustomerDraft(false)">
-                <span>✕</span> हटाएं (Discard)
+                <span>✕</span> Discard
               </button>
             </div>
           </div>
@@ -5047,20 +5047,20 @@
             <!-- SECTION 1: CUSTOMER DETAILS -->
             <div class="form-section-head">
               <span class="section-num-pill">1</span>
-              <span class="section-title-text">ग्राहक विवरण (Customer Details)</span>
+              <span class="section-title-text">Customer Details</span>
             </div>
 
             <!-- Customer Name & Mobile (Two Column on Desktop) -->
             <div class="form-row-2">
               <div class="form-group">
-                <label class="form-label" for="custName">ग्राहक का नाम *</label>
-                <input type="text" id="custName" class="form-input" placeholder="उदा. श्रेयांश जैन" required>
+                <label class="form-label" for="custName">Customer Name *</label>
+                <input type="text" id="custName" class="form-input" placeholder="e.g. Shreyansh Jain" required>
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="custPhone">मोबाइल नंबर *</label>
+                <label class="form-label" for="custPhone">Mobile Number *</label>
                 <div class="cwp-phone-group">
-                  <span class="cwp-phone-prefix" title="भारत (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+                  <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
                   <input type="tel" id="custPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
                 </div>
               </div>
@@ -5068,30 +5068,30 @@
 
             <!-- Address (Full Width) -->
             <div class="form-group" style="margin-bottom: 6px;">
-              <label class="form-label" for="custAddress">ग्राहक का पता *</label>
-              <textarea id="custAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="मकान नं, कॉलोनी, लैंडमार्क, शहर..." required></textarea>
+              <label class="form-label" for="custAddress">Customer Address *</label>
+              <textarea id="custAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House No, Colony, Landmark, City..." required></textarea>
             </div>
 
             <!-- Optional Maps & Photo Action Bar (Compact & Collapsed by Default) -->
             <div class="optional-tools-bar">
               <button type="button" class="btn-optional-tool" id="btnToggleCustMap" onclick="toggleCustMap()">
-                <span>📍</span> <span id="custMapBtnText">+ मैप लोकेशन / GPS जोड़ें</span>
+                <span>📍</span> <span id="custMapBtnText">+ Add Map Location / GPS</span>
               </button>
 
               <div class="photo-upload-compact-zone" id="custPhotoDropzone">
                 <input type="file" id="custPhotoFile" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
                 <button type="button" class="btn-optional-tool" id="custPhotoPlaceholder" onclick="triggerCustPhotoSelect()">
-                  <span>📸</span> <span>+ फोटो जोड़ें (Upload Photo)</span>
+                  <span>📸</span> <span>+ Upload Photo</span>
                 </button>
-                <img id="custPhotoPreview" class="upload-preview-thumb" style="display: none; cursor: pointer;" alt="Preview" onclick="openExistingCustPhotoCropper()" title="फोटो क्रॉप / रोटेट करने के लिए क्लिक करें">
+                <img id="custPhotoPreview" class="upload-preview-thumb" style="display: none; cursor: pointer;" alt="Preview" onclick="openExistingCustPhotoCropper()" title="Click to crop / rotate photo">
                 <div id="custPhotoActionsWrap" style="display: none; align-items: center; gap: 4px;">
-                  <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingCustPhotoCropper()" title="क्रॉप व रोटेट करें">
-                    <span>✂️</span> <span>क्रॉप / रोटेट</span>
+                  <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingCustPhotoCropper()" title="Crop & rotate">
+                    <span>✂️</span> <span>Crop / Rotate</span>
                   </button>
-                  <button type="button" class="btn-photo-action-sm" onclick="document.getElementById('custPhotoFile').click()" title="दूसरी फोटो चुनें">
-                    <span>🔄</span> <span>बदलें</span>
+                  <button type="button" class="btn-photo-action-sm" onclick="document.getElementById('custPhotoFile').click()" title="Change photo">
+                    <span>🔄</span> <span>Change</span>
                   </button>
-                  <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeCustPhoto(event)" title="फोटो हटाएं">
+                  <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeCustPhoto(event)" title="Remove photo">
                     <span>🗑️</span>
                   </button>
                 </div>
@@ -5104,7 +5104,7 @@
             <!-- Collapsible Maps Input Panel (Hidden by default) -->
             <div id="custMapCollapse" class="collapsible-panel" style="display: none; margin-bottom: 8px;">
               <div class="form-input-addon-group">
-                <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F) या Coordinates">
+                <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F), or Coordinates">
                 <button type="button" class="form-addon-btn" onclick="detectGpsLocation()">📍 GPS</button>
               </div>
             </div>
@@ -5112,75 +5112,75 @@
             <!-- SECTION 2: SERVICE DETAILS -->
             <div class="form-section-head">
               <span class="section-num-pill">2</span>
-              <span class="section-title-text">सर्विस विवरण (Service Details)</span>
+              <span class="section-title-text">Service Details</span>
             </div>
 
             <!-- Service Category & Package Type (Side by Side on Desktop) -->
             <div class="form-row-2">
               <div class="form-group">
-                <label class="form-label" for="custCategory">सर्विस केटेगरी *</label>
+                <label class="form-label" for="custCategory">Service Category *</label>
                 <select id="custCategory" class="form-select" onchange="toggleCategoryFields(this.value)" required>
-                  <option value="Daily Car Cleaning">Daily Car Cleaning (दैनिक कार सफाई)</option>
-                  <option value="Car Washing">Car Washing (कार वॉशिंग)</option>
-                  <option value="Solar Panel Cleaning">Solar Panel Cleaning (सोलर पैनल सफाई)</option>
+                  <option value="Daily Car Cleaning">Daily Car Cleaning</option>
+                  <option value="Car Washing">Car Washing</option>
+                  <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="custPkgType">पैकेज का प्रकार *</label>
+                <label class="form-label" for="custPkgType">Package Type *</label>
                 <select id="custPkgType" class="form-select" onchange="handlePackageTypeChange(this.value)" required>
                   <option value="DCC ONLY">DCC ONLY</option>
                   <option value="DCC SILVER">DCC SILVER</option>
                   <option value="DCC GOLD">DCC GOLD</option>
                   <option value="OTHER">OTHER</option>
                 </select>
-                <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="अन्य पैकेज विवरण..." style="display: none; margin-top: 6px;">
+                <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="Other package details..." style="display: none; margin-top: 6px;">
               </div>
             </div>
 
             <!-- Vehicle / Site (Full Width) -->
             <div class="form-group">
-              <label class="form-label" id="custVehicleLabel" for="custVehicles">गाड़ी नंबर और मॉडल *</label>
-              <input type="text" id="custVehicles" class="form-input" placeholder="उदा. UP65 AB 1234 - Creta" required>
+              <label class="form-label" id="custVehicleLabel" for="custVehicles">Vehicle Number & Model *</label>
+              <input type="text" id="custVehicles" class="form-input" placeholder="e.g. UP65 AB 1234 - Creta" required>
             </div>
 
             <!-- SECTION 3: STAFF ASSIGNMENT -->
             <div class="form-section-head">
               <span class="section-num-pill">3</span>
-              <span class="section-title-text">स्टाफ असाइनमेंट (Staff Assignment)</span>
+              <span class="section-title-text">Staff Assignment</span>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="custStaffSelect">असाइन स्टाफ *</label>
+              <label class="form-label" for="custStaffSelect">Assign Staff *</label>
               <select id="custStaffSelect" class="form-select" required>
-                <option value="">स्टाफ चुनें...</option>
+                <option value="">Select staff...</option>
               </select>
             </div>
 
             <!-- Staff Notes (Compact 2-row with inline chips) -->
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; flex-wrap: wrap; gap: 4px;">
-                <label class="form-label" for="custNotes" style="margin-bottom: 0;">स्टाफ निर्देश (Staff Notes - Optional)</label>
+                <label class="form-label" for="custNotes" style="margin-bottom: 0;">Staff Notes (Optional)</label>
                 <div class="quick-chips-inline">
-                  <button type="button" class="chip-btn-mini" onclick="setQuickNote('गाड़ी रोज बाहर से साफ होगी, संडे को अंदर से वैक्यूम होगा।')">Exterior Daily, Sun Vacuum</button>
-                  <button type="button" class="chip-btn-mini" onclick="setQuickNote('सोसायटी के गार्ड से पानी और चाबी लेना है।')">Guard Water Supply</button>
+                  <button type="button" class="chip-btn-mini" onclick="setQuickNote('Clean car exterior daily, Sunday interior vacuum.')">Exterior Daily, Sun Vacuum</button>
+                  <button type="button" class="chip-btn-mini" onclick="setQuickNote('Collect water and keys from society guard.')">Guard Water Supply</button>
                 </div>
               </div>
-              <textarea id="custNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="उदा. बेसमेंट में कार पार्क है, गार्ड से चाबी लें..."></textarea>
+              <textarea id="custNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="e.g. Car parked in basement, collect key from guard..."></textarea>
             </div>
 
             <!-- Collapsible Secondary Location (Daily Car Cleaning Only, Collapsed by Default) -->
             <div class="form-group" id="secondaryAddressGroup" style="margin-bottom: 8px;">
               <button type="button" class="btn-optional-tool" id="btnToggleCustSec" onclick="toggleCustSecLocation()">
-                <span>🏢</span> <span id="custSecBtnText">+ दूसरा पता / लोकेशन जोड़ें (Secondary Location)</span>
+                <span>🏢</span> <span id="custSecBtnText">+ Add Secondary Location (Office / Alternate)</span>
               </button>
               <div id="custSecCollapse" class="collapsible-panel" style="display: none; margin-top: 8px;">
                 <div class="form-group" style="margin-bottom: 8px;">
-                  <label class="form-label" for="custSecAddress">दूसरा पता (Secondary Address)</label>
-                  <input type="text" id="custSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
+                  <label class="form-label" for="custSecAddress">Secondary Address</label>
+                  <input type="text" id="custSecAddress" class="form-input" placeholder="e.g. Office address / Basement parking">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" for="custSecMaps">दूसरे पते का मैप लिंक (Secondary Map Link)</label>
+                  <label class="form-label" for="custSecMaps">Secondary Map Link</label>
                   <input type="text" id="custSecMaps" class="form-input" placeholder="https://maps.google.com/...">
                 </div>
               </div>
@@ -5188,7 +5188,7 @@
 
             <div class="form-actions-bar">
               <button type="submit" id="btnSaveCust" class="btn-submit-main">
-                <span>💾</span> गूगल शीट में सेव करें (Save Customer)
+                <span>💾</span> Save Customer
               </button>
             </div>
           </form>
@@ -5202,21 +5202,21 @@
           <div class="seq-header-bar">
             <div>
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <h2 class="admin-card-title">दैनिक कार सफाई रूट सीक्वेंस (Daily Clean Sequence)</h2>
-                <span id="seqUnsavedBadge" class="seq-unsaved-badge" style="display: none;">⚠️ बिना सहेजे बदलाव (Unsaved Changes)</span>
+                <h2 class="admin-card-title">Daily Clean Route Sequence</h2>
+                <span id="seqUnsavedBadge" class="seq-unsaved-badge" style="display: none;">⚠️ Unsaved Changes</span>
               </div>
               
             </div>
             
             <div class="seq-top-actions">
-              <button type="button" class="btn-admin-action" onclick="loadStaffSequenceData(true)" title="डेटा पुनः रीफ्रेश करें">
-                🔄 रीफ्रेश
+              <button type="button" class="btn-admin-action" onclick="loadStaffSequenceData(true)" title="Refresh sequence data">
+                🔄 Refresh
               </button>
-              <button type="button" id="btnResetSequence" class="btn-admin-action btn-seq-reset" onclick="confirmResetSequence()" title="डिफ़ॉल्ट क्रम (शीट क्रम) में वापस सेट करें">
-                ↺ डिफ़ॉल्ट क्रम में रीसेट करें
+              <button type="button" id="btnResetSequence" class="btn-admin-action btn-seq-reset" onclick="confirmResetSequence()" title="Reset to default Sheet order">
+                ↺ Reset to Default Order
               </button>
-              <button type="button" id="btnSaveSequence" class="btn-submit-main btn-seq-save" onclick="saveCurrentStaffSequence()" title="नया रूट क्रम सुरक्षित करें">
-                💾 क्रम सुरक्षित करें (Save Order)
+              <button type="button" id="btnSaveSequence" class="btn-submit-main btn-seq-save" onclick="saveCurrentStaffSequence()" title="Save new route order">
+                💾 Save Order
               </button>
             </div>
           </div>
@@ -5229,26 +5229,26 @@
             <div class="seq-toolbar-row">
               <!-- Staff Selector -->
               <div class="seq-staff-select-wrap">
-                <label class="seq-label" for="seqStaffSelect"><strong>स्टाफ चुनें (Select Staff):</strong></label>
+                <label class="seq-label" for="seqStaffSelect"><strong>Select Staff:</strong></label>
                 <select id="seqStaffSelect" class="filter-select seq-staff-select" onchange="handleSeqStaffChange()">
-                  <option value="">स्टाफ लोड हो रहा है...</option>
+                  <option value="">Loading staff...</option>
                 </select>
               </div>
 
               <!-- Search Input -->
               <div class="seq-search-wrap">
                 <span class="records-search-icon">🔍</span>
-                <input type="text" id="seqSearchInput" class="records-search-input" placeholder="ग्राहक का नाम, गाड़ी नंबर या फोन से खोजें..." oninput="handleSeqSearch(this.value)">
-                <button type="button" id="btnSeqSearchClear" class="search-clear-btn" onclick="clearSeqSearch()" style="display: none;" title="सर्च साफ़ करें">✕</button>
+                <input type="text" id="seqSearchInput" class="records-search-input" placeholder="Search by customer name, vehicle number, or phone..." oninput="handleSeqSearch(this.value)">
+                <button type="button" id="btnSeqSearchClear" class="search-clear-btn" onclick="clearSeqSearch()" style="display: none;" title="Clear search">✕</button>
               </div>
             </div>
 
             <!-- Stats Bar -->
             <div class="seq-stats-strip">
               <div id="seqSummaryText">
-                👤 <strong>स्टाफ:</strong> <span id="seqCurrentStaffName">—</span> • 🚗 <strong>कुल दैनिक सफाई ग्राहक:</strong> <span id="seqTotalCustCount">0</span>
+                👤 <strong>Staff:</strong> <span id="seqCurrentStaffName">—</span> • 🚗 <strong>Total Daily Clean Customers:</strong> <span id="seqTotalCustCount">0</span>
               </div>
-              <div id="seqCustomStatusBadge" class="seq-status-badge default">मूल शीट क्रम (Default)</div>
+              <div id="seqCustomStatusBadge" class="seq-status-badge default">Default Sheet Order</div>
             </div>
           </div>
 
@@ -5263,20 +5263,20 @@
       <div id="seqResetModal" class="cwp-modal-overlay" style="display: none;">
         <div class="cwp-modal-box seq-confirm-modal" style="max-width: 480px;">
           <div class="cwp-modal-header">
-            <h3 class="cwp-modal-title">⚠️ क्या आप क्रम रीसेट करना चाहते हैं?</h3>
+            <h3 class="cwp-modal-title">⚠️ Reset Route Sequence?</h3>
             <button type="button" class="btn-modal-close" onclick="closeSeqResetModal()">✕</button>
           </div>
           <div class="cwp-modal-body" style="padding: 16px 20px;">
             <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
-              इस स्टाफ (<strong id="seqResetStaffName"></strong>) के लिए सहेजा गया कस्टम रूट सीक्वेंस हटा दिया जाएगा और क्रम वापस गूगल शीट के मूल क्रम में बदल जाएगा।
+              The custom route sequence saved for this staff (<strong id="seqResetStaffName"></strong>) will be removed, and the order will revert to the original Google Sheet order.
             </p>
             <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 10px 12px; font-size: 12px; color: #92400e;">
-              💡 <strong>नोट:</strong> अन्य स्टाफ का सीक्वेंस इससे प्रभावित नहीं होगा।
+              💡 <strong>Note:</strong> Other staff sequences will not be affected.
             </div>
           </div>
           <div class="cwp-modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px;">
-            <button type="button" class="btn-admin-action" onclick="closeSeqResetModal()">रद्द करें (Cancel)</button>
-            <button type="button" class="btn-modal-danger" onclick="executeResetSequence()">हाँ, रीसेट करें (Reset)</button>
+            <button type="button" class="btn-admin-action" onclick="closeSeqResetModal()">Cancel</button>
+            <button type="button" class="btn-modal-danger" onclick="executeResetSequence()">Yes, Reset Order</button>
           </div>
         </div>
       </div>
@@ -5286,15 +5286,15 @@
         <div class="admin-card-section">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
             <div>
-              <h2 class="admin-card-title">स्टाफ पैनल (Staff Management)</h2>
+              <h2 class="admin-card-title">Staff Management</h2>
               
             </div>
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              <button type="button" class="btn-admin-action" onclick="handleSyncStaffDropdown()" title="गूगल शीट के स्टाफ कॉलम में ड्रॉपडाउन वैलिडेशन लागू करें">
-                सिंक शीट ड्रॉपडाउन
+              <button type="button" class="btn-admin-action" onclick="handleSyncStaffDropdown()" title="Apply dropdown validation to Staff column in Google Sheet">
+                Sync Sheet Dropdowns
               </button>
-              <button type="button" class="btn-admin-action" style="background: var(--brand-blue-light); color: var(--brand-blue);" onclick="handleReorderSheet()" title="गूगल शीट के कॉलम्स को कस्टमर-फर्स्ट क्रम में रीऑर्डर करें">
-                रीऑर्डर शीट्स
+              <button type="button" class="btn-admin-action" style="background: var(--brand-blue-light); color: var(--brand-blue);" onclick="handleReorderSheet()" title="Reorder Google Sheet columns to Customer-First layout">
+                Reorder Sheets
               </button>
             </div>
           </div>
@@ -5302,35 +5302,35 @@
           <!-- Add Staff Form (Name, Mobile Number, 6-digit PIN) -->
           <form onsubmit="handleAddStaff(event)" style="margin-bottom: 16px;">
             <div id="addStaffFormGrid" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr auto; gap: 8px; align-items: center;">
-              <input type="text" id="newStaffName" class="form-input" placeholder="स्टाफ का पूरा नाम (उदा. Ramesh Kumar)" required>
+              <input type="text" id="newStaffName" class="form-input" placeholder="Full Name (e.g. Ramesh Kumar)" required>
               <div class="cwp-phone-group">
-                <span class="cwp-phone-prefix" title="भारत (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+                <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
                 <input type="tel" id="newStaffPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel">
               </div>
-              <input type="text" id="newStaffPin" class="form-input" placeholder="6-अंक पिन (उदा. 849201)" maxlength="6" pattern="[0-9]{6}" required title="स्टाफ पोर्टल लॉगिन हेतु 6 अंकों का पासवर्ड">
+              <input type="text" id="newStaffPin" class="form-input" placeholder="6-digit PIN (e.g. 849201)" maxlength="6" pattern="[0-9]{6}" required title="6-digit password for Staff Portal login">
               <input type="hidden" id="newStaffId" value="">
               <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
-                + नया स्टाफ जोड़ें
+                + Add New Staff
               </button>
             </div>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-              नया स्टाफ डिफ़ॉल्ट रूप से एक्टिव रहेगा। 6-अंकों का पिन स्टाफ पोर्टल लॉगिन के लिए आवश्यक है।
+              New staff will be active by default. 6-digit PIN is required for Staff Portal login.
             </div>
           </form>
 
           <!-- Staff Cards List -->
           <div id="adminStaffList">
-            <div class="empty-state-box">स्टाफ लिस्ट लोड हो रही है...</div>
+            <div class="empty-state-box">Loading staff list...</div>
           </div>
 
           <!-- Change Admin Password Card -->
           <div style="margin-top: 24px; border-top: 1px dashed var(--border-color); padding-top: 16px;">
-            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">एडमिन पासवर्ड बदलें (Change Password)</h3>
+            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Change Admin Password</h3>
             
             <form onsubmit="handleUpdateAdminPassword(event)" style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <input type="password" id="newAdminPasswordInput" class="form-input" style="flex: 2; min-width: 180px;" placeholder="नया पासवर्ड (कम से कम 4 अक्षर)" minlength="4" required>
+              <input type="password" id="newAdminPasswordInput" class="form-input" style="flex: 2; min-width: 180px;" placeholder="New password (minimum 4 characters)" minlength="4" required>
               <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
-                💾 पासवर्ड बदलें
+                💾 Change Password
               </button>
             </form>
           </div>
@@ -5345,25 +5345,25 @@
           <div class="records-header-row">
             <div class="records-title-group">
               <h2 class="admin-card-title">
-                <span>ग्राहक रिकॉर्ड्स</span>
+                <span>Customer Records</span>
                 <span id="adminRecordsSourceBadge"></span>
                 <span class="records-count-chip"><span id="filteredRecordsCount">0</span> / <span id="totalRecordsCount">0</span></span>
               </h2>
             </div>
             <div class="records-header-actions">
-              <button type="button" class="btn-admin-primary" onclick="switchAdminTab('addCust')" title="नया ग्राहक जोड़ने के लिए फॉर्म खोलें">
+              <button type="button" class="btn-admin-primary" onclick="switchAdminTab('addCust')" title="Open form to add a new customer">
                 <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                   <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
                 </svg>
-                <span>+ नया ग्राहक</span>
+                <span>+ New Customer</span>
               </button>
-              <button type="button" class="btn-admin-secondary" onclick="exportAdminRecordsCSV()" title="फ़िल्टर किया हुआ डेटा CSV में डाउनलोड करें">
+              <button type="button" class="btn-admin-secondary" onclick="exportAdminRecordsCSV()" title="Export filtered records to CSV">
                 <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
                   <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
                 </svg>
-                <span>CSV डाउनलोड</span>
+                <span>Export CSV</span>
               </button>
-              <button type="button" class="btn-admin-icon-only" onclick="loadAdminRecords(true)" title="डेटा पुनः रीफ्रेश करें">
+              <button type="button" class="btn-admin-icon-only" onclick="loadAdminRecords(true)" title="Refresh data">
                 <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
                   <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
                 </svg>
@@ -5378,40 +5378,40 @@
               <svg class="records-search-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
                 <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
               </svg>
-              <input type="text" id="adminRecordSearch" class="records-search-input" placeholder="ग्राहक, गाड़ी, फोन या पता खोजें..." oninput="handleAdminSearchInput()" onkeydown="if(event.key==='Enter') filterAdminRecords()">
-              <button type="button" class="btn-search-clear-inline" id="btnAdminSearchClear" onclick="clearAdminSearch()" style="display: none;" title="सर्च साफ़ करें">✕</button>
+              <input type="text" id="adminRecordSearch" class="records-search-input" placeholder="Search customer, vehicle, phone, or address..." oninput="handleAdminSearchInput()" onkeydown="if(event.key==='Enter') filterAdminRecords()">
+              <button type="button" class="btn-search-clear-inline" id="btnAdminSearchClear" onclick="clearAdminSearch()" style="display: none;" title="Clear search">✕</button>
             </div>
 
             <!-- Filters Group -->
             <div class="records-filters-group">
-              <select id="filterAdminCategory" class="filter-select" onchange="filterAdminRecords()" title="सर्विस केटेगरी">
-                <option value="all">सभी केटेगरी</option>
+              <select id="filterAdminCategory" class="filter-select" onchange="filterAdminRecords()" title="Service Category">
+                <option value="all">All Categories</option>
                 <option value="Daily Car Cleaning">Daily Car Cleaning</option>
                 <option value="Car Washing">Car Washing</option>
                 <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
               </select>
 
-              <select id="filterAdminStaff" class="filter-select" onchange="filterAdminRecords()" title="स्टाफ असाइनमेंट">
-                <option value="all">सभी स्टाफ</option>
-                <option value="none">असाइन नहीं (None)</option>
+              <select id="filterAdminStaff" class="filter-select" onchange="filterAdminRecords()" title="Staff Assignment">
+                <option value="all">All Staff</option>
+                <option value="none">Unassigned (None)</option>
               </select>
 
-              <select id="filterAdminStatus" class="filter-select" onchange="filterAdminRecords()" title="एक्टिव स्टेटस">
-                <option value="all">सभी स्टेटस</option>
-                <option value="yes">सक्रिय (Active)</option>
-                <option value="no">निष्क्रिय (Inactive)</option>
+              <select id="filterAdminStatus" class="filter-select" onchange="filterAdminRecords()" title="Active Status">
+                <option value="all">All Status</option>
+                <option value="yes">Active</option>
+                <option value="no">Inactive</option>
               </select>
 
-              <button type="button" class="filter-pill-check" id="toggleFilterPhoto" onclick="toggleQuickFilter('photo')" title="केवल फोटो वाले ग्राहक">
-                <span>📷 फोटो</span>
+              <button type="button" class="filter-pill-check" id="toggleFilterPhoto" onclick="toggleQuickFilter('photo')" title="Show only records with photo">
+                <span>📷 Photo</span>
               </button>
-              <button type="button" class="filter-pill-check" id="toggleFilterMap" onclick="toggleQuickFilter('map')" title="केवल मैप वाले ग्राहक">
-                <span>📍 मैप</span>
+              <button type="button" class="filter-pill-check" id="toggleFilterMap" onclick="toggleQuickFilter('map')" title="Show only records with map/GPS">
+                <span>📍 Map</span>
               </button>
 
               <div id="filterActiveNotice" style="display: none;">
-                <button type="button" class="btn-reset-filters" onclick="resetAllAdminFilters()" title="सभी फ़िल्टर रीसेट करें">
-                  ✕ रीसेट
+                <button type="button" class="btn-reset-filters" onclick="resetAllAdminFilters()" title="Reset all filters">
+                  ✕ Reset
                 </button>
               </div>
             </div>
@@ -5423,15 +5423,15 @@
               <thead>
                 <tr>
                   <th style="width: 38px; text-align: center;">#</th>
-                  <th style="width: 190px; min-width: 170px;">ग्राहक (Customer)</th>
-                  <th style="width: 160px; min-width: 140px;">गाड़ी / साइट (Vehicle)</th>
-                  <th style="min-width: 220px;">पता व लोकेशन (Address & Location)</th>
-                  <th style="width: 120px; text-align: center;">स्टाफ (Staff)</th>
-                  <th style="width: 75px; text-align: center;">एक्शन</th>
+                  <th style="width: 190px; min-width: 170px;">Customer</th>
+                  <th style="width: 160px; min-width: 140px;">Vehicle / Site</th>
+                  <th style="min-width: 220px;">Address & Location</th>
+                  <th style="width: 120px; text-align: center;">Staff</th>
+                  <th style="width: 75px; text-align: center;">Actions</th>
                 </tr>
               </thead>
               <tbody id="adminRecordsTableBody">
-                <tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">डेटा लोड हो रहा है...</td></tr>
+                <tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading customer records...</td></tr>
               </tbody>
             </table>
           </div>
@@ -5446,27 +5446,27 @@
   <!-- Image Modal for Full Preview -->
   <div id="imageModal" class="image-modal-overlay" onclick="closeImageModal()" style="display: none;">
     <!-- Universal Floating Close Button (Always visible on mobile & desktop) -->
-    <button type="button" class="image-modal-floating-close" onclick="closeImageModal()" title="बंद करें (Close / ESC)">✕</button>
+    <button type="button" class="image-modal-floating-close" onclick="closeImageModal()" title="Close (ESC)">✕</button>
 
     <div class="image-modal-content" onclick="event.stopPropagation()">
       <div class="image-modal-header">
         <div class="image-modal-title" id="imageModalTitleText">
-          <span>🚗</span> ग्राहक / गाड़ी की फोटो (Vehicle Photo)
+          <span>🚗</span> Vehicle / Customer Photo
         </div>
         <div class="image-modal-actions">
-          <a id="imageModalOpenNewTab" href="" target="_blank" class="image-modal-btn" title="नए टैब में पूरी फोटो देखें">
-            ↗ नए टैब में खोलें
+          <a id="imageModalOpenNewTab" href="" target="_blank" class="image-modal-btn" title="View full photo in new tab">
+            ↗ Open in New Tab
           </a>
-          <button type="button" class="image-modal-close-icon" onclick="closeImageModal()" title="बंद करें (Close / ESC)">✕</button>
+          <button type="button" class="image-modal-close-icon" onclick="closeImageModal()" title="Close (ESC)">✕</button>
         </div>
       </div>
       <div class="image-modal-body">
         <img id="imageModalImg" src="" alt="Customer Vehicle Photo">
         <div id="imageModalNoPhoto" style="display: none; padding: 48px 20px; text-align: center; color: #64748b;">
           <div style="font-size: 40px; margin-bottom: 10px;">📷</div>
-          <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">कोई फोटो उपलब्ध नहीं है</div>
-          <p style="font-size: 13px; color: #64748b;">इस गाड़ी के लिए अभी तक फोटो अपलोड नहीं की गई है।</p>
-          <button type="button" class="btn-primary-smart" onclick="closeImageModal()" style="margin-top: 18px; padding: 8px 24px; font-size: 13px; width: auto;">✕ बंद करें</button>
+          <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">No Photo Available</div>
+          <p style="font-size: 13px; color: #64748b;">No photo has been uploaded for this vehicle yet.</p>
+          <button type="button" class="btn-primary-smart" onclick="closeImageModal()" style="margin-top: 18px; padding: 8px 24px; font-size: 13px; width: auto;">✕ Close</button>
         </div>
       </div>
     </div>
@@ -5476,18 +5476,18 @@
   <div id="addressViewModal" class="image-modal-overlay" onclick="closeAddressModal()" style="display: none; align-items: center; justify-content: center; z-index: 1050;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px; width: 94%; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-card-header">
-        <h3 class="modal-card-title">📍 ग्राहक की लोकेशन (Customer Locations)</h3>
-        <button type="button" class="modal-close-x" onclick="closeAddressModal()" title="बंद करें (ESC)">✕</button>
+        <h3 class="modal-card-title">📍 Customer Locations</h3>
+        <button type="button" class="modal-close-x" onclick="closeAddressModal()" title="Close (ESC)">✕</button>
       </div>
       <div style="padding: 16px 18px; overflow-y: auto;">
         <!-- Top Customer Details Strip -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
           <div>
-            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">ग्राहक</div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">CUSTOMER</div>
             <div id="addrModalCustName" style="font-size: 15px; font-weight: 700; color: #0f172a;">-</div>
           </div>
           <div id="addrModalPhoneWrapper" style="text-align: right;">
-            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">मोबाइल</div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">MOBILE</div>
             <a id="addrModalPhoneLink" href="#" style="font-size: 13px; font-weight: 600; color: var(--brand-blue); text-decoration: none;">-</a>
           </div>
         </div>
@@ -5495,24 +5495,24 @@
         <!-- Multi-location Notice Banner (Visible when 2 locations exist) -->
         <div id="addrModalMultiNotice" style="display: none; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 9px 12px; margin-bottom: 12px; font-size: 12px; color: #3730a3; align-items: flex-start; gap: 8px; line-height: 1.45;">
           <span style="font-size: 16px; line-height: 1;">💡</span>
-          <div><strong>ध्यान दें:</strong> इस ग्राहक की <strong>2 लोकेशन</strong> दर्ज हैं। गाड़ी धोने से पहले सुनिश्चित करें कि गाड़ी किस लोकेशन पर खड़ी है।</div>
+          <div><strong>Note:</strong> This customer has <strong>2 registered locations</strong>. Please check which location the car is at before servicing.</div>
         </div>
 
         <!-- Location 1 Box: Primary Location -->
         <div id="addrModalPrimaryCard" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span style="font-size: 12px; font-weight: 700; color: #1e3a8a; display: inline-flex; align-items: center; gap: 4px;">
-              <span>🏠</span> मुख्य लोकेशन (Primary)
+              <span>🏠</span> Primary Location
             </span>
-            <span id="addrModalPrimaryBadge" style="font-size: 10.5px; background: #dbeafe; color: #1e40af; padding: 2px 7px; border-radius: 10px; font-weight: 600;">मेन लोकेशन</span>
+            <span id="addrModalPrimaryBadge" style="font-size: 10.5px; background: #dbeafe; color: #1e40af; padding: 2px 7px; border-radius: 10px; font-weight: 600;">Main Location</span>
           </div>
           <div id="addrModalPrimary" style="font-size: 13px; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; line-height: 1.45; word-break: break-word; min-height: 38px;">-</div>
           <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 10px;">
-            <a id="addrModalPrimaryMapLink" href="" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" style="display: none; padding: 6px 12px; font-size: 12px; width: auto; font-weight: 600;" title="गूगल मैप्स में मुख्य लोकेशन खोलें">
-              <span>🗺️ मैप खोलें / नेविगेट करें ↗</span>
+            <a id="addrModalPrimaryMapLink" href="" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" style="display: none; padding: 6px 12px; font-size: 12px; width: auto; font-weight: 600;" title="Open primary location in Google Maps">
+              <span>🗺️ Open Map / Directions ↗</span>
             </a>
-            <button type="button" class="btn-cell-action" onclick="copyLocationAddress('primary')" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 6px 10px; font-size: 12px; width: auto;" title="मुख्य पता कॉपी करें">
-              <span>📋 कॉपी</span>
+            <button type="button" class="btn-cell-action" onclick="copyLocationAddress('primary')" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 6px 10px; font-size: 12px; width: auto;" title="Copy primary address">
+              <span>📋 Copy</span>
             </button>
           </div>
         </div>
@@ -5521,17 +5521,17 @@
         <div id="addrModalSecondaryCard" style="display: none; background: #faf5ff; border: 1.5px solid #e9d5ff; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span style="font-size: 12px; font-weight: 700; color: #6b21a8; display: inline-flex; align-items: center; gap: 4px;">
-              <span>🏢</span> सेकेंडरी लोकेशन (Office / Other)
+              <span>🏢</span> Secondary Location (Office / Alternate)
             </span>
-            <span style="font-size: 10.5px; background: #f3e8ff; color: #7e22ce; padding: 2px 7px; border-radius: 10px; font-weight: 600;">वैकल्पिक लोकेशन</span>
+            <span style="font-size: 10.5px; background: #f3e8ff; color: #7e22ce; padding: 2px 7px; border-radius: 10px; font-weight: 600;">Alternate Location</span>
           </div>
           <div id="addrModalSecondary" style="font-size: 13px; color: #1e293b; background: #ffffff; border: 1px solid #e9d5ff; border-radius: 6px; padding: 8px 10px; line-height: 1.45; word-break: break-word; min-height: 38px;">-</div>
           <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 10px;">
-            <a id="addrModalSecondaryMapLink" href="" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" style="display: none; padding: 6px 12px; font-size: 12px; width: auto; font-weight: 600; background: #fdf4ff; color: #7e22ce; border-color: #f0abfc;" title="गूगल मैप्स में सेकेंडरी लोकेशन खोलें">
-              <span>🗺️ मैप खोलें / नेविगेट करें ↗</span>
+            <a id="addrModalSecondaryMapLink" href="" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" style="display: none; padding: 6px 12px; font-size: 12px; width: auto; font-weight: 600; background: #fdf4ff; color: #7e22ce; border-color: #f0abfc;" title="Open secondary location in Google Maps">
+              <span>🗺️ Open Map / Directions ↗</span>
             </a>
-            <button type="button" class="btn-cell-action" onclick="copyLocationAddress('secondary')" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 6px 10px; font-size: 12px; width: auto;" title="सेकेंडरी पता कॉपी करें">
-              <span>📋 कॉपी</span>
+            <button type="button" class="btn-cell-action" onclick="copyLocationAddress('secondary')" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 6px 10px; font-size: 12px; width: auto;" title="Copy secondary address">
+              <span>📋 Copy</span>
             </button>
           </div>
         </div>
@@ -5543,7 +5543,7 @@
         <!-- Modal Bottom Close -->
         <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 6px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
           <button type="button" class="btn-primary-smart" onclick="closeAddressModal()" style="padding: 7px 22px; font-size: 12px; width: auto;">
-            ✕ बंद करें
+            ✕ Close
           </button>
         </div>
       </div>
@@ -5557,14 +5557,14 @@
       <div class="logout-confirm-icon-wrap">
         <span class="logout-confirm-icon">🚪</span>
       </div>
-      <h3 class="logout-confirm-heading">लॉगआउट कन्फर्मेशन (Sign Out)</h3>
-      <p class="logout-confirm-desc">क्या आप वाकई पोर्टल से सुरक्षित लॉगआउट करना चाहते हैं?</p>
+      <h3 class="logout-confirm-heading">Sign Out</h3>
+      <p class="logout-confirm-desc">Are you sure you want to securely log out?</p>
       <div class="logout-confirm-actions">
         <button type="button" class="btn-logout-cancel" onclick="closeLogoutModal()">
-          रद्द करें
+          Cancel
         </button>
         <button type="button" class="btn-logout-proceed" onclick="proceedLogout()">
-          हाँ, लॉगआउट करें
+          Yes, Logout
         </button>
       </div>
     </div>
@@ -5575,7 +5575,7 @@
     <div class="modal-card-box" onclick="event.stopPropagation()">
       <div class="modal-card-header">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <h3 class="modal-card-title" style="margin-bottom: 0;">✏️ ग्राहक रिकॉर्ड एडिट करें (Edit Customer)</h3>
+          <h3 class="modal-card-title" style="margin-bottom: 0;">✏️ Edit Customer</h3>
           <div id="editDraftBadge" class="cwp-draft-badge" style="display: none;"></div>
         </div>
         <button type="button" class="modal-close-x" onclick="closeEditCustomerModal()">✕</button>
@@ -5586,16 +5586,16 @@
         <div class="cwp-draft-banner-content">
           <span class="cwp-draft-banner-icon">📝</span>
           <div class="cwp-draft-banner-text">
-            <strong style="color: #15803d;">अधूरे बदलाव मिले:</strong>
+            <strong style="color: #15803d;">Unsaved changes found:</strong>
             <span id="editDraftTimeInfo" style="color: #374151; font-size: 12px; margin-left: 4px;"></span>
           </div>
         </div>
         <div class="cwp-draft-banner-actions">
           <button type="button" class="btn-draft-action btn-draft-restore" onclick="restoreEditDraft()">
-            <span>✓</span> ड्राफ्ट भरें
+            <span>✓</span> Restore Draft
           </button>
           <button type="button" class="btn-draft-action btn-draft-discard" onclick="discardEditDraft(false)">
-            <span>✕</span> हटाएं
+            <span>✕</span> Discard
           </button>
         </div>
       </div>
@@ -5608,44 +5608,44 @@
         <!-- SECTION 1: CUSTOMER DETAILS -->
         <div class="form-section-head">
           <span class="section-num-pill">1</span>
-          <span class="section-title-text">ग्राहक विवरण (Customer Details)</span>
+          <span class="section-title-text">Customer Details</span>
         </div>
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" for="editCustName">ग्राहक का नाम *</label>
+            <label class="form-label" for="editCustName">Customer Name *</label>
             <input type="text" id="editCustName" class="form-input" required>
           </div>
           <div class="form-group">
-            <label class="form-label" for="editCustPhone">मोबाइल नंबर *</label>
+            <label class="form-label" for="editCustPhone">Mobile Number *</label>
             <div class="cwp-phone-group">
-              <span class="cwp-phone-prefix" title="भारत (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+              <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
               <input type="tel" id="editCustPhone" class="form-input cwp-phone-input" maxlength="14" placeholder="98765 43210" inputmode="numeric" autocomplete="tel" required>
             </div>
           </div>
         </div>
 
         <div class="form-group" style="margin-bottom: 6px;">
-          <label class="form-label" for="editCustAddress">ग्राहक का पता *</label>
-          <textarea id="editCustAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="मकान नं, कॉलोनी, शहर..."></textarea>
+          <label class="form-label" for="editCustAddress">Customer Address *</label>
+          <textarea id="editCustAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House No, Colony, City..."></textarea>
         </div>
 
         <!-- Optional Maps & Photo Action Bar -->
         <div class="optional-tools-bar">
           <button type="button" class="btn-optional-tool" id="btnToggleEditMap" onclick="toggleEditMap()">
-            <span>📍</span> <span id="editMapBtnText">+ मैप लोकेशन / GPS</span>
+            <span>📍</span> <span id="editMapBtnText">+ Add Map Location / GPS</span>
           </button>
           <div class="photo-upload-compact-zone">
             <input type="file" id="editCustPhotoFile" accept="image/*" class="form-input" style="display: none;" onchange="handleEditPhotoSelect(event)">
             <button type="button" class="btn-optional-tool" id="btnEditUploadPhoto" onclick="document.getElementById('editCustPhotoFile').click()">
-              <span>📸</span> <span>फोटो बदलें / जोड़ें</span>
+              <span>📸</span> <span>Change / Upload Photo</span>
             </button>
-            <img id="editPhotoThumb" src="" class="upload-preview-thumb" style="display: none; cursor: pointer;" alt="Thumb" onclick="openExistingEditPhotoCropper()" title="क्रॉप / रोटेट करने के लिए क्लिक करें">
+            <img id="editPhotoThumb" src="" class="upload-preview-thumb" style="display: none; cursor: pointer;" alt="Thumb" onclick="openExistingEditPhotoCropper()" title="Click to crop / rotate">
             <div id="editPhotoActionsWrap" style="display: none; align-items: center; gap: 4px;">
-              <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingEditPhotoCropper()" title="क्रॉप व रोटेट करें">
-                <span>✂️</span> <span>क्रॉप / रोटेट</span>
+              <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingEditPhotoCropper()" title="Crop & rotate">
+                <span>✂️</span> <span>Crop / Rotate</span>
               </button>
-              <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeEditCustPhoto(event)" title="फोटो हटाएं">
+              <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeEditCustPhoto(event)" title="Remove photo">
                 <span>🗑️</span>
               </button>
             </div>
@@ -5666,12 +5666,12 @@
         <!-- SECTION 2: SERVICE DETAILS -->
         <div class="form-section-head">
           <span class="section-num-pill">2</span>
-          <span class="section-title-text">सर्विस विवरण (Service Details)</span>
+          <span class="section-title-text">Service Details</span>
         </div>
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" for="editCustCategory">सर्विस केटेगरी *</label>
+            <label class="form-label" for="editCustCategory">Service Category *</label>
             <select id="editCustCategory" class="form-select" onchange="handleEditCategoryChange(this.value)" required>
               <option value="Daily Car Cleaning">Daily Car Cleaning</option>
               <option value="Car Washing">Car Washing</option>
@@ -5679,68 +5679,68 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" for="editCustPkgType">पैकेज का प्रकार *</label>
+            <label class="form-label" for="editCustPkgType">Package Type *</label>
             <select id="editCustPkgType" class="form-select" onchange="handleEditPackageTypeChange(this.value)" required>
               <option value="DCC ONLY">DCC ONLY</option>
               <option value="DCC SILVER">DCC SILVER</option>
               <option value="DCC GOLD">DCC GOLD</option>
               <option value="OTHER">OTHER</option>
             </select>
-            <input type="text" id="editCustPkgTypeCustom" class="form-input" placeholder="अन्य पैकेज विवरण..." style="display: none; margin-top: 6px;">
+            <input type="text" id="editCustPkgTypeCustom" class="form-input" placeholder="Other package details..." style="display: none; margin-top: 6px;">
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" id="editCustVehiclesLabel" for="editCustVehicles">गाड़ी नंबर और मॉडल *</label>
-          <input type="text" id="editCustVehicles" class="form-input" placeholder="उदा. UP65 AB 1234 - Creta">
+          <label class="form-label" id="editCustVehiclesLabel" for="editCustVehicles">Vehicle Number & Model *</label>
+          <input type="text" id="editCustVehicles" class="form-input" placeholder="e.g. UP65 AB 1234 - Creta">
         </div>
 
         <!-- SECTION 3: STAFF & STATUS -->
         <div class="form-section-head">
           <span class="section-num-pill">3</span>
-          <span class="section-title-text">स्टाफ और स्टेटस (Staff & Status)</span>
+          <span class="section-title-text">Staff & Status</span>
         </div>
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" for="editCustStaff">असाइन स्टाफ *</label>
+            <label class="form-label" for="editCustStaff">Assign Staff *</label>
             <select id="editCustStaff" class="form-select" required></select>
           </div>
           <div class="form-group">
-            <label class="form-label" for="editCustActive">स्टेटस *</label>
+            <label class="form-label" for="editCustActive">Status *</label>
             <select id="editCustActive" class="form-select">
-              <option value="Yes">Active (सक्रिय)</option>
-              <option value="No">Inactive (निष्क्रिय)</option>
+              <option value="Yes">Active</option>
+              <option value="No">Inactive</option>
             </select>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="editCustNotes">स्टाफ निर्देश (Staff Notes)</label>
-          <textarea id="editCustNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="सफाई निर्देश..."></textarea>
+          <label class="form-label" for="editCustNotes">Staff Notes</label>
+          <textarea id="editCustNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="Cleaning instructions..."></textarea>
         </div>
 
         <!-- Collapsible Secondary Location (Daily Car Cleaning Only) -->
         <div class="form-group" id="editSecondaryAddressGroup" style="margin-bottom: 8px;">
           <button type="button" class="btn-optional-tool" id="btnToggleEditSec" onclick="toggleEditSecLocation()">
-            <span>🏢</span> <span id="editSecBtnText">+ दूसरा पता / लोकेशन जोड़ें (Secondary Location)</span>
+            <span>🏢</span> <span id="editSecBtnText">+ Add Secondary Location (Office / Alternate)</span>
           </button>
           <div id="editSecCollapse" class="collapsible-panel" style="display: none; margin-top: 8px;">
             <div class="form-group" style="margin-bottom: 8px;">
-              <label class="form-label" for="editCustSecAddress">दूसरा पता (Secondary Address)</label>
-              <input type="text" id="editCustSecAddress" class="form-input" placeholder="उदा. ऑफिस का पता / बेसमेंट पार्किंग">
+              <label class="form-label" for="editCustSecAddress">Secondary Address</label>
+              <input type="text" id="editCustSecAddress" class="form-input" placeholder="e.g. Office address / Basement parking">
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="editCustSecMaps">दूसरे पते का मैप लिंक (Secondary Map Link)</label>
+              <label class="form-label" for="editCustSecMaps">Secondary Map Link</label>
               <input type="text" id="editCustSecMaps" class="form-input" placeholder="https://maps.google.com/...">
             </div>
           </div>
         </div>
 
         <div class="modal-card-footer" style="padding: 12px 0 0 0; margin-top: 6px;">
-          <button type="button" class="btn-admin-action" onclick="closeEditCustomerModal()">रद्द करें (Cancel)</button>
+          <button type="button" class="btn-admin-action" onclick="closeEditCustomerModal()">Cancel</button>
           <button type="submit" id="btnSaveEditCust" class="btn-primary-smart" style="padding: 10px 18px;">
-            <span>💾</span> बदलाव सेव करें (Save Changes)
+            <span>💾</span> Save Changes
           </button>
         </div>
       </form>
@@ -5751,50 +5751,50 @@
   <div id="staffEditModal" class="image-modal-overlay" onclick="closeEditStaffModal()" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px;">
       <div class="modal-card-header">
-        <h3 class="modal-card-title">✏️ स्टाफ प्रोफाइल एडिट करें (Edit Staff)</h3>
+        <h3 class="modal-card-title">✏️ Edit Staff Profile</h3>
         <button type="button" class="modal-close-x" onclick="closeEditStaffModal()">✕</button>
       </div>
       <form id="editStaffForm" onsubmit="handleEditStaffSubmit(event)" style="padding: 16px;">
         <input type="hidden" id="editStaffId">
 
         <div style="background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">स्टाफ आईडी (Staff ID)</span>
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Staff ID</span>
           <span id="editStaffIdDisplay" style="font-size: 13px; font-weight: 700; color: var(--brand-blue); font-family: monospace;">STF01</span>
         </div>
 
         <div class="form-group">
-          <label class="form-label">स्टाफ का नाम (Full Name) *</label>
-          <input type="text" id="editStaffName" class="form-input" required placeholder="स्टाफ का नाम दर्ज करें">
+          <label class="form-label">Full Name *</label>
+          <input type="text" id="editStaffName" class="form-input" required placeholder="Enter staff full name">
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="editStaffPhone">मोबाइल नंबर (Mobile Number)</label>
+          <label class="form-label" for="editStaffPhone">Mobile Number</label>
           <div class="cwp-phone-group">
-            <span class="cwp-phone-prefix" title="भारत (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+            <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
             <input type="tel" id="editStaffPhone" class="form-input cwp-phone-input" maxlength="14" placeholder="98765 43210" inputmode="numeric" autocomplete="tel">
           </div>
         </div>
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">नया पिन सेट करें (Reset PIN - 6 अंक)</label>
-            <input type="text" id="editStaffPin" class="form-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="नया 6-अंक पिन (खाली छोड़ें यदि नहीं बदलना)">
-            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">पिन नहीं बदलना हो तो खाली छोड़ें</div>
+            <label class="form-label">Reset PIN (6 Digits)</label>
+            <input type="text" id="editStaffPin" class="form-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="New 6-digit PIN (leave blank to keep current)">
+            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">Leave blank to keep existing PIN</div>
           </div>
           <div class="form-group">
-            <label class="form-label">स्टेटस (Status) *</label>
+            <label class="form-label">Status *</label>
             <select id="editStaffActive" class="form-select">
-              <option value="true">✅ Active (लॉगिन चालू)</option>
-              <option value="false">🚫 Inactive (लॉगिन बंद)</option>
+              <option value="true">✅ Active (Login Enabled)</option>
+              <option value="false">🚫 Inactive (Login Disabled)</option>
             </select>
-            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">Inactive होने पर लॉगिन बंद</div>
+            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">Staff login disabled when inactive</div>
           </div>
         </div>
 
         <div class="modal-card-footer">
-          <button type="button" class="btn-admin-action" onclick="closeEditStaffModal()">रद्द करें (Cancel)</button>
+          <button type="button" class="btn-admin-action" onclick="closeEditStaffModal()">Cancel</button>
           <button type="submit" id="btnSaveEditStaff" class="btn-primary-smart" style="padding: 10px 18px;">
-            <span>💾</span> स्टाफ अपडेट करें (Save Staff)
+            <span>💾</span> Save Staff
           </button>
         </div>
       </form>
@@ -5813,8 +5813,8 @@
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 18px;">✂️</span>
           <div>
-            <h3 style="font-size: 14.5px; font-weight: 700; color: #ffffff; margin: 0; line-height: 1.2;">फोटो क्रॉप व सीधा करें (Crop & Straighten)</h3>
-            <div style="font-size: 11px; color: #94a3b8;">डिग्री के अनुसार घुमाएँ व क्रॉप बॉक्स एडजस्ट करें</div>
+            <h3 style="font-size: 14.5px; font-weight: 700; color: #ffffff; margin: 0; line-height: 1.2;">Crop & Straighten Photo</h3>
+            <div style="font-size: 11px; color: #94a3b8;">Rotate by degrees and adjust crop box</div>
           </div>
         </div>
         <button type="button" class="modal-close-x" onclick="closeCropperModal()" style="color: #cbd5e1;">✕</button>
@@ -5831,17 +5831,17 @@
         <div class="cropper-control-row">
           <div class="cropper-label-group">
             <span class="cropper-ctrl-icon">📐</span>
-            <span class="cropper-ctrl-label">फोटो सीधा करें (Angle):</span>
+            <span class="cropper-ctrl-label">Straighten Angle:</span>
             <span id="cropperAngleBadge" class="cropper-degree-badge">0.0°</span>
           </div>
           <div style="display: flex; align-items: center; gap: 6px;">
-            <button type="button" class="btn-crop-tool-btn" onclick="cropperResetAngle()" title="0 डिग्री पर रीसेट करें">0° सीधा करें</button>
+            <button type="button" class="btn-crop-tool-btn" onclick="cropperResetAngle()" title="Reset to 0 degrees">0° Reset</button>
           </div>
         </div>
 
         <div class="cropper-slider-container">
-          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(-5)" title="5° बाएँ">-5°</button>
-          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(-1)" title="1° बाएँ">-1°</button>
+          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(-5)" title="5° Left">-5°</button>
+          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(-1)" title="1° Left">-1°</button>
           <div class="cropper-range-wrapper">
             <input type="range" id="cropperAngleSlider" min="-180" max="180" step="0.5" value="0" class="cropper-range-slider" oninput="cropperOnSliderInput(this.value)">
             <div class="cropper-range-ticks">
@@ -5852,54 +5852,54 @@
               <span>+180°</span>
             </div>
           </div>
-          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(1)" title="1° दाएँ">+1°</button>
-          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(5)" title="5° दाएँ">+5°</button>
+          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(1)" title="1° Right">+1°</button>
+          <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(5)" title="5° Right">+5°</button>
         </div>
 
         <!-- Quick 90 deg Rotate & Flip Buttons -->
         <div class="cropper-buttons-row">
-          <button type="button" class="btn-crop-action" onclick="cropperStepRotate(-90)" title="90° बाएँ घुमाएँ">
-            <span>↶</span> <span>90° बाएँ</span>
+          <button type="button" class="btn-crop-action" onclick="cropperStepRotate(-90)" title="Rotate 90° Left">
+            <span>↶</span> <span>90° Left</span>
           </button>
-          <button type="button" class="btn-crop-action" onclick="cropperStepRotate(90)" title="90° दाएँ घुमाएँ">
-            <span>↷</span> <span>90° दाएँ</span>
+          <button type="button" class="btn-crop-action" onclick="cropperStepRotate(90)" title="Rotate 90° Right">
+            <span>↷</span> <span>90° Right</span>
           </button>
-          <button type="button" class="btn-crop-action" onclick="cropperStepRotate(180)" title="180° घुमाएँ">
+          <button type="button" class="btn-crop-action" onclick="cropperStepRotate(180)" title="Rotate 180°">
             <span>🔁</span> <span>180°</span>
           </button>
-          <button type="button" class="btn-crop-action" onclick="cropperFlipH()" title="क्षैतिज पलटें (Flip Horizontal)">
-            <span>↔️</span> <span>क्षैतिज</span>
+          <button type="button" class="btn-crop-action" onclick="cropperFlipH()" title="Flip Horizontal">
+            <span>↔️</span> <span>Horizontal</span>
           </button>
-          <button type="button" class="btn-crop-action" onclick="cropperFlipV()" title="लंबवत पलटें (Flip Vertical)">
-            <span>↕️</span> <span>लंबवत</span>
+          <button type="button" class="btn-crop-action" onclick="cropperFlipV()" title="Flip Vertical">
+            <span>↕️</span> <span>Vertical</span>
           </button>
         </div>
 
         <!-- Aspect Ratio & Tools Row -->
         <div class="cropper-secondary-row">
           <div class="cropper-aspect-group">
-            <span style="font-size: 11px; font-weight: 600; color: #94a3b8; margin-right: 4px;">आकार:</span>
-            <button type="button" class="btn-aspect-chip active" id="btnAspectFree" onclick="cropperSetAspectRatio(NaN, 'free')">मुक्त (Free)</button>
-            <button type="button" class="btn-aspect-chip" id="btnAspect1_1" onclick="cropperSetAspectRatio(1, '1_1')">1:1 चौकोर</button>
+            <span style="font-size: 11px; font-weight: 600; color: #94a3b8; margin-right: 4px;">Ratio:</span>
+            <button type="button" class="btn-aspect-chip active" id="btnAspectFree" onclick="cropperSetAspectRatio(NaN, 'free')">Free</button>
+            <button type="button" class="btn-aspect-chip" id="btnAspect1_1" onclick="cropperSetAspectRatio(1, '1_1')">1:1 Square</button>
             <button type="button" class="btn-aspect-chip" id="btnAspect4_3" onclick="cropperSetAspectRatio(4/3, '4_3')">4:3</button>
             <button type="button" class="btn-aspect-chip" id="btnAspect16_9" onclick="cropperSetAspectRatio(16/9, '16_9')">16:9</button>
-            <button type="button" class="btn-aspect-chip" id="btnAspect3_4" onclick="cropperSetAspectRatio(3/4, '3_4')">3:4 खड़ा</button>
+            <button type="button" class="btn-aspect-chip" id="btnAspect3_4" onclick="cropperSetAspectRatio(3/4, '3_4')">3:4 Portrait</button>
           </div>
           <div class="cropper-zoom-group">
-            <button type="button" class="btn-crop-icon-btn active" id="cropperBtnModeCrop" onclick="cropperSetDragMode('crop')" title="क्रॉप बॉक्स एडजस्ट करें">✂️</button>
-            <button type="button" class="btn-crop-icon-btn" id="cropperBtnModeMove" onclick="cropperSetDragMode('move')" title="फोटो हिलाएं (Pan Photo)">🖐️</button>
-            <button type="button" class="btn-crop-icon-btn" onclick="cropperZoom(0.1)" title="ज़ूम इन">🔍+</button>
-            <button type="button" class="btn-crop-icon-btn" onclick="cropperZoom(-0.1)" title="ज़ूम आउट">🔍-</button>
-            <button type="button" class="btn-crop-icon-btn" onclick="cropperResetAll()" title="पूरा रीसेट">↺</button>
+            <button type="button" class="btn-crop-icon-btn active" id="cropperBtnModeCrop" onclick="cropperSetDragMode('crop')" title="Adjust Crop Box">✂️</button>
+            <button type="button" class="btn-crop-icon-btn" id="cropperBtnModeMove" onclick="cropperSetDragMode('move')" title="Pan Photo">🖐️</button>
+            <button type="button" class="btn-crop-icon-btn" onclick="cropperZoom(0.1)" title="Zoom In">🔍+</button>
+            <button type="button" class="btn-crop-icon-btn" onclick="cropperZoom(-0.1)" title="Zoom Out">🔍-</button>
+            <button type="button" class="btn-crop-icon-btn" onclick="cropperResetAll()" title="Reset All">↺</button>
           </div>
         </div>
       </div>
 
       <!-- Modal Footer -->
       <div class="cropper-modal-footer">
-        <button type="button" class="btn-cropper-cancel" onclick="closeCropperModal()">रद्द करें (Cancel)</button>
+        <button type="button" class="btn-cropper-cancel" onclick="closeCropperModal()">Cancel</button>
         <button type="button" class="btn-cropper-apply" onclick="applyCroppedPhoto()">
-          <span>✓</span> <span>फोटो सीधा व क्रॉप करके सेट करें (Apply & Set)</span>
+          <span>✓</span> <span>Apply & Set Photo</span>
         </button>
       </div>
     </div>
@@ -6044,11 +6044,11 @@ function attachIndianMobileFormatter(inputEl) {
         inputEl.setCustomValidity('');
         inputEl.classList.remove('is-invalid');
       } else {
-        inputEl.setCustomValidity('भारतीय मोबाइल नंबर 6, 7, 8 या 9 से शुरू होना चाहिए');
+        inputEl.setCustomValidity('Indian mobile number must start with 6, 7, 8, or 9');
         inputEl.classList.add('is-invalid');
       }
     } else if (maxDigits.length > 0 && maxDigits.length < 10) {
-      inputEl.setCustomValidity('कृपया 10-अंकों का मोबाइल नंबर दर्ज करें');
+      inputEl.setCustomValidity('Please enter a valid 10-digit mobile number');
     } else {
       inputEl.setCustomValidity('');
       inputEl.classList.remove('is-invalid');
@@ -6094,7 +6094,7 @@ function toggleCustMap(forceState) {
     else btn.classList.remove('active');
   }
   if (btnText) {
-    btnText.textContent = willOpen ? 'मैप लोकेशन / GPS (सक्रिय)' : '+ मैप लोकेशन / GPS जोड़ें';
+    btnText.textContent = willOpen ? 'Map Location / GPS (Active)' : '+ Add Map Location / GPS';
   }
   if (willOpen) {
     var input = document.getElementById('custMapsUrl');
@@ -6117,7 +6117,7 @@ function toggleEditMap(forceState) {
     else btn.classList.remove('active');
   }
   if (btnText) {
-    btnText.textContent = willOpen ? 'मैप लोकेशन / GPS (सक्रिय)' : '+ मैप लोकेशन / GPS';
+    btnText.textContent = willOpen ? 'Map Location / GPS (Active)' : '+ Add Map Location / GPS';
   }
   if (willOpen) {
     var input = document.getElementById('editCustMapsUrl');
@@ -6140,7 +6140,7 @@ function toggleCustSecLocation(forceState) {
     else btn.classList.remove('active');
   }
   if (btnText) {
-    btnText.textContent = willOpen ? 'दूसरा पता / लोकेशन (सक्रिय)' : '+ दूसरा पता / लोकेशन जोड़ें (Secondary Location)';
+    btnText.textContent = willOpen ? 'Secondary Location (Active)' : '+ Add Secondary Location (Office / Alternate)';
   }
   if (willOpen) {
     var input = document.getElementById('custSecAddress');
@@ -6163,7 +6163,7 @@ function toggleEditSecLocation(forceState) {
     else btn.classList.remove('active');
   }
   if (btnText) {
-    btnText.textContent = willOpen ? 'दूसरा पता / लोकेशन (सक्रिय)' : '+ दूसरा पता / लोकेशन जोड़ें (Secondary Location)';
+    btnText.textContent = willOpen ? 'Secondary Location (Active)' : '+ Add Secondary Location (Office / Alternate)';
   }
   if (willOpen) {
     var input = document.getElementById('editCustSecAddress');
@@ -6411,7 +6411,7 @@ var state = {
 
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">जांच हो रही है...</span>';
+        btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">Verifying...</span>';
       }
       if (errBox) errBox.style.display = 'none';
       if (inactiveBox) inactiveBox.style.display = 'none';
@@ -6468,7 +6468,7 @@ var state = {
           btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">पोर्टल में प्रवेश करें (Enter Portal)</span>';
         }
         if (errBox) {
-          errBox.textContent = '❌ ' + (err.message || 'सत्यापन विफल हुआ');
+          errBox.textContent = '❌ ' + (err.message || 'Verification failed');
           errBox.style.display = 'block';
         }
       });
@@ -6480,8 +6480,8 @@ var state = {
       var heading = document.querySelector('#logoutConfirmModal .logout-confirm-heading');
       var desc = document.querySelector('#logoutConfirmModal .logout-confirm-desc');
       if (type === 'admin') {
-        if (heading) heading.textContent = 'एडमिन लॉगआउट (Sign Out)';
-        if (desc) desc.textContent = 'क्या आप वाकई एडमिन पोर्टल से सुरक्षित लॉगआउट करना चाहते हैं?';
+        if (heading) heading.textContent = 'Admin Logout (Sign Out)';
+        if (desc) desc.textContent = 'Are you sure you want to securely log out from the Admin Portal?';
       } else {
         if (heading) heading.textContent = 'स्टाफ लॉगआउट (Sign Out)';
         if (desc) desc.textContent = 'क्या आप वाकई स्टाफ पोर्टल से सुरक्षित लॉगआउट करना चाहते हैं?';
@@ -6517,7 +6517,7 @@ var state = {
             var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
             window.history.replaceState({ mode: 'admin' }, '', isGas ? '?admin=1' : '/admin');
           }
-          showToast('एडमिन पोर्टल लॉक हो गया।', '🔒');
+          showToast('Admin portal locked.', '🔒');
           checkAdminAuthStatus();
         }
         if (aToken) {
@@ -6642,12 +6642,12 @@ var state = {
       if (!password) return;
 
       btn.disabled = true;
-      btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">जांच हो रही है...</span>';
+      btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">Verifying...</span>';
       errBox.style.display = 'none';
 
       apiCall('verifyAdminPassword', { password: password }, function(res) {
         btn.disabled = false;
-        btn.innerHTML = '<span class="btn-icon">🔓</span> <span class="btn-label">एडमिन पोर्टल खोलें (Unlock Dashboard)</span>';
+        btn.innerHTML = '<span class="btn-icon">🔓</span> <span class="btn-label">Unlock Admin Dashboard</span>';
         if (res && res.success) {
           var remember = document.getElementById('rememberAdminDevice').checked;
           var token = res.token || 'authenticated';
@@ -6665,18 +6665,18 @@ var state = {
             } catch (e) {}
           }
           input.value = '';
-          showToast('सफलतापूर्वक लॉगिन हुआ!', '✓');
+          showToast('Login successful!', '✓');
           checkAdminAuthStatus();
         } else {
-          errBox.textContent = '❌ ' + (res && res.error ? res.error : 'गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।');
+          errBox.textContent = '❌ ' + (res && res.error ? res.error : 'Incorrect password! Please enter the correct password.');
           errBox.style.display = 'block';
           triggerInputShake(input);
           input.focus();
         }
       }, function(err) {
         btn.disabled = false;
-        btn.innerHTML = '<span class="btn-icon">🔓</span> <span class="btn-label">एडमिन पोर्टल खोलें (Unlock Dashboard)</span>';
-        errBox.textContent = '❌ ' + (err.message || 'सत्यापन विफल हुआ');
+        btn.innerHTML = '<span class="btn-icon">🔓</span> <span class="btn-label">Unlock Admin Dashboard</span>';
+        errBox.textContent = '❌ ' + (err.message || 'Verification failed');
         errBox.style.display = 'block';
         triggerInputShake(input);
       });
@@ -6701,13 +6701,13 @@ var state = {
 
       apiCall('updateAdminPassword', { newPassword: newPass }, function(res) {
         if (res && res.success) {
-          showToast(res.message || 'पासवर्ड बदल दिया गया!', '✓');
+          showToast(res.message || 'Password updated successfully!', '✓');
           input.value = '';
         } else {
-          showToast('त्रुटि: ' + (res ? res.error : 'पासवर्ड नहीं बदला जा सका'), '❌');
+          showToast('Error: ' + (res ? res.error : 'Could not change password'), '❌');
         }
       }, function(err) {
-        showToast('त्रुटि: ' + err.message, '❌');
+        showToast('Error: ' + err.message, '❌');
       });
     }
 
@@ -6777,14 +6777,14 @@ var state = {
             }
             if (res && res.error) {
               if (onFailure) onFailure(new Error(res.error));
-              else showToast('त्रुटि: ' + res.error, '❌');
+              else showToast('Error: ' + res.error, '❌');
               return;
             }
             if (onSuccess) onSuccess(res);
           })
           .withFailureHandler(function(err) {
             if (onFailure) onFailure(err);
-            else showToast('सर्वर से संपर्क नहीं हो सका: ' + (err && err.message ? err.message : err), '❌');
+            else showToast('Could not connect to server: ' + (err && err.message ? err.message : err), '❌');
           })
           .apiRequest(action, reqPayload);
         return;
@@ -6838,14 +6838,14 @@ var state = {
         }
         if (resData && resData.error) {
           if (onFailure) onFailure(new Error(resData.error));
-          else showToast('त्रुटि: ' + resData.error, '❌');
+          else showToast('Error: ' + resData.error, '❌');
         } else {
           if (onSuccess) onSuccess(resData);
         }
       })
       .catch(function(err) {
         if (onFailure) onFailure(err);
-        else showToast('सर्वर से संपर्क नहीं हो सका: ' + err.message, '❌');
+        else showToast('Could not connect to server: ' + err.message, '❌');
       });
     }
 
@@ -6860,7 +6860,7 @@ var state = {
           window.history.replaceState({ mode: 'admin' }, '', isGas ? '?admin=1' : '/admin');
         }
         checkAdminAuthStatus();
-        showToast('🔒 एडमिन सत्र समाप्त या अमान्य। कृपया पुनः लॉगिन करें।', '⚠️');
+        showToast('🔒 Admin session expired or invalid. Please log in again.', '⚠️');
       } else {
         var prevId = state.activeStaffId;
         clearStaffTokens(prevId);
@@ -6925,7 +6925,7 @@ var state = {
 
       if (status === 'checking') {
         badge.className = 'staff-live-badge sync-checking';
-        badge.title = 'नवीनतम डेटा की जांच हो रही है... (Checking for updates)';
+        badge.title = 'नवीनतम डेटा की Verifying... (Checking for updates)';
         if (dot) dot.innerHTML = '<span class="staff-sync-spinner"></span>';
         text.textContent = 'सिंक...';
       } else if (status === 'offline') {
@@ -6983,7 +6983,7 @@ var state = {
       isStaffSyncInProgress = true;
       lastStaffSyncTimestamp = Date.now();
       if (isManual) {
-        updateStaffSyncIndicator('checking', 'जांच हो रही है...');
+        updateStaffSyncIndicator('checking', 'Verifying...');
       }
 
       apiCall('getStaffData', {
@@ -7090,8 +7090,8 @@ function loadStaffCustomerData(staffId) {
         startStaffAutoSync(staffId);
         updateStaffSyncIndicator('active', 'लाइव', response.lastSync || new Date());
       }, function(err) {
-        showToast('डेटा लोड करने में त्रुटि: ' + (err.message || err), '❌');
-        if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड नहीं हो सका</h4><p class="empty-desc">' + escapeHtml(err.message || 'कृपया इंटरनेट कनेक्शन जांचें या दोबारा रीफ्रेश करें।') + '</p><div style="margin-top: 14px;"><button type="button" class="btn-primary-smart" style="padding: 8px 16px;" onclick="loadStaffCustomerData(state.activeStaffId)">🔄 पुनः प्रयास करें</button></div></div>';
+        showToast('डेटा लोड करने में Error: ' + (err.message || err), '❌');
+        if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड नहीं हो सका</h4><p class="empty-desc">' + escapeHtml(err.message || 'कृपया इंटरनेट कनेक्शन जांचें या दोबारा रीफ्रेश करें।') + '</p><div style="margin-top: 14px;"><button type="button" class="btn-primary-smart" style="padding: 8px 16px;" onclick="loadStaffCustomerData(state.activeStaffId)">🔄 Try Again</button></div></div>';
       });
     }
 
@@ -7114,7 +7114,7 @@ function loadStaffCustomerData(staffId) {
 
       if (!data || data.error) {
         var feed = document.getElementById('customerFeed');
-        if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड विफल</h4><p class="empty-desc">' + escapeHtml(data ? data.error : 'अज्ञात त्रुटि') + '</p><div style="margin-top: 14px;"><button type="button" class="btn-primary-smart" style="padding: 8px 16px;" onclick="loadStaffCustomerData(state.activeStaffId)">🔄 पुनः प्रयास करें</button></div></div>';
+        if (feed) feed.innerHTML = '<div class="empty-state-card"><div class="empty-icon-wrap">⚠️</div><h4 class="empty-title">डेटा लोड विफल</h4><p class="empty-desc">' + escapeHtml(data ? data.error : 'अज्ञात त्रुटि') + '</p><div style="margin-top: 14px;"><button type="button" class="btn-primary-smart" style="padding: 8px 16px;" onclick="loadStaffCustomerData(state.activeStaffId)">🔄 Try Again</button></div></div>';
         return;
       }
 
@@ -7363,15 +7363,15 @@ function loadStaffCustomerData(staffId) {
       if (!items || items.length === 0) {
         var isSearchActive = Boolean(state.searchQuery);
         var emptyMsg = isSearchActive 
-          ? 'सर्च के अनुसार कोई रिकॉर्ड नहीं मिला। ("' + escapeHtml(state.searchQuery) + '")'
+          ? 'सर्च के अनुसार No records found। ("' + escapeHtml(state.searchQuery) + '")'
           : (state.activeFilter === 'solar_cleaning' ? 'इस केटेगरी में कोई सोलर साइट असाइन नहीं है।' : (state.activeFilter === 'car_washing' ? 'इस केटेगरी में कोई कार वॉशिंग असाइन नहीं है।' : 'इस केटेगरी में कोई दैनिक कार सफाई असाइन नहीं है।'));
         var emptyIcon = isSearchActive ? '🔍' : (state.activeFilter === 'solar_cleaning' ? '☀️' : (state.activeFilter === 'car_washing' ? '🧼' : '🚗'));
         var actionBtnHtml = isSearchActive 
-          ? '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="clearStaffSearch()">✕ सर्च साफ़ करें</button></div>'
+          ? '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="clearStaffSearch()">✕ Clear search</button></div>'
           : '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="setStaffFilter(\'daily_car_cleaning\')">🚗 मुख्य दैनिक सफाई पर जाएं</button></div>';
         container.innerHTML = '<div class="empty-state-card">' +
           '<div class="empty-icon-wrap">' + emptyIcon + '</div>' +
-          '<h4 class="empty-title">कोई रिकॉर्ड नहीं मिला</h4>' +
+          '<h4 class="empty-title">No records found</h4>' +
           '<p class="empty-desc">' + emptyMsg + '</p>' +
           actionBtnHtml +
         '</div>';
@@ -7388,7 +7388,7 @@ function loadStaffCustomerData(staffId) {
         var formattedPhone = cleanPhone ? formatIndianMobile(cleanPhone) : '';
 
         var rawVeh = item.vehicleNumbers || item.vehicleOrSite || item.vehicle;
-        var vehicles = (rawVeh != null ? String(rawVeh) : '').trim() || (isSolar ? 'साइट विवरण दर्ज नहीं' : 'गाड़ी नंबर दर्ज नहीं');
+        var vehicles = (rawVeh != null ? String(rawVeh) : '').trim() || (isSolar ? 'साइट विवरण Not provided' : 'गाड़ी नंबर Not provided');
         var notes = (item.staffNotes || item.notes != null ? String(item.staffNotes || item.notes) : '').trim();
         var address = (item.address != null ? String(item.address) : '').trim();
         var secAddress = (item.secondaryAddress != null ? String(item.secondaryAddress) : '').trim();
@@ -7429,7 +7429,7 @@ function loadStaffCustomerData(staffId) {
         
         html += '    <div class="card-action-buttons">';
         if (cleanPhone) {
-          html += '      <a href="' + getIndianPhoneLink(cleanPhone) + '" class="btn-card-action btn-call" title="कॉल करें: ' + escapeHtml(formattedPhone) + '">';
+          html += '      <a href="' + getIndianPhoneLink(cleanPhone) + '" class="btn-card-action btn-call" title="Call: ' + escapeHtml(formattedPhone) + '">';
           html += '        <span>📞</span><span>कॉल</span>';
           html += '      </a>';
         } else {
@@ -7487,7 +7487,7 @@ function loadStaffCustomerData(staffId) {
 
         if (photoUrl) {
           html += '    <div class="card-photo-wrap">';
-          html += '      <button type="button" class="btn-photo-thumb" onclick="openStaffPhotoModal(' + index + ')" title="गाड़ी की फोटो देखें">';
+          html += '      <button type="button" class="btn-photo-thumb" onclick="openStaffPhotoModal(' + index + ')" title="View vehicle photo">';
           html += '        <img src="' + escapeHtml(thumbUrl) + '" class="card-mini-thumb" alt="Photo" onerror="this.style.display=\'none\'">';
           html += '        <span class="photo-thumb-label">🖼️ फोटो</span>';
           html += '      </button>';
@@ -7601,7 +7601,7 @@ function loadStaffCustomerData(staffId) {
       apiCall('getStaffList', {}, function(list) {
         populateAdminStaffList(list);
       }, function(err) {
-        showToast('स्टाफ लोड करने में त्रुटि: ' + (err.message || err), '❌');
+        showToast('Error loading staff: ' + (err.message || err), '❌');
       });
     }
 
@@ -7613,17 +7613,17 @@ function loadStaffCustomerData(staffId) {
       var listContainer = document.getElementById('adminStaffList');
 
       /* Update Form Dropdown - Show active staff cleanly */
-      var optionsHtml = '<option value="">स्टाफ चुनें...</option>';
+      var optionsHtml = '<option value="">Select staff...</option>';
       state.staffList.forEach(function(s) {
         var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
-        var label = s.name + (isAct ? '' : ' (निष्क्रिय)');
+        var label = s.name + (isAct ? '' : ' (Inactive)');
         optionsHtml += '<option value="' + escapeHtml(s.name) + '">' + escapeHtml(label) + '</option>';
       });
       if (select) select.innerHTML = optionsHtml;
 
       /* Update Staff Management List */
       if (!state.staffList || state.staffList.length === 0) {
-        listContainer.innerHTML = '<div class="empty-state-box">कोई स्टाफ सदस्य नहीं मिला।</div>';
+        listContainer.innerHTML = '<div class="empty-state-box">No staff members found.</div>';
         return;
       }
 
@@ -7642,28 +7642,28 @@ function loadStaffCustomerData(staffId) {
         var normPhone = normalizeIndianMobile(s.phone);
         var formattedPhone = normPhone ? formatIndianMobile(normPhone) : '';
         var isActive = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
-        var waMessage = 'नमस्ते ' + s.name + ',\nयह आपका CWP Detailers & Motors का स्टाफ पोर्टल लिंक है:\n' + staffUrl + '\n\nकृपया अपने पंजीकृत मोबाइल नंबर (' + (formattedPhone || s.phone) + ') और 6-अंकों के सुरक्षा पिन से लॉगिन करें।';
+        var waMessage = 'Hello ' + s.name + ',\nHere is your CWP Detailers & Motors staff portal link:\n' + staffUrl + '\n\nPlease log in using your registered mobile number (' + (formattedPhone || s.phone) + ') and 6-digit security PIN.';
         var waHref = normPhone ? getIndianWhatsAppLink(normPhone, waMessage) : ('https:\x2F\x2Fwa.me/?text=' + encodeURIComponent(waMessage));
 
         cardsHtml += '<div class="staff-admin-card">';
         cardsHtml += '  <div class="staff-admin-info" style="display: flex; flex-direction: column; gap: 4px;">';
         cardsHtml += '    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">';
         cardsHtml += '      <span class="staff-admin-name">' + escapeHtml(s.name) + '</span>';
-        cardsHtml += '      <button type="button" class="badge-status-pill ' + (isActive ? 'badge-active' : 'badge-inactive') + '" onclick="toggleStaffActiveStatus(\'' + escapeHtml(s.id) + '\', ' + (!isActive) + ')" title="स्टेटस बदलने के लिए क्लिक करें">';
-        cardsHtml += '        ' + (isActive ? '● सक्रिय (Active)' : '○ निष्क्रिय (Inactive)');
+        cardsHtml += '      <button type="button" class="badge-status-pill ' + (isActive ? 'badge-active' : 'badge-inactive') + '" onclick="toggleStaffActiveStatus(\'' + escapeHtml(s.id) + '\', ' + (!isActive) + ')" title="Click to toggle status">';
+        cardsHtml += '        ' + (isActive ? '● Active' : '○ Inactive');
         cardsHtml += '      </button>';
         cardsHtml += '    </div>';
         cardsHtml += '    <div class="staff-admin-id" style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted);">';
         cardsHtml += '      <span>ID: <b style="color: var(--text-primary);">' + escapeHtml(s.id) + '</b></span>';
-        cardsHtml += '      <span>📱 <b>' + (formattedPhone ? escapeHtml(formattedPhone) : '<span style="color:var(--text-muted); font-weight:normal;">दर्ज नहीं</span>') + '</b></span>';
-        cardsHtml += '      <span>🔑 पिन: <b style="color: #059669;">' + (s.hasPin !== false ? '●●●●●● (सुरक्षित)' : 'सेट नहीं') + '</b></span>';
+        cardsHtml += '      <span>📱 <b>' + (formattedPhone ? escapeHtml(formattedPhone) : '<span style="color:var(--text-muted); font-weight:normal;">Not provided</span>') + '</b></span>';
+        cardsHtml += '      <span>🔑 PIN: <b style="color: #059669;">' + (s.hasPin !== false ? '●●●●●● (Secured)' : 'Not Set') + '</b></span>';
         cardsHtml += '    </div>';
         cardsHtml += '  </div>';
         cardsHtml += '  <div class="staff-admin-actions">';
-        cardsHtml += '    <button type="button" class="btn-admin-action" onclick="openEditStaffModal(\'' + escapeHtml(s.id) + '\')">✏️ एडिट</button>';
-        cardsHtml += '    <button type="button" class="btn-admin-action" onclick="copyStaffLink(\'' + escapeHtml(staffUrl) + '\')">📋 कॉपी लिंक</button>';
-        cardsHtml += '    <a href="' + waHref + '" target="_blank" class="btn-admin-action">💬 व्हाट्सएप</a>';
-        cardsHtml += '    <a href="' + escapeHtml(staffUrl) + '" target="_blank" class="btn-admin-action">👁️ खोलें</a>';
+        cardsHtml += '    <button type="button" class="btn-admin-action" onclick="openEditStaffModal(\'' + escapeHtml(s.id) + '\')">✏️ Edit</button>';
+        cardsHtml += '    <button type="button" class="btn-admin-action" onclick="copyStaffLink(\'' + escapeHtml(staffUrl) + '\')">📋 Copy Link</button>';
+        cardsHtml += '    <a href="' + waHref + '" target="_blank" class="btn-admin-action">💬 WhatsApp</a>';
+        cardsHtml += '    <a href="' + escapeHtml(staffUrl) + '" target="_blank" class="btn-admin-action">👁️ Open</a>';
         cardsHtml += '    <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteStaff(\'' + escapeHtml(s.id) + '\')">🗑️</button>';
         cardsHtml += '  </div>';
         cardsHtml += '</div>';
@@ -7673,17 +7673,17 @@ function loadStaffCustomerData(staffId) {
     }
 
     function toggleStaffActiveStatus(staffId, newStatus) {
-      var actWord = newStatus ? 'सक्रिय (Active)' : 'निष्क्रिय (Inactive)';
-      showToast('स्टेटस बदला जा रहा है...', '⏳');
+      var actWord = newStatus ? 'Active' : 'Inactive';
+      showToast('Updating status...', '⏳');
       apiCall('toggleStaffActive', { staffId: staffId, active: newStatus }, function(res) {
-        showToast('स्टाफ ' + actWord + ' कर दिया गया!', '✓');
+        showToast('Staff marked as ' + actWord + '!', '✓');
         if (res && res.staffList) {
           populateAdminStaffList(res.staffList);
         } else {
           loadStaffListForAdmin();
         }
       }, function(err) {
-        showToast('त्रुटि: ' + (err.message || err), '❌');
+        showToast('Error: ' + (err.message || err), '❌');
       });
     }
 
@@ -7692,7 +7692,7 @@ function loadStaffCustomerData(staffId) {
         return (s.id || '').toUpperCase() === (staffId || '').toUpperCase();
       });
       if (!staff) {
-        showToast('स्टाफ जानकारी नहीं मिली', '❌');
+        showToast('Staff information not found', '❌');
         return;
       }
       document.getElementById('editStaffId').value = staff.id;
@@ -7725,7 +7725,7 @@ function loadStaffCustomerData(staffId) {
       var pin = document.getElementById('editStaffPin').value.trim();
 
       if (rawPhone && !isValidIndianMobile(phone)) {
-        alert('कृपया 6, 7, 8 या 9 से शुरू होने वाला वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें।');
+        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
         document.getElementById('editStaffPhone').focus();
         return;
       }
@@ -7733,17 +7733,17 @@ function loadStaffCustomerData(staffId) {
       var btn = document.getElementById('btnSaveEditStaff');
 
       if (!name) {
-        alert('स्टाफ का नाम आवश्यक है।');
+        alert('Staff name is required.');
         return;
       }
       if (pin && !/^\d{6}$/.test(pin)) {
-        alert('पासवर्ड (पिन) ठीक 6 अंकों (numbers) का होना चाहिए।');
+        alert('PIN must be exactly 6 digits.');
         return;
       }
 
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span>⏳</span> सेव हो रहा है...';
+        btn.innerHTML = '<span>⏳</span> Saving...';
       }
 
       var staffPayload = {
@@ -7759,10 +7759,10 @@ function loadStaffCustomerData(staffId) {
       apiCall('saveStaffMember', { staffData: staffPayload }, function(res) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span>💾</span> स्टाफ अपडेट करें (Save Staff)';
+          btn.innerHTML = '<span>💾</span> Save Staff';
         }
         closeEditStaffModal();
-        showToast('स्टाफ प्रोफाइल अपडेट हो गई!', '✓');
+        showToast('Staff profile updated successfully!', '✓');
         if (res && res.staffList) {
           populateAdminStaffList(res.staffList);
         } else {
@@ -7771,9 +7771,9 @@ function loadStaffCustomerData(staffId) {
       }, function(err) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span>💾</span> स्टाफ अपडेट करें (Save Staff)';
+          btn.innerHTML = '<span>💾</span> Save Staff';
         }
-        showToast('त्रुटि: ' + (err.message || err), '❌');
+        showToast('Error: ' + (err.message || err), '❌');
       });
     }
 
@@ -7788,7 +7788,7 @@ function loadStaffCustomerData(staffId) {
     function copyStaffLink(link) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(link).then(function() {
-          showToast('लिंक कॉपी हो गया!', '✓');
+          showToast('Staff link copied to clipboard!', '✓');
         });
       } else {
         var input = document.createElement('input');
@@ -7797,7 +7797,7 @@ function loadStaffCustomerData(staffId) {
         input.select();
         document.execCommand('copy');
         document.body.removeChild(input);
-        showToast('लिंक कॉपी हो गया!', '✓');
+        showToast('Staff link copied to clipboard!', '✓');
       }
     }
 
@@ -7812,7 +7812,7 @@ function loadStaffCustomerData(staffId) {
       var pin = (pinInput ? pinInput.value : '').trim();
 
       if (rawPhone && !isValidIndianMobile(phone)) {
-        alert('कृपया 6, 7, 8 या 9 से शुरू होने वाला वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें।');
+        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
         if (phoneInput) phoneInput.focus();
         return;
       }
@@ -7821,7 +7821,7 @@ function loadStaffCustomerData(staffId) {
 
       if (!name) return;
       if (!pin || !/^\d{6}$/.test(pin)) {
-        alert('कृपया नए स्टाफ के लिए ठीक 6-अंकों का लॉगिन पिन दर्ज करें।');
+        alert('Please enter a 6-digit login PIN for new staff.');
         if (pinInput) pinInput.focus();
         return;
       }
@@ -7839,58 +7839,58 @@ function loadStaffCustomerData(staffId) {
         if (phoneInput) phoneInput.value = '';
         if (pinInput) pinInput.value = '';
         if (idEl) idEl.value = '';
-        showToast('स्टाफ "' + name + '" सफलतापूर्वक जोड़ा गया!', '✓');
+        showToast('Staff member "' + name + '" added successfully!', '✓');
         if (res && res.staffList) {
           populateAdminStaffList(res.staffList);
         } else {
           loadStaffListForAdmin();
         }
       }, function(err) {
-        showToast('त्रुटि: ' + (err.message || err), '❌');
+        showToast('Error: ' + (err.message || err), '❌');
       });
     }
 
     function handleDeleteStaff(id) {
-      if (!confirm('क्या आप सच में इस स्टाफ को हटाना चाहते हैं?')) return;
+      if (!confirm('Are you sure you want to delete this staff member?')) return;
       apiCall('deleteStaffMember', { id: id }, function(res) {
-        showToast('स्टाफ हटा दिया गया', '✓');
+        showToast('Staff member deleted successfully', '✓');
         if (res && res.staffList) {
           populateAdminStaffList(res.staffList);
         } else {
           loadStaffListForAdmin();
         }
       }, function(err) {
-        showToast('त्रुटि: ' + (err.message || err), '❌');
+        showToast('Error: ' + (err.message || err), '❌');
       });
     }
 
     function handleSyncStaffSheet() {
-      showToast('शीट में स्टाफ सिंक हो रहा है...', 'ℹ');
+      showToast('Syncing staff to Sheet...', 'ℹ');
       apiCall('cleanAndSyncStaff', {}, function(res) {
-        showToast('सभी शीट रो और ड्रॉपडाउन सिंक हो गए!', '✓');
+        showToast('All sheet rows and dropdowns synced!', '✓');
         loadStaffListForAdmin();
       }, function(err) {
-        showToast('त्रुटि: ' + (err.message || err), '❌');
+        showToast('Error: ' + (err.message || err), '❌');
       });
     }
 
     function handleSyncStaffDropdown() {
-      showToast('गूगल शीट ड्रॉपडाउन सिंक हो रहा है...', 'ℹ');
+      showToast('Syncing Google Sheet dropdowns...', 'ℹ');
       apiCall('syncStaffDropdown', {}, function(res) {
-        showToast('गूगल शीट के Staff Name कॉलम में ड्रॉपडाउन वैलिडेशन लागू हो गया!', '✓');
+        showToast('Dropdown validation applied to Staff column in Google Sheet!', '✓');
       }, function(err) {
-        showToast('त्रुटि: ' + (err.message || err), '❌');
+        showToast('Error: ' + (err.message || err), '❌');
       });
     }
 
     function handleReorderSheet() {
-      if (!confirm('क्या आप गूगल शीट के कॉलम्स को कस्टमर-फर्स्ट क्रम (Customer Name, Mob, Location, Photo, Address...) में रीऑर्डर करना चाहते हैं?\n\nसभी मौजूदा 27 रिकॉर्ड्स सुरक्षित रहेंगे।')) return;
-      showToast('शीट्स रीऑर्डर हो रही हैं...', 'ℹ');
+      if (!confirm('Are you sure you want to reorder Google Sheet columns to Customer-First layout (Customer Name, Mobile, Location, Photo, Address...)?\n\nAll existing records will be preserved safely.')) return;
+      showToast('Reordering sheets...', 'ℹ');
       apiCall('reorderSheet', {}, function(res) {
-        showToast(res && res.message ? res.message : 'शीट्स सफलतापूर्वक रीऑर्डर हो गईं!', '✓');
+        showToast(res && res.message ? res.message : 'Sheets reordered successfully to Customer-First layout!', '✓');
         loadAdminRecords();
       }, function(err) {
-        showToast('त्रुटि: ' + (err.message || err), '❌');
+        showToast('Error: ' + (err.message || err), '❌');
       });
     }
 
@@ -7906,8 +7906,8 @@ function loadStaffCustomerData(staffId) {
       var pkgSelect = document.getElementById('custPkgType');
 
       if (isSolar) {
-        if (vLabel) vLabel.textContent = 'साइट का नाम / लोकेशन (Site Name / Location) *';
-        if (vInput) vInput.placeholder = 'उदा. Rooftop 5KW Site / Flat 402';
+        if (vLabel) vLabel.textContent = 'Site Name / Location *';
+        if (vInput) vInput.placeholder = 'e.g. Rooftop 5KW Site / Flat 402';
         if (secGroup) secGroup.style.display = 'none';
         if (pkgSelect) {
           pkgSelect.innerHTML = 
@@ -7916,8 +7916,8 @@ function loadStaffCustomerData(staffId) {
             '<option value="OTHER">OTHER</option>';
         }
       } else if (isCarWash) {
-        if (vLabel) vLabel.textContent = 'गाड़ी नंबर और मॉडल (Vehicle Number & Model) *';
-        if (vInput) vInput.placeholder = 'उदा. UP65 AB 1234 - Creta';
+        if (vLabel) vLabel.textContent = 'Vehicle Number & Model *';
+        if (vInput) vInput.placeholder = 'e.g. UP65 AB 1234 - Creta';
         if (secGroup) secGroup.style.display = 'none';
         if (pkgSelect) {
           pkgSelect.innerHTML = 
@@ -7927,8 +7927,8 @@ function loadStaffCustomerData(staffId) {
         }
       } else {
         /* Daily Car Cleaning */
-        if (vLabel) vLabel.textContent = 'गाड़ी नंबर और मॉडल (Vehicle Number & Model) *';
-        if (vInput) vInput.placeholder = 'उदा. UP65 AB 1234 - Creta';
+        if (vLabel) vLabel.textContent = 'Vehicle Number & Model *';
+        if (vInput) vInput.placeholder = 'e.g. UP65 AB 1234 - Creta';
         if (secGroup) secGroup.style.display = 'block';
         if (pkgSelect) {
           pkgSelect.innerHTML = 
@@ -7944,11 +7944,11 @@ function loadStaffCustomerData(staffId) {
     function handleEditCategoryChange(cat) {
       var vLabel = document.getElementById('editCustVehiclesLabel');
       if (vLabel) {
-        vLabel.textContent = (cat === 'Solar Panel Cleaning') ? 'गाड़ी / साइट विवरण (Vehicle Number / Site Name)' : 'गाड़ी नंबर और मॉडल (Vehicle Number & Model)';
+        vLabel.textContent = (cat === 'Solar Panel Cleaning') ? 'Site Name / Location' : 'Vehicle Number & Model';
       }
       var vInput = document.getElementById('editCustVehicles');
       if (vInput) {
-        vInput.placeholder = (cat === 'Solar Panel Cleaning') ? 'उदा. Rooftop 5KW Site' : 'उदा. UP65 AB 1234 - Creta';
+        vInput.placeholder = (cat === 'Solar Panel Cleaning') ? 'e.g. Rooftop 5KW Site' : 'e.g. UP65 AB 1234 - Creta';
       }
 
       var secGroup = document.getElementById('editSecondaryAddressGroup');
@@ -8018,17 +8018,17 @@ function loadStaffCustomerData(staffId) {
 
     function detectGpsLocation() {
       if (!navigator.geolocation) {
-        alert('आपके ब्राउज़र में GPS सपोर्ट नहीं है।');
+        alert('GPS geolocation is not supported in your browser.');
         return;
       }
-      showToast('GPS लोकेशन ली जा रही है...', '📍');
+      showToast('Detecting GPS location...', '📍');
       navigator.geolocation.getCurrentPosition(function(pos) {
         var lat = pos.coords.latitude.toFixed(6);
         var lng = pos.coords.longitude.toFixed(6);
         document.getElementById('custMapsUrl').value = 'https:\x2F\x2Fwww.google.com/maps?q=' + lat + ',' + lng;
-        showToast('GPS लोकेशन दर्ज हो गई!', '✓');
+        showToast('GPS coordinates captured!', '✓');
       }, function(err) {
-        showToast('GPS लोकेशन नहीं मिल सकी: ' + err.message, '❌');
+        showToast('Failed to get GPS location: ' + err.message, '❌');
       }, { timeout: 10000 });
     }
 
@@ -8041,13 +8041,13 @@ function loadStaffCustomerData(staffId) {
     var editDraftSaveTimer = null;
 
     function formatRelativeDraftTime(timestamp) {
-      if (!timestamp) return 'हाल ही में (Just now)';
+      if (!timestamp) return 'Just now';
       var diffSec = Math.floor((Date.now() - timestamp) / 1000);
-      if (diffSec < 60) return 'अभी-अभी (Just now)';
+      if (diffSec < 60) return 'Just now';
       var diffMin = Math.floor(diffSec / 60);
-      if (diffMin < 60) return diffMin + ' मिनट पहले (' + diffMin + ' min ago)';
+      if (diffMin < 60) return diffMin + ' min ago';
       var diffHours = Math.floor(diffMin / 60);
-      if (diffHours < 24) return diffHours + ' घंटे पहले (' + diffHours + ' hrs ago)';
+      if (diffHours < 24) return diffHours + ' hrs ago';
       return new Date(timestamp).toLocaleDateString() + ' ' + new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
@@ -8073,7 +8073,7 @@ function loadStaffCustomerData(staffId) {
       if (badge) {
         badge.style.display = 'inline-flex';
         badge.className = 'cwp-draft-badge saving';
-        badge.innerHTML = '<span class="draft-dot pulse"></span> ड्राफ्ट सेव हो रहा है...';
+        badge.innerHTML = '<span class="draft-dot pulse"></span> Saving draft...';
       }
 
       clearTimeout(draftSaveTimer);
@@ -8141,7 +8141,7 @@ function loadStaffCustomerData(staffId) {
           badge.style.display = 'inline-flex';
           badge.className = 'cwp-draft-badge saved';
           var timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          badge.innerHTML = '<span class="draft-dot ready"></span> ✓ ड्राफ्ट सुरक्षित (' + timeStr + ')';
+          badge.innerHTML = '<span class="draft-dot ready"></span> ✓ Draft saved (' + timeStr + ')';
         }
       } catch (e) {
         console.warn('Draft save error:', e);
@@ -8222,13 +8222,13 @@ function loadStaffCustomerData(staffId) {
         if (badge) {
           badge.style.display = 'inline-flex';
           badge.className = 'cwp-draft-badge saved';
-          badge.innerHTML = '<span class="draft-dot ready"></span> ✓ ड्राफ्ट लोड हुआ';
+          badge.innerHTML = '<span class="draft-dot ready"></span> ✓ Draft restored';
         }
 
-        showToast('ड्राफ्ट डेटा फॉर्म में सफलतापूर्वक भर दिया गया!', '✓');
+        showToast('Draft restored successfully into form!', '✓');
       } catch (e) {
         console.error('Error restoring draft:', e);
-        showToast('ड्राफ्ट लोड करने में समस्या: ' + e.message, '⚠️');
+        showToast('Failed to restore draft: ' + e.message, '⚠️');
       }
     }
 
@@ -8239,7 +8239,7 @@ function loadStaffCustomerData(staffId) {
       var badge = document.getElementById('custDraftBadge');
       if (badge) badge.style.display = 'none';
       if (!silent) {
-        showToast('ड्राफ्ट हटा दिया गया', '🗑️');
+        showToast('Draft discarded', '🗑️');
       }
     }
 
@@ -8270,7 +8270,7 @@ function loadStaffCustomerData(staffId) {
       if (badge) {
         badge.style.display = 'inline-flex';
         badge.className = 'cwp-draft-badge saving';
-        badge.innerHTML = '<span class="draft-dot pulse"></span> सेव हो रहा है...';
+        badge.innerHTML = '<span class="draft-dot pulse"></span> Saving draft...';
       }
       clearTimeout(editDraftSaveTimer);
       editDraftSaveTimer = setTimeout(function() {
@@ -8319,7 +8319,7 @@ function loadStaffCustomerData(staffId) {
         if (badge) {
           badge.style.display = 'inline-flex';
           badge.className = 'cwp-draft-badge saved';
-          badge.innerHTML = '<span class="draft-dot ready"></span> ✓ ड्राफ्ट सुरक्षित';
+          badge.innerHTML = '<span class="draft-dot ready"></span> ✓ Draft saved';
         }
       } catch (e) {
         console.warn('Edit draft save error:', e);
@@ -8381,7 +8381,7 @@ function loadStaffCustomerData(staffId) {
 
         var banner = document.getElementById('editDraftRestoreBanner');
         if (banner) banner.style.display = 'none';
-        showToast('एडिट ड्राफ्ट भर दिया गया', '✓');
+        showToast('Edit draft restored', '✓');
       } catch (e) {
         console.warn('Error restoring edit draft:', e);
       }
@@ -8394,7 +8394,7 @@ function loadStaffCustomerData(staffId) {
       if (banner) banner.style.display = 'none';
       var badge = document.getElementById('editDraftBadge');
       if (badge) badge.style.display = 'none';
-      if (!silent) showToast('एडिट ड्राफ्ट हटाया गया', '🗑️');
+      if (!silent) showToast('Edit draft discarded', '🗑️');
     }
 
 
@@ -8445,7 +8445,7 @@ function loadStaffCustomerData(staffId) {
       img.crossOrigin = 'anonymous';
       img.onload = function() {
         if (typeof Cropper === 'undefined') {
-          showToast('Cropper लाइब्रेरी लोड नहीं हो सकी', '❌');
+          showToast('Cropper library failed to load', '❌');
           return;
         }
 
@@ -8623,7 +8623,7 @@ function loadStaffCustomerData(staffId) {
       });
 
       if (!canvas) {
-        showToast('फोटो क्रॉप करने में त्रुटि!', '❌');
+        showToast('Error cropping photo!', '❌');
         return;
       }
 
@@ -8653,7 +8653,7 @@ function loadStaffCustomerData(staffId) {
         if (actionsWrap) actionsWrap.style.display = 'flex';
 
         triggerCustomerAutoDraft();
-        showToast('फोटो सीधी और क्रॉप हो गई! ✓', '✂️');
+        showToast('Photo straightened and cropped! ✓', '✂️');
       } else if (cropperTargetContext === 'edit') {
         state.editPhotoBase64 = base64;
         state.editPhotoType = 'image/jpeg';
@@ -8673,7 +8673,7 @@ function loadStaffCustomerData(staffId) {
         if (editActionsWrap) editActionsWrap.style.display = 'flex';
 
         triggerEditAutoDraft();
-        showToast('एडिट फोटो सीधी और क्रॉप हो गई! ✓', '✂️');
+        showToast('Photo straightened and cropped! ✓', '✂️');
       }
 
       closeCropperModal();
@@ -8729,7 +8729,7 @@ function loadStaffCustomerData(staffId) {
       var actionsWrap = document.getElementById('custPhotoActionsWrap');
       if (actionsWrap) actionsWrap.style.display = 'none';
       triggerCustomerAutoDraft();
-      showToast('फोटो हटा दी गई', '🗑️');
+      showToast('Photo removed', '🗑️');
     }
 
     function removeEditCustPhoto(e) {
@@ -8753,7 +8753,7 @@ function loadStaffCustomerData(staffId) {
         if (editActionsWrap) editActionsWrap.style.display = 'none';
       }
       triggerEditAutoDraft();
-      showToast('नई फोटो हटाई गई', '🗑️');
+      showToast('Photo removed', '🗑️');
     }
 
     function handlePhotoSelect(e) {
@@ -8798,15 +8798,15 @@ function loadStaffCustomerData(staffId) {
       var btn = document.getElementById('btnSaveCust');
       btn.disabled = true;
       var hasPhoto = !!state.selectedPhotoBase64;
-      btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'फोटो अपलोड और सेव हो रहा है...' : 'गूगल शीट में सेव हो रहा है...');
+      btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'Uploading photo & saving...' : 'Saving to Google Sheet...');
 
       var phoneEl = document.getElementById('custPhone');
       var normCustPhone = normalizeIndianMobile(phoneEl ? phoneEl.value : '');
       if (!isValidIndianMobile(normCustPhone)) {
-        alert('कृपया 6, 7, 8 या 9 से शुरू होने वाला वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें।');
+        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
         if (phoneEl) phoneEl.focus();
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
+        btn.innerHTML = '<span>💾</span> Save Customer';
         return;
       }
 
@@ -8859,11 +8859,11 @@ function loadStaffCustomerData(staffId) {
 
       apiCall('saveCustomer', { customerData: customerData }, function(res) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
+        btn.innerHTML = '<span>💾</span> Save Customer';
         if (res && res.error) {
-          showToast('त्रुटि: ' + res.error, '❌');
+          showToast('Error: ' + res.error, '❌');
         } else {
-          showToast('ग्राहक सफलतापूर्वक सेव हुआ और एक्टिव रिकॉर्ड्स में जुड़ गया!', '✓');
+          showToast('Customer saved successfully and added to Active Records!', '✓');
           document.getElementById('addCustomerForm').reset();
           toggleCustMap(false);
           toggleCustSecLocation(false);
@@ -8893,8 +8893,8 @@ function loadStaffCustomerData(staffId) {
         }
       }, function(err) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> गूगल शीट में सेव करें (Save Customer)';
-        showToast('सेव करने में त्रुटि: ' + (err.message || err), '❌');
+        btn.innerHTML = '<span>💾</span> Save Customer';
+        showToast('Error saving customer: ' + (err.message || err), '❌');
       });
     }
 
@@ -8966,7 +8966,7 @@ function loadStaffCustomerData(staffId) {
         /* Run filter & render */
         filterAdminRecords();
       }, function(err) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 28px; color:var(--danger-red);">लोड विफल: ' + escapeHtml(err.message || err) + '<br><button type="button" class="btn-primary-smart" style="margin-top:12px; padding:6px 14px; font-size:12px;" onclick="loadAdminRecords()">🔄 पुनः प्रयास करें</button></td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 28px; color:var(--danger-red);">Load failed: ' + escapeHtml(err.message || err) + '<br><button type="button" class="btn-primary-smart" style="margin-top:12px; padding:6px 14px; font-size:12px;" onclick="loadAdminRecords()">🔄 Try Again</button></td></tr>';
       });
     }
 
@@ -8974,8 +8974,8 @@ function loadStaffCustomerData(staffId) {
       var sel = document.getElementById('filterAdminStaff');
       if (!sel) return;
       var currentVal = sel.value;
-      var html = '<option value="all">सभी स्टाफ (All Staff)</option>';
-      html += '<option value="none">⚠️ असाइन नहीं (None / Unassigned)</option>';
+      var html = '<option value="all">All Staff</option>';
+      html += '<option value="none">⚠️ Unassigned (None)</option>';
 
       var uniqueStaff = {};
       (state.staffList || []).forEach(function(s) {
@@ -9132,10 +9132,10 @@ function loadStaffCustomerData(staffId) {
     function exportAdminRecordsCSV() {
       var records = state.lastFilteredRecords || state.adminRecords;
       if (!records || records.length === 0) {
-        showToast('एक्सपोर्ट करने के लिए कोई रिकॉर्ड उपलब्ध नहीं है।', '⚠️');
+        showToast('No records available to export.', '⚠️');
         return;
       }
-      var headers = ['क्र. सं.', 'ग्राहक का नाम', 'मोबाइल नंबर', 'सर्विस केटेगरी', 'गाड़ी / साइट विवरण', 'पता', 'सेकेंडरी पता', 'असाइन स्टाफ', 'पैकेज', 'गूगल मैप्स लिंक', 'फोटो लिंक', 'एक्टिव स्टेटस'];
+      var headers = ['S.No.', 'Customer Name', 'Mobile Number', 'Service Category', 'Vehicle / Site Info', 'Address', 'Secondary Address', 'Assigned Staff', 'Package', 'Google Maps Link', 'Photo Link', 'Active Status'];
       var rows = [headers];
       records.forEach(function(r, idx) {
         var cat = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
@@ -9168,7 +9168,7 @@ function loadStaffCustomerData(staffId) {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      showToast('CSV फ़ाइल डाउनलोड हो गई (' + records.length + ' रिकॉर्ड्स)', '📥');
+      showToast('CSV file downloaded (' + records.length + ' records)', '📥');
     }
 
     function renderAdminRecordsTable(records) {
@@ -9178,8 +9178,8 @@ function loadStaffCustomerData(staffId) {
       if (!records || records.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">' +
           '<div style="font-size: 24px; margin-bottom: 6px;">🔍</div>' +
-          '<div style="font-weight: 700; font-size: 13.5px; color: var(--text-primary); margin-bottom: 3px;">कोई रिकॉर्ड नहीं मिला</div>' +
-          '<div style="font-size: 12px;">सर्च या फ़िल्टर बदलकर देखें या <a href="javascript:void(0)" onclick="resetAllAdminFilters()" style="color:var(--brand-blue); text-decoration:underline; font-weight:600;">फ़िल्टर हटाएं</a></div>' +
+          '<div style="font-weight: 700; font-size: 13.5px; color: var(--text-primary); margin-bottom: 3px;">No records found</div>' +
+          '<div style="font-size: 12px;">Try adjusting your search or filters, or <a href="javascript:void(0)" onclick="resetAllAdminFilters()" style="color:var(--brand-blue); text-decoration:underline; font-weight:600;">Reset filters</a></div>' +
           '</td></tr>';
         return;
       }
@@ -9198,10 +9198,10 @@ function loadStaffCustomerData(staffId) {
         var pkgLabel = (r.packageType || r.serviceType || '').trim();
 
         var custHtml = '<div class="cust-name-cell">' +
-          '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + escapeHtml(r.customerName || 'अज्ञात ग्राहक') + '</span>' +
+          '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + escapeHtml(r.customerName || 'Unknown Customer') + '</span>' +
           (r.customerNumber ? (function() {
             var nPhone = normalizeIndianMobile(r.customerNumber);
-            return '<a href="' + getIndianPhoneLink(nPhone) + '" class="cust-phone-link" title="कॉल करें: ' + escapeHtml(formatIndianMobile(nPhone)) + '">' +
+            return '<a href="' + getIndianPhoneLink(nPhone) + '" class="cust-phone-link" title="Call: ' + escapeHtml(formatIndianMobile(nPhone)) + '">' +
               '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 4V3z"/></svg> ' +
               escapeHtml(formatIndianMobile(nPhone)) + '</a>';
           })() : '') +
@@ -9228,9 +9228,9 @@ function loadStaffCustomerData(staffId) {
         if (r.photoUrl && r.photoUrl.trim()) {
           var aThumb = r.photoUrl.indexOf('res.cloudinary.com') !== -1 && r.photoUrl.indexOf('/upload/') !== -1 ? r.photoUrl.replace('/upload/', '/upload/w_80,h_80,c_fill,q_auto,f_auto/') : r.photoUrl;
           carHtml += '<div>' +
-            '<button type="button" class="vehicle-photo-thumb-btn" onclick="openAdminPhotoModal(' + origIndex + ')" title="गाड़ी की फोटो देखें">' +
+            '<button type="button" class="vehicle-photo-thumb-btn" onclick="openAdminPhotoModal(' + origIndex + ')" title="View vehicle photo">' +
               '<img src="' + escapeHtml(aThumb) + '" class="vehicle-micro-thumb" alt="Photo" onerror="this.style.display=\'none\'">' +
-              '<span>फोटो देखें</span>' +
+              '<span>View Photo</span>' +
             '</button>' +
           '</div>';
         }
@@ -9239,7 +9239,7 @@ function loadStaffCustomerData(staffId) {
         /* 3. Address & Location Cell (Full Visibility + Inline Map Pin) */
         var addrText = (r.address != null ? String(r.address) : '').trim();
         var secAddrText = (r.secondaryAddress != null ? String(r.secondaryAddress) : '').trim();
-        var addrHtml = '<div class="table-addr-snippet" onclick="openAddressModal(' + origIndex + ')" title="पूरा पता व लोकेशन देखने के लिए क्लिक करें">';
+        var addrHtml = '<div class="table-addr-snippet" onclick="openAddressModal(' + origIndex + ')" title="Click to view full address & locations">';
         if (addrText || secAddrText) {
           if (addrText) {
             addrHtml += '<div class="table-addr-text">' + escapeHtml(addrText) + '</div>';
@@ -9249,14 +9249,14 @@ function loadStaffCustomerData(staffId) {
           }
           if (r.googleMapsUrl && r.googleMapsUrl.trim()) {
             addrHtml += '<div style="margin-top:2px;" onclick="event.stopPropagation();">' +
-              '<a href="' + escapeHtml(r.googleMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="table-inline-map-pin" title="गूगल मैप्स में लोकेशन खोलें">' +
+              '<a href="' + escapeHtml(r.googleMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="table-inline-map-pin" title="Open location in Google Maps">' +
                 '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>' +
-                '<span>मैप लोकेशन ↗</span>' +
+                '<span>Map Location ↗</span>' +
               '</a>' +
             '</div>';
           }
         } else {
-          addrHtml += '<div style="color:var(--text-muted); font-size:11px;">पता दर्ज नहीं</div>';
+          addrHtml += '<div style="color:var(--text-muted); font-size:11px;">Address not provided</div>';
         }
         addrHtml += '</div>';
 
@@ -9272,8 +9272,8 @@ function loadStaffCustomerData(staffId) {
 
         /* 5. Edit Button */
         var editHtml = '<div style="text-align: center;">' +
-          '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="ग्राहक विवरण एडिट करें">' +
-            '<span>✏️ एडिट</span>' +
+          '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="Edit customer details">' +
+            '<span>✏️ Edit</span>' +
           '</button>' +
         '</div>';
 
@@ -9364,7 +9364,7 @@ function loadStaffCustomerData(staffId) {
       /* Populate Staff Dropdown with "None" option and preserve assigned staff */
       var staffSelect = document.getElementById('editCustStaff');
       var staffFound = false;
-      var options = '<option value="">असाइन नहीं (None)</option>';
+      var options = '<option value="">Unassigned (None)</option>';
       (state.staffList || []).forEach(function(s) {
         var isSel = (s.name && r.staffName && s.name.trim().toLowerCase() === r.staffName.trim().toLowerCase());
         if (isSel) staffFound = true;
@@ -9456,17 +9456,17 @@ function loadStaffCustomerData(staffId) {
 
     function detectEditGpsLocation() {
       if (!navigator.geolocation) {
-        alert('GPS समर्थित नहीं है।');
+        alert('GPS geolocation is not supported.');
         return;
       }
-      showToast('GPS लोकेशन ली जा रही है...', '📍');
+      showToast('Detecting GPS location...', '📍');
       navigator.geolocation.getCurrentPosition(function(pos) {
         var lat = pos.coords.latitude.toFixed(6);
         var lng = pos.coords.longitude.toFixed(6);
         document.getElementById('editCustMapsUrl').value = 'https:\x2F\x2Fwww.google.com/maps?q=' + lat + ',' + lng;
-        showToast('GPS लोकेशन दर्ज हो गई!', '✓');
+        showToast('GPS coordinates captured!', '✓');
       }, function(err) {
-        showToast('GPS लोकेशन नहीं मिली: ' + err.message, '❌');
+        showToast('Failed to get GPS location: ' + err.message, '❌');
       });
     }
 
@@ -9475,15 +9475,15 @@ function loadStaffCustomerData(staffId) {
       var btn = document.getElementById('btnSaveEditCust');
       btn.disabled = true;
       var hasPhoto = !!state.editPhotoBase64;
-      btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'फोटो और डेटा अपडेट हो रहा है...' : 'बदलाव सेव हो रहे हैं...');
+      btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'Uploading photo & saving...' : 'Saving changes...');
 
       var editPhoneEl = document.getElementById('editCustPhone');
       var normEditPhone = normalizeIndianMobile(editPhoneEl ? editPhoneEl.value : '');
       if (!isValidIndianMobile(normEditPhone)) {
-        alert('कृपया 6, 7, 8 या 9 से शुरू होने वाला वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें।');
+        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
         if (editPhoneEl) editPhoneEl.focus();
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> बदलाव सेव करें (Save Changes)';
+        btn.innerHTML = '<span>💾</span> Save Changes';
         return;
       }
 
@@ -9544,19 +9544,19 @@ function loadStaffCustomerData(staffId) {
 
       apiCall('updateCustomer', { customerData: updatedData }, function(res) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> बदलाव सेव करें (Save Changes)';
+        btn.innerHTML = '<span>💾</span> Save Changes';
         if (res && res.error) {
-          showToast('त्रुटि: ' + res.error, '❌');
+          showToast('Error: ' + res.error, '❌');
         } else {
-          showToast('ग्राहक रिकॉर्ड सफलतापूर्वक अपडेट हो गया!', '✓');
+          showToast('Customer record updated successfully!', '✓');
           discardEditDraft(true);
           closeEditCustomerModal();
           loadAdminRecords(true);
         }
       }, function(err) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> बदलाव सेव करें (Save Changes)';
-        showToast('अपडेट त्रुटि: ' + (err.message || err), '❌');
+        btn.innerHTML = '<span>💾</span> Save Changes';
+        showToast('Update error: ' + (err.message || err), '❌');
       });
     }
 
@@ -9572,7 +9572,7 @@ function loadStaffCustomerData(staffId) {
         if (custName || vehicleNum) {
           titleEl.textContent = '🚗 ' + (custName || '') + (vehicleNum ? ' (' + vehicleNum + ')' : '');
         } else {
-          titleEl.textContent = '🚗 ग्राहक / गाड़ी की फोटो';
+          titleEl.textContent = '🚗 Vehicle / Customer Photo';
         }
       }
 
@@ -9632,7 +9632,7 @@ function loadStaffCustomerData(staffId) {
       if (!r) return;
       _activeModalRecord = r;
 
-      var custName = r.customerName || 'अज्ञात ग्राहक';
+      var custName = r.customerName || 'Unknown Customer';
       var custPhone = (r.customerNumber != null ? String(r.customerNumber) : '').trim();
       var rawVehicle = (r.vehicle || r.vehicleNumbers || r.vehicleOrSite != null ? String(r.vehicle || r.vehicleNumbers || r.vehicleOrSite) : '').trim();
       var primaryAddr = (r.address != null ? String(r.address) : '').trim();
@@ -9679,9 +9679,9 @@ function loadStaffCustomerData(staffId) {
         if (primaryAddr) {
           primaryEl.textContent = primaryAddr;
         } else if (primaryMapUrl) {
-          primaryEl.innerHTML = '<span style="color:#2563eb; font-weight:500;">📍 गूगल मैप्स पिन / लोकेशन लिंक उपलब्ध है</span>';
+          primaryEl.innerHTML = '<span style="color:#2563eb; font-weight:500;">📍 Google Maps pin / location link available</span>';
         } else {
-          primaryEl.textContent = 'कोई मुख्य पता दर्ज नहीं है।';
+          primaryEl.textContent = 'No primary address recorded.';
         }
       }
       if (primaryMapLink) {
@@ -9701,9 +9701,9 @@ function loadStaffCustomerData(staffId) {
             if (secAddr) {
               secEl.textContent = secAddr;
             } else if (secMapUrl) {
-              secEl.innerHTML = '<span style="color:#7e22ce; font-weight:500;">📍 गूगल मैप्स पिन / सेकेंडरी लिंक उपलब्ध है</span>';
+              secEl.innerHTML = '<span style="color:#7e22ce; font-weight:500;">📍 Google Maps pin / secondary link available</span>';
             } else {
-              secEl.textContent = 'वैकल्पिक पता दर्ज नहीं है।';
+              secEl.textContent = 'No alternate address recorded.';
             }
           }
           if (secMapLink) {
@@ -9757,13 +9757,13 @@ function loadStaffCustomerData(staffId) {
       }
 
       if (!textToCopy) {
-        showToast('कॉपी करने के लिए कोई पता नहीं है', 'ℹ️');
+        showToast('No address available to copy', 'ℹ️');
         return;
       }
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(textToCopy).then(function() {
-          showToast('पता क्लिपबोर्ड पर कॉपी हो गया!', '✓');
+          showToast('Address copied to clipboard!', '✓');
         }).catch(function() {
           fallbackCopyToClipboard(textToCopy);
         });
@@ -9790,12 +9790,12 @@ function loadStaffCustomerData(staffId) {
         var successful = document.execCommand('copy');
         document.body.removeChild(textArea);
         if (successful) {
-          showToast('पता क्लिपबोर्ड पर कॉपी हो गया!', '✓');
+          showToast('Address copied to clipboard!', '✓');
         } else {
-          showToast('कॉपी नहीं हो सका', '❌');
+          showToast('Failed to copy', '❌');
         }
       } catch (err) {
-        showToast('कॉपी सपोर्ट उपलब्ध नहीं है', 'ℹ️');
+        showToast('Clipboard copy not supported', 'ℹ️');
       }
     }
 
@@ -9934,7 +9934,7 @@ function loadStaffCustomerData(staffId) {
           populateSeqStaffDropdown(state.adminStaffList);
           loadStaffSequenceData();
         }, function(err) {
-          showSeqAlert('स्टाफ सूची लोड करने में विफल: ' + (err.error || err), 'error');
+          showSeqAlert('Failed to load staff list: ' + (err.error || err), 'error');
         });
       } else {
         populateSeqStaffDropdown(staffList);
@@ -9971,7 +9971,7 @@ function loadStaffCustomerData(staffId) {
       if (!staffSelect) return;
 
       if (state.seqManagement.hasUnsavedChanges) {
-        var conf = confirm('आपके पास बिना सहेजे बदलाव हैं! क्या आप नया स्टाफ चुनने से पहले इन बदलावों को छोड़ना चाहते हैं?');
+        var conf = confirm('You have unsaved changes! Do you want to discard them before selecting a new staff member?');
         if (!conf) {
           staffSelect.value = state.seqManagement.currentStaffId;
           return;
@@ -9991,7 +9991,7 @@ function loadStaffCustomerData(staffId) {
       var sId = state.seqManagement.currentStaffId;
       if (!sId) return;
 
-      container.innerHTML = '<div style="text-align:center; padding:30px 10px; color:var(--text-muted); font-size:13px; font-weight:600;">⏳ स्टाफ ' + escapeHtml(state.seqManagement.currentStaffName) + ' का रूट सीक्वेंस लोड हो रहा है...</div>';
+      container.innerHTML = '<div style="text-align:center; padding:30px 10px; color:var(--text-muted); font-size:13px; font-weight:600;">⏳ Loading route sequence for ' + escapeHtml(state.seqManagement.currentStaffName) + '...</div>';
       hideSeqAlert();
 
       apiCall('getStaffSequence', { staffId: sId, forceRefresh: !!forceRefresh }, function(res) {
@@ -10010,17 +10010,17 @@ function loadStaffCustomerData(staffId) {
         if (statusBadge) {
           if (res.hasCustomSequence) {
             statusBadge.className = 'seq-status-badge custom';
-            statusBadge.textContent = '✓ कस्टम रूट सीक्वेंस सक्रिय';
+            statusBadge.textContent = '✓ Custom Route Active';
           } else {
             statusBadge.className = 'seq-status-badge default';
-            statusBadge.textContent = 'मूल शीट क्रम (Default)';
+            statusBadge.textContent = 'Default Sheet Order';
           }
         }
 
         renderAdminSequenceList();
       }, function(err) {
-        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger-red); font-size:13px; font-weight:600;">❌ सीक्वेंस लोड नहीं हो सका: ' + escapeHtml(err.error || err) + '</div>';
-        showSeqAlert('सीक्वेंस लोड नहीं हो सका: ' + (err.error || err), 'error');
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger-red); font-size:13px; font-weight:600;">❌ Failed to load sequence: ' + escapeHtml(err.error || err) + '</div>';
+        showSeqAlert('Failed to load sequence: ' + (err.error || err), 'error');
       });
     }
 
@@ -10032,9 +10032,9 @@ function loadStaffCustomerData(staffId) {
       if (allCustomers.length === 0) {
         container.innerHTML = '<div class="empty-state-card">' +
           '<div class="empty-icon-wrap">🚗</div>' +
-          '<h4 class="empty-title">कोई Daily Clean ग्राहक असाइन नहीं है</h4>' +
-          '<p class="empty-desc">स्टाफ <strong>' + escapeHtml(state.seqManagement.currentStaffName) + '</strong> के पास वर्तमान में कोई Daily Car Cleaning ग्राहक असाइन नहीं है।</p>' +
-          '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="switchAdminTab(\'records\')">📋 ग्राहक रिकॉर्ड्स में जाकर असाइन करें</button></div>' +
+          '<h4 class="empty-title">No Daily Clean Customers Assigned</h4>' +
+          '<p class="empty-desc">Staff <strong>' + escapeHtml(state.seqManagement.currentStaffName) + '</strong> currently has no Daily Car Cleaning customers assigned.</p>' +
+          '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="switchAdminTab(\'records\')">📋 Assign in Customer Records</button></div>' +
         '</div>';
         return;
       }
@@ -10053,9 +10053,9 @@ function loadStaffCustomerData(staffId) {
       if (displayItems.length === 0) {
         container.innerHTML = '<div class="empty-state-card">' +
           '<div class="empty-icon-wrap">🔍</div>' +
-          '<h4 class="empty-title">सर्च के अनुसार कोई गाड़ी नहीं मिली</h4>' +
-          '<p class="empty-desc">\"' + escapeHtml(state.seqManagement.searchQuery) + '\" से कोई ग्राहक नहीं मिला।</p>' +
-          '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="clearSeqSearch()">✕ सर्च साफ़ करें</button></div>' +
+          '<h4 class="empty-title">No Vehicles Found Matching Search</h4>' +
+          '<p class="empty-desc">No customers found matching \"' + escapeHtml(state.seqManagement.searchQuery) + '\".</p>' +
+          '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="clearSeqSearch()">✕ Clear Search</button></div>' +
         '</div>';
         return;
       }
@@ -10078,7 +10078,7 @@ function loadStaffCustomerData(staffId) {
 
         html += '<div class="seq-card-row" draggable="true" data-id="' + escapeHtml(custId) + '" data-index="' + masterIndex + '" ondragstart="handleSeqDragStart(event)" ondragover="handleSeqDragOver(event)" ondragleave="handleSeqDragLeave(event)" ondrop="handleSeqDrop(event)" ondragend="handleSeqDragEnd(event)">';
         html += '  <div class="seq-handle-col">';
-        html += '    <div class="seq-drag-handle" title="क्रम बदलने के लिए ऊपर-नीचे खींचें">⋮⋮</div>';
+        html += '    <div class="seq-drag-handle" title="Drag up or down to reorder">⋮⋮</div>';
         html += '    <div class="seq-num-badge">' + seqDisplay + '</div>';
         html += '  </div>';
         html += '  <div class="seq-info-col">';
@@ -10089,7 +10089,7 @@ function loadStaffCustomerData(staffId) {
         }
         html += '    </div>';
         html += '    <div class="seq-veh-row">';
-        html += '      <span class="seq-veh-badge">🚘 <strong>' + escapeHtml(vehInfo.reg || 'गाड़ी') + '</strong>' + (vehInfo.model ? ' • ' + escapeHtml(vehInfo.model) : '') + '</span>';
+        html += '      <span class="seq-veh-badge">🚘 <strong>' + escapeHtml(vehInfo.reg || 'Vehicle') + '</strong>' + (vehInfo.model ? ' • ' + escapeHtml(vehInfo.model) : '') + '</span>';
         html += '      <span class="seq-staff-badge">👤 ' + staffName + '</span>';
         html += '    </div>';
         if (address) {
@@ -10097,8 +10097,8 @@ function loadStaffCustomerData(staffId) {
         }
         html += '  </div>';
         html += '  <div class="seq-actions-col">';
-        html += '    <button type="button" class="btn-seq-move btn-seq-up" onclick="moveSeqItemUp(' + masterIndex + ')" title="ऊपर करें (Move Up)" ' + (masterIndex === 0 ? 'disabled' : '') + '>▲</button>';
-        html += '    <button type="button" class="btn-seq-move btn-seq-down" onclick="moveSeqItemDown(' + masterIndex + ')" title="नीचे करें (Move Down)" ' + (masterIndex === total - 1 ? 'disabled' : '') + '>▼</button>';
+        html += '    <button type="button" class="btn-seq-move btn-seq-up" onclick="moveSeqItemUp(' + masterIndex + ')" title="Move Up" ' + (masterIndex === 0 ? 'disabled' : '') + '>▲</button>';
+        html += '    <button type="button" class="btn-seq-move btn-seq-down" onclick="moveSeqItemDown(' + masterIndex + ')" title="Move Down" ' + (masterIndex === total - 1 ? 'disabled' : '') + '>▼</button>';
         html += '  </div>';
         html += '</div>';
       });
@@ -10229,14 +10229,14 @@ function loadStaffCustomerData(staffId) {
     function saveCurrentStaffSequence() {
       var sId = state.seqManagement.currentStaffId;
       if (!sId) {
-        showSeqAlert('कृपया पहले स्टाफ चुनें।', 'error');
+        showSeqAlert('Please select a staff member first.', 'error');
         return;
       }
 
       var saveBtn = document.getElementById('btnSaveSequence');
       if (saveBtn) {
         saveBtn.disabled = true;
-        saveBtn.innerHTML = '⏳ सुरक्षित हो रहा है...';
+        saveBtn.innerHTML = '⏳ Saving...';
       }
 
       var sequencePayload = state.seqManagement.customers.map(function(c, idx) {
@@ -10249,23 +10249,23 @@ function loadStaffCustomerData(staffId) {
       apiCall('saveStaffSequence', { staffId: sId, sequence: sequencePayload }, function(res) {
         if (saveBtn) {
           saveBtn.disabled = false;
-          saveBtn.innerHTML = '💾 क्रम सुरक्षित करें (Save Order)';
+          saveBtn.innerHTML = '💾 Save Order';
         }
         state.seqManagement.hasUnsavedChanges = false;
         updateSeqUnsavedBadge(false);
-        showSeqAlert(res.message || 'स्टाफ ' + state.seqManagement.currentStaffName + ' का रूट सीक्वेंस सफलतापूर्वक सहेज लिया गया!', 'success');
+        showSeqAlert(res.message || 'Route sequence for ' + state.seqManagement.currentStaffName + ' saved successfully!', 'success');
         
         var statusBadge = document.getElementById('seqCustomStatusBadge');
         if (statusBadge) {
           statusBadge.className = 'seq-status-badge custom';
-          statusBadge.textContent = '✓ कस्टम रूट सीक्वेंस सक्रिय';
+          statusBadge.textContent = '✓ Custom Route Active';
         }
       }, function(err) {
         if (saveBtn) {
           saveBtn.disabled = false;
-          saveBtn.innerHTML = '💾 क्रम सुरक्षित करें (Save Order)';
+          saveBtn.innerHTML = '💾 Save Order';
         }
-        showSeqAlert('सीक्वेंस सुरक्षित नहीं हो सका: ' + (err.error || err), 'error');
+        showSeqAlert('Failed to save sequence: ' + (err.error || err), 'error');
       });
     }
 
@@ -10289,24 +10289,24 @@ function loadStaffCustomerData(staffId) {
       var resetBtn = document.getElementById('btnResetSequence');
       if (resetBtn) {
         resetBtn.disabled = true;
-        resetBtn.innerHTML = '⏳ रीसेट हो रहा है...';
+        resetBtn.innerHTML = '⏳ Resetting...';
       }
 
       apiCall('resetStaffSequence', { staffId: sId }, function(res) {
         if (resetBtn) {
           resetBtn.disabled = false;
-          resetBtn.innerHTML = '↺ डिफ़ॉल्ट क्रम में रीसेट करें';
+          resetBtn.innerHTML = '↺ Reset to Default Order';
         }
         state.seqManagement.hasUnsavedChanges = false;
         updateSeqUnsavedBadge(false);
-        showSeqAlert('रूट सीक्वेंस डिफ़ॉल्ट गूगल शीट क्रम में रीसेट कर दिया गया।', 'success');
+        showSeqAlert('Route sequence reset to default Google Sheet order.', 'success');
         loadStaffSequenceData();
       }, function(err) {
         if (resetBtn) {
           resetBtn.disabled = false;
-          resetBtn.innerHTML = '↺ डिफ़ॉल्ट क्रम में रीसेट करें';
+          resetBtn.innerHTML = '↺ Reset to Default Order';
         }
-        showSeqAlert('रीसेट नहीं हो सका: ' + (err.error || err), 'error');
+        showSeqAlert('Failed to reset: ' + (err.error || err), 'error');
       });
     }
 
@@ -10515,7 +10515,7 @@ function loadStaffCustomerData(staffId) {
         }
       });
 
-      var staffName = (state.staffData && state.staffData.staffName) ? state.staffData.staffName : (state.activeStaffName || 'स्टाफ');
+      var staffName = (state.staffData && state.staffData.staffName) ? state.staffData.staffName : (state.activeStaffName || 'Staff');
       var nameEl = document.getElementById('routeStaffName');
       if (nameEl) nameEl.textContent = staffName;
 

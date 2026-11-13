@@ -78,7 +78,7 @@ function doGet(e) {
   }
   template.webAppUrl = appUrl;
 
-  var pageTitle = mode === "staff" ? "CWP Detailers & Motors - स्टाफ पोर्टल" : "CWP Detailers & Motors - एडमिन मैनेजमेंट";
+  var pageTitle = mode === "staff" ? "CWP Detailers & Motors - Staff Portal" : "CWP Detailers & Motors - Admin Management";
 
   return template.evaluate()
     .setTitle(pageTitle)
@@ -943,7 +943,7 @@ function resetStaffPin_(staffId, newPin) {
   revokeAllStaffSessionsForIdGas_(staff.id);
   syncStaffSheet_(list);
 
-  return { success: true, message: "स्टाफ सदस्य का पिन सफलतापूर्वक रीसेट कर दिया गया।" };
+  return { success: true, message: "Staff member PIN reset successfully." };
 }
 
 function toggleStaffActive_(id, newStatus) {
@@ -1091,7 +1091,7 @@ function clearInvalidDropdowns_() {
     });
     
     syncStaffDropdownValidation_();
-    return { success: true, message: "गैर-स्टाफ कॉलम्स से अवैध ड्रॉपडाउन हटा दिया गया है।" };
+    return { success: true, message: "Invalid dropdowns removed from non-staff columns." };
   } catch (err) {
     return { error: err.toString() };
   }
@@ -1130,7 +1130,7 @@ function syncStaffDropdownValidation_() {
     var rule = SpreadsheetApp.newDataValidation()
       .requireValueInList(staffNames, true)
       .setAllowInvalid(false)
-      .setHelpText("कृपया बैकएंड में पंजीकृत स्टाफ में से ही नाम चुनें।")
+      .setHelpText("Please select a registered staff member name.")
       .build();
       
     sheets.forEach(function(sheetName) {
@@ -1153,7 +1153,7 @@ function syncStaffDropdownValidation_() {
         var pkgRule = SpreadsheetApp.newDataValidation()
           .requireValueInList(CWP_PACKAGE_TYPES, true)
           .setAllowInvalid(true)
-          .setHelpText("पैकेज प्रकार चुनें")
+          .setHelpText("Select package type")
           .build();
         var maxR = Math.max(dailySheet.getMaxRows(), 100);
         dailySheet.getRange(2, pkgColIdx + 1, maxR - 1, 1).setDataValidation(pkgRule);
@@ -1479,7 +1479,7 @@ function saveCustomer_(customerData) {
   
   var rawNum = (customerData.customerNumber || "").toString().trim();
   if (!rawNum || !isValidIndianMobile_(rawNum)) {
-    return { success: false, error: "कृपया एक वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें (6-9 से शुरू)।" };
+    return { success: false, error: "Please enter a valid 10-digit Indian mobile number (starting with 6-9)." };
   }
   var custNum = normalizeIndianMobile_(rawNum);
   
@@ -1665,7 +1665,7 @@ function updateCustomer_(customerData) {
     updateCell(["secondarymapsurl"], customerData.secondaryMapsUrl || "");
   }
   
-  return { success: true, message: "ग्राहक का विवरण सफलतापूर्वक अपडेट हुआ!" };
+  return { success: true, message: "Customer details updated successfully!" };
 }
 
 /**
@@ -1772,7 +1772,7 @@ function reorderSheetToCustomerFirst_() {
   
   return {
     success: true,
-    message: "शीट्स सफलतापूर्वक कस्टमर-फर्स्ट क्रम में व्यवस्थित हो गईं!"
+    message: "Sheets successfully organized in Customer-First layout!"
   };
 }
 
@@ -1806,23 +1806,23 @@ function getAdminPassword_() {
 function verifyAdminPassword_(inputPassword) {
   var current = getAdminPassword_();
   if (!current) {
-    return { success: false, error: "एडमिन पासवर्ड Script Properties में कॉन्फ़िगर नहीं है।" };
+    return { success: false, error: "Admin password is not configured in Script Properties." };
   }
   var input = (inputPassword || "").toString().trim();
   if (input === current) {
     var token = createAdminSessionGas_();
-    return { success: true, token: token, message: "प्रमाणित हुआ" };
+    return { success: true, token: token, message: "Authenticated" };
   }
-  return { success: false, error: "गलत एडमिन पासवर्ड। कृपया सही पासवर्ड दर्ज करें।" };
+  return { success: false, error: "Incorrect admin password. Please enter the correct password." };
 }
 
 function updateAdminPassword_(newPassword) {
   var p = (newPassword || "").toString().trim();
   if (!p || p.length < 6) {
-    return { success: false, error: "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।" };
+    return { success: false, error: "Password must be at least 4 characters." };
   }
   PropertiesService.getScriptProperties().setProperty(ADMIN_PASSWORD_PROP_KEY, p);
-  return { success: true, message: "एडमिन पासवर्ड सफलतापूर्वक अपडेट हो गया!" };
+  return { success: true, message: "Admin password updated successfully!" };
 }
 
 
@@ -1970,7 +1970,7 @@ function saveStaffSequenceGas_(staffId, orderedCustomerIds, updatedBy) {
 
   return {
     success: true,
-    message: "स्टाफ का कस्टमर रूट सीक्वेंस सफलतापूर्वक सुरक्षित किया गया।",
+    message: "Staff customer route sequence saved successfully.",
     sequenceCount: newStaffRecords.length,
     sequences: newStaffRecords
   };
@@ -1986,7 +1986,7 @@ function resetStaffSequenceGas_(staffId) {
 
   return {
     success: true,
-    message: "स्टाफ का रूट सीक्वेंस डिफ़ॉल्ट गूगल शीट क्रम में रीसेट कर दिया गया।"
+    message: "Staff route sequence reset to default Google Sheet order."
   };
 }
 

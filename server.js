@@ -436,7 +436,7 @@ function checkRateLimit(clientIp, identifier) {
     return {
       allowed: false,
       remainingSec: remainingSec,
-      error: `बहुत सारे गलत प्रयास। कृपया ${Math.ceil(remainingSec / 60)} मिनट बाद प्रयास करें। (Account temporarily locked for security)`
+      error: `Too many failed attempts. Please try again after ${Math.ceil(remainingSec / 60)} minutes. (Account temporarily locked for security)`
     };
   }
   if (record.lockedUntil && now >= record.lockedUntil) {
@@ -1561,7 +1561,7 @@ async function doFetchLiveCustomersInternal() {
       records: [...lastKnownGoodDataset.records],
       dataSource: lastKnownGoodDataset.dataSource || 'last_known_good',
       isLive: false,
-      warning: 'गूगल शीट से लाइव कनेक्शन नहीं बन पाया। पिछला पूर्ण डेटा दिखाया जा रहा है। (Using complete last-known-good data)',
+      warning: 'Unable to establish live connection with Google Sheets. Using complete last-known-good data.',
       lastSync: lastKnownGoodDataset.lastSync || new Date().toISOString()
     };
   }
@@ -1573,7 +1573,7 @@ async function doFetchLiveCustomersInternal() {
       records: [...appState.customers],
       dataSource: 'local_fallback',
       isLive: false,
-      warning: 'गूगल शीट से लाइव कनेक्शन नहीं बन पाया। स्थानीय पुराना डेटा दिखाया जा रहा है।',
+      warning: 'Unable to establish live connection with Google Sheets. Using local cached data.',
       lastSync: lastSyncTimestamp
     };
   }
@@ -1989,7 +1989,7 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
-              error: 'कृपया एडमिन पासवर्ड दर्ज करें।'
+              error: 'Please enter admin password.'
             }));
           }
 
@@ -2030,7 +2030,7 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(401, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: false,
-            error: 'गलत एडमिन पासवर्ड। कृपया सही पासवर्ड दर्ज करें।'
+            error: 'Incorrect admin password. Please enter the correct password.'
           }));
         }
 
@@ -2343,7 +2343,7 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: true,
-            message: 'स्टाफ का कस्टमर रूट सीक्वेंस सफलतापूर्वक सुरक्षित किया गया।',
+            message: 'Staff customer route sequence saved successfully.',
             sequenceCount: updatedRecords.length,
             data: updatedRecords,
             sequences: updatedRecords
@@ -2367,7 +2367,7 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: true,
-            message: 'कस्टमर रूट सीक्वेंस डिफ़ॉल्ट क्रम में रीसेट कर दिया गया।'
+            message: 'Customer route sequence reset to default order.'
           }));
         }
 
@@ -2411,7 +2411,7 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: true,
-            message: `स्टाफ सदस्य (${staff.name}) का 6-अंकों का पिन सुरक्षित रूप से रीसेट कर दिया गया।`
+            message: `6-digit PIN for staff member (${staff.name}) reset successfully.`
           }));
         }
 
@@ -2446,7 +2446,7 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(400, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: false,
-                error: 'कृपया स्टाफ के लिए वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें (शुरुआत 6, 7, 8 या 9 से होनी चाहिए)। (Invalid Indian mobile number for staff)'
+                error: 'Please enter a valid 10-digit Indian mobile number for staff (starting with 6, 7, 8, or 9). (Invalid Indian mobile number for staff)'
               }));
             }
             normalizedPhone = normalizeIndianMobile(phone);
@@ -2471,7 +2471,7 @@ const server = http.createServer(async (req, res) => {
           } else {
             // New staff member with no PIN: Require explicit 6-digit PIN. Never default to 123456!
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'नया स्टाफ बनाने के लिए 6-अंकों का पिन अनिवार्य है। (PIN is required for new staff)' }));
+            return res.end(JSON.stringify({ success: false, error: 'A 6-digit PIN is required to create a new staff member. (PIN is required for new staff)' }));
           }
 
           const existingStaff = idx >= 0 ? appState.staffList[idx] : null;
@@ -2531,7 +2531,7 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: true, staffList: sanitizedList }));
           } else {
             res.writeHead(404, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'स्टाफ सदस्य नहीं मिला।' }));
+            return res.end(JSON.stringify({ success: false, error: 'Staff member not found.' }));
           }
         }
 
@@ -2572,7 +2572,7 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(502, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
-              error: 'Google Apps Script में एडमिन पासवर्ड अपडेट नहीं हो सका: ' + gasErr.message
+              error: 'Failed to update admin password in Google Apps Script: ' + gasErr.message
             }));
           }
 
@@ -2582,7 +2582,7 @@ const server = http.createServer(async (req, res) => {
           saveLocalData(appState);
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ success: true, message: 'एडमिन पासवर्ड सुरक्षित रूप से सफलतापूर्वक अपडेट हो गया!' }));
+          return res.end(JSON.stringify({ success: true, message: 'Admin password updated successfully and securely!' }));
         }
 
         // Admin: Save Customer (Task P2.4: Strict Server-Side Indian Mobile Validation & Normalization)
@@ -2594,7 +2594,7 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
-              error: 'कृपया एक वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें (शुरुआत 6, 7, 8 या 9 से होनी चाहिए)। (Invalid Indian mobile number)'
+              error: 'Please enter a valid 10-digit Indian mobile number (starting with 6, 7, 8, or 9). (Invalid Indian mobile number)'
             }));
           }
 
@@ -2700,7 +2700,7 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(400, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: false,
-                error: 'कृपया एक वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें (शुरुआत 6, 7, 8 या 9 से होनी चाहिए)। (Invalid Indian mobile number)'
+                error: 'Please enter a valid 10-digit Indian mobile number (starting with 6, 7, 8, or 9). (Invalid Indian mobile number)'
               }));
             }
             const normCustPhone = normalizeIndianMobile(rawCustPhone);
@@ -2714,7 +2714,7 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
-              error: 'कृपया एक वैध 10-अंकों का भारतीय मोबाइल नंबर दर्ज करें (शुरुआत 6, 7, 8 या 9 से होनी चाहिए)। (Invalid Indian mobile number)'
+              error: 'Please enter a valid 10-digit Indian mobile number (starting with 6, 7, 8, or 9). (Invalid Indian mobile number)'
             }));
           }
 
@@ -2734,7 +2734,7 @@ const server = http.createServer(async (req, res) => {
           try {
             responseData = await forwardToGoogleAppsScript(payload);
           } catch (gasErr) {
-            responseData = { success: true, message: 'ग्राहक का विवरण स्थानीय रूप से अपडेट हुआ (Google sync pending)' };
+            responseData = { success: true, message: 'Customer details updated locally (Google sync pending)' };
           }
 
           if (appState.customers && appState.customers.length > 0) {
@@ -2760,9 +2760,9 @@ const server = http.createServer(async (req, res) => {
           if (action === 'cleanAndSyncStaff' || action === 'syncStaffSheet' || action === 'syncStaffDropdown') {
             responseData = { success: true, staffList: (appState.staffList || []).map(s => sanitizeStaffForAdmin(s)) };
           } else if (action === 'clearInvalidDropdowns') {
-            responseData = { success: true, message: 'ड्रॉपडाउन सफलतापूर्वक सिंक व रीसेट कर दिए गए।' };
+            responseData = { success: true, message: 'Dropdowns synced and reset successfully.' };
           } else if (action === 'reorderSheet') {
-            responseData = { success: true, message: 'कस्टमर-फर्स्ट कॉलम संरचना सक्रिय है।' };
+            responseData = { success: true, message: 'Customer-First column layout is active.' };
           } else {
             responseData = { error: 'Backend request failed: ' + gasErr.message };
           }
