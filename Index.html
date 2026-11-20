@@ -4722,6 +4722,618 @@
     .vehicle-photo-thumb-btn { display: inline-flex; align-items: center; gap: 4px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 10.5px; font-weight: 600; color: #334155; transition: all 0.15s ease; width: fit-content; }
     .vehicle-photo-thumb-btn:hover { background: #eff6ff; border-color: #93c5fd; color: var(--brand-blue); }
     .vehicle-micro-thumb { width: 18px; height: 18px; border-radius: 3px; object-fit: cover; }
+
+    /* =========================================================================
+       2026 CWP MODERN UI/UX DESIGN SYSTEM UPGRADE
+       Restrained navy & blue palette, fluid responsive grid, touch ergonomics
+       ========================================================================= */
+
+    /* Fluid Desktop Layout for Admin Portal */
+    body.admin-mode-active .main-container,
+    .main-container.admin-mode-active {
+      max-width: 1400px !important;
+      width: 100% !important;
+      margin: 0 auto !important;
+      padding: 18px 24px 60px !important;
+    }
+    body.admin-mode-active .header-inner,
+    .header-inner.admin-mode-active {
+      max-width: 1400px !important;
+      width: 100% !important;
+      margin: 0 auto !important;
+      padding: 0 24px !important;
+    }
+
+    /* Professional Light Theme Card Section */
+    .admin-card-section {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 12px !important;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+      padding: 16px 20px !important;
+    }
+
+    /* Unified Segmented Admin Tab Navigation */
+    .admin-tab-container {
+      margin-bottom: 14px !important;
+    }
+    .admin-tab-nav {
+      background: #f1f5f9 !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      padding: 4px !important;
+      gap: 3px !important;
+    }
+    .admin-tab-btn {
+      padding: 8px 16px !important;
+      border-radius: 8px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      color: #64748b !important;
+      transition: all 0.15s ease !important;
+    }
+    .admin-tab-btn:hover:not(.active) {
+      color: #0f172a !important;
+      background: rgba(255, 255, 255, 0.7) !important;
+    }
+    .admin-tab-btn.active {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid rgba(0, 0, 0, 0.04) !important;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+      font-weight: 700 !important;
+    }
+    .admin-tab-badge {
+      background: #e2e8f0 !important;
+      color: #475569 !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      padding: 1px 7px !important;
+      border-radius: 10px !important;
+    }
+    .admin-tab-btn.active .admin-tab-badge {
+      background: #eff6ff !important;
+      color: var(--brand-blue) !important;
+    }
+
+    /* Screen A & B: Polished Auth Cards */
+    .auth-gate-box {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: calc(85vh - 70px) !important;
+      padding: 16px 14px !important;
+    }
+    .admin-auth-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 16px !important;
+      max-width: 390px !important;
+      width: 100% !important;
+      margin: 0 auto !important;
+      text-align: center !important;
+      overflow: hidden !important;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04) !important;
+    }
+    .auth-card-content {
+      padding: 26px 24px 22px !important;
+    }
+    .auth-brand-emblem {
+      margin-bottom: 10px !important;
+      padding: 4px !important;
+      background: #0d131a !important;
+      border: 1px solid rgba(56, 189, 248, 0.25) !important;
+      border-radius: 14px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+      display: inline-flex !important;
+    }
+    .auth-card-logo {
+      width: 52px !important;
+      height: 52px !important;
+      border-radius: 10px !important;
+      object-fit: contain !important;
+    }
+    .admin-auth-title {
+      font-size: 20px !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      margin-bottom: 4px !important;
+      letter-spacing: -0.2px !important;
+    }
+    .admin-auth-desc {
+      font-size: 13px !important;
+      color: #64748b !important;
+      margin-bottom: 18px !important;
+      line-height: 1.45 !important;
+    }
+    .auth-input-group {
+      display: flex !important;
+      align-items: stretch !important;
+      background: #ffffff !important;
+      border: 1.5px solid #cbd5e1 !important;
+      border-radius: 10px !important;
+      margin-bottom: 14px !important;
+      transition: all 0.15s ease !important;
+      overflow: hidden !important;
+    }
+    .auth-input-group:focus-within {
+      border-color: #2563eb !important;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+    }
+    .auth-input-icon {
+      width: 44px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: #64748b !important;
+      background: #f8fafc !important;
+      border-right: 1.5px solid #cbd5e1 !important;
+      font-size: 16px !important;
+      flex-shrink: 0 !important;
+    }
+    .auth-field-input {
+      flex: 1 !important;
+      height: 48px !important;
+      padding: 0 14px !important;
+      border: none !important;
+      outline: none !important;
+      font-size: 15px !important;
+      color: #0f172a !important;
+      background: transparent !important;
+      font-family: inherit !important;
+    }
+    .auth-field-input::placeholder {
+      color: #94a3b8 !important;
+    }
+    .auth-submit-btn {
+      width: 100% !important;
+      height: 48px !important;
+      border-radius: 10px !important;
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      border: none !important;
+      cursor: pointer !important;
+      transition: all 0.15s ease !important;
+      font-family: inherit !important;
+    }
+    .staff-submit-btn {
+      background: #2563eb !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25) !important;
+    }
+    .staff-submit-btn:hover {
+      background: #1d4ed8 !important;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+      transform: translateY(-0.5px) !important;
+    }
+    .admin-submit-btn {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25) !important;
+    }
+    .admin-submit-btn:hover {
+      background: #1e293b !important;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.35) !important;
+      transform: translateY(-0.5px) !important;
+    }
+    .auth-switch-box {
+      margin-top: 14px !important;
+      padding-top: 12px !important;
+      border-top: 1px solid #f1f5f9 !important;
+    }
+    .btn-switch-portal {
+      background: transparent !important;
+      border: none !important;
+      color: #2563eb !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      padding: 6px 12px !important;
+      border-radius: 6px !important;
+      transition: all 0.15s ease !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+    .btn-switch-portal:hover {
+      background: #eff6ff !important;
+      color: #1d4ed8 !important;
+    }
+
+    /* Screen C: Customer Records Table & Toolbar */
+    .records-table-wrapper {
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      overflow-x: auto !important;
+      background: #ffffff !important;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+    }
+    .records-table thead th {
+      background: #f8fafc !important;
+      color: #475569 !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      padding: 10px 10px !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    .records-table tbody td {
+      padding: 10px 10px !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+      vertical-align: middle !important;
+    }
+    .records-table tbody tr:hover td {
+      background: #f8fafc !important;
+    }
+    .cust-name-text {
+      font-size: 13.5px !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+    }
+    .cust-phone-link {
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      color: #2563eb !important;
+    }
+    .car-number-plate {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+      font-weight: 700 !important;
+      font-size: 12px !important;
+      padding: 2px 7px !important;
+      border-radius: 4px !important;
+    }
+    .btn-cell-action {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #334155 !important;
+      padding: 5px 12px !important;
+      border-radius: 6px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      transition: all 0.15s ease !important;
+    }
+    .btn-cell-action:hover {
+      background: #eff6ff !important;
+      border-color: #93c5fd !important;
+      color: #2563eb !important;
+    }
+
+    /* Screen D: Customer Add & Edit Form Structure */
+    .cwp-compact-form .form-section-head {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      margin: 16px 0 10px !important;
+      padding-bottom: 6px !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+    }
+    .cwp-compact-form .form-section-head:first-of-type {
+      margin-top: 4px !important;
+    }
+    .cwp-compact-form .section-num-pill {
+      width: 22px !important;
+      height: 22px !important;
+      border-radius: 50% !important;
+      background: #0f172a !important;
+      color: #ffffff !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-shrink: 0 !important;
+    }
+    .cwp-compact-form .section-title-text {
+      font-size: 13.5px !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      letter-spacing: -0.1px !important;
+    }
+    .form-row-2 {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 12px !important;
+    }
+    @media (max-width: 640px) {
+      .form-row-2 {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+      }
+    }
+    .form-group {
+      margin-bottom: 10px !important;
+    }
+    .form-label {
+      display: block !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      color: #334155 !important;
+      margin-bottom: 4px !important;
+    }
+    .form-input, .form-select {
+      height: 42px !important;
+      min-height: 42px !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      padding: 0 12px !important;
+      font-size: 13.5px !important;
+      color: #0f172a !important;
+      background: #ffffff !important;
+      transition: all 0.15s ease !important;
+      box-sizing: border-box !important;
+      width: 100% !important;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: #2563eb !important;
+      box-shadow: 0 0 0 2.5px rgba(37, 99, 235, 0.12) !important;
+      outline: none !important;
+    }
+    .cwp-phone-group {
+      display: flex !important;
+      align-items: stretch !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      overflow: hidden !important;
+      background: #ffffff !important;
+      min-height: 42px !important;
+      transition: all 0.15s ease !important;
+    }
+    .cwp-phone-group:focus-within {
+      border-color: #2563eb !important;
+      box-shadow: 0 0 0 2.5px rgba(37, 99, 235, 0.12) !important;
+    }
+    .cwp-phone-prefix {
+      display: flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      background: #f8fafc !important;
+      color: #475569 !important;
+      padding: 0 10px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border-right: 1px solid #cbd5e1 !important;
+      user-select: none !important;
+      flex-shrink: 0 !important;
+    }
+    .cwp-phone-input {
+      border: none !important;
+      height: 42px !important;
+      min-height: 42px !important;
+      padding: 0 10px !important;
+      font-size: 14px !important;
+      color: #0f172a !important;
+      background: transparent !important;
+      flex: 1 !important;
+    }
+    .cwp-phone-input:focus {
+      box-shadow: none !important;
+      border: none !important;
+      outline: none !important;
+    }
+    .btn-submit-main {
+      background: #2563eb !important;
+      color: #ffffff !important;
+      border: none !important;
+      border-radius: 8px !important;
+      padding: 10px 22px !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
+      transition: all 0.15s ease !important;
+    }
+    .btn-submit-main:hover {
+      background: #1d4ed8 !important;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35) !important;
+      transform: translateY(-0.5px) !important;
+    }
+
+    /* Modal dialog styling */
+    .modal-card-box {
+      background: #ffffff !important;
+      border-radius: 14px !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.16) !important;
+      max-width: 640px !important;
+      width: 95% !important;
+      max-height: 90vh !important;
+      overflow-y: auto !important;
+      box-sizing: border-box !important;
+    }
+    .modal-card-header {
+      padding: 14px 18px !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      position: sticky !important;
+      top: 0 !important;
+      background: #ffffff !important;
+      z-index: 10 !important;
+    }
+    .modal-card-title {
+      font-size: 16px !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      margin: 0 !important;
+    }
+    .modal-close-x {
+      background: #f1f5f9 !important;
+      border: none !important;
+      color: #64748b !important;
+      width: 28px !important;
+      height: 28px !important;
+      border-radius: 50% !important;
+      font-size: 14px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: pointer !important;
+      transition: all 0.15s ease !important;
+    }
+    .modal-close-x:hover {
+      background: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    .modal-card-footer {
+      padding: 12px 18px !important;
+      border-top: 1px solid #f1f5f9 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      gap: 10px !important;
+      position: sticky !important;
+      bottom: 0 !important;
+      background: #ffffff !important;
+      z-index: 10 !important;
+    }
+
+    /* Screen E: Route Sequence Modernization */
+    .seq-toolbar-box {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      padding: 10px 14px !important;
+      margin-bottom: 14px !important;
+    }
+    .seq-card-row {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      padding: 11px 14px !important;
+      margin-bottom: 8px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      transition: all 0.15s ease !important;
+    }
+    .seq-card-row:hover {
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05) !important;
+    }
+    .seq-num-badge {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      font-size: 12px !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      padding: 4px 8px !important;
+      border-radius: 6px !important;
+      min-width: 28px !important;
+      text-align: center !important;
+    }
+    .seq-cust-name {
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+    }
+
+    /* Screen F: Staff Management */
+    .staff-card-item {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      padding: 12px 16px !important;
+      margin-bottom: 8px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 12px !important;
+      flex-wrap: wrap !important;
+    }
+
+    /* Screen G: Staff Daily Cleaning Portal Mobile First */
+    .smart-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 12px !important;
+      padding: 14px 16px !important;
+      margin-bottom: 10px !important;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+      transition: all 0.2s ease !important;
+    }
+    .smart-card.card-cleaned-done {
+      background: #f0fdf4 !important;
+      border-color: #bbf7d0 !important;
+    }
+    .cust-full-name {
+      font-size: 16px !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      line-height: 1.35 !important;
+      white-space: normal !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
+    .btn-card-action {
+      height: 42px !important;
+      padding: 0 14px !important;
+      border-radius: 8px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      cursor: pointer !important;
+      text-decoration: none !important;
+      transition: all 0.15s ease !important;
+      white-space: nowrap !important;
+    }
+    .btn-call {
+      background: #059669 !important;
+      color: #ffffff !important;
+      border: 1px solid #059669 !important;
+    }
+    .btn-call:hover {
+      background: #047857 !important;
+    }
+    .btn-location {
+      background: #2563eb !important;
+      color: #ffffff !important;
+      border: 1px solid #2563eb !important;
+    }
+    .btn-location:hover {
+      background: #1d4ed8 !important;
+    }
+    .btn-clean-done {
+      width: 100% !important;
+      height: 44px !important;
+      border-radius: 8px !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      border: 1.5px solid #cbd5e1 !important;
+      background: #ffffff !important;
+      color: #334155 !important;
+      cursor: pointer !important;
+      transition: all 0.15s ease !important;
+      margin-top: 10px !important;
+    }
+    .btn-clean-done:hover {
+      border-color: #059669 !important;
+      color: #059669 !important;
+      background: #ecfdf5 !important;
+    }
+    .btn-clean-done.done-active {
+      background: #059669 !important;
+      color: #ffffff !important;
+      border-color: #059669 !important;
+    }
   </style>
 
 </head>
@@ -4777,59 +5389,59 @@
       
       <!-- Staff Security Gate (6-Digit PIN Authentication) -->
       <div id="staffAuthGate" class="auth-gate-box" style="display: none;">
-        <div class="admin-auth-card" style="box-shadow: 0 20px 40px -10px rgba(2, 43, 73, 0.12), 0 1px 3px rgba(0,0,0,0.06);">
+        <div class="admin-auth-card">
           <div class="auth-accent-bar staff-accent"></div>
           
-          <div class="auth-card-content" style="padding: 28px 24px 24px;">
-            <div class="auth-brand-emblem" title="CWP Detailers" style="margin-bottom: 10px;">
-              <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo" style="width: 58px; height: 58px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <div class="auth-card-content">
+            <div class="auth-brand-emblem" title="CWP Detailers">
+              <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo">
             </div>
 
-            <h2 class="admin-auth-title" id="staffAuthTitle" style="font-size: 21px; font-weight: 700; margin-bottom: 4px; color: var(--navy-dark, #002B49);">स्टाफ पोर्टल लॉगिन</h2>
-            <p class="admin-auth-desc" id="staffAuthDesc" style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.4;">पंजीकृत मोबाइल नंबर और 6-अंकों का पिन दर्ज करें</p>
+            <h2 class="admin-auth-title" id="staffAuthTitle">स्टाफ पोर्टल लॉगिन</h2>
+            <p class="admin-auth-desc" id="staffAuthDesc">पंजीकृत मोबाइल नंबर और 6-अंकों का पिन दर्ज करें</p>
             
             <!-- Inactive Alert Banner (Shown if staff account is disabled by admin) -->
-            <div id="staffInactiveMsgBox" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 12px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 14px; line-height: 1.5;">
+            <div id="staffInactiveMsgBox" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 12px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 14px; line-height: 1.5;">
               🚫 आपका स्टाफ अकाउंट Inactive कर दिया गया है।<br>कृपया अपने एडमिन से संपर्क करें।
             </div>
 
             <form id="staffAuthForm" onsubmit="handleStaffAuthSubmit(event)">
               <!-- Registered Mobile Number Input -->
-              <div class="auth-input-group" style="margin-bottom: 14px; border: 1.5px solid #cbd5e1; border-radius: 12px;">
-                <span class="cwp-phone-prefix" style="display: flex; align-items: center; padding: 0 12px; font-weight: 600; font-size: 14px; color: #475569; background: #f1f5f9; border: none; border-right: 1.5px solid #cbd5e1; border-top-left-radius: 10px; border-bottom-left-radius: 10px;" title="India (+91)"><span class="phone-flag" style="margin-right: 5px;">🇮🇳</span> +91</span>
-                <input type="tel" id="staffPhoneInput" class="auth-field-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required style="font-size: 16px; padding: 0 14px; height: 50px; font-weight: 500;">
+              <div class="auth-input-group">
+                <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+                <input type="tel" id="staffPhoneInput" class="auth-field-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
               </div>
 
               <!-- 6-Digit PIN Input -->
-              <div class="auth-input-group" style="margin-bottom: 14px; border: 1.5px solid #cbd5e1; border-radius: 12px;">
-                <div class="auth-input-icon" style="width: 44px; display: flex; align-items: center; justify-content: center;">
+              <div class="auth-input-group">
+                <div class="auth-input-icon">
                   <span>🔐</span>
                 </div>
-                <input type="password" id="staffPinInput" class="auth-field-input" placeholder="6-अंकों का पिन दर्ज करें" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="current-password" required style="font-size: 16px; letter-spacing: 2px; height: 50px;">
-                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('staffPinInput', this)" title="पिन देखें / छिपाएं" style="border: none; background: transparent; padding: 0 14px; font-size: 18px; cursor: pointer; color: #64748b;">👁️</button>
+                <input type="password" id="staffPinInput" class="auth-field-input" placeholder="6-अंकों का पिन दर्ज करें" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="current-password" required style="letter-spacing: 2px;">
+                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('staffPinInput', this)" title="पिन देखें / छिपाएं">👁️</button>
               </div>
 
-              <div id="staffAuthError" class="admin-auth-error-msg" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; margin-bottom: 14px; text-align: left;">
+              <div id="staffAuthError" class="admin-auth-error-msg" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 14px; text-align: left;">
                 ❌ गलत विवरण! कृपया सही मोबाइल नंबर व पिन दर्ज करें।
               </div>
 
-              <div class="admin-remember-row" style="margin-bottom: 18px; display: flex; align-items: center; justify-content: flex-start;">
-                <label class="remember-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; cursor: pointer;">
-                  <input type="checkbox" id="rememberStaffDevice" checked style="width: 17px; height: 17px; accent-color: #0284c7; cursor: pointer;">
+              <div class="admin-remember-row">
+                <label class="remember-label">
+                  <input type="checkbox" id="rememberStaffDevice" checked>
                   <span>इस फोन पर लॉगिन याद रखें</span>
                 </label>
               </div>
 
-              <button type="submit" id="btnStaffLogin" class="auth-submit-btn staff-submit-btn" style="height: 50px; font-size: 16px; border-radius: 12px; font-weight: 700; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
-                <span class="btn-icon">🚀</span>
+              <button type="submit" id="btnStaffLogin" class="auth-submit-btn staff-submit-btn">
                 <span class="btn-label">लॉगिन करें (Log In)</span>
+                <span class="btn-icon">→</span>
               </button>
             </form>
 
-            <div class="auth-trust-strip" style="margin-top: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11.5px; color: #94a3b8;">
-              <span>🔒 CWP Detailers Official</span>
+            <div class="auth-trust-strip">
+              <span>🔒 सुरक्षित स्टाफ पोर्टल</span>
               <span>•</span>
-              <span>सुरक्षित स्टाफ पोर्टल</span>
+              <span>CWP Detailers Official</span>
             </div>
           </div>
         </div>
@@ -4958,9 +5570,6 @@
       
       <!-- Admin Security Gate (Password Lock) -->
       <div id="adminAuthGate" class="auth-gate-box" style="display: none;">
-        <div class="auth-ambient-glow glow-cyan"></div>
-        <div class="auth-ambient-glow glow-blue"></div>
-
         <div class="admin-auth-card">
           <div class="auth-accent-bar admin-accent"></div>
           
@@ -4970,22 +5579,22 @@
             </div>
 
             <div class="auth-role-pill admin-pill">
-              <span class="pill-dot"></span> Central Admin Control Panel
+              <span>🛡️</span> Admin Security Verification
             </div>
 
-            <h2 class="admin-auth-title">Admin Security Verification</h2>
-            <p class="admin-auth-desc">Enter password to access customer database, staff management, and settings.</p>
+            <h2 class="admin-auth-title">Admin Dashboard</h2>
+            <p class="admin-auth-desc">Enter password to access customer database, staff management, and route sequences.</p>
             
             <form id="adminAuthForm" onsubmit="handleAdminAuth(event)">
               <div class="auth-input-group">
                 <div class="auth-input-icon">
-                  <span>🛡️</span>
+                  <span>🔒</span>
                 </div>
                 <input type="password" id="adminPasswordInput" class="auth-field-input" placeholder="Enter admin password..." autocomplete="current-password" required>
                 <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('adminPasswordInput')" title="Show / hide password">👁️</button>
               </div>
 
-              <div id="adminAuthError" class="admin-auth-error-msg" style="display: none;">
+              <div id="adminAuthError" class="admin-auth-error-msg" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 14px; text-align: left;">
                 ❌ Incorrect password! Please enter the correct password.
               </div>
 
@@ -5004,14 +5613,14 @@
 
             <div class="auth-switch-box">
               <button type="button" class="btn-switch-portal" onclick="applyViewMode('staff')">
-                <span>🚗</span> Go to Staff Portal
+                <span>🚗</span> Switch to Staff Portal
               </button>
             </div>
 
             <div class="auth-trust-strip">
               <span class="trust-item">🔒 256-Bit SSL Encrypted</span>
               <span class="trust-divider">•</span>
-              <span class="trust-item">⚡ Super Admin Security</span>
+              <span class="trust-item">Super Admin Security</span>
             </div>
           </div>
         </div>
