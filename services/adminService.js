@@ -441,10 +441,18 @@ async function updateCustomer(custData, adminUser = 'admin') {
 
   if (custId) {
     customer = await repos.customers.findById(custId);
-  } else if (custData.customerNumber && custData.customerName) {
+  }
+  if (!customer && custData.customerNumber && custData.customerName) {
     const normPhone = normalizeIndianMobile(custData.customerNumber);
     const existing = await repos.customers.findByPhone(normPhone);
     customer = existing.find(c => c.name.toLowerCase() === custData.customerName.toLowerCase()) || null;
+  }
+  if (!customer && custData.rowIndex) {
+    const rowIdx = parseInt(custData.rowIndex, 10);
+    if (!isNaN(rowIdx) && rowIdx > 0) {
+      const byRow = await db.query('SELECT * FROM public.customers WHERE source_row_index = $1 AND deleted_at IS NULL LIMIT 1', [rowIdx]);
+      customer = byRow.rows[0] || null;
+    }
   }
 
   if (!customer) {
@@ -457,12 +465,13 @@ async function updateCustomer(custData, adminUser = 'admin') {
 
     // 1. Update Customer Core
     const normPhone = custData.customerNumber ? normalizeIndianMobile(custData.customerNumber) : customer.phone;
+    const finalNotes = custData.staffNotes !== undefined ? custData.staffNotes : (custData.notes !== undefined ? custData.notes : customer.notes);
     await repos.customers.updateCustomer(customer.id, {
       name: custData.customerName || customer.name,
       phone: normPhone,
       altPhone: custData.altPhone,
       email: custData.email,
-      notes: custData.notes,
+      notes: finalNotes,
       isActive: custData.active !== undefined ? (custData.active === 'Yes' || custData.active === true) : customer.is_active
     }, client);
 
@@ -484,6 +493,29 @@ async function updateCustomer(custData, adminUser = 'admin') {
           googleMapsUrl: custData.googleMapsUrl,
           parkingDetails: custData.parkingDetails,
           isPrimary: true
+        }, client);
+      }
+    }
+
+    // 2b. Update / Upsert Secondary Location
+    const secAddr = (custData.secondaryAddress || '').trim();
+    const custLocs = await repos.serviceLocations.findByCustomerId(customer.id, { client });
+    let secondaryLoc = custLocs.find(l => !l.is_primary) || null;
+    if (secAddr) {
+      if (secondaryLoc) {
+        await repos.serviceLocations.updateLocation(secondaryLoc.id, {
+          addressText: secAddr,
+          googleMapsUrl: custData.secondaryMapsUrl || '',
+          parkingDetails: custData.secondaryParkingDetails || ''
+        }, client);
+      } else {
+        await repos.serviceLocations.createLocation({
+          customerId: customer.id,
+          addressType: 'secondary',
+          addressText: secAddr,
+          googleMapsUrl: custData.secondaryMapsUrl || '',
+          parkingDetails: custData.secondaryParkingDetails || '',
+          isPrimary: false
         }, client);
       }
     }
@@ -562,7 +594,19 @@ async function updateCustomer(custData, adminUser = 'admin') {
  * Soft Delete Customer with Mandatory Reason
  */
 async function deleteCustomer(id, { reason = 'Administrative deletion', adminUser = 'admin' } = {}) {
-  const customer = await repos.customers.findById(id);
+  const target = (id || '').toString().trim();
+  if (!target) {
+    return { success: false, error: 'Customer ID is required.' };
+  }
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(target);
+  let customer = null;
+  if (isUuid) {
+    customer = await repos.customers.findById(target);
+  }
+  if (!customer) {
+    customer = await repos.customers.findByCode(target);
+  }
   if (!customer) {
     return { success: false, error: 'Customer not found.' };
   }
@@ -574,9 +618,12 @@ async function deleteCustomer(id, { reason = 'Administrative deletion', adminUse
       deletionReason: reason
     }, client);
 
-    // 2. Deactivate any active staff assignments for customer subscriptions
+    // 2. Deactivate any active staff assignments for customer subscriptions and cancel subscriptions
     const subs = await repos.subscriptions.findByCustomerId(customer.id, { client });
     for (const sub of subs) {
+      if (repos.subscriptions.cancelSubscription) {
+        await repos.subscriptions.cancelSubscription(sub.id, client);
+      }
       await repos.staffAssignments.unassignSubscription({
         subscriptionId: sub.id,
         unassignedBy: adminUser,
@@ -595,7 +642,17 @@ async function deleteCustomer(id, { reason = 'Administrative deletion', adminUse
       }, client);
     }
 
-    // 4. Audit Log
+    // 4. Soft delete locations and vehicles
+    const locs = await repos.serviceLocations.findByCustomerId(customer.id, { client });
+    for (const loc of locs) {
+      await repos.serviceLocations.softDelete(loc.id, client);
+    }
+    const vehs = await repos.vehicles.findByCustomerId(customer.id, { client });
+    for (const veh of vehs) {
+      await repos.vehicles.softDelete(veh.id, client);
+    }
+
+    // 5. Audit Log
     await repos.auditLogs.logChange({
       entityType: 'customer',
       entityId: customer.id,
@@ -605,14 +662,14 @@ async function deleteCustomer(id, { reason = 'Administrative deletion', adminUse
       afterState: { deleted: true, reason }
     }, client);
 
-    return { success: true, message: `Customer ${customer.name} soft-deleted successfully.` };
+    return { success: true, message: `Customer ${customer.name} deleted successfully.` };
   });
 }
 
 /**
  * Staff List with Role Sanitization (Public hides PIN & Phone; Admin exposes display PIN)
  */
-async function getStaffList({ isAdmin = false } = {}) {
+async function getStaffList({ isAdmin = true } = {}) {
   const staffMembers = await repos.staff.findAll({ includeInactive: true });
   const results = [];
 
@@ -655,11 +712,6 @@ async function saveStaffMember({ staffId, staffCode, name, phone, pin, active = 
     return { success: false, error: 'Staff name is required.' };
   }
 
-  const cleanPhone = normalizeIndianMobile(phone);
-  if (!isValidIndianMobile(cleanPhone)) {
-    return { success: false, error: 'Please enter a valid 10-digit Indian mobile number.' };
-  }
-
   const codeInput = (staffCode || staffId || '').toString().trim();
 
   return db.withTransaction(async (client) => {
@@ -671,6 +723,11 @@ async function saveStaffMember({ staffId, staffCode, name, phone, pin, active = 
       if (!staff && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(codeInput)) {
         staff = await repos.staff.findById(codeInput, client);
       }
+    }
+
+    const cleanPhone = phone ? normalizeIndianMobile(phone) : (staff ? staff.phone : '');
+    if (!cleanPhone || !isValidIndianMobile(cleanPhone)) {
+      return { success: false, error: 'Please enter a valid 10-digit Indian mobile number.' };
     }
 
     if (!staff) {
@@ -736,7 +793,10 @@ async function deleteStaffMember(staffCodeOrId, adminUser = 'admin') {
 
   let staff = await repos.staff.findByStaffCode(target);
   if (!staff) {
-    staff = await repos.staff.findById(target);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(target);
+    if (isUuid) {
+      staff = await repos.staff.findById(target);
+    }
   }
   if (!staff) {
     return { success: false, error: 'Staff member not found.' };
@@ -749,7 +809,17 @@ async function deleteStaffMember(staffCodeOrId, adminUser = 'admin') {
     // 2. Revoke all active sessions for this staff member
     await authService.revokeAllStaffSessions(staff.id, `deleted_by_${adminUser}`);
 
-    // 3. Audit Log
+    // 3. Unassign from all active subscriptions and jobs
+    if (repos.staffAssignments && repos.staffAssignments.unassignAllForStaff) {
+      await repos.staffAssignments.unassignAllForStaff(staff.id, adminUser, `Staff deleted by ${adminUser}`, client);
+    }
+
+    // 4. Reset route sequence
+    if (repos.staffRouteSequences && repos.staffRouteSequences.resetStaffRoute) {
+      await repos.staffRouteSequences.resetStaffRoute(staff.id, client);
+    }
+
+    // 5. Audit Log
     await repos.auditLogs.logChange({
       entityType: 'staff',
       entityId: staff.id,

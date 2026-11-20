@@ -42,6 +42,41 @@
       --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
       --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --input-bg: #ffffff;
+      --input-border: #cbd5e1;
+    }
+
+    :root[data-theme="dark"],
+    body.theme-dark {
+      --bg-page: #0b0f17;
+      --bg-surface: #111827;
+      --bg-surface-subtle: #1e293b;
+      --border-color: #233044;
+      --border-focus: #60a5fa;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --brand-navy: #090d16;
+      --brand-blue: #3b82f6;
+      --brand-blue-hover: #2563eb;
+      --brand-blue-light: rgba(59, 130, 246, 0.15);
+      --brand-blue-border: #1d4ed8;
+      --accent-amber: #f59e0b;
+      --accent-amber-light: rgba(245, 158, 11, 0.15);
+      --accent-amber-border: #d97706;
+      --call-green: #10b981;
+      --call-green-hover: #059669;
+      --call-green-light: rgba(16, 185, 129, 0.15);
+      --call-green-border: #047857;
+      --danger-red: #ef4444;
+      --danger-red-light: rgba(239, 68, 68, 0.15);
+      --danger-red-border: #b91c1c;
+      --card-bg: #111827;
+      --card-border: #233044;
+      --input-bg: #1e293b;
+      --input-border: #334155;
     }
 
     * {
@@ -150,15 +185,35 @@
       min-width: 0;
     }
 
-    @media (max-width: 480px) {
+    @media (max-width: 640px) {
       .header-inner {
-        gap: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+      }
+      .header-center {
+        display: none;
       }
       .brand-logo-img {
-        height: 36px;
+        height: 34px;
       }
-      .header-app-title {
-        font-size: 15px;
+      .header-right {
+        gap: 6px;
+      }
+      .header-util-btn {
+        height: 30px;
+        padding: 0 8px;
+        font-size: 11px;
+      }
+      .staff-live-badge {
+        padding: 3px 8px;
+        font-size: 10px;
+      }
+      .header-logout-btn {
+        height: 30px;
+        padding: 0 8px;
+        font-size: 11px;
       }
     }
 
@@ -2592,14 +2647,18 @@
     .btn-edit-record {
       background: #f8fafc;
       color: #334155;
-      border-color: #cbd5e1;
-      padding: 5px 6px;
+      border: 1px solid #cbd5e1;
+      padding: 5px 8px;
       border-radius: 6px;
       font-weight: 700;
       font-size: 11px;
-      width: 100%;
-      max-width: 70px;
-      margin: 0 auto;
+      margin: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
 
     .btn-edit-record:hover {
@@ -2607,6 +2666,30 @@
       color: #ffffff;
       border-color: var(--brand-blue);
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+      transform: translateY(-0.5px);
+    }
+
+    .btn-delete-record {
+      background: #fef2f2 !important;
+      color: #dc2626 !important;
+      border: 1px solid #fecaca !important;
+      padding: 5px 8px !important;
+      border-radius: 6px !important;
+      font-weight: 700 !important;
+      font-size: 11px !important;
+      margin: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: pointer !important;
+      transition: all 0.15s ease !important;
+    }
+
+    .btn-delete-record:hover {
+      background: #dc2626 !important;
+      color: #ffffff !important;
+      border-color: #dc2626 !important;
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25) !important;
       transform: translateY(-0.5px);
     }
 
@@ -4808,9 +4891,7 @@
     #staffAuthGate[style*="display: none"],
     #staffAuthGate[style*="display:none"],
     #adminAuthGate[style*="display: none"],
-    #adminAuthGate[style*="display:none"],
-    [style*="display: none"],
-    [style*="display:none"] {
+    #adminAuthGate[style*="display:none"] {
       display: none !important;
       visibility: hidden !important;
       height: 0 !important;
@@ -5359,6 +5440,422 @@
       color: #ffffff !important;
       border-color: #059669 !important;
     }
+
+    /* =========================================================================
+       2026 STAFF PORTAL REMODERNIZATION: GLOBAL UI/UX TOKENS & DARK THEME ENGINE
+       ========================================================================= */
+    body.theme-dark,
+    [data-theme="dark"] {
+      background-color: var(--bg-page) !important;
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .top-header {
+      background: #090e17 !important;
+      border-bottom-color: rgba(56, 189, 248, 0.15) !important;
+    }
+
+    body.theme-dark .smart-card {
+      background: var(--card-bg) !important;
+      border-color: var(--card-border) !important;
+      color: var(--text-primary) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+    }
+
+    body.theme-dark .smart-card.card-cleaned-done {
+      background: rgba(16, 185, 129, 0.12) !important;
+      border-color: rgba(16, 185, 129, 0.38) !important;
+    }
+
+    body.theme-dark .cust-full-name {
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .staff-profile-card {
+      background: var(--bg-surface) !important;
+      border-color: var(--border-color) !important;
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .staff-name-text {
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .staff-car-count-badge {
+      background: var(--bg-surface-subtle) !important;
+      border-color: var(--border-color) !important;
+      color: #38bdf8 !important;
+    }
+
+    body.theme-dark .search-filter-box {
+      background: transparent !important;
+    }
+
+    body.theme-dark .search-bar-wrapper {
+      background: var(--bg-surface) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    body.theme-dark .search-input {
+      color: var(--text-primary) !important;
+      background: transparent !important;
+    }
+
+    body.theme-dark .search-input::placeholder {
+      color: var(--text-muted) !important;
+    }
+
+    body.theme-dark .filter-pill {
+      background: var(--bg-surface) !important;
+      border-color: var(--border-color) !important;
+      color: var(--text-secondary) !important;
+    }
+
+    body.theme-dark .filter-pill.active {
+      background: var(--brand-blue) !important;
+      border-color: var(--brand-blue) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+    }
+
+    body.theme-dark .filter-pill:hover:not(.active) {
+      background: var(--bg-surface-subtle) !important;
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .staff-route-header-box {
+      background: var(--bg-surface) !important;
+      border-color: var(--border-color) !important;
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .route-header-title {
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .route-header-sub {
+      color: var(--text-secondary) !important;
+    }
+
+    body.theme-dark .route-progress-text {
+      color: var(--text-secondary) !important;
+    }
+
+    body.theme-dark .route-progress-bar-bg {
+      background: var(--bg-surface-subtle) !important;
+    }
+
+    body.theme-dark .cust-route-seq-badge {
+      background: var(--bg-surface-subtle) !important;
+      color: #38bdf8 !important;
+      border: 1px solid rgba(56, 189, 248, 0.35) !important;
+    }
+
+    body.theme-dark .cust-index-badge {
+      background: var(--bg-surface-subtle) !important;
+      color: var(--text-secondary) !important;
+      border: 1px solid var(--border-color) !important;
+    }
+
+    body.theme-dark .vehicle-plate-badge {
+      background: #0f172a !important;
+      border-color: #334155 !important;
+      color: #f8fafc !important;
+    }
+
+    body.theme-dark .vehicle-plate-reg {
+      color: #f8fafc !important;
+    }
+
+    body.theme-dark .vehicle-plate-model {
+      color: var(--text-secondary) !important;
+    }
+
+    body.theme-dark .card-address-row {
+      background: var(--bg-surface-subtle) !important;
+      border-color: var(--border-color) !important;
+      color: var(--text-secondary) !important;
+    }
+
+    body.theme-dark .addr-primary {
+      color: var(--text-secondary) !important;
+    }
+
+    body.theme-dark .card-notes-row {
+      background: rgba(245, 158, 11, 0.12) !important;
+      border-color: rgba(245, 158, 11, 0.3) !important;
+    }
+
+    body.theme-dark .notes-body {
+      color: #e2e8f0 !important;
+    }
+
+    body.theme-dark .btn-clean-done:not(.done-active) {
+      background: var(--bg-surface-subtle) !important;
+      border-color: var(--border-color) !important;
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .btn-clean-done:not(.done-active):hover {
+      border-color: #10b981 !important;
+      color: #10b981 !important;
+      background: rgba(16, 185, 129, 0.15) !important;
+    }
+
+    body.theme-dark .btn-action-disabled {
+      background: var(--bg-surface-subtle) !important;
+      border-color: var(--border-color) !important;
+      color: var(--text-muted) !important;
+    }
+
+    body.theme-dark .admin-auth-card {
+      background: var(--bg-surface) !important;
+      border-color: var(--border-color) !important;
+      color: var(--text-primary) !important;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65) !important;
+    }
+
+    body.theme-dark .admin-auth-title {
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .admin-auth-desc {
+      color: var(--text-secondary) !important;
+    }
+
+    body.theme-dark .auth-input-group {
+      background: var(--input-bg) !important;
+      border-color: var(--input-border) !important;
+    }
+
+    body.theme-dark .auth-field-input {
+      color: var(--text-primary) !important;
+      background: transparent !important;
+    }
+
+    body.theme-dark .cwp-phone-prefix {
+      background: var(--bg-surface-subtle) !important;
+      border-color: var(--border-color) !important;
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .remember-label {
+      color: var(--text-secondary) !important;
+    }
+
+    body.theme-dark .auth-trust-strip {
+      color: var(--text-muted) !important;
+      border-top-color: var(--border-color) !important;
+    }
+
+    body.theme-dark .modal-card-box {
+      background: var(--bg-surface) !important;
+      border-color: var(--border-color) !important;
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .modal-header {
+      border-bottom-color: var(--border-color) !important;
+    }
+
+    body.theme-dark .modal-title {
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .modal-subtitle {
+      color: var(--text-secondary) !important;
+    }
+
+    body.theme-dark .modal-section-card {
+      background: var(--bg-surface-subtle) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    body.theme-dark .modal-section-title {
+      color: var(--text-primary) !important;
+    }
+
+    body.theme-dark .modal-addr-text {
+      color: var(--text-secondary) !important;
+    }
+
+    /* High-contrast Indian HSRP vehicle plate badge styling */
+    .vehicle-plate-badge {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      background: #f1f5f9;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 6px !important;
+      padding: 4px 9px !important;
+      font-size: 13px !important;
+      box-sizing: border-box !important;
+      max-width: 100% !important;
+      overflow: hidden !important;
+    }
+    .vehicle-plate-badge::before {
+      content: 'IND';
+      font-size: 8.5px;
+      font-weight: 900;
+      color: #1d4ed8;
+      background: #dbeafe;
+      padding: 1px 4px;
+      border-radius: 3px;
+      letter-spacing: -0.2px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    body.theme-dark .vehicle-plate-badge::before {
+      color: #60a5fa;
+      background: #1e3a8a;
+    }
+    .vehicle-plate-reg {
+      font-family: 'JetBrains Mono', Consolas, monospace !important;
+      font-weight: 800 !important;
+      color: #0f172a;
+      letter-spacing: 0.5px;
+    }
+    .vehicle-plate-model {
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      color: #475569;
+    }
+
+    /* Header Utility Buttons (Language & Theme Mode) */
+    .header-global-toggles {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-util-btn {
+      height: 34px;
+      padding: 0 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .header-util-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.35);
+      transform: translateY(-1px);
+    }
+    .header-util-btn:active {
+      transform: scale(0.96);
+    }
+    .util-btn-icon {
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+    }
+
+    /* Auth Gate Card Quick Toggles */
+    .auth-top-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      width: 100%;
+    }
+    .btn-gate-toggle {
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 6px;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-gate-toggle:hover {
+      background: var(--brand-blue-light);
+      border-color: var(--brand-blue-border);
+      color: var(--brand-blue);
+    }
+    .btn-gate-toggle:active {
+      transform: scale(0.96);
+    }
+
+    /* Modern Floating Toast Notifications */
+    .toast-popup {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #ffffff;
+      padding: 11px 18px;
+      border-radius: 50px;
+      font-size: 13.5px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.12);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast-popup.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .toast-popup.toast-success {
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.3), 0 0 0 1px rgba(16, 185, 129, 0.2);
+    }
+    .toast-popup.toast-error {
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.3), 0 0 0 1px rgba(239, 68, 68, 0.2);
+    }
+    .toast-popup.toast-warning {
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.3), 0 0 0 1px rgba(245, 158, 11, 0.2);
+    }
+    .toast-icon-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+    .toast-success .toast-icon-wrap {
+      color: #10b981;
+    }
+    .toast-error .toast-icon-wrap {
+      color: #ef4444;
+    }
+    .toast-warning .toast-icon-wrap {
+      color: #f59e0b;
+    }
+
+    /* Touch target press feedback for mobile field staff */
+    .btn-card-action:active,
+    .btn-clean-done:active,
+    .filter-pill:active {
+      transform: scale(0.97) !important;
+    }
   </style>
 
 </head>
@@ -5381,6 +5878,17 @@
 
       <!-- Right: Controls -->
       <div class="header-right">
+        <!-- Global Quick Settings (Theme & Lang) -->
+        <div class="header-global-toggles">
+          <button type="button" id="btnLangToggle" class="header-util-btn" onclick="toggleLanguage()" title="भाषा बदलें / Switch Language">
+            <span class="util-btn-icon">🌐</span>
+            <span id="langToggleText" class="util-btn-text">EN</span>
+          </button>
+          <button type="button" id="btnThemeToggle" class="header-util-btn" onclick="toggleTheme()" title="डार्क / लाइट मोड बदलें / Toggle Theme">
+            <span id="themeToggleIcon" class="util-btn-icon">🌙</span>
+          </button>
+        </div>
+
         <!-- Staff Live Indicator & Staff Logout (Only shown in staff view) -->
         <div id="staffHeaderControls" style="display: none; align-items: center; gap: 8px;">
           <div class="staff-live-badge" id="staffLiveBadge" onclick="triggerManualStaffSync()" title="ऑटो-सिंक सक्रिय (30s) • लाइव डेटा सिंक चालू (क्लिक करके अभी चेक करें)">
@@ -5418,6 +5926,17 @@
           <div class="auth-accent-bar staff-accent"></div>
           
           <div class="auth-card-content">
+            <!-- Staff Login Mode & Theme Quick Toggles -->
+            <div class="auth-top-actions">
+              <button type="button" class="btn-gate-toggle" id="btnGateLangToggle" onclick="toggleLanguage()" title="भाषा बदलें / Change Language">
+                <span class="gate-toggle-icon">🌐</span>
+                <span id="gateLangText">English</span>
+              </button>
+              <button type="button" class="btn-gate-toggle" id="btnGateThemeToggle" onclick="toggleTheme()" title="थीम बदलें / Toggle Dark/Light Mode">
+                <span id="gateThemeIcon">🌙</span>
+              </button>
+            </div>
+
             <div class="auth-brand-emblem" title="CWP Detailers">
               <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo">
             </div>
@@ -5525,7 +6044,7 @@
             <div class="route-header-title-wrap">
               <span class="route-header-icon">🧭</span>
               <div>
-                <h3 class="route-header-title">Today's Cleaning Route</h3>
+                <h3 class="route-header-title" id="routeHeaderTitle">Today's Cleaning Route</h3>
                 <div class="route-header-sub">
                   स्टाफ: <strong id="routeStaffName">स्टाफ</strong> • कुल असाइन गाड़ियां: <strong id="routeTotalCount">0</strong>
                 </div>
@@ -5599,6 +6118,17 @@
           <div class="auth-accent-bar admin-accent"></div>
           
           <div class="auth-card-content">
+            <!-- Admin Login Mode & Theme Quick Toggles -->
+            <div class="auth-top-actions">
+              <button type="button" class="btn-gate-toggle" id="btnAdminGateLangToggle" onclick="toggleLanguage()" title="भाषा बदलें / Change Language">
+                <span class="gate-toggle-icon">🌐</span>
+                <span id="adminGateLangText">English</span>
+              </button>
+              <button type="button" class="btn-gate-toggle" id="btnAdminGateThemeToggle" onclick="toggleTheme()" title="थीम बदलें / Toggle Dark/Light Mode">
+                <span id="adminGateThemeIcon">🌙</span>
+              </button>
+            </div>
+
             <div class="auth-brand-emblem" title="CWP Detailers">
               <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo">
             </div>
@@ -5968,7 +6498,7 @@
               <input type="text" id="newStaffName" class="form-input" placeholder="Full Name (e.g. Ramesh Kumar)" required>
               <div class="cwp-phone-group">
                 <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
-                <input type="tel" id="newStaffPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel">
+                <input type="tel" id="newStaffPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
               </div>
               <input type="text" id="newStaffPin" class="form-input" placeholder="6-digit PIN (e.g. 849201)" maxlength="6" pattern="[0-9]{6}" required title="6-digit password for Staff Portal login">
               <input type="hidden" id="newStaffId" value="">
@@ -6090,7 +6620,7 @@
                   <th style="width: 160px; min-width: 140px;">Vehicle / Site</th>
                   <th style="min-width: 220px;">Address & Location</th>
                   <th style="width: 120px; text-align: center;">Staff</th>
-                  <th style="width: 75px; text-align: center;">Actions</th>
+                  <th style="width: 110px; min-width: 100px; text-align: center;">Actions</th>
                 </tr>
               </thead>
               <tbody id="adminRecordsTableBody">
@@ -6264,6 +6794,7 @@
       </div>
 
       <form id="editCustomerForm" onsubmit="handleEditCustomerSubmit(event)" style="padding: 16px;" class="cwp-compact-form">
+        <input type="hidden" id="editCustomerId">
         <input type="hidden" id="editSheetName">
         <input type="hidden" id="editRowIndex">
         <input type="hidden" id="editPhotoUrl">
@@ -6400,11 +6931,16 @@
           </div>
         </div>
 
-        <div class="modal-card-footer" style="padding: 12px 0 0 0; margin-top: 6px;">
-          <button type="button" class="btn-admin-action" onclick="closeEditCustomerModal()">Cancel</button>
-          <button type="submit" id="btnSaveEditCust" class="btn-primary-smart" style="padding: 10px 18px;">
-            <span>💾</span> Save Changes
+        <div class="modal-card-footer" style="padding: 12px 0 0 0; margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteCustomerFromModal()" style="font-weight: 600;">
+            <span>🗑️</span> Delete Customer
           </button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-admin-action" onclick="closeEditCustomerModal()">Cancel</button>
+            <button type="submit" id="btnSaveEditCust" class="btn-primary-smart" style="padding: 10px 18px;">
+              <span>💾</span> Save Changes
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -6460,11 +6996,16 @@
           </div>
         </div>
 
-        <div class="modal-card-footer">
-          <button type="button" class="btn-admin-action" onclick="closeEditStaffModal()">Cancel</button>
-          <button type="submit" id="btnSaveEditStaff" class="btn-primary-smart" style="padding: 10px 18px;">
-            <span>💾</span> Save Staff
+        <div class="modal-card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteStaffFromModal()" style="font-weight: 600;">
+            <span>🗑️</span> Delete Staff
           </button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-admin-action" onclick="closeEditStaffModal()">Cancel</button>
+            <button type="submit" id="btnSaveEditStaff" class="btn-primary-smart" style="padding: 10px 18px;">
+              <span>💾</span> Save Staff
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -6853,8 +7394,249 @@ var state = {
       editPhotoBase64: '',
       editPhotoType: '',
       editPhotoName: '',
-      rawEditPhotoDataUrl: ''
+      rawEditPhotoDataUrl: '',
+      lang: 'hi',
+      theme: 'light'
     };
+
+    /* =========================================================================
+       2026 GLOBAL UI/UX MODERNIZATION: I18N (HINDI / ENGLISH) & THEME ENGINE
+       ========================================================================= */
+    var CWP_I18N = {
+      hi: {
+        admin_title: "Admin Portal",
+        staff_title: "स्टाफ पोर्टल",
+        staff_login_title: "स्टाफ पोर्टल लॉगिन",
+        staff_login_desc: "पंजीकृत मोबाइल नंबर और 6-अंकों का पिन दर्ज करें",
+        staff_pin_placeholder: "6-अंकों का पिन दर्ज करें",
+        remember_device: "इस फोन पर लॉगिन याद रखें",
+        login_btn: "लॉगिन करें (Log In)",
+        trust_strip: "सुरक्षित स्टाफ पोर्टल • CWP Detailers Official",
+        live_sync: "लाइव",
+        sync_title: "ऑटो-सिंक सक्रिय (30s) • लाइव डेटा सिंक चालू",
+        logout: "लॉगआउट",
+        verified_portal: "CWP Verified Staff Portal",
+        cars_count_suffix: "गाड़ियां",
+        search_placeholder: "ग्राहक का नाम, गाड़ी नंबर या पता खोजें...",
+        tab_daily: "Daily Car Cleaning",
+        tab_wash: "Car Washing",
+        tab_solar: "Solar Panel Cleaning",
+        today_route: "Today's Cleaning Route",
+        route_staff_label: "स्टाफ",
+        route_total_label: "कुल असाइन गाड़ियां",
+        route_progress_label: "प्रोग्रेस:",
+        route_complete_label: "पूर्ण",
+        call: "कॉल",
+        no_call: "कॉल नहीं",
+        loc_single: "लोकेशन",
+        loc_multi: "2 लोकेशन",
+        loc_none: "लोकेशन नहीं",
+        photo: "फोटो",
+        notes_label: "निर्देश:",
+        mark_done: "✓ साफ हो गई (Done)",
+        mark_clean: "○ आज साफ करें (Mark Cleaned)",
+        no_records: "No records found",
+        clear_search: "✕ Clear search",
+        back_to_daily: "🚗 मुख्य दैनिक सफाई पर जाएं",
+        open_maps: "Google Maps पर खोलें",
+        close: "बंद करें",
+        inactive_msg: "🚫 आपका स्टाफ अकाउंट Inactive कर दिया गया है।<br>कृपया अपने एडमिन से संपर्क करें।",
+        invalid_login: "❌ गलत विवरण! कृपया सही मोबाइल नंबर व पिन दर्ज करें।",
+        pin_error_roast: "अरे भाई! 6 अंकों का सही पिन दर्ज करें।",
+        phone_error_roast: "कृपया मान्य 10-अंकों का मोबाइल नंबर दर्ज करें।",
+        sync_success_roast: "डेटा सफलतापूर्वक सिंक हो गया है!",
+        offline_toast: "ऑफलाइन मोड सक्रिय: परिवर्तन फोन में सुरक्षित हैं।",
+        cleaned_toast: "बधाई! गाड़ी साफ चिह्नित कर दी गई है।"
+      },
+      en: {
+        admin_title: "Admin Portal",
+        staff_title: "Staff Portal",
+        staff_login_title: "Staff Portal Login",
+        staff_login_desc: "Enter registered mobile number and 6-digit PIN",
+        staff_pin_placeholder: "Enter 6-digit PIN",
+        remember_device: "Remember login on this device",
+        login_btn: "Log In",
+        trust_strip: "Secure Staff Portal • CWP Detailers Official",
+        live_sync: "Live",
+        sync_title: "Auto-Sync Active (30s) • Click to check now",
+        logout: "Logout",
+        verified_portal: "CWP Verified Staff Portal",
+        cars_count_suffix: "Vehicles",
+        search_placeholder: "Search customer name, vehicle or address...",
+        tab_daily: "Daily Car Cleaning",
+        tab_wash: "Car Washing",
+        tab_solar: "Solar Panel Cleaning",
+        today_route: "Today's Cleaning Route",
+        route_staff_label: "Staff",
+        route_total_label: "Total Assigned Vehicles",
+        route_progress_label: "Progress:",
+        route_complete_label: "Complete",
+        call: "Call",
+        no_call: "No Phone",
+        loc_single: "Location",
+        loc_multi: "2 Locations",
+        loc_none: "No Location",
+        photo: "Photo",
+        notes_label: "Notes:",
+        mark_done: "✓ Cleaned (Done)",
+        mark_clean: "○ Mark Cleaned",
+        no_records: "No records found",
+        clear_search: "✕ Clear search",
+        back_to_daily: "🚗 Go to Daily Car Cleaning",
+        open_maps: "Open in Google Maps",
+        close: "Close",
+        inactive_msg: "🚫 Your staff account is deactivated.<br>Please contact your administrator.",
+        invalid_login: "❌ Invalid credentials! Please check your mobile and PIN.",
+        pin_error_roast: "Hey there! Please enter your complete 6-digit PIN.",
+        phone_error_roast: "Please enter a valid 10-digit mobile number.",
+        sync_success_roast: "Data synchronized successfully!",
+        offline_toast: "Offline mode active: changes saved to device.",
+        cleaned_toast: "Great job! Stop marked as cleaned."
+      }
+    };
+
+    function t(key, fallback) {
+      var lang = (state && state.lang) || localStorage.getItem('cwp_lang') || 'hi';
+      var dict = CWP_I18N[lang] || CWP_I18N['hi'];
+      if (dict && dict[key] !== undefined) return dict[key];
+      return fallback !== undefined ? fallback : key;
+    }
+
+    function initTheme() {
+      var savedTheme = localStorage.getItem('cwp_theme');
+      var systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+      setTheme(theme);
+    }
+
+    function setTheme(theme) {
+      state.theme = theme;
+      localStorage.setItem('cwp_theme', theme);
+      var isDark = (theme === 'dark');
+      if (isDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.body.classList.add('theme-dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.body.classList.remove('theme-dark');
+      }
+      var icon1 = document.getElementById('themeToggleIcon');
+      var icon2 = document.getElementById('gateThemeIcon');
+      var icon3 = document.getElementById('adminGateThemeIcon');
+      var iconChar = isDark ? '☀️' : '🌙';
+      if (icon1) icon1.textContent = iconChar;
+      if (icon2) icon2.textContent = iconChar;
+      if (icon3) icon3.textContent = iconChar;
+      var btn = document.getElementById('btnThemeToggle');
+      if (btn) btn.title = isDark ? 'लाइट मोड में बदलें / Switch to Light Mode' : 'डार्क मोड में बदलें / Switch to Dark Mode';
+    }
+
+    function toggleTheme() {
+      var current = state.theme || (document.body.classList.contains('theme-dark') ? 'dark' : 'light');
+      setTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    function initLanguage() {
+      var savedLang = localStorage.getItem('cwp_lang') || 'hi';
+      setLanguage(savedLang);
+    }
+
+    function setLanguage(lang) {
+      state.lang = lang;
+      localStorage.setItem('cwp_lang', lang);
+      applyStaffLanguage(lang);
+    }
+
+    function toggleLanguage() {
+      var current = state.lang || localStorage.getItem('cwp_lang') || 'hi';
+      setLanguage(current === 'hi' ? 'en' : 'hi');
+    }
+
+    function applyStaffLanguage(lang) {
+      state.lang = lang;
+      var isHi = (lang === 'hi');
+
+      // Update Header Toggles
+      var langText = document.getElementById('langToggleText');
+      if (langText) langText.textContent = isHi ? 'EN' : 'हिन्दी';
+      var gateLang = document.getElementById('gateLangText');
+      if (gateLang) gateLang.textContent = isHi ? 'English' : 'हिन्दी';
+      var adminGateLang = document.getElementById('adminGateLangText');
+      if (adminGateLang) adminGateLang.textContent = isHi ? 'English' : 'हिन्दी';
+      var btnLang = document.getElementById('btnLangToggle');
+      if (btnLang) btnLang.title = isHi ? 'Switch to English' : 'हिन्दी में बदलें';
+
+      // Header Title if in Staff View
+      var titleEl = document.getElementById('pageMainTitle');
+      if (titleEl && state.currentView === 'staff') {
+        titleEl.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
+      }
+
+      // Header Controls
+      var syncText = document.getElementById('staffSyncText');
+      if (syncText) syncText.textContent = isHi ? 'लाइव' : 'Live';
+      var syncBadge = document.getElementById('staffLiveBadge');
+      if (syncBadge) syncBadge.title = isHi ? 'ऑटो-सिंक सक्रिय (30s) • लाइव डेटा सिंक चालू' : 'Auto-Sync Active (30s) • Live data connected';
+      var logoutBtn = document.getElementById('staffLogoutBtn');
+      if (logoutBtn) {
+        var txt = logoutBtn.querySelector('.logout-text');
+        if (txt) txt.textContent = isHi ? 'लॉगआउट' : 'Logout';
+      }
+
+      // Staff Auth Gate
+      var authTitle = document.getElementById('staffAuthTitle');
+      if (authTitle) authTitle.textContent = isHi ? 'स्टाफ पोर्टल लॉगिन' : 'Staff Portal Login';
+      var authDesc = document.getElementById('staffAuthDesc');
+      if (authDesc) authDesc.textContent = isHi ? 'पंजीकृत मोबाइल नंबर और 6-अंकों का पिन दर्ज करें' : 'Enter registered mobile number and 6-digit PIN';
+      var pinInput = document.getElementById('staffPinInput');
+      if (pinInput) pinInput.placeholder = isHi ? '6-अंकों का पिन दर्ज करें' : 'Enter 6-digit PIN';
+      var remLabel = document.querySelector('.admin-remember-row .remember-label span');
+      if (remLabel) remLabel.textContent = isHi ? 'इस फोन पर लॉगिन याद रखें' : 'Remember login on this device';
+      var loginBtnLabel = document.querySelector('#btnStaffLogin .btn-label');
+      if (loginBtnLabel) loginBtnLabel.textContent = isHi ? 'लॉगिन करें (Log In)' : 'Log In';
+      var trustStrip = document.querySelector('.auth-trust-strip');
+      if (trustStrip) {
+        trustStrip.innerHTML = '<span>🔒 ' + (isHi ? 'सुरक्षित स्टाफ पोर्टल' : 'Secure Staff Portal') + '</span><span>•</span><span>CWP Detailers Official</span>';
+      }
+      var inactiveMsg = document.getElementById('staffInactiveMsgBox');
+      if (inactiveMsg) {
+        inactiveMsg.innerHTML = isHi ? '🚫 आपका स्टाफ अकाउंट Inactive कर दिया गया है।<br>कृपया अपने एडमिन से संपर्क करें।' : '🚫 Your staff account is deactivated.<br>Please contact your administrator.';
+      }
+
+      // Search input placeholder
+      var searchInp = document.getElementById('staffSearchInput');
+      if (searchInp) {
+        searchInp.placeholder = isHi ? 'ग्राहक का नाम, गाड़ी नंबर या पता खोजें...' : 'Search customer name, vehicle or address...';
+      }
+
+      // Category filter pills
+      var pillDaily = document.getElementById('pillDailyClean');
+      if (pillDaily) {
+        var tDaily = pillDaily.querySelector('.pill-text');
+        if (tDaily) tDaily.textContent = isHi ? 'दैनिक कार सफाई' : 'Daily Car Cleaning';
+      }
+      var pillWash = document.getElementById('pillCarWash');
+      if (pillWash) {
+        var tWash = pillWash.querySelector('.pill-text');
+        if (tWash) tWash.textContent = isHi ? 'कार वॉशिंग' : 'Car Washing';
+      }
+      var pillSolar = document.getElementById('pillSolarClean');
+      if (pillSolar) {
+        var tSolar = pillSolar.querySelector('.pill-text');
+        if (tSolar) tSolar.textContent = isHi ? 'सोलर पैनल सफाई' : 'Solar Panel Cleaning';
+      }
+
+      // Route sequence header
+      var rHeaderTitle = document.getElementById('routeHeaderTitle');
+      if (rHeaderTitle) {
+        rHeaderTitle.textContent = "Today's Cleaning Route";
+      }
+
+      // Re-render customer cards if already loaded
+      if (state.currentStaffFilteredList && state.currentStaffFilteredList.length > 0) {
+        renderCustomerCards(state.currentStaffFilteredList);
+      }
+    }
 
     /* Sync CWP Brand Logo across all Auth and Modal views */
     function syncBrandLogos() {
@@ -6871,6 +7653,8 @@ var state = {
 
     /* Initialize Application */
     document.addEventListener('DOMContentLoaded', function() {
+      initTheme();
+      initLanguage();
       initAllPhoneFormatters();
       syncBrandLogos();
       var urlParams = new URLSearchParams(window.location.search);
@@ -6951,7 +7735,7 @@ var state = {
         if (staffControls) staffControls.style.display = 'flex';
         if (liveBadge) liveBadge.style.display = 'inline-flex';
         if (adminControls) adminControls.style.display = 'none';
-        if (titleEl) titleEl.textContent = 'Staff Portal';
+        if (titleEl) titleEl.textContent = state.lang === 'en' ? 'Staff Portal' : 'स्टाफ पोर्टल';
         checkStaffAuthStatus(state.activeStaffId);
         syncBrandLogos();
       } else {
@@ -6962,7 +7746,7 @@ var state = {
         if (adminEl) adminEl.style.display = 'block';
         if (staffControls) staffControls.style.display = 'none';
         if (adminControls) adminControls.style.display = 'flex';
-        if (titleEl) titleEl.textContent = 'Admin App';
+        if (titleEl) titleEl.textContent = 'Admin Portal';
         checkAdminAuthStatus();
         syncBrandLogos();
       }
@@ -7075,28 +7859,37 @@ var state = {
       var errBox = document.getElementById('staffAuthError');
       var inactiveBox = document.getElementById('staffInactiveMsgBox');
       var btn = document.getElementById('btnStaffLogin');
+      var isHi = (state.lang !== 'en');
 
       if (!phone || !isValidIndianMobile(phone)) {
         if (errBox) {
-          errBox.textContent = '❌ कृपया 10-अंकों का वैध भारतीय मोबाइल नंबर दर्ज करें (6, 7, 8 या 9 से शुरू)।';
+          errBox.textContent = isHi ? '❌ कृपया 10-अंकों का वैध भारतीय मोबाइल नंबर दर्ज करें (6, 7, 8 या 9 से शुरू)।' : '❌ Please enter a valid 10-digit Indian mobile number (starts with 6, 7, 8, or 9).';
           errBox.style.display = 'block';
         }
-        if (phoneInput) phoneInput.focus();
+        showToast(isHi ? 'अरे भाई! मोबाइल नंबर तो पूरा 10 डिजिट लिखो!' : 'Hold up! Enter all 10 digits of your phone number!', 'warning');
+        if (phoneInput) {
+          triggerInputShake(phoneInput);
+          phoneInput.focus();
+        }
         return;
       }
 
       if (!pin || pin.length !== 6) {
         if (errBox) {
-          errBox.textContent = '❌ कृपया पूरा 6-अंकों का पासवर्ड (पिन) दर्ज करें।';
+          errBox.textContent = isHi ? '❌ कृपया पूरा 6-अंकों का पासवर्ड (पिन) दर्ज करें।' : '❌ Please enter your full 6-digit security PIN.';
           errBox.style.display = 'block';
         }
-        if (pinInput) pinInput.focus();
+        showToast(isHi ? '6 डिजिट का पिन चाहिए, अधूरा क्यों छोड़ रहे हो?' : 'PIN must be 6 digits, don’t leave it short!', 'warning');
+        if (pinInput) {
+          triggerInputShake(pinInput);
+          pinInput.focus();
+        }
         return;
       }
 
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">लॉगिन हो रहा है...</span>';
+        btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">' + (isHi ? 'लॉगिन हो रहा है...' : 'Logging in...') + '</span>';
       }
       if (errBox) errBox.style.display = 'none';
       if (inactiveBox) inactiveBox.style.display = 'none';
@@ -7104,12 +7897,12 @@ var state = {
       apiCall('verifyStaffPin', { phone: phone, pin: pin }, function(res) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">लॉगिन करें (Log In)</span>';
+          btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">' + (isHi ? 'लॉगिन करें (Log In)' : 'Log In') + '</span>';
         }
         if (res && res.inactive) {
           if (inactiveBox) inactiveBox.style.display = 'block';
           if (errBox) errBox.style.display = 'none';
-          showToast('🚫 आपका अकाउंट निष्क्रिय है!', '⚠️');
+          showToast(isHi ? '🚫 आपका अकाउंट निष्क्रिय है! एडमिन से बात करें।' : '🚫 Your account is deactivated! Contact your admin.', 'warning');
           return;
         }
         if (res && res.success) {
@@ -7149,13 +7942,14 @@ var state = {
             window.history.replaceState({ mode: 'staff' }, '', '/staff');
           }
 
-          showToast('नमस्ते ' + (res.staffName || 'स्टाफ') + '! लॉगिन सफल हुआ।', '✓');
+          showToast(isHi ? ('नमस्ते ' + (res.staffName || 'स्टाफ') + '! लॉगिन सफल हुआ।') : ('Welcome ' + (res.staffName || 'Staff') + '! Login successful.'), 'success');
           checkStaffAuthStatus(res.staffId);
         } else {
           if (errBox) {
-            errBox.textContent = '❌ ' + (res && res.error ? res.error : 'गलत मोबाइल नंबर या 6-डिजिट पासवर्ड!');
+            errBox.textContent = '❌ ' + (res && res.error ? res.error : (isHi ? 'गलत मोबाइल नंबर या 6-डिजिट पासवर्ड!' : 'Incorrect phone number or 6-digit PIN!'));
             errBox.style.display = 'block';
           }
+          showToast(isHi ? 'गलत पिन! ध्यान से देखकर दोबारा डालो।' : 'Wrong PIN! Double check and try again.', 'error');
           if (pinInput) {
             triggerInputShake(pinInput);
             pinInput.focus();
@@ -7164,12 +7958,13 @@ var state = {
       }, function(err) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">लॉगिन करें (Log In)</span>';
+          btn.innerHTML = '<span class="btn-icon">🚀</span> <span class="btn-label">' + (isHi ? 'लॉगिन करें (Log In)' : 'Log In') + '</span>';
         }
         if (errBox) {
-          errBox.textContent = '❌ ' + (err.message || 'Verification failed');
+          errBox.textContent = '❌ ' + (err.message || (isHi ? 'वेरिफिकेशन फेल हुआ' : 'Verification failed'));
           errBox.style.display = 'block';
         }
+        showToast(isHi ? 'नेटवर्क समस्या! कनेक्शन चेक करें।' : 'Network issue! Check your connection.', 'error');
       });
     }
 
@@ -8103,16 +8898,17 @@ function loadStaffCustomerData(staffId) {
 
       if (!items || items.length === 0) {
         var isSearchActive = Boolean(state.searchQuery);
+        var isHi = (state.lang !== 'en');
         var emptyMsg = isSearchActive 
-          ? 'सर्च के अनुसार No records found। ("' + escapeHtml(state.searchQuery) + '")'
-          : (state.activeFilter === 'solar_cleaning' ? 'इस केटेगरी में कोई सोलर साइट असाइन नहीं है।' : (state.activeFilter === 'car_washing' ? 'इस केटेगरी में कोई कार वॉशिंग असाइन नहीं है।' : 'इस केटेगरी में कोई दैनिक कार सफाई असाइन नहीं है।'));
+          ? (isHi ? 'सर्च के अनुसार कोई रिकॉर्ड नहीं मिला। ("' + escapeHtml(state.searchQuery) + '")' : 'No records found matching search ("' + escapeHtml(state.searchQuery) + '")')
+          : (state.activeFilter === 'solar_cleaning' ? (isHi ? 'इस केटेगरी में कोई सोलर साइट असाइन नहीं है।' : 'No solar cleaning sites assigned in this category.') : (state.activeFilter === 'car_washing' ? (isHi ? 'इस केटेगरी में कोई कार वॉशिंग असाइन नहीं है।' : 'No car wash jobs assigned in this category.') : (isHi ? 'इस केटेगरी में कोई दैनिक कार सफाई असाइन नहीं है।' : 'No daily car cleaning assignments in this category.')));
         var emptyIcon = isSearchActive ? '🔍' : (state.activeFilter === 'solar_cleaning' ? '☀️' : (state.activeFilter === 'car_washing' ? '🧼' : '🚗'));
         var actionBtnHtml = isSearchActive 
-          ? '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="clearStaffSearch()">✕ Clear search</button></div>'
-          : '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="setStaffFilter(\'daily_car_cleaning\')">🚗 मुख्य दैनिक सफाई पर जाएं</button></div>';
+          ? '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="clearStaffSearch()">✕ ' + (isHi ? 'सर्च हटाएं (Clear search)' : 'Clear search') + '</button></div>'
+          : '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="setStaffFilter(\'daily_car_cleaning\')">' + (isHi ? '🚗 मुख्य दैनिक सफाई पर जाएं' : '🚗 Go to Daily Cleaning') + '</button></div>';
         container.innerHTML = '<div class="empty-state-card">' +
           '<div class="empty-icon-wrap">' + emptyIcon + '</div>' +
-          '<h4 class="empty-title">No records found</h4>' +
+          '<h4 class="empty-title">' + (isHi ? 'कोई रिकॉर्ड नहीं मिला' : 'No records found') + '</h4>' +
           '<p class="empty-desc">' + emptyMsg + '</p>' +
           actionBtnHtml +
         '</div>';
@@ -8121,6 +8917,7 @@ function loadStaffCustomerData(staffId) {
 
       var html = '';
       items.forEach(function(item, index) {
+        var isHi = (state.lang !== 'en');
         var isSolar = item.category === 'solar_cleaning';
         var isCarWash = item.category === 'car_washing';
         var isDaily = item.category === 'daily_car_cleaning' || (!isSolar && !isCarWash);
@@ -8170,27 +8967,27 @@ function loadStaffCustomerData(staffId) {
         
         html += '    <div class="card-action-buttons">';
         if (cleanPhone) {
-          html += '      <a href="' + getIndianPhoneLink(cleanPhone) + '" class="btn-card-action btn-call" title="Call: ' + escapeHtml(formattedPhone) + '">';
-          html += '        <span>📞</span><span>कॉल</span>';
+          html += '      <a href="' + getIndianPhoneLink(cleanPhone) + '" class="btn-card-action btn-call" title="' + (isHi ? 'कॉल करें: ' : 'Call: ') + escapeHtml(formattedPhone) + '">';
+          html += '        <span>📞</span><span>' + (isHi ? 'कॉल' : 'Call') + '</span>';
           html += '      </a>';
         } else {
-          html += '      <button type="button" class="btn-card-action btn-action-disabled" onclick="handleUnavailableItem(\'phone\')" title="मोबाइल नंबर उपलब्ध नहीं है">';
-          html += '        <span>📞</span><span>कॉल नहीं</span>';
+          html += '      <button type="button" class="btn-card-action btn-action-disabled" onclick="handleUnavailableItem(\'phone\')" title="' + (isHi ? 'मोबाइल नंबर उपलब्ध नहीं है' : 'Phone number not available') + '">';
+          html += '        <span>📞</span><span>' + (isHi ? 'कॉल नहीं' : 'No Phone') + '</span>';
           html += '      </button>';
         }
 
 
         if (locationCount >= 2) {
-          html += '      <button type="button" class="btn-card-action btn-location btn-location-multi" onclick="openStaffAddressModal(' + index + ')" title="2 लोकेशन उपलब्ध हैं: मुख्य और सेकेंडरी">';
-          html += '        <span>📍</span><span>2 लोकेशन</span>';
+          html += '      <button type="button" class="btn-card-action btn-location btn-location-multi" onclick="openStaffAddressModal(' + index + ')" title="' + (isHi ? '2 लोकेशन उपलब्ध हैं: मुख्य और सेकेंडरी' : '2 Locations available: Primary and Secondary') + '">';
+          html += '        <span>📍</span><span>' + (isHi ? '2 लोकेशन' : '2 Locations') + '</span>';
           html += '      </button>';
         } else if (locationCount === 1) {
-          html += '      <button type="button" class="btn-card-action btn-location" onclick="openStaffAddressModal(' + index + ')" title="ग्राहक की लोकेशन देखें">';
-          html += '        <span>📍</span><span>लोकेशन</span>';
+          html += '      <button type="button" class="btn-card-action btn-location" onclick="openStaffAddressModal(' + index + ')" title="' + (isHi ? 'ग्राहक की लोकेशन देखें' : 'View customer location') + '">';
+          html += '        <span>📍</span><span>' + (isHi ? 'लोकेशन' : 'Location') + '</span>';
           html += '      </button>';
         } else {
-          html += '      <button type="button" class="btn-card-action btn-action-disabled" onclick="handleUnavailableItem(\'location\')" title="लोकेशन / पता उपलब्ध नहीं है">';
-          html += '        <span>📍</span><span>लोकेशन नहीं</span>';
+          html += '      <button type="button" class="btn-card-action btn-action-disabled" onclick="handleUnavailableItem(\'location\')" title="' + (isHi ? 'लोकेशन / पता उपलब्ध नहीं है' : 'Location / address not available') + '">';
+          html += '        <span>📍</span><span>' + (isHi ? 'लोकेशन नहीं' : 'No Location') + '</span>';
           html += '      </button>';
         }
         html += '    </div>';
@@ -8228,9 +9025,9 @@ function loadStaffCustomerData(staffId) {
 
         if (photoUrl) {
           html += '    <div class="card-photo-wrap">';
-          html += '      <button type="button" class="btn-photo-thumb" onclick="openStaffPhotoModal(' + index + ')" title="View vehicle photo">';
+          html += '      <button type="button" class="btn-photo-thumb" onclick="openStaffPhotoModal(' + index + ')" title="' + (isHi ? 'गाड़ी का फोटो देखें' : 'View vehicle photo') + '">';
           html += '        <img src="' + escapeHtml(thumbUrl) + '" class="card-mini-thumb" alt="Photo" onerror="this.style.display=\'none\'">';
-          html += '        <span class="photo-thumb-label">🖼️ फोटो</span>';
+          html += '        <span class="photo-thumb-label">🖼️ ' + (isHi ? 'फोटो' : 'Photo') + '</span>';
           html += '      </button>';
           html += '    </div>';
         }
@@ -8238,7 +9035,7 @@ function loadStaffCustomerData(staffId) {
 
         /* Row 3: Address Row (Direct clickable snippet for single location; multi-location cards use top 2-location button) */
         if (locationCount < 2 && address) {
-          html += '  <div class="card-address-row" onclick="openStaffAddressModal(' + index + ')" title="पूरा पता देखने के लिए क्लिक करें">';
+          html += '  <div class="card-address-row" onclick="openStaffAddressModal(' + index + ')" title="' + (isHi ? 'पूरा पता देखने के लिए क्लिक करें' : 'Click to view full address') + '">';
           html += '    <span class="addr-icon">📍</span>';
           html += '    <div class="addr-text-wrap">';
           html += '      <span class="addr-primary">' + escapeHtml(address) + '</span>';
@@ -8252,7 +9049,7 @@ function loadStaffCustomerData(staffId) {
           html += '  <div class="card-notes-row">';
           html += '    <span class="notes-icon">📝</span>';
           html += '    <div class="notes-content">';
-          html += '      <span class="notes-label">निर्देश:</span>';
+          html += '      <span class="notes-label">' + (isHi ? 'निर्देश:' : 'Notes:') + '</span>';
           html += '      <span class="notes-body">' + escapeHtml(notes) + '</span>';
           html += '    </div>';
           html += '  </div>';
@@ -8262,7 +9059,7 @@ function loadStaffCustomerData(staffId) {
         if (isDaily) {
           html += '  <div class="card-status-actions-bar">';
           html += '    <button type="button" class="btn-clean-done ' + (isDone ? 'done-active' : '') + '" onclick="toggleCustomerDoneToday(\'' + escapeHtml(custId) + '\')">';
-          html += '      <span>' + (isDone ? '✓ साफ हो गई (Done)' : '○ आज साफ करें (Mark Cleaned)') + '</span>';
+          html += '      <span>' + (isDone ? (isHi ? '✓ साफ हो गई (Done)' : '✓ Cleaned (Done)') : (isHi ? '○ आज साफ करें (Mark Cleaned)' : '○ Mark Cleaned')) + '</span>';
           html += '    </button>';
           html += '  </div>';
         }
@@ -8414,7 +9211,7 @@ function loadStaffCustomerData(staffId) {
         cardsHtml += '    <button type="button" class="btn-admin-action" onclick="copyStaffLink(\'' + escapeHtml(staffUrl) + '\')">📋 Copy Link</button>';
         cardsHtml += '    <a href="' + waHref + '" target="_blank" class="btn-admin-action">💬 WhatsApp</a>';
         cardsHtml += '    <a href="' + escapeHtml(staffUrl) + '" target="_blank" class="btn-admin-action">👁️ Open</a>';
-        cardsHtml += '    <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteStaff(\'' + escapeHtml(s.id) + '\')">🗑️</button>';
+        cardsHtml += '    <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteStaff(\'' + escapeHtml(s.id) + '\')" title="Delete staff member">🗑️ Delete</button>';
         cardsHtml += '  </div>';
         cardsHtml += '</div>';
       });
@@ -8736,8 +9533,8 @@ function loadStaffCustomerData(staffId) {
       var phone = normalizeIndianMobile(rawPhone);
       var pin = (pinInput ? pinInput.value : '').trim();
 
-      if (rawPhone && !isValidIndianMobile(phone)) {
-        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+      if (!rawPhone || !isValidIndianMobile(phone)) {
+        alert('Please enter a valid 10-digit Indian mobile number for staff starting with 6, 7, 8, or 9.');
         if (phoneInput) phoneInput.focus();
         return;
       }
@@ -8776,9 +9573,17 @@ function loadStaffCustomerData(staffId) {
     }
 
     function handleDeleteStaff(id) {
-      if (!confirm('Are you sure you want to delete this staff member?')) return;
+      var staff = (state.staffList || []).find(function(s) {
+        return (s.id || '').toUpperCase() === (id || '').toUpperCase();
+      });
+      var staffName = staff ? staff.name : ('Staff ' + id);
+
+      if (!confirm('Are you sure you want to delete staff member "' + staffName + '"?\n\nThis will deactivate their account, revoke all active login sessions, and unassign their customer route sequences.')) return;
+
+      closeEditStaffModal();
+
       apiCall('deleteStaffMember', { id: id }, function(res) {
-        showToast('Staff member deleted successfully', '✓');
+        showToast('Staff member "' + staffName + '" deleted successfully', '✓');
         var updatedList = res && res.staffList ? res.staffList : null;
         if (updatedList) {
           state.staffList = updatedList;
@@ -8796,6 +9601,15 @@ function loadStaffCustomerData(staffId) {
       }, function(err) {
         showToast('Error: ' + (err.message || err), '❌');
       });
+    }
+
+    function handleDeleteStaffFromModal() {
+      var staffId = (document.getElementById('editStaffId') && document.getElementById('editStaffId').value) || '';
+      if (!staffId) {
+        showToast('Staff identifier not found to delete', '❌');
+        return;
+      }
+      handleDeleteStaff(staffId);
     }
 
     /* Customer Form Handling */
@@ -10187,10 +11001,13 @@ function loadStaffCustomerData(staffId) {
         }
         staffHtml += '</div>';
 
-        /* 5. Edit Button */
-        var editHtml = '<div style="text-align: center;">' +
+        /* 5. Actions: Edit and Delete Buttons */
+        var actionsHtml = '<div style="display: flex; gap: 4px; justify-content: center; align-items: center;">' +
           '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="Edit customer details">' +
             '<span>✏️ Edit</span>' +
+          '</button>' +
+          '<button type="button" class="btn-cell-action btn-delete-record" onclick="handleDeleteCustomer(' + origIndex + ')" title="Delete customer">' +
+            '<span>🗑️</span>' +
           '</button>' +
         '</div>';
 
@@ -10200,7 +11017,7 @@ function loadStaffCustomerData(staffId) {
         html += '  <td>' + carHtml + '</td>';
         html += '  <td>' + addrHtml + '</td>';
         html += '  <td style="text-align: center;">' + staffHtml + '</td>';
-        html += '  <td style="text-align: center;">' + editHtml + '</td>';
+        html += '  <td style="text-align: center;">' + actionsHtml + '</td>';
         html += '</tr>';
       });
 
@@ -10212,6 +11029,9 @@ function loadStaffCustomerData(staffId) {
       var r = state.adminRecords && state.adminRecords[index];
       if (!r) return;
 
+      state.currentEditCustomerIndex = index;
+      var idEl = document.getElementById('editCustomerId');
+      if (idEl) idEl.value = r.id || r.customerId || r.customerCode || '';
       document.getElementById('editSheetName').value = r.sheetName || 'Daily Clean';
       document.getElementById('editRowIndex').value = r.rowIndex || '';
       document.getElementById('editPhotoUrl').value = r.photoUrl || '';
@@ -10334,6 +11154,64 @@ function loadStaffCustomerData(staffId) {
       if (banner) banner.style.display = 'none';
     }
 
+    function handleDeleteCustomer(index) {
+      var r = state.adminRecords && state.adminRecords[index];
+      if (!r) {
+        showToast('Customer record not found', '❌');
+        return;
+      }
+
+      var custName = r.customerName || r.name || 'this customer';
+      var custId = r.id || r.customerId || r.customerCode || '';
+      if (!custId) {
+        showToast('Customer identifier missing', '❌');
+        return;
+      }
+
+      if (!confirm('Are you sure you want to delete customer "' + custName + '"?\n\nThis will soft-delete the customer record, cancel any active subscriptions, and remove their cleaning assignments.')) {
+        return;
+      }
+
+      closeEditCustomerModal();
+
+      apiCall('deleteCustomer', { id: custId, reason: 'Administrative deletion via Admin Panel' }, function(res) {
+        if (res && res.success === false) {
+          showToast('Error: ' + (res.error || 'Failed to delete customer'), '❌');
+          return;
+        }
+        showToast('Customer "' + custName + '" deleted successfully', '✓');
+        if (typeof discardEditDraft === 'function') {
+          discardEditDraft(true);
+        }
+        loadAdminRecords(true);
+        if (typeof loadStaffSequenceData === 'function' && state.seqManagement && state.seqManagement.currentStaffId) {
+          loadStaffSequenceData(true);
+        }
+        if (state.seqManagement && typeof initAdminSequenceManager === 'function') {
+          initAdminSequenceManager();
+        }
+      }, function(err) {
+        showToast('Error: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleDeleteCustomerFromModal() {
+      var index = state.currentEditCustomerIndex;
+      if (index === undefined || index === null || !state.adminRecords || !state.adminRecords[index]) {
+        var custId = (document.getElementById('editCustomerId') && document.getElementById('editCustomerId').value) || '';
+        if (custId && state.adminRecords) {
+          index = state.adminRecords.findIndex(function(rec) {
+            return (rec.id === custId || rec.customerCode === custId);
+          });
+        }
+      }
+      if (index !== undefined && index >= 0) {
+        handleDeleteCustomer(index);
+      } else {
+        showToast('Unable to determine customer to delete', '❌');
+      }
+    }
+
     function handleEditPhotoSelect(e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
@@ -10444,7 +11322,10 @@ function loadStaffCustomerData(staffId) {
         }
       }
 
+      var editCustId = document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value.trim() : '';
+
       var updatedData = {
+        id: editCustId,
         sheetName: sheetName,
         rowIndex: rowIndex,
         customerName: document.getElementById('editCustName').value.trim(),
@@ -10772,12 +11653,39 @@ function loadStaffCustomerData(staffId) {
       }
     });
 
-    function showToast(msg, icon) {
+    var toastTimer = null;
+    function showToast(msg, iconOrType, type) {
       var t = document.getElementById('toastNotification');
-      document.getElementById('toastMessage').textContent = msg;
-      document.getElementById('toastIcon').textContent = icon || '✓';
+      if (!t) return;
+      var msgEl = document.getElementById('toastMessage');
+      var iconEl = document.getElementById('toastIcon');
+
+      var icon = '✓';
+      var toastType = 'success';
+
+      if (typeof iconOrType === 'string') {
+        var lower = iconOrType.toLowerCase();
+        if (['success', 'error', 'warning', 'info'].indexOf(lower) !== -1) {
+          toastType = lower;
+          icon = toastType === 'error' ? '✕' : (toastType === 'warning' ? '⚠️' : (toastType === 'info' ? 'ℹ️' : '✓'));
+        } else {
+          icon = iconOrType;
+          if (icon === '❌' || icon === '✕') toastType = 'error';
+          else if (icon === '⚠️') toastType = 'warning';
+          else if (icon === 'ℹ️') toastType = 'info';
+          if (type) toastType = type;
+        }
+      }
+
+      t.classList.remove('toast-success', 'toast-error', 'toast-warning', 'toast-info');
+      t.classList.add('toast-' + toastType);
+
+      if (msgEl) msgEl.textContent = msg;
+      if (iconEl) iconEl.textContent = icon;
       t.classList.add('show');
-      setTimeout(function() {
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function() {
         t.classList.remove('show');
       }, 3500);
     }
