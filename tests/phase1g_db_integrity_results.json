@@ -1,0 +1,81 @@
+{
+  "timestamp": "2026-11-20T18:58:00.122Z",
+  "tableCounts": {
+    "customers": 0,
+    "vehicles": 0,
+    "service_locations": 0,
+    "service_categories": 3,
+    "subscriptions": 0,
+    "subscription_vehicles": 0,
+    "staff": 0,
+    "staff_auth": 0,
+    "auth_sessions": 0,
+    "staff_assignments": 0,
+    "staff_route_sequences": 0,
+    "service_jobs": 0,
+    "service_logs": 0,
+    "admin_users": 0,
+    "audit_logs": 252,
+    "meta.schema_migrations": 1
+  },
+  "serviceCategories": [
+    "daily_car_cleaning",
+    "car_washing",
+    "solar_cleaning"
+  ],
+  "migrationRecords": 1,
+  "orphanedRecords": {
+    "totalOrphans": 0,
+    "orphanedVehicles": 0,
+    "orphanedServiceLocations": 0,
+    "orphanedSubscriptionVehicles": 0,
+    "orphanedStaffAssignments": 0,
+    "serviceLogsIstMismatch": 0,
+    "details": {
+      "vehicles": [],
+      "serviceLocations": [],
+      "subscriptionVehicles": [],
+      "staffAssignments": [],
+      "serviceLogsIstMismatch": []
+    }
+  },
+  "neondbTableCount": 132,
+  "overallStatus": "PASS",
+  "schemaVerification": {
+    "publicTableCount": 15,
+    "publicTables": [
+      "admin_users",
+      "audit_logs",
+      "auth_sessions",
+      "customers",
+      "service_categories",
+      "service_jobs",
+      "service_locations",
+      "service_logs",
+      "staff",
+      "staff_assignments",
+      "staff_auth",
+      "staff_route_sequences",
+      "subscription_vehicles",
+      "subscriptions",
+      "vehicles"
+    ],
+    "metaTables": [
+      "schema_migrations"
+    ]
+  },
+  "activeBusinessRecords": {
+    "active_customers": 0,
+    "active_vehicles": 0,
+    "active_staff": 0,
+    "active_subscriptions": 0,
+    "active_service_jobs": 0,
+    "service_logs": 0
+  },
+  "defectsAndNotes": [],
+  "summary": {
+    "totalChecks": 21,
+    "passed": 21,
+    "failed": 0
+  }
+}

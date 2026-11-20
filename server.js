@@ -29,6 +29,25 @@ const path = require('path');
 const crypto = require('crypto');
 const cloudinary = require('cloudinary').v2;
 
+const db = require('./db/index');
+const repos = require('./db/repositories/index');
+const authService = require('./services/authService');
+const adminService = require('./services/adminService');
+const staffPortalService = require('./services/staffPortalService');
+const offlineSyncService = require('./services/offlineSyncService');
+
+function isNeonConfigured() {
+  const url = process.env.DATABASE_URL || '';
+  return Boolean(url && url.includes('cwp_customer_db'));
+}
+
+function isNeonPrimaryActive() {
+  if (process.env.NODE_ENV === 'test' && !process.env.FORCE_NEON_IN_TEST) {
+    return false;
+  }
+  return isNeonConfigured();
+}
+
 const PORT = process.env.PORT || 3000;
 const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyoDbQHE4LQgGOylM0IYatOCMiueKDVqeR8NdPAKj2hOt6fsp9Pb3B-lOxkRFaF8nUH/exec';
 const APPS_SCRIPT_SERVICE_KEY = process.env.APPS_SCRIPT_SERVICE_KEY || process.env.CWP_SERVICE_KEY || '';
@@ -588,6 +607,50 @@ function revokeAllStaffSessionsForId(staffId) {
     }
     saveLocalData(appState);
   }
+}
+
+async function getSessionInfo(token) {
+  if (!token) return null;
+  // 1. Check in-memory session (fast cache & test mocks)
+  if (adminSessions.has(token)) {
+    const s = adminSessions.get(token);
+    if (Date.now() <= s.expiresAt) return { userType: 'admin', token };
+    adminSessions.delete(token);
+  }
+  let staffMem = getValidStaffSession(token);
+  if (staffMem) {
+    return {
+      userType: 'staff',
+      staffId: staffMem.staffId,
+      staffCode: staffMem.staffId,
+      staffName: staffMem.staffName,
+      staffPhone: staffMem.staffPhone,
+      token
+    };
+  }
+
+  // 2. Check Neon database auth_sessions
+  if (isNeonConfigured()) {
+    try {
+      const sess = await authService.validateSession(token);
+      if (sess && sess.valid) {
+        if (sess.userType === 'admin') {
+          adminSessions.set(token, { createdAt: Date.now(), expiresAt: Date.now() + SESSION_TTL_MS });
+        } else if (sess.userType === 'staff') {
+          staffSessions.set(token, {
+            staffId: sess.staffCode,
+            staffName: sess.staffName,
+            staffPhone: sess.staffPhone,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + SESSION_TTL_MS
+          });
+        }
+        return sess;
+      }
+    } catch (e) { }
+  }
+
+  return null;
 }
 
 /**
@@ -1374,6 +1437,22 @@ function parseGVizTableIntoRecords(sheetName, table, outRecords) {
 }
 
 async function fetchAllLiveCustomers(forceBypass = false) {
+  if (isNeonPrimaryActive()) {
+    try {
+      const neonCustomers = await adminService.getAllCustomers();
+      if (Array.isArray(neonCustomers)) {
+        return {
+          records: neonCustomers,
+          dataSource: 'neon_postgresql',
+          isLive: true,
+          lastSync: new Date().toISOString()
+        };
+      }
+    } catch (e) {
+      console.warn('[LiveCustomers] Neon fetch failed, falling back:', e.message);
+    }
+  }
+
   if (process.env.DISABLE_LIVE_SHEETS === 'true') {
     return {
       records: appState.customers || [],
@@ -1858,8 +1937,23 @@ async function forwardToGoogleAppsScript(payload) {
  * =========================================================================
  */
 const server = http.createServer(async (req, res) => {
-  // CORS Headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Production Security Headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Environment-Aware CORS Headers
+  const origin = req.headers.origin || '';
+  if (process.env.NODE_ENV === 'production' && origin) {
+    if (origin.endsWith('railway.app') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', `https://${DOMAIN}`);
+    }
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
 
@@ -1881,17 +1975,28 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // Health check endpoint for Railway monitoring (Secrets are never exposed)
-  if (pathname === '/health' || pathname === '/ping') {
+  // Health check endpoint (Reporting Neon PostgreSQL connectivity)
+  if (pathname === '/health' || pathname === '/healthz' || pathname === '/ping') {
+    let dbHealth = { healthy: false };
+    if (isNeonConfigured()) {
+      try {
+        dbHealth = await db.healthCheck();
+      } catch (e) {
+        dbHealth = { healthy: false, error: e.message };
+      }
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
       status: 'ok',
       service: 'cwp-staff-viewer',
       domain: DOMAIN,
+      database: isNeonConfigured() ? 'cwp_customer_db' : 'none',
+      provider: isNeonConfigured() ? 'neon_postgresql' : 'none',
+      databaseHealthy: dbHealth.healthy || false,
       adminConfigured: hasAdminPasswordConfigured(),
       serviceKeyConfigured: !!(process.env.APPS_SCRIPT_SERVICE_KEY || process.env.CWP_SERVICE_KEY),
       cloudinary: isCloudinaryConfigured(),
-      lastDataSource: lastDataSource,
+      lastDataSource: isNeonPrimaryActive() ? 'neon_postgresql' : lastDataSource,
       time: new Date().toISOString()
     }));
   }
@@ -1948,13 +2053,21 @@ const server = http.createServer(async (req, res) => {
   // GET /api/staff-sequence - Requires valid Admin Session
   if (req.method === 'GET' && pathname === '/api/staff-sequence') {
     const token = extractAuthToken(req, null);
-    if (!isValidAdminSession(token)) {
+    const sessInfo = await getSessionInfo(token);
+    const isAdmin = (sessInfo && sessInfo.userType === 'admin') || isValidAdminSession(token);
+    if (!isAdmin) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin session required to view sequence management.' }));
     }
 
     const reqStaffId = parsedUrl.searchParams.get('staffId') || 'STF01';
     try {
+      if (isNeonPrimaryActive()) {
+        const seqRes = await adminService.getStaffSequence(reqStaffId);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify(seqRes));
+      }
+
       const fetchResult = await fetchAllLiveCustomers();
       const staffData = formatStaffDataResponse(reqStaffId, fetchResult);
       const sequences = getStaffSequences(staffData.staffId || reqStaffId);
@@ -1978,8 +2091,9 @@ const server = http.createServer(async (req, res) => {
   // GET /api/staff-data - Requires valid Staff Session or Admin Session (Query token rejected!)
   if (req.method === 'GET' && pathname === '/api/staff-data') {
     const token = extractAuthToken(req, null);
-    const staffSess = getValidStaffSession(token);
-    const adminSess = isValidAdminSession(token);
+    const sessInfo = await getSessionInfo(token);
+    const staffSess = (sessInfo && sessInfo.userType === 'staff') ? sessInfo : getValidStaffSession(token);
+    const adminSess = (sessInfo && sessInfo.userType === 'admin') ? sessInfo : isValidAdminSession(token);
 
     if (!staffSess && !adminSess) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -1995,8 +2109,8 @@ const server = http.createServer(async (req, res) => {
 
     if (staffSess) {
       // Discard browser-supplied staffId, use verified session identity to prevent cross-staff access
-      targetStaffId = staffSess.staffId;
-      if (requestedStaffId && requestedStaffId.toUpperCase() !== staffSess.staffId.toUpperCase()) {
+      targetStaffId = staffSess.staffCode || staffSess.staffId;
+      if (requestedStaffId && requestedStaffId.toUpperCase() !== targetStaffId.toUpperCase()) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({
           success: false,
@@ -2010,6 +2124,38 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
+      if (isNeonPrimaryActive()) {
+        const staffData = await staffPortalService.getStaffData(targetStaffId);
+        const currentVersion = staffData.version || computeStaffDataVersion(staffData);
+        staffData.version = currentVersion;
+
+        const clientVersion = (parsedUrl.searchParams.get('version') || (req.headers['if-none-match'] || '').replace(/^"|"$/g, '')).trim();
+
+        if (clientVersion && clientVersion === currentVersion) {
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'ETag': `"${currentVersion}"`
+          });
+          return res.end(JSON.stringify({
+            unchanged: true,
+            version: currentVersion,
+            staffId: targetStaffId,
+            staffName: staffData.staffName,
+            totalCount: staffData.totalCount,
+            dataSource: staffData.dataSource,
+            isLive: staffData.isLive,
+            lastSync: staffData.lastSync
+          }));
+        }
+
+        staffData.unchanged = false;
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'ETag': `"${currentVersion}"`
+        });
+        return res.end(JSON.stringify(staffData));
+      }
+
       const fetchResult = await fetchAllLiveCustomers();
       const staffData = formatStaffDataResponse(targetStaffId, fetchResult);
       const currentVersion = staffData.version || computeStaffDataVersion(staffData);
@@ -2047,9 +2193,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   // =========================================================================
-  // MAIN API POST ROUTE (/api)
+  // MAIN API POST ROUTE (/api or /)
   // =========================================================================
-  if (req.method === 'POST' && pathname === '/api') {
+  if (req.method === 'POST' && (pathname === '/api' || pathname === '/')) {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
@@ -2063,8 +2209,19 @@ const server = http.createServer(async (req, res) => {
 
         // 1. Admin Authentication Handler
         if (payload.action === 'verifyAdminPassword') {
+          const clientIp = req.socket.remoteAddress || 'unknown';
+          const rateCheck = checkRateLimit(clientIp, 'admin');
+          if (!rateCheck.allowed) {
+            res.writeHead(429, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: `Too many failed admin login attempts. Please try again after ${Math.ceil(rateCheck.remainingSec / 60)} minutes.`
+            }));
+          }
+
           const inputPass = (payload.password || '').trim();
           if (!inputPass) {
+            recordFailedLogin(clientIp, 'admin');
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -2075,6 +2232,7 @@ const server = http.createServer(async (req, res) => {
           // Check if password matches configured environment variable or local scrypt hash
           const isMatch = verifyAdminPasswordNode(inputPass);
           if (isMatch) {
+            clearRateLimit(clientIp, 'admin');
             const sessionToken = createAdminSession();
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
@@ -2084,11 +2242,14 @@ const server = http.createServer(async (req, res) => {
             }));
           }
 
+          recordFailedLogin(clientIp, 'admin');
+
           // If no local password is configured at all, check Google Apps Script via service key
           if (!hasAdminPasswordConfigured()) {
             try {
               const gasRes = await forwardToGoogleAppsScript(payload);
               if (gasRes && gasRes.success) {
+                clearRateLimit(clientIp, 'admin');
                 const sessionToken = createAdminSession();
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({
@@ -2116,6 +2277,13 @@ const server = http.createServer(async (req, res) => {
         // 2. Admin Logout / Explicit Token Revocation
         if (payload.action === 'logoutAdmin') {
           revokeAdminSession(token);
+          if (isNeonPrimaryActive && isNeonPrimaryActive()) {
+            try {
+              await authService.logout(token);
+            } catch (logoutErr) {
+              console.warn('[Neon] Admin logout revocation warning:', logoutErr.message);
+            }
+          }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, message: 'Admin session revoked successfully.' }));
         }
@@ -2146,6 +2314,47 @@ const server = http.createServer(async (req, res) => {
           if ((!cleanPhone && !staffId) || !pin) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'पंजीकृत मोबाइल नंबर और 6-अंकों का पिन दोनों आवश्यक हैं।' }));
+          }
+
+          if (isNeonPrimaryActive()) {
+            try {
+              const authRes = await authService.loginStaff({
+                identifier: cleanPhone || staffId,
+                pin,
+                ipAddress: clientIp,
+                userAgent: req.headers['user-agent']
+              });
+
+              if (authRes.success) {
+                clearRateLimit(clientIp, rateKey);
+                const sCode = authRes.staffId || (authRes.staff && authRes.staff.staff_code) || staffId;
+                const sName = authRes.staffName || (authRes.staff && authRes.staff.name) || '';
+                const sPhone = authRes.phone || (authRes.staff && authRes.staff.phone) || '';
+                staffSessions.set(authRes.token, {
+                  staffId: sCode,
+                  staffName: sName,
+                  staffPhone: sPhone,
+                  createdAt: Date.now(),
+                  expiresAt: Date.now() + SESSION_TTL_MS
+                });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: true,
+                  token: authRes.token,
+                  staffId: sCode,
+                  staffName: sName,
+                  staffPhone: sPhone,
+                  expiresAt: authRes.expiresAt
+                }));
+              } else if (authRes.inactive || authRes.rateLimited || (authRes.error && authRes.error.includes('PIN'))) {
+                recordFailedLogin(clientIp, rateKey);
+                const statusCode = authRes.inactive ? 403 : (authRes.rateLimited ? 429 : 401);
+                res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(authRes));
+              }
+            } catch (authErr) {
+              console.warn('[StaffAuth] Neon verifyStaffPin error, trying fallback:', authErr.message);
+            }
           }
 
           let staff = null;
@@ -2255,6 +2464,13 @@ const server = http.createServer(async (req, res) => {
         // 4. Staff Logout / Explicit Token Revocation
         if (payload.action === 'logoutStaff') {
           revokeStaffSession(token);
+          if (isNeonPrimaryActive && isNeonPrimaryActive()) {
+            try {
+              await authService.logout(token);
+            } catch (logoutErr) {
+              console.warn('[Neon] Staff logout revocation warning:', logoutErr.message);
+            }
+          }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, message: 'Staff session revoked.' }));
         }
@@ -2291,6 +2507,36 @@ const server = http.createServer(async (req, res) => {
           const clientVersion = String(payload.version || (req.headers['if-none-match'] || '').replace(/^"|"$/g, '')).trim();
 
           try {
+            if (isNeonPrimaryActive()) {
+              const staffData = await staffPortalService.getStaffData(targetStaffId);
+              const currentVersion = staffData.version || computeStaffDataVersion(staffData);
+              staffData.version = currentVersion;
+
+              if (clientVersion && clientVersion === currentVersion) {
+                res.writeHead(200, {
+                  'Content-Type': 'application/json',
+                  'ETag': `"${currentVersion}"`
+                });
+                return res.end(JSON.stringify({
+                  unchanged: true,
+                  version: currentVersion,
+                  staffId: targetStaffId,
+                  staffName: staffData.staffName,
+                  totalCount: staffData.totalCount,
+                  dataSource: staffData.dataSource,
+                  isLive: staffData.isLive,
+                  lastSync: staffData.lastSync
+                }));
+              }
+
+              staffData.unchanged = false;
+              res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'ETag': `"${currentVersion}"`
+              });
+              return res.end(JSON.stringify(staffData));
+            }
+
             const fetchResult = await fetchAllLiveCustomers();
             const staffData = formatStaffDataResponse(targetStaffId, fetchResult);
             const currentVersion = staffData.version || computeStaffDataVersion(staffData);
@@ -2334,7 +2580,20 @@ const server = http.createServer(async (req, res) => {
 
         // 6. Staff List Handler (Public list has no PIN or Phone; Admin gets sanitized list with hasPin)
         if (payload.action === 'getStaffList') {
-          const isAdmin = isValidAdminSession(token);
+          const sess = await getSessionInfo(token);
+          const isAdmin = (sess && sess.userType === 'admin') || isValidAdminSession(token);
+          if (isNeonPrimaryActive()) {
+            try {
+              const staffList = await adminService.getStaffList();
+              const sanitized = staffList.map(s =>
+                isAdmin ? sanitizeStaffForAdmin(s) : sanitizeStaffForPublic(s)
+              );
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(sanitized));
+            } catch (e) {
+              console.warn('Neon getStaffList failed, falling back:', e.message);
+            }
+          }
           if (payload.sync || !appState.staffList || appState.staffList.length <= 1) {
             try {
               await syncLiveStaffFromGoogle();
@@ -2354,6 +2613,7 @@ const server = http.createServer(async (req, res) => {
           'getAllCustomers',
           'saveCustomer',
           'updateCustomer',
+          'deleteCustomer',
           'toggleCustomerActive',
           'saveStaffMember',
           'deleteStaffMember',
@@ -2372,7 +2632,9 @@ const server = http.createServer(async (req, res) => {
         ];
 
         if (adminProtectedActions.includes(payload.action)) {
-          if (!isValidAdminSession(token)) {
+          const sess = await getSessionInfo(token);
+          const isAdmin = (sess && sess.userType === 'admin') || isValidAdminSession(token);
+          if (!isAdmin) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -2388,6 +2650,17 @@ const server = http.createServer(async (req, res) => {
           if (!reqStaffId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
+          }
+
+          if (isNeonPrimaryActive()) {
+            try {
+              const seqRes = await adminService.getStaffSequence(reqStaffId);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(seqRes));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
           }
 
           const fetchResult = await fetchAllLiveCustomers();
@@ -2418,6 +2691,17 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Sequence list must be an array.' }));
           }
 
+          if (isNeonPrimaryActive()) {
+            try {
+              const saveRes = await adminService.saveStaffSequence(reqStaffId, sequenceList, 'admin');
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(saveRes));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
           const updatedRecords = saveStaffSequence(reqStaffId, sequenceList, 'admin');
 
           try {
@@ -2440,6 +2724,17 @@ const server = http.createServer(async (req, res) => {
           if (!reqStaffId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
+          }
+
+          if (isNeonPrimaryActive()) {
+            try {
+              const resetRes = await adminService.resetStaffSequence(reqStaffId, 'admin');
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(resetRes));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
           }
 
           resetStaffSequence(reqStaffId);
@@ -2478,6 +2773,21 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Staff PIN must be exactly 6 numeric digits.' }));
           }
 
+          if (isNeonPrimaryActive()) {
+            try {
+              const resetRes = await authService.resetStaffPin({
+                staffCodeOrId: staffId,
+                newPin,
+                adminUser: 'admin'
+              });
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(resetRes));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
           const staff = (appState.staffList || []).find(s => s.id.toUpperCase() === staffId.toUpperCase());
           if (!staff) {
             res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -2509,6 +2819,25 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
           }
+          if (isNeonPrimaryActive()) {
+            try {
+              const staff = await repos.staff.findByStaffCode(staffId);
+              if (!staff) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'Staff member not found.' }));
+              }
+              const auth = await repos.staffAuth.findByStaffId(staff.id);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: true,
+                staffId: staff.staff_code,
+                pin: auth && auth.display_pin ? auth.display_pin : (auth && auth.pin_hash && /^\d{6}$/.test(auth.pin_hash) ? auth.pin_hash : '[PROTECTED]')
+              }));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
           const staff = (appState.staffList || []).find(s => (s.id || '').toUpperCase() === staffId);
           if (!staff) {
             res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -2527,7 +2856,7 @@ const server = http.createServer(async (req, res) => {
         if (payload.action === 'saveStaffMember') {
           const sData = payload.staffData || {};
           const name = (sData.name || payload.name || '').trim();
-          let id = (sData.id || payload.id || '').trim().toUpperCase();
+          let id = (sData.id || sData.staffId || sData.staffCode || payload.id || payload.staffId || payload.staffCode || '').trim().toUpperCase();
           const phone = (sData.phone || payload.phone || '').trim();
           const rawPin = (sData.pin || payload.pin || '').toString().trim();
           const active = sData.active !== undefined ? (sData.active === true || sData.active === 'true' || sData.active === 'Yes' || sData.active === 'yes') : true;
@@ -2596,6 +2925,43 @@ const server = http.createServer(async (req, res) => {
           const pinChanged = existingStaff && pinToStore && existingStaff.pin && existingStaff.pin !== pinToStore;
           const deactivated = existingStaff && existingStaff.active && !active;
 
+          if (isNeonPrimaryActive()) {
+            try {
+              const adminUser = 'admin';
+              const neonStaffRes = await adminService.saveStaffMember({
+                staffId: id,
+                name: name,
+                phone: normalizedPhone,
+                pin: rawPin,
+                active: active
+              }, adminUser);
+
+              const newObj = { id, name, phone: normalizedPhone, pin: pinToStore, displayPin: displayPinToStore, active };
+              if (idx >= 0) {
+                appState.staffList[idx] = Object.assign({}, appState.staffList[idx], newObj);
+              } else {
+                appState.staffList.push(newObj);
+              }
+              saveLocalData(appState);
+              invalidateLiveCustomersCache();
+
+              const allStaff = await adminService.getStaffList();
+              const sanitizedList = allStaff.map(s => sanitizeStaffForAdmin(s));
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: true,
+                staffList: sanitizedList,
+                staff: sanitizeStaffForAdmin(newObj),
+                cascaded: nameChanged,
+                message: neonStaffRes.message || 'Staff member saved successfully.'
+              }));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
           const newObj = { id, name, phone: normalizedPhone, pin: pinToStore, displayPin: displayPinToStore, active };
 
           if (idx >= 0) {
@@ -2655,6 +3021,19 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Toggle Staff Active
         if (payload.action === 'toggleStaffActive') {
+          if (isNeonPrimaryActive()) {
+            try {
+              const toggleRes = await adminService.toggleStaffActive(payload.staffId, payload.active, 'admin');
+              const allStaff = await adminService.getStaffList();
+              const sanitizedList = allStaff.map(item => sanitizeStaffForAdmin(item));
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, staffList: sanitizedList }));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
           const s = (appState.staffList || []).find(x => (x.id || '').toLowerCase() === (payload.staffId || '').toLowerCase());
           if (s) {
             s.active = !!payload.active;
@@ -2677,7 +3056,20 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Delete Staff Member
         if (payload.action === 'deleteStaffMember') {
-          const staffId = (payload.id || payload.staffId || '').toString().trim().toLowerCase();
+          const staffId = (payload.id || payload.staffId || payload.staffCode || '').toString().trim();
+          if (isNeonPrimaryActive()) {
+            try {
+              const delRes = await adminService.deleteStaffMember(staffId, 'admin');
+              const allStaff = await adminService.getStaffList();
+              const sanitizedList = allStaff.map(item => sanitizeStaffForAdmin(item));
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, staffList: sanitizedList }));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
           const targetStaff = (appState.staffList || []).find(s => (s.id || '').toLowerCase() === staffId);
           const deletedName = targetStaff ? (targetStaff.name || '').trim() : '';
           revokeAllStaffSessionsForId(staffId);
@@ -2786,15 +3178,34 @@ const server = http.createServer(async (req, res) => {
 
           if (cust.staffName !== undefined || cust.staffId !== undefined) {
             const sNameRaw = (cust.staffName || '').toString().trim();
-            if (!sNameRaw || sNameRaw.toLowerCase() === 'unassigned' || sNameRaw.toLowerCase() === 'none') {
+            const sIdRaw = (cust.staffId || '').toString().trim();
+            if ((!sNameRaw && !sIdRaw) || sNameRaw.toLowerCase() === 'unassigned' || sNameRaw.toLowerCase() === 'none' || sIdRaw.toLowerCase() === 'unassigned' || sIdRaw.toLowerCase() === 'none') {
               cust.staffName = '';
               cust.staffId = '';
             } else {
               cust.staffName = sNameRaw;
+              cust.staffId = sIdRaw;
               if (!cust.staffId && appState.staffList) {
                 const sObj = appState.staffList.find(s => (s.name || '').trim().toLowerCase() === sNameRaw.toLowerCase());
                 if (sObj && sObj.id) cust.staffId = sObj.id;
               }
+              if (!cust.staffName && appState.staffList && cust.staffId) {
+                const sObj = appState.staffList.find(s => (s.id || '').trim().toUpperCase() === cust.staffId.toUpperCase());
+                if (sObj && sObj.name) cust.staffName = sObj.name;
+              }
+            }
+          }
+
+          if (isNeonPrimaryActive()) {
+            try {
+              const adminUser = 'admin';
+              const neonSaveRes = await adminService.saveCustomer(cust, adminUser);
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(neonSaveRes));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
             }
           }
 
@@ -2899,15 +3310,34 @@ const server = http.createServer(async (req, res) => {
 
           if (cust.staffName !== undefined || cust.staffId !== undefined) {
             const sNameRaw = (cust.staffName || '').toString().trim();
-            if (!sNameRaw || sNameRaw.toLowerCase() === 'unassigned' || sNameRaw.toLowerCase() === 'none') {
+            const sIdRaw = (cust.staffId || '').toString().trim();
+            if ((!sNameRaw && !sIdRaw) || sNameRaw.toLowerCase() === 'unassigned' || sNameRaw.toLowerCase() === 'none' || sIdRaw.toLowerCase() === 'unassigned' || sIdRaw.toLowerCase() === 'none') {
               cust.staffName = '';
               cust.staffId = '';
             } else {
               cust.staffName = sNameRaw;
+              cust.staffId = sIdRaw;
               if (!cust.staffId && appState.staffList) {
                 const sObj = appState.staffList.find(s => (s.name || '').trim().toLowerCase() === sNameRaw.toLowerCase());
                 if (sObj && sObj.id) cust.staffId = sObj.id;
               }
+              if (!cust.staffName && appState.staffList && cust.staffId) {
+                const sObj = appState.staffList.find(s => (s.id || '').trim().toUpperCase() === cust.staffId.toUpperCase());
+                if (sObj && sObj.name) cust.staffName = sObj.name;
+              }
+            }
+          }
+
+          if (isNeonPrimaryActive()) {
+            try {
+              const adminUser = 'admin';
+              const neonUpdateRes = await adminService.updateCustomer(cust, adminUser);
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(neonUpdateRes));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
             }
           }
 
@@ -2929,6 +3359,62 @@ const server = http.createServer(async (req, res) => {
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify(responseData));
+        }
+
+        // Admin: Delete Customer
+        if (payload.action === 'deleteCustomer') {
+          const custId = payload.id || payload.customerId;
+          if (!custId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Customer ID is required.' }));
+          }
+          if (isNeonConfigured()) {
+            const delRes = await adminService.deleteCustomer(custId, {
+              reason: payload.reason || 'Administrative deletion',
+              adminUser: 'admin'
+            });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(delRes));
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, message: 'Customer soft-deleted.' }));
+        }
+
+        // Staff / Offline: Sync Completions Batch
+        if (payload.action === 'syncCompletions') {
+          const sess = await getSessionInfo(token);
+          const staffSess = (sess && sess.userType === 'staff') ? sess : getValidStaffSession(token);
+          if (!staffSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff session required' }));
+          }
+          const staffCode = staffSess.staffCode || staffSess.staffId;
+          const batchRes = await offlineSyncService.processCompletionBatch({
+            staffCodeOrId: staffCode,
+            completions: payload.completions || [],
+            clientIp: req.socket.remoteAddress
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify(batchRes));
+        }
+
+        // Admin: Query Audit Logs
+        if (payload.action === 'getAuditLogs') {
+          if (!isValidAdminSession(token)) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to view audit logs',
+              unauthorized: true
+            }));
+          }
+          const logs = await repos.auditLogs.queryLogs({
+            entityType: payload.entityType || null,
+            entityId: payload.entityId || null,
+            limit: payload.limit || 100
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, logs }));
         }
 
         // Forward any remaining admin sync actions to GAS
@@ -3002,6 +3488,31 @@ if (require.main === module) {
   process.on('unhandledRejection', (reason, promise) => {
     console.error('[Server] Unhandled Rejection at:', promise, 'reason:', reason);
   });
+
+  // Graceful Shutdown for Cloud Containers (Railway / Docker SIGTERM / SIGINT)
+  const handleShutdown = async (signal) => {
+    console.log(`[Server] Received ${signal}. Initiating graceful shutdown...`);
+    server.close(async () => {
+      console.log('[Server] HTTP listener closed.');
+      if (isNeonConfigured()) {
+        try {
+          await db.close();
+          console.log('[Database] Neon pool closed cleanly.');
+        } catch (e) {
+          console.error('[Database] Error closing Neon pool:', e.message);
+        }
+      }
+      process.exit(0);
+    });
+
+    setTimeout(() => {
+      console.error('[Server] Forcefully terminating after shutdown timeout.');
+      process.exit(1);
+    }, 10000).unref();
+  };
+
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  process.on('SIGINT', () => handleShutdown('SIGINT'));
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`=======================================================`);
     console.log(`🚗 CWP Detailers & Motors - Staff Information Viewer`);
