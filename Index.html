@@ -4797,13 +4797,32 @@
     }
 
     /* Universal element hiding safeguard */
+    .auth-gate-box.is-hidden,
+    .auth-gate-box[hidden],
+    #staffAuthGate.is-hidden,
+    #staffAuthGate[hidden],
+    #adminAuthGate.is-hidden,
+    #adminAuthGate[hidden],
+    .auth-gate-box[style*="display: none"],
+    .auth-gate-box[style*="display:none"],
+    #staffAuthGate[style*="display: none"],
+    #staffAuthGate[style*="display:none"],
+    #adminAuthGate[style*="display: none"],
+    #adminAuthGate[style*="display:none"],
     [style*="display: none"],
     [style*="display:none"] {
       display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      min-height: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
     }
 
     /* Screen A & B: Polished Auth Cards */
-    .auth-gate-box {
+    .auth-gate-box:not(.is-hidden):not([hidden]):not([style*="display: none"]):not([style*="display:none"]) {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -5394,7 +5413,7 @@
     <div id="staffView" style="display: block;">
       
       <!-- Staff Security Gate (6-Digit PIN Authentication) -->
-      <div id="staffAuthGate" class="auth-gate-box" style="display: none;">
+      <div id="staffAuthGate" class="auth-gate-box is-hidden" style="display: none;" hidden>
         <div class="admin-auth-card">
           <div class="auth-accent-bar staff-accent"></div>
           
@@ -5575,7 +5594,7 @@
     <div id="adminView" class="admin-container">
       
       <!-- Admin Security Gate (Password Lock) -->
-      <div id="adminAuthGate" class="auth-gate-box" style="display: none;">
+      <div id="adminAuthGate" class="auth-gate-box is-hidden" style="display: none;" hidden>
         <div class="admin-auth-card">
           <div class="auth-accent-bar admin-accent"></div>
           
@@ -7001,13 +7020,30 @@ var state = {
       if (errBox) errBox.style.display = 'none';
 
       if (activeId && isUserStaffAuthenticated(activeId)) {
-        if (authGate) authGate.style.display = 'none';
-        if (content) content.style.display = 'block';
+        if (authGate) {
+          authGate.classList.add('is-hidden');
+          authGate.setAttribute('hidden', 'true');
+          authGate.style.setProperty('display', 'none', 'important');
+        }
+        if (content) {
+          content.classList.remove('is-hidden');
+          content.removeAttribute('hidden');
+          content.style.setProperty('display', 'block', 'important');
+        }
         if (logoutBtn) logoutBtn.style.display = 'inline-flex';
         loadStaffCustomerData(activeId);
       } else {
-        if (authGate) authGate.style.display = 'block';
-        if (content) content.style.display = 'none';
+        if (authGate) {
+          authGate.classList.remove('is-hidden');
+          authGate.removeAttribute('hidden');
+          authGate.style.removeProperty('display');
+          authGate.style.display = 'flex';
+        }
+        if (content) {
+          content.classList.add('is-hidden');
+          content.setAttribute('hidden', 'true');
+          content.style.setProperty('display', 'none', 'important');
+        }
         if (logoutBtn) logoutBtn.style.display = 'none';
 
         // Auto-fill phone if previously entered or saved
@@ -7095,6 +7131,19 @@ var state = {
           }
           if (pinInput) pinInput.value = '';
           
+          var authGate = document.getElementById('staffAuthGate');
+          var content = document.getElementById('staffContent');
+          if (authGate) {
+            authGate.classList.add('is-hidden');
+            authGate.setAttribute('hidden', 'true');
+            authGate.style.setProperty('display', 'none', 'important');
+          }
+          if (content) {
+            content.classList.remove('is-hidden');
+            content.removeAttribute('hidden');
+            content.style.setProperty('display', 'block', 'important');
+          }
+
           // Keep clean URL: /staff without parameter leakage
           if (window.history && window.history.replaceState) {
             window.history.replaceState({ mode: 'staff' }, '', '/staff');
@@ -7260,8 +7309,16 @@ var state = {
       var logoutBtn = document.getElementById('adminLogoutBtn');
 
       if (isUserAdminAuthenticated()) {
-        if (authGate) authGate.style.display = 'none';
-        if (unlocked) unlocked.style.display = 'block';
+        if (authGate) {
+          authGate.classList.add('is-hidden');
+          authGate.setAttribute('hidden', 'true');
+          authGate.style.setProperty('display', 'none', 'important');
+        }
+        if (unlocked) {
+          unlocked.classList.remove('is-hidden');
+          unlocked.removeAttribute('hidden');
+          unlocked.style.setProperty('display', 'block', 'important');
+        }
         if (logoutBtn) logoutBtn.style.display = 'inline-flex';
         
         loadStaffListForAdmin();
@@ -7272,8 +7329,17 @@ var state = {
         var currentTab = getSavedAdminTab();
         switchAdminTab(currentTab, true);
       } else {
-        if (authGate) authGate.style.display = 'block';
-        if (unlocked) unlocked.style.display = 'none';
+        if (authGate) {
+          authGate.classList.remove('is-hidden');
+          authGate.removeAttribute('hidden');
+          authGate.style.removeProperty('display');
+          authGate.style.display = 'flex';
+        }
+        if (unlocked) {
+          unlocked.classList.add('is-hidden');
+          unlocked.setAttribute('hidden', 'true');
+          unlocked.style.setProperty('display', 'none', 'important');
+        }
         if (logoutBtn) logoutBtn.style.display = 'none';
         setTimeout(function() {
           var input = document.getElementById('adminPasswordInput');
@@ -7306,6 +7372,18 @@ var state = {
           if (remember) {
             localStorage.setItem('cwp_admin_token', token);
             localStorage.setItem('cwp_admin_auth', token);
+          }
+          var authGate = document.getElementById('adminAuthGate');
+          var unlocked = document.getElementById('adminUnlockedContent');
+          if (authGate) {
+            authGate.classList.add('is-hidden');
+            authGate.setAttribute('hidden', 'true');
+            authGate.style.setProperty('display', 'none', 'important');
+          }
+          if (unlocked) {
+            unlocked.classList.remove('is-hidden');
+            unlocked.removeAttribute('hidden');
+            unlocked.style.setProperty('display', 'block', 'important');
           }
           // On fresh login: Active members list opens first as requested!
           var urlParams = new URLSearchParams(window.location.search);
@@ -7758,8 +7836,17 @@ function loadStaffCustomerData(staffId) {
         var content = document.getElementById('staffContent');
         var inactiveBox = document.getElementById('staffInactiveMsgBox');
         var logoutBtn = document.getElementById('staffLogoutBtn');
-        if (content) content.style.display = 'none';
-        if (authGate) authGate.style.display = 'block';
+        if (content) {
+          content.classList.add('is-hidden');
+          content.setAttribute('hidden', 'true');
+          content.style.setProperty('display', 'none', 'important');
+        }
+        if (authGate) {
+          authGate.classList.remove('is-hidden');
+          authGate.removeAttribute('hidden');
+          authGate.style.removeProperty('display');
+          authGate.style.display = 'flex';
+        }
         if (inactiveBox) inactiveBox.style.display = 'block';
         if (logoutBtn) logoutBtn.style.display = 'none';
         showToast('🚫 आपका स्टाफ अकाउंट निष्क्रिय कर दिया गया है।', '⚠️');
