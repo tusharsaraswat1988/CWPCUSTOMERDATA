@@ -4796,13 +4796,19 @@
       color: var(--brand-blue) !important;
     }
 
+    /* Universal element hiding safeguard */
+    [style*="display: none"],
+    [style*="display:none"] {
+      display: none !important;
+    }
+
     /* Screen A & B: Polished Auth Cards */
     .auth-gate-box {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      min-height: calc(85vh - 70px) !important;
-      padding: 16px 14px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(85vh - 70px);
+      padding: 16px 14px;
     }
     .admin-auth-card {
       background: #ffffff !important;
