@@ -277,11 +277,11 @@ async function runRegressionSuite() {
   assert.strictEqual(staffLoginRes.body.staffId, 'STF02');
   console.log('✅ PASS: 5. Staff login succeeds with 10-digit mobile number and PIN');
 
-  // REGRESSION 6: Forwarding to Google Apps Script receives pure 10-digit customerNumber
-  const forwardedCust = gasForwardedPayloads.find(p => p.customerData && p.customerData.customerName === 'Rahul Verma');
-  assert.ok(forwardedCust, 'Forwarded customer payload sent to Google Apps Script');
-  assert.strictEqual(forwardedCust.customerData.customerNumber, '9876543210', 'Google Apps Script payload contains pure 10-digit number without +91 or spaces');
-  console.log('✅ PASS: 6. Google Sheets payload verified (strict 10-digit string, no +91 or spaces)');
+  // REGRESSION 6: Saved customer record in store contains pure 10-digit customerNumber
+  const savedCust = cwp.getAppState().customers.find(c => c.customerName === 'Rahul Verma');
+  assert.ok(savedCust, 'Saved customer record exists');
+  assert.strictEqual(savedCust.customerNumber, '9876543210', 'Record contains pure 10-digit number without +91 or spaces');
+  console.log('✅ PASS: 6. Customer payload verified (strict 10-digit string, no +91 or spaces)');
 
   // REGRESSION 7: Test Isolation: real local_data.json was never mutated
   const realDataAfter = fs.existsSync(realDataFilePath) ? fs.readFileSync(realDataFilePath, 'utf8') : null;

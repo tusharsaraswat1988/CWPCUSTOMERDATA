@@ -1,18 +1,18 @@
 {
-  "timestamp": "2026-11-20T18:58:00.122Z",
+  "timestamp": "2026-11-20T19:51:49.752Z",
   "tableCounts": {
-    "customers": 0,
-    "vehicles": 0,
-    "service_locations": 0,
+    "customers": 51,
+    "vehicles": 55,
+    "service_locations": 53,
     "service_categories": 3,
-    "subscriptions": 0,
-    "subscription_vehicles": 0,
-    "staff": 0,
-    "staff_auth": 0,
-    "auth_sessions": 0,
-    "staff_assignments": 0,
-    "staff_route_sequences": 0,
-    "service_jobs": 0,
+    "subscriptions": 49,
+    "subscription_vehicles": 53,
+    "staff": 2,
+    "staff_auth": 2,
+    "auth_sessions": 1,
+    "staff_assignments": 44,
+    "staff_route_sequences": 44,
+    "service_jobs": 2,
     "service_logs": 0,
     "admin_users": 0,
     "audit_logs": 252,
@@ -40,7 +40,7 @@
     }
   },
   "neondbTableCount": 132,
-  "overallStatus": "PASS",
+  "overallStatus": "FAIL",
   "schemaVerification": {
     "publicTableCount": 15,
     "publicTables": [
@@ -65,17 +65,48 @@
     ]
   },
   "activeBusinessRecords": {
-    "active_customers": 0,
-    "active_vehicles": 0,
-    "active_staff": 0,
-    "active_subscriptions": 0,
-    "active_service_jobs": 0,
+    "active_customers": 51,
+    "active_vehicles": 55,
+    "active_staff": 2,
+    "active_subscriptions": 49,
+    "active_service_jobs": 2,
     "service_logs": 0
   },
-  "defectsAndNotes": [],
+  "defectsAndNotes": [
+    {
+      "table": "customers",
+      "physicalRowCount": 51,
+      "activeCount": 51,
+      "note": "Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation."
+    },
+    {
+      "table": "vehicles",
+      "physicalRowCount": 55,
+      "activeCount": 55,
+      "note": "Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation."
+    },
+    {
+      "table": "staff",
+      "physicalRowCount": 2,
+      "activeCount": 2,
+      "note": "Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation."
+    },
+    {
+      "table": "subscriptions",
+      "physicalRowCount": 49,
+      "activeCount": 49,
+      "note": "Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation."
+    },
+    {
+      "table": "service_jobs",
+      "physicalRowCount": 2,
+      "activeCount": 2,
+      "note": "Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation."
+    }
+  ],
   "summary": {
     "totalChecks": 21,
-    "passed": 21,
-    "failed": 0
+    "passed": 16,
+    "failed": 5
   }
 }

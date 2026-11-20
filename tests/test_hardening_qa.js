@@ -476,14 +476,20 @@ async function runTests() {
       `Password update succeeded. Persistent storage contains scrypt hash (${parsedData.adminPasswordHash ? parsedData.adminPasswordHash.substring(0, 16) : ''}...). Plaintext present: ${hasPlaintextPass}.`);
 
     // -------------------------------------------------------------------------
-    // TEST 13: Trusted Server-to-Server Authentication (Service Key Injected)
+    // TEST 13: Zero Google Apps Script Service Credential Exposure
     // -------------------------------------------------------------------------
-    // Verify mock GAS received request containing valid serviceKey
-    const updateCustomerReq = mockGasReceivedRequests.find(r => r.payload && r.payload.action === 'updateAdminPassword');
-    const serviceKeySent = updateCustomerReq && updateCustomerReq.payload.serviceKey === TEST_SERVICE_KEY;
+    const healthRes = await makeRequest({
+      hostname: '127.0.0.1',
+      port: TEST_PORT,
+      path: '/health',
+      method: 'GET'
+    });
+    const healthBody = healthRes.body || {};
+    const hasExposedServiceKey = typeof healthBody.serviceKeyConfigured !== 'undefined';
+    const t13Pass = healthRes.statusCode === 200 && !hasExposedServiceKey;
 
-    recordResult('13. Trusted Server-to-Server Authentication via Service Credential', serviceKeySent,
-      `Node.js injected APPS_SCRIPT_SERVICE_KEY into forwarded Google Apps Script request without exposing it to browser.`);
+    recordResult('13. Zero Google Apps Script Service Credential Exposure', t13Pass,
+      'Health endpoint and API responses contain zero Apps Script service key metadata.');
 
     // -------------------------------------------------------------------------
     // TEST 14: PIN Reset followed by Revocation & Successful Re-Login
@@ -628,76 +634,22 @@ async function runTests() {
       `Real local_data.json MD5 checksum and content strictly unchanged.`);
 
     // -------------------------------------------------------------------------
-    // TEST 19: Google Apps Script Direct Function Call Bypass Closed
+    // TEST 19: Google Apps Script and Code.gs Runtime Files Completely Removed
     // -------------------------------------------------------------------------
-    const vm = require('vm');
-    const gasCode = fs.readFileSync(path.join(__dirname, '..', 'Code.gs'), 'utf8');
-
-    let gasScriptProps = {
-      STAFF_LIST: JSON.stringify([
-        { id: 'STF01', name: 'Chandan Soni', phone: '9919856161', pin: 'sha256:112233:abcdef', active: true }
-      ]),
-      SERVICE_KEY: 'test_service_secret_key_1234567890'
-    };
-
-    const gasSandbox = {
-      PropertiesService: {
-        getScriptProperties: () => ({
-          getProperty: (k) => gasScriptProps[k] || null,
-          setProperty: (k, v) => { gasScriptProps[k] = v; }
-        })
-      },
-      Utilities: {
-        getUuid: () => '12345678-1234-1234-1234-123456789012',
-        computeDigest: () => [1, 2, 3, 4],
-        DigestAlgorithm: { SHA_256: 'SHA_256' },
-        Charset: { UTF_8: 'UTF_8' }
-      },
-      SpreadsheetApp: {
-        getUi: () => ({ createMenu: () => ({ addItem: () => ({ addToUi: () => {} }) }) }),
-        openById: () => ({ getSheetByName: () => null })
-      },
-      HtmlService: {
-        createTemplateFromFile: () => ({ evaluate: () => ({ setTitle: () => ({ addMetaTag: () => ({ setXFrameOptionsMode: () => {} }) }) }) }),
-        XFrameOptionsMode: { ALLOWALL: 'ALLOWALL' }
-      },
-      ContentService: {
-        createTextOutput: (t) => ({ setMimeType: () => t }),
-        MimeType: { JSON: 'JSON' }
-      },
-      Logger: { log: () => {} }
-    };
-
-    vm.createContext(gasSandbox);
-    vm.runInContext(gasCode, gasSandbox);
-
-    // Verify sensitive functions are NOT globally exposed without underscore
-    const hasPublicSaveCustomer = typeof gasSandbox.saveCustomer !== 'undefined';
-    const hasPublicGetAllCustomers = typeof gasSandbox.getAllCustomersForAdmin !== 'undefined';
-    const hasPublicDeleteStaff = typeof gasSandbox.deleteStaffMember !== 'undefined';
-    const hasPublicUpdateCustomer = typeof gasSandbox.updateCustomer !== 'undefined';
-    const hasPublicGateway = typeof gasSandbox.apiRequest === 'function';
-
-    const unauthGasCall = gasSandbox.apiRequest('getAllCustomers', {});
-    const gatewayProtected = unauthGasCall && unauthGasCall.unauthorized === true;
-
-    const t19Pass = !hasPublicSaveCustomer && !hasPublicGetAllCustomers && !hasPublicDeleteStaff && !hasPublicUpdateCustomer && hasPublicGateway && gatewayProtected;
-    recordResult('19. Google Apps Script Direct Function Bypass Closed (Private _ Functions & apiRequest Gateway)', t19Pass,
-      `Direct public functions removed. apiRequest gateway rejected unauthenticated call with: ${unauthGasCall ? unauthGasCall.error : ''}`);
+    const codeGsExists = fs.existsSync(path.join(__dirname, '..', 'Code.gs'));
+    const appsScriptJsonExists = fs.existsSync(path.join(__dirname, '..', 'appsscript.json'));
+    const deployGuideExists = fs.existsSync(path.join(__dirname, '..', 'deploy_guide.html'));
+    const t19Pass = !codeGsExists && !appsScriptJsonExists && !deployGuideExists;
+    recordResult('19. Google Apps Script and Code.gs Runtime Files Completely Removed', t19Pass,
+      'Code.gs, appsscript.json, and deploy_guide.html verified deleted from repository.');
 
     // -------------------------------------------------------------------------
-    // TEST 20: Google Apps Script Empty-Token Bypass Closed
+    // TEST 20: Server has Zero Google Apps Script / Google Sheets Dependencies
     // -------------------------------------------------------------------------
-    const emptyTokenRes = gasSandbox.apiRequest('getStaffData', { staffId: 'STF01', token: '' });
-    const missingTokenRes = gasSandbox.apiRequest('getStaffData', { staffId: 'STF01' });
-    const invalidServiceKeyRes = gasSandbox.apiRequest('getAllCustomers', { serviceKey: 'invalid_key' });
+    const t20Pass = typeof cwp.forwardToGoogleAppsScript === 'undefined' && typeof cwp.fetchSheetCSVWithRetry === 'undefined';
 
-    const t20Pass = emptyTokenRes && emptyTokenRes.unauthorized === true &&
-                    missingTokenRes && missingTokenRes.unauthorized === true &&
-                    invalidServiceKeyRes && invalidServiceKeyRes.unauthorized === true;
-
-    recordResult('20. Google Apps Script Empty/Missing Token & Invalid Service Key Rejected', t20Pass,
-      `Empty token rejected (${emptyTokenRes ? emptyTokenRes.error : ''}). Invalid service key rejected (${invalidServiceKeyRes ? invalidServiceKeyRes.error : ''}).`);
+    recordResult('20. Google Apps Script and Google Sheets Integration Removed from Server', t20Pass,
+      'forwardToGoogleAppsScript and fetchSheetCSVWithRetry confirmed completely removed from server.');
 
   } finally {
     // Teardown test servers

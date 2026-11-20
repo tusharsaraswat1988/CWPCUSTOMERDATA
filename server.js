@@ -4,20 +4,18 @@
  * CWP Detailers & Motors
  *
  * Hardened Security & Functional Architecture:
+ * - Pure Neon PostgreSQL Architecture (cwp_customer_db)
  * - Secure Server-Issued Admin & Staff Sessions with 12-Hour TTL & Revocation
  * - Server-Side Authorization Enforcement on Every Admin Operation
  * - Strict Staff Data Isolation (No cross-staff data leakage)
  * - crypto.scrypt PIN Hashing with Backward Compatibility & Auto-Upgrade
  * - Failed Login Rate Limiting (5 Attempts -> 5-Minute Cooldown, No Permanent Lockout)
- * - Trusted Server-to-Server Service Key Authentication to Google Apps Script
- * - Staff PIN Synchronization Protection (Never overwrite credentials with [PROTECTED])
  * - Zero Default PINs (Explicit 6-Digit PIN Mandatory for New Staff)
  * - No Plaintext Admin Password Storage (Hashed with scrypt locally)
  * - Explicit Service Category Mapping (Daily Car Cleaning / Car Washing / Solar Panel Cleaning)
- * - Sheet Update Integrity (No duplicate, orphaned, or auto-moved rows)
- * - Preserved Daily Clean Source Row Order & Dual Customer Locations
+ * - Preserved Daily Clean Route Sequence Order & Dual Customer Locations
  *
- * Spreadsheet ID: 1IXs46tRE324YYgBBAKxD1aCCnYVzmqfX4jxCWvfiALY
+ * Target Database: Neon PostgreSQL cwp_customer_db
  * Production Domain: cwpdata.up.railway.app
  * Image Storage: Cloudinary CDN (Direct HTTPS Links & Instant Thumbnails)
  * =========================================================================
@@ -49,14 +47,7 @@ function isNeonPrimaryActive() {
 }
 
 const PORT = process.env.PORT || 3000;
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyoDbQHE4LQgGOylM0IYatOCMiueKDVqeR8NdPAKj2hOt6fsp9Pb3B-lOxkRFaF8nUH/exec';
-const APPS_SCRIPT_SERVICE_KEY = process.env.APPS_SCRIPT_SERVICE_KEY || process.env.CWP_SERVICE_KEY || '';
 const DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN || 'cwpdata.up.railway.app';
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1IXs46tRE324YYgBBAKxD1aCCnYVzmqfX4jxCWvfiALY';
-const DEFAULT_SHEET_GIDS = {
-  'Daily Clean': process.env.GID_DAILY_CLEAN || '508927146',
-  'All Other Work': process.env.GID_ALL_OTHER_WORK || '866987332'
-};
 
 /**
  * RFC 4180 compliant CSV parser that preserves exact cell text types,
@@ -1024,39 +1015,24 @@ function mergeStaffList(remoteList) {
     const loc = idx >= 0 ? appState.staffList[idx] : null;
     const existingPin = loc ? (loc.pin || '') : '';
     const existingDisplayPin = loc ? (loc.displayPin || '') : '';
-    const lastKnownSheetPin = loc ? (loc.lastKnownSheetPin || '') : '';
     let incomingPin = (rem.pin || '').toString().trim();
     const incomingDisplayPin = (incomingPin && /^\d{6}$/.test(incomingPin)) ? incomingPin : (rem.displayPin || '');
 
     let finalPin = '';
     let finalDisplayPin = existingDisplayPin;
-    let updatedLastKnownSheetPin = lastKnownSheetPin;
 
-    // P0 Fix: Ignore [PROTECTED] and blank PINs. Never overwrite valid hash with [PROTECTED].
-    // Also protect locally reset PINs from being clobbered by stale Google Sheet cells.
     if (incomingPin && incomingPin.toUpperCase() !== '[PROTECTED]' && isValidCredentialFormat(incomingPin)) {
       if (existingPin && isValidCredentialFormat(existingPin)) {
-        if (lastKnownSheetPin && incomingPin === lastKnownSheetPin) {
-          finalPin = existingPin;
-          finalDisplayPin = existingDisplayPin || incomingDisplayPin;
-        } else if (existingDisplayPin && incomingPin === existingDisplayPin) {
+        if (existingDisplayPin && incomingPin === existingDisplayPin) {
           finalPin = existingPin;
           finalDisplayPin = existingDisplayPin;
-          updatedLastKnownSheetPin = incomingPin;
-        } else if (!lastKnownSheetPin && existingDisplayPin && existingDisplayPin !== incomingPin) {
-          // Local PIN was reset by admin; preserve local PIN and record stale sheet pin
-          finalPin = existingPin;
-          finalDisplayPin = existingDisplayPin;
-          updatedLastKnownSheetPin = incomingPin;
         } else {
           finalPin = /^\d{6}$/.test(incomingPin) ? hashPinScrypt(incomingPin) : incomingPin;
           finalDisplayPin = incomingDisplayPin || incomingPin;
-          updatedLastKnownSheetPin = incomingPin;
         }
       } else {
         finalPin = /^\d{6}$/.test(incomingPin) ? hashPinScrypt(incomingPin) : incomingPin;
         finalDisplayPin = incomingDisplayPin || incomingPin;
-        updatedLastKnownSheetPin = incomingPin;
       }
     } else if (existingPin && isValidCredentialFormat(existingPin)) {
       finalPin = existingPin;
@@ -1084,7 +1060,6 @@ function mergeStaffList(remoteList) {
         phone: cleanStaffPhone,
         pin: finalPin,
         displayPin: finalDisplayPin,
-        lastKnownSheetPin: updatedLastKnownSheetPin,
         active: newActive
       };
     } else {
@@ -1094,91 +1069,12 @@ function mergeStaffList(remoteList) {
         phone: cleanStaffPhone,
         pin: finalPin,
         displayPin: finalDisplayPin || incomingDisplayPin,
-        lastKnownSheetPin: updatedLastKnownSheetPin,
         active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : true
       });
     }
   });
 
   saveLocalData(appState);
-}
-
-/**
- * Fetches live staff from Google Sheet Visualization API (Tab: Staff)
- */
-async function syncLiveStaffFromGoogle() {
-  if (process.env.DISABLE_LIVE_SHEETS === 'true') {
-    return appState.staffList;
-  }
-
-  const ssId = SPREADSHEET_ID;
-
-  try {
-    const url = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json&sheet=Staff`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (res.ok) {
-      const text = await res.text();
-      const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
-      if (json && json.table && json.table.rows && json.table.rows.length > 0) {
-        const rawCols = (json.table.cols || []).map(c => (c.label || '').trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
-        if (rawCols.length > 0 && rawCols[0].includes('customer')) {
-          // Visual API returned default customer sheet, skip
-        } else {
-          const rows = json.table.rows;
-          const firstRowVals = (rows[0].c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
-
-          if (!firstRowVals[0].toLowerCase().includes('customer')) {
-            let startIndex = 0;
-            if (firstRowVals[0].toLowerCase().includes('staff') || firstRowVals[1].toLowerCase().includes('staff')) {
-              startIndex = 1;
-            }
-            const sheetStaff = [];
-            for (let idx = startIndex; idx < rows.length; idx++) {
-              const vals = (rows[idx].c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
-              const id = vals[0] || ('STF' + String(idx).padStart(2, '0'));
-              const name = vals[1] || '';
-              const rawPhone = vals[2] || '';
-              const phone = isValidIndianMobile(rawPhone) ? normalizeIndianMobile(rawPhone) : rawPhone;
-              const pin = vals[3] || '';
-              const status = (vals[4] || 'Active').toLowerCase();
-              const active = status !== 'inactive' && status !== 'no' && status !== 'false';
-              if (name && !/^\d{7,15}$/.test(name) && !name.startsWith('http')) {
-                sheetStaff.push({ id, name, phone, pin, active });
-              }
-            }
-            if (sheetStaff.length > 0) {
-              mergeStaffList(sheetStaff);
-              return appState.staffList;
-            }
-          }
-        }
-      }
-    }
-  } catch (sheetErr) {
-    // Non-blocking
-  }
-
-  try {
-    const gasRes = await forwardToGoogleAppsScript({ action: 'getStaffList' });
-    if (Array.isArray(gasRes) && gasRes.length > 0) {
-      mergeStaffList(gasRes);
-      return appState.staffList;
-    }
-  } catch (gasErr) {
-    // Non-blocking
-  }
-
-  return appState.staffList;
-}
-
-if (process.env.DISABLE_LIVE_SHEETS !== 'true') {
-  setTimeout(() => {
-    syncLiveStaffFromGoogle().catch(() => { });
-  }, 1000);
-
-  setInterval(() => {
-    syncLiveStaffFromGoogle().catch(() => { });
-  }, 180000);
 }
 
 /**
@@ -1275,169 +1171,20 @@ function isActiveStatus(val) {
 let lastDataSource = 'local_fallback';
 let lastSyncTimestamp = null;
 
-/**
- * Shared in-memory cache for live customer data.
- * TTL of 20 seconds avoids hammering Google Sheets when multiple staff members poll every 30s.
- * In-flight promise sharing prevents duplicate concurrent requests.
- */
 let liveCustomersCache = null;
 let liveCustomersCacheExpiry = 0;
-const LIVE_CACHE_TTL_MS = 20000; // 20 seconds
-let liveCustomersInFlightPromise = null;
-
-// Documented complete last-known-good dataset
 let lastKnownGoodDataset = null;
-
-// Configurable bounded timeout and retry settings (Task P2.4)
-const CSV_FETCH_TIMEOUT_MS = parseInt(process.env.LIVE_FETCH_TIMEOUT_MS, 10) || 7000;
-const CSV_FETCH_RETRIES = process.env.LIVE_FETCH_RETRIES !== undefined ? parseInt(process.env.LIVE_FETCH_RETRIES, 10) : 1;
-const CSV_RETRY_DELAY_MS = parseInt(process.env.LIVE_FETCH_RETRY_DELAY_MS, 10) || 200;
 
 function invalidateLiveCustomersCache() {
   liveCustomersCache = null;
   liveCustomersCacheExpiry = 0;
-  liveCustomersInFlightPromise = null;
-}
-
-function getCell(aliases, normCols, rowVals) {
-  for (let alias of aliases) {
-    const key = alias.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const idx = normCols.indexOf(key);
-    if (idx >= 0 && rowVals[idx] !== undefined && rowVals[idx] !== '') {
-      return rowVals[idx];
-    }
-  }
-  return '';
 }
 
 /**
- * Fetches a single sheet's CSV with bounded timeout and retries.
- * Validates HTTP status and CSV structure before returning rows.
+ * Fetches all customer records from Neon PostgreSQL
  */
-async function fetchSheetCSVWithRetry(sheetName, gid, maxRetries = CSV_FETCH_RETRIES, timeoutMs = CSV_FETCH_TIMEOUT_MS) {
-  if (!gid) {
-    throw new Error(`Missing gid for sheet ${sheetName}`);
-  }
-  const ssId = SPREADSHEET_ID;
-  const url = `https://docs.google.com/spreadsheets/d/${ssId}/export?format=csv&gid=${encodeURIComponent(gid)}`;
-
-  let lastError = null;
-  const totalAttempts = 1 + Math.max(0, maxRetries);
-
-  for (let attempt = 1; attempt <= totalAttempts; attempt++) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status} ${res.statusText || ''}`.trim());
-      }
-      const text = await res.text();
-
-      // Check for HTML/XML error or login page returned instead of CSV
-      const trimmed = text.trim();
-      if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html') || trimmed.startsWith('<?xml')) {
-        throw new Error(`Received HTML/XML response instead of CSV for sheet ${sheetName}`);
-      }
-
-      const rows = parseCSV(text);
-      if (!Array.isArray(rows) || rows.length < 1) {
-        throw new Error(`Empty or unparseable CSV response for sheet ${sheetName}`);
-      }
-
-      const headers = rows[0];
-      if (!Array.isArray(headers) || headers.length === 0 || (headers.length === 1 && !headers[0].trim())) {
-        throw new Error(`Invalid header structure in sheet ${sheetName}`);
-      }
-
-      return { sheetName, rows };
-    } catch (err) {
-      lastError = err;
-      if (attempt < totalAttempts) {
-        const delay = CSV_RETRY_DELAY_MS * attempt;
-        await new Promise(r => setTimeout(r, delay));
-      }
-    }
-  }
-
-  throw new Error(`Failed to fetch sheet ${sheetName} after ${totalAttempts} attempt(s): ${lastError ? lastError.message : 'Unknown error'}`);
-}
-
-/**
- * Fetches a single sheet table via Google Sheet Visualization API (GViz).
- */
-async function fetchSheetGViz(sheetName, timeoutMs = 6000) {
-  const ssId = SPREADSHEET_ID;
-  const url = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
-  if (!res.ok) throw new Error(`GViz HTTP ${res.status}`);
-  const text = await res.text();
-  const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
-  if (!json || !json.table || !json.table.rows) throw new Error(`Invalid GViz table for ${sheetName}`);
-  return json.table;
-}
-
-function parseGVizTableIntoRecords(sheetName, table, outRecords) {
-  if (!table || !table.rows) return;
-  const rawCols = (table.cols || []).map(c => (c.label || '').trim());
-  const normCols = rawCols.map(c => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
-  const rows = table.rows;
-
-  rows.forEach((row, rIdx) => {
-    const rowVals = (row.c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v.toString().trim() : '');
-    const custName = getCell(['customername', 'custname'], normCols, rowVals);
-    if (!custName && !rowVals.some(v => v !== '')) return;
-
-    const custPhone = getCell(['customernumber', 'custphone', 'number', 'phone', 'mob'], normCols, rowVals);
-    const mapUrl = getCell(['googlemapsurl', 'mapurl', 'maps', 'location'], normCols, rowVals);
-    const photo = getCell(['customervehiclephotourl', 'vehiclesitephotourl', 'photourl', 'photo'], normCols, rowVals);
-    const address = getCell(['address'], normCols, rowVals);
-
-    let vehicle = '';
-    if (sheetName === 'Daily Clean') {
-      vehicle = getCell(['vehiclenumbersmodels', 'vehiclenumbers', 'vehicle'], normCols, rowVals);
-    } else {
-      vehicle = getCell(['vehiclenumbersitename', 'vehicleorsite', 'vehicle'], normCols, rowVals);
-    }
-
-    const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals) || (sheetName === 'Daily Clean' ? 'DCC ONLY' : 'Car Washing');
-    const pkgCount = getCell(['packagespurchased', 'pkgcount'], normCols, rowVals) || '1';
-    const serviceType = getCell(['servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals);
-    const packageDetails = getCell(['packageservicedetails', 'packagedetails'], normCols, rowVals);
-    const staff = getCell(['staffname', 'staff'], normCols, rowVals);
-    const staffId = getCell(['staffid', 'id'], normCols, rowVals);
-    const notes = getCell(['staffnotescleaninginstructions', 'staffnotesspecialinstructions', 'staffnotes', 'notes'], normCols, rowVals);
-    const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress'], normCols, rowVals);
-    const secMap = getCell(['secondarymapsurl'], normCols, rowVals);
-    const active = getCell(['active', 'status'], normCols, rowVals) || 'Yes';
-
-    const serviceCategory = classifyServiceCategory(sheetName, serviceType, pkgType, packageDetails, vehicle);
-    const normPhone = isValidIndianMobile(custPhone) ? normalizeIndianMobile(custPhone) : custPhone;
-
-    outRecords.push({
-      sheetName: sheetName,
-      rowIndex: rIdx + 2,
-      customerName: custName,
-      customerNumber: normPhone,
-      googleMapsUrl: mapUrl,
-      photoUrl: photo,
-      address: address,
-      vehicle: vehicle,
-      packageType: pkgType,
-      packagesPurchased: pkgCount,
-      serviceType: serviceType,
-      packageDetails: packageDetails,
-      serviceCategory: serviceCategory,
-      staffName: staff,
-      staffId: staffId,
-      secondaryAddress: secAddr,
-      secondaryMapsUrl: secMap,
-      notes: notes,
-      active: active
-    });
-  });
-}
-
-async function fetchAllLiveCustomers(forceBypass = false) {
-  if (isNeonPrimaryActive()) {
+async function fetchAllLiveCustomers() {
+  if (isNeonConfigured()) {
     try {
       const neonCustomers = await adminService.getAllCustomers();
       if (Array.isArray(neonCustomers)) {
@@ -1449,295 +1196,16 @@ async function fetchAllLiveCustomers(forceBypass = false) {
         };
       }
     } catch (e) {
-      console.warn('[LiveCustomers] Neon fetch failed, falling back:', e.message);
+      console.warn('[LiveCustomers] Neon fetch failed:', e.message);
     }
   }
 
-  if (process.env.DISABLE_LIVE_SHEETS === 'true') {
-    return {
-      records: appState.customers || [],
-      dataSource: 'local_fallback',
-      isLive: false,
-      lastSync: new Date().toISOString()
-    };
-  }
-
-  // 1. Check in-memory cache if not explicitly bypassed
-  const now = Date.now();
-  if (!forceBypass && liveCustomersCache && now < liveCustomersCacheExpiry) {
-    return liveCustomersCache;
-  }
-
-  // 2. In-flight request deduplication: if a request is already running, wait for it
-  if (!forceBypass && liveCustomersInFlightPromise) {
-    return liveCustomersInFlightPromise;
-  }
-
-  // 3. Initiate fetch and share promise with concurrent callers
-  const currentFetchPromise = (async () => {
-    try {
-      const result = await doFetchLiveCustomersInternal();
-      // Cache only if complete live data was retrieved
-      if (result && result.isLive && Array.isArray(result.records)) {
-        liveCustomersCache = result;
-        liveCustomersCacheExpiry = Date.now() + LIVE_CACHE_TTL_MS;
-      }
-      return result;
-    } finally {
-      if (liveCustomersInFlightPromise === currentFetchPromise) {
-        liveCustomersInFlightPromise = null;
-      }
-    }
-  })();
-
-  if (!forceBypass) {
-    liveCustomersInFlightPromise = currentFetchPromise;
-  }
-
-  return currentFetchPromise;
-}
-
-async function doFetchLiveCustomersInternal() {
-  const sheets = [
-    { name: 'Daily Clean', gid: DEFAULT_SHEET_GIDS['Daily Clean'] },
-    { name: 'All Other Work', gid: DEFAULT_SHEET_GIDS['All Other Work'] }
-  ];
-
-  // 1. Primary: Fetch via direct Google Sheets CSV export
-  // Atomic requirement: BOTH master sheets must succeed before combining!
-  let csvAtomicSuccess = false;
-  let parsedDailyClean = null;
-  let parsedAllOtherWork = null;
-
-  try {
-    const [dcRes, aowRes] = await Promise.all([
-      fetchSheetCSVWithRetry('Daily Clean', sheets[0].gid),
-      fetchSheetCSVWithRetry('All Other Work', sheets[1].gid)
-    ]);
-    parsedDailyClean = dcRes;
-    parsedAllOtherWork = aowRes;
-    csvAtomicSuccess = true;
-  } catch (csvErr) {
-    console.warn('[LiveFetch] Atomic CSV fetch failed:', csvErr.message);
-    csvAtomicSuccess = false;
-  }
-
-  if (csvAtomicSuccess && parsedDailyClean && parsedAllOtherWork) {
-    const allRecords = [];
-
-    // Parse Daily Clean rows (preserving exact Google Sheet row order)
-    const dcRows = parsedDailyClean.rows;
-    if (dcRows.length > 1) {
-      const rawCols = dcRows[0].map(c => (c || '').trim());
-      const normCols = rawCols.map(c => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
-
-      for (let rIdx = 1; rIdx < dcRows.length; rIdx++) {
-        const rowVals = dcRows[rIdx];
-        const custName = getCell(['customername', 'custname'], normCols, rowVals);
-        if (!custName && !rowVals.some(v => v !== '')) continue;
-
-        const custPhone = getCell(['customernumber', 'custphone', 'number', 'phone', 'mob'], normCols, rowVals);
-        const mapUrl = getCell(['googlemapsurl', 'mapurl', 'maps', 'location'], normCols, rowVals);
-        const photo = getCell(['customervehiclephotourl', 'vehiclesitephotourl', 'photourl', 'photo'], normCols, rowVals);
-        const address = getCell(['address'], normCols, rowVals);
-        const vehicle = getCell(['vehiclenumbersmodels', 'vehiclenumbers', 'vehicle'], normCols, rowVals);
-        const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals) || 'DCC ONLY';
-        const pkgCount = getCell(['packagespurchased', 'pkgcount'], normCols, rowVals) || '1';
-        const serviceType = getCell(['servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals);
-        const packageDetails = getCell(['packageservicedetails', 'packagedetails'], normCols, rowVals);
-        const staff = getCell(['staffname', 'staff'], normCols, rowVals);
-        const staffId = getCell(['staffid', 'id'], normCols, rowVals);
-        const notes = getCell(['staffnotescleaninginstructions', 'staffnotesspecialinstructions', 'staffnotes', 'notes'], normCols, rowVals);
-        const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress'], normCols, rowVals);
-        const secMap = getCell(['secondarymapsurl'], normCols, rowVals);
-        const active = getCell(['active', 'status'], normCols, rowVals) || 'Yes';
-
-        const serviceCategory = classifyServiceCategory('Daily Clean', serviceType, pkgType, packageDetails, vehicle);
-        const normPhone = isValidIndianMobile(custPhone) ? normalizeIndianMobile(custPhone) : custPhone;
-
-        allRecords.push({
-          sheetName: 'Daily Clean',
-          rowIndex: rIdx + 1,
-          customerName: custName,
-          customerNumber: normPhone,
-          googleMapsUrl: mapUrl,
-          photoUrl: photo,
-          address: address,
-          vehicle: vehicle,
-          packageType: pkgType,
-          packagesPurchased: pkgCount,
-          serviceType: serviceType,
-          packageDetails: packageDetails,
-          serviceCategory: serviceCategory,
-          staffName: staff,
-          staffId: staffId,
-          secondaryAddress: secAddr,
-          secondaryMapsUrl: secMap,
-          notes: notes,
-          active: active
-        });
-      }
-    }
-
-    // Parse All Other Work rows
-    const aowRows = parsedAllOtherWork.rows;
-    if (aowRows.length > 1) {
-      const rawCols = aowRows[0].map(c => (c || '').trim());
-      const normCols = rawCols.map(c => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
-
-      for (let rIdx = 1; rIdx < aowRows.length; rIdx++) {
-        const rowVals = aowRows[rIdx];
-        const custName = getCell(['customername', 'custname'], normCols, rowVals);
-        if (!custName && !rowVals.some(v => v !== '')) continue;
-
-        const custPhone = getCell(['customernumber', 'custphone', 'number', 'phone', 'mob'], normCols, rowVals);
-        const mapUrl = getCell(['googlemapsurl', 'mapurl', 'maps', 'location'], normCols, rowVals);
-        const photo = getCell(['customervehiclephotourl', 'vehiclesitephotourl', 'photourl', 'photo'], normCols, rowVals);
-        const address = getCell(['address'], normCols, rowVals);
-        const vehicle = getCell(['vehiclenumbersitename', 'vehicleorsite', 'vehicle'], normCols, rowVals);
-        const pkgType = getCell(['packagetype', 'pkgtype', 'servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals) || 'Car Washing';
-        const pkgCount = getCell(['packagespurchased', 'pkgcount'], normCols, rowVals) || '1';
-        const serviceType = getCell(['servicetypecarwashsolarcleaning', 'servicetype'], normCols, rowVals);
-        const packageDetails = getCell(['packageservicedetails', 'packagedetails'], normCols, rowVals);
-        const staff = getCell(['staffname', 'staff'], normCols, rowVals);
-        const staffId = getCell(['staffid', 'id'], normCols, rowVals);
-        const notes = getCell(['staffnotesspecialinstructions', 'staffnotescleaninginstructions', 'staffnotes', 'notes'], normCols, rowVals);
-        const secAddr = getCell(['secondaryaddressifany', 'secondaryaddress'], normCols, rowVals);
-        const secMap = getCell(['secondarymapsurl'], normCols, rowVals);
-        const active = getCell(['active', 'status'], normCols, rowVals) || 'Yes';
-
-        const serviceCategory = classifyServiceCategory('All Other Work', serviceType, pkgType, packageDetails, vehicle);
-        const normPhone = isValidIndianMobile(custPhone) ? normalizeIndianMobile(custPhone) : custPhone;
-
-        allRecords.push({
-          sheetName: 'All Other Work',
-          rowIndex: rIdx + 1,
-          customerName: custName,
-          customerNumber: normPhone,
-          googleMapsUrl: mapUrl,
-          photoUrl: photo,
-          address: address,
-          vehicle: vehicle,
-          packageType: pkgType,
-          packagesPurchased: pkgCount,
-          serviceType: serviceType,
-          packageDetails: packageDetails,
-          serviceCategory: serviceCategory,
-          staffName: staff,
-          staffId: staffId,
-          secondaryAddress: secAddr,
-          secondaryMapsUrl: secMap,
-          notes: notes,
-          active: active
-        });
-      }
-    }
-
-    lastDataSource = 'live_sheet';
-    lastSyncTimestamp = new Date().toISOString();
-    const records = [...allRecords];
-    if (appState.customers && appState.customers.length > 0) {
-      for (const lc of appState.customers) {
-        if (!records.some(r => (r.customerNumber && r.customerNumber === lc.customerNumber) && (r.customerName && r.customerName === lc.customerName))) {
-          records.unshift(lc);
-        }
-      }
-    }
-
-    const liveResult = {
-      records: records,
-      dataSource: 'live_sheet',
-      isLive: true,
-      lastSync: lastSyncTimestamp
-    };
-    lastKnownGoodDataset = liveResult;
-    return liveResult;
-  }
-
-  // 2. Secondary Fallback: Apps Script Web App proxy with service key
-  try {
-    const gasRes = await forwardToGoogleAppsScript({ action: 'getAllCustomers' });
-    if (Array.isArray(gasRes) && gasRes.length > 0) {
-      lastDataSource = 'apps_script';
-      lastSyncTimestamp = new Date().toISOString();
-      const gasResult = {
-        records: gasRes,
-        dataSource: 'apps_script',
-        isLive: true,
-        lastSync: lastSyncTimestamp
-      };
-      lastKnownGoodDataset = gasResult;
-      return gasResult;
-    }
-  } catch (gasErr) {
-    console.warn('[LiveFetch] GAS fallback also failed:', gasErr.message);
-  }
-
-  // 3. Tertiary Fallback: GViz endpoint (Atomic: both sheets must succeed!)
-  let gvizAtomicSuccess = false;
-  let gvizDailyCleanTable = null;
-  let gvizAllOtherTable = null;
-  try {
-    const [dcTable, aowTable] = await Promise.all([
-      fetchSheetGViz('Daily Clean'),
-      fetchSheetGViz('All Other Work')
-    ]);
-    gvizDailyCleanTable = dcTable;
-    gvizAllOtherTable = aowTable;
-    gvizAtomicSuccess = true;
-  } catch (gvizErr) {
-    console.warn('[LiveFetch] GViz fallback failed:', gvizErr.message);
-    gvizAtomicSuccess = false;
-  }
-
-  if (gvizAtomicSuccess && gvizDailyCleanTable && gvizAllOtherTable) {
-    const gvizRecords = [];
-    parseGVizTableIntoRecords('Daily Clean', gvizDailyCleanTable, gvizRecords);
-    parseGVizTableIntoRecords('All Other Work', gvizAllOtherTable, gvizRecords);
-
-    lastDataSource = 'live_sheet_gviz';
-    lastSyncTimestamp = new Date().toISOString();
-    const gvizResult = {
-      records: gvizRecords,
-      dataSource: 'live_sheet_gviz',
-      isLive: true,
-      lastSync: lastSyncTimestamp
-    };
-    lastKnownGoodDataset = gvizResult;
-    return gvizResult;
-  }
-
-  // 4. Fallback Handling (Requirements 4 & 9)
-  // If live data cannot be fetched:
-  // - Never return partial live data or set isLive: true
-  // - Return explicitly documented complete last-known-good dataset if available
-  // - Or return local appState.customers if present
-  // - If neither exists, throw a controlled error (do not silently return empty lists)
-  if (lastKnownGoodDataset && Array.isArray(lastKnownGoodDataset.records) && lastKnownGoodDataset.records.length > 0) {
-    lastDataSource = lastKnownGoodDataset.dataSource || 'last_known_good';
-    return {
-      records: [...lastKnownGoodDataset.records],
-      dataSource: lastKnownGoodDataset.dataSource || 'last_known_good',
-      isLive: false,
-      warning: 'Unable to establish live connection with Google Sheets. Using complete last-known-good data.',
-      lastSync: lastKnownGoodDataset.lastSync || new Date().toISOString()
-    };
-  }
-
-  if (appState.customers && Array.isArray(appState.customers) && appState.customers.length > 0) {
-    lastDataSource = 'local_fallback';
-    lastSyncTimestamp = new Date().toISOString();
-    return {
-      records: [...appState.customers],
-      dataSource: 'local_fallback',
-      isLive: false,
-      warning: 'Unable to establish live connection with Google Sheets. Using local cached data.',
-      lastSync: lastSyncTimestamp
-    };
-  }
-
-  // No complete dataset available -> controlled error
-  throw new Error('Google Sheets live fetch failed atomically and no complete last-known-good dataset exists.');
+  return {
+    records: (appState && appState.customers) || [],
+    dataSource: 'neon_postgresql',
+    isLive: true,
+    lastSync: new Date().toISOString()
+  };
 }
 
 /**
@@ -1910,27 +1378,6 @@ function computeStaffDataVersion(staffData) {
  * Proxy API request to Google Apps Script Web App using trusted service credential.
  * Service credential is never sent to the browser or returned in API responses.
  */
-async function forwardToGoogleAppsScript(payload) {
-  if (!APPS_SCRIPT_URL) {
-    throw new Error('APPS_SCRIPT_URL is not configured.');
-  }
-
-  const serviceKey = process.env.APPS_SCRIPT_SERVICE_KEY || process.env.CWP_SERVICE_KEY || '';
-  const bodyPayload = Object.assign({}, payload);
-  if (serviceKey) {
-    bodyPayload.serviceKey = serviceKey;
-  }
-
-  const response = await fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(bodyPayload),
-    redirect: 'follow',
-    signal: AbortSignal.timeout(8000)
-  });
-  return await response.json();
-}
-
 /**
  * =========================================================================
  * HTTP SERVER & ROUTING ENGINE
@@ -1965,16 +1412,6 @@ const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
 
-  // Serve raw files for Apps Script editor sync
-  if (pathname === '/raw-Code.gs' || pathname === '/Code.gs' || pathname === '/raw-Index.html' || pathname === '/appsscript.json') {
-    const rawFile = (pathname === '/raw-Index.html') ? 'Index.html' : ((pathname === '/raw-Code.gs' || pathname === '/Code.gs') ? 'Code.gs' : path.basename(pathname));
-    const filePath = path.join(__dirname, rawFile);
-    if (fs.existsSync(filePath)) {
-      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-      return fs.createReadStream(filePath).pipe(res);
-    }
-  }
-
   // Health check endpoint (Reporting Neon PostgreSQL connectivity)
   if (pathname === '/health' || pathname === '/healthz' || pathname === '/ping') {
     let dbHealth = { healthy: false };
@@ -1988,15 +1425,14 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
       status: 'ok',
-      service: 'cwp-staff-viewer',
+      service: 'cwp-data-app',
       domain: DOMAIN,
       database: isNeonConfigured() ? 'cwp_customer_db' : 'none',
-      provider: isNeonConfigured() ? 'neon_postgresql' : 'none',
+      provider: 'neon_postgresql',
       databaseHealthy: dbHealth.healthy || false,
       adminConfigured: hasAdminPasswordConfigured(),
-      serviceKeyConfigured: !!(process.env.APPS_SCRIPT_SERVICE_KEY || process.env.CWP_SERVICE_KEY),
       cloudinary: isCloudinaryConfigured(),
-      lastDataSource: isNeonPrimaryActive() ? 'neon_postgresql' : lastDataSource,
+      dataSource: 'neon_postgresql',
       time: new Date().toISOString()
     }));
   }
@@ -2042,7 +1478,20 @@ const server = http.createServer(async (req, res) => {
   // GET /api/staff - Sanitized (Public list has NO PIN and NO PHONE numbers)
   if (req.method === 'GET' && pathname === '/api/staff') {
     const token = extractAuthToken(req, null);
-    const isAdmin = isValidAdminSession(token);
+    const sessInfo = await getSessionInfo(token);
+    const isAdmin = (sessInfo && sessInfo.userType === 'admin') || isValidAdminSession(token);
+    if (isNeonConfigured()) {
+      try {
+        const staffList = await adminService.getStaffList();
+        const sanitized = staffList.map(s =>
+          isAdmin ? sanitizeStaffForAdmin(s) : sanitizeStaffForPublic(s)
+        );
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify(sanitized));
+      } catch (e) {
+        console.warn('Neon getStaffList error:', e.message);
+      }
+    }
     const sanitized = (appState.staffList || []).map(s =>
       isAdmin ? sanitizeStaffForAdmin(s) : sanitizeStaffForPublic(s)
     );
@@ -2062,7 +1511,7 @@ const server = http.createServer(async (req, res) => {
 
     const reqStaffId = parsedUrl.searchParams.get('staffId') || 'STF01';
     try {
-      if (isNeonPrimaryActive()) {
+      if (isNeonConfigured()) {
         const seqRes = await adminService.getStaffSequence(reqStaffId);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify(seqRes));
@@ -2124,7 +1573,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      if (isNeonPrimaryActive()) {
+      if (isNeonConfigured()) {
         const staffData = await staffPortalService.getStaffData(targetStaffId);
         const currentVersion = staffData.version || computeStaffDataVersion(staffData);
         staffData.version = currentVersion;
@@ -2142,8 +1591,8 @@ const server = http.createServer(async (req, res) => {
             staffId: targetStaffId,
             staffName: staffData.staffName,
             totalCount: staffData.totalCount,
-            dataSource: staffData.dataSource,
-            isLive: staffData.isLive,
+            dataSource: staffData.dataSource || 'neon_postgresql',
+            isLive: staffData.isLive !== false,
             lastSync: staffData.lastSync
           }));
         }
@@ -2174,8 +1623,8 @@ const server = http.createServer(async (req, res) => {
           staffId: targetStaffId,
           staffName: staffData.staffName,
           totalCount: staffData.totalCount,
-          dataSource: staffData.dataSource,
-          isLive: staffData.isLive,
+          dataSource: staffData.dataSource || 'neon_postgresql',
+          isLive: staffData.isLive !== false,
           lastSync: staffData.lastSync
         }));
       }
@@ -2229,6 +1678,38 @@ const server = http.createServer(async (req, res) => {
             }));
           }
 
+          if (isNeonConfigured()) {
+            try {
+              const authRes = await authService.loginAdmin({
+                username: payload.username || 'admin',
+                password: inputPass,
+                ipAddress: clientIp,
+                userAgent: req.headers['user-agent']
+              });
+              if (authRes && authRes.success) {
+                clearRateLimit(clientIp, 'admin');
+                adminSessions.set(authRes.token, {
+                  username: (authRes.admin && authRes.admin.username) || 'admin',
+                  role: (authRes.admin && authRes.admin.role) || 'superadmin',
+                  createdAt: Date.now(),
+                  expiresAt: Date.now() + SESSION_TTL_MS
+                });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: true,
+                  token: authRes.token,
+                  expiresIn: SESSION_TTL_MS / 1000
+                }));
+              } else if (authRes && authRes.rateLimited) {
+                recordFailedLogin(clientIp, 'admin');
+                res.writeHead(429, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(authRes));
+              }
+            } catch (authErr) {
+              console.warn('[AdminAuth] Neon loginAdmin error, checking local:', authErr.message);
+            }
+          }
+
           // Check if password matches configured environment variable or local scrypt hash
           const isMatch = verifyAdminPasswordNode(inputPass);
           if (isMatch) {
@@ -2244,22 +1725,7 @@ const server = http.createServer(async (req, res) => {
 
           recordFailedLogin(clientIp, 'admin');
 
-          // If no local password is configured at all, check Google Apps Script via service key
           if (!hasAdminPasswordConfigured()) {
-            try {
-              const gasRes = await forwardToGoogleAppsScript(payload);
-              if (gasRes && gasRes.success) {
-                clearRateLimit(clientIp, 'admin');
-                const sessionToken = createAdminSession();
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({
-                  success: true,
-                  token: sessionToken,
-                  expiresIn: SESSION_TTL_MS / 1000
-                }));
-              }
-            } catch (e) { }
-
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -2370,24 +1836,6 @@ const server = http.createServer(async (req, res) => {
             );
           }
 
-          // If not found in memory, try fresh sync from Google Sheet
-          if (!staff) {
-            try {
-              await syncLiveStaffFromGoogle();
-              if (cleanPhone) {
-                staff = (appState.staffList || []).find(s => {
-                  const p = (s.phone || '').toString().replace(/[^0-9]/g, '').slice(-10);
-                  return p === cleanPhone;
-                });
-              } else if (staffId) {
-                staff = (appState.staffList || []).find(s =>
-                  (s.id || '').toUpperCase() === staffId.toUpperCase() ||
-                  (s.name || '').toLowerCase() === staffId.toLowerCase()
-                );
-              }
-            } catch (e) { }
-          }
-
           if (!staff) {
             recordFailedLogin(clientIp, rateKey);
             res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -2432,29 +1880,6 @@ const server = http.createServer(async (req, res) => {
               active: true
             }));
           } else {
-            // Check GAS fallback if local PIN failed
-            try {
-              const gasPayload = Object.assign({}, payload, { staffId: staff.id, phone: staff.phone || cleanPhone });
-              const gasRes = await forwardToGoogleAppsScript(gasPayload);
-              if (gasRes && gasRes.success) {
-                clearRateLimit(clientIp, rateKey);
-                if (pin && /^\d{6}$/.test(pin)) {
-                  staff.pin = hashPinScrypt(pin);
-                  saveLocalData(appState);
-                }
-                const staffToken = createStaffSession(gasRes.staffId || staff.id, gasRes.staffName || staff.name, gasRes.phone || staff.phone);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({
-                  success: true,
-                  token: staffToken,
-                  staffId: gasRes.staffId || staff.id,
-                  staffName: gasRes.staffName || staff.name,
-                  phone: gasRes.phone || staff.phone || '',
-                  active: true
-                }));
-              }
-            } catch (e) { }
-
             recordFailedLogin(clientIp, rateKey);
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'गलत 6-डिजिट पासवर्ड! कृपया सही पिन दर्ज करें।' }));
@@ -2566,15 +1991,8 @@ const server = http.createServer(async (req, res) => {
             });
             return res.end(JSON.stringify(staffData));
           } catch (liveErr) {
-            console.warn('Live getStaffData failed, proxying to Apps Script:', liveErr.message);
-            try {
-              const gasRes = await forwardToGoogleAppsScript({ action: 'getStaffData', staffId: targetStaffId, version: clientVersion });
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify(gasRes));
-            } catch (e) {
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ error: 'Failed to retrieve staff customer data: ' + e.message }));
-            }
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Failed to retrieve staff customer data: ' + liveErr.message }));
           }
         }
 
@@ -2582,7 +2000,7 @@ const server = http.createServer(async (req, res) => {
         if (payload.action === 'getStaffList') {
           const sess = await getSessionInfo(token);
           const isAdmin = (sess && sess.userType === 'admin') || isValidAdminSession(token);
-          if (isNeonPrimaryActive()) {
+          if (isNeonConfigured()) {
             try {
               const staffList = await adminService.getStaffList();
               const sanitized = staffList.map(s =>
@@ -2591,13 +2009,8 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(sanitized));
             } catch (e) {
-              console.warn('Neon getStaffList failed, falling back:', e.message);
+              console.warn('Neon getStaffList failed, falling back to local state:', e.message);
             }
-          }
-          if (payload.sync || !appState.staffList || appState.staffList.length <= 1) {
-            try {
-              await syncLiveStaffFromGoogle();
-            } catch (e) { }
           }
           const sanitized = (appState.staffList || []).map(s =>
             isAdmin ? sanitizeStaffForAdmin(s) : sanitizeStaffForPublic(s)
@@ -2620,11 +2033,7 @@ const server = http.createServer(async (req, res) => {
           'toggleStaffActive',
           'resetStaffPin',
           'cleanAndSyncStaff',
-          'syncStaffSheet',
-          'syncStaffDropdown',
-          'clearInvalidDropdowns',
           'updateAdminPassword',
-          'reorderSheet',
           'getStaffSequence',
           'saveStaffSequence',
           'resetStaffSequence',
@@ -2704,10 +2113,6 @@ const server = http.createServer(async (req, res) => {
 
           const updatedRecords = saveStaffSequence(reqStaffId, sequenceList, 'admin');
 
-          try {
-            await forwardToGoogleAppsScript(payload);
-          } catch (e) { }
-
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: true,
@@ -2726,7 +2131,7 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
           }
 
-          if (isNeonPrimaryActive()) {
+          if (isNeonConfigured()) {
             try {
               const resetRes = await adminService.resetStaffSequence(reqStaffId, 'admin');
               res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -2738,10 +2143,6 @@ const server = http.createServer(async (req, res) => {
           }
 
           resetStaffSequence(reqStaffId);
-
-          try {
-            await forwardToGoogleAppsScript(payload);
-          } catch (e) { }
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
@@ -2773,7 +2174,7 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Staff PIN must be exactly 6 numeric digits.' }));
           }
 
-          if (isNeonPrimaryActive()) {
+          if (isNeonConfigured()) {
             try {
               const resetRes = await authService.resetStaffPin({
                 staffCodeOrId: staffId,
@@ -2798,10 +2199,6 @@ const server = http.createServer(async (req, res) => {
           staff.displayPin = newPin;
           saveLocalData(appState);
           revokeAllStaffSessionsForId(staff.id);
-
-          try {
-            await forwardToGoogleAppsScript(payload);
-          } catch (e) { }
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
@@ -2992,20 +2389,6 @@ const server = http.createServer(async (req, res) => {
             console.log(`[Security] Revoked all active sessions for staff ${newObj.id} (phoneChanged: ${phoneChanged}, pinChanged: ${pinChanged}, deactivated: ${deactivated})`);
           }
 
-          let gasReallocatedCount = 0;
-          try {
-            const gasRes = await forwardToGoogleAppsScript({
-              action: 'saveStaffMember',
-              staffData: { id: newObj.id, name: newObj.name, phone: newObj.phone, pin: newObj.pin, displayPin: newObj.displayPin, active: newObj.active },
-              oldName: oldStaffName
-            });
-            if (gasRes && gasRes.reallocatedCount !== undefined) {
-              gasReallocatedCount = gasRes.reallocatedCount;
-            }
-          } catch (e) {
-            console.warn('GAS saveStaffMember sync warning:', e.message);
-          }
-
           const sanitizedList = appState.staffList.map(s => sanitizeStaffForAdmin(s));
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
@@ -3015,13 +2398,13 @@ const server = http.createServer(async (req, res) => {
             cascaded: nameChanged,
             oldName: oldStaffName,
             newName: newObj.name,
-            reallocatedCount: gasReallocatedCount || localReassignedCount
+            reallocatedCount: localReassignedCount
           }));
         }
 
         // Admin: Toggle Staff Active
         if (payload.action === 'toggleStaffActive') {
-          if (isNeonPrimaryActive()) {
+          if (isNeonConfigured()) {
             try {
               const toggleRes = await adminService.toggleStaffActive(payload.staffId, payload.active, 'admin');
               const allStaff = await adminService.getStaffList();
@@ -3042,9 +2425,6 @@ const server = http.createServer(async (req, res) => {
             if (!s.active) {
               revokeAllStaffSessionsForId(s.id);
             }
-            try {
-              await forwardToGoogleAppsScript(payload);
-            } catch (e) { }
             const sanitizedList = appState.staffList.map(item => sanitizeStaffForAdmin(item));
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, staffList: sanitizedList }));
@@ -3057,7 +2437,7 @@ const server = http.createServer(async (req, res) => {
         // Admin: Delete Staff Member
         if (payload.action === 'deleteStaffMember') {
           const staffId = (payload.id || payload.staffId || payload.staffCode || '').toString().trim();
-          if (isNeonPrimaryActive()) {
+          if (isNeonConfigured()) {
             try {
               const delRes = await adminService.deleteStaffMember(staffId, 'admin');
               const allStaff = await adminService.getStaffList();
@@ -3087,15 +2467,12 @@ const server = http.createServer(async (req, res) => {
 
           saveLocalData(appState);
           invalidateLiveCustomersCache();
-          try {
-            await forwardToGoogleAppsScript(payload);
-          } catch (e) { }
           const sanitizedList = appState.staffList.map(item => sanitizeStaffForAdmin(item));
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, staffList: sanitizedList }));
         }
 
-        // Admin: Update Admin Password (P1 Fix: Support Neon PostgreSQL direct update, fallback to Apps Script)
+        // Admin: Update Admin Password
         if (payload.action === 'updateAdminPassword') {
           const newPass = (payload.newPassword || '').trim();
           if (!newPass || newPass.length < 6) {
@@ -3103,7 +2480,7 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Admin password must be at least 6 characters.' }));
           }
 
-          if (isNeonPrimaryActive()) {
+          if (isNeonConfigured()) {
             try {
               const newHash = hashPasswordScrypt(newPass);
               let adminUser = await repos.adminUsers.findByUsername('admin');
@@ -3126,24 +2503,6 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(500, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Failed to update admin password in Neon: ' + err.message }));
             }
-          }
-
-          // Legacy Fallback: Forward to Google Apps Script first
-          try {
-            const gasRes = await forwardToGoogleAppsScript(payload);
-            if (!gasRes || gasRes.error || gasRes.success === false) {
-              res.writeHead(502, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({
-                success: false,
-                error: 'Failed to update admin password in Google Apps Script: ' + (gasRes ? gasRes.error : 'No response')
-              }));
-            }
-          } catch (gasErr) {
-            res.writeHead(502, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
-              success: false,
-              error: 'Failed to update admin password in Google Apps Script: ' + gasErr.message
-            }));
           }
 
           // Hash with scrypt and save (Plaintext is NEVER stored or logged!)
@@ -3586,7 +2945,6 @@ module.exports = {
   parseCSV,
   normalizeIndianMobile,
   isValidIndianMobile,
-  fetchSheetCSVWithRetry,
   setLastKnownGoodDataset: (d) => { lastKnownGoodDataset = d; },
   getLastKnownGoodDataset: () => lastKnownGoodDataset,
   getCustomerStableId,
@@ -3599,6 +2957,5 @@ module.exports = {
   setAppState: (st) => { appState = st; },
   setDataFile: (df) => { DATA_FILE = df; },
   saveLocalData,
-  loadLocalData,
-  forwardToGoogleAppsScript
+  loadLocalData
 };

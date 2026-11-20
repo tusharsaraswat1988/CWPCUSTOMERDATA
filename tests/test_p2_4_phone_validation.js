@@ -278,11 +278,9 @@ async function runPhoneValidationSuite() {
   assert.ok(savedCust, 'Customer saved in appState');
   assert.strictEqual(savedCust.customerNumber, '9876543210', 'Normalized to 10 digits in local storage');
 
-  // 14. Strict Google Sheets payload verification
-  assert.strictEqual(gasForwardedPayloads.length, 1);
-  const gasCustPayload = gasForwardedPayloads[0].customerData;
-  assert.strictEqual(gasCustPayload.customerNumber, '9876543210', 'Google Sheets payload contains normalized 10-digit phone');
-  console.log('✅ PASS: Add Customer API normalized phone and forwarded strict 10-digit string to Google Sheets');
+  // 14. Server-side normalization verification (Zero Google Sheets forwarding)
+  assert.strictEqual(savedCust.customerNumber, '9876543210', 'Phone normalized to exact 10 digits');
+  console.log('✅ PASS: Add Customer API normalized phone to strict 10-digit string');
 
   // 12. Update Customer API Validation
   // 12a. Invalid update phone rejected
@@ -325,7 +323,6 @@ async function runPhoneValidationSuite() {
   assert.strictEqual(updateValidRes.statusCode, 200);
   const updatedCust = cwp.getAppState().customers.find(c => c.rowIndex === 2 || parseInt(c.rowIndex, 10) === 2);
   assert.strictEqual(updatedCust.customerNumber, '9876543210', 'Normalized in local appState on update');
-  assert.strictEqual(gasForwardedPayloads[0].customerData.customerNumber, '9876543210', 'Normalized in GAS forwarded payload on update');
   console.log('✅ PASS: Update Customer API normalized leading zero to 10 digits');
 
   // 13. Staff API Validation (saveStaffMember)
@@ -369,7 +366,6 @@ async function runPhoneValidationSuite() {
   const storedStaff = cwp.getAppState().staffList.find(s => s.name === 'Ramesh Staff');
   assert.ok(storedStaff, 'Staff saved');
   assert.strictEqual(storedStaff.phone, '9988776655', 'Staff phone normalized to 10 digits');
-  assert.strictEqual(gasForwardedPayloads[0].staffData.phone, '9988776655', 'Staff phone forwarded to GAS as normalized 10 digits');
   console.log('✅ PASS: Staff API normalized valid phone (+91 99887 76655 -> 9988776655)');
 
   // Verify test isolation
