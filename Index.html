@@ -5250,7 +5250,7 @@
               <button type="button" class="btn-admin-action" onclick="loadStaffSequenceData(true)" title="Refresh sequence data">
                 🔄 Refresh
               </button>
-              <button type="button" id="btnResetSequence" class="btn-admin-action btn-seq-reset" onclick="confirmResetSequence()" title="Reset to default Sheet order">
+              <button type="button" id="btnResetSequence" class="btn-admin-action btn-seq-reset" onclick="confirmResetSequence()" title="Reset to default route order">
                 ↺ Reset to Default Order
               </button>
               <button type="button" id="btnSaveSequence" class="btn-submit-main btn-seq-save" onclick="saveCurrentStaffSequence()" title="Save new route order">
@@ -5286,7 +5286,7 @@
               <div id="seqSummaryText">
                 👤 <strong>Staff:</strong> <span id="seqCurrentStaffName">—</span> • 🚗 <strong>Total Daily Clean Customers:</strong> <span id="seqTotalCustCount">0</span>
               </div>
-              <div id="seqCustomStatusBadge" class="seq-status-badge default">Default Sheet Order</div>
+              <div id="seqCustomStatusBadge" class="seq-status-badge default">Default Route Order</div>
             </div>
           </div>
 
@@ -5306,7 +5306,7 @@
           </div>
           <div class="cwp-modal-body" style="padding: 16px 20px;">
             <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
-              The custom route sequence saved for this staff (<strong id="seqResetStaffName"></strong>) will be removed, and the order will revert to the original Google Sheet order.
+              The custom route sequence saved for this staff (<strong id="seqResetStaffName"></strong>) will be removed, and the order will revert to the default route order.
             </p>
             <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 10px 12px; font-size: 12px; color: #92400e;">
               💡 <strong>Note:</strong> Other staff sequences will not be affected.
@@ -5325,15 +5325,6 @@
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
             <div>
               <h2 class="admin-card-title">Staff Management</h2>
-              
-            </div>
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              <button type="button" class="btn-admin-action" onclick="handleSyncStaffDropdown()" title="Apply dropdown validation to Staff column in Google Sheet">
-                Sync Sheet Dropdowns
-              </button>
-              <button type="button" class="btn-admin-action" style="background: var(--brand-blue-light); color: var(--brand-blue);" onclick="handleReorderSheet()" title="Reorder Google Sheet columns to Customer-First layout">
-                Reorder Sheets
-              </button>
             </div>
           </div>
 
@@ -5957,8 +5948,6 @@
 
   <!-- =====================================================================
        CLIENT APPLICATION LOGIC
-       Strictly adhering to Apps Script preprocessor rules:
-       - ZERO inline `//` comments in script blocks
        - Escaped forward slashes in URLs
        ===================================================================== -->
 
@@ -5969,13 +5958,10 @@
   </script>
 
   <script>
-    /* Injected template variables from Google Apps Script */
-    var initialStaffId = "<?= typeof initialStaffId !== 'undefined' ? initialStaffId : '' ?>";
-    if (initialStaffId.indexOf('<?') === 0) initialStaffId = '';
-    var initialMode = "<?= typeof initialMode !== 'undefined' ? initialMode : 'admin' ?>";
-    if (initialMode.indexOf('<?') === 0) initialMode = 'admin';
-    var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
-    if (webAppBaseUrl.indexOf('<?') === 0) webAppBaseUrl = '';
+    /* Application Launch Parameters */
+    var initialStaffId = '';
+    var initialMode = 'admin';
+    var webAppBaseUrl = '';
 
     /* Global Application State */
     /* ==========================================================================
@@ -6814,7 +6800,7 @@ var state = {
     });
 
     /* =========================================================================
-       UNIVERSAL API CLIENT (Google Apps Script & Railway / Node.js Server)
+       API CLIENT (Neon PostgreSQL Backend via /api)
        ========================================================================= */
     function apiCall(action, payload, onSuccess, onFailure) {
       var isStaffOp = (state.currentView === 'staff' ||
@@ -6848,30 +6834,7 @@ var state = {
         delete reqPayload.adminToken;
       }
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (res && (res.unauthorized || res.forbidden)) {
-              handleUnauthorizedResponse(res);
-              if (onFailure) onFailure(new Error(res.error || 'Unauthorized'));
-              return;
-            }
-            if (res && res.error) {
-              if (onFailure) onFailure(new Error(res.error));
-              else showToast('Error: ' + res.error, '❌');
-              return;
-            }
-            if (onSuccess) onSuccess(res);
-          })
-          .withFailureHandler(function(err) {
-            if (onFailure) onFailure(err);
-            else showToast('Could not connect to server: ' + (err && err.message ? err.message : err), '❌');
-          })
-          .apiRequest(action, reqPayload);
-        return;
-      }
-
-      /* Railway / Node Server Proxy to Google Sheet */
+      /* Neon PostgreSQL API Client */
       var headers = { 'Content-Type': 'application/json' };
       if (effectiveToken && action !== 'verifyStaffPin' && action !== 'verifyAdminPassword') {
         headers['Authorization'] = 'Bearer ' + effectiveToken;
@@ -7213,12 +7176,12 @@ function loadStaffCustomerData(staffId) {
           liveBadge.innerHTML = '<span class="dot-live">●</span> लाइव';
           liveBadge.style.background = 'rgba(16, 185, 129, 0.16)';
           liveBadge.style.color = '#34d399';
-          liveBadge.title = 'लाइव गूगल शीट से कनेक्टेड';
+          liveBadge.title = 'लाइव Neon डेटाबेस से कनेक्टेड';
         } else {
           liveBadge.innerHTML = '<span style="color: #f59e0b;">⚠️</span> ऑफ़लाइन मोड';
           liveBadge.style.background = 'rgba(245, 158, 11, 0.16)';
           liveBadge.style.color = '#fbbf24';
-          liveBadge.title = 'स्थानीय बैकअप डेटा (Google Sheet अनुपलब्ध)';
+          liveBadge.title = 'ऑफ़लाइन स्थानीय डेटा';
         }
       }
 
@@ -7227,7 +7190,7 @@ function loadStaffCustomerData(staffId) {
         if (!isLive) {
           bannerContainer.innerHTML = 
             '<div class="offline-warning-banner" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 13px; font-weight: 500;">' +
-              '<span>⚠️ गूगल शीट से सीधा संपर्क नहीं हो सका। पुराना स्थानीय डेटा प्रदर्शित है।</span>' +
+              '<span>⚠️ सर्वर से सीधा संपर्क नहीं हो सका। ऑफ़लाइन स्थानीय डेटा प्रदर्शित है।</span>' +
               '<button type="button" onclick="loadStaffCustomerData(state.activeStaffId)" style="background: #f59e0b; color: #ffffff; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">🔄 पुनः प्रयास</button>' +
             '</div>';
           bannerContainer.style.display = 'block';
@@ -7428,7 +7391,7 @@ function loadStaffCustomerData(staffId) {
        - Direct car photo thumbnail preview (click to enlarge)
        - Direct readable address snippet (click for full modal)
        - Staff cleaning notes callout banner
-       - Exact Google Sheet row order strictly preserved
+       - Route sequence order strictly preserved
        ========================================================================= */
     function renderCustomerCards(items) {
       if (!state.currentDateKey) state.currentDateKey = getTodayDateKey();
@@ -8128,36 +8091,6 @@ function loadStaffCustomerData(staffId) {
         if (state.seqManagement) {
           initAdminSequenceManager();
         }
-      }, function(err) {
-        showToast('Error: ' + (err.message || err), '❌');
-      });
-    }
-
-    function handleSyncStaffSheet() {
-      showToast('Syncing staff to Sheet...', 'ℹ');
-      apiCall('cleanAndSyncStaff', {}, function(res) {
-        showToast('All sheet rows and dropdowns synced!', '✓');
-        loadStaffListForAdmin();
-      }, function(err) {
-        showToast('Error: ' + (err.message || err), '❌');
-      });
-    }
-
-    function handleSyncStaffDropdown() {
-      showToast('Syncing Google Sheet dropdowns...', 'ℹ');
-      apiCall('syncStaffDropdown', {}, function(res) {
-        showToast('Dropdown validation applied to Staff column in Google Sheet!', '✓');
-      }, function(err) {
-        showToast('Error: ' + (err.message || err), '❌');
-      });
-    }
-
-    function handleReorderSheet() {
-      if (!confirm('Are you sure you want to reorder Google Sheet columns to Customer-First layout (Customer Name, Mobile, Location, Photo, Address...)?\n\nAll existing records will be preserved safely.')) return;
-      showToast('Reordering sheets...', 'ℹ');
-      apiCall('reorderSheet', {}, function(res) {
-        showToast(res && res.message ? res.message : 'Sheets reordered successfully to Customer-First layout!', '✓');
-        loadAdminRecords();
       }, function(err) {
         showToast('Error: ' + (err.message || err), '❌');
       });
@@ -9067,7 +9000,7 @@ function loadStaffCustomerData(staffId) {
       var btn = document.getElementById('btnSaveCust');
       btn.disabled = true;
       var hasPhoto = !!state.selectedPhotoBase64;
-      btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'Uploading photo & saving...' : 'Saving to Google Sheet...');
+      btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'Uploading photo & saving...' : 'Saving customer...');
 
       var phoneEl = document.getElementById('custPhone');
       var normCustPhone = normalizeIndianMobile(phoneEl ? phoneEl.value : '');
@@ -9236,9 +9169,9 @@ function loadStaffCustomerData(staffId) {
         var srcBadge = document.getElementById('adminRecordsSourceBadge');
         if (srcBadge) {
           if (isLive) {
-            srcBadge.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:12px; background:rgba(16,185,129,0.12); color:#059669;"><span style="color:#10b981;">●</span> Live Google Sheet</span>';
+            srcBadge.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:12px; background:rgba(16,185,129,0.12); color:#059669;"><span style="color:#10b981;">●</span> Neon PostgreSQL</span>';
           } else {
-            srcBadge.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:12px; background:rgba(245,158,11,0.14); color:#d97706;"><span>⚠️</span> Local Fallback (Stale)</span>';
+            srcBadge.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:12px; background:rgba(245,158,11,0.14); color:#d97706;"><span>⚠️</span> Local Cache</span>';
           }
         }
 
@@ -10315,7 +10248,7 @@ function loadStaffCustomerData(staffId) {
             statusBadge.textContent = '✓ Custom Route Active';
           } else {
             statusBadge.className = 'seq-status-badge default';
-            statusBadge.textContent = 'Default Sheet Order';
+            statusBadge.textContent = 'Default Route Order';
           }
         }
 
@@ -10601,7 +10534,7 @@ function loadStaffCustomerData(staffId) {
         }
         state.seqManagement.hasUnsavedChanges = false;
         updateSeqUnsavedBadge(false);
-        showSeqAlert('Route sequence reset to default Google Sheet order.', 'success');
+        showSeqAlert('Route sequence reset to default route order.', 'success');
         loadStaffSequenceData();
       }, function(err) {
         if (resetBtn) {

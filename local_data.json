@@ -3,7 +3,7 @@
     {
       "id": "STF01",
       "name": "Chandan Soni",
-      "phone": "7054007733",
+      "phone": "8887759207",
       "pin": "scrypt:6ee5dd22d2fbacd05906aa57ca0f8ce4:d57c0199a51baa30d97af2f87beba33c7f32444631e0c1e6b9ab459480e1bc2b",
       "displayPin": "123456",
       "lastKnownSheetPin": "123456",
@@ -17,31 +17,6 @@
       "displayPin": "654321",
       "lastKnownSheetPin": "654321",
       "active": true
-    },
-    {
-      "id": "STG01",
-      "name": "Test Staff G1",
-      "phone": "9900000050",
-      "pin": "scrypt:2c09b55d7cfe155ea00ee8ec388c182b:5d7329cb81cd1b66cbdb3a15daf77038bd56c83f348655b8af0328c2e4ce13db",
-      "displayPin": "111111",
-      "active": true
-    },
-    {
-      "id": "STG-A",
-      "name": "Staff Alpha",
-      "phone": "9900000010",
-      "pin": "scrypt:40e0ea54b51be8a94532afcaaa77ad0f:3648f4da71d4c358dae4e16bd42bfa60aee19035fef68465a346febfa3cb75fc",
-      "displayPin": "111111",
-      "active": true
-    },
-    {
-      "id": "STG-B",
-      "name": "Staff Beta",
-      "phone": "9900000011",
-      "pin": "scrypt:2bd109a231f03b83cfba1eebdde031ee:da7bfb5ea6ee39a9c0b182a1787ddfa8b4c23c45a05e33c2bbb9f9e42cda44e1",
-      "displayPin": "222222",
-      "active": true
-    }
   ],
   "customers": [],
   "staffSequences": []

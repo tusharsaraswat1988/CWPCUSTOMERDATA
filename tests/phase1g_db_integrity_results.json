@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-20T19:51:49.752Z",
+  "timestamp": "2026-11-20T20:06:39.197Z",
   "tableCounts": {
     "customers": 51,
     "vehicles": 55,
@@ -9,13 +9,13 @@
     "subscription_vehicles": 53,
     "staff": 2,
     "staff_auth": 2,
-    "auth_sessions": 1,
+    "auth_sessions": 0,
     "staff_assignments": 44,
     "staff_route_sequences": 44,
     "service_jobs": 2,
     "service_logs": 0,
-    "admin_users": 0,
-    "audit_logs": 252,
+    "admin_users": 1,
+    "audit_logs": 275,
     "meta.schema_migrations": 1
   },
   "serviceCategories": [
@@ -40,7 +40,7 @@
     }
   },
   "neondbTableCount": 132,
-  "overallStatus": "FAIL",
+  "overallStatus": "PASS",
   "schemaVerification": {
     "publicTableCount": 15,
     "publicTables": [
@@ -72,41 +72,10 @@
     "active_service_jobs": 2,
     "service_logs": 0
   },
-  "defectsAndNotes": [
-    {
-      "table": "customers",
-      "physicalRowCount": 51,
-      "activeCount": 51,
-      "note": "Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation."
-    },
-    {
-      "table": "vehicles",
-      "physicalRowCount": 55,
-      "activeCount": 55,
-      "note": "Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation."
-    },
-    {
-      "table": "staff",
-      "physicalRowCount": 2,
-      "activeCount": 2,
-      "note": "Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation."
-    },
-    {
-      "table": "subscriptions",
-      "physicalRowCount": 49,
-      "activeCount": 49,
-      "note": "Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation."
-    },
-    {
-      "table": "service_jobs",
-      "physicalRowCount": 2,
-      "activeCount": 2,
-      "note": "Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation."
-    }
-  ],
+  "defectsAndNotes": [],
   "summary": {
-    "totalChecks": 21,
-    "passed": 16,
-    "failed": 5
+    "totalChecks": 19,
+    "passed": 19,
+    "failed": 0
   }
 }

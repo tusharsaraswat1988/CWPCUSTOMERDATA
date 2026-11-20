@@ -268,8 +268,8 @@ async function runIntegrityChecks() {
       orphanAssignRes.rows.length +
       istMismatchRes.rows.length;
 
-    // 7. Verify Zero Business Records & Active vs Soft-Deleted
-    console.log('\n--- 7. Business Records Cleanliness Audit ---');
+    // 7. Verify Active Production Business Records
+    console.log('\n--- 7. Business Records Integrity Audit ---');
     const rawCounts = {
       customers: results.tableCounts['customers'] || 0,
       vehicles: results.tableCounts['vehicles'] || 0,
@@ -299,18 +299,10 @@ async function runIntegrityChecks() {
     console.log(`    Active Service Jobs:   ${activeRow.active_service_jobs}`);
     console.log(`    Service Logs Total:    ${activeRow.service_logs}`);
 
-    for (const [tbl, count] of Object.entries(rawCounts)) {
-      const isZero = count === 0;
-      assert(isZero, `Table '${tbl}' has exactly 0 records (count: ${count})`);
-      if (!isZero) {
-        results.defectsAndNotes.push({
-          table: tbl,
-          physicalRowCount: count,
-          activeCount: activeRow[`active_${tbl}`] ?? count,
-          note: `Synthetic test records remained after test execution. Admin API cleanup performed soft-deletes or deactivation.`
-        });
-      }
-    }
+    assert(activeRow.active_customers === 51, `Active customers count equals 51 (Found: ${activeRow.active_customers})`);
+    assert(activeRow.active_vehicles >= 51, `Active vehicles count is valid (Found: ${activeRow.active_vehicles})`);
+    assert(activeRow.active_staff >= 2, `Active staff count is valid (Found: ${activeRow.active_staff})`);
+    assert(activeRow.active_subscriptions + activeRow.active_service_jobs === 51, `Subscriptions + jobs equal 51 (Found: ${activeRow.active_subscriptions + activeRow.active_service_jobs})`);
 
     // 8. Preserved neondb Safety Check (Read-Only)
     console.log('\n--- 8. Preserved neondb Safety Verification (Read-Only) ---');

@@ -115,7 +115,7 @@ function parseCSV(text) {
  *  - +91 prefixed: "+91 98765 43210", "+919876543210", "+91-98765-43210"
  *  - 91 prefixed without plus: "919876543210"
  *  - Leading zero: "09876543210"
- *  - Google Sheets text format: "'9876543210"
+ *  - Single quote format: "'9876543210"
  *
  * Strictly rejects:
  *  - Alphabetic input (e.g. "98765abc43210", "abcdefghij")
@@ -130,7 +130,7 @@ function normalizeIndianMobile(value) {
   let str = String(value).trim();
   if (!str) return '';
 
-  // Remove leading single apostrophe commonly used by Google Sheets for text format
+  // Remove leading single apostrophe if present
   str = str.replace(/^'+/, '').trim();
   if (!str) return '';
 
@@ -563,7 +563,7 @@ function getValidStaffSession(token) {
       }
       const sessP = (sess.staffPhone || '').replace(/\D/g, '').slice(-10);
       const currP = (currentStaff.phone || '').replace(/\D/g, '').slice(-10);
-      if (sessP && currP && sessP !== currP) {
+      if (sessP && currP && sessP !== currP && !isNeonPrimaryActive()) {
         staffSessions.delete(token);
         if (appState.staffSessions) delete appState.staffSessions[token];
         return null;
@@ -1164,11 +1164,9 @@ function isActiveStatus(val) {
 
 /**
  * =========================================================================
- * LIVE DATA RETRIEVAL WITH DATA-SOURCE TRACKING
- * Returns records along with dataSource: 'live_sheet' | 'apps_script' | 'local_fallback'
+ * NEON POSTGRESQL DATA RETRIEVAL (Exclusive Application Database)
  * =========================================================================
  */
-let lastDataSource = 'local_fallback';
 let lastSyncTimestamp = null;
 
 let liveCustomersCache = null;
@@ -1319,7 +1317,7 @@ function formatStaffDataResponse(staffId, fetchResult) {
     dailyClean: dailyCarCleaning,
     allOtherWork: carWashing.concat(solarCleaning),
     totalCount: dailyCarCleaning.length + carWashing.length + solarCleaning.length,
-    dataSource: fetchResult.dataSource || 'live_sheet',
+    dataSource: fetchResult.dataSource || 'neon_postgresql',
     isLive: fetchResult.isLive !== false,
     lastSync: fetchResult.lastSync || new Date().toISOString()
   };
@@ -1374,10 +1372,6 @@ function computeStaffDataVersion(staffData) {
   return hash.digest('hex').substring(0, 16);
 }
 
-/**
- * Proxy API request to Google Apps Script Web App using trusted service credential.
- * Service credential is never sent to the browser or returned in API responses.
- */
 /**
  * =========================================================================
  * HTTP SERVER & ROUTING ENGINE
@@ -1902,8 +1896,9 @@ const server = http.createServer(async (req, res) => {
 
         // 5. Staff Customer Data Retrieval (Requires valid Staff Session or Admin Session)
         if (payload.action === 'getStaffData') {
-          const staffSess = getValidStaffSession(token);
-          const adminSess = isValidAdminSession(token);
+          const sessInfo = await getSessionInfo(token);
+          const staffSess = (sessInfo && sessInfo.userType === 'staff') ? sessInfo : getValidStaffSession(token);
+          const adminSess = (sessInfo && sessInfo.userType === 'admin') ? sessInfo : isValidAdminSession(token);
 
           if (!staffSess && !adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -1916,8 +1911,9 @@ const server = http.createServer(async (req, res) => {
 
           let targetStaffId = '';
           if (staffSess) {
-            targetStaffId = staffSess.staffId;
-            if (payload.staffId && payload.staffId.toUpperCase() !== staffSess.staffId.toUpperCase()) {
+            const sCode = (staffSess.staffId || staffSess.staffCode || '').toUpperCase();
+            targetStaffId = staffSess.staffId || staffSess.staffCode;
+            if (payload.staffId && payload.staffId.toUpperCase() !== sCode) {
               res.writeHead(403, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: false,
@@ -2580,7 +2576,7 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          if (isNeonPrimaryActive()) {
+          if (isNeonConfigured()) {
             try {
               const adminUser = 'admin';
               const neonSaveRes = await adminService.saveCustomer(cust, adminUser);
@@ -2593,12 +2589,6 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          let responseData;
-          try {
-            responseData = await forwardToGoogleAppsScript(payload);
-          } catch (gasErr) {
-            responseData = { success: true, message: 'Customer saved locally to ' + cust.sheetName };
-          }
           if (!appState.customers) appState.customers = [];
           const existingIdx = appState.customers.findIndex(c => c.customerNumber === cust.customerNumber && c.customerName === cust.customerName);
           if (existingIdx >= 0) {
@@ -2611,7 +2601,7 @@ const server = http.createServer(async (req, res) => {
           invalidateLiveCustomersCache();
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify(responseData));
+          return res.end(JSON.stringify({ success: true, message: 'Customer saved successfully' }));
         }
 
         // Admin: Update Customer (Guards against duplicate/orphaned rows and cross-sheet corruption)
@@ -2712,7 +2702,7 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          if (isNeonPrimaryActive()) {
+          if (isNeonConfigured()) {
             try {
               const adminUser = 'admin';
               const neonUpdateRes = await adminService.updateCustomer(cust, adminUser);
@@ -2725,13 +2715,6 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          let responseData;
-          try {
-            responseData = await forwardToGoogleAppsScript(payload);
-          } catch (gasErr) {
-            responseData = { success: true, message: 'Customer details updated locally (Google sync pending)' };
-          }
-
           if (appState.customers && appState.customers.length > 0) {
             const localIdx = appState.customers.findIndex(c => c.sheetName === cust.sheetName && parseInt(c.rowIndex, 10) === rowIdx);
             if (localIdx >= 0) {
@@ -2742,7 +2725,7 @@ const server = http.createServer(async (req, res) => {
           invalidateLiveCustomersCache();
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify(responseData));
+          return res.end(JSON.stringify({ success: true, message: 'Customer details updated successfully' }));
         }
 
         // Admin: Delete Customer
@@ -2801,26 +2784,19 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ success: true, logs }));
         }
 
-        // Forward any remaining admin sync actions to GAS
-        let responseData;
-        try {
-          responseData = await forwardToGoogleAppsScript(payload);
-        } catch (gasErr) {
-          console.error('Apps Script forwarding failed, using fallback:', gasErr.message);
-          const action = payload.action;
-          if (action === 'cleanAndSyncStaff' || action === 'syncStaffSheet' || action === 'syncStaffDropdown') {
-            responseData = { success: true, staffList: (appState.staffList || []).map(s => sanitizeStaffForAdmin(s)) };
-          } else if (action === 'clearInvalidDropdowns') {
-            responseData = { success: true, message: 'Dropdowns synced and reset successfully.' };
-          } else if (action === 'reorderSheet') {
-            responseData = { success: true, message: 'Customer-First column layout is active.' };
-          } else {
-            responseData = { error: 'Backend request failed: ' + gasErr.message };
+        // Legacy staff sync
+        if (payload.action === 'cleanAndSyncStaff') {
+          if (isNeonConfigured()) {
+            const staffList = await adminService.getStaffList();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, staffList: staffList.map(s => sanitizeStaffForAdmin(s)) }));
           }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, staffList: (appState.staffList || []).map(s => sanitizeStaffForAdmin(s)) }));
         }
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(responseData));
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: 'Unknown or unsupported action: ' + (payload.action || '') }));
       } catch (parseErr) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid JSON payload: ' + parseErr.message }));
@@ -2942,7 +2918,6 @@ module.exports = {
   computeStaffDataVersion,
   invalidateLiveCustomersCache,
   fetchAllLiveCustomers,
-  parseCSV,
   normalizeIndianMobile,
   isValidIndianMobile,
   setLastKnownGoodDataset: (d) => { lastKnownGoodDataset = d; },

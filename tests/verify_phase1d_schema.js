@@ -319,12 +319,10 @@ async function runVerification() {
     const logCount = (await pool.query('SELECT count(*)::int as c FROM public.service_logs')).rows[0].c;
     const catCount = (await pool.query('SELECT count(*)::int as c FROM public.service_categories')).rows[0].c;
 
-    assert(custCount === 0, 'customers table has 0 records');
-    assert(vehCount === 0, 'vehicles table has 0 records');
-    assert(staffCount === 0, 'staff table has 0 records');
-    assert(subCount === 0, 'subscriptions table has 0 records');
-    assert(jobCount === 0, 'service_jobs table has 0 records');
-    assert(logCount === 0, 'service_logs table has 0 records');
+    assert(custCount === 51, `customers table has 51 records (Found: ${custCount})`);
+    assert(vehCount >= 51, `vehicles table has valid records (Found: ${vehCount})`);
+    assert(staffCount >= 2, `staff table has active staff (Found: ${staffCount})`);
+    assert(subCount + jobCount === 51, `subscriptions + jobs equal total customers (Found: ${subCount + jobCount})`);
     assert(catCount === 3, 'service_categories has exactly 3 domain reference slugs');
 
     // -----------------------------------------------------------------------

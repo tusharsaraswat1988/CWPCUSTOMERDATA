@@ -8,6 +8,7 @@
 const db = require('../db/index');
 const repos = require('../db/repositories/index');
 const authService = require('./authService');
+const staffPortalService = require('./staffPortalService');
 
 function normalizeIndianMobile(value) {
   if (value === null || value === undefined) return '';
@@ -806,14 +807,18 @@ async function getStaffSequence(staffCode) {
     return { success: false, error: 'Staff member not found.' };
   }
 
+  const staffData = await staffPortalService.getStaffData(staff.id);
+  const customers = staffData.dailyCarCleaning || [];
   const stops = await repos.staffRouteSequences.getStaffRoute(staff.id);
+
   return {
     success: true,
     staffId: staff.staff_code,
     staffName: staff.name,
+    customers: customers,
     sequences: stops,
     hasCustomSequence: stops.length > 0,
-    totalCount: stops.length
+    totalCount: customers.length
   };
 }
 
@@ -823,7 +828,41 @@ async function saveStaffSequence(staffCode, sequenceStops, adminUser = 'admin') 
     return { success: false, error: 'Staff member not found.' };
   }
 
-  const saved = await repos.staffRouteSequences.setStaffRoute(staff.id, sequenceStops, adminUser);
+  // Fetch active subscriptions for this staff member to resolve any customerId -> subscriptionId mappings
+  const staffSubs = await db.query(
+    `SELECT sub.id AS subscription_id, sub.customer_id, sv.id AS subscription_vehicle_id
+     FROM public.staff_assignments sa
+     JOIN public.subscriptions sub ON sa.subscription_id = sub.id
+     LEFT JOIN public.subscription_vehicles sv ON sv.subscription_id = sub.id
+     WHERE sa.staff_id = $1 AND sa.is_active = TRUE AND sub.status = 'active'`,
+    [staff.id]
+  );
+
+  const custSubMap = new Map();
+  for (const row of staffSubs.rows) {
+    if (!custSubMap.has(row.customer_id)) {
+      custSubMap.set(row.customer_id, row);
+    }
+  }
+
+  const mappedStops = sequenceStops.map(s => {
+    if (typeof s === 'string') {
+      const sub = custSubMap.get(s);
+      return { subscriptionId: sub?.subscription_id, subscriptionVehicleId: sub?.subscription_vehicle_id };
+    }
+    if (s.subscriptionId) return s;
+    if (s.customerId && custSubMap.has(s.customerId)) {
+      const sub = custSubMap.get(s.customerId);
+      return {
+        ...s,
+        subscriptionId: sub.subscription_id,
+        subscriptionVehicleId: s.subscriptionVehicleId || sub.subscription_vehicle_id
+      };
+    }
+    return s;
+  });
+
+  const saved = await repos.staffRouteSequences.setStaffRoute(staff.id, mappedStops, adminUser);
 
   await repos.auditLogs.logChange({
     entityType: 'staff_route_sequences',

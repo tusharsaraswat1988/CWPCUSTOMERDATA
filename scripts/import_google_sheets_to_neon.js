@@ -18,6 +18,9 @@
 
 const fs = require('fs');
 const path = require('path');
+if (process.env.DATABASE_URL_UNPOOLED) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL_UNPOOLED;
+}
 const db = require('../db');
 const repos = require('../db/repositories');
 const authService = require('../services/authService');
@@ -125,7 +128,8 @@ async function runMigration() {
     const staffMapByCode = {};
 
     for (const profile of STAFF_PROFILES) {
-      let existingStaff = await repos.staff.findByStaffCode(profile.code, client);
+      let existingStaffRes = await client.query('SELECT * FROM public.staff WHERE UPPER(staff_code) = UPPER($1) LIMIT 1', [profile.code]);
+      let existingStaff = existingStaffRes.rows[0];
       if (!existingStaff) {
         existingStaff = await repos.staff.createStaff({
           staffCode: profile.code,
@@ -139,6 +143,9 @@ async function runMigration() {
         stats.staffCreated++;
         console.log(`[Staff] Provisioned staff ${profile.code}: ${profile.name} (${profile.phone})`);
       } else {
+        if (existingStaff.deleted_at) {
+          await client.query('UPDATE public.staff SET deleted_at = NULL, is_active = TRUE WHERE id = $1', [existingStaff.id]);
+        }
         console.log(`[Staff] Found existing staff ${profile.code}: ${profile.name}`);
       }
       staffMapByName[profile.name.toLowerCase()] = existingStaff;

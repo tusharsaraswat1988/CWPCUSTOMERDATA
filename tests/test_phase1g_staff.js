@@ -871,20 +871,29 @@ async function runTestSuite() {
   // ═════════════════════════════════════════════════════════════
   console.log('\n── SECTION 8: CLEANUP ───────────────────────────────────────');
   try {
-    await db.query('DELETE FROM public.service_logs');
-    await db.query('DELETE FROM public.staff_route_sequences');
-    await db.query('ALTER TABLE public.staff_assignments DISABLE TRIGGER trg_staff_assignments_immutability');
-    await db.query('DELETE FROM public.staff_assignments');
-    await db.query('ALTER TABLE public.staff_assignments ENABLE TRIGGER trg_staff_assignments_immutability');
-    await db.query('DELETE FROM public.service_jobs');
-    await db.query('DELETE FROM public.subscription_vehicles');
-    await db.query('DELETE FROM public.subscriptions');
-    await db.query('DELETE FROM public.vehicles');
-    await db.query('DELETE FROM public.service_locations');
-    await db.query('DELETE FROM public.customers');
-    await db.query('DELETE FROM public.auth_sessions');
-    await db.query('DELETE FROM public.staff_auth');
-    await db.query('DELETE FROM public.staff');
+    // Only delete test fixtures created by this test suite (staff STG-A, STG-B and their customers)
+    const testStaff = await db.query("SELECT id FROM public.staff WHERE staff_code IN ('STG-A', 'STG-B')");
+    const testStaffIds = testStaff.rows.map(r => r.id);
+    if (testStaffIds.length > 0) {
+      await db.query("DELETE FROM public.service_logs WHERE staff_id = ANY($1)", [testStaffIds]);
+      await db.query("DELETE FROM public.staff_route_sequences WHERE staff_id = ANY($1)", [testStaffIds]);
+      await db.query("ALTER TABLE public.staff_assignments DISABLE TRIGGER trg_staff_assignments_immutability");
+      await db.query("DELETE FROM public.staff_assignments WHERE staff_id = ANY($1)", [testStaffIds]);
+      await db.query("ALTER TABLE public.staff_assignments ENABLE TRIGGER trg_staff_assignments_immutability");
+      await db.query("DELETE FROM public.auth_sessions WHERE staff_id = ANY($1)", [testStaffIds]);
+      await db.query("DELETE FROM public.staff_auth WHERE staff_id = ANY($1)", [testStaffIds]);
+      await db.query("DELETE FROM public.staff WHERE id = ANY($1)", [testStaffIds]);
+    }
+    const testCusts = await db.query("SELECT id FROM public.customers WHERE customer_name LIKE 'Test Cust%'");
+    const testCustIds = testCusts.rows.map(r => r.id);
+    if (testCustIds.length > 0) {
+      await db.query("DELETE FROM public.service_jobs WHERE customer_id = ANY($1)", [testCustIds]);
+      await db.query("DELETE FROM public.subscription_vehicles WHERE subscription_id IN (SELECT id FROM public.subscriptions WHERE customer_id = ANY($1))", [testCustIds]);
+      await db.query("DELETE FROM public.subscriptions WHERE customer_id = ANY($1)", [testCustIds]);
+      await db.query("DELETE FROM public.vehicles WHERE customer_id = ANY($1)", [testCustIds]);
+      await db.query("DELETE FROM public.service_locations WHERE customer_id = ANY($1)", [testCustIds]);
+      await db.query("DELETE FROM public.customers WHERE id = ANY($1)", [testCustIds]);
+    }
     console.log('  🧹 All synthetic test fixtures cleanly purged from database');
   } catch (e) {
     console.log(`  ⚠ Cleanup error: ${e.message}`);

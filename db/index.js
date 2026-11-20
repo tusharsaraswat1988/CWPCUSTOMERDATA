@@ -11,8 +11,8 @@ const { Pool, Client } = require('pg');
 let pool = null;
 
 function getValidatedConfig() {
-  const pooledUrl = process.env.DATABASE_URL?.trim();
   const directUrl = process.env.DATABASE_URL_UNPOOLED?.trim();
+  const pooledUrl = (process.env.USE_UNPOOLED === 'true' && directUrl) ? directUrl : process.env.DATABASE_URL?.trim();
 
   if (!pooledUrl) {
     throw new Error('[Database] CRITICAL: DATABASE_URL is not set in environment.');

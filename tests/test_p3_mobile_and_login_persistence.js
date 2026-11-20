@@ -247,17 +247,17 @@ function simulateRouter(options) {
   console.log('✅ PASS 12: Expired/Unauthorized Staff Session -> Redirects strictly to Staff Login Gate.');
 }
 
-// Scenario 9: Google Apps Script default mode "admin" without path routing
+// Scenario 9: Default mode "admin" without explicit subpath
 {
   const res = simulateRouter({
-    pathname: '/macros/s/xyz/exec',
+    pathname: '/',
     initialMode: 'admin',
     sessionStorage: {},
     localStorage: {}
   });
   assert.strictEqual(res.state.currentView, 'admin');
   assert.strictEqual(res.displayedView, 'AdminLoginGate');
-  console.log('✅ PASS 13: Google Apps Script initialMode="admin" without URL path resolves to Admin.');
+  console.log('✅ PASS 13: Default initialMode="admin" without URL path resolves to Admin.');
 }
 
 // Scenario 10: handleUnauthorizedResponse state.currentView check
