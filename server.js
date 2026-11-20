@@ -3095,7 +3095,7 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ success: true, staffList: sanitizedList }));
         }
 
-        // Admin: Update Admin Password (P1 Fix: Forward to Apps Script, fail closed if GAS fails, never store plaintext)
+        // Admin: Update Admin Password (P1 Fix: Support Neon PostgreSQL direct update, fallback to Apps Script)
         if (payload.action === 'updateAdminPassword') {
           const newPass = (payload.newPassword || '').trim();
           if (!newPass || newPass.length < 6) {
@@ -3103,7 +3103,32 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Admin password must be at least 6 characters.' }));
           }
 
-          // Forward to Google Apps Script first
+          if (isNeonPrimaryActive()) {
+            try {
+              const newHash = hashPasswordScrypt(newPass);
+              let adminUser = await repos.adminUsers.findByUsername('admin');
+              if (!adminUser) {
+                adminUser = await repos.adminUsers.createAdmin({
+                  username: 'admin',
+                  passwordHash: newHash,
+                  role: 'superadmin'
+                });
+              } else {
+                await repos.adminUsers.updatePassword(adminUser.id, newHash);
+              }
+              appState.adminPasswordHash = newHash;
+              delete appState.adminPassword;
+              saveLocalData(appState);
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, message: 'Admin password updated successfully in Neon database!' }));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Failed to update admin password in Neon: ' + err.message }));
+            }
+          }
+
+          // Legacy Fallback: Forward to Google Apps Script first
           try {
             const gasRes = await forwardToGoogleAppsScript(payload);
             if (!gasRes || gasRes.error || gasRes.success === false) {
