@@ -107,9 +107,6 @@
             <span class="status-indicator-dot dot-live" id="staffSyncDot">●</span>
             <span class="status-indicator-text" id="staffSyncText">Live</span>
           </button>
-            <span class="status-indicator-dot dot-live" id="staffSyncDot">●</span>
-            <span class="status-indicator-text" id="staffSyncText">Live</span>
-          </button>
           <div class="header-popover sync-details-popover" id="syncDetailsPopover" style="display: none;" onclick="event.stopPropagation()">
             <div class="popover-header">
               <div class="popover-title">
@@ -1334,7 +1331,7 @@
             </div>
             <button type="button" class="btn-table-reset" onclick="resetAdminSpecialFilters()" style="height: 38px; padding: 0 14px; border: 1px solid var(--border-color); background: var(--bg-surface); border-radius: 8px; font-weight: 600; cursor: pointer;">Reset</button>
           </div>
-          <div class="table-responsive-wrapper" style="background: #ffffff; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
+          <div class="table-responsive-wrapper" style="background: #ffffff; border-radius: 12px; border: 1px solid var(--border-color); overflow-x: auto; -webkit-overflow-scrolling: touch;">
             <table class="cwp-table" id="adminSpecialJobsTable">
               <thead>
                 <tr>
