@@ -9,6 +9,7 @@ const db = require('../db/index');
 const repos = require('../db/repositories/index');
 const authService = require('./authService');
 const staffPortalService = require('./staffPortalService');
+const indicService = require('./indicTransliterateService');
 
 function normalizeIndianMobile(value) {
   if (value === null || value === undefined) return '';
@@ -167,15 +168,18 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
       id: c.id,
       customerCode: c.customer_code,
       customerName: c.name,
+      nameHi: c.name_hi || '',
       customerNumber: c.phone,
       phone: c.phone,
       altPhone: c.alt_phone || '',
       email: c.email || '',
       notes: c.notes || '',
       address: primaryLoc?.address_text || '',
+      addressHi: primaryLoc?.address_text_hi || c.address_hi || '',
       googleMapsUrl: primaryLoc?.google_maps_url || '',
       parkingDetails: primaryLoc?.parking_details || '',
       secondaryAddress: secondaryLoc?.address_text || '',
+      secondaryAddressHi: secondaryLoc?.address_text_hi || c.secondary_address_hi || '',
       secondaryMapsUrl: secondaryLoc?.google_maps_url || '',
       secondaryParkingDetails: secondaryLoc?.parking_details || '',
       vehicle: mainVehicle,
@@ -258,6 +262,23 @@ async function saveCustomer(custData, adminUser = 'admin') {
     const uniqueSuffix = Date.now().toString().slice(-4);
     const customerCode = `${codePrefix}${normPhone}_${uniqueSuffix}`;
 
+    // Auto-transliterate to Hindi if not explicitly provided
+    let nameHi = (custData.nameHi || custData.name_hi || '').trim() || null;
+    let addressHi = (custData.addressHi || custData.address_hi || '').trim() || null;
+    let secAddressHi = (custData.secondaryAddressHi || custData.secondary_address_hi || '').trim() || null;
+
+    if (!nameHi && custName) {
+      try { nameHi = await indicService.transliterateName(custName); } catch (e) { nameHi = custName; }
+    }
+    const addr = (custData.address || custData.location || '').trim();
+    if (!addressHi && addr) {
+      try { addressHi = await indicService.transliterateAddress(addr); } catch (e) { addressHi = addr; }
+    }
+    const secAddr = (custData.secondaryAddress || custData.secondAddress || '').trim();
+    if (!secAddressHi && secAddr) {
+      try { secAddressHi = await indicService.transliterateAddress(secAddr); } catch (e) { secAddressHi = secAddr; }
+    }
+
     // 1. Create Customer Master
     const customer = await repos.customers.createCustomer({
       customerCode,
@@ -268,17 +289,20 @@ async function saveCustomer(custData, adminUser = 'admin') {
       notes: custData.notes || null,
       sourceSheetName: custData.sheetName || 'Daily Clean',
       sourceRowIndex: 0,
-      isActive: true
+      isActive: true,
+      nameHi,
+      addressHi,
+      secondaryAddressHi: secAddressHi
     }, client);
 
     // 2. Create Service Locations
     let primaryLocation = null;
-    const addr = (custData.address || custData.location || '').trim();
     if (addr) {
       primaryLocation = await repos.serviceLocations.createLocation({
         customerId: customer.id,
         addressType: 'primary',
         addressText: addr,
+        addressTextHi: addressHi,
         googleMapsUrl: custData.googleMapsUrl || null,
         parkingDetails: custData.parkingDetails || null,
         isPrimary: true,
@@ -288,12 +312,12 @@ async function saveCustomer(custData, adminUser = 'admin') {
 
     // Secondary Location if provided
     let secondaryLocation = null;
-    const secAddr = (custData.secondaryAddress || custData.secondAddress || '').trim();
     if (secAddr) {
       secondaryLocation = await repos.serviceLocations.createLocation({
         customerId: customer.id,
         addressType: 'secondary',
         addressText: secAddr,
+        addressTextHi: secAddressHi,
         googleMapsUrl: custData.secondaryMapsUrl || custData.secondGoogleMapsUrl || null,
         parkingDetails: custData.secondaryParkingDetails || custData.secondParkingDetails || null,
         isPrimary: false,
@@ -466,22 +490,49 @@ async function updateCustomer(custData, adminUser = 'admin') {
     // 1. Update Customer Core
     const normPhone = custData.customerNumber ? normalizeIndianMobile(custData.customerNumber) : customer.phone;
     const finalNotes = custData.staffNotes !== undefined ? custData.staffNotes : (custData.notes !== undefined ? custData.notes : customer.notes);
+    const finalName = custData.customerName || customer.name;
+
+    let nameHi = custData.nameHi !== undefined ? custData.nameHi : custData.name_hi;
+    let addressHi = custData.addressHi !== undefined ? custData.addressHi : custData.address_hi;
+    let secAddressHi = custData.secondaryAddressHi !== undefined ? custData.secondaryAddressHi : custData.secondary_address_hi;
+
+    if (nameHi === undefined && finalName) {
+      if (customer.name_hi && finalName === customer.name) {
+        nameHi = customer.name_hi;
+      } else {
+        try { nameHi = await indicService.transliterateName(finalName); } catch (e) { nameHi = finalName; }
+      }
+    }
+
+    const addr = (custData.address || custData.location || '').trim();
+    if (addressHi === undefined && addr) {
+      try { addressHi = await indicService.transliterateAddress(addr); } catch (e) { addressHi = addr; }
+    }
+
+    const secAddr = (custData.secondaryAddress || '').trim();
+    if (secAddressHi === undefined && secAddr) {
+      try { secAddressHi = await indicService.transliterateAddress(secAddr); } catch (e) { secAddressHi = secAddr; }
+    }
+
     await repos.customers.updateCustomer(customer.id, {
-      name: custData.customerName || customer.name,
+      name: finalName,
       phone: normPhone,
       altPhone: custData.altPhone,
       email: custData.email,
       notes: finalNotes,
-      isActive: custData.active !== undefined ? (custData.active === 'Yes' || custData.active === true) : customer.is_active
+      isActive: custData.active !== undefined ? (custData.active === 'Yes' || custData.active === true) : customer.is_active,
+      nameHi,
+      addressHi,
+      secondaryAddressHi: secAddressHi
     }, client);
 
     // 2. Update / Upsert Primary Location
     let primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
-    const addr = (custData.address || custData.location || '').trim();
     if (addr) {
       if (primaryLoc) {
         await repos.serviceLocations.updateLocation(primaryLoc.id, {
           addressText: addr,
+          addressTextHi: addressHi,
           googleMapsUrl: custData.googleMapsUrl,
           parkingDetails: custData.parkingDetails
         }, client);
@@ -490,6 +541,7 @@ async function updateCustomer(custData, adminUser = 'admin') {
           customerId: customer.id,
           addressType: 'primary',
           addressText: addr,
+          addressTextHi: addressHi,
           googleMapsUrl: custData.googleMapsUrl,
           parkingDetails: custData.parkingDetails,
           isPrimary: true
@@ -498,13 +550,13 @@ async function updateCustomer(custData, adminUser = 'admin') {
     }
 
     // 2b. Update / Upsert Secondary Location
-    const secAddr = (custData.secondaryAddress || '').trim();
     const custLocs = await repos.serviceLocations.findByCustomerId(customer.id, { client });
     let secondaryLoc = custLocs.find(l => !l.is_primary) || null;
     if (secAddr) {
       if (secondaryLoc) {
         await repos.serviceLocations.updateLocation(secondaryLoc.id, {
           addressText: secAddr,
+          addressTextHi: secAddressHi,
           googleMapsUrl: custData.secondaryMapsUrl || '',
           parkingDetails: custData.secondaryParkingDetails || ''
         }, client);
@@ -513,6 +565,7 @@ async function updateCustomer(custData, adminUser = 'admin') {
           customerId: customer.id,
           addressType: 'secondary',
           addressText: secAddr,
+          addressTextHi: secAddressHi,
           googleMapsUrl: custData.secondaryMapsUrl || '',
           parkingDetails: custData.secondaryParkingDetails || '',
           isPrimary: false
@@ -1001,6 +1054,74 @@ async function getDailyCleanReports(filters = {}, adminUser = 'admin') {
   };
 }
 
+async function backfillHindiCustomerData(adminUser = 'admin') {
+  return db.withTransaction(async (client) => {
+    const allCusts = await repos.customers.findAll({ includeDeleted: false, limit: 1000, client });
+    let updatedCount = 0;
+
+    for (const c of allCusts) {
+      let needsUpdate = false;
+      let nameHi = c.name_hi;
+      let addrHi = c.address_hi;
+      let secAddrHi = c.secondary_address_hi;
+
+      if (!nameHi && c.name) {
+        try {
+          nameHi = await indicService.transliterateName(c.name);
+          needsUpdate = true;
+        } catch (e) {
+          nameHi = c.name;
+        }
+      }
+
+      const locs = await repos.serviceLocations.findByCustomerId(c.id, { client });
+      const primaryLoc = locs.find(l => l.is_primary) || locs[0] || null;
+      const secLoc = locs.find(l => !l.is_primary) || (locs.length > 1 ? locs[1] : null);
+
+      if (primaryLoc && (!primaryLoc.address_text_hi || !addrHi)) {
+        try {
+          const trans = await indicService.transliterateAddress(primaryLoc.address_text);
+          addrHi = trans;
+          await repos.serviceLocations.updateLocation(primaryLoc.id, { addressTextHi: trans }, client);
+          needsUpdate = true;
+        } catch (e) {
+          addrHi = primaryLoc.address_text;
+        }
+      }
+
+      if (secLoc && (!secLoc.address_text_hi || !secAddrHi)) {
+        try {
+          const transSec = await indicService.transliterateAddress(secLoc.address_text);
+          secAddrHi = transSec;
+          await repos.serviceLocations.updateLocation(secLoc.id, { addressTextHi: transSec }, client);
+          needsUpdate = true;
+        } catch (e) {
+          secAddrHi = secLoc.address_text;
+        }
+      }
+
+      if (needsUpdate) {
+        await repos.customers.updateCustomer(c.id, {
+          nameHi,
+          addressHi: addrHi,
+          secondaryAddressHi: secAddrHi
+        }, client);
+        updatedCount++;
+      }
+    }
+
+    await repos.auditLogs.logChange({
+      entityType: 'customers',
+      entityId: null,
+      action: 'backfill_hindi_transliteration',
+      changedBy: adminUser,
+      afterState: { total: allCusts.length, updated: updatedCount }
+    });
+
+    return { success: true, total: allCusts.length, updated: updatedCount };
+  });
+}
+
 module.exports = {
   normalizeIndianMobile,
   isValidIndianMobile,
@@ -1017,5 +1138,6 @@ module.exports = {
   getStaffSequence,
   saveStaffSequence,
   resetStaffSequence,
-  getDailyCleanReports
+  getDailyCleanReports,
+  backfillHindiCustomerData
 };

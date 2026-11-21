@@ -87,14 +87,18 @@ async function createCustomer({
   notes = null,
   sourceSheetName = 'Daily Clean',
   sourceRowIndex = 0,
-  isActive = true
+  isActive = true,
+  nameHi = null,
+  addressHi = null,
+  secondaryAddressHi = null
 }, client = null) {
   const runner = client || db;
   const res = await runner.query(
     `INSERT INTO public.customers (
        customer_code, name, phone, alt_phone, email, notes, 
-       source_sheet_name, source_row_index, is_active
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       source_sheet_name, source_row_index, is_active,
+       name_hi, address_hi, secondary_address_hi
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING *`,
     [
       customerCode.trim(),
@@ -105,7 +109,10 @@ async function createCustomer({
       notes ? notes.trim() : null,
       sourceSheetName,
       parseInt(sourceRowIndex, 10) || 0,
-      Boolean(isActive)
+      Boolean(isActive),
+      nameHi ? nameHi.trim() : null,
+      addressHi ? addressHi.trim() : null,
+      secondaryAddressHi ? secondaryAddressHi.trim() : null
     ]
   );
   return res.rows[0];
@@ -117,7 +124,10 @@ async function updateCustomer(id, {
   altPhone,
   email,
   notes,
-  isActive
+  isActive,
+  nameHi,
+  addressHi,
+  secondaryAddressHi
 }, client = null) {
   const runner = client || db;
   const updates = [];
@@ -146,6 +156,18 @@ async function updateCustomer(id, {
   if (isActive !== undefined) {
     params.push(Boolean(isActive));
     updates.push(`is_active = $${params.length}`);
+  }
+  if (nameHi !== undefined) {
+    params.push(nameHi ? nameHi.trim() : null);
+    updates.push(`name_hi = $${params.length}`);
+  }
+  if (addressHi !== undefined) {
+    params.push(addressHi ? addressHi.trim() : null);
+    updates.push(`address_hi = $${params.length}`);
+  }
+  if (secondaryAddressHi !== undefined) {
+    params.push(secondaryAddressHi ? secondaryAddressHi.trim() : null);
+    updates.push(`secondary_address_hi = $${params.length}`);
   }
   updates.push('updated_at = CURRENT_TIMESTAMP');
 

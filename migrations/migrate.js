@@ -1,7 +1,7 @@
 /**
 -- =========================================================================
 -- CWP DATA APP - MIGRATION RUNNER
--- Phase 1D: Execute Neon Database Schema Provisioning
+-- Sequential Database Schema Provisioning
 -- =========================================================================
 */
 
@@ -12,7 +12,7 @@ const { Client } = require('pg');
 
 async function runMigration() {
   console.log('================================================================');
-  console.log('CWP DATA APP - PHASE 1D DATABASE SCHEMA PROVISIONING');
+  console.log('CWP DATA APP - DATABASE SCHEMA PROVISIONING');
   console.log('================================================================');
 
   const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
@@ -26,19 +26,6 @@ async function runMigration() {
   if (u.pathname !== '/cwp_customer_db') {
     throw new Error(`CRITICAL GUARD ABORT: Attempting to run migration against ${u.pathname} instead of /cwp_customer_db`);
   }
-
-  const migrationFile = path.join(__dirname, '001_initial_cwp_customer_db_schema.sql');
-  if (!fs.existsSync(migrationFile)) {
-    throw new Error(`Migration file not found at ${migrationFile}`);
-  }
-
-  const sqlContent = fs.readFileSync(migrationFile, 'utf8');
-  const checksum = crypto.createHash('sha256').update(sqlContent).digest('hex');
-  const version = '001';
-  const migrationName = '001_initial_cwp_customer_db_schema.sql';
-
-  console.log(`[Migration File]: ${migrationName}`);
-  console.log(`[SHA-256 Checksum]: ${checksum}`);
 
   const client = new Client({
     connectionString,
@@ -58,7 +45,7 @@ async function runMigration() {
       throw new Error(`CRITICAL GUARD ABORT: Server reports current_database is ${activeDb}, expected cwp_customer_db`);
     }
 
-    // 2. Check if migration already recorded
+    // 2. Setup meta schema
     await client.query('CREATE SCHEMA IF NOT EXISTS meta;');
     await client.query(`
       CREATE TABLE IF NOT EXISTS meta.schema_migrations (
@@ -70,30 +57,47 @@ async function runMigration() {
       );
     `);
 
-    const existing = await client.query('SELECT * FROM meta.schema_migrations WHERE version = $1', [version]);
-    if (existing.rows.length > 0) {
-      console.log(`[Status]: Migration ${version} is already applied (checksum: ${existing.rows[0].checksum}).`);
-      return;
+    // 3. Find all migration files
+    const migrationsDir = __dirname;
+    const sqlFiles = fs.readdirSync(migrationsDir)
+      .filter(f => f.endsWith('.sql'))
+      .sort();
+
+    for (const file of sqlFiles) {
+      const match = file.match(/^(\d+)_/);
+      const version = match ? match[1] : file;
+      const filePath = path.join(migrationsDir, file);
+      const sqlContent = fs.readFileSync(filePath, 'utf8');
+      const checksum = crypto.createHash('sha256').update(sqlContent).digest('hex');
+
+      const existing = await client.query('SELECT * FROM meta.schema_migrations WHERE version = $1', [version]);
+      if (existing.rows.length > 0) {
+        console.log(`[Status]: Migration ${file} (${version}) is already applied.`);
+        continue;
+      }
+
+      console.log(`\n[Executing Migration]: ${file} (${version})...`);
+      const startTime = Date.now();
+      await client.query('BEGIN');
+      try {
+        await client.query(sqlContent);
+        await client.query(`
+          INSERT INTO meta.schema_migrations (version, name, checksum, applied_by)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (version) DO UPDATE 
+          SET checksum = EXCLUDED.checksum, applied_at = CURRENT_TIMESTAMP;
+        `, [version, file, checksum, 'Automated Provisioner']);
+        await client.query('COMMIT');
+        const duration = Date.now() - startTime;
+        console.log(`[DDL Execution]: ${file} SUCCESS in ${duration} ms`);
+      } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+      }
     }
 
-    // 3. Execute SQL Migration within transaction
-    console.log('\n[Executing Schema DDL in Transaction]...');
-    const startTime = Date.now();
-    await client.query(sqlContent);
-    const duration = Date.now() - startTime;
-    console.log(`[DDL Execution]: SUCCESS in ${duration} ms`);
-
-    // 4. Record migration record
-    await client.query(`
-      INSERT INTO meta.schema_migrations (version, name, checksum, applied_by)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (version) DO UPDATE 
-      SET checksum = EXCLUDED.checksum, applied_at = CURRENT_TIMESTAMP;
-    `, [version, migrationName, checksum, 'Phase 1D Automated Provisioner']);
-
-    console.log(`[Audit Record]: Migration ${version} recorded into meta.schema_migrations`);
     console.log('\n================================================================');
-    console.log('MIGRATION EXECUTION COMPLETED SUCCESSFULLY');
+    console.log('ALL MIGRATIONS COMPLETED SUCCESSFULLY');
     console.log('================================================================');
 
   } catch (err) {

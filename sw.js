@@ -9,7 +9,7 @@
  *  - Immediate update activation with skipWaiting & clientsClaim
  */
 
-const CACHE_NAME = 'cwp-staff-pwa-v1.0.2';
+const CACHE_NAME = 'cwp-staff-pwa-v1.0.6';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -118,7 +118,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Static Assets (Icons, Images, Fonts, Stylesheets, Scripts)
+  // 2. Application Scripts and Styles: Network-First so updates take effect immediately
+  if (url.pathname === '/js/app.js' || url.pathname === '/css/style.css' || url.pathname.startsWith('/js/app.js') || url.pathname.startsWith('/css/style.css')) {
+    event.respondWith(
+      fetch(req)
+        .then((networkRes) => {
+          if (networkRes && networkRes.status === 200) {
+            const resClone = networkRes.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          }
+          return networkRes;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // 3. Static Assets (Icons, Images, Fonts, Vendor Scripts)
   if (
     url.pathname.startsWith('/css/') ||
     url.pathname.startsWith('/js/') ||

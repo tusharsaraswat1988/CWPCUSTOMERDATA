@@ -43,15 +43,16 @@ async function createLocation({
   photoUrl = null,
   photoStorageKey = null,
   isPrimary = true,
-  isActive = true
+  isActive = true,
+  addressTextHi = null
 }, client = null) {
   const runner = client || db;
   const res = await runner.query(
     `INSERT INTO public.service_locations (
        customer_id, address_type, address_text, google_maps_url,
        latitude, longitude, parking_details, photo_url, photo_storage_key,
-       is_primary, is_active
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       is_primary, is_active, address_text_hi
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING *`,
     [
       customerId,
@@ -64,7 +65,8 @@ async function createLocation({
       photoUrl,
       photoStorageKey,
       Boolean(isPrimary),
-      Boolean(isActive)
+      Boolean(isActive),
+      addressTextHi ? addressTextHi.trim() : null
     ]
   );
   return res.rows[0];
@@ -80,7 +82,8 @@ async function updateLocation(id, {
   photoUrl,
   photoStorageKey,
   isPrimary,
-  isActive
+  isActive,
+  addressTextHi
 }, client = null) {
   const runner = client || db;
   const updates = [];
@@ -125,6 +128,10 @@ async function updateLocation(id, {
   if (isActive !== undefined) {
     params.push(Boolean(isActive));
     updates.push(`is_active = $${params.length}`);
+  }
+  if (addressTextHi !== undefined) {
+    params.push(addressTextHi ? addressTextHi.trim() : null);
+    updates.push(`address_text_hi = $${params.length}`);
   }
   updates.push('updated_at = CURRENT_TIMESTAMP');
 

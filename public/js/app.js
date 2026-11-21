@@ -519,6 +519,14 @@ var state = {
       initAllPhoneFormatters();
       initStaffPinDots();
       syncBrandLogos();
+      var editPhotoInp = document.getElementById('editStaffPhotoFile');
+      if (editPhotoInp) {
+        editPhotoInp.addEventListener('change', function(e) { handleStaffPhotoSelect(e, 'edit'); });
+      }
+      var newPhotoInp = document.getElementById('newStaffPhotoFile');
+      if (newPhotoInp) {
+        newPhotoInp.addEventListener('change', function(e) { handleStaffPhotoSelect(e, 'new'); });
+      }
       var urlParams = new URLSearchParams(window.location.search);
       var paramStaff = urlParams.get('staff') || urlParams.get('id') || '';
       var paramAdmin = urlParams.get('admin');
@@ -2265,42 +2273,81 @@ function loadStaffCustomerData(staffId) {
     function handleStaffPhotoSelect(e, mode) {
       var file = e.target && e.target.files && e.target.files[0];
       if (!file) return;
-      if (!file.type || !file.type.startsWith('image/')) {
+
+      var isImg = (file.type && file.type.toLowerCase().startsWith('image/')) ||
+                  /\.(jpe?g|png|webp|gif|bmp|jfif|heic|svg)$/i.test(file.name || '');
+      if (!isImg) {
         alert('Please choose a valid image file (JPG, PNG, WebP).');
         return;
       }
+
       var reader = new FileReader();
+      reader.onerror = function(err) {
+        console.error('File read error:', err);
+        alert('Could not read image file. Please try another image.');
+      };
+
       reader.onload = function(evt) {
         var rawDataUrl = evt.target.result;
+        if (!rawDataUrl) return;
+
+        var commaIdx = rawDataUrl.indexOf(',');
+        var rawB64 = commaIdx !== -1 ? rawDataUrl.slice(commaIdx + 1) : rawDataUrl;
+
+        // Immediate 0ms preview & fallback state
+        if (mode === 'edit') {
+          state.editStaffPhotoObj = { base64: rawB64, mimeType: file.type || 'image/jpeg' };
+          state.editStaffPhotoRemove = false;
+
+          var preview = document.getElementById('editStaffPhotoPreview');
+          var init = document.getElementById('editStaffPhotoInitial');
+          var btnRem = document.getElementById('btnRemoveStaffPhoto');
+          var btnTxt = document.getElementById('editStaffPhotoBtnText');
+          var statusMsg = document.getElementById('editStaffPhotoStatusMsg');
+
+          if (preview) {
+            preview.src = rawDataUrl;
+            preview.style.display = 'block';
+          }
+          if (init) init.style.display = 'none';
+          if (btnRem) btnRem.style.display = 'inline-flex';
+          if (btnTxt) btnTxt.textContent = 'Change Photo';
+          if (statusMsg) {
+            statusMsg.textContent = '✓ Selected';
+            statusMsg.style.display = 'inline-block';
+          }
+        } else {
+          state.newStaffPhotoObj = { base64: rawB64, mimeType: file.type || 'image/jpeg' };
+          var pImg = document.getElementById('newStaffPhotoPreviewImg');
+          var pWrap = document.getElementById('newStaffPhotoPreview');
+          var pIcon = document.getElementById('newStaffPhotoIcon');
+          var pTxt = document.getElementById('newStaffPhotoText');
+          var btnClr = document.getElementById('btnClearNewStaffPhoto');
+
+          if (pImg) pImg.src = rawDataUrl;
+          if (pWrap) pWrap.style.display = 'inline-block';
+          if (pIcon) pIcon.style.display = 'none';
+          if (pTxt) pTxt.textContent = 'Change';
+          if (btnClr) btnClr.style.display = 'flex';
+        }
+
+        // Background compression for optimal network payload
         compressStaffPhoto(rawDataUrl, function(compressedUrl) {
-          var commaIdx = compressedUrl.indexOf(',');
-          var b64 = commaIdx !== -1 ? compressedUrl.slice(commaIdx + 1) : compressedUrl;
+          if (!compressedUrl) return;
+          var cIdx = compressedUrl.indexOf(',');
+          var compB64 = cIdx !== -1 ? compressedUrl.slice(cIdx + 1) : compressedUrl;
           if (mode === 'edit') {
-            state.editStaffPhotoObj = { base64: b64, mimeType: 'image/jpeg' };
-            state.editStaffPhotoRemove = false;
+            state.editStaffPhotoObj = { base64: compB64, mimeType: 'image/jpeg' };
             var preview = document.getElementById('editStaffPhotoPreview');
-            var init = document.getElementById('editStaffPhotoInitial');
-            var btnRem = document.getElementById('btnRemoveStaffPhoto');
-            var btnTxt = document.getElementById('editStaffPhotoBtnText');
-            if (preview) { preview.src = compressedUrl; preview.style.display = 'block'; }
-            if (init) init.style.display = 'none';
-            if (btnRem) btnRem.style.display = 'inline-flex';
-            if (btnTxt) btnTxt.textContent = 'Change Photo';
+            if (preview) preview.src = compressedUrl;
           } else {
-            state.newStaffPhotoObj = { base64: b64, mimeType: 'image/jpeg' };
+            state.newStaffPhotoObj = { base64: compB64, mimeType: 'image/jpeg' };
             var pImg = document.getElementById('newStaffPhotoPreviewImg');
-            var pWrap = document.getElementById('newStaffPhotoPreview');
-            var pIcon = document.getElementById('newStaffPhotoIcon');
-            var pTxt = document.getElementById('newStaffPhotoText');
-            var btnClr = document.getElementById('btnClearNewStaffPhoto');
             if (pImg) pImg.src = compressedUrl;
-            if (pWrap) pWrap.style.display = 'inline-block';
-            if (pIcon) pIcon.style.display = 'none';
-            if (pTxt) pTxt.textContent = 'Change';
-            if (btnClr) btnClr.style.display = 'flex';
           }
         });
       };
+
       reader.readAsDataURL(file);
     }
 
@@ -2330,6 +2377,7 @@ function loadStaffCustomerData(staffId) {
       var init = document.getElementById('editStaffPhotoInitial');
       var btnRem = document.getElementById('btnRemoveStaffPhoto');
       var btnTxt = document.getElementById('editStaffPhotoBtnText');
+      var statusMsg = document.getElementById('editStaffPhotoStatusMsg');
       if (fileInput) fileInput.value = '';
       if (urlInput) urlInput.value = '';
       if (preview) { preview.src = ''; preview.style.display = 'none'; }
@@ -2340,7 +2388,18 @@ function loadStaffCustomerData(staffId) {
       }
       if (btnRem) btnRem.style.display = 'none';
       if (btnTxt) btnTxt.textContent = 'Upload Photo';
+      if (statusMsg) {
+        statusMsg.textContent = '🗑️ Removed';
+        statusMsg.style.display = 'inline-block';
+      }
       showToast('Photo marked for removal', '🗑️');
+    }
+
+    if (typeof window !== 'undefined') {
+      window.compressStaffPhoto = compressStaffPhoto;
+      window.handleStaffPhotoSelect = handleStaffPhotoSelect;
+      window.clearNewStaffPhoto = clearNewStaffPhoto;
+      window.removeEditStaffPhoto = removeEditStaffPhoto;
     }
 
     function populateAdminStaffList(list) {
@@ -2619,7 +2678,15 @@ function loadStaffCustomerData(staffId) {
       state.editStaffPhotoObj = null;
       state.editStaffPhotoRemove = false;
       var pFile = document.getElementById('editStaffPhotoFile');
-      if (pFile) pFile.value = '';
+      if (pFile) {
+        pFile.value = '';
+        pFile.onchange = function(e) { handleStaffPhotoSelect(e, 'edit'); };
+      }
+      var pStatus = document.getElementById('editStaffPhotoStatusMsg');
+      if (pStatus) {
+        pStatus.textContent = '';
+        pStatus.style.display = 'none';
+      }
       var pUrl = (staff.photoUrl || staff.photo_url || staff.photo || '').trim();
       var pUrlEl = document.getElementById('editStaffPhotoUrl');
       if (pUrlEl) pUrlEl.value = pUrl;
@@ -3952,6 +4019,136 @@ function loadStaffCustomerData(staffId) {
       return html;
     }
 
+    /* =========================================================================
+       MODERN INTELLIGENT CUSTOMER UI/UX FORMATTERS & KPI LOGIC
+       ========================================================================= */
+    function renderCustomerAvatar(name) {
+      var initials = '';
+      if (name && name.trim()) {
+        var parts = name.trim().split(/\s+/);
+        if (parts.length >= 2) {
+          initials = (parts[0][0] || '') + (parts[1][0] || '');
+        } else {
+          initials = name.trim().slice(0, 2);
+        }
+      }
+      if (!initials) initials = 'CU';
+      initials = initials.toUpperCase();
+
+      var gradients = [
+        'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+        'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+        'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+        'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+        'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+        'linear-gradient(135deg, #ec4899 0%, #db2777 100%)'
+      ];
+      var hash = 0;
+      for (var i = 0; i < (name || '').length; i++) {
+        hash = (hash << 5) - hash + name.charCodeAt(i);
+        hash |= 0;
+      }
+      var bg = gradients[Math.abs(hash) % gradients.length];
+      return '<div class="cust-avatar-circle" style="background:' + bg + ';" title="' + escapeHtml(name || '') + '">' +
+        escapeHtml(initials) +
+      '</div>';
+    }
+
+    function renderModernNumberPlate(plateText) {
+      if (!plateText || !plateText.trim()) return '<span class="cell-empty-dash">—</span>';
+      var clean = plateText.trim();
+      return '<div class="hsrp-plate-wrap">' +
+        '<div class="hsrp-plate" title="' + escapeHtml(clean) + '">' +
+          '<div class="hsrp-ind-strip"><span class="hsrp-ind-code">IND</span></div>' +
+          '<span class="hsrp-number">' + escapeHtml(clean) + '</span>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderModernPackageBadge(pkg) {
+      if (!pkg || !pkg.trim()) return '';
+      var p = pkg.trim();
+      var pUpper = p.toUpperCase();
+      var badgeClass = 'pkg-badge-default';
+      if (pUpper.indexOf('GOLD') !== -1) badgeClass = 'pkg-badge-gold';
+      else if (pUpper.indexOf('PLATINUM') !== -1) badgeClass = 'pkg-badge-platinum';
+      else if (pUpper.indexOf('SILVER') !== -1) badgeClass = 'pkg-badge-silver';
+      return '<span class="package-pill-badge ' + badgeClass + '">' + escapeHtml(p) + '</span>';
+    }
+
+    function isLocationLinkOnly(text) {
+      if (!text) return false;
+      var t = text.trim().toLowerCase();
+      return t === 'location via google maps link' ||
+             t.indexOf('maps.google') !== -1 ||
+             t.indexOf('goo.gl') !== -1 ||
+             t.indexOf('http://') === 0 ||
+             t.indexOf('https://') === 0;
+    }
+
+    function updateAdminKpiMetrics() {
+      var records = state.adminRecords || [];
+      var total = records.length;
+      var daily = 0;
+      var wash = 0;
+      var solar = 0;
+      var unassigned = 0;
+
+      records.forEach(function(r) {
+        var cat = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
+        if (cat === 'Daily Car Cleaning') daily++;
+        else if (cat === 'Car Washing') wash++;
+        else if (cat === 'Solar Panel Cleaning') solar++;
+
+        var stf = (r.staffName || '').trim().toLowerCase();
+        if (!stf || stf === 'none' || stf === 'unassigned') unassigned++;
+      });
+
+      var elTotal = document.getElementById('kpiCountTotal');
+      var elDaily = document.getElementById('kpiCountDaily');
+      var elWash = document.getElementById('kpiCountWash');
+      var elSolar = document.getElementById('kpiCountSolar');
+      var elUnassigned = document.getElementById('kpiCountUnassigned');
+
+      if (elTotal) elTotal.textContent = total;
+      if (elDaily) elDaily.textContent = daily;
+      if (elWash) elWash.textContent = wash;
+      if (elSolar) elSolar.textContent = solar;
+      if (elUnassigned) elUnassigned.textContent = unassigned;
+    }
+
+    function setKpiCategoryFilter(cat) {
+      var catEl = document.getElementById('filterAdminCategory');
+      var staffEl = document.getElementById('filterAdminStaff');
+      if (catEl) catEl.value = cat;
+      if (staffEl) staffEl.value = 'all';
+      filterAdminRecords();
+    }
+    window.setKpiCategoryFilter = setKpiCategoryFilter;
+
+    function setKpiStaffFilter(val) {
+      var catEl = document.getElementById('filterAdminCategory');
+      var staffEl = document.getElementById('filterAdminStaff');
+      if (catEl) catEl.value = 'all';
+      if (staffEl) staffEl.value = val;
+      filterAdminRecords();
+    }
+    window.setKpiStaffFilter = setKpiStaffFilter;
+
+    // Keyboard shortcut / for search focus
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((document.activeElement || {}).tagName)) {
+        var searchEl = document.getElementById('adminRecordSearch');
+        var tab = document.getElementById('adminTabRecords');
+        if (searchEl && tab && tab.style.display !== 'none' && !tab.hasAttribute('hidden')) {
+          e.preventDefault();
+          searchEl.focus();
+          searchEl.select();
+        }
+      }
+    });
+
     function loadAdminRecords(forceRefresh) {
       var tbody = document.getElementById('adminRecordsTableBody');
       if (tbody) tbody.innerHTML = renderAdminTableSkeletons(6);
@@ -3961,6 +4158,7 @@ function loadStaffCustomerData(staffId) {
         var isLive = res && res.isLive !== undefined ? res.isLive : true;
 
         state.adminRecords = records || [];
+        updateAdminKpiMetrics();
 
         /* Update badge counter in tab */
         var recCountBadge = document.getElementById('tabRecordsCount');
@@ -4146,6 +4344,18 @@ function loadStaffCustomerData(staffId) {
       if (filteredCountEl) filteredCountEl.textContent = filtered.length;
       if (totalCountEl) totalCountEl.textContent = state.adminRecords.length;
 
+      var tileAll = document.getElementById('kpiTileAll');
+      var tileDaily = document.getElementById('kpiTileDaily');
+      var tileWash = document.getElementById('kpiTileWash');
+      var tileSolar = document.getElementById('kpiTileSolar');
+      var tileUnassigned = document.getElementById('kpiTileUnassigned');
+
+      if (tileAll) tileAll.classList.toggle('active', category === 'all' && staff === 'all');
+      if (tileDaily) tileDaily.classList.toggle('active', category === 'Daily Car Cleaning' && staff === 'all');
+      if (tileWash) tileWash.classList.toggle('active', category === 'Car Washing' && staff === 'all');
+      if (tileSolar) tileSolar.classList.toggle('active', category === 'Solar Panel Cleaning' && staff === 'all');
+      if (tileUnassigned) tileUnassigned.classList.toggle('active', staff === 'none');
+
       state.lastFilteredRecords = filtered;
       renderAdminRecordsTable(filtered);
     }
@@ -4286,10 +4496,11 @@ function loadStaffCustomerData(staffId) {
       var paginationContainer = document.getElementById('adminTablePagination');
 
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">' +
-          '<div style="font-size: 24px; margin-bottom: 6px;">🔍</div>' +
-          '<div style="font-weight: 700; font-size: 13.5px; color: var(--text-primary); margin-bottom: 3px;">No records found</div>' +
-          '<div style="font-size: 12px;">Try adjusting your search or filters, or <a href="javascript:void(0)" onclick="resetAllAdminFilters()" style="color:var(--brand-blue); text-decoration:underline; font-weight:600;">Reset filters</a></div>' +
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
+          '<div style="font-size: 32px; margin-bottom: 10px;">🔍</div>' +
+          '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">No customer records match your filter</div>' +
+          '<div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">Try adjusting your search criteria, staff assignment or category filters</div>' +
+          '<button type="button" class="btn-admin-secondary" onclick="resetAllAdminFilters()" style="margin: 0 auto; display: inline-flex;">Reset all filters</button>' +
           '</td></tr>';
         if (paginationContainer) {
           paginationContainer.innerHTML = '';
@@ -4313,8 +4524,6 @@ function loadStaffCustomerData(staffId) {
       pageRecords.forEach(function(r, index) {
         var sNo = startIndex + index + 1;
         var origIndex = r._origIndex !== undefined ? r._origIndex : (startIndex + index);
-        var sNo = index + 1;
-        var origIndex = r._origIndex !== undefined ? r._origIndex : index;
         var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
 
         /* 1. Customer Cell (Name + Phone + Category Tag) */
@@ -4324,40 +4533,54 @@ function loadStaffCustomerData(staffId) {
         else if (catName === 'Solar Panel Cleaning') tagClass = 'tag-solar';
         var pkgLabel = (r.packageType || r.serviceType || '').trim();
 
-        var custHtml = '<div class="cust-name-cell">' +
-          '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + escapeHtml(r.customerName || 'Unknown Customer') + '</span>' +
-          (r.customerNumber ? (function() {
-            var nPhone = normalizeIndianMobile(r.customerNumber);
-            return '<a href="' + getIndianPhoneLink(nPhone) + '" class="cust-phone-link" title="Call: ' + escapeHtml(formatIndianMobile(nPhone)) + '">' +
+        var avatarHtml = renderCustomerAvatar(r.customerName || 'Customer');
+        var phoneHtml = '';
+        if (r.customerNumber) {
+          var nPhone = normalizeIndianMobile(r.customerNumber);
+          var formattedPhone = formatIndianMobile(nPhone);
+          phoneHtml = '<div class="cust-phone-row">' +
+            '<a href="' + getIndianPhoneLink(nPhone) + '" class="cust-phone-link" title="Call: ' + escapeHtml(formattedPhone) + '">' +
               '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 4V3z"/></svg> ' +
-              escapeHtml(formatIndianMobile(nPhone)) + '</a>';
-          })() : '') +
-          '<div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:2px;">' +
-            '<span class="cust-sheet-tag ' + tagClass + '">' + escapeHtml(catName) + '</span>' +
+              escapeHtml(formattedPhone) +
+            '</a>' +
+            '<a href="https://wa.me/91' + escapeHtml(nPhone) + '" target="_blank" rel="noopener noreferrer" class="cust-wa-pill" title="Chat on WhatsApp with ' + escapeHtml(r.customerName || '') + '" onclick="event.stopPropagation();">' +
+              '<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z"/></svg>' +
+            '</a>' +
+          '</div>';
+        }
+
+        var custHtml = '<div class="cust-name-cell-modern">' +
+          avatarHtml +
+          '<div class="cust-meta-col">' +
+            '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + escapeHtml(r.customerName || 'Unknown Customer') + '</span>' +
+            phoneHtml +
+            '<div class="cust-tag-wrap">' +
+              '<span class="cust-sheet-tag ' + tagClass + '"><span class="tag-status-dot"></span>' + escapeHtml(catName) + '</span>' +
+            '</div>' +
           '</div>' +
         '</div>';
 
         /* 2. Vehicle / Site Cell + Photo Micro-Thumb */
         var carText = (r.vehicle || r.vehicleNumbers || '').trim();
-        var carHtml = '<div class="vehicle-cell-wrap">';
+        var carHtml = '<div class="vehicle-cell-wrap-modern">';
         if (carText) {
           if (catName === 'Solar Panel Cleaning') {
-            carHtml += '<span class="solar-site-badge" style="font-size:11px;" title="' + escapeHtml(carText) + '">☀️ ' + escapeHtml(carText) + '</span>';
+            carHtml += '<span class="solar-site-badge" style="font-size:11.5px;" title="' + escapeHtml(carText) + '">☀️ ' + escapeHtml(carText) + '</span>';
           } else {
-            carHtml += '<span class="car-number-plate" title="' + escapeHtml(carText) + '">' + escapeHtml(carText) + '</span>';
+            carHtml += renderModernNumberPlate(carText);
           }
         } else {
           carHtml += '<span class="cell-empty-dash">—</span>';
         }
         if (pkgLabel) {
-          carHtml += '<div><span class="package-pill-badge" style="font-size:9.5px; padding:1px 5px;">' + escapeHtml(pkgLabel) + '</span></div>';
+          carHtml += '<div style="margin-top: 3px;">' + renderModernPackageBadge(pkgLabel) + '</div>';
         }
         if (r.photoUrl && r.photoUrl.trim()) {
           var aThumb = r.photoUrl.indexOf('res.cloudinary.com') !== -1 && r.photoUrl.indexOf('/upload/') !== -1 ? r.photoUrl.replace('/upload/', '/upload/w_80,h_80,c_fill,q_auto,f_auto/') : r.photoUrl;
-          carHtml += '<div>' +
-            '<button type="button" class="vehicle-photo-thumb-btn" onclick="openAdminPhotoModal(' + origIndex + ')" title="View vehicle photo">' +
-              '<img src="' + escapeHtml(aThumb) + '" class="vehicle-micro-thumb" alt="Photo" onerror="this.style.display=\'none\'">' +
-              '<span>View Photo</span>' +
+          carHtml += '<div style="margin-top: 3px;">' +
+            '<button type="button" class="vehicle-photo-thumb-btn-modern" onclick="openAdminPhotoModal(' + origIndex + ')" title="View vehicle photo">' +
+              '<img src="' + escapeHtml(aThumb) + '" class="vehicle-micro-thumb" alt="Photo">' +
+              '<span>📷 Photo</span>' +
             '</button>' +
           '</div>';
         }
@@ -4366,8 +4589,16 @@ function loadStaffCustomerData(staffId) {
         /* 3. Primary Address Cell */
         var addrText = (r.address != null ? String(r.address) : '').trim();
         var primaryAddrHtml = '<div class="table-addr-col-wrap">';
-        if (addrText) {
-          primaryAddrHtml += '<div class="table-addr-text" onclick="openAddressModal(' + origIndex + ')" title="Click to view full address & details">' + escapeHtml(addrText) + '</div>';
+        if (isLocationLinkOnly(addrText)) {
+          primaryAddrHtml += '<div class="geo-verified-pill" onclick="openAddressModal(' + origIndex + ')" title="GPS Pin Coordinates Linked • Click to view">' +
+            '<span class="geo-pulse-dot"></span>' +
+            '<span>GPS Linked Pin</span>' +
+          '</div>';
+        } else if (addrText) {
+          primaryAddrHtml += '<div class="table-addr-text" onclick="openAddressModal(' + origIndex + ')" title="Click to view full address & details">' +
+            '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11" class="addr-pin-icon"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg> ' +
+            escapeHtml(addrText) +
+          '</div>';
         } else {
           primaryAddrHtml += '<span class="cell-empty-dash" title="Primary address not provided">—</span>';
         }
@@ -4377,8 +4608,8 @@ function loadStaffCustomerData(staffId) {
         var primaryMapsUrl = formatGoogleMapsUrl(r.googleMapsUrl, addrText);
         var primaryMapHtml = '<div style="text-align: center;">';
         if (primaryMapsUrl) {
-          primaryMapHtml += '<a href="' + escapeHtml(primaryMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="table-inline-map-btn" onclick="event.stopPropagation();" title="Open primary location in Google Maps">' +
-            '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>' +
+          primaryMapHtml += '<a href="' + escapeHtml(primaryMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="table-inline-map-btn smart-map-btn" onclick="event.stopPropagation();" title="Open primary location in Google Maps">' +
+            '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>' +
             '<span>Map ↗</span>' +
           '</a>';
         } else {
@@ -4391,7 +4622,7 @@ function loadStaffCustomerData(staffId) {
         var secAddrHtml = '<div class="table-addr-col-wrap">';
         if (secAddrText) {
           secAddrHtml += '<div class="table-addr-text table-addr-sec-text" onclick="openAddressModal(' + origIndex + ')" title="Click to view full address & details">' +
-            '<span class="badge-sec-tag">2nd</span> ' + escapeHtml(secAddrText) +
+            '<span class="badge-sec-tag">2nd Site</span> <span class="sec-text-content">' + escapeHtml(secAddrText) + '</span>' +
           '</div>';
         } else {
           secAddrHtml += '<span class="cell-empty-dash" title="No secondary address">—</span>';
@@ -4402,8 +4633,8 @@ function loadStaffCustomerData(staffId) {
         var secMapsUrl = formatGoogleMapsUrl(r.secondaryMapsUrl, secAddrText);
         var secMapHtml = '<div style="text-align: center;">';
         if (secMapsUrl) {
-          secMapHtml += '<a href="' + escapeHtml(secMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="table-inline-map-btn table-inline-map-sec-btn" onclick="event.stopPropagation();" title="Open secondary location in Google Maps">' +
-            '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>' +
+          secMapHtml += '<a href="' + escapeHtml(secMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="table-inline-map-btn table-inline-map-sec-btn smart-map-sec-btn" onclick="event.stopPropagation();" title="Open secondary location in Google Maps">' +
+            '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>' +
             '<span>2nd Map ↗</span>' +
           '</a>';
         } else {
@@ -4420,23 +4651,26 @@ function loadStaffCustomerData(staffId) {
                    (s.id && r.staffId && s.id.toUpperCase() === r.staffId.toUpperCase());
           });
           var matchedPhoto = matchedStaff ? (matchedStaff.photoUrl || matchedStaff.photo_url || '') : '';
-          staffHtml += '<span class="staff-assigned-badge" title="' + escapeHtml(staffName) + '" style="display:inline-flex; align-items:center; gap:5px;">';
+          staffHtml += '<span class="staff-assigned-chip" title="Assigned: ' + escapeHtml(staffName) + '">';
           if (matchedPhoto) {
-            staffHtml += '<img src="' + escapeHtml(matchedPhoto) + '" style="width:16px; height:16px; border-radius:50%; object-fit:cover; flex-shrink:0;" onerror="this.style.display=\'none\';">';
+            staffHtml += '<img src="' + escapeHtml(matchedPhoto) + '" class="staff-avatar-mini" alt="' + escapeHtml(staffName) + '">';
+          } else {
+            staffHtml += '<span class="staff-avatar-mini-initials">' + escapeHtml(staffName.slice(0, 2).toUpperCase()) + '</span>';
           }
-          staffHtml += escapeHtml(staffName) + '</span>';
+          staffHtml += '<span class="staff-chip-name">' + escapeHtml(staffName) + '</span></span>';
         } else {
           staffHtml += '<span class="staff-none-badge" title="No staff assigned">Unassigned</span>';
         }
         staffHtml += '</div>';
 
         /* 8. Actions: Edit and Delete Buttons */
-        var actionsHtml = '<div style="display: flex; gap: 4px; justify-content: center; align-items: center;">' +
+        var actionsHtml = '<div class="records-actions-cluster">' +
           '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="Edit customer details">' +
-            '<span>✏️ Edit</span>' +
+            '<svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>' +
+            '<span>Edit</span>' +
           '</button>' +
-          '<button type="button" class="btn-cell-action btn-delete-record" onclick="handleDeleteCustomer(' + origIndex + ')" title="Delete customer">' +
-            '<span>🗑️</span>' +
+          '<button type="button" class="btn-cell-action btn-delete-record" onclick="handleDeleteCustomer(' + origIndex + ')" title="Delete customer record">' +
+            '<svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>' +
           '</button>' +
         '</div>';
 

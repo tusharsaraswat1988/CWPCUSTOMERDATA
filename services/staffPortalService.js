@@ -60,7 +60,7 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
   // 2. Fetch Active Daily Clean Subscriptions assigned to this staff
   const dailySubsRes = await db.query(
     `SELECT sub.*, 
-            c.id AS customer_id, c.customer_code, c.name AS customer_name, c.phone AS customer_phone,
+            c.id AS customer_id, c.customer_code, c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone,
             c.alt_phone AS customer_alt_phone, c.notes AS customer_notes,
             srs.sequence_order
      FROM public.staff_assignments sa
@@ -156,13 +156,16 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       customerCode: subRow.customer_code,
       customerName: subRow.customer_name,
       name: subRow.customer_name,
+      nameHi: subRow.customer_name_hi || '',
       customerNumber: subRow.customer_phone,
       phone: subRow.customer_phone,
       altPhone: subRow.customer_alt_phone || '',
       address: primaryLoc?.address_text || '',
+      addressHi: primaryLoc?.address_text_hi || '',
       googleMapsUrl: primaryLoc?.google_maps_url || '',
       parkingDetails: primaryLoc?.parking_details || '',
       secondaryAddress: secondaryLoc?.address_text || '',
+      secondaryAddressHi: secondaryLoc?.address_text_hi || '',
       secondaryMapsUrl: secondaryLoc?.google_maps_url || '',
       secondaryParkingDetails: secondaryLoc?.parking_details || '',
       vehicle: vehicleSummary,
@@ -206,9 +209,11 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       customerCode: j.customer_code,
       customerName: j.customer_name,
       name: j.customer_name,
+      nameHi: j.customer_name_hi || '',
       customerNumber: j.customer_phone,
       phone: j.customer_phone,
       address: j.address_text,
+      addressHi: j.address_text_hi || '',
       googleMapsUrl: j.google_maps_url,
       parkingDetails: j.parking_details,
       vehicle: j.registration_no ? (j.brand_or_model ? `${j.registration_no} (${j.brand_or_model})` : j.registration_no) : '',

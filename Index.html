@@ -63,7 +63,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=2.6.0">
 
   <style>
     /* Critical FOUC Prevention & Immediate Logo/Header Constraints */
@@ -80,11 +80,11 @@
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; }
     img { max-width: 100%; height: auto; }
     .brand-logo-wrap { display: inline-flex; align-items: center; flex-shrink: 0; }
-    .brand-logo-img { height: 42px !important; width: auto !important; max-width: 180px !important; object-fit: contain !important; border-radius: 8px; }
+    .brand-logo-img { height: 36px !important; width: auto !important; max-width: 180px !important; object-fit: contain !important; border-radius: 6px; }
     .auth-card-logo { height: 48px !important; width: auto !important; max-width: 200px !important; object-fit: contain !important; }
     .logout-card-logo { height: 44px !important; width: auto !important; max-width: 180px !important; object-fit: contain !important; }
-    .top-header { background: #0f2942; color: #ffffff; position: sticky; top: 0; z-index: 1000; height: 56px; }
-    .header-inner { display: flex; align-items: center; justify-content: space-between; height: 100%; padding: 0 16px; max-width: 1400px; margin: 0 auto; }
+    .top-header { background: #0b192c; color: #ffffff; position: sticky; top: 0; z-index: 1000; height: 56px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; height: 100%; padding: 0 16px; max-width: 1440px; margin: 0 auto; }
 
     /* =========================================================================
        CWP DETAILERS – MODERN DESIGN SYSTEM & INTELLIGENCE v2.0
@@ -287,58 +287,153 @@
 </head>
 <body class="admin-mode-active">
 
-  <!-- Top Brand Navigation -->
-  <header class="top-header">
-    <div class="header-inner admin-mode-active">
-      <!-- Left: CWP Logo (Clean, no text next to it) -->
-      <div class="header-left">
-        <div class="brand-logo-wrap" title="CWP Detailers">
+  <!-- Top Brand Navigation (Unified SaaS Global Header) -->
+  <header class="top-header" role="banner">
+    <div class="header-inner">
+      <!-- Left: Natural Left-Aligned Brand Group (Logo, Brand Separator, Context Tag & Title) -->
+      <div class="header-brand-group">
+        <a href="javascript:void(0)" class="brand-logo-wrap" title="CWP Detailers & Motors" onclick="handleBrandLogoClick()">
           <img src="/cwp_logo.jpg" alt="CWP Detailers" class="brand-logo-img">
+        </a>
+        <div class="brand-separator" aria-hidden="true"></div>
+        <div class="header-context">
+          <span class="header-context-chip" id="headerContextChip">PORTAL</span>
+          <h1 class="header-app-title" id="pageMainTitle">Staff Portal</h1>
         </div>
       </div>
-      
-      <!-- Center: Admin App Title -->
-      <div class="header-center">
-        <h1 class="header-app-title" id="pageMainTitle">Admin Portal</h1>
-      </div>
 
-      <!-- Right: Controls -->
-      <div class="header-right">
-        <!-- Global Quick Settings (Theme & Lang) -->
-        <div class="header-global-toggles">
-          <button type="button" id="btnLangToggle" class="header-util-btn" onclick="toggleLanguage()" title="भाषा बदलें / Switch Language">
-            <span class="util-btn-icon">🌐</span>
-            <span id="langToggleText" class="util-btn-text">EN</span>
-          </button>
-          <button type="button" id="btnThemeToggle" class="header-util-btn" onclick="toggleTheme()" title="डार्क / लाइट मोड बदलें / Toggle Theme">
-            <span id="themeToggleIcon" class="util-btn-icon">🌙</span>
-          </button>
-        </div>
+      <!-- Right: Compact, Coherent Utility Area -->
+      <div class="header-utility-group">
 
-        <!-- Staff Live Indicator & Staff Logout (Only shown in staff view) -->
-        <div id="staffHeaderControls" style="display: none; align-items: center; gap: 8px;">
-          <!-- PWA Install Quick Action in Header -->
-          <button type="button" id="staffPwaInstallBtn" class="header-util-btn pwa-install-header-btn" onclick="triggerPwaInstallPrompt()" style="display: none;" title="CWP Staff ऐप फोन में इंस्टॉल करें">
-            <span class="util-btn-icon">📲</span>
-            <span class="pwa-btn-text">ऐप इंस्टॉल</span>
+        <!-- Staff / Live Connection Status Indicator (Interactive Pill, Not a loud CTA) -->
+        <div class="header-status-wrapper">
+          <button type="button" class="header-status-pill staff-live-badge status-live" id="staffLiveBadge" onclick="toggleSyncDetailsPopover(event)" aria-haspopup="true" aria-expanded="false" title="Auto-Sync Active (30s) • Live data connected (Click for details)">
+            <span class="status-indicator-dot dot-live" id="staffSyncDot">●</span>
+            <span class="status-indicator-text" id="staffSyncText">Live</span>
           </button>
-          <div class="staff-live-badge" id="staffLiveBadge" onclick="triggerManualStaffSync()" title="ऑटो-सिंक सक्रिय (30s) • लाइव डेटा सिंक चालू (क्लिक करके अभी चेक करें)">
-            <span class="dot-live" id="staffSyncDot">●</span>
-            <span id="staffSyncText">लाइव</span>
+          
+          <!-- Connection / Sync Diagnostics Popover -->
+          <div class="header-popover sync-details-popover" id="syncDetailsPopover" style="display: none;" onclick="event.stopPropagation()">
+            <div class="popover-header">
+              <div class="popover-title">
+                <span class="popover-dot dot-live" id="popoverStatusDot">●</span>
+                <span id="popoverStatusHeading">Realtime Connection</span>
+              </div>
+              <button type="button" class="popover-close-btn" onclick="closeSyncDetailsPopover(event)" aria-label="Close" title="Close">✕</button>
+            </div>
+            <div class="popover-body">
+              <div class="popover-row">
+                <span class="popover-label" id="popoverSyncModeLabel">Sync Frequency:</span>
+                <span class="popover-val" id="popoverSyncModeVal">Every 30 seconds</span>
+              </div>
+              <div class="popover-row">
+                <span class="popover-label" id="popoverLastSyncLabel">Last Synchronized:</span>
+                <span class="popover-val" id="popoverLastSyncVal">Just now</span>
+              </div>
+              <div class="popover-row">
+                <span class="popover-label" id="popoverNetworkLabel">Network State:</span>
+                <span class="popover-val" id="popoverNetworkVal">Online (High Speed)</span>
+              </div>
+            </div>
+            <div class="popover-actions">
+              <button type="button" class="btn-popover-sync" id="btnPopoverSyncNow" onclick="handleManualSyncClick(event)">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
+                  <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                </svg>
+                <span id="popoverSyncBtnText">Sync Now</span>
+              </button>
+            </div>
           </div>
-          <button type="button" id="staffLogoutBtn" class="header-logout-btn" onclick="handleStaffLogout()" style="display: none;" title="स्टाफ पोर्टल से लॉगआउट करें">
-            <span class="logout-icon">🚪</span>
-            <span class="logout-text">लॉगआउट</span>
-          </button>
         </div>
 
-        <!-- Admin Top Controls (Only shown in admin view - No duplicate admin badge) -->
-        <div id="adminHeaderControls" style="display: flex; align-items: center; gap: 8px;">
-          <button type="button" id="adminLogoutBtn" class="header-logout-btn" onclick="handleAdminLogout()" style="display: none;" title="Logout from Admin Portal">
-            <span class="logout-icon">🚪</span>
-            <span class="logout-text">Logout</span>
+        <!-- PWA In-App Install Quick Action (Neutral SaaS button, only when installable) -->
+        <button type="button" id="staffPwaInstallBtn" class="header-util-btn pwa-install-header-btn" onclick="triggerPwaInstallPrompt()" style="display: none;" title="Install CWP Staff App on your device">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" class="util-btn-icon">
+            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+          <span class="pwa-btn-text">Install App</span>
+        </button>
+
+        <!-- Compact Language Dropdown Selector -->
+        <div class="header-dropdown-wrap" id="langDropdownWrap">
+          <button type="button" id="btnLangToggle" class="header-util-btn header-lang-trigger" onclick="toggleLangDropdown(event)" title="भाषा बदलें / Select Language" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" class="util-btn-icon">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v.183a2 2 0 00.285 1.018l.05.088A5.972 5.972 0 0110 16a5.978 5.978 0 01-4.733-2.316l.044-.025a1.5 1.5 0 00.689-1.284V11a2 2 0 00-2-2H4.332z" clip-rule="evenodd"/>
+            </svg>
+            <span id="langToggleText" class="util-btn-text">EN</span>
+            <svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11" class="dropdown-chevron">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
           </button>
+          
+          <div class="header-menu-panel lang-menu-panel" id="langMenuPanel" style="display: none;" onclick="event.stopPropagation()">
+            <button type="button" class="header-menu-item" id="langOptEn" onclick="selectAppLanguage('en', event)">
+              <span class="menu-item-flag">🇺🇸</span>
+              <span class="menu-item-label">English</span>
+              <span class="menu-check" id="checkLangEn">✓</span>
+            </button>
+            <button type="button" class="header-menu-item" id="langOptHi" onclick="selectAppLanguage('hi', event)">
+              <span class="menu-item-flag">🇮🇳</span>
+              <span class="menu-item-label">हिन्दी (Hindi)</span>
+              <span class="menu-check" id="checkLangHi">✓</span>
+            </button>
+          </div>
         </div>
+
+        <!-- Standardized Icon-Only Theme Toggle -->
+        <button type="button" id="btnThemeToggle" class="header-util-btn header-icon-btn" onclick="toggleTheme()" title="थीम बदलें / Toggle Dark/Light Mode" aria-label="Toggle Theme">
+          <span id="themeToggleIcon" class="util-btn-icon">🌙</span>
+        </button>
+
+        <!-- Account / Profile Dropdown Menu with Embedded Destructive Logout -->
+        <div class="header-dropdown-wrap" id="accountDropdownWrap">
+          <button type="button" id="headerAccountTrigger" class="header-account-trigger" onclick="toggleAccountMenu(event)" title="Account profile & session options" aria-haspopup="true" aria-expanded="false" style="display: none;">
+            <div class="account-avatar" id="headerAccountAvatar">
+              <span id="headerAccountInitial">A</span>
+            </div>
+            <div class="account-meta">
+              <span class="account-name" id="headerAccountName">Admin</span>
+              <span class="account-badge" id="headerAccountRole">SUPER ADMIN</span>
+            </div>
+            <svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11" class="dropdown-chevron">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+
+          <div class="header-menu-panel account-menu-panel" id="accountMenuPanel" style="display: none;" onclick="event.stopPropagation()">
+            <div class="account-panel-header">
+              <div class="account-panel-avatar" id="menuPanelAvatar">👤</div>
+              <div class="account-panel-info">
+                <div class="account-panel-title" id="menuPanelName">Administrator</div>
+                <div class="account-panel-sub" id="menuPanelSub">Super Admin Access</div>
+              </div>
+            </div>
+            <div class="menu-separator"></div>
+            
+            <div class="account-panel-actions">
+              <!-- Staff Logout Action (preserved id, class & handler) -->
+              <button type="button" id="staffLogoutBtn" class="header-menu-item item-destructive" onclick="handleStaffLogout()" style="display: none;" title="स्टाफ पोर्टल से लॉगआउट करें">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" class="menu-item-icon">
+                  <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
+                </svg>
+                <span class="logout-text">लॉगआउट (Shift Sign Out)</span>
+              </button>
+
+              <!-- Admin Logout Action (preserved id, class & handler) -->
+              <button type="button" id="adminLogoutBtn" class="header-menu-item item-destructive" onclick="handleAdminLogout()" style="display: none;" title="Logout from Admin Portal">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" class="menu-item-icon">
+                  <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
+                </svg>
+                <span class="logout-text">Logout from Admin</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden Legacy Containers for Codebase Compatibility -->
+        <div id="staffHeaderControls" style="display: none;"></div>
+        <div id="adminHeaderControls" style="display: none;"></div>
+
       </div>
     </div>
   </header>
@@ -820,7 +915,7 @@
           <form onsubmit="handleAddStaff(event)" style="margin-bottom: 16px;">
             <div id="addStaffFormGrid" style="display: grid; grid-template-columns: auto 2fr 1.5fr 1fr auto; gap: 8px; align-items: center;">
               <div class="new-staff-photo-btn-wrap" style="position: relative;">
-                <button type="button" class="btn-admin-action" id="btnAddNewStaffPhoto" onclick="document.getElementById('newStaffPhotoFile').click()" title="Staff Photo (Optional)" style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; font-size: 12px; height: 38px; border-radius: var(--radius-md); border: 1px dashed var(--border-color); background: var(--bg-surface);">
+                <button type="button" class="btn-admin-action" id="btnAddNewStaffPhoto" onclick="var f=document.getElementById('newStaffPhotoFile'); if(f){f.value=''; f.click();}" title="Staff Photo (Optional)" style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; font-size: 12px; height: 38px; border-radius: var(--radius-md); border: 1px dashed var(--border-color); background: var(--bg-surface);">
                   <span id="newStaffPhotoPreview" style="display: none; width: 22px; height: 22px; border-radius: 50%; overflow: hidden; flex-shrink: 0;"><img id="newStaffPhotoPreviewImg" src="" style="width: 100%; height: 100%; object-fit: cover;"></span>
                   <span id="newStaffPhotoIcon">📷</span>
                   <span id="newStaffPhotoText" style="white-space: nowrap; font-weight: 600;">Photo</span>
@@ -860,25 +955,36 @@
         </div>
       </div>
 
-      <!-- Admin Tab 3: Active Records Table (Default Primary Dashboard) -->
+            <!-- Admin Tab 3: Active Records Table (Default Primary Dashboard) -->
       <div id="adminTabRecords" class="admin-tab-pane">
-        <div class="admin-card-section" style="padding: 12px 14px;">
+        <div class="admin-card-section records-executive-section">
           
-          <!-- Sleek Header: Title + Source Badge + Live Count + Unified Primary Actions -->
-          <div class="records-header-row">
-            <div class="records-title-group">
-              <h2 class="admin-card-title">
-                <span>Customer Records</span>
-                <span id="adminRecordsSourceBadge"></span>
-                <span class="records-count-chip"><span id="filteredRecordsCount">0</span> / <span id="totalRecordsCount">0</span></span>
-              </h2>
+          <!-- Executive Hero Strip: Directory Title, Realtime Status & Actions -->
+          <div class="records-hero-strip">
+            <div class="records-hero-left">
+              <div class="records-brand-icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="records-title-row">
+                  <h2 class="records-hero-title">Customer Records & Directory</h2>
+                  <span id="adminRecordsSourceBadge"></span>
+                  <span class="records-count-chip"><span id="filteredRecordsCount">0</span> / <span id="totalRecordsCount">0</span> clients</span>
+                </div>
+                <p class="records-hero-subtitle">Unified client registry, live detailing subscriptions, route locations & staff assignments</p>
+              </div>
             </div>
-            <div class="records-header-actions">
+            <div class="records-hero-actions">
               <button type="button" class="btn-admin-primary" onclick="openAddCustomerModal()" title="Open form to add a new customer">
                 <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                   <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
                 </svg>
-                <span>+ New Customer</span>
+                <span>New Customer</span>
               </button>
               <button type="button" class="btn-admin-secondary" onclick="exportAdminRecordsCSV()" title="Export filtered records to CSV">
                 <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
@@ -886,7 +992,7 @@
                 </svg>
                 <span>Export CSV</span>
               </button>
-              <button type="button" class="btn-admin-icon-only" onclick="loadAdminRecords(true)" title="Refresh data">
+              <button type="button" class="btn-admin-icon-only" id="btnAdminRefreshRecords" onclick="loadAdminRecords(true)" title="Refresh data from database">
                 <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
                   <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
                 </svg>
@@ -894,42 +1000,130 @@
             </div>
           </div>
 
-          <!-- Ultra-Compact Single-Row Search & Filters Toolbar -->
+          <!-- Interactive KPI Metrics Strip (1-Click Intelligent Filter Strip) -->
+          <div class="records-kpi-grid">
+            <div class="records-kpi-tile tile-kpi-all active" id="kpiTileAll" onclick="setKpiCategoryFilter('all')" title="Filter: All Customers">
+              <div class="kpi-tile-icon icon-all">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+              </div>
+              <div class="kpi-tile-data">
+                <span class="kpi-tile-num" id="kpiCountTotal">0</span>
+                <span class="kpi-tile-label">All Clients</span>
+              </div>
+            </div>
+
+            <div class="records-kpi-tile tile-kpi-daily" id="kpiTileDaily" onclick="setKpiCategoryFilter('Daily Car Cleaning')" title="Filter: Daily Car Cleaning">
+              <div class="kpi-tile-icon icon-daily">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
+                  <circle cx="7" cy="17" r="2"/>
+                  <path d="M9 17h6"/>
+                  <circle cx="17" cy="17" r="2"/>
+                </svg>
+              </div>
+              <div class="kpi-tile-data">
+                <span class="kpi-tile-num" id="kpiCountDaily">0</span>
+                <span class="kpi-tile-label">Daily Cleaning</span>
+              </div>
+            </div>
+
+            <div class="records-kpi-tile tile-kpi-wash" id="kpiTileWash" onclick="setKpiCategoryFilter('Car Washing')" title="Filter: Car Washing">
+              <div class="kpi-tile-icon icon-wash">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                </svg>
+              </div>
+              <div class="kpi-tile-data">
+                <span class="kpi-tile-num" id="kpiCountWash">0</span>
+                <span class="kpi-tile-label">Car Washing</span>
+              </div>
+            </div>
+
+            <div class="records-kpi-tile tile-kpi-solar" id="kpiTileSolar" onclick="setKpiCategoryFilter('Solar Panel Cleaning')" title="Filter: Solar Panel Cleaning">
+              <div class="kpi-tile-icon icon-solar">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <line x1="12" y1="1" x2="12" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="23"></line>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                  <line x1="1" y1="12" x2="3" y2="12"></line>
+                  <line x1="21" y1="12" x2="23" y2="12"></line>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+              </div>
+              <div class="kpi-tile-data">
+                <span class="kpi-tile-num" id="kpiCountSolar">0</span>
+                <span class="kpi-tile-label">Solar Cleaning</span>
+              </div>
+            </div>
+
+            <div class="records-kpi-tile tile-kpi-unassigned" id="kpiTileUnassigned" onclick="setKpiStaffFilter('none')" title="Filter: Unassigned Staff">
+              <div class="kpi-tile-icon icon-unassigned">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <div class="kpi-tile-data">
+                <span class="kpi-tile-num" id="kpiCountUnassigned">0</span>
+                <span class="kpi-tile-label">Unassigned</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ultra-Modern Single-Row Search & Filters Toolbar -->
           <div class="records-toolbar">
             <!-- Search Input with inline SVG and instant Clear button -->
             <div class="records-search-wrapper">
               <svg class="records-search-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
                 <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
               </svg>
-              <input type="text" id="adminRecordSearch" class="records-search-input" placeholder="Search customer, vehicle, phone, or address..." oninput="handleAdminSearchInput()" onkeydown="if(event.key==='Enter') filterAdminRecords()">
+              <input type="text" id="adminRecordSearch" class="records-search-input" placeholder="Search customer, vehicle plate, phone, address..." oninput="handleAdminSearchInput()" onkeydown="if(event.key==='Enter') filterAdminRecords()">
+              <div class="search-kbd-hint">/</div>
               <button type="button" class="btn-search-clear-inline" id="btnAdminSearchClear" onclick="clearAdminSearch()" style="display: none;" title="Clear search">✕</button>
             </div>
 
             <!-- Filters Group -->
             <div class="records-filters-group">
-              <select id="filterAdminCategory" class="filter-select" onchange="filterAdminRecords()" title="Service Category">
-                <option value="all">All Categories</option>
-                <option value="Daily Car Cleaning">Daily Car Cleaning</option>
-                <option value="Car Washing">Car Washing</option>
-                <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
-              </select>
+              <div class="filter-select-wrapper">
+                <select id="filterAdminCategory" class="filter-select" onchange="filterAdminRecords()" title="Service Category">
+                  <option value="all">All Categories</option>
+                  <option value="Daily Car Cleaning">Daily Car Cleaning</option>
+                  <option value="Car Washing">Car Washing</option>
+                  <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
+                </select>
+              </div>
 
-              <select id="filterAdminStaff" class="filter-select" onchange="filterAdminRecords()" title="Staff Assignment">
-                <option value="all">All Staff</option>
-                <option value="none">Unassigned (None)</option>
-              </select>
+              <div class="filter-select-wrapper">
+                <select id="filterAdminStaff" class="filter-select" onchange="filterAdminRecords()" title="Staff Assignment">
+                  <option value="all">All Staff</option>
+                  <option value="none">⚠️ Unassigned (None)</option>
+                </select>
+              </div>
 
-              <select id="filterAdminStatus" class="filter-select" onchange="filterAdminRecords()" title="Active Status">
-                <option value="all">All Status</option>
-                <option value="yes">Active</option>
-                <option value="no">Inactive</option>
-              </select>
+              <div class="filter-select-wrapper">
+                <select id="filterAdminStatus" class="filter-select" onchange="filterAdminRecords()" title="Active Status">
+                  <option value="all">All Status</option>
+                  <option value="yes">Active</option>
+                  <option value="no">Inactive</option>
+                </select>
+              </div>
 
               <button type="button" class="filter-pill-check" id="toggleFilterPhoto" onclick="toggleQuickFilter('photo')" title="Show only records with photo">
-                <span>📷 Photo</span>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span>Photo</span>
               </button>
               <button type="button" class="filter-pill-check" id="toggleFilterMap" onclick="toggleQuickFilter('map')" title="Show only records with map/GPS">
-                <span>📍 Map</span>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+                <span>Map GPS</span>
               </button>
 
               <div id="filterActiveNotice" style="display: none;">
@@ -945,15 +1139,15 @@
             <table class="records-table">
               <thead>
                 <tr>
-                  <th style="width: 38px; text-align: center;">#</th>
-                  <th style="width: 170px; min-width: 150px;">Customer</th>
-                  <th style="width: 145px; min-width: 130px;">Vehicle / Site</th>
+                  <th style="width: 44px; text-align: center;">#</th>
+                  <th style="width: 200px; min-width: 170px;">Customer</th>
+                  <th style="width: 160px; min-width: 140px;">Vehicle / Site</th>
                   <th style="min-width: 160px;">Primary Address</th>
-                  <th style="width: 105px; min-width: 95px; text-align: center;">Primary Map</th>
+                  <th style="width: 110px; min-width: 95px; text-align: center;">Primary Map</th>
                   <th style="min-width: 160px;">Secondary Address</th>
-                  <th style="width: 105px; min-width: 95px; text-align: center;">Secondary Map</th>
-                  <th style="width: 110px; text-align: center;">Staff</th>
-                  <th style="width: 95px; text-align: center;">Actions</th>
+                  <th style="width: 110px; min-width: 95px; text-align: center;">Secondary Map</th>
+                  <th style="width: 125px; text-align: center;">Staff</th>
+                  <th style="width: 100px; text-align: center;">Actions</th>
                 </tr>
               </thead>
               <tbody id="adminRecordsTableBody">
@@ -1936,19 +2130,20 @@
 
         <!-- Staff Photo Upload Section in Edit Modal -->
         <div style="background: var(--bg-surface); padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 14px; display: flex; align-items: center; gap: 14px;">
-          <div style="position: relative; width: 62px; height: 62px; border-radius: 50%; overflow: hidden; background: #e2e8f0; border: 2px solid var(--brand-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+          <div id="editStaffAvatarWrapper" onclick="var f=document.getElementById('editStaffPhotoFile'); if(f){f.value=''; f.click();}" title="Click to upload/change photo" style="position: relative; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: #e2e8f0; border: 2px solid var(--brand-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer;">
             <img id="editStaffPhotoPreview" src="" alt="Staff Photo" style="width: 100%; height: 100%; object-fit: cover; display: none;">
             <span id="editStaffPhotoInitial" style="font-size: 24px; font-weight: 700; color: #475569;">S</span>
           </div>
           <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
             <label class="form-label" style="margin: 0; font-size: 12px; font-weight: 700;">Staff Photo (स्टाफ फोटो)</label>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button type="button" class="btn-admin-action" onclick="document.getElementById('editStaffPhotoFile').click()" style="padding: 5px 12px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <button type="button" class="btn-admin-action" id="btnEditStaffPhotoTrigger" onclick="var f=document.getElementById('editStaffPhotoFile'); if(f){f.value=''; f.click();}" style="padding: 6px 12px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 5px; font-weight: 600;">
                 <span>📷</span> <span id="editStaffPhotoBtnText">Upload Photo</span>
               </button>
-              <button type="button" id="btnRemoveStaffPhoto" class="btn-admin-action btn-admin-danger" onclick="removeEditStaffPhoto()" style="padding: 5px 12px; font-size: 11.5px; display: none;">
+              <button type="button" id="btnRemoveStaffPhoto" class="btn-admin-action btn-admin-danger" onclick="removeEditStaffPhoto()" style="padding: 6px 12px; font-size: 11.5px; display: none;">
                 🗑️ Remove
               </button>
+              <span id="editStaffPhotoStatusMsg" style="font-size: 11px; color: #10b981; font-weight: 600; display: none;">✓ Selected</span>
             </div>
             <input type="file" id="editStaffPhotoFile" accept="image/*" style="display: none;" onchange="handleStaffPhotoSelect(event, 'edit')">
             <input type="hidden" id="editStaffPhotoUrl" value="">
@@ -2165,6 +2360,20 @@
 
   <!-- Vendor Libraries & Modular Application Logic -->
   <script src="/js/cropper.min.js"></script>
-  <script src="/js/app.js" defer></script>
+  <script src="/js/app.js?v=2.6.0" defer></script>
+  <script>
+    // Failsafe listener for staff photo selection
+    document.addEventListener('change', function(e) {
+      if (e.target && e.target.id === 'editStaffPhotoFile') {
+        if (typeof window.handleStaffPhotoSelect === 'function') {
+          window.handleStaffPhotoSelect(e, 'edit');
+        }
+      } else if (e.target && e.target.id === 'newStaffPhotoFile') {
+        if (typeof window.handleStaffPhotoSelect === 'function') {
+          window.handleStaffPhotoSelect(e, 'new');
+        }
+      }
+    });
+  </script>
 </body>
 </html>

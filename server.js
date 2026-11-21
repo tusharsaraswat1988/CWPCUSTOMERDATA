@@ -58,6 +58,7 @@ const authService = require('./services/authService');
 const adminService = require('./services/adminService');
 const staffPortalService = require('./services/staffPortalService');
 const offlineSyncService = require('./services/offlineSyncService');
+const indicService = require('./services/indicTransliterateService');
 
 function isNeonConfigured() {
   const url = process.env.DATABASE_URL || '';
@@ -272,7 +273,7 @@ function saveLocalUpload(photoObj) {
   const filename = 'cwp_' + Date.now() + ext;
   const filepath = path.join(UPLOADS_DIR, filename);
   fs.writeFileSync(filepath, Buffer.from(photoObj.base64, 'base64'));
-  return `https://${DOMAIN}/uploads/${filename}`;
+  return `/uploads/${filename}`;
 }
 
 /**
@@ -1287,10 +1288,15 @@ function formatStaffDataResponse(staffId, fetchResult) {
       staffId: staffObj ? staffObj.id : staffId,
       staffName: c.staffName || (staffObj ? staffObj.name : staffId),
       customerName: c.customerName,
+      nameHi: c.nameHi || c.name_hi || '',
       customerNumber: c.customerNumber,
       googleMapsUrl: c.googleMapsUrl,
       photoUrl: c.photoUrl,
       address: c.address,
+      addressHi: c.addressHi || c.address_hi || '',
+      secondaryAddress: c.secondaryAddress || '',
+      secondaryAddressHi: c.secondaryAddressHi || c.secondary_address_hi || '',
+      secondaryMapsUrl: c.secondaryMapsUrl || '',
       vehicleNumbers: c.vehicle || c.vehicleNumbers,
       vehicle: c.vehicle || c.vehicleNumbers,
       vehicleModel: vehInfo.model,
@@ -1300,8 +1306,6 @@ function formatStaffDataResponse(staffId, fetchResult) {
       serviceCategory: 'Daily Car Cleaning',
       category: 'daily_car_cleaning',
       staffNotes: c.notes,
-      secondaryAddress: c.secondaryAddress || '',
-      secondaryMapsUrl: c.secondaryMapsUrl || '',
       active: c.active,
       rowIndex: c.rowIndex,
       _originalIndex: originalIdx
@@ -1316,10 +1320,15 @@ function formatStaffDataResponse(staffId, fetchResult) {
     staffId: staffObj ? staffObj.id : staffId,
     staffName: c.staffName || (staffObj ? staffObj.name : staffId),
     customerName: c.customerName,
+    nameHi: c.nameHi || c.name_hi || '',
     customerNumber: c.customerNumber,
     googleMapsUrl: c.googleMapsUrl,
     photoUrl: c.photoUrl,
     address: c.address,
+    addressHi: c.addressHi || c.address_hi || '',
+    secondaryAddress: c.secondaryAddress || '',
+    secondaryAddressHi: c.secondaryAddressHi || c.secondary_address_hi || '',
+    secondaryMapsUrl: c.secondaryMapsUrl || '',
     vehicleNumbers: c.vehicle,
     vehicleOrSite: c.vehicle,
     vehicle: c.vehicle,
@@ -1328,8 +1337,6 @@ function formatStaffDataResponse(staffId, fetchResult) {
     serviceCategory: 'Car Washing',
     category: 'car_washing',
     staffNotes: c.notes,
-    secondaryAddress: c.secondaryAddress || '',
-    secondaryMapsUrl: c.secondaryMapsUrl || '',
     active: c.active
   }));
 
@@ -1339,10 +1346,15 @@ function formatStaffDataResponse(staffId, fetchResult) {
     staffId: staffObj ? staffObj.id : staffId,
     staffName: c.staffName || (staffObj ? staffObj.name : staffId),
     customerName: c.customerName,
+    nameHi: c.nameHi || c.name_hi || '',
     customerNumber: c.customerNumber,
     googleMapsUrl: c.googleMapsUrl,
     photoUrl: c.photoUrl,
     address: c.address,
+    addressHi: c.addressHi || c.address_hi || '',
+    secondaryAddress: c.secondaryAddress || '',
+    secondaryAddressHi: c.secondaryAddressHi || c.secondary_address_hi || '',
+    secondaryMapsUrl: c.secondaryMapsUrl || '',
     vehicleNumbers: c.vehicle,
     vehicleOrSite: c.vehicle,
     vehicle: c.vehicle,
@@ -1351,8 +1363,6 @@ function formatStaffDataResponse(staffId, fetchResult) {
     serviceCategory: 'Solar Panel Cleaning',
     category: 'solar_cleaning',
     staffNotes: c.notes,
-    secondaryAddress: c.secondaryAddress || '',
-    secondaryMapsUrl: c.secondaryMapsUrl || '',
     active: c.active
   }));
 
@@ -1669,14 +1679,14 @@ const server = http.createServer(async (req, res) => {
       if (req.headers['if-none-match'] === etag) {
         res.writeHead(304, {
           'ETag': etag,
-          'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600'
+          'Cache-Control': 'no-cache, must-revalidate'
         });
         return res.end();
       }
 
       res.writeHead(200, {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
+        'Cache-Control': 'no-cache, must-revalidate',
         'ETag': etag
       });
       return fs.createReadStream(assetPath).pipe(res);
@@ -1751,6 +1761,51 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ success: true, records }));
+  }
+
+  // POST /api/indic/transliterate - Real-time transliteration endpoint
+  if (req.method === 'POST' && pathname === '/api/indic/transliterate') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const text = (payload.text || '').trim();
+        const type = payload.type || 'general';
+        let result = '';
+        if (type === 'name') {
+          result = await indicService.transliterateName(text);
+        } else if (type === 'address') {
+          result = await indicService.transliterateAddress(text);
+        } else {
+          result = await indicService.fetchGoogleIndic(text);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: true, text, transliterated: result }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // POST /api/indic/transliterate-customer - Batch transliterate customer inputs
+  if (req.method === 'POST' && pathname === '/api/indic/transliterate-customer') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const result = await indicService.transliterateCustomer(payload);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: true, ...result }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
   }
 
   // GET /api/staff-sequence - Requires valid Admin Session
@@ -2927,6 +2982,16 @@ const server = http.createServer(async (req, res) => {
           }
 
           if (!appState.customers) appState.customers = [];
+          if (!cust.nameHi && cust.customerName) {
+            try { cust.nameHi = await indicService.transliterateName(cust.customerName); } catch (e) { cust.nameHi = cust.customerName; }
+          }
+          if (!cust.addressHi && cust.address) {
+            try { cust.addressHi = await indicService.transliterateAddress(cust.address); } catch (e) { cust.addressHi = cust.address; }
+          }
+          if (!cust.secondaryAddressHi && cust.secondaryAddress) {
+            try { cust.secondaryAddressHi = await indicService.transliterateAddress(cust.secondaryAddress); } catch (e) { cust.secondaryAddressHi = cust.secondaryAddress; }
+          }
+
           const existingIdx = appState.customers.findIndex(c => c.customerNumber === cust.customerNumber && c.customerName === cust.customerName);
           if (existingIdx >= 0) {
             appState.customers[existingIdx] = Object.assign({}, appState.customers[existingIdx], cust);
@@ -3059,6 +3124,15 @@ const server = http.createServer(async (req, res) => {
           if (appState.customers && appState.customers.length > 0) {
             const localIdx = appState.customers.findIndex(c => c.sheetName === cust.sheetName && parseInt(c.rowIndex, 10) === rowIdx);
             if (localIdx >= 0) {
+              if (!cust.nameHi && cust.customerName) {
+                try { cust.nameHi = await indicService.transliterateName(cust.customerName); } catch (e) { cust.nameHi = cust.customerName; }
+              }
+              if (!cust.addressHi && cust.address) {
+                try { cust.addressHi = await indicService.transliterateAddress(cust.address); } catch (e) { cust.addressHi = cust.address; }
+              }
+              if (!cust.secondaryAddressHi && cust.secondaryAddress) {
+                try { cust.secondaryAddressHi = await indicService.transliterateAddress(cust.secondaryAddress); } catch (e) { cust.secondaryAddressHi = cust.secondaryAddress; }
+              }
               appState.customers[localIdx] = Object.assign({}, appState.customers[localIdx], cust);
               saveLocalData(appState);
             }
@@ -3067,6 +3141,45 @@ const server = http.createServer(async (req, res) => {
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, message: 'Customer details updated successfully' }));
+        }
+
+        // Admin: Backfill Hindi (Google Indic Transliteration for existing records)
+        if (payload.action === 'backfillHindi') {
+          if (isNeonConfigured()) {
+            try {
+              const backfillRes = await adminService.backfillHindiCustomerData('admin');
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(backfillRes));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
+          let updated = 0;
+          if (appState.customers && appState.customers.length > 0) {
+            for (const c of appState.customers) {
+              let changed = false;
+              if (!c.nameHi && c.customerName) {
+                c.nameHi = await indicService.transliterateName(c.customerName);
+                changed = true;
+              }
+              if (!c.addressHi && c.address) {
+                c.addressHi = await indicService.transliterateAddress(c.address);
+                changed = true;
+              }
+              if (!c.secondaryAddressHi && c.secondaryAddress) {
+                c.secondaryAddressHi = await indicService.transliterateAddress(c.secondaryAddress);
+                changed = true;
+              }
+              if (changed) updated++;
+            }
+            saveLocalData(appState);
+            invalidateLiveCustomersCache();
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, total: (appState.customers || []).length, updated }));
         }
 
         // Admin: Delete Customer
