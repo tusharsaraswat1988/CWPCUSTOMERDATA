@@ -7,6 +7,7 @@ async function findAll({
   search = '',
   isActive = null,
   includeDeleted = false,
+  isLead = null,
   limit = 200,
   offset = 0,
   client = null
@@ -22,6 +23,11 @@ async function findAll({
   if (isActive !== null && isActive !== undefined) {
     params.push(Boolean(isActive));
     conditions.push(`is_active = $${params.length}`);
+  }
+
+  if (isLead !== null && isLead !== undefined) {
+    params.push(Boolean(isLead));
+    conditions.push(`is_lead = $${params.length}`);
   }
 
   if (search && search.trim()) {
@@ -90,15 +96,20 @@ async function createCustomer({
   isActive = true,
   nameHi = null,
   addressHi = null,
-  secondaryAddressHi = null
+  secondaryAddressHi = null,
+  isLead = false,
+  leadStatus = 'open',
+  leadNotes = null,
+  interestedService = 'Daily Car Cleaning'
 }, client = null) {
   const runner = client || db;
   const res = await runner.query(
     `INSERT INTO public.customers (
        customer_code, name, phone, alt_phone, email, notes, 
        source_sheet_name, source_row_index, is_active,
-       name_hi, address_hi, secondary_address_hi
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       name_hi, address_hi, secondary_address_hi,
+       is_lead, lead_status, lead_notes, interested_service
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
      RETURNING *`,
     [
       customerCode.trim(),
@@ -112,7 +123,11 @@ async function createCustomer({
       Boolean(isActive),
       nameHi ? nameHi.trim() : null,
       addressHi ? addressHi.trim() : null,
-      secondaryAddressHi ? secondaryAddressHi.trim() : null
+      secondaryAddressHi ? secondaryAddressHi.trim() : null,
+      Boolean(isLead),
+      leadStatus ? leadStatus.trim() : 'open',
+      leadNotes ? leadNotes.trim() : null,
+      interestedService ? interestedService.trim() : 'Daily Car Cleaning'
     ]
   );
   return res.rows[0];
@@ -127,7 +142,11 @@ async function updateCustomer(id, {
   isActive,
   nameHi,
   addressHi,
-  secondaryAddressHi
+  secondaryAddressHi,
+  isLead,
+  leadStatus,
+  leadNotes,
+  interestedService
 }, client = null) {
   const runner = client || db;
   const updates = [];
@@ -169,6 +188,22 @@ async function updateCustomer(id, {
     params.push(secondaryAddressHi ? secondaryAddressHi.trim() : null);
     updates.push(`secondary_address_hi = $${params.length}`);
   }
+  if (isLead !== undefined) {
+    params.push(Boolean(isLead));
+    updates.push(`is_lead = $${params.length}`);
+  }
+  if (leadStatus !== undefined) {
+    params.push(leadStatus ? leadStatus.trim() : 'open');
+    updates.push(`lead_status = $${params.length}`);
+  }
+  if (leadNotes !== undefined) {
+    params.push(leadNotes ? leadNotes.trim() : null);
+    updates.push(`lead_notes = $${params.length}`);
+  }
+  if (interestedService !== undefined) {
+    params.push(interestedService ? interestedService.trim() : null);
+    updates.push(`interested_service = $${params.length}`);
+  }
   updates.push('updated_at = CURRENT_TIMESTAMP');
 
   const res = await runner.query(
@@ -177,6 +212,46 @@ async function updateCustomer(id, {
      WHERE id = $1 AND deleted_at IS NULL
      RETURNING *`,
     params
+  );
+  return res.rows[0] || null;
+}
+
+async function convertLeadToCustomer(id, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `UPDATE public.customers
+     SET is_lead = FALSE,
+         lead_status = 'converted',
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND deleted_at IS NULL
+     RETURNING *`,
+    [id]
+  );
+  return res.rows[0] || null;
+}
+
+async function appendLeadNote(id, noteText, client = null) {
+  const runner = client || db;
+  // Fetch existing notes
+  const custRes = await runner.query(
+    'SELECT notes, lead_notes FROM public.customers WHERE id = $1 AND deleted_at IS NULL LIMIT 1',
+    [id]
+  );
+  if (!custRes.rows[0]) return null;
+
+  const existingLeadNotes = custRes.rows[0].lead_notes || '';
+  const existingNotes = custRes.rows[0].notes || '';
+  const newLeadNotes = existingLeadNotes ? `${existingLeadNotes}\n${noteText.trim()}` : noteText.trim();
+  const newNotes = existingNotes ? `${existingNotes}\n${noteText.trim()}` : noteText.trim();
+
+  const res = await runner.query(
+    `UPDATE public.customers
+     SET lead_notes = $2,
+         notes = $3,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND deleted_at IS NULL
+     RETURNING *`,
+    [id, newLeadNotes, newNotes]
   );
   return res.rows[0] || null;
 }
@@ -224,5 +299,7 @@ module.exports = {
   updateCustomer,
   toggleActive,
   softDelete,
-  countCustomers
+  countCustomers,
+  convertLeadToCustomer,
+  appendLeadNote
 };
