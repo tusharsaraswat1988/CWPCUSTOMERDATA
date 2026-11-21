@@ -52,7 +52,7 @@ async function createVehicle({
     [
       customerId,
       defaultLocationId,
-      registrationNo.trim().toUpperCase(),
+      registrationNo.trim().toUpperCase().slice(0, 20),
       brandOrModel ? brandOrModel.trim() : null,
       vehicleType || 'Car',
       photoUrl,

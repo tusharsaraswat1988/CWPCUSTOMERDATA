@@ -36,7 +36,9 @@ async function findAll({
     conditions.push(`(
       LOWER(name) LIKE $${pIdx} OR 
       phone LIKE $${pIdx} OR 
-      LOWER(customer_code) LIKE $${pIdx}
+      LOWER(customer_code) LIKE $${pIdx} OR
+      LOWER(COALESCE(name_hi, '')) LIKE $${pIdx} OR
+      LOWER(COALESCE(address_hi, '')) LIKE $${pIdx}
     )`);
   }
 
@@ -114,7 +116,7 @@ async function createCustomer({
     [
       customerCode.trim(),
       name.trim(),
-      phone.trim(),
+      phone ? phone.trim() : null,
       altPhone ? altPhone.trim() : null,
       email ? email.trim() : null,
       notes ? notes.trim() : null,

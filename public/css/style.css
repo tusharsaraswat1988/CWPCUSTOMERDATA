@@ -9562,6 +9562,57 @@ body.theme-dark .btn-page-num {
   animation: liveDotPulseAnim 1.8s infinite;
 }
 
+.live-dot-fast {
+  animation: liveDotPulseAnim 0.7s infinite !important;
+}
+
+.live-sync-pill.is-paused {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
+body.theme-dark .live-sync-pill.is-paused {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.reports-last-sync-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+.spin-icon {
+  animation: cwpSpin 0.8s linear infinite !important;
+}
+
+.btn-report-refresh.is-refreshing {
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.row-new-highlight {
+  animation: rowNewHighlightAnim 3.5s ease-out forwards;
+}
+
+@keyframes rowNewHighlightAnim {
+  0% {
+    background-color: rgba(16, 185, 129, 0.28) !important;
+  }
+  60% {
+    background-color: rgba(16, 185, 129, 0.12) !important;
+  }
+  100% {
+    background-color: transparent !important;
+  }
+}
+
 @keyframes liveDotPulseAnim {
   0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
   70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
@@ -11763,4 +11814,286 @@ body.theme-dark .cust-bilingual-sub,
 body.theme-dark .table-hi-sub,
 [data-theme="dark"] .table-hi-sub {
   color: #93c5fd !important;
+}
+
+/* =========================================================================
+   LEADS SECTION & COMPACT CARDS STYLING
+   ========================================================================= */
+.leads-executive-section {
+  padding: 16px;
+}
+.leads-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+@media (max-width: 640px) {
+  .leads-grid-container {
+    grid-template-columns: 1fr;
+  }
+}
+.cwp-lead-card {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+.cwp-lead-card:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.12);
+}
+.cwp-lead-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.cwp-lead-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cwp-lead-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cwp-lead-name-hi {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary, #64748b);
+}
+.cwp-lead-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+.cwp-lead-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cwp-lead-phone-num {
+  font-family: monospace;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--brand-blue, #2563eb);
+}
+.cwp-lead-quick-call {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #059669;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.12s ease;
+}
+.cwp-lead-quick-call:hover {
+  background: #10b981;
+  color: #fff;
+}
+.cwp-lead-quick-wa {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #047857;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.12s ease;
+}
+.cwp-lead-quick-wa:hover {
+  background: #22c55e;
+  color: #fff;
+}
+.cwp-lead-car-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--bg-hover, #f8fafc);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+.cwp-lead-plate-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cwp-lead-plate-badge {
+  background: #ffffff;
+  color: #0f172a;
+  border: 2px solid #0f172a;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  font-family: monospace;
+}
+.cwp-lead-photo-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--border-color, #e2e8f0);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.cwp-lead-photo-thumb:hover {
+  transform: scale(1.08);
+}
+.cwp-lead-loc-box {
+  font-size: 12.5px;
+  color: var(--text-secondary, #475569);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.4;
+}
+.cwp-lead-notes-box {
+  background: rgba(245, 158, 11, 0.07);
+  border: 1px dashed rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #92400e;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cwp-lead-notes-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #b45309;
+}
+.cwp-lead-notes-content {
+  line-height: 1.45;
+  white-space: pre-line;
+  max-height: 80px;
+  overflow-y: auto;
+}
+.cwp-lead-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+}
+.btn-convert-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: 1px solid #059669;
+  border-radius: 7px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.25);
+  transition: all 0.15s ease;
+}
+.btn-convert-hero:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35);
+}
+.btn-lead-note-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.btn-lead-note-action:hover {
+  background: rgba(245, 158, 11, 0.2);
+}
+.btn-lead-icon-danger {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.btn-lead-icon-danger:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* Dark Mode Support for Leads */
+body.theme-dark .cwp-lead-card,
+[data-theme="dark"] .cwp-lead-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+body.theme-dark .cwp-lead-car-box,
+[data-theme="dark"] .cwp-lead-car-box {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+body.theme-dark .cwp-lead-plate-badge,
+[data-theme="dark"] .cwp-lead-plate-badge {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+body.theme-dark .cwp-lead-notes-box,
+[data-theme="dark"] .cwp-lead-notes-box {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  color: #fbbf24 !important;
+}
+body.theme-dark .cwp-lead-actions-row,
+[data-theme="dark"] .cwp-lead-actions-row {
+  border-top-color: #334155 !important;
 }

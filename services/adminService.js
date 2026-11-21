@@ -10,6 +10,7 @@ const repos = require('../db/repositories/index');
 const authService = require('./authService');
 const staffPortalService = require('./staffPortalService');
 const indicService = require('./indicTransliterateService');
+const bilingualSearchService = require('./bilingualSearchService');
 
 function normalizeIndianMobile(value) {
   if (value === null || value === undefined) return '';
@@ -37,21 +38,34 @@ function isValidIndianMobile(value) {
 function parseVehicleString(str) {
   if (!str) return { reg: '', model: '' };
   const s = String(str).trim();
-  const match = s.match(/^([A-Z0-9\s\-]+?)(?:\s*\((.*?)\))?$/i);
-  if (match) {
-    const reg = (match[1] || '').trim().toUpperCase();
+
+  // 1. Format: "UP32 AB 1234 (Model)"
+  let match = s.match(/^([A-Z0-9\s]+?)(?:\s*\((.*?)\))?$/i);
+  if (match && match[2] !== undefined) {
+    const reg = (match[1] || '').trim().toUpperCase().slice(0, 20);
     const model = (match[2] || '').trim();
     return { reg, model };
   }
-  return { reg: s.toUpperCase(), model: '' };
+
+  // 2. Format: "UP32 AB 1234 - Model"
+  match = s.match(/^([A-Z0-9\s]+?)(?:\s*[-–—]\s*(.*))$/i);
+  if (match && match[2]) {
+    const reg = (match[1] || '').trim().toUpperCase().slice(0, 20);
+    const model = (match[2] || '').trim();
+    return { reg, model };
+  }
+
+  return { reg: s.toUpperCase().slice(0, 20), model: '' };
 }
 
 /**
  * Retrieve aggregated customers list for Admin Panel
  */
-async function getAllCustomers({ search = '', category = null, staffId = null, limit = 500, offset = 0 } = {}) {
+async function getAllCustomers({ search = '', category = null, staffId = null, limit = 500, offset = 0, isLead = false } = {}) {
   // Query customers with their active subscriptions, vehicles, and locations
-  const customers = await repos.customers.findAll({ search, includeDeleted: false, limit, offset });
+  // When a search term is provided, load candidates and apply bilingual phonetic search across all joined fields
+  const dbSearch = (search && search.trim()) ? '' : '';
+  const customers = await repos.customers.findAll({ search: dbSearch, includeDeleted: false, isLead, limit: (search ? 1000 : limit), offset: (search ? 0 : offset) });
 
   if (customers.length === 0) {
     return [];
@@ -174,6 +188,10 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
       altPhone: c.alt_phone || '',
       email: c.email || '',
       notes: c.notes || '',
+      leadNotes: c.lead_notes || '',
+      isLead: Boolean(c.is_lead),
+      leadStatus: c.lead_status || 'open',
+      interestedService: c.interested_service || (serviceCategory || 'Daily Car Cleaning'),
       address: primaryLoc?.address_text || '',
       addressHi: primaryLoc?.address_text_hi || c.address_hi || '',
       googleMapsUrl: primaryLoc?.google_maps_url || '',
@@ -202,7 +220,15 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
     });
   }
 
-  return results;
+  let finalResults = results;
+  if (search && String(search).trim()) {
+    finalResults = bilingualSearchService.filterRecordsBilingual(results, search.trim());
+    if (limit && offset !== undefined && !isLead) {
+      finalResults = finalResults.slice(offset, offset + limit);
+    }
+  }
+
+  return finalResults;
 }
 
 /**
@@ -279,6 +305,10 @@ async function saveCustomer(custData, adminUser = 'admin') {
       try { secAddressHi = await indicService.transliterateAddress(secAddr); } catch (e) { secAddressHi = secAddr; }
     }
 
+    const isLeadRecord = Boolean(custData.isLead || custData.is_lead || custData.tag === 'lead');
+    const leadNotes = custData.leadNotes || custData.lead_notes || custData.notes || null;
+    const interestedService = custData.serviceCategory || custData.serviceType || custData.interestedService || 'Daily Car Cleaning';
+
     // 1. Create Customer Master
     const customer = await repos.customers.createCustomer({
       customerCode,
@@ -287,12 +317,16 @@ async function saveCustomer(custData, adminUser = 'admin') {
       altPhone: custData.altPhone || null,
       email: custData.email || null,
       notes: custData.notes || null,
-      sourceSheetName: custData.sheetName || 'Daily Clean',
+      sourceSheetName: isLeadRecord ? 'Leads' : (custData.sheetName || 'Daily Clean'),
       sourceRowIndex: 0,
       isActive: true,
       nameHi,
       addressHi,
-      secondaryAddressHi: secAddressHi
+      secondaryAddressHi: secAddressHi,
+      isLead: isLeadRecord,
+      leadStatus: custData.leadStatus || 'open',
+      leadNotes: leadNotes,
+      interestedService: interestedService
     }, client);
 
     // 2. Create Service Locations
@@ -362,6 +396,25 @@ async function saveCustomer(custData, adminUser = 'admin') {
         }, client);
         createdVehicles.push(veh);
       }
+    }
+
+    // If saving as a lead, finish early without creating subscriptions or staff jobs
+    if (isLeadRecord) {
+      await repos.auditLogs.logChange({
+        entityType: 'customer',
+        entityId: customer.id,
+        action: 'create_lead',
+        changedBy: adminUser,
+        afterState: { customerCode, name: custName, phone: normPhone, isLead: true }
+      }, client);
+
+      return {
+        success: true,
+        customerId: customer.id,
+        customerCode: customer.customer_code,
+        isLead: true,
+        message: 'Lead captured successfully'
+      };
     }
 
     // 4. Resolve Staff Member Assignment
@@ -1124,6 +1177,179 @@ async function backfillHindiCustomerData(adminUser = 'admin') {
   return { success: true, total: allCusts.length, updated: updatedCount };
 }
 
+/**
+ * Retrieve all Leads
+ */
+async function getLeads({ search = '', limit = 500, offset = 0 } = {}) {
+  return getAllCustomers({ search, limit, offset, isLead: true });
+}
+
+/**
+ * Convert a Lead into an active customer (DCC or other service)
+ */
+async function convertLeadToCustomer(leadId, convertData = {}, adminUser = 'admin') {
+  return db.withTransaction(async (client) => {
+    let customer = null;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(leadId)) {
+      customer = await repos.customers.findById(leadId, client);
+    } else {
+      customer = await repos.customers.findByCode(leadId, client);
+    }
+
+    if (!customer) {
+      return { success: false, error: 'Lead not found.' };
+    }
+
+    // 1. Mark as converted & remove lead flag
+    await repos.customers.convertLeadToCustomer(customer.id, client);
+
+    const sCategory = convertData.serviceCategory || customer.interested_service || 'Daily Car Cleaning';
+    const isDaily = sCategory === 'Daily Car Cleaning' || sCategory === 'Daily Clean' || sCategory === 'daily_car_cleaning';
+    const pkgType = convertData.packageType || convertData.packageName || (isDaily ? 'DCC ONLY' : sCategory);
+
+    // Notes
+    let updatedNotes = customer.notes || '';
+    if (convertData.notes && convertData.notes.trim()) {
+      const ts = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+      updatedNotes = updatedNotes ? `${updatedNotes}\n[Converted ${ts}] ${convertData.notes.trim()}` : `[Converted ${ts}] ${convertData.notes.trim()}`;
+      await repos.customers.updateCustomer(customer.id, { notes: updatedNotes, sourceSheetName: isDaily ? 'Daily Clean' : 'All Other Work' }, client);
+    } else {
+      await repos.customers.updateCustomer(customer.id, { sourceSheetName: isDaily ? 'Daily Clean' : 'All Other Work' }, client);
+    }
+
+    // 2. Resolve locations & vehicles
+    const locations = await repos.serviceLocations.findByCustomerId(customer.id, { client });
+    const primaryLocation = locations.find(l => l.is_primary) || locations[0] || null;
+    const vehicles = await repos.vehicles.findByCustomerId(customer.id, { client });
+
+    // 3. Resolve Staff Member Assignment
+    let assignedStaff = null;
+    const sName = (convertData.staffName || '').trim();
+    const sId = (convertData.staffId || '').trim();
+
+    if (sId && sId.toLowerCase() !== 'unassigned' && sId.toLowerCase() !== 'none') {
+      assignedStaff = await repos.staff.findByStaffCode(sId, client);
+      if (!assignedStaff && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(sId)) {
+        assignedStaff = await repos.staff.findById(sId, client);
+      }
+    } else if (sName && sName.toLowerCase() !== 'unassigned' && sName.toLowerCase() !== 'none') {
+      const allStaff = await repos.staff.findAll({ client });
+      assignedStaff = allStaff.find(s => s.name.toLowerCase() === sName.toLowerCase()) || null;
+    }
+
+    // 4. Create Subscription or Job
+    if (isDaily) {
+      const sub = await repos.subscriptions.createSubscription({
+        customerId: customer.id,
+        serviceCategoryId: 'daily_car_cleaning',
+        packageName: pkgType,
+        packagesPurchased: parseInt(convertData.packagesPurchased, 10) || 1,
+        rotationType: convertData.rotationType || 'none',
+        rotationNotes: convertData.rotationNotes || null,
+        status: 'active'
+      }, client);
+
+      for (const cv of vehicles) {
+        await repos.subscriptionVehicles.addVehicleToSubscription({
+          subscriptionId: sub.id,
+          customerId: customer.id,
+          vehicleId: cv.id,
+          locationId: primaryLocation?.id || null,
+          scheduleTag: convertData.scheduleTag || 'daily'
+        }, client);
+      }
+
+      if (assignedStaff) {
+        await repos.staffAssignments.assignStaffToSubscription({
+          staffId: assignedStaff.id,
+          subscriptionId: sub.id,
+          assignedBy: adminUser
+        }, client);
+      }
+    } else {
+      const isSolar = sCategory === 'Solar Panel Cleaning' || sCategory === 'solar_cleaning';
+      const serviceCatId = isSolar ? 'solar_cleaning' : 'car_washing';
+
+      const job = await repos.serviceJobs.createJob({
+        customerId: customer.id,
+        vehicleId: vehicles[0]?.id || null,
+        locationId: primaryLocation?.id || (locations.length > 0 ? locations[0].id : null),
+        serviceCategoryId: serviceCatId,
+        serviceType: convertData.serviceType || pkgType,
+        packageDetails: convertData.packageDetails || pkgType,
+        siteDetails: isSolar ? { panelCount: convertData.panelCount || 10, roofType: 'RCC' } : null,
+        scheduledDate: convertData.scheduledDate || null,
+        status: 'assigned',
+        specialInstructions: convertData.notes || null
+      }, client);
+
+      if (assignedStaff) {
+        await repos.staffAssignments.assignStaffToJob({
+          staffId: assignedStaff.id,
+          jobId: job.id,
+          assignedBy: adminUser
+        }, client);
+      }
+    }
+
+    // 5. Audit Log
+    await repos.auditLogs.logChange({
+      entityType: 'customer',
+      entityId: customer.id,
+      action: 'convert_lead',
+      changedBy: adminUser,
+      afterState: { customerCode: customer.customer_code, name: customer.name, serviceCategory: sCategory, packageType: pkgType }
+    }, client);
+
+    return {
+      success: true,
+      customerId: customer.id,
+      customerCode: customer.customer_code,
+      message: 'Lead converted to active customer successfully'
+    };
+  });
+}
+
+/**
+ * Append a timestamped note to a Lead
+ */
+async function addLeadNote(leadId, noteText, adminUser = 'admin') {
+  if (!noteText || !noteText.trim()) {
+    return { success: false, error: 'Note text cannot be empty.' };
+  }
+  let targetId = leadId;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(leadId)) {
+    const found = await repos.customers.findByCode(leadId);
+    if (!found) return { success: false, error: 'Customer not found.' };
+    targetId = found.id;
+  }
+
+  const ts = new Date().toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+  });
+  const formatted = `[${ts}] ${noteText.trim()}`;
+
+  const updated = await repos.customers.appendLeadNote(targetId, formatted);
+  if (!updated) {
+    return { success: false, error: 'Customer not found or failed to update note.' };
+  }
+
+  await repos.auditLogs.logChange({
+    entityType: 'customer',
+    entityId: targetId,
+    action: 'add_lead_note',
+    changedBy: adminUser,
+    afterState: { leadNotes: updated.lead_notes }
+  });
+
+  return {
+    success: true,
+    customerId: targetId,
+    leadNotes: updated.lead_notes,
+    notes: updated.notes
+  };
+}
+
 module.exports = {
   normalizeIndianMobile,
   isValidIndianMobile,
@@ -1141,5 +1367,8 @@ module.exports = {
   saveStaffSequence,
   resetStaffSequence,
   getDailyCleanReports,
-  backfillHindiCustomerData
+  backfillHindiCustomerData,
+  getLeads,
+  convertLeadToCustomer,
+  addLeadNote
 };

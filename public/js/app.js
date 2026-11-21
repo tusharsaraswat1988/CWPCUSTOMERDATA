@@ -151,6 +151,208 @@ function initAllPhoneFormatters() {
   });
 }
 
+/* ==========================================================================
+   BILINGUAL PHONETIC SEARCH ENGINE (English <-> Hindi) (Task P2.4)
+   Enables seamless cross-lingual search across customer records:
+   - "ritika" / "reetika" / "jain" -> finds "रितिका जैन"
+   - "sigra" / "varanasi" -> finds "सिगरा, वाराणसी"
+   - "रमेश" / "जैन" -> finds "Ramesh Sharma" / "Ankit Jain"
+   - Handles Indian phonetic variations, schwa deletion, and formatted phones
+   ========================================================================== */
+var DEVA_VOWEL_MAP = {
+  'अ': 'a', 'आ': 'a', 'इ': 'i', 'ई': 'i', 'उ': 'u', 'ऊ': 'u',
+  'ऋ': 'ri', 'ए': 'e', 'ऐ': 'ai', 'ओ': 'o', 'औ': 'au',
+  'अं': 'an', 'अः': 'ah', 'ऑ': 'o', 'ऍ': 'e'
+};
+
+var DEVA_MATRA_MAP = {
+  'ा': 'a', 'ि': 'i', 'ी': 'i', 'ु': 'u', 'ू': 'u',
+  'ृ': 'ri', 'े': 'e', 'ै': 'ai', 'ो': 'o', 'ौ': 'au',
+  'ं': 'n', 'ँ': 'n', 'ः': 'h', '्': '', 'ॅ': 'e', 'ॉ': 'o'
+};
+
+var DEVA_CONSONANT_MAP = {
+  'क': 'k', 'ख': 'kh', 'ग': 'g', 'घ': 'gh', 'ङ': 'ng',
+  'च': 'ch', 'छ': 'chh', 'ज': 'j', 'झ': 'jh', 'ञ': 'ny',
+  'ट': 't', 'ठ': 'th', 'ड': 'd', 'ढ': 'dh', 'ण': 'n',
+  'त': 't', 'थ': 'th', 'द': 'd', 'ध': 'dh', 'न': 'n',
+  'प': 'p', 'फ': 'ph', 'ब': 'b', 'भ': 'bh', 'म': 'm',
+  'य': 'y', 'र': 'r', 'ल': 'l', 'व': 'v',
+  'श': 'sh', 'ष': 'sh', 'स': 's', 'ह': 'h',
+  'क्ष': 'ksh', 'त्र': 'tra', 'ज्ञ': 'gya',
+  'ड़': 'd', 'ढ़': 'dh', 'फ़': 'f', 'ज़': 'z', 'क़': 'q', 'ख़': 'kh', 'ग़': 'gh'
+};
+
+function devanagariToLatin(str) {
+  if (!str) return '';
+  var s = String(str);
+  var out = '';
+  var len = s.length;
+
+  for (var i = 0; i < len; i++) {
+    var ch = s.charAt(i);
+    var next = i + 1 < len ? s.charAt(i + 1) : '';
+
+    if (DEVA_CONSONANT_MAP[ch]) {
+      var c = DEVA_CONSONANT_MAP[ch];
+      if (next === '्') {
+        out += c;
+        i++; // skip halant
+      } else if (DEVA_MATRA_MAP[next]) {
+        out += c + DEVA_MATRA_MAP[next];
+        i++; // skip matra
+      } else {
+        var isWordEnd = (i + 1 === len) || (/[\s,.-]/.test(next));
+        if (isWordEnd) {
+          out += c;
+        } else {
+          out += c + 'a';
+        }
+      }
+    } else if (DEVA_VOWEL_MAP[ch]) {
+      out += DEVA_VOWEL_MAP[ch];
+    } else if (DEVA_MATRA_MAP[ch]) {
+      out += DEVA_MATRA_MAP[ch];
+    } else {
+      out += ch;
+    }
+  }
+  return out.toLowerCase();
+}
+
+function normalizePhoneticKey(str) {
+  if (!str) return '';
+  return String(str).toLowerCase()
+    .replace(/ee/g, 'i')
+    .replace(/oo/g, 'u')
+    .replace(/w/g, 'v')
+    .replace(/sh/g, 's')
+    .replace(/aa/g, 'a')
+    .replace(/dh/g, 'd')
+    .replace(/th/g, 't')
+    .replace(/kh/g, 'k')
+    .replace(/gh/g, 'g')
+    .replace(/ph/g, 'f')
+    .replace(/bh/g, 'b')
+    .replace(/jh/g, 'j')
+    .replace(/ch/g, 'c')
+    .replace(/(\w)\1+/g, '$1')
+    .trim();
+}
+
+function recordMatchesBilingualSearch(record, query) {
+  if (!record || !query) return true;
+  var q = String(query).trim().toLowerCase();
+  if (!q) return true;
+
+  var rawPhoneQuery = q.replace(/\D/g, '');
+  var tokens = q.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+
+  var corpusParts = [];
+
+  function addField(val) {
+    if (val != null) {
+      var s = String(val).trim();
+      if (s) {
+        corpusParts.push(s.toLowerCase());
+        if (/[\u0900-\u097F]/.test(s)) {
+          var roman = devanagariToLatin(s);
+          if (roman) {
+            corpusParts.push(roman);
+            var syncope = roman.replace(/([bcdfghjklmnpqrstvwxyz])a([bcdfghjklmnpqrstvwxyz])/g, '$1$2');
+            if (syncope !== roman) corpusParts.push(syncope);
+            var norm = normalizePhoneticKey(roman);
+            if (norm && norm !== roman) corpusParts.push(norm);
+            var normSync = normalizePhoneticKey(syncope);
+            if (normSync && normSync !== syncope && normSync !== norm) corpusParts.push(normSync);
+          }
+        } else {
+          var normLat = normalizePhoneticKey(s);
+          if (normLat && normLat !== s.toLowerCase()) corpusParts.push(normLat);
+        }
+      }
+    }
+  }
+
+  // Name fields (English & Hindi)
+  addField(record.customerName || record.name);
+  addField(record.nameHi || record.name_hi);
+
+  // Phone numbers (raw digits, normalized, formatted with & without +91)
+  var phone = record.customerNumber || record.phone;
+  var recPhoneDigits = '';
+  if (phone != null) {
+    addField(phone);
+    if (typeof normalizeIndianMobile === 'function') {
+      recPhoneDigits = normalizeIndianMobile(phone);
+    } else {
+      recPhoneDigits = String(phone).replace(/\D/g, '');
+    }
+    if (recPhoneDigits) {
+      addField(recPhoneDigits);
+      addField('+91' + recPhoneDigits);
+      addField('+91 ' + recPhoneDigits);
+      if (typeof formatIndianMobile === 'function') {
+        var fmt = formatIndianMobile(recPhoneDigits, false);
+        if (fmt) {
+          addField(fmt);
+          addField('+91 ' + fmt);
+        }
+      }
+    }
+  }
+
+  // Vehicle / site information
+  addField(record.vehicle || record.vehicleNumbers || record.vehicleOrSite);
+
+  // Address fields (English & Hindi)
+  addField(record.address);
+  addField(record.addressHi || record.address_hi);
+  addField(record.secondaryAddress);
+  addField(record.secondaryAddressHi || record.secondary_address_hi);
+
+  // Metadata
+  addField(record.staffName);
+  addField(record.notes || record.staffNotes || record.leadNotes);
+  addField(record.packageType || record.serviceType || record.packageName);
+  addField(record.customerCode);
+
+  var corpus = corpusParts.join(' ');
+
+  // Direct phone match shortcut
+  if (rawPhoneQuery.length >= 4 && recPhoneDigits && recPhoneDigits.indexOf(rawPhoneQuery) !== -1) {
+    return true;
+  }
+
+  return tokens.every(function(tok) {
+    if (corpus.indexOf(tok) !== -1) return true;
+
+    var tokDigits = tok.replace(/\D/g, '');
+    if (tokDigits.length >= 4 && recPhoneDigits && recPhoneDigits.indexOf(tokDigits) !== -1) {
+      return true;
+    }
+
+    if (/[\u0900-\u097F]/.test(tok)) {
+      var tokRom = devanagariToLatin(tok);
+      if (tokRom && corpus.indexOf(tokRom) !== -1) return true;
+      var tokRomNorm = normalizePhoneticKey(tokRom);
+      if (tokRomNorm && corpus.indexOf(tokRomNorm) !== -1) return true;
+    }
+
+    var tokNorm = normalizePhoneticKey(tok);
+    if (tokNorm && corpus.indexOf(tokNorm) !== -1) return true;
+
+    return false;
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.devanagariToLatin = devanagariToLatin;
+  window.normalizePhoneticKey = normalizePhoneticKey;
+  window.recordMatchesBilingualSearch = recordMatchesBilingualSearch;
+}
+
 /* Optional Field Collapsible Controls (Task P2.3) */
 function toggleCustMap(forceState) {
   var panel = document.getElementById('custMapCollapse');
@@ -247,6 +449,13 @@ var state = {
       searchQuery: '',
       activeFilter: 'daily_car_cleaning',
       selectedPhotoBase64: '',
+      leads: [],
+      lastFilteredLeads: [],
+      leadsSearchQuery: '',
+      selectedLeadPhotoBase64: '',
+      selectedLeadPhotoType: '',
+      selectedLeadPhotoName: '',
+      rawSelectedLeadPhotoDataUrl: '',
       selectedPhotoType: '',
       selectedPhotoName: '',
       rawSelectedPhotoDataUrl: '',
@@ -925,6 +1134,31 @@ var state = {
     if (typeof window !== 'undefined') {
       window.transliterateTextViaApi = transliterateTextViaApi;
       window.setupIndicInputListeners = setupIndicInputListeners;
+      window.refreshLeadsBadgeCount = refreshLeadsBadgeCount;
+      window.handleCustIsLeadToggle = handleCustIsLeadToggle;
+      window.openAddLeadModal = openAddLeadModal;
+      window.closeAddLeadModal = closeAddLeadModal;
+      window.triggerLeadPhotoSelect = triggerLeadPhotoSelect;
+      window.handleLeadPhotoSelect = handleLeadPhotoSelect;
+      window.removeLeadPhoto = removeLeadPhoto;
+      window.openExistingLeadPhotoCropper = openExistingLeadPhotoCropper;
+      window.detectLeadGpsLocation = detectLeadGpsLocation;
+      window.setLeadQuickNote = setLeadQuickNote;
+      window.setLeadModalNote = setLeadModalNote;
+      window.handleLeadSubmit = handleLeadSubmit;
+      window.loadAdminLeads = loadAdminLeads;
+      window.renderAdminLeadsList = renderAdminLeadsList;
+      window.openConvertLeadModal = openConvertLeadModal;
+      window.closeConvertLeadModal = closeConvertLeadModal;
+      window.handleConvertCategoryChange = handleConvertCategoryChange;
+      window.handleConvertLeadSubmit = handleConvertLeadSubmit;
+      window.openLeadNoteModal = openLeadNoteModal;
+      window.closeLeadNoteModal = closeLeadNoteModal;
+      window.handleSaveLeadNoteSubmit = handleSaveLeadNoteSubmit;
+      window.deleteLead = deleteLead;
+      window.handleLeadsSearch = handleLeadsSearch;
+      window.clearLeadsSearch = clearLeadsSearch;
+
       window.speakHindiCustomerDetails = speakHindiCustomerDetails;
       window.handleBackfillHindi = handleBackfillHindi;
     }
@@ -1013,7 +1247,7 @@ var state = {
         var targetPath = mode === 'staff' ? '/staff' : '/admin';
         var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
         if (!isGas && currentPath !== targetPath) {
-          var targetSearch = mode === 'admin' ? '' : (window.location.search || '');
+          var targetSearch = window.location.search || '';
           if (isInitial && window.history.replaceState) {
             window.history.replaceState({ mode: mode }, '', targetPath + targetSearch);
           } else if (window.history.pushState) {
@@ -1539,6 +1773,9 @@ var state = {
       return sessionStorage.getItem('cwp_admin_token') || localStorage.getItem('cwp_admin_token') || '';
     }
 
+    /* Standard Valid Admin Tabs Constant */
+    var ADMIN_VALID_TABS = ['records', 'leads', 'sequence', 'staff', 'cleanReports', 'addCust'];
+
     function clearAdminTokens() {
       sessionStorage.removeItem('cwp_admin_token');
       localStorage.removeItem('cwp_admin_token');
@@ -1547,6 +1784,9 @@ var state = {
       try {
         localStorage.removeItem('cwp_admin_active_tab');
       } catch (e) {}
+      if (typeof stopDailyCleanReportsAutoSync === 'function') {
+        stopDailyCleanReportsAutoSync();
+      }
     }
 
     function isUserAdminAuthenticated() {
@@ -1558,11 +1798,11 @@ var state = {
       try {
         var urlParams = new URLSearchParams(window.location.search);
         var urlTab = urlParams.get('tab');
-        if (urlTab && (urlTab === 'records' || urlTab === 'sequence' || urlTab === 'staff' || urlTab === 'addCust')) {
+        if (urlTab && ADMIN_VALID_TABS.indexOf(urlTab) !== -1) {
           return urlTab;
         }
         var localTab = localStorage.getItem('cwp_admin_active_tab');
-        if (localTab && (localTab === 'records' || localTab === 'sequence' || localTab === 'staff' || localTab === 'addCust')) {
+        if (localTab && ADMIN_VALID_TABS.indexOf(localTab) !== -1) {
           return localTab;
         }
       } catch (e) {
@@ -1717,8 +1957,7 @@ var state = {
 
     /* Switch Admin Sub Tabs with URL & LocalStorage State Persistence */
     function switchAdminTab(tabName, updateUrl) {
-      var validTabs = ['records', 'sequence', 'staff', 'addCust', 'cleanReports'];
-      if (validTabs.indexOf(tabName) === -1) {
+      if (ADMIN_VALID_TABS.indexOf(tabName) === -1) {
         tabName = 'records';
       }
 
@@ -1727,15 +1966,26 @@ var state = {
         tabName = 'records';
       }
 
-      validTabs.forEach(function(t) {
+      ADMIN_VALID_TABS.forEach(function(t) {
         var pane = document.getElementById('adminTab' + t.charAt(0).toUpperCase() + t.slice(1));
         var btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
         if (pane) pane.style.display = (t === tabName) ? 'block' : 'none';
         if (btn) btn.classList.toggle('active', t === tabName);
       });
 
+      if (tabName === 'leads') {
+        loadAdminLeads();
+      }
+
       if (tabName === 'cleanReports') {
         loadDailyCleanReports();
+        if (typeof startDailyCleanReportsAutoSync === 'function') {
+          startDailyCleanReportsAutoSync();
+        }
+      } else {
+        if (typeof stopDailyCleanReportsAutoSync === 'function') {
+          stopDailyCleanReportsAutoSync();
+        }
       }
 
       // Persist active tab across refreshes
@@ -1754,6 +2004,7 @@ var state = {
 
       if (tabName === 'staff') loadStaffListForAdmin();
       if (tabName === 'records') loadAdminRecords(true);
+      if (tabName === 'leads' && typeof loadAdminLeads === 'function') loadAdminLeads(true);
       if (tabName === 'sequence') {
         initAdminSequenceManager();
         if (typeof loadStaffSequenceData === 'function' && state.seqManagement && state.seqManagement.currentStaffId) {
@@ -2082,6 +2333,13 @@ var state = {
           pollStaffData(state.activeStaffId, false);
         }
       }
+      if (document.visibilityState === 'visible' && state.currentView === 'admin' && isUserAdminAuthenticated()) {
+        if (typeof getSavedAdminTab === 'function' && getSavedAdminTab() === 'cleanReports') {
+          if (typeof loadDailyCleanReports === 'function' && (Date.now() - lastCleanReportsSyncTimestamp > 10000)) {
+            loadDailyCleanReports(true);
+          }
+        }
+      }
     });
 
     // Network online / offline recovery
@@ -2091,11 +2349,22 @@ var state = {
         updateStaffSyncIndicator('checking', 'पुनः कनेक्ट हो रहा है...');
         pollStaffData(state.activeStaffId, false);
       }
+      if (state.currentView === 'admin' && isUserAdminAuthenticated()) {
+        if (typeof getSavedAdminTab === 'function' && getSavedAdminTab() === 'cleanReports') {
+          if (typeof loadDailyCleanReports === 'function') {
+            loadDailyCleanReports(true);
+          }
+        }
+      }
     });
 
     window.addEventListener('offline', function() {
       if (state.currentView === 'staff') {
         updateStaffSyncIndicator('offline', 'इंटरनेट अनुपलब्ध — पिछला डेटा सुरक्षित');
+      }
+      if (state.currentView === 'admin') {
+        var syncTimeEl = document.getElementById('reportsLastSyncTime');
+        if (syncTimeEl) syncTimeEl.textContent = 'इंटरनेट अनुपलब्ध (Offline)';
       }
     });
 
@@ -2340,17 +2609,9 @@ function loadStaffCustomerData(staffId) {
         /* Category filter - strictly match selected tab */
         if (state.activeFilter && c.category !== state.activeFilter) return false;
 
-        /* Search query */
+        /* Search query - Bilingual Phonetic Cross-Search */
         if (state.searchQuery) {
-          var q = state.searchQuery;
-          var name = (c.customerName != null ? String(c.customerName) : '').toLowerCase();
-          var phone = (c.customerNumber != null ? String(c.customerNumber) : '').toLowerCase();
-          var veh = (c.vehicleNumbers || c.vehicleOrSite || c.vehicle != null ? String(c.vehicleNumbers || c.vehicleOrSite || c.vehicle) : '').toLowerCase();
-          var addr = (c.address != null ? String(c.address) : '').toLowerCase();
-          var secAddr = (c.secondaryAddress != null ? String(c.secondaryAddress) : '').toLowerCase();
-          var notes = (c.staffNotes || c.notes != null ? String(c.staffNotes || c.notes) : '').toLowerCase();
-          var pkg = (c.packageType || c.serviceType != null ? String(c.packageType || c.serviceType) : '').toLowerCase();
-          return name.indexOf(q) !== -1 || phone.indexOf(q) !== -1 || veh.indexOf(q) !== -1 || addr.indexOf(q) !== -1 || secAddr.indexOf(q) !== -1 || notes.indexOf(q) !== -1 || pkg.indexOf(q) !== -1;
+          return recordMatchesBilingualSearch(c, state.searchQuery);
         }
         return true;
       });
@@ -4378,8 +4639,14 @@ function loadStaffCustomerData(staffId) {
 
       var vehText = document.getElementById('custVehicles').value.trim();
 
+      var isLeadCheck = document.getElementById('custIsLeadCheck');
+      var isLeadMarked = isLeadCheck && isLeadCheck.checked;
+
       var customerData = {
-        sheetName: isDaily ? 'Daily Clean' : 'All Other Work',
+        isLead: Boolean(isLeadMarked),
+        tag: isLeadMarked ? 'lead' : 'customer',
+        leadStatus: isLeadMarked ? 'open' : 'converted',
+        sheetName: isLeadMarked ? 'Leads' : (isDaily ? 'Daily Clean' : 'All Other Work'),
         serviceCategory: category,
         serviceType: isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : 'Daily Car Cleaning'),
         staffId: staffId,
@@ -4411,8 +4678,15 @@ function loadStaffCustomerData(staffId) {
         if (res && res.error) {
           showToast('Error: ' + res.error, '❌');
         } else {
-          showToast('Customer saved successfully and added to Active Records!', '✓');
+          if (isLeadMarked) {
+            showToast('Lead saved successfully and stored in Leads section!', '🎯');
+          } else {
+            showToast('Customer saved successfully and added to Active Records!', '✓');
+          }
           document.getElementById('addCustomerForm').reset();
+          var leadChk = document.getElementById('custIsLeadCheck');
+          if (leadChk) leadChk.checked = false;
+          handleCustIsLeadToggle(false);
           toggleCustMap(false);
           toggleCustSecLocation(false);
           var prev = document.getElementById('custPhotoPreview');
@@ -4429,9 +4703,13 @@ function loadStaffCustomerData(staffId) {
           toggleCategoryFields(document.getElementById('custCategory').value);
           closeAddCustomerModal();
 
-          // Switch back to Active Records tab and reload list so new customer reflects immediately
-          switchAdminTab('records');
-          loadAdminRecords();
+          if (isLeadMarked) {
+            switchAdminTab('leads');
+            loadAdminLeads(true);
+          } else {
+            switchAdminTab('records');
+            loadAdminRecords();
+          }
 
           setTimeout(function() {
             var recCard = document.getElementById('adminTabRecords');
@@ -4639,6 +4917,11 @@ function loadStaffCustomerData(staffId) {
         var recCountBadge = document.getElementById('tabRecordsCount');
         if (recCountBadge) recCountBadge.textContent = state.adminRecords.length;
 
+        /* Auto-refresh leads count badge in tab */
+        if (typeof refreshLeadsBadgeCount === 'function') {
+          refreshLeadsBadgeCount();
+        }
+
         /* Update Data Source Indicator */
         var srcBadge = document.getElementById('adminRecordsSourceBadge');
         if (srcBadge) {
@@ -4792,23 +5075,9 @@ function loadStaffCustomerData(staffId) {
         /* Map toggle */
         if (onlyMap && (!r.googleMapsUrl || !r.googleMapsUrl.trim())) return false;
 
-        /* Search text matching */
+        /* Search text matching - Bilingual Phonetic Cross-Search */
         if (q) {
-          var name = (r.customerName || '').toLowerCase();
-          var rawCustPhone = normalizeIndianMobile(r.customerNumber);
-          var formattedCustPhone = formatIndianMobile(r.customerNumber).toLowerCase();
-          var phone = (r.customerNumber || '').toString().toLowerCase();
-          var qClean = q.replace(/[^0-9]/g, '');
-          var phoneMatch = (phone.indexOf(q) >= 0 || formattedCustPhone.indexOf(q) >= 0 || (qClean && rawCustPhone.indexOf(qClean) >= 0));
-          var veh = (r.vehicle || r.vehicleNumbers || '').toLowerCase();
-          var addr = (r.address || '').toLowerCase();
-          var secAddr = (r.secondaryAddress || '').toLowerCase();
-          var stf = (r.staffName || '').toLowerCase();
-          var notes = (r.notes || r.staffNotes || '').toLowerCase();
-          var pkg = (r.packageType || r.serviceType || '').toLowerCase();
-
-          var match = (name.indexOf(q) >= 0 || phoneMatch || veh.indexOf(q) >= 0 || addr.indexOf(q) >= 0 || secAddr.indexOf(q) >= 0 || stf.indexOf(q) >= 0 || notes.indexOf(q) >= 0 || pkg.indexOf(q) >= 0);
-          if (!match) return false;
+          if (!recordMatchesBilingualSearch(r, q)) return false;
         }
 
         return true;
@@ -4835,7 +5104,595 @@ function loadStaffCustomerData(staffId) {
       renderAdminRecordsTable(filtered);
     }
 
-    function exportAdminRecordsCSV() {
+
+    /* =========================================================================
+       LEADS MANAGEMENT CONTROLLER (CWP CRM & PROSPECTS ENGINE)
+       ========================================================================= */
+
+    function refreshLeadsBadgeCount() {
+      apiCall('getLeads', {}, function(res) {
+        var leads = Array.isArray(res) ? res : (res && res.leads ? res.leads : []);
+        var badge = document.getElementById('tabLeadsCount');
+        if (badge) badge.textContent = leads.length;
+      }, function() {});
+    }
+
+    function handleCustIsLeadToggle(checked) {
+      var btn = document.getElementById('btnSaveCust');
+      if (!btn) return;
+      if (checked) {
+        btn.innerHTML = '<span>🎯</span> Save as Lead';
+        btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+      } else {
+        btn.innerHTML = '<span>💾</span> Save Customer';
+        btn.style.background = '';
+      }
+    }
+
+    function openAddLeadModal() {
+      var form = document.getElementById('addLeadForm');
+      if (form) form.reset();
+      removeLeadPhoto();
+      var modal = document.getElementById('addLeadModal');
+      if (modal) modal.style.display = 'flex';
+      setTimeout(function() {
+        var nameEl = document.getElementById('leadName');
+        if (nameEl) nameEl.focus();
+      }, 100);
+    }
+
+    function closeAddLeadModal() {
+      var modal = document.getElementById('addLeadModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function triggerLeadPhotoSelect() {
+      var f = document.getElementById('leadPhotoFile');
+      if (f) { f.value = ''; f.click(); }
+    }
+
+    function handleLeadPhotoSelect(e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      state.selectedLeadPhotoName = file.name;
+      state.selectedLeadPhotoType = file.type || 'image/jpeg';
+
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        var dataUrl = evt.target.result;
+        state.rawSelectedLeadPhotoDataUrl = dataUrl;
+        state.selectedLeadPhotoBase64 = dataUrl;
+        var prev = document.getElementById('leadPhotoPreview');
+        if (prev) {
+          prev.src = dataUrl;
+          prev.style.display = 'block';
+        }
+        var ph = document.getElementById('leadPhotoPlaceholder');
+        if (ph) ph.style.display = 'none';
+        var act = document.getElementById('leadPhotoActionsWrap');
+        if (act) act.style.display = 'inline-flex';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeLeadPhoto(e) {
+      if (e) e.stopPropagation();
+      state.selectedLeadPhotoBase64 = '';
+      state.selectedLeadPhotoName = '';
+      state.selectedLeadPhotoType = '';
+      state.rawSelectedLeadPhotoDataUrl = '';
+      var f = document.getElementById('leadPhotoFile');
+      if (f) f.value = '';
+      var prev = document.getElementById('leadPhotoPreview');
+      if (prev) { prev.src = ''; prev.style.display = 'none'; }
+      var ph = document.getElementById('leadPhotoPlaceholder');
+      if (ph) ph.style.display = 'inline-flex';
+      var act = document.getElementById('leadPhotoActionsWrap');
+      if (act) act.style.display = 'none';
+    }
+
+    function openExistingLeadPhotoCropper() {
+      if (state.selectedLeadPhotoBase64) {
+        openPhotoLightbox(state.selectedLeadPhotoBase64);
+      }
+    }
+
+    function detectLeadGpsLocation() {
+      if (!navigator.geolocation) {
+        showToast('Geolocation is not supported by your browser.', '⚠️');
+        return;
+      }
+      showToast('Detecting current GPS location...', '📍');
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude.toFixed(6);
+        var lng = pos.coords.longitude.toFixed(6);
+        var mapsUrl = 'https://maps.google.com/?q=' + lat + ',' + lng;
+        var input = document.getElementById('leadMapsUrl');
+        if (input) {
+          input.value = mapsUrl;
+          showToast('GPS location captured: ' + lat + ', ' + lng, '✓');
+        }
+      }, function(err) {
+        showToast('GPS error: ' + (err.message || 'Permission denied'), '❌');
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    }
+
+    function setLeadQuickNote(txt) {
+      var el = document.getElementById('leadNotes');
+      if (!el) return;
+      var cur = el.value.trim();
+      el.value = cur ? cur + '\n' + txt : txt;
+    }
+
+    function setLeadModalNote(txt) {
+      var el = document.getElementById('newLeadNoteText');
+      if (!el) return;
+      var cur = el.value.trim();
+      el.value = cur ? cur + ' ' + txt : txt;
+    }
+
+    function handleLeadSubmit(e) {
+      e.preventDefault();
+      var btn = document.getElementById('btnSaveLead');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="cwp-spinner"></span> Saving lead...';
+      }
+
+      var phoneEl = document.getElementById('leadPhone');
+      var normPhone = normalizeIndianMobile(phoneEl ? phoneEl.value : '');
+      if (!isValidIndianMobile(normPhone)) {
+        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+        if (phoneEl) phoneEl.focus();
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>💾</span> Save Lead';
+        }
+        return;
+      }
+
+      var nameVal = (document.getElementById('leadName').value || '').trim();
+      var nameHiVal = document.getElementById('leadNameHi') ? document.getElementById('leadNameHi').value.trim() : '';
+      var addrVal = (document.getElementById('leadAddress').value || '').trim();
+      var addrHiVal = document.getElementById('leadAddressHi') ? document.getElementById('leadAddressHi').value.trim() : '';
+      var mapsVal = (document.getElementById('leadMapsUrl').value || '').trim();
+      var vehVal = (document.getElementById('leadVehicle').value || '').trim();
+      var catVal = (document.getElementById('leadCategory').value || 'Daily Car Cleaning').trim();
+      var notesVal = (document.getElementById('leadNotes').value || '').trim();
+
+      var photoPayload = state.selectedLeadPhotoBase64 ? {
+        base64: state.selectedLeadPhotoBase64,
+        mimeType: state.selectedLeadPhotoType || 'image/jpeg',
+        fileName: state.selectedLeadPhotoName || 'lead_car.jpg'
+      } : null;
+
+      var leadData = {
+        customerName: nameVal,
+        nameHi: nameHiVal,
+        customerNumber: normPhone,
+        address: addrVal,
+        addressHi: addrHiVal,
+        googleMapsUrl: mapsVal,
+        vehicle: vehVal,
+        vehicleDetails: vehVal,
+        serviceCategory: catVal,
+        serviceType: catVal,
+        interestedService: catVal,
+        isLead: true,
+        tag: 'lead',
+        leadStatus: 'open',
+        notes: notesVal,
+        leadNotes: notesVal,
+        photoFile: photoPayload,
+        photoData: photoPayload
+      };
+
+      apiCall('saveLead', { customerData: leadData }, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>💾</span> Save Lead';
+        }
+        if (res && res.error) {
+          showToast('Error: ' + res.error, '❌');
+        } else {
+          showToast('Lead captured successfully and added to Leads section!', '🎯');
+          document.getElementById('addLeadForm').reset();
+          removeLeadPhoto();
+          closeAddLeadModal();
+
+          switchAdminTab('leads');
+          loadAdminLeads(true);
+        }
+      }, function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>💾</span> Save Lead';
+        }
+        showToast('Error: ' + (err.message || err), '❌');
+      });
+    }
+
+    function loadAdminLeads(forceRefresh) {
+      var container = document.getElementById('leadsListContainer');
+      if (container) {
+        container.innerHTML = '<div class="skeleton-feed" style="padding: 24px; text-align: center; color: var(--text-muted);"><span class="cwp-spinner"></span> Loading leads...</div>';
+      }
+
+      apiCall('getLeads', { forceRefresh: !!forceRefresh }, function(res) {
+        var leads = Array.isArray(res) ? res : (res && res.leads ? res.leads : []);
+        state.leads = leads || [];
+        updateLeadsKpi();
+
+        var q = (state.leadsSearchQuery || '').trim().toLowerCase();
+        var filtered = state.leads;
+        if (q) {
+          filtered = state.leads.filter(function(l) {
+            return recordMatchesBilingualSearch(l, q);
+          });
+        }
+        state.lastFilteredLeads = filtered;
+        renderAdminLeadsList(filtered);
+      }, function(err) {
+        if (container) {
+          container.innerHTML = '<div style="padding: 24px; text-align: center; color: #ef4444;">Failed to load leads: ' + escapeHtml(err.message || err) + '</div>';
+        }
+      });
+    }
+
+    function updateLeadsKpi() {
+      var total = state.leads ? state.leads.length : 0;
+      var filtered = state.lastFilteredLeads ? state.lastFilteredLeads.length : total;
+      var tabBadge = document.getElementById('tabLeadsCount');
+      if (tabBadge) tabBadge.textContent = total;
+      var totBadge = document.getElementById('leadsTotalCount');
+      if (totBadge) totBadge.textContent = total;
+      var filtBadge = document.getElementById('leadsFilteredCount');
+      if (filtBadge) filtBadge.textContent = filtered;
+      var pendBadge = document.getElementById('leadsPendingBadge');
+      if (pendBadge) pendBadge.textContent = total;
+    }
+
+    function renderAdminLeadsList(leads) {
+      var container = document.getElementById('leadsListContainer');
+      if (!container) return;
+
+      if (!leads || leads.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1 / -1; padding: 48px 16px; text-align: center; color: var(--text-muted); background: var(--bg-surface); border-radius: 12px; border: 1px dashed var(--border-color);">' +
+          '<div style="font-size: 36px; margin-bottom: 8px;">🎯</div>' +
+          '<h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">No active leads found</h3>' +
+          '<p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">All inquiries have been confirmed or no new leads have been captured yet.</p>' +
+          '<button type="button" class="btn-admin-primary" onclick="openAddLeadModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #d97706; margin: 0 auto; display: inline-flex;">+ Capture New Lead</button>' +
+          '</div>';
+        return;
+      }
+
+      var html = '';
+      leads.forEach(function(l) {
+        var id = l.id || l.customerCode;
+        var name = l.customerName || 'Prospect Lead';
+        var nameHi = l.nameHi ? ' (' + l.nameHi + ')' : '';
+        var phone = l.customerNumber || l.phone || '';
+        var veh = l.vehicle || 'Vehicle details pending';
+        var addr = l.address || 'Address pending';
+        var addrHi = l.addressHi ? ' • ' + l.addressHi : '';
+        var maps = l.googleMapsUrl || '';
+        var photo = l.photoUrl || '';
+        var notes = l.leadNotes || l.notes || '';
+        var sCategory = l.interestedService || l.serviceCategory || 'Daily Car Cleaning';
+
+        var parsedVeh = parseVehicleString(veh);
+        var regBadge = parsedVeh.reg || veh;
+        var modelText = parsedVeh.model ? ' ' + parsedVeh.model : '';
+
+        html += '<div class="cwp-lead-card" id="leadCard_' + escapeHtml(id) + '">';
+        
+        // Header
+        html += '  <div class="cwp-lead-header">';
+        html += '    <div class="cwp-lead-title-wrap">';
+        html += '      <div class="cwp-lead-name">';
+        html += '        <span>' + escapeHtml(name) + '</span>';
+        if (nameHi) html += '        <span class="cwp-lead-name-hi">' + escapeHtml(nameHi) + '</span>';
+        html += '      </div>';
+        html += '      <div class="cwp-lead-phone-row">';
+        html += '        <span class="cwp-lead-phone-num">📞 +91 ' + escapeHtml(phone) + '</span>';
+        if (phone) {
+          html += '        <a href="tel:+91' + escapeHtml(phone) + '" class="cwp-lead-quick-call" title="Call lead">📞 Call</a>';
+          html += '        <a href="https://wa.me/91' + escapeHtml(phone) + '?text=Namaste%20' + encodeURIComponent(name) + '%2C%20CWP%20Detailers%20ki%20taraf%20se%20sampark%20kar%20rahe%20hain." target="_blank" rel="noopener" class="cwp-lead-quick-wa" title="WhatsApp Message">💬 WhatsApp</a>';
+        }
+        html += '      </div>';
+        html += '    </div>';
+        html += '    <span class="cwp-lead-tag-badge">🎯 Lead</span>';
+        html += '  </div>';
+
+        // Vehicle Box
+        html += '  <div class="cwp-lead-car-box">';
+        html += '    <div class="cwp-lead-plate-wrap">';
+        html += '      <span class="cwp-lead-plate-badge">' + escapeHtml(regBadge) + '</span>';
+        if (modelText) html += '      <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">' + escapeHtml(modelText) + '</span>';
+        html += '    </div>';
+        if (photo) {
+          html += '    <img src="' + escapeHtml(photo) + '" class="cwp-lead-photo-thumb" alt="Car photo" onclick="openPhotoLightbox(\'' + escapeHtml(photo) + '\')" title="Click to view photo">';
+        } else {
+          html += '    <span style="font-size: 20px; opacity: 0.6;" title="No car photo uploaded">🚗</span>';
+        }
+        html += '  </div>';
+
+        // Location Box
+        html += '  <div class="cwp-lead-loc-box">';
+        html += '    <span>📍</span>';
+        html += '    <div style="flex: 1;">';
+        html += '      <span>' + escapeHtml(addr) + escapeHtml(addrHi) + '</span>';
+        if (maps) {
+          html += '      <div style="margin-top: 3px;"><a href="' + escapeHtml(maps) + '" target="_blank" rel="noopener" style="font-size: 11.5px; font-weight: 600; color: var(--brand-blue); text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">🗺️ Open in Google Maps ↗</a></div>';
+        }
+        html += '    </div>';
+        html += '  </div>';
+
+        // Interested Service
+        html += '  <div style="font-size: 11.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">';
+        html += '    <span>Inquiry:</span> <strong style="color: #d97706; background: rgba(245, 158, 11, 0.1); padding: 2px 7px; border-radius: 6px;">' + escapeHtml(sCategory) + '</strong>';
+        html += '  </div>';
+
+        // Notes Box
+        html += '  <div class="cwp-lead-notes-box">';
+        html += '    <div class="cwp-lead-notes-head">';
+        html += '      <span>📝 Remarks:</span>';
+        html += '      <button type="button" class="btn-lead-note-action" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')">+ Add Note</button>';
+        html += '    </div>';
+        html += '    <div class="cwp-lead-notes-content">' + (notes ? escapeHtml(notes) : '<em style="opacity: 0.7;">No remarks yet. Click + Add Note to log call discussion.</em>') + '</div>';
+        html += '  </div>';
+
+        // Actions Row
+        html += '  <div class="cwp-lead-actions-row">';
+        html += '    <button type="button" class="btn-convert-hero" onclick="openConvertLeadModal(\'' + escapeHtml(id) + '\')" title="Confirm customer & assign package/staff">';
+        html += '      <span>🌟</span> Confirm & Assign';
+        html += '    </button>';
+        html += '    <div style="display: flex; gap: 6px;">';
+        html += '      <button type="button" class="btn-lead-note-action" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')" title="Add note">📝 Note</button>';
+        html += '      <button type="button" class="btn-lead-icon-danger" onclick="deleteLead(\'' + escapeHtml(id) + '\')" title="Delete or drop lead">🗑️</button>';
+        html += '    </div>';
+        html += '  </div>';
+
+        html += '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function handleConvertCategoryChange(cat) {
+      var pkgGroup = document.getElementById('convertPackageGroup');
+      var pkgSelect = document.getElementById('convertPackageType');
+      if (!pkgSelect) return;
+
+      if (cat === 'Daily Car Cleaning') {
+        if (pkgGroup) pkgGroup.style.display = 'block';
+        pkgSelect.innerHTML = '<option value="DCC ONLY" selected>DCC ONLY (Exterior Daily)</option>' +
+          '<option value="DCC SILVER">DCC SILVER (Exterior Daily + Weekly Vacuum)</option>' +
+          '<option value="DCC GOLD">DCC GOLD (Full Executive Detailing)</option>' +
+          '<option value="OTHER">OTHER (Custom Subscription)</option>';
+      } else if (cat === 'Car Washing') {
+        if (pkgGroup) pkgGroup.style.display = 'block';
+        pkgSelect.innerHTML = '<option value="Foam Wash" selected>Foam Wash</option>' +
+          '<option value="Deep Interior & Exterior Wash">Deep Interior & Exterior Wash</option>' +
+          '<option value="Ceramic Wash">Ceramic Wash</option>' +
+          '<option value="Other Wash">Other Wash</option>';
+      } else if (cat === 'Solar Panel Cleaning') {
+        if (pkgGroup) pkgGroup.style.display = 'block';
+        pkgSelect.innerHTML = '<option value="Solar Cleaning Standard" selected>Solar Cleaning Standard (Up to 10 Panels)</option>' +
+          '<option value="Solar Cleaning Commercial">Solar Cleaning Commercial (10+ Panels)</option>';
+      }
+    }
+
+    function openConvertLeadModal(leadId) {
+      var lead = (state.leads || []).find(function(l) {
+        return (l.id && l.id === leadId) || (l.customerCode && l.customerCode === leadId);
+      });
+      if (!lead) {
+        showToast('Lead record not found.', '⚠️');
+        return;
+      }
+
+      document.getElementById('convertLeadId').value = lead.id || lead.customerCode;
+      document.getElementById('convertLeadNameDisplay').textContent = lead.customerName || '—';
+      document.getElementById('convertLeadPhoneDisplay').textContent = '+91 ' + (lead.customerNumber || lead.phone || '—');
+      document.getElementById('convertLeadVehicleDisplay').textContent = lead.vehicle || '—';
+      document.getElementById('convertLeadAddressDisplay').textContent = lead.address || '—';
+      document.getElementById('convertNotes').value = '';
+
+      var catSelect = document.getElementById('convertServiceCategory');
+      if (catSelect) {
+        var cat = lead.interestedService || lead.serviceCategory || 'Daily Car Cleaning';
+        if (['Daily Car Cleaning', 'Car Washing', 'Solar Panel Cleaning'].indexOf(cat) !== -1) {
+          catSelect.value = cat;
+        } else {
+          catSelect.value = 'Daily Car Cleaning';
+        }
+        handleConvertCategoryChange(catSelect.value);
+      }
+
+      var staffSelect = document.getElementById('convertStaffSelect');
+      if (staffSelect) {
+        staffSelect.innerHTML = '<option value="">Unassigned (Assign later)</option>';
+        (state.staffList || []).filter(function(s) { return s.active !== false; }).forEach(function(s) {
+          var opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = s.name + ' (' + s.id + ')';
+          staffSelect.appendChild(opt);
+        });
+      }
+
+      var modal = document.getElementById('convertLeadModal');
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    }
+
+    function closeConvertLeadModal() {
+      var modal = document.getElementById('convertLeadModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleConvertLeadSubmit(e) {
+      e.preventDefault();
+      var btn = document.getElementById('btnConfirmConvert');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="cwp-spinner"></span> Converting lead...';
+      }
+
+      var leadId = document.getElementById('convertLeadId').value;
+      var sCategory = document.getElementById('convertServiceCategory').value;
+      var pkgType = document.getElementById('convertPackageType').value;
+      var staffSelect = document.getElementById('convertStaffSelect');
+      var staffId = staffSelect ? staffSelect.value : '';
+      var staffName = '';
+      if (staffId && staffSelect.selectedIndex >= 0) {
+        var opt = staffSelect.options[staffSelect.selectedIndex];
+        staffName = opt ? opt.textContent.replace(/\s*\(.*\)$/, '').trim() : '';
+      }
+      var notes = (document.getElementById('convertNotes').value || '').trim();
+
+      var payload = {
+        leadId: leadId,
+        convertData: {
+          serviceCategory: sCategory,
+          packageType: pkgType,
+          staffId: staffId,
+          staffName: staffName,
+          notes: notes
+        }
+      };
+
+      apiCall('convertLead', payload, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>🚀</span> Confirm & Assign Customer';
+        }
+        if (res && res.error) {
+          showToast('Error: ' + res.error, '❌');
+        } else {
+          showToast('Lead confirmed & converted to active customer successfully!', '🎉');
+          closeConvertLeadModal();
+
+          loadAdminLeads(true);
+          loadAdminRecords(true);
+
+          setTimeout(function() {
+            switchAdminTab('records');
+          }, 600);
+        }
+      }, function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>🚀</span> Confirm & Assign Customer';
+        }
+        showToast('Error: ' + (err.message || err), '❌');
+      });
+    }
+
+    function openLeadNoteModal(leadId) {
+      var lead = (state.leads || []).find(function(l) {
+        return (l.id && l.id === leadId) || (l.customerCode && l.customerCode === leadId);
+      });
+      if (!lead) return;
+
+      document.getElementById('leadNoteTargetId').value = lead.id || lead.customerCode;
+      document.getElementById('leadNoteCustomerName').textContent = (lead.customerName || 'Prospect') + ' • ' + (lead.vehicle || '');
+      var hist = document.getElementById('leadNotesHistoryList');
+      if (hist) {
+        hist.textContent = lead.leadNotes || lead.notes || 'No prior notes logged.';
+      }
+      document.getElementById('newLeadNoteText').value = '';
+
+      var modal = document.getElementById('leadNoteModal');
+      if (modal) modal.style.display = 'flex';
+      setTimeout(function() {
+        var txt = document.getElementById('newLeadNoteText');
+        if (txt) txt.focus();
+      }, 100);
+    }
+
+    function closeLeadNoteModal() {
+      var modal = document.getElementById('leadNoteModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleSaveLeadNoteSubmit(e) {
+      e.preventDefault();
+      var btn = document.getElementById('btnSaveLeadNote');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="cwp-spinner"></span> Saving...';
+      }
+
+      var leadId = document.getElementById('leadNoteTargetId').value;
+      var noteText = (document.getElementById('newLeadNoteText').value || '').trim();
+
+      apiCall('addLeadNote', { leadId: leadId, note: noteText }, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>💾</span> Save Note';
+        }
+        if (res && res.error) {
+          showToast('Error: ' + res.error, '❌');
+        } else {
+          showToast('Lead note saved!', '✓');
+          closeLeadNoteModal();
+          loadAdminLeads(true);
+        }
+      }, function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>💾</span> Save Note';
+        }
+        showToast('Error: ' + (err.message || err), '❌');
+      });
+    }
+
+    function deleteLead(leadId) {
+      var lead = (state.leads || []).find(function(l) {
+        return (l.id && l.id === leadId) || (l.customerCode && l.customerCode === leadId);
+      });
+      var name = lead ? lead.customerName : 'this lead';
+      if (!confirm('Are you sure you want to remove lead "' + name + '"?')) return;
+
+      apiCall('deleteLead', { leadId: leadId, reason: 'Dismissed by admin' }, function(res) {
+        if (res && res.error) {
+          showToast('Error: ' + res.error, '❌');
+        } else {
+          showToast('Lead removed.', '✓');
+          loadAdminLeads(true);
+        }
+      }, function(err) {
+        showToast('Error: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleLeadsSearch(val) {
+      state.leadsSearchQuery = val || '';
+      var btn = document.getElementById('btnLeadsSearchClear');
+      if (btn) btn.style.display = val ? 'inline-flex' : 'none';
+
+      var q = val.trim().toLowerCase();
+      var filtered = state.leads || [];
+      if (q) {
+        filtered = filtered.filter(function(l) {
+          return recordMatchesBilingualSearch(l, q);
+        });
+      }
+      state.lastFilteredLeads = filtered;
+      updateLeadsKpi();
+      renderAdminLeadsList(filtered);
+    }
+
+    function clearLeadsSearch() {
+      var input = document.getElementById('leadsSearchInput');
+      if (input) input.value = '';
+      handleLeadsSearch('');
+    }
+
+        function exportAdminRecordsCSV() {
       var records = state.lastFilteredRecords || state.adminRecords;
       if (!records || records.length === 0) {
         showToast('No records available to export.', '⚠️');
@@ -6127,11 +6984,7 @@ function loadStaffCustomerData(staffId) {
       var displayItems = allCustomers;
       if (q) {
         displayItems = allCustomers.filter(function(c) {
-          var name = (c.customerName || '').toLowerCase();
-          var veh = (c.vehicle || c.vehicleNumbers || '').toLowerCase();
-          var phone = (c.customerNumber || '').toLowerCase();
-          var addr = (c.address || '').toLowerCase();
-          return name.includes(q) || veh.includes(q) || phone.includes(q) || addr.includes(q);
+          return recordMatchesBilingualSearch(c, q);
         });
       }
 
@@ -7436,7 +8289,7 @@ function loadStaffCustomerData(staffId) {
     }
 
     /* =========================================================================
-       ADMIN DAILY CLEAN REPORTS: FETCH, FILTER, RENDER & EXPORT
+       ADMIN DAILY CLEAN REPORTS: FETCH, FILTER, RENDER, AUTO-SYNC & EXPORT
        ========================================================================= */
     var adminCleanReportsState = {
       period: 'today',
@@ -7449,10 +8302,113 @@ function loadStaffCustomerData(staffId) {
       summary: {}
     };
 
-    function loadDailyCleanReports() {
+    var cleanReportsSyncTimer = null;
+    var isCleanReportsSyncInProgress = false;
+    var CLEAN_REPORTS_POLL_INTERVAL_MS = 15000; // 15 seconds real-time auto sync
+    var lastCleanReportsSignature = '';
+    var lastCleanReportsSyncTimestamp = 0;
+    var isCleanReportsAutoSyncEnabled = true;
+
+    function computeReportsSignature(records, summary) {
+      if (!records || !records.length) {
+        return 'empty:' + (summary ? (summary.totalCleaned || 0) : 0);
+      }
+      var first = records[0] || {};
+      var firstKey = first.id || first.log_id || first.completed_at_device || '';
+      return [
+        records.length,
+        firstKey,
+        first.registration_no || '',
+        summary ? (summary.latestPunchTime || '') : '',
+        summary ? (summary.totalCleaned || 0) : 0,
+        summary ? (summary.withPhotoCount || 0) : 0
+      ].join('|');
+    }
+
+    function toggleCleanReportsAutoSync() {
+      isCleanReportsAutoSyncEnabled = !isCleanReportsAutoSyncEnabled;
+      var pill = document.getElementById('reportsLiveSyncPill');
+      var dot = document.getElementById('reportsLiveDot');
+      var text = document.getElementById('reportsLiveSyncText');
+      var timeEl = document.getElementById('reportsLastSyncTime');
+
+      if (isCleanReportsAutoSyncEnabled) {
+        if (pill) {
+          pill.classList.remove('is-paused');
+          pill.title = 'Live Auto-Sync Active (Click to pause)';
+        }
+        if (dot) dot.style.display = 'inline-block';
+        if (text) text.textContent = 'LIVE AUDIT';
+        if (timeEl) timeEl.textContent = 'Live sync active (15s)';
+        startDailyCleanReportsAutoSync();
+        loadDailyCleanReports(true);
+        showToast('🟢 Live auto-sync resumed (15s updates)', 'info');
+      } else {
+        stopDailyCleanReportsAutoSync();
+        if (pill) {
+          pill.classList.add('is-paused');
+          pill.title = 'Auto-Sync Paused (Click to resume)';
+        }
+        if (dot) dot.style.display = 'none';
+        if (text) text.textContent = 'PAUSED';
+        if (timeEl) timeEl.textContent = 'Auto-sync paused';
+        showToast('⏸️ Live auto-sync paused', 'info');
+      }
+    }
+
+    function startDailyCleanReportsAutoSync() {
+      stopDailyCleanReportsAutoSync();
+      if (!isCleanReportsAutoSyncEnabled) return;
+      if (state.currentView !== 'admin' || !isUserAdminAuthenticated()) return;
+
+      cleanReportsSyncTimer = setInterval(function() {
+        var activeTab = getSavedAdminTab();
+        if (activeTab === 'cleanReports' &&
+            document.visibilityState === 'visible' &&
+            state.currentView === 'admin' &&
+            isUserAdminAuthenticated() &&
+            navigator.onLine !== false) {
+          // If admin is actively typing in search, skip this background cycle
+          var searchInp = document.getElementById('reportSearchFilter');
+          if (searchInp && document.activeElement === searchInp) {
+            return;
+          }
+          loadDailyCleanReports(true); // Silent background fetch
+        }
+      }, CLEAN_REPORTS_POLL_INTERVAL_MS);
+    }
+
+    function stopDailyCleanReportsAutoSync() {
+      if (cleanReportsSyncTimer) {
+        clearInterval(cleanReportsSyncTimer);
+        cleanReportsSyncTimer = null;
+      }
+      isCleanReportsSyncInProgress = false;
+    }
+
+    function loadDailyCleanReports(isSilent) {
+      if (isCleanReportsSyncInProgress) return;
+
       var tbody = document.getElementById('adminCleanReportsTableBody');
-      if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);"><div class="spinner-circle" style="width: 24px; height: 24px; border-width: 2px; margin: 0 auto 8px auto;"></div>रिपोर्ट लोड हो रही है...</td></tr>';
+      var refreshBtn = document.querySelector('.btn-report-refresh');
+      var syncText = document.getElementById('reportsLiveSyncText');
+      var syncDot = document.getElementById('reportsLiveDot');
+      var syncTimeEl = document.getElementById('reportsLastSyncTime');
+
+      if (!isSilent) {
+        if (tbody && (!adminCleanReportsState.records || adminCleanReportsState.records.length === 0)) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);"><div class="spinner-circle" style="width: 24px; height: 24px; border-width: 2px; margin: 0 auto 8px auto;"></div>रिपोर्ट लोड हो रही है...</td></tr>';
+        }
+        if (refreshBtn) {
+          refreshBtn.classList.add('is-refreshing');
+          var svg = refreshBtn.querySelector('svg');
+          if (svg) svg.classList.add('spin-icon');
+        }
+      }
+
+      if (isCleanReportsAutoSyncEnabled) {
+        if (syncText) syncText.textContent = isSilent ? 'SYNCING...' : 'UPDATING...';
+        if (syncDot) syncDot.classList.add('live-dot-fast');
       }
 
       populateReportStaffDropdown();
@@ -7466,12 +8422,75 @@ function loadStaffCustomerData(staffId) {
         search: adminCleanReportsState.search
       };
 
+      isCleanReportsSyncInProgress = true;
+      lastCleanReportsSyncTimestamp = Date.now();
+
       apiCall('getDailyCleanReports', payload, function(res) {
-        adminCleanReportsState.records = res.records || [];
-        adminCleanReportsState.summary = res.summary || {};
-        renderDailyCleanReports(adminCleanReportsState.records, adminCleanReportsState.summary);
+        isCleanReportsSyncInProgress = false;
+
+        if (refreshBtn) {
+          refreshBtn.classList.remove('is-refreshing');
+          var svg = refreshBtn.querySelector('svg');
+          if (svg) svg.classList.remove('spin-icon');
+        }
+        if (syncDot) syncDot.classList.remove('live-dot-fast');
+        if (syncText && isCleanReportsAutoSyncEnabled) syncText.textContent = 'LIVE AUDIT';
+
+        var now = new Date();
+        var timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        if (syncTimeEl && isCleanReportsAutoSyncEnabled) {
+          syncTimeEl.textContent = 'Auto-synced: ' + timeStr;
+          syncTimeEl.title = 'Last live sync: ' + timeStr + ' (Every 15s)';
+        }
+
+        var newRecords = res.records || [];
+        var newSummary = res.summary || {};
+        var newSig = computeReportsSignature(newRecords, newSummary);
+
+        var oldRecords = adminCleanReportsState.records || [];
+        var isInitial = !lastCleanReportsSignature;
+        var hasChanged = (newSig !== lastCleanReportsSignature);
+
+        if (hasChanged || isInitial || !isSilent) {
+          // Identify new records for subtle visual highlight & alert
+          var oldIdSet = new Set(oldRecords.map(function(r) {
+            return String(r.id || (r.registration_no + '_' + r.completed_at_device));
+          }));
+          var newIds = new Set();
+          if (!isInitial && isSilent && oldRecords.length > 0) {
+            newRecords.forEach(function(r) {
+              var key = String(r.id || (r.registration_no + '_' + r.completed_at_device));
+              if (!oldIdSet.has(key)) {
+                newIds.add(key);
+              }
+            });
+          }
+
+          adminCleanReportsState.records = newRecords;
+          adminCleanReportsState.summary = newSummary;
+          lastCleanReportsSignature = newSig;
+
+          renderDailyCleanReports(newRecords, newSummary, newIds);
+
+          if (newIds.size > 0) {
+            var firstNew = newRecords[0] || {};
+            var plate = firstNew.registration_no || 'Car';
+            var sName = firstNew.staff_name || 'Staff';
+            showToast('🚗 ' + newIds.size + ' new clean report received! (' + plate + ' by ' + sName + ')', '✓');
+          }
+        }
       }, function(err) {
-        if (tbody) {
+        isCleanReportsSyncInProgress = false;
+        if (refreshBtn) {
+          refreshBtn.classList.remove('is-refreshing');
+          var svg = refreshBtn.querySelector('svg');
+          if (svg) svg.classList.remove('spin-icon');
+        }
+        if (syncDot) syncDot.classList.remove('live-dot-fast');
+        if (syncText && isCleanReportsAutoSyncEnabled) syncText.textContent = 'LIVE AUDIT';
+        if (syncTimeEl) syncTimeEl.textContent = 'Sync paused (retry in 15s)';
+
+        if (!isSilent && tbody) {
           tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 24px; color: #ef4444;">Error loading reports: ' + escapeHtml(err.error || err.message || err) + '</td></tr>';
         }
       });
@@ -7603,7 +8622,7 @@ function loadStaffCustomerData(staffId) {
     }
     window.shareDailyCleanReportDirectly = shareDailyCleanReportDirectly;
 
-    function renderDailyCleanReports(records, summary) {
+    function renderDailyCleanReports(records, summary, newIds) {
       // 1. Update KPI Tiles
       var kpiTotal = document.getElementById('kpiTotalCleaned');
       var kpiRate = document.getElementById('kpiPhotoRate');
@@ -7711,7 +8730,10 @@ function loadStaffCustomerData(staffId) {
         var locText = r.address_text || r.parking_details || '—';
         var photoUrl = r.photo_url || '';
 
-        html += '<tr>';
+        var rowKey = String(r.id || (r.registration_no + '_' + r.completed_at_device));
+        var isNewRow = newIds && newIds.has(rowKey);
+
+        html += '<tr class="' + (isNewRow ? 'row-new-highlight' : '') + '">';
         html += '  <td style="text-align: center;"><span class="report-row-index">' + (idx + 1) + '</span></td>';
         html += '  <td><div class="time-cell-main">' + timeFormatted + '</div><div class="time-cell-sub">' + dateFormatted + '</div></td>';
         var stfObj = (state.staffList || []).find(function(s) {
@@ -8197,6 +9219,9 @@ function loadStaffCustomerData(staffId) {
       window.copyWaModalImageAgain = copyWaModalImageAgain;
       window.downloadWaModalImage = downloadWaModalImage;
       window.loadDailyCleanReports = loadDailyCleanReports;
+      window.toggleCleanReportsAutoSync = toggleCleanReportsAutoSync;
+      window.startDailyCleanReportsAutoSync = startDailyCleanReportsAutoSync;
+      window.stopDailyCleanReportsAutoSync = stopDailyCleanReportsAutoSync;
       window.handleStaffPhotoSelect = handleStaffPhotoSelect;
       window.clearNewStaffPhoto = clearNewStaffPhoto;
       window.removeEditStaffPhoto = removeEditStaffPhoto;

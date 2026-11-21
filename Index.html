@@ -63,7 +63,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   
-  <link rel="stylesheet" href="/css/style.css?v=2.7.0">
+  <link rel="stylesheet" href="/css/style.css?v=2.8.0">
 
   <style>
     /* Critical FOUC Prevention & Immediate Logo/Header Constraints */
@@ -790,6 +790,13 @@
               <span class="tab-text">Customer Records</span>
               <span class="admin-tab-badge" id="tabRecordsCount">0</span>
             </button>
+            <button type="button" class="admin-tab-btn" id="tabBtnLeads" role="tab" onclick="switchAdminTab('leads')" title="Manage prospective customer inquiries and leads">
+              <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+              </svg>
+              <span class="tab-text">🎯 Leads</span>
+              <span class="admin-tab-badge" id="tabLeadsCount" style="background: rgba(245, 158, 11, 0.2); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.35);">0</span>
+            </button>
             <button type="button" class="admin-tab-btn" id="tabBtnSequence" role="tab" onclick="switchAdminTab('sequence')" title="Daily car cleaning route sequence management">
               <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                 <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
@@ -817,6 +824,60 @@
 
       <!-- Admin Tab 1: Backward-compatibility placeholder -->
       <div id="adminTabAddCust" class="admin-tab-pane" style="display: none;"></div>
+
+      <!-- Admin Tab: Leads Management Section -->
+      <div id="adminTabLeads" class="admin-tab-pane" style="display: none;">
+        <div class="admin-card-section leads-executive-section">
+          
+          <!-- Leads Hero Strip -->
+          <div class="records-hero-strip">
+            <div class="records-hero-left">
+              <div class="records-brand-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-size: 15px; font-weight: 700;">
+                🎯
+              </div>
+              <div>
+                <div class="records-title-row">
+                  <h2 class="records-hero-title">Leads & Inquiries Directory</h2>
+                  <span class="records-count-chip"><span id="leadsFilteredCount">0</span> / <span id="leadsTotalCount">0</span> leads</span>
+                </div>
+                <p class="records-hero-subtitle">Prospective customer inquiries pending confirmation. Track call notes, vehicle details & convert into active DCC or other customers.</p>
+              </div>
+            </div>
+            <div class="records-hero-actions">
+              <button type="button" class="btn-admin-primary" onclick="openAddLeadModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #d97706;" title="Capture a new customer lead">
+                <span>✨</span>
+                <span>New Lead</span>
+              </button>
+              <button type="button" class="btn-admin-icon-only" onclick="loadAdminLeads(true)" title="Refresh leads list">
+                <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                  <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Leads Filter & Search Toolbar -->
+          <div class="leads-filter-toolbar" style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div class="records-search-group" style="flex: 1; min-width: 260px; max-width: 480px;">
+              <span class="records-search-icon">🔍</span>
+              <input type="text" id="leadsSearchInput" class="records-search-input" placeholder="Search leads by name, phone, car number, or address..." oninput="handleLeadsSearch(this.value)">
+              <button type="button" id="btnLeadsSearchClear" class="search-clear-btn" onclick="clearLeadsSearch()" style="display: none;" title="Clear search">✕</button>
+            </div>
+            <div class="leads-quick-stats" style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+              <span class="leads-status-pill" style="font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 12px; background: rgba(245, 158, 11, 0.12); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.25);">
+                Pending Inquiries: <strong id="leadsPendingBadge">0</strong>
+              </span>
+            </div>
+          </div>
+
+          <!-- Leads Dynamic Cards Container -->
+          <div id="leadsListContainer" class="leads-grid-container">
+            <div class="skeleton-feed" style="padding: 24px; text-align: center; color: var(--text-muted);">
+              Loading leads...
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Admin Tab: Staff-Wise Customer Sequence Management (Task P2.5) -->
       <div id="adminTabSequence" class="admin-tab-pane" style="display: none;">
@@ -993,6 +1054,10 @@
               </div>
             </div>
             <div class="records-hero-actions">
+              <button type="button" class="btn-admin-secondary" onclick="openAddLeadModal()" style="border-color: #f59e0b; color: #b45309;" title="Quick capture new prospect lead">
+                <span>🎯</span>
+                <span>+ Lead</span>
+              </button>
               <button type="button" class="btn-admin-primary" onclick="openAddCustomerModal()" title="Open form to add a new customer">
                 <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                   <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
@@ -1194,7 +1259,8 @@
               <div>
                 <div class="clean-reports-title-row">
                   <h2 class="clean-reports-h2">Daily Clean Reports & Proof of Work</h2>
-                  <span class="live-sync-pill"><span class="live-dot-pulse"></span> LIVE AUDIT</span>
+                  <span id="reportsLiveSyncPill" class="live-sync-pill" onclick="toggleCleanReportsAutoSync()" title="Live Auto-Sync Active (Click to pause/resume)" style="cursor: pointer; user-select: none;"><span class="live-dot-pulse" id="reportsLiveDot"></span> <span id="reportsLiveSyncText">LIVE AUDIT</span></span>
+                  <span id="reportsLastSyncTime" class="reports-last-sync-time" title="Last background sync time">Live sync active (15s)</span>
                 </div>
                 <p class="clean-reports-subtitle">Realtime field completion audit, timestamped photo evidence, and staff verification intelligence</p>
               </div>
@@ -1954,13 +2020,19 @@
             </div>
           </div>
 
-          <div class="modal-card-footer" style="padding: 12px 0 0 0; margin-top: 6px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
-            <button type="button" class="btn-cancel-form" onclick="closeAddCustomerModal()">
-              Cancel
-            </button>
+          <div class="modal-card-footer" style="padding: 12px 0 0 0; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <label class="cwp-lead-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #b45309; background: rgba(245, 158, 11, 0.12); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(245, 158, 11, 0.3);">
+              <input type="checkbox" id="custIsLeadCheck" onchange="handleCustIsLeadToggle(this.checked)" style="accent-color: #d97706; cursor: pointer;">
+              <span>🎯 Save as Lead (Pending Confirmation)</span>
+            </label>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn-cancel-form" onclick="closeAddCustomerModal()">
+                Cancel
+              </button>
             <button type="submit" id="btnSaveCust" class="btn-submit-main">
               <span>💾</span> Save Customer
             </button>
+            </div>
           </div>
         </form>
       </div>
@@ -2437,6 +2509,296 @@
        - Escaped forward slashes in URLs
        ===================================================================== -->
 
+  
+  <!-- =====================================================================
+       LEADS MODALS (Add Lead, Convert Lead, Add Lead Note)
+       ===================================================================== -->
+
+  <!-- Add New Lead Modal Popup -->
+  <div id="addLeadModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('addLeadModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box modal-card-box-lg" onclick="event.stopPropagation()" style="display: flex; flex-direction: column; max-width: 640px;">
+      <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(217, 119, 6, 0.04));">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px;">🎯</div>
+          <div>
+            <h3 class="modal-card-title" style="margin-bottom: 0;">Add New Lead</h3>
+            <span style="font-size: 12px; color: var(--text-secondary);">Capture prospect inquiry, vehicle info & initial remarks</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close-x" onclick="closeAddLeadModal()" title="Close (ESC)">✕</button>
+      </div>
+
+      <div class="modal-card-scrollable-body" style="overflow-y: auto; padding: 16px; flex: 1;">
+        <form id="addLeadForm" onsubmit="handleLeadSubmit(event)" class="cwp-compact-form">
+          
+          <!-- SECTION 1: PROSPECT DETAILS -->
+          <div class="cwp-form-section-card">
+            <div class="form-section-head">
+              <span class="section-num-pill" style="background: #f59e0b;">1</span>
+              <div class="section-title-wrap">
+                <span class="section-title-text">Lead Contact Details</span>
+                <span class="section-subtitle-text">Name, mobile number & location</span>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label" for="leadName">Prospect Name <span class="req-star">*</span></label>
+                <div class="input-icon-wrap">
+                  <span class="input-icon">👤</span>
+                  <input type="text" id="leadName" class="form-input with-icon" placeholder="e.g. Amit Sharma" required>
+                </div>
+                <div class="indic-assist-wrap" id="leadNameHiWrap">
+                  <span class="indic-assist-label">🌐 हिन्दी:</span>
+                  <input type="text" id="leadNameHi" class="form-input form-input-indic" placeholder="हिंदी नाम स्वतः आएगा...">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="leadPhone">Mobile Number <span class="req-star">*</span></label>
+                <div class="cwp-phone-group">
+                  <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+                  <input type="tel" id="leadPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="leadAddress">Address / Society <span class="req-star">*</span></label>
+                <textarea id="leadAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House/Flat No, Society, Landmark..." required></textarea>
+                <div class="indic-assist-wrap" id="leadAddressHiWrap" style="margin-top: 5px;">
+                  <span class="indic-assist-label">🌐 हिन्दी पता:</span>
+                  <input type="text" id="leadAddressHi" class="form-input form-input-indic" placeholder="हिंदी पता स्वतः आएगा...">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="leadMapsUrl">Map Location / GPS <span class="opt-tag">(Optional)</span></label>
+                <div class="form-input-addon-group map-input-group">
+                  <input type="text" id="leadMapsUrl" class="form-input" placeholder="Google Maps Link or Plus Code">
+                  <button type="button" class="form-addon-btn btn-gps-detect" onclick="detectLeadGpsLocation()" title="Auto-detect current GPS location">
+                    <span>📍</span> <span>GPS</span>
+                  </button>
+                </div>
+                <span class="form-field-hint">Paste Google Maps link or click GPS</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: VEHICLE & SERVICE -->
+          <div class="cwp-form-section-card">
+            <div class="form-section-head">
+              <span class="section-num-pill" style="background: #f59e0b;">2</span>
+              <div class="section-title-wrap">
+                <span class="section-title-text">Vehicle & Interested Service</span>
+                <span class="section-subtitle-text">Car number plate, model, photo & service inquiry</span>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label" for="leadCategory">Interested Service</label>
+                <select id="leadCategory" class="form-select">
+                  <option value="Daily Car Cleaning" selected>Daily Car Cleaning (DCC)</option>
+                  <option value="Car Washing">Car Washing (Deep / Foam Wash)</option>
+                  <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
+                  <option value="Other">Other / Detailing Inquiry</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="leadVehicle">Car Number & Model <span class="req-star">*</span></label>
+                <div class="input-icon-wrap">
+                  <span class="input-icon">🚗</span>
+                  <input type="text" id="leadVehicle" class="form-input with-icon" placeholder="e.g. UP32 AB 1234 - Creta" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Car Photo <span class="opt-tag">(Optional)</span></label>
+              <div class="photo-compact-card" id="leadPhotoDropzone">
+                <input type="file" id="leadPhotoFile" accept="image/*" style="display: none;" onchange="handleLeadPhotoSelect(event)">
+                <button type="button" class="btn-photo-upload-box" id="leadPhotoPlaceholder" onclick="triggerLeadPhotoSelect()" title="Upload vehicle photo">
+                  <span class="photo-box-icon">📸</span>
+                  <span class="photo-box-text">
+                    <span class="photo-box-title">+ Upload Car Photo</span>
+                    <span class="photo-box-sub">Auto-crop & preview</span>
+                  </span>
+                </button>
+                <img id="leadPhotoPreview" class="upload-preview-thumb-refined" style="display: none; cursor: pointer;" alt="Preview" onclick="openExistingLeadPhotoCropper()" title="Click to crop/rotate photo">
+                <div id="leadPhotoActionsWrap" class="photo-actions-cluster" style="display: none;">
+                  <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingLeadPhotoCropper()" title="Crop & rotate photo">
+                    <span>✂️</span> <span>Crop</span>
+                  </button>
+                  <button type="button" class="btn-photo-action-sm" onclick="document.getElementById('leadPhotoFile').click()" title="Change photo">
+                    <span>🔄</span> <span>Change</span>
+                  </button>
+                  <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeLeadPhoto(event)" title="Remove photo">
+                    <span>🗑️</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: LEAD NOTES -->
+          <div class="cwp-form-section-card">
+            <div class="form-section-head">
+              <span class="section-num-pill" style="background: #f59e0b;">3</span>
+              <div class="section-title-wrap">
+                <span class="section-title-text">Lead Notes & Quotation</span>
+                <span class="section-subtitle-text">Pricing quoted, preferences & follow-up remarks</span>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <div class="notes-header-flex">
+                <label class="form-label" for="leadNotes" style="margin-bottom: 0;">Follow-up Notes / Remarks</label>
+                <div class="quick-chips-inline">
+                  <span class="quick-chip-label">Quick tags:</span>
+                  <button type="button" class="chip-btn-mini" onclick="setLeadQuickNote('Quoted 1500/mo. Asked to callback on weekend.')">Quoted 1500</button>
+                  <button type="button" class="chip-btn-mini" onclick="setLeadQuickNote('Wants 1-day demo before confirmation.')">Trial Demo</button>
+                  <button type="button" class="chip-btn-mini" onclick="setLeadQuickNote('Tower B parking, key with guard.')">Basement Parking</button>
+                </div>
+              </div>
+              <textarea id="leadNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="e.g. Quoted ₹1,400/month. Prefers early morning 7 AM timing. Will confirm on Monday."></textarea>
+            </div>
+          </div>
+
+          <div class="modal-card-footer" style="padding: 12px 0 0 0; margin-top: 6px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
+            <button type="button" class="btn-cancel-form" onclick="closeAddLeadModal()">Cancel</button>
+            <button type="submit" id="btnSaveLead" class="btn-submit-main" style="background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #d97706;">
+              <span>💾</span> Save Lead
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Convert Lead to Active Customer Modal -->
+  <div id="convertLeadModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('convertLeadModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 520px;">
+      <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.04));">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px;">🌟</div>
+          <div>
+            <h3 class="modal-card-title" style="margin-bottom: 0;">Confirm & Convert Lead</h3>
+            <span style="font-size: 12px; color: var(--text-secondary);">Assign package & staff to move lead to active customers</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close-x" onclick="closeConvertLeadModal()">✕</button>
+      </div>
+
+      <form id="convertLeadForm" onsubmit="handleConvertLeadSubmit(event)" style="padding: 16px;">
+        <input type="hidden" id="convertLeadId">
+
+        <!-- Lead Summary Card -->
+        <div style="background: var(--bg-surface); padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong id="convertLeadNameDisplay" style="font-size: 14px; color: var(--text-primary);">—</strong>
+            <span id="convertLeadPhoneDisplay" style="font-size: 12.5px; font-weight: 600; color: var(--brand-blue); font-family: monospace;">—</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+            <span>🚗 Vehicle:</span> <strong id="convertLeadVehicleDisplay" style="color: var(--text-primary);">—</strong>
+          </div>
+          <div id="convertLeadAddressDisplay" style="font-size: 12px; color: var(--text-muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">—</div>
+        </div>
+
+        <!-- Service Category -->
+        <div class="form-group">
+          <label class="form-label" for="convertServiceCategory">Service Category <span class="req-star">*</span></label>
+          <select id="convertServiceCategory" class="form-select" onchange="handleConvertCategoryChange(this.value)" required>
+            <option value="Daily Car Cleaning" selected>Daily Car Cleaning (DCC)</option>
+            <option value="Car Washing">Car Washing (Deep / Foam Wash)</option>
+            <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
+          </select>
+        </div>
+
+        <!-- Package Type -->
+        <div class="form-group" id="convertPackageGroup">
+          <label class="form-label" for="convertPackageType">Package Type <span class="req-star">*</span></label>
+          <select id="convertPackageType" class="form-select" required>
+            <option value="DCC ONLY" selected>DCC ONLY (Exterior Daily)</option>
+            <option value="DCC SILVER">DCC SILVER (Exterior Daily + Weekly Vacuum)</option>
+            <option value="DCC GOLD">DCC GOLD (Full Executive Detailing)</option>
+            <option value="OTHER">OTHER (Custom Subscription)</option>
+          </select>
+        </div>
+
+        <!-- Assign Staff -->
+        <div class="form-group">
+          <label class="form-label" for="convertStaffSelect">Assign Cleaner / Staff <span class="opt-tag">(Optional)</span></label>
+          <select id="convertStaffSelect" class="form-select">
+            <option value="">Unassigned (Assign later)</option>
+          </select>
+          <span class="form-field-hint">Assign to field cleaner's daily route sequence immediately</span>
+        </div>
+
+        <!-- Confirmation Notes -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="convertNotes">Confirmation Notes & Cleaning Instructions <span class="opt-tag">(Optional)</span></label>
+          <textarea id="convertNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="e.g. Confirmed for ₹1,500/mo starting tomorrow 7 AM."></textarea>
+        </div>
+
+        <div class="modal-card-footer" style="padding: 14px 0 0 0; margin-top: 12px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
+          <button type="button" class="btn-cancel-form" onclick="closeConvertLeadModal()">Cancel</button>
+          <button type="submit" id="btnConfirmConvert" class="btn-submit-main" style="background: linear-gradient(135deg, #10b981, #059669); border-color: #059669;">
+            <span>🚀</span> Confirm & Assign Customer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Lead Note Modal Popup -->
+  <div id="leadNoteModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('leadNoteModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px;">
+      <div class="modal-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="font-size: 20px;">📝</div>
+          <div>
+            <h3 class="modal-card-title" style="margin-bottom: 0;">Lead Follow-up Notes</h3>
+            <span id="leadNoteCustomerName" style="font-size: 12px; color: var(--text-secondary);">—</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close-x" onclick="closeLeadNoteModal()">✕</button>
+      </div>
+
+      <form id="leadNoteForm" onsubmit="handleSaveLeadNoteSubmit(event)" style="padding: 16px;">
+        <input type="hidden" id="leadNoteTargetId">
+
+        <!-- Existing Notes Log -->
+        <div class="form-group">
+          <label class="form-label">Notes History</label>
+          <div id="leadNotesHistoryList" class="lead-notes-history-box" style="max-height: 160px; overflow-y: auto; background: var(--bg-surface); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); font-size: 12.5px; color: var(--text-secondary); white-space: pre-line;">
+            No prior notes.
+          </div>
+        </div>
+
+        <!-- Add New Note -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="newLeadNoteText">New Follow-up Note <span class="req-star">*</span></label>
+          <div class="quick-chips-inline" style="margin-bottom: 6px;">
+            <button type="button" class="chip-btn-mini" onclick="setLeadModalNote('Called customer. Will confirm by tomorrow.')">Will confirm tomorrow</button>
+            <button type="button" class="chip-btn-mini" onclick="setLeadModalNote('Agreed for package, requested start date next week.')">Agreed for package</button>
+            <button type="button" class="chip-btn-mini" onclick="setLeadModalNote('Not answering, left WhatsApp message.')">WhatsApp sent</button>
+          </div>
+          <textarea id="newLeadNoteText" class="form-textarea form-textarea-compact" rows="3" placeholder="Write follow-up notes, call remarks, or quoted price..." required></textarea>
+        </div>
+
+        <div class="modal-card-footer" style="padding: 14px 0 0 0; margin-top: 12px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
+          <button type="button" class="btn-cancel-form" onclick="closeLeadNoteModal()">Cancel</button>
+          <button type="submit" id="btnSaveLeadNote" class="btn-submit-main">
+            <span>💾</span> Save Note
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
     <!-- Application Launch Parameters Injected by Server -->
   <script>
     var initialStaffId = "<?= typeof initialStaffId !== 'undefined' ? initialStaffId : '' ?>";
@@ -2446,7 +2808,7 @@
 
   <!-- Vendor Libraries & Modular Application Logic -->
   <script src="/js/cropper.min.js"></script>
-  <script src="/js/app.js?v=2.7.0" defer></script>
+  <script src="/js/app.js?v=2.8.0" defer></script>
   <script>
     // Failsafe listener for staff photo selection
     document.addEventListener('change', function(e) {

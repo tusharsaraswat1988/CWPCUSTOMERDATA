@@ -1248,11 +1248,40 @@ async function fetchAllLiveCustomers() {
     }
   }
 
+  const localCusts = ((appState && appState.customers) || []).filter(c => !c.isLead && c.tag !== 'lead');
   return {
-    records: (appState && appState.customers) || [],
+    records: localCusts,
     dataSource: 'neon_postgresql',
     isLive: true,
     lastSync: new Date().toISOString()
+  };
+}
+
+function getCombinedCustomerRecords() {
+  return ((appState && appState.customers) || []).filter(c => !c.isLead && c.tag !== 'lead');
+}
+
+async function fetchLeads() {
+  if (isNeonConfigured()) {
+    try {
+      const neonLeads = await adminService.getLeads();
+      if (Array.isArray(neonLeads)) {
+        return {
+          leads: neonLeads,
+          dataSource: 'neon_postgresql',
+          isLive: true
+        };
+      }
+    } catch (e) {
+      console.warn('[Leads] Neon fetch failed:', e.message);
+    }
+  }
+
+  const localLeads = ((appState && appState.customers) || []).filter(c => Boolean(c.isLead || c.tag === 'lead'));
+  return {
+    leads: localLeads,
+    dataSource: 'local_storage',
+    isLive: false
   };
 }
 
@@ -1763,6 +1792,23 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ success: true, records }));
+  }
+
+  // GET /api/leads - Return leads records
+  if (req.method === 'GET' && pathname === '/api/leads') {
+    let leads = [];
+    if (isNeonConfigured()) {
+      try {
+        leads = await adminService.getLeads();
+      } catch (e) {
+        console.warn('Neon getLeads error:', e.message);
+        leads = ((appState && appState.customers) || []).filter(c => Boolean(c.isLead || c.tag === 'lead'));
+      }
+    } else {
+      leads = ((appState && appState.customers) || []).filter(c => Boolean(c.isLead || c.tag === 'lead'));
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ success: true, leads }));
   }
 
   // POST /api/indic/transliterate - Real-time transliteration endpoint
@@ -2337,6 +2383,11 @@ const server = http.createServer(async (req, res) => {
         // =====================================================================
         const adminProtectedActions = [
           'getAllCustomers',
+          'getLeads',
+          'convertLead',
+          'addLeadNote',
+          'saveLead',
+          'deleteLead',
           'saveCustomer',
           'updateCustomer',
           'deleteCustomer',
@@ -2470,6 +2521,99 @@ const server = http.createServer(async (req, res) => {
           const fetchResult = await fetchAllLiveCustomers(forceRefresh);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify(fetchResult.records || []));
+        }
+
+        // Admin: Get Leads
+        if (payload.action === 'getLeads') {
+          const fetchResult = await fetchLeads();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify(fetchResult.leads || []));
+        }
+
+        // Admin: Convert Lead to Customer
+        if (payload.action === 'convertLead') {
+          const leadId = payload.leadId || (payload.customerData && payload.customerData.id);
+          if (!leadId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Lead ID is required.' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const convertRes = await adminService.convertLeadToCustomer(leadId, payload.convertData || payload.customerData || {}, 'admin');
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(convertRes));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
+          // Local mode fallback
+          if (!appState.customers) appState.customers = [];
+          const cust = appState.customers.find(c => c.id === leadId || c.customerCode === leadId || c.customerNumber === leadId);
+          if (!cust) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Lead not found in local data.' }));
+          }
+
+          const conv = payload.convertData || payload.customerData || {};
+          cust.isLead = false;
+          cust.leadStatus = 'converted';
+          cust.tag = 'customer';
+          cust.serviceCategory = conv.serviceCategory || cust.serviceCategory || 'Daily Car Cleaning';
+          cust.packageType = conv.packageType || cust.packageType || 'DCC ONLY';
+          cust.packageName = cust.packageType;
+          cust.sheetName = (cust.serviceCategory === 'Daily Car Cleaning') ? 'Daily Clean' : 'All Other Work';
+          if (conv.staffId) cust.staffId = conv.staffId;
+          if (conv.staffName) cust.staffName = conv.staffName;
+          if (conv.notes) {
+            const ts = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            cust.notes = cust.notes ? `${cust.notes}\n[Converted ${ts}] ${conv.notes}` : `[Converted ${ts}] ${conv.notes}`;
+          }
+          saveLocalData(appState);
+          invalidateLiveCustomersCache();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, customerId: cust.id, message: 'Lead converted successfully.' }));
+        }
+
+        // Admin: Add Note to Lead
+        if (payload.action === 'addLeadNote') {
+          const leadId = payload.leadId;
+          const noteText = payload.note || payload.notes || payload.leadNotes;
+          if (!leadId || !noteText) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Lead ID and note text are required.' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const noteRes = await adminService.addLeadNote(leadId, noteText, 'admin');
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(noteRes));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
+          // Local mode fallback
+          if (!appState.customers) appState.customers = [];
+          const cust = appState.customers.find(c => c.id === leadId || c.customerCode === leadId || c.customerNumber === leadId);
+          if (!cust) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Customer not found.' }));
+          }
+          const ts = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+          const formatted = `[${ts}] ${noteText.trim()}`;
+          cust.leadNotes = cust.leadNotes ? `${cust.leadNotes}\n${formatted}` : formatted;
+          cust.notes = cust.notes ? `${cust.notes}\n${formatted}` : formatted;
+          saveLocalData(appState);
+          invalidateLiveCustomersCache();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, customerId: cust.id, leadNotes: cust.leadNotes, notes: cust.notes }));
         }
 
         // Admin: Reset Staff PIN (Requires valid 6-digit numeric PIN, revokes existing sessions)
@@ -2904,9 +3048,13 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ success: true, message: 'Admin password updated successfully and securely!' }));
         }
 
-        // Admin: Save Customer (Task P2.4: Strict Server-Side Indian Mobile Validation & Normalization)
-        if (payload.action === 'saveCustomer' && payload.customerData) {
+        // Admin: Save Customer / Save Lead (Task P2.4: Strict Server-Side Indian Mobile Validation & Normalization)
+        if ((payload.action === 'saveCustomer' || payload.action === 'saveLead') && payload.customerData) {
           const cust = payload.customerData;
+          if (payload.action === 'saveLead') {
+            cust.isLead = true;
+            cust.tag = 'lead';
+          }
 
           const rawCustPhone = (cust.customerNumber || cust.phone || cust.custPhone || cust.mobile || '').toString().trim();
           if (!rawCustPhone || !isValidIndianMobile(rawCustPhone)) {
@@ -3005,7 +3153,11 @@ const server = http.createServer(async (req, res) => {
           invalidateLiveCustomersCache();
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ success: true, message: 'Customer saved successfully' }));
+          return res.end(JSON.stringify({
+            success: true,
+            isLead: Boolean(cust.isLead),
+            message: cust.isLead ? 'Lead saved successfully' : 'Customer saved successfully'
+          }));
         }
 
         // Admin: Update Customer (Guards against duplicate/orphaned rows and cross-sheet corruption)
@@ -3184,9 +3336,9 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ success: true, total: (appState.customers || []).length, updated }));
         }
 
-        // Admin: Delete Customer
-        if (payload.action === 'deleteCustomer') {
-          const custId = (payload.id || payload.customerId || payload.customerCode || '').toString().trim();
+        // Admin: Delete Customer or Lead
+        if (payload.action === 'deleteCustomer' || payload.action === 'deleteLead') {
+          const custId = (payload.id || payload.customerId || payload.customerCode || payload.leadId || '').toString().trim();
           if (!custId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'Customer ID is required.' }));
@@ -3481,9 +3633,9 @@ const server = http.createServer(async (req, res) => {
       content = content.replace('id="pageMainTitle">Staff Portal</h1>', 'id="pageMainTitle">Admin Portal</h1>');
     }
 
-    // Force v2.7.0 cache-buster on script and style tags across ALL routes
-    content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, '/js/app.js?v=2.7.0');
-    content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, '/css/style.css?v=2.7.0');
+    // Force v2.7.1 cache-buster on script and style tags across ALL routes
+    content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, '/js/app.js?v=2.7.1');
+    content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, '/css/style.css?v=2.7.1');
 
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
