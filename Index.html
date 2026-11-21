@@ -85,6 +85,202 @@
     .logout-card-logo { height: 44px !important; width: auto !important; max-width: 180px !important; object-fit: contain !important; }
     .top-header { background: #0f2942; color: #ffffff; position: sticky; top: 0; z-index: 1000; height: 56px; }
     .header-inner { display: flex; align-items: center; justify-content: space-between; height: 100%; padding: 0 16px; max-width: 1400px; margin: 0 auto; }
+
+    /* =========================================================================
+       CWP DETAILERS – MODERN DESIGN SYSTEM & INTELLIGENCE v2.0
+       ========================================================================= */
+    .reports-executive-section {
+      padding: 24px 28px !important;
+      background: var(--bg-surface) !important;
+      border-radius: 16px !important;
+      border: 1px solid var(--border-color) !important;
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03) !important;
+    }
+    .clean-reports-hero-strip {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 16px !important;
+      flex-wrap: wrap !important;
+      padding-bottom: 16px !important;
+      border-bottom: 1px solid var(--border-color) !important;
+      margin-bottom: 16px !important;
+    }
+    .clean-reports-hero-left {
+      display: flex !important;
+      align-items: center !important;
+      gap: 14px !important;
+    }
+    .clean-reports-brand-icon {
+      width: 48px !important;
+      height: 48px !important;
+      border-radius: 14px !important;
+      background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #06b6d4 100%) !important;
+      color: #ffffff !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-shadow: 0 8px 18px -4px rgba(37, 99, 235, 0.45) !important;
+      flex-shrink: 0 !important;
+    }
+    .clean-reports-title-row {
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      flex-wrap: wrap !important;
+    }
+    .clean-reports-h2 {
+      font-size: 20px !important;
+      font-weight: 800 !important;
+      color: var(--text-primary) !important;
+      letter-spacing: -0.3px !important;
+      margin: 0 !important;
+    }
+    .live-sync-pill {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      padding: 3px 10px !important;
+      background: #ecfdf5 !important;
+      color: #047857 !important;
+      border: 1px solid #a7f3d0 !important;
+      border-radius: 20px !important;
+      font-size: 11px !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.5px !important;
+    }
+    .live-dot-pulse {
+      width: 7px !important;
+      height: 7px !important;
+      border-radius: 50% !important;
+      background: #10b981 !important;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7) !important;
+      animation: liveDotPulseAnim 1.8s infinite !important;
+    }
+    @keyframes liveDotPulseAnim {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .clean-reports-subtitle {
+      font-size: 13px !important;
+      color: var(--text-secondary) !important;
+      margin-top: 3px !important;
+    }
+    .clean-reports-hero-actions {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      flex-shrink: 0 !important;
+    }
+    .btn-report-action {
+      height: 38px !important;
+      padding: 0 14px !important;
+      border-radius: 10px !important;
+      font-size: 12.5px !important;
+      font-weight: 700 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 7px !important;
+      cursor: pointer !important;
+      background: var(--bg-surface) !important;
+      color: var(--text-primary) !important;
+      border: 1.5px solid var(--border-color) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      font-family: inherit !important;
+      user-select: none !important;
+    }
+    .btn-report-action:hover {
+      background: var(--bg-surface-subtle) !important;
+      border-color: #cbd5e1 !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+    }
+    .btn-report-refresh {
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%) !important;
+      color: #ffffff !important;
+      border-color: #1e40af !important;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+    }
+    .btn-report-refresh:hover {
+      background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%) !important;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45) !important;
+    }
+
+    /* Operational Intelligence Banner */
+    .reports-intel-banner {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      padding: 12px 18px !important;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.06) 100%) !important;
+      border: 1px solid rgba(59, 130, 246, 0.22) !important;
+      border-radius: 12px !important;
+      margin-bottom: 18px !important;
+    }
+    .intel-banner-icon { font-size: 20px !important; flex-shrink: 0 !important; }
+    .intel-banner-content { display: flex !important; flex-direction: column !important; gap: 2px !important; flex: 1 !important; }
+    .intel-banner-title { font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 0.8px !important; color: #2563eb !important; }
+    .intel-banner-text { font-size: 13px !important; font-weight: 500 !important; color: var(--text-primary) !important; }
+    .compliance-badge { display: inline-flex !important; align-items: center !important; gap: 5px !important; padding: 4px 12px !important; border-radius: 20px !important; font-size: 11.5px !important; font-weight: 800 !important; }
+    .badge-green { background: #dcfce7 !important; color: #15803d !important; border: 1px solid #86efac !important; }
+    .badge-amber { background: #fef3c7 !important; color: #b45309 !important; border: 1px solid #fde68a !important; }
+    .badge-red { background: #fee2e2 !important; color: #b91c1c !important; border: 1px solid #fca5a5 !important; }
+    .badge-neutral { background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #cbd5e1 !important; }
+
+    /* KPI Grid */
+    .reports-kpi-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 16px !important; margin-bottom: 20px !important; }
+    @media (max-width: 1024px) { .reports-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+    @media (max-width: 540px) { .reports-kpi-grid { grid-template-columns: 1fr !important; } }
+    .reports-kpi-card { position: relative !important; background: var(--bg-surface) !important; border: 1.5px solid var(--border-color) !important; border-radius: 14px !important; padding: 18px 20px !important; display: flex !important; align-items: flex-start !important; gap: 14px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important; transition: all 0.25s cubic-bezier(0.16,1,0.3,1) !important; overflow: hidden !important; }
+    .reports-kpi-card:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 24px rgba(0,0,0,0.09) !important; }
+    .kpi-card-glow { position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; height: 3.5px !important; }
+    .card-kpi-blue .kpi-card-glow { background: linear-gradient(90deg, #2563eb, #38bdf8) !important; }
+    .card-kpi-green .kpi-card-glow { background: linear-gradient(90deg, #059669, #34d399) !important; }
+    .card-kpi-amber .kpi-card-glow { background: linear-gradient(90deg, #d97706, #fbbf24) !important; }
+    .card-kpi-purple .kpi-card-glow { background: linear-gradient(90deg, #7c3aed, #c084fc) !important; }
+    .kpi-icon-wrap { width: 44px !important; height: 44px !important; border-radius: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; box-shadow: 0 4px 10px rgba(0,0,0,0.06) !important; }
+    .kpi-blue { background: #eff6ff !important; color: #1d4ed8 !important; border: 1px solid #bfdbfe !important; }
+    .kpi-green { background: #ecfdf5 !important; color: #047857 !important; border: 1px solid #a7f3d0 !important; }
+    .kpi-amber { background: #fffbeb !important; color: #b45309 !important; border: 1px solid #fde68a !important; }
+    .kpi-purple { background: #faf5ff !important; color: #6d28d9 !important; border: 1px solid #ddd6fe !important; }
+    .kpi-info { display: flex !important; flex-direction: column !important; flex: 1 !important; min-width: 0 !important; }
+    .kpi-label { font-size: 11.5px !important; font-weight: 700 !important; color: var(--text-muted) !important; text-transform: uppercase !important; letter-spacing: 0.6px !important; }
+    .kpi-value-row { display: flex !important; align-items: baseline !important; gap: 6px !important; margin: 4px 0 2px 0 !important; }
+    .kpi-value { font-size: 26px !important; font-weight: 800 !important; color: var(--text-primary) !important; line-height: 1.1 !important; letter-spacing: -0.5px !important; }
+    .kpi-unit { font-size: 12px !important; font-weight: 700 !important; color: var(--text-muted) !important; text-transform: uppercase !important; }
+    .kpi-sub { font-size: 11.5px !important; color: var(--text-secondary) !important; }
+    .kpi-progress-track { width: 100% !important; height: 5px !important; background: var(--border-color) !important; border-radius: 10px !important; margin: 4px 0 6px 0 !important; overflow: hidden !important; }
+    .kpi-progress-bar { height: 100% !important; background: linear-gradient(90deg, #10b981, #059669) !important; border-radius: 10px !important; transition: width 0.5s ease !important; }
+
+    /* Filters */
+    .reports-filter-panel { background: var(--bg-surface-subtle) !important; border: 1.5px solid var(--border-color) !important; border-radius: 14px !important; padding: 14px 18px !important; margin-bottom: 20px !important; display: flex !important; flex-direction: column !important; gap: 12px !important; }
+    .reports-filter-tier { display: flex !important; align-items: center !important; gap: 12px !important; flex-wrap: wrap !important; }
+    .filter-tier-label { display: inline-flex !important; align-items: center !important; gap: 5px !important; font-size: 11.5px !important; font-weight: 800 !important; color: var(--text-muted) !important; text-transform: uppercase !important; letter-spacing: 0.6px !important; }
+    .quick-chip-group { display: inline-flex !important; align-items: center !important; gap: 4px !important; background: var(--bg-surface) !important; padding: 3px !important; border-radius: 10px !important; border: 1px solid var(--border-color) !important; }
+    .btn-quick-chip { background: transparent !important; border: none !important; padding: 6px 13px !important; border-radius: 8px !important; font-size: 12px !important; font-weight: 600 !important; color: var(--text-secondary) !important; cursor: pointer !important; transition: all 0.15s ease !important; }
+    .btn-quick-chip.active { background: var(--brand-blue) !important; color: #ffffff !important; font-weight: 700 !important; box-shadow: 0 2px 6px rgba(37,99,235,0.35) !important; }
+    .custom-date-box { display: inline-flex !important; align-items: center !important; gap: 8px !important; background: var(--bg-surface) !important; padding: 3px 10px !important; border-radius: 10px !important; border: 1px solid var(--border-color) !important; }
+    .date-input-wrap { display: inline-flex !important; align-items: center !important; gap: 5px !important; font-size: 11.5px !important; color: var(--text-muted) !important; font-weight: 600 !important; }
+    .report-date-input { height: 30px !important; padding: 0 8px !important; border-radius: 6px !important; border: 1px solid var(--border-color) !important; background: var(--bg-surface-subtle) !important; color: var(--text-primary) !important; font-size: 12px !important; }
+    .reports-filter-slice-row { display: flex !important; align-items: center !important; gap: 10px !important; flex-wrap: wrap !important; }
+    .filter-select-wrapper { flex: 1 !important; min-width: 180px !important; position: relative !important; }
+    .report-select-input { width: 100% !important; height: 38px !important; padding: 0 32px 0 12px !important; border-radius: 10px !important; border: 1.5px solid var(--border-color) !important; background-color: var(--bg-surface) !important; color: var(--text-primary) !important; font-size: 12.5px !important; font-weight: 600 !important; cursor: pointer !important; outline: none !important; }
+    .report-search-wrapper { position: relative !important; flex: 2 !important; min-width: 220px !important; }
+    .report-search-icon { position: absolute !important; left: 12px !important; top: 50% !important; transform: translateY(-50%) !important; color: var(--text-muted) !important; }
+    .report-search-input { width: 100% !important; height: 38px !important; padding: 0 14px 0 34px !important; border-radius: 10px !important; border: 1.5px solid var(--border-color) !important; background: var(--bg-surface) !important; color: var(--text-primary) !important; font-size: 12.5px !important; outline: none !important; }
+    .btn-filter-reset { height: 38px !important; padding: 0 14px !important; border-radius: 10px !important; border: 1.5px solid var(--border-color) !important; background: var(--bg-surface) !important; color: var(--text-secondary) !important; font-size: 12px !important; font-weight: 700 !important; cursor: pointer !important; }
+
+    /* Dark Mode Overrides */
+    body.theme-dark .reports-executive-section { background: #111827 !important; border-color: #1e293b !important; }
+    body.theme-dark .reports-intel-banner { background: linear-gradient(135deg, rgba(37,99,235,0.14) 0%, rgba(139,92,246,0.1) 100%) !important; border-color: rgba(59,130,246,0.35) !important; }
+    body.theme-dark .intel-banner-title { color: #60a5fa !important; }
+    body.theme-dark .reports-kpi-card { background: #111827 !important; border-color: #1e293b !important; }
+    body.theme-dark .reports-filter-panel { background: #0f172a !important; border-color: #1e293b !important; }
+    body.theme-dark .quick-chip-group, body.theme-dark .custom-date-box { background: #1e293b !important; border-color: #334155 !important; }
+    body.theme-dark .report-date-input, body.theme-dark .report-select-input, body.theme-dark .report-search-input, body.theme-dark .btn-filter-reset, body.theme-dark .btn-report-action { background-color: #1e293b !important; border-color: #334155 !important; color: #f8fafc !important; }
+
   </style>
 
 
@@ -189,16 +385,6 @@
           <div class="auth-accent-bar staff-accent cwp-accent-shimmer"></div>
           
           <div class="auth-card-content cwp-staff-card-body">
-            <!-- Staff Quick Toggles (Language & Theme Only - Strictly No Admin Access) -->
-            <div class="auth-top-actions">
-              <button type="button" class="btn-gate-toggle" id="btnGateLangToggle" onclick="toggleLanguage()" title="भाषा बदलें / Change Language">
-                <span class="gate-toggle-icon">🌐</span>
-                <span id="gateLangText">English</span>
-              </button>
-              <button type="button" class="btn-gate-toggle" id="btnGateThemeToggle" onclick="toggleTheme()" title="थीम बदलें / Toggle Dark/Light Mode">
-                <span id="gateThemeIcon">🌙</span>
-              </button>
-            </div>
 
             <!-- CWP Detailers Brand Bezel & Emblem -->
             <div class="auth-brand-emblem cwp-brand-bezel" title="CWP Detailers">

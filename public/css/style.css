@@ -10000,3 +10000,104 @@ body.theme-dark .report-no-photo-badge {
   color: #fbbf24;
   border-color: rgba(251, 191, 36, 0.3);
 }
+
+
+    /* =========================================================================
+       MOBILE PRODUCT AUDIT FINE-TUNING & RESPONSIVENESS REFINEMENTS
+       ========================================================================= */
+
+    /* 1. Precise Clear Button Sizing & Zero-Text-Collision */
+    .search-clear-btn,
+    .btn-search-clear-inline {
+      width: 22px !important;
+      height: 22px !important;
+      min-width: 22px !important;
+      min-height: 22px !important;
+      max-width: 22px !important;
+      max-height: 22px !important;
+      font-size: 11px !important;
+      line-height: 1 !important;
+      position: absolute !important;
+      right: 8px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 0 !important;
+      cursor: pointer !important;
+      z-index: 5 !important;
+    }
+
+    .records-search-input,
+    .search-input {
+      padding-right: 36px !important;
+    }
+
+    /* 2. Narrow Mobile Header (< 480px) Space Optimization */
+    @media (max-width: 480px) {
+      .top-header {
+        padding: 0 10px !important;
+      }
+      .header-inner {
+        gap: 6px !important;
+      }
+      .header-right {
+        gap: 4px !important;
+      }
+      #staffHeaderControls {
+        gap: 4px !important;
+      }
+      .pwa-install-header-btn {
+        padding: 0 8px !important;
+        min-width: 32px !important;
+        height: 32px !important;
+      }
+      .pwa-install-header-btn .pwa-btn-text {
+        display: none !important;
+      }
+      .header-logout-btn {
+        padding: 0 8px !important;
+        min-width: 32px !important;
+        height: 32px !important;
+      }
+      .header-logout-btn .logout-text {
+        display: none !important;
+      }
+      .staff-live-badge {
+        padding: 2px 7px !important;
+        font-size: 11px !important;
+      }
+    }
+
+    /* 3. Admin Tabs Scroll Cue for Mobile Viewports */
+    @media (max-width: 640px) {
+      .admin-tab-container {
+        position: relative !important;
+        width: 100% !important;
+        overflow: hidden !important;
+      }
+      .admin-tab-container::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 32px;
+        background: linear-gradient(to right, transparent, rgba(241, 245, 249, 0.95));
+        pointer-events: none;
+        border-radius: 0 10px 10px 0;
+        z-index: 2;
+      }
+      body.theme-dark .admin-tab-container::after {
+        background: linear-gradient(to right, transparent, rgba(15, 23, 42, 0.95));
+      }
+      .admin-tab-nav {
+        scroll-snap-type: x mandatory !important;
+        scroll-behavior: smooth !important;
+        padding-right: 36px !important;
+      }
+      .admin-tab-btn {
+        scroll-snap-align: start !important;
+      }
+    }

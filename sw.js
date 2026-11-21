@@ -9,7 +9,7 @@
  *  - Immediate update activation with skipWaiting & clientsClaim
  */
 
-const CACHE_NAME = 'cwp-staff-pwa-v1.0.1';
+const CACHE_NAME = 'cwp-staff-pwa-v1.0.2';
 
 const PRECACHE_ASSETS = [
   '/',

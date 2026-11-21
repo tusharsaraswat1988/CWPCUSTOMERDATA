@@ -4036,6 +4036,8 @@ function loadStaffCustomerData(staffId) {
       var records = state.lastFilteredRecords || state.adminRecords || [];
       renderAdminRecordsTable(records);
     }
+    window.changeAdminPage = changeAdminPage;
+    window.changeAdminPageSize = changeAdminPageSize;
 
     function renderAdminPaginationControls(totalCount, startIndex, endIndex, currentPage, totalPages, pageSize) {
       var container = document.getElementById('adminTablePagination');
