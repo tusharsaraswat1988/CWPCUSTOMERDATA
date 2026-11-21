@@ -3404,6 +3404,30 @@
       animation: springModalIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       will-change: transform, opacity;
     }
+    .modal-card-box-lg {
+      max-width: 820px !important;
+      width: 95% !important;
+    }
+    @media (max-width: 768px) {
+      .modal-card-box-lg {
+        max-width: 100% !important;
+        width: 100% !important;
+        max-height: 94vh !important;
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+      }
+    }
+
+    /* Tactile Static Backdrop Shake Effect (Prevents Accidental Dismissal on Outside Click) */
+    @keyframes modalStaticShake {
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(1.015) translateY(-2px); }
+      75% { transform: scale(0.99) translateY(1px); }
+    }
+    .modal-static-shake {
+      animation: modalStaticShake 0.28s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35) !important;
+    }
     .modal-card-header {
       padding: 14px 18px;
       border-bottom: 1px solid var(--border-color);
@@ -5176,10 +5200,7 @@
     }
 
     .section-subtitle-text {
-      font-size: 11.5px !important;
-      font-weight: 400 !important;
-      color: #64748b !important;
-      line-height: 1.2 !important;
+      display: none !important;
     }
 
     .form-row-2 {
@@ -5223,11 +5244,7 @@
     }
 
     .form-field-hint {
-      display: block !important;
-      font-size: 11px !important;
-      color: #64748b !important;
-      margin-top: 4px !important;
-      line-height: 1.3 !important;
+      display: none !important;
     }
 
     .form-input, .form-select {
@@ -5342,7 +5359,7 @@
       background: #f8fafc !important;
       border: 1.5px dashed #cbd5e1 !important;
       border-radius: 8px !important;
-      padding: 4px 8px !important;
+      padding: 4px 10px !important;
       height: 42px !important;
       min-height: 42px !important;
       display: flex !important;
@@ -5351,6 +5368,7 @@
       transition: all 0.2s ease !important;
       box-sizing: border-box !important;
       position: relative !important;
+      overflow: hidden !important;
     }
 
     .photo-compact-card:hover {
@@ -5361,46 +5379,51 @@
     .btn-photo-upload-box {
       background: transparent !important;
       border: none !important;
-      padding: 0 !important;
+      padding: 0 4px !important;
       margin: 0 !important;
       cursor: pointer !important;
-      display: flex !important;
+      display: inline-flex !important;
       align-items: center !important;
+      justify-content: center !important;
       gap: 8px !important;
       width: 100% !important;
-      justify-content: center !important;
       height: 100% !important;
       font-family: inherit !important;
     }
 
     .photo-box-icon {
-      font-size: 18px !important;
+      font-size: 16px !important;
       line-height: 1 !important;
+      flex-shrink: 0 !important;
     }
 
     .photo-box-text {
       display: flex !important;
-      flex-direction: column !important;
-      align-items: flex-start !important;
+      flex-direction: row !important;
+      align-items: baseline !important;
+      gap: 6px !important;
       text-align: left !important;
+      white-space: nowrap !important;
     }
 
     .photo-box-title {
-      font-size: 12px !important;
+      font-size: 12.5px !important;
       font-weight: 600 !important;
       color: #1e293b !important;
       line-height: 1.2 !important;
+      white-space: nowrap !important;
     }
 
     .photo-box-sub {
-      font-size: 10px !important;
+      font-size: 11px !important;
       color: #64748b !important;
-      line-height: 1.1 !important;
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
     }
 
     .upload-preview-thumb-refined {
-      width: 34px !important;
-      height: 34px !important;
+      width: 32px !important;
+      height: 32px !important;
       border-radius: 6px !important;
       object-fit: cover !important;
       border: 1px solid #cbd5e1 !important;
@@ -5410,10 +5433,14 @@
     }
 
     .photo-actions-cluster {
-      display: flex !important;
-      align-items: center !important;
-      gap: 4px !important;
-      margin-left: 6px !important;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .photo-compact-card [style*="display: none"] {
+      display: none !important;
     }
 
     .btn-photo-action-sm {
@@ -5537,9 +5564,7 @@
     }
 
     .cwp-form-subtitle {
-      font-size: 12px !important;
-      color: #64748b !important;
-      font-weight: 400 !important;
+      display: none !important;
     }
 
     .cwp-phone-group {
@@ -5673,6 +5698,30 @@
       max-height: 90vh !important;
       overflow-y: auto !important;
       box-sizing: border-box !important;
+    }
+    .modal-card-box-lg {
+      max-width: 820px !important;
+      width: 95% !important;
+    }
+    @media (max-width: 768px) {
+      .modal-card-box-lg {
+        max-width: 100% !important;
+        width: 100% !important;
+        max-height: 94vh !important;
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+      }
+    }
+
+    /* Tactile Static Backdrop Shake Effect (Prevents Accidental Dismissal on Outside Click) */
+    @keyframes modalStaticShake {
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(1.015) translateY(-2px); }
+      75% { transform: scale(0.99) translateY(1px); }
+    }
+    .modal-static-shake {
+      animation: modalStaticShake 0.28s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35) !important;
     }
     .modal-card-header {
       padding: 14px 18px !important;
@@ -6276,6 +6325,470 @@
     }
 
     /* =========================================================================
+       DAILY CAR CLEANING PHOTO VERIFICATION & WHATSAPP ACTION BAR
+       ========================================================================= */
+    .card-status-actions-bar-split {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      width: 100%;
+    }
+    .card-status-actions-bar-split .btn-clean-done {
+      flex: 1;
+      margin-top: 0 !important;
+    }
+    .btn-clean-wa {
+      height: 44px;
+      padding: 0 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-clean-wa.wa-ready {
+      background: #25D366;
+      color: #ffffff;
+      border-color: #20bd5a;
+      box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
+    }
+    .btn-clean-wa.wa-ready:hover {
+      background: #20bd5a;
+      transform: translateY(-1px);
+    }
+    .btn-clean-wa.wa-idle {
+      background: var(--bg-surface-subtle);
+      border-color: var(--border-color);
+      color: var(--text-secondary);
+      opacity: 0.85;
+    }
+    .btn-clean-wa.wa-idle:hover {
+      background: rgba(37, 211, 102, 0.12);
+      border-color: #25D366;
+      color: #128C7E;
+    }
+    body.theme-dark .btn-clean-wa.wa-idle {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+    }
+
+    /* =========================================================================
+       STAFF CAMERA CAPTURE MODAL (Modern Mobile-First Viewfinder & Review)
+       ========================================================================= */
+    .camera-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.92);
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      backdrop-filter: blur(8px);
+    }
+    .camera-modal-box {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 520px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      color: #ffffff;
+    }
+    .camera-modal-header {
+      padding: 14px 16px;
+      background: #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .camera-header-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .camera-modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .camera-modal-sub {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .camera-close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #f1f5f9;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .camera-close-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    /* Live Viewfinder View */
+    .camera-viewport-wrap {
+      position: relative;
+      width: 100%;
+      height: 340px;
+      background: #000000;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #cleaningCameraFeed {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .camera-guide-frame {
+      position: absolute;
+      top: 20px;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      border: 2px dashed rgba(56, 189, 248, 0.6);
+      border-radius: 12px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+    }
+    .camera-guide-text {
+      background: rgba(0, 0, 0, 0.6);
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      align-self: center;
+      backdrop-filter: blur(4px);
+    }
+    .camera-controls-row {
+      padding: 14px 16px;
+      background: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      gap: 12px;
+    }
+    .btn-camera-flip,
+    .btn-camera-fallback {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f1f5f9;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+    }
+    .btn-camera-flip:hover,
+    .btn-camera-fallback:hover {
+      background: #334155;
+    }
+    .btn-camera-shutter {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 4px solid #38bdf8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .btn-camera-shutter:active {
+      transform: scale(0.92);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+    .btn-camera-shutter-inner {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #f8fafc;
+      border: 2px solid #cbd5e1;
+    }
+
+    /* Review View */
+    .camera-review-wrap {
+      position: relative;
+      width: 100%;
+      height: 340px;
+      background: #000000;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #cameraPreviewImg {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000000;
+    }
+    .camera-meta-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 75%, transparent 100%);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      color: #ffffff;
+      font-size: 11px;
+    }
+    .camera-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .camera-meta-tag {
+      font-weight: 700;
+      color: #38bdf8;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .camera-review-actions {
+      padding: 14px 16px;
+      background: #0f172a;
+      display: flex;
+      gap: 10px;
+    }
+    .btn-review-retake {
+      flex: 1;
+      height: 44px;
+      border-radius: 8px;
+      background: #334155;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f1f5f9;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-review-retake:hover {
+      background: #475569;
+    }
+    .btn-review-confirm {
+      flex: 1.5;
+      height: 44px;
+      border-radius: 8px;
+      background: #059669;
+      border: 1px solid #10b981;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+      transition: all 0.15s;
+    }
+    .btn-review-confirm:hover {
+      background: #047857;
+      transform: translateY(-1px);
+    }
+
+    /* =========================================================================
+       ADMIN DAILY CLEAN REPORTS STYLES
+       ========================================================================= */
+    .reports-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 900px) {
+      .reports-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 480px) {
+      .reports-kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .reports-kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .kpi-icon-wrap {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .kpi-blue { background: #eff6ff; color: #2563eb; }
+    .kpi-green { background: #ecfdf5; color: #059669; }
+    .kpi-amber { background: #fef3c7; color: #d97706; }
+    .kpi-purple { background: #f3e8ff; color: #9333ea; }
+    body.theme-dark .kpi-blue { background: rgba(37, 99, 235, 0.15); color: #60a5fa; }
+    body.theme-dark .kpi-green { background: rgba(5, 150, 105, 0.15); color: #34d399; }
+    body.theme-dark .kpi-amber { background: rgba(217, 119, 6, 0.15); color: #fbbf24; }
+    body.theme-dark .kpi-purple { background: rgba(147, 51, 234, 0.15); color: #c084fc; }
+    .kpi-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .kpi-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Reports Filter Toolbar */
+    .reports-filter-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .reports-filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .quick-chip-group {
+      display: inline-flex;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .btn-quick-chip {
+      background: transparent;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-quick-chip.active {
+      background: var(--bg-surface);
+      color: var(--brand-blue);
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    .report-date-input,
+    .report-select-input,
+    .report-search-input {
+      height: 34px;
+      padding: 0 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 12.5px;
+    }
+    .report-search-input {
+      min-width: 200px;
+      flex: 1;
+    }
+
+    /* Report Photo Thumbnail & Lightbox */
+    .report-thumb-img {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      object-fit: cover;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .report-thumb-img:hover {
+      transform: scale(1.08);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+    .report-no-photo-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: var(--bg-surface-subtle);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* =========================================================================
        MODERN SEQUENCE ERGONOMICS & VIEW SYSTEM
        ========================================================================= */
     .seq-view-toggle-group {
@@ -6301,16 +6814,6 @@
       background: #ffffff;
       color: var(--brand-blue);
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .seq-modern-hint {
-      margin-top: 8px;
-      padding: 6px 10px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 6px;
-      font-size: 11.5px;
-      color: #1e40af;
-      line-height: 1.4;
     }
     .seq-num-badge-wrap {
       display: inline-flex;
@@ -6619,13 +7122,6 @@
     [data-theme="dark"] .seq-view-btn.active {
       background: #0f172a !important;
       color: #38bdf8 !important;
-    }
-
-    body.theme-dark .seq-modern-hint,
-    [data-theme="dark"] .seq-modern-hint {
-      background: rgba(14, 165, 233, 0.12) !important;
-      border-color: rgba(14, 165, 233, 0.3) !important;
-      color: #7dd3fc !important;
     }
 
     body.theme-dark .seq-card-row,
@@ -7046,7 +7542,12 @@
             <div class="route-header-title-wrap">
               <span class="route-header-icon">🧭</span>
               <div>
-                <h3 class="route-header-title" id="routeHeaderTitle">Today's Cleaning Route</h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <h3 class="route-header-title" id="routeHeaderTitle" style="margin: 0;">Today's Cleaning Route</h3>
+                  <button type="button" class="btn-clean-wa wa-ready" style="height: 26px; padding: 0 8px; font-size: 11px; border-radius: 6px; box-shadow: none;" onclick="openStaffWhatsAppGroupModal()" title="Set Team WhatsApp Group">
+                    <span>📱 WhatsApp ग्रुप</span>
+                  </button>
+                </div>
                 <div class="route-header-sub">
                   स्टाफ: <strong id="routeStaffName">स्टाफ</strong> • कुल असाइन गाड़ियां: <strong id="routeTotalCount">0</strong>
                 </div>
@@ -7210,237 +7711,19 @@
               <span class="tab-text">Staff Management</span>
               <span class="admin-tab-badge" id="tabStaffCount">0</span>
             </button>
+            <button type="button" class="admin-tab-btn" id="tabBtnCleanReports" role="tab" onclick="switchAdminTab('cleanReports')" title="Daily Car Cleaning Reports & Proof of Work">
+              <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+                <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z"/>
+                <path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd"/>
+              </svg>
+              <span class="tab-text">Daily Clean Reports</span>
+              <span class="admin-tab-badge" id="tabCleanReportsCount">0</span>
+            </button>
           </div>
         </div>
 
-      <!-- Admin Tab 1: Compact Add Customer Form (Task P2.3) -->
-      <div id="adminTabAddCust" class="admin-tab-pane" style="display: none;">
-        <div class="admin-card-section">
-          <!-- Top Return Navigation Strip -->
-          <div class="cwp-form-header-bar">
-            <div class="cwp-form-title-wrap">
-              <button type="button" class="btn-back-compact" onclick="switchAdminTab('records')" title="Back to customer records">
-                <span>←</span> <strong>Back to Records</strong>
-              </button>
-              <div class="cwp-title-text-group">
-                <h2 class="cwp-form-title">Add New Customer</h2>
-                <span class="cwp-form-subtitle">Create customer profile, vehicle record & cleaner assignment</span>
-              </div>
-            </div>
-            <div id="custDraftBadge" class="cwp-draft-badge" style="display: none;"></div>
-          </div>
-
-          <!-- Auto-Draft Restoration Banner -->
-          <div id="custDraftRestoreBanner" class="cwp-draft-banner" style="display: none;">
-            <div class="cwp-draft-banner-content">
-              <span class="cwp-draft-banner-icon">📝</span>
-              <div class="cwp-draft-banner-text">
-                <strong style="color: #15803d;">Previous draft found:</strong>
-                <span id="custDraftTimeInfo" style="color: #374151; font-size: 12px; margin-left: 4px;"></span>
-              </div>
-            </div>
-            <div class="cwp-draft-banner-actions">
-              <button type="button" class="btn-draft-action btn-draft-restore" onclick="restoreCustomerDraft()">
-                <span>✓</span> Restore Draft
-              </button>
-              <button type="button" class="btn-draft-action btn-draft-discard" onclick="discardCustomerDraft(false)">
-                <span>✕</span> Discard
-              </button>
-            </div>
-          </div>
-
-          <form id="addCustomerForm" onsubmit="handleCustomerSubmit(event)" class="cwp-compact-form">
-            
-            <!-- SECTION 1: CUSTOMER DETAILS -->
-            <div class="cwp-form-section-card">
-              <div class="form-section-head">
-                <span class="section-num-pill">1</span>
-                <div class="section-title-wrap">
-                  <span class="section-title-text">Customer Details</span>
-                  <span class="section-subtitle-text">Name, mobile number & location details</span>
-                </div>
-              </div>
-
-              <!-- Customer Name & Mobile (Two Column on Desktop) -->
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label class="form-label" for="custName">Customer Name <span class="req-star">*</span></label>
-                  <div class="input-icon-wrap">
-                    <span class="input-icon">👤</span>
-                    <input type="text" id="custName" class="form-input with-icon" placeholder="e.g. Shreyansh Jain" required>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="custPhone">Mobile Number <span class="req-star">*</span></label>
-                  <div class="cwp-phone-group">
-                    <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
-                    <input type="tel" id="custPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Customer Address & Direct Map Location (Zero Space Wastage) -->
-              <div class="form-row-2">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" for="custAddress">Customer Address <span class="req-star">*</span></label>
-                  <textarea id="custAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House No, Colony, Landmark, City..." required></textarea>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" for="custMapsUrl">Map Location / GPS Coordinates <span class="opt-tag">(Optional)</span></label>
-                  <div class="form-input-addon-group map-input-group">
-                    <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F), or Coordinates">
-                    <button type="button" class="form-addon-btn btn-gps-detect" onclick="detectGpsLocation()" title="Auto-detect current GPS location">
-                      <span>📍</span> <span>GPS</span>
-                    </button>
-                  </div>
-                  <span class="form-field-hint">Paste Google Maps link or click GPS to detect location</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 2: SERVICE DETAILS -->
-            <div class="cwp-form-section-card">
-              <div class="form-section-head">
-                <span class="section-num-pill">2</span>
-                <div class="section-title-wrap">
-                  <span class="section-title-text">Service Details</span>
-                  <span class="section-subtitle-text">Service category, package & vehicle info</span>
-                </div>
-              </div>
-
-              <!-- Service Category & Package Type (Side by Side on Desktop) -->
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label class="form-label" for="custCategory">Service Category <span class="req-star">*</span></label>
-                  <select id="custCategory" class="form-select" onchange="toggleCategoryFields(this.value)" required>
-                    <option value="Daily Car Cleaning">Daily Car Cleaning</option>
-                    <option value="Car Washing">Car Washing</option>
-                    <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="custPkgType">Package Type <span class="req-star">*</span></label>
-                  <select id="custPkgType" class="form-select" onchange="handlePackageTypeChange(this.value)" required>
-                    <option value="DCC ONLY">DCC ONLY</option>
-                    <option value="DCC SILVER">DCC SILVER</option>
-                    <option value="DCC GOLD">DCC GOLD</option>
-                    <option value="OTHER">OTHER</option>
-                  </select>
-                  <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="Other package details..." style="display: none; margin-top: 6px;">
-                </div>
-              </div>
-
-              <!-- Vehicle Number & Vehicle Photo (Together in One Dedicated Compact Row!) -->
-              <div class="form-row-vehicle-photo">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" id="custVehicleLabel" for="custVehicles">Vehicle Number & Model <span class="req-star">*</span></label>
-                  <div class="input-icon-wrap">
-                    <span class="input-icon">🚗</span>
-                    <input type="text" id="custVehicles" class="form-input with-icon" placeholder="e.g. UP65 AB 1234 - Creta" required>
-                  </div>
-                  <span class="form-field-hint">Format: Number Plate + Car Model (Creta, Swift, etc.)</span>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label">Vehicle Photo <span class="opt-tag">(Optional)</span></label>
-                  <div class="photo-compact-card" id="custPhotoDropzone">
-                    <input type="file" id="custPhotoFile" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
-                    <button type="button" class="btn-photo-upload-box" id="custPhotoPlaceholder" onclick="triggerCustPhotoSelect()" title="Upload vehicle photo">
-                      <span class="photo-box-icon">📸</span>
-                      <span class="photo-box-text">
-                        <span class="photo-box-title">+ Upload Photo</span>
-                        <span class="photo-box-sub">Auto-crop & rotate</span>
-                      </span>
-                    </button>
-                    <img id="custPhotoPreview" class="upload-preview-thumb-refined" style="display: none; cursor: pointer;" alt="Preview" onclick="openExistingCustPhotoCropper()" title="Click to crop / rotate photo">
-                    <div id="custPhotoActionsWrap" class="photo-actions-cluster" style="display: none;">
-                      <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingCustPhotoCropper()" title="Crop & rotate photo">
-                        <span>✂️</span> <span>Crop</span>
-                      </button>
-                      <button type="button" class="btn-photo-action-sm" onclick="document.getElementById('custPhotoFile').click()" title="Change photo">
-                        <span>🔄</span> <span>Change</span>
-                      </button>
-                      <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeCustPhoto(event)" title="Remove photo">
-                        <span>🗑️</span>
-                      </button>
-                    </div>
-                    <div id="custPhotoProgressWrap" class="photo-upload-progress-wrap" style="display: none;">
-                      <div id="custPhotoProgressFill" class="photo-upload-progress-fill"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 3: STAFF ASSIGNMENT -->
-            <div class="cwp-form-section-card">
-              <div class="form-section-head">
-                <span class="section-num-pill">3</span>
-                <div class="section-title-wrap">
-                  <span class="section-title-text">Staff Assignment</span>
-                  <span class="section-subtitle-text">Assign cleaner & special cleaning instructions</span>
-                </div>
-              </div>
-
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label class="form-label" for="custStaffSelect">Assign Staff <span class="opt-tag">(Optional)</span></label>
-                  <select id="custStaffSelect" class="form-select">
-                    <option value="">Unassigned</option>
-                  </select>
-                </div>
-
-                <!-- Secondary Location Trigger (Daily Car Cleaning Only) -->
-                <div class="form-group" id="secondaryAddressGroup">
-                  <label class="form-label">Secondary Location <span class="opt-tag">(Daily Clean Only)</span></label>
-                  <button type="button" class="btn-secondary-loc-toggle" id="btnToggleCustSec" onclick="toggleCustSecLocation()">
-                    <span>🏢</span> <span id="custSecBtnText">+ Add Secondary Location (Office / Alternate)</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Collapsible Secondary Location Panel -->
-              <div id="custSecCollapse" class="collapsible-panel" style="display: none; margin-bottom: 10px;">
-                <div class="form-row-2">
-                  <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" for="custSecAddress">Secondary Address</label>
-                    <input type="text" id="custSecAddress" class="form-input" placeholder="e.g. Office address / Basement parking">
-                  </div>
-                  <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" for="custSecMaps">Secondary Map Link</label>
-                    <input type="text" id="custSecMaps" class="form-input" placeholder="https://maps.google.com/...">
-                  </div>
-                </div>
-              </div>
-
-              <!-- Staff Notes (Compact 2-row with inline chips) -->
-              <div class="form-group" style="margin-bottom: 0;">
-                <div class="notes-header-flex">
-                  <label class="form-label" for="custNotes" style="margin-bottom: 0;">Staff Notes & Instructions <span class="opt-tag">(Optional)</span></label>
-                  <div class="quick-chips-inline">
-                    <span class="quick-chip-label">Quick tags:</span>
-                    <button type="button" class="chip-btn-mini" onclick="setQuickNote('Clean car exterior daily, Sunday interior vacuum.')">Exterior Daily, Sun Vacuum</button>
-                    <button type="button" class="chip-btn-mini" onclick="setQuickNote('Collect water and keys from society guard.')">Guard Water Supply</button>
-                  </div>
-                </div>
-                <textarea id="custNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="e.g. Car parked in basement, collect key from guard..."></textarea>
-              </div>
-            </div>
-
-            <div class="form-actions-bar-refined">
-              <button type="button" class="btn-cancel-form" onclick="switchAdminTab('records')">
-                Cancel
-              </button>
-              <button type="submit" id="btnSaveCust" class="btn-submit-main">
-                <span>💾</span> Save Customer
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+      <!-- Admin Tab 1: Backward-compatibility placeholder -->
+      <div id="adminTabAddCust" class="admin-tab-pane" style="display: none;"></div>
 
       <!-- Admin Tab: Staff-Wise Customer Sequence Management (Task P2.5) -->
       <div id="adminTabSequence" class="admin-tab-pane" style="display: none;">
@@ -7496,11 +7779,6 @@
               </div>
             </div>
 
-            <!-- Modern Ergonomics Fast Reorder Hint -->
-            <div class="seq-modern-hint">
-              <span>💡 <strong>Fast Reorder:</strong> Type any position into the <strong># box</strong> (e.g. #2) or use <strong>⏫ Top / ⏬ End</strong> for instant repositioning without dragging.</span>
-            </div>
-
             <!-- Stats Bar -->
             <div class="seq-stats-strip">
               <div id="seqSummaryText">
@@ -7523,15 +7801,12 @@
           <div style="width: 54px; height: 54px; border-radius: 50%; background: #fef2f2; border: 2px solid #fecaca; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 12px;">
             ⚠️
           </div>
-          <h3 class="logout-confirm-heading" style="color: #b91c1c; font-size: 18px; margin-bottom: 6px;">
+          <h3 class="logout-confirm-heading" style="color: #b91c1c; font-size: 18px; margin-bottom: 8px;">
             Reset Route Sequence?
           </h3>
-          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-            You are about to reset the custom route sequence for <strong id="seqResetStaffName" style="color: var(--text-primary);"></strong>.
+          <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
+            Are you sure you want to reset the custom route sequence for <strong id="seqResetStaffName" style="color: var(--text-primary);"></strong> to default order?
           </p>
-          <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #9f1239; text-align: left; margin-bottom: 18px; line-height: 1.45;">
-            <strong>🚨 Caution:</strong> The custom cleaning order saved for this staff will be <strong>permanently removed</strong> and reverted to the original default sequence. This action cannot be undone.
-          </div>
           <div style="display: flex; gap: 10px; justify-content: center;">
             <button type="button" class="btn-logout-cancel" onclick="closeSeqResetModal()" style="flex: 1;">
               Cancel
@@ -7565,9 +7840,6 @@
               <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
                 + Add New Staff
               </button>
-            </div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-              New staff will be active by default. 6-digit PIN is required for Staff Portal login.
             </div>
           </form>
 
@@ -7604,7 +7876,7 @@
               </h2>
             </div>
             <div class="records-header-actions">
-              <button type="button" class="btn-admin-primary" onclick="switchAdminTab('addCust')" title="Open form to add a new customer">
+              <button type="button" class="btn-admin-primary" onclick="openAddCustomerModal()" title="Open form to add a new customer">
                 <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                   <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
                 </svg>
@@ -7691,9 +7963,264 @@
 
         </div>
       </div>
+
+      <!-- Admin Tab 4: Daily Clean Reports & Proof of Work -->
+      <div id="adminTabCleanReports" class="admin-tab-pane" style="display: none;">
+        <div class="admin-card-section">
+          <!-- Top Header Strip -->
+          <div class="seq-header-bar" style="margin-bottom: 16px;">
+            <div class="seq-header-text">
+              <h2 class="admin-card-title">🚗 Daily Clean Reports & Proof of Work</h2>
+              <p class="admin-card-desc">Live field checkoffs, photographic proof, timestamp logs, and staff performance</p>
+            </div>
+            <div class="seq-header-actions" style="display: flex; gap: 8px;">
+              <button type="button" class="btn-primary-compact" onclick="loadDailyCleanReports()" title="Refresh latest data">
+                <span>🔄</span> Refresh
+              </button>
+              <button type="button" class="btn-seq-action" onclick="exportDailyCleanReportsCSV()" title="Download CSV for Excel">
+                <span>📥</span> Export CSV
+              </button>
+              <button type="button" class="btn-seq-action" onclick="printDailyCleanReports()" title="Print Summary">
+                <span>🖨️</span> Print
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Summary Cards -->
+          <div class="reports-kpi-grid">
+            <div class="reports-kpi-card">
+              <div class="kpi-icon-wrap kpi-blue">🚗</div>
+              <div class="kpi-info">
+                <span class="kpi-value" id="kpiTotalCleaned">0</span>
+                <span class="kpi-label">Total Cleaned</span>
+                <span class="kpi-sub" id="kpiCleanedSub">In selected period</span>
+              </div>
+            </div>
+            <div class="reports-kpi-card">
+              <div class="kpi-icon-wrap kpi-green">📷</div>
+              <div class="kpi-info">
+                <span class="kpi-value" id="kpiPhotoRate">0%</span>
+                <span class="kpi-label">Photo Verified</span>
+                <span class="kpi-sub" id="kpiPhotoCount">0 with photo</span>
+              </div>
+            </div>
+            <div class="reports-kpi-card">
+              <div class="kpi-icon-wrap kpi-amber">👨‍🔧</div>
+              <div class="kpi-info">
+                <span class="kpi-value" id="kpiActiveStaff">0</span>
+                <span class="kpi-label">Active Staff</span>
+                <span class="kpi-sub">Field workforce</span>
+              </div>
+            </div>
+            <div class="reports-kpi-card">
+              <div class="kpi-icon-wrap kpi-purple">⏱️</div>
+              <div class="kpi-info">
+                <span class="kpi-value" id="kpiLatestPunch">--:--</span>
+                <span class="kpi-label">Latest Punch</span>
+                <span class="kpi-sub" id="kpiLatestPunchDate">IST Timestamp</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter Toolbar Panel -->
+          <div class="reports-filter-panel">
+            <div class="reports-filter-row">
+              <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Period:</span>
+              <div class="quick-chip-group">
+                <button type="button" class="btn-quick-chip active" id="chipPeriodToday" onclick="setReportPeriodChip('today')">Today (आज)</button>
+                <button type="button" class="btn-quick-chip" id="chipPeriodYesterday" onclick="setReportPeriodChip('yesterday')">Yesterday (कल)</button>
+                <button type="button" class="btn-quick-chip" id="chipPeriod7Days" onclick="setReportPeriodChip('7days')">Last 7 Days</button>
+                <button type="button" class="btn-quick-chip" id="chipPeriodMonth" onclick="setReportPeriodChip('month')">This Month</button>
+                <button type="button" class="btn-quick-chip" id="chipPeriodCustom" onclick="setReportPeriodChip('custom')">Custom</button>
+              </div>
+
+              <div id="customDateRangeBox" style="display: inline-flex; align-items: center; gap: 6px;">
+                <label style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">From:</label>
+                <input type="date" id="reportStartDate" class="report-date-input" onchange="handleReportDateChange()">
+                <label style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">To:</label>
+                <input type="date" id="reportEndDate" class="report-date-input" onchange="handleReportDateChange()">
+              </div>
+            </div>
+
+            <div class="reports-filter-row" style="margin-top: 4px;">
+              <select id="reportStaffFilter" class="report-select-input" onchange="loadDailyCleanReports()">
+                <option value="all">All Staff Members (सभी स्टाफ)</option>
+              </select>
+
+              <select id="reportPhotoFilter" class="report-select-input" onchange="loadDailyCleanReports()">
+                <option value="all">All Records (सभी रिकॉर्ड)</option>
+                <option value="yes">📷 With Photo Proof Only</option>
+                <option value="no">⚠️ Without Photo</option>
+              </select>
+
+              <input type="text" id="reportSearchFilter" class="report-search-input" placeholder="🔍 Search customer, phone, car number..." oninput="debounceReportSearch()">
+              
+              <button type="button" class="btn-seq-action" onclick="resetReportFilters()" title="Reset all filters">
+                ✕ Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- Reports Table Wrapper -->
+          <div class="records-table-wrapper">
+            <table class="records-table">
+              <thead>
+                <tr>
+                  <th style="width: 38px; text-align: center;">#</th>
+                  <th style="width: 140px; min-width: 120px;">Date & Time (IST)</th>
+                  <th style="width: 120px;">Staff Member</th>
+                  <th style="min-width: 170px;">Customer Info</th>
+                  <th style="width: 160px; min-width: 140px;">Vehicle / Car</th>
+                  <th style="min-width: 180px;">Location / Parking</th>
+                  <th style="width: 80px; text-align: center;">Photo Proof</th>
+                  <th style="width: 100px; text-align: center;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="adminCleanReportsTableBody">
+                <tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading cleaning reports...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
       </div><!-- /adminUnlockedContent -->
     </div>
 
+  </div>
+
+  <!-- Staff Camera Modal for Car Cleaning Proof -->
+  <div id="cleaningCameraModal" class="camera-modal-overlay" style="display: none;">
+    <div class="camera-modal-box" onclick="event.stopPropagation()">
+      <!-- Header -->
+      <div class="camera-modal-header">
+        <div class="camera-header-info">
+          <h3 class="camera-modal-title">
+            <span>📷</span> <span id="cameraModalCustName">कार सफाई फोटो</span>
+          </h3>
+          <span class="camera-modal-sub" id="cameraModalVehInfo">गाड़ी नंबर</span>
+        </div>
+        <button type="button" class="camera-close-btn" onclick="closeCleaningCameraModal()" title="Close (बंद करें)">✕</button>
+      </div>
+
+      <!-- VIEW 1: Live Camera Viewfinder -->
+      <div id="cameraCaptureView">
+        <div class="camera-viewport-wrap">
+          <video id="cleaningCameraFeed" playsinline autoplay muted></video>
+          <div class="camera-guide-frame">
+            <span class="camera-guide-text">🚗 पूरी गाड़ी फ्रेम के अंदर रखें</span>
+            <span class="camera-guide-text" style="font-size: 10px; opacity: 0.85;">Align vehicle inside frame</span>
+          </div>
+        </div>
+        <div class="camera-controls-row">
+          <button type="button" class="btn-camera-flip" onclick="flipCleaningCamera()" title="कैमरा बदलें (Flip Camera)">
+            <span>🔄</span> फ्लिप
+          </button>
+          
+          <button type="button" class="btn-camera-shutter" onclick="snapCleaningPhoto()" title="फोटो क्लिक करें (Click Photo)">
+            <div class="btn-camera-shutter-inner"></div>
+          </button>
+
+          <label class="btn-camera-fallback" title="फोन का ओरिजिनल कैमरा खोलें">
+            <span>📱</span> फ़ोन कैमरा
+            <input type="file" id="cameraNativeFileInput" accept="image/*" capture="environment" style="display: none;" onchange="handleNativeCameraFile(event)">
+          </label>
+        </div>
+      </div>
+
+      <!-- VIEW 2: Visual Check & Review (After Click) -->
+      <div id="cameraReviewView" style="display: none;">
+        <div class="camera-review-wrap">
+          <img id="cameraPreviewImg" src="" alt="Captured Car Photo">
+          <div class="camera-meta-overlay">
+            <div class="camera-meta-row">
+              <span class="camera-meta-tag" id="reviewCarTag">🚗 KA 01 AB 1234</span>
+              <span id="reviewTimeTag" style="font-weight: 600;">⏰ Just now</span>
+            </div>
+            <div class="camera-meta-row" style="margin-top: 2px;">
+              <span id="reviewCustTag">👤 Customer</span>
+              <span id="reviewStaffTag" style="color: #94a3b8;">👨‍🔧 Staff</span>
+            </div>
+          </div>
+        </div>
+        <div class="camera-review-actions">
+          <button type="button" class="btn-review-retake" onclick="retakeCleaningPhoto()">
+            <span>🔄</span> दोबारा लें (Retake)
+          </button>
+          <button type="button" class="btn-review-confirm" id="btnConfirmCleanPhoto" onclick="confirmAndSaveCleaningPhoto()">
+            <span>✓</span> पुष्टि करें (Confirm & Save)
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW 3: Saving Loader -->
+      <div id="cameraUploadingView" style="display: none; padding: 48px 20px; text-align: center;">
+        <div class="spinner-circle" style="width: 44px; height: 44px; border-width: 4px; margin: 0 auto 16px auto;"></div>
+        <h4 style="color: #f8fafc; font-size: 16px; margin-bottom: 6px;">फोटो सेव हो रही है...</h4>
+        <p style="color: #94a3b8; font-size: 12.5px;">Saving photo & preparing WhatsApp share...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Daily Clean Photo Lightbox Modal -->
+  <div id="reportPhotoLightboxModal" class="image-modal-overlay" onclick="closeReportPhotoLightbox()" style="display: none;">
+    <button type="button" class="image-modal-floating-close" onclick="closeReportPhotoLightbox()" title="Close (ESC)">✕</button>
+    <div class="image-modal-content" onclick="event.stopPropagation()" style="max-width: 720px;">
+      <div class="image-modal-header">
+        <div class="image-modal-title" id="lightboxModalTitle">
+          <span>🚗</span> Cleaned Vehicle Photo Proof
+        </div>
+        <div class="image-modal-actions">
+          <button type="button" class="image-modal-btn" onclick="downloadCurrentReportPhoto()" title="Download Photo">
+            ⬇️ Download
+          </button>
+          <a id="lightboxOpenNewTab" href="" target="_blank" class="image-modal-btn" title="Open full resolution in new tab">
+            ↗ Full Size
+          </a>
+          <button type="button" class="image-modal-close-icon" onclick="closeReportPhotoLightbox()" title="Close (ESC)">✕</button>
+        </div>
+      </div>
+      <div class="image-modal-body" style="background: #000; text-align: center; padding: 0;">
+        <img id="lightboxModalImg" src="" alt="Proof Photo" style="max-height: 70vh; width: 100%; object-fit: contain;">
+      </div>
+      <div style="padding: 12px 16px; background: var(--bg-surface); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="font-size: 12.5px; color: var(--text-primary); display: flex; flex-direction: column; gap: 2px;">
+          <strong id="lightboxMetaVehicle">Vehicle: DL 01 AB 1234</strong>
+          <span id="lightboxMetaDetails" style="color: var(--text-muted); font-size: 11.5px;">Staff: Ramesh • Time: 09:15 AM</span>
+        </div>
+        <button type="button" class="btn-primary-compact" id="btnLightboxSendWhatsApp" onclick="forwardPhotoFromLightbox()" style="background: #25D366; border-color: #20bd5a; color: #fff;">
+          💬 Forward to Customer on WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Staff Team WhatsApp Group Settings Modal -->
+  <div id="staffWhatsAppGroupModal" class="camera-modal-overlay" style="display: none;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 440px; width: 94%;">
+      <div class="modal-card-header">
+        <h3 class="modal-card-title">📱 Team WhatsApp Group Settings</h3>
+        <button type="button" class="modal-close-x" onclick="closeStaffWhatsAppGroupModal()">✕</button>
+      </div>
+      <div style="padding: 16px;">
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+          कार की सफाई पूरी होते ही फोटो और रिपोर्ट सीधे आपके चुने हुए व्हाट्सएप ग्रुप या नंबर पर भेजी जाएगी।
+        </p>
+        <div class="cwp-form-group" style="margin-bottom: 14px;">
+          <label style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; display: block;">
+            WhatsApp Group Link या Mobile Number:
+          </label>
+          <input type="text" id="staffWaGroupInput" class="report-search-input" style="width: 100%; font-size: 13px;" placeholder="उदा. https://chat.whatsapp.com/... या 98XXXXXXXX">
+          <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
+            यदि खाली छोड़ेंगे, तो सफाई के बाद व्हाट्सएप का चैट सेलेक्टर खुलेगा।
+          </span>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn-clean-done" style="width: auto; height: 38px;" onclick="closeStaffWhatsAppGroupModal()">रद्द करें</button>
+          <button type="button" class="btn-primary-compact" style="height: 38px; padding: 0 16px;" onclick="saveStaffWhatsAppGroupSetting()">✓ सुरक्षित करें (Save)</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Image Modal for Full Preview -->
@@ -7726,7 +8253,7 @@
   </div>
 
   <!-- View Customer Address / Locations Modal (Dual Location Support) -->
-  <div id="addressViewModal" class="image-modal-overlay" onclick="closeAddressModal()" style="display: none; align-items: center; justify-content: center; z-index: 1050;">
+  <div id="addressViewModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('addressViewModal')" style="display: none; align-items: center; justify-content: center; z-index: 1050;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px; width: 94%; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-card-header">
         <h3 class="modal-card-title">📍 Customer Locations</h3>
@@ -7745,11 +8272,7 @@
           </div>
         </div>
 
-        <!-- Multi-location Notice Banner (Visible when 2 locations exist) -->
-        <div id="addrModalMultiNotice" style="display: none; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 9px 12px; margin-bottom: 12px; font-size: 12px; color: #3730a3; align-items: flex-start; gap: 8px; line-height: 1.45;">
-          <span style="font-size: 16px; line-height: 1;">💡</span>
-          <div><strong>Note:</strong> This customer has <strong>2 registered locations</strong>. Please check which location the car is at before servicing.</div>
-        </div>
+        <div id="addrModalMultiNotice" style="display: none !important;"></div>
 
         <!-- Location 1 Box: Primary Location -->
         <div id="addrModalPrimaryCard" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
@@ -7823,8 +8346,233 @@
     </div>
   </div>
 
+  <!-- Add New Customer Modal Popup -->
+  <div id="addCustomerModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('addCustomerModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box modal-card-box-lg" onclick="event.stopPropagation()" style="display: flex; flex-direction: column;">
+      <div class="modal-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 class="modal-card-title" style="margin-bottom: 0;">✨ Add New Customer</h3>
+          <div id="custDraftBadge" class="cwp-draft-badge" style="display: none;"></div>
+        </div>
+        <button type="button" class="modal-close-x" onclick="closeAddCustomerModal()" title="Close (ESC)">✕</button>
+      </div>
+
+      <div class="modal-card-scrollable-body" style="overflow-y: auto; padding: 16px; flex: 1;">
+        <!-- Auto-Draft Restoration Banner -->
+        <div id="custDraftRestoreBanner" class="cwp-draft-banner" style="display: none; margin-bottom: 12px;">
+          <div class="cwp-draft-banner-content">
+            <span class="cwp-draft-banner-icon">📝</span>
+            <div class="cwp-draft-banner-text">
+              <strong style="color: #15803d;">Previous draft found:</strong>
+              <span id="custDraftTimeInfo" style="color: #374151; font-size: 12px; margin-left: 4px;"></span>
+            </div>
+          </div>
+          <div class="cwp-draft-banner-actions">
+            <button type="button" class="btn-draft-action btn-draft-restore" onclick="restoreCustomerDraft()">
+              <span>✓</span> Restore Draft
+            </button>
+            <button type="button" class="btn-draft-action btn-draft-discard" onclick="discardCustomerDraft(false)">
+              <span>✕</span> Discard
+            </button>
+          </div>
+        </div>
+
+        <form id="addCustomerForm" onsubmit="handleCustomerSubmit(event)" class="cwp-compact-form">
+          
+          <!-- SECTION 1: CUSTOMER DETAILS -->
+          <div class="cwp-form-section-card">
+            <div class="form-section-head">
+              <span class="section-num-pill">1</span>
+              <div class="section-title-wrap">
+                <span class="section-title-text">Customer Details</span>
+                <span class="section-subtitle-text">Name, mobile number & location details</span>
+              </div>
+            </div>
+
+            <!-- Customer Name & Mobile (Two Column on Desktop) -->
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label" for="custName">Customer Name <span class="req-star">*</span></label>
+                <div class="input-icon-wrap">
+                  <span class="input-icon">👤</span>
+                  <input type="text" id="custName" class="form-input with-icon" placeholder="e.g. Shreyansh Jain" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="custPhone">Mobile Number <span class="req-star">*</span></label>
+                <div class="cwp-phone-group">
+                  <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+                  <input type="tel" id="custPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- Customer Address & Direct Map Location (Zero Space Wastage) -->
+            <div class="form-row-2">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="custAddress">Customer Address <span class="req-star">*</span></label>
+                <textarea id="custAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House No, Colony, Landmark, City..." required></textarea>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="custMapsUrl">Map Location / GPS Coordinates <span class="opt-tag">(Optional)</span></label>
+                <div class="form-input-addon-group map-input-group">
+                  <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F), or Coordinates">
+                  <button type="button" class="form-addon-btn btn-gps-detect" onclick="detectGpsLocation()" title="Auto-detect current GPS location">
+                    <span>📍</span> <span>GPS</span>
+                  </button>
+                </div>
+                <span class="form-field-hint">Paste Google Maps link or click GPS to detect location</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: SERVICE DETAILS -->
+          <div class="cwp-form-section-card">
+            <div class="form-section-head">
+              <span class="section-num-pill">2</span>
+              <div class="section-title-wrap">
+                <span class="section-title-text">Service Details</span>
+                <span class="section-subtitle-text">Service category, package & vehicle info</span>
+              </div>
+            </div>
+
+            <!-- Service Category & Package Type (Side by Side on Desktop) -->
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label" for="custCategory">Service Category <span class="req-star">*</span></label>
+                <select id="custCategory" class="form-select" onchange="toggleCategoryFields(this.value)" required>
+                  <option value="Daily Car Cleaning">Daily Car Cleaning</option>
+                  <option value="Car Washing">Car Washing</option>
+                  <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="custPkgType">Package Type <span class="req-star">*</span></label>
+                <select id="custPkgType" class="form-select" onchange="handlePackageTypeChange(this.value)" required>
+                  <option value="DCC ONLY">DCC ONLY</option>
+                  <option value="DCC SILVER">DCC SILVER</option>
+                  <option value="DCC GOLD">DCC GOLD</option>
+                  <option value="OTHER">OTHER</option>
+                </select>
+                <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="Other package details..." style="display: none; margin-top: 6px;">
+              </div>
+            </div>
+
+            <!-- Vehicle Number & Vehicle Photo (Together in One Dedicated Compact Row!) -->
+            <div class="form-row-vehicle-photo">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" id="custVehicleLabel" for="custVehicles">Vehicle Number & Model <span class="req-star">*</span></label>
+                <div class="input-icon-wrap">
+                  <span class="input-icon">🚗</span>
+                  <input type="text" id="custVehicles" class="form-input with-icon" placeholder="e.g. UP65 AB 1234 - Creta" required>
+                </div>
+                <span class="form-field-hint">Format: Number Plate + Car Model (Creta, Swift, etc.)</span>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Vehicle Photo <span class="opt-tag">(Optional)</span></label>
+                <div class="photo-compact-card" id="custPhotoDropzone">
+                  <input type="file" id="custPhotoFile" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
+                  <button type="button" class="btn-photo-upload-box" id="custPhotoPlaceholder" onclick="triggerCustPhotoSelect()" title="Upload vehicle photo">
+                    <span class="photo-box-icon">📸</span>
+                    <span class="photo-box-text">
+                      <span class="photo-box-title">+ Upload Photo</span>
+                      <span class="photo-box-sub">Auto-crop & rotate</span>
+                    </span>
+                  </button>
+                  <img id="custPhotoPreview" class="upload-preview-thumb-refined" style="display: none; cursor: pointer;" alt="Preview" onclick="openExistingCustPhotoCropper()" title="Click to crop / rotate photo">
+                  <div id="custPhotoActionsWrap" class="photo-actions-cluster" style="display: none;">
+                    <button type="button" class="btn-photo-action-sm btn-photo-crop" onclick="openExistingCustPhotoCropper()" title="Crop & rotate photo">
+                      <span>✂️</span> <span>Crop</span>
+                    </button>
+                    <button type="button" class="btn-photo-action-sm" onclick="document.getElementById('custPhotoFile').click()" title="Change photo">
+                      <span>🔄</span> <span>Change</span>
+                    </button>
+                    <button type="button" class="btn-photo-action-sm btn-photo-del" onclick="removeCustPhoto(event)" title="Remove photo">
+                      <span>🗑️</span>
+                    </button>
+                  </div>
+                  <div id="custPhotoProgressWrap" class="photo-upload-progress-wrap" style="display: none;">
+                    <div id="custPhotoProgressFill" class="photo-upload-progress-fill"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: STAFF ASSIGNMENT -->
+          <div class="cwp-form-section-card">
+            <div class="form-section-head">
+              <span class="section-num-pill">3</span>
+              <div class="section-title-wrap">
+                <span class="section-title-text">Staff Assignment</span>
+                <span class="section-subtitle-text">Assign cleaner & special cleaning instructions</span>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label" for="custStaffSelect">Assign Staff <span class="opt-tag">(Optional)</span></label>
+                <select id="custStaffSelect" class="form-select">
+                  <option value="">Unassigned</option>
+                </select>
+              </div>
+
+              <!-- Secondary Location Trigger (Daily Car Cleaning Only) -->
+              <div class="form-group" id="secondaryAddressGroup">
+                <label class="form-label">Secondary Location <span class="opt-tag">(Daily Clean Only)</span></label>
+                <button type="button" class="btn-secondary-loc-toggle" id="btnToggleCustSec" onclick="toggleCustSecLocation()">
+                  <span>🏢</span> <span id="custSecBtnText">+ Add Secondary Location (Office / Alternate)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Collapsible Secondary Location Panel -->
+            <div id="custSecCollapse" class="collapsible-panel" style="display: none; margin-bottom: 10px;">
+              <div class="form-row-2">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="custSecAddress">Secondary Address</label>
+                  <input type="text" id="custSecAddress" class="form-input" placeholder="e.g. Office address / Basement parking">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="custSecMaps">Secondary Map Link</label>
+                  <input type="text" id="custSecMaps" class="form-input" placeholder="https://maps.google.com/...">
+                </div>
+              </div>
+            </div>
+
+            <!-- Staff Notes (Compact 2-row with inline chips) -->
+            <div class="form-group" style="margin-bottom: 0;">
+              <div class="notes-header-flex">
+                <label class="form-label" for="custNotes" style="margin-bottom: 0;">Staff Notes & Instructions <span class="opt-tag">(Optional)</span></label>
+                <div class="quick-chips-inline">
+                  <span class="quick-chip-label">Quick tags:</span>
+                  <button type="button" class="chip-btn-mini" onclick="setQuickNote('Clean car exterior daily, Sunday interior vacuum.')">Exterior Daily, Sun Vacuum</button>
+                  <button type="button" class="chip-btn-mini" onclick="setQuickNote('Collect water and keys from society guard.')">Guard Water Supply</button>
+                </div>
+              </div>
+              <textarea id="custNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="e.g. Car parked in basement, collect key from guard..."></textarea>
+            </div>
+          </div>
+
+          <div class="modal-card-footer" style="padding: 12px 0 0 0; margin-top: 6px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
+            <button type="button" class="btn-cancel-form" onclick="closeAddCustomerModal()">
+              Cancel
+            </button>
+            <button type="submit" id="btnSaveCust" class="btn-submit-main">
+              <span>💾</span> Save Customer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Edit Customer Modal -->
-  <div id="editCustomerModal" class="image-modal-overlay" onclick="closeEditCustomerModal()" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div id="editCustomerModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('editCustomerModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()">
       <div class="modal-card-header">
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -7955,8 +8703,8 @@
                 <button type="button" class="btn-photo-upload-box" id="btnEditUploadPhoto" onclick="document.getElementById('editCustPhotoFile').click()" title="Change / Upload Photo">
                   <span class="photo-box-icon">📸</span>
                   <span class="photo-box-text">
-                    <span class="photo-box-title">Upload Photo</span>
-                    <span class="photo-box-sub">Crop & rotate</span>
+                    <span class="photo-box-title">+ Upload Photo</span>
+                    <span class="photo-box-sub">Auto-crop & rotate</span>
                   </span>
                 </button>
                 <img id="editPhotoThumb" src="" class="upload-preview-thumb-refined" style="display: none; cursor: pointer;" alt="Thumb" onclick="openExistingEditPhotoCropper()" title="Click to crop / rotate">
@@ -8044,7 +8792,7 @@
   </div>
 
   <!-- Edit Staff Modal -->
-  <div id="staffEditModal" class="image-modal-overlay" onclick="closeEditStaffModal()" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div id="staffEditModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('staffEditModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px;">
       <div class="modal-card-header">
         <h3 class="modal-card-title">✏️ Edit Staff Profile</h3>
@@ -9333,8 +10081,13 @@ var state = {
 
     /* Switch Admin Sub Tabs with URL & LocalStorage State Persistence */
     function switchAdminTab(tabName, updateUrl) {
-      var validTabs = ['records', 'sequence', 'staff', 'addCust'];
+      var validTabs = ['records', 'sequence', 'staff', 'addCust', 'cleanReports'];
       if (validTabs.indexOf(tabName) === -1) {
+        tabName = 'records';
+      }
+
+      if (tabName === 'addCust') {
+        openAddCustomerModal();
         tabName = 'records';
       }
 
@@ -9344,6 +10097,10 @@ var state = {
         if (pane) pane.style.display = (t === tabName) ? 'block' : 'none';
         if (btn) btn.classList.toggle('active', t === tabName);
       });
+
+      if (tabName === 'cleanReports') {
+        loadDailyCleanReports();
+      }
 
       // Persist active tab across refreshes
       try {
@@ -10146,11 +10903,15 @@ function loadStaffCustomerData(staffId) {
           html += '  </div>';
         }
 
-        /* Row 5: Daily Clean Status Action (Mark Cleaned) */
+        /* Row 5: Daily Clean Status Action & Persistent WhatsApp Share */
         if (isDaily) {
-          html += '  <div class="card-status-actions-bar">';
-          html += '    <button type="button" class="btn-clean-done ' + (isDone ? 'done-active' : '') + '" onclick="toggleCustomerDoneToday(\'' + escapeHtml(custId) + '\')">';
-          html += '      <span>' + (isDone ? (isHi ? '✓ साफ हो गई (Done)' : '✓ Cleaned (Done)') : (isHi ? '○ आज साफ करें (Mark Cleaned)' : '○ Mark Cleaned')) + '</span>';
+          html += '  <div class="card-status-actions-bar-split">';
+          html += '    <button type="button" class="btn-clean-done ' + (isDone ? 'done-active' : '') + '" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')">';
+          html += '      <span>' + (isDone ? (isHi ? '✓ साफ हो गई (Done)' : '✓ Cleaned (Done)') : (isHi ? '📷 आज साफ करें (Mark Cleaned)' : '📷 Mark Cleaned')) + '</span>';
+          html += '    </button>';
+          html += '    <button type="button" class="btn-clean-wa ' + (isDone ? 'wa-ready' : 'wa-idle') + '" onclick="handleCustomerWhatsAppShare(\'' + escapeHtml(custId) + '\', ' + index + ')" title="' + (isHi ? 'व्हाट्सएप पर शेयर करें' : 'Share to WhatsApp') + '">';
+          html += '      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.68 12.04 3.68C14.25 3.68 16.31 4.54 17.87 6.1C19.42 7.66 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.05 20.15Z"/></svg>';
+          html += '      <span>' + (isHi ? 'व्हाट्सएप' : 'WhatsApp') + '</span>';
           html += '    </button>';
           html += '  </div>';
         }
@@ -11557,7 +12318,7 @@ function loadStaffCustomerData(staffId) {
         preview.style.display = 'none';
       }
       var ph = document.getElementById('custPhotoPlaceholder');
-      if (ph) ph.style.display = 'block';
+      if (ph) ph.style.display = 'inline-flex';
       var fileInput = document.getElementById('custPhotoFile');
       if (fileInput) fileInput.value = '';
       var actionsWrap = document.getElementById('custPhotoActionsWrap');
@@ -11728,6 +12489,7 @@ function loadStaffCustomerData(staffId) {
           state.rawSelectedPhotoDataUrl = '';
           discardCustomerDraft(true);
           toggleCategoryFields(document.getElementById('custCategory').value);
+          closeAddCustomerModal();
 
           // Switch back to Active Records tab and reload list so new customer reflects immediately
           switchAdminTab('records');
@@ -12265,6 +13027,35 @@ function loadStaffCustomerData(staffId) {
       checkAndShowEditDraftBanner();
     }
 
+    /* Add Customer Modal Handlers */
+    function openAddCustomerModal() {
+      var modal = document.getElementById('addCustomerModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        var nameInput = document.getElementById('custName');
+        if (nameInput) setTimeout(function() { nameInput.focus(); }, 120);
+      }
+    }
+
+    function closeAddCustomerModal() {
+      var modal = document.getElementById('addCustomerModal');
+      if (modal) modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    /* Static Backdrop Tactile Shake Handler (Prevents Accidental Dismissal on Outside Click) */
+    function handleStaticBackdropClick(modalId) {
+      var modal = document.getElementById(modalId);
+      if (!modal) return;
+      var card = modal.querySelector('.modal-card-box, .admin-card-section, .cropper-modal-card');
+      if (card) {
+        card.classList.remove('modal-static-shake');
+        void card.offsetWidth; // force DOM reflow
+        card.classList.add('modal-static-shake');
+      }
+    }
+
     function closeEditCustomerModal() {
       var modal = document.getElementById('editCustomerModal');
       if (modal) modal.style.display = 'none';
@@ -12772,6 +13563,11 @@ function loadStaffCustomerData(staffId) {
         var editCust = document.getElementById('editCustomerModal');
         if (editCust && editCust.style.display === 'flex') {
           closeEditCustomerModal();
+          return;
+        }
+        var addCust = document.getElementById('addCustomerModal');
+        if (addCust && addCust.style.display === 'flex') {
+          closeAddCustomerModal();
           return;
         }
         var editStaff = document.getElementById('staffEditModal');
@@ -13564,7 +14360,8 @@ function loadStaffCustomerData(staffId) {
       if (staffMap && staffMap[dateKey]) {
         var dayMap = staffMap[dateKey];
         Object.keys(dayMap).forEach(function(cId) {
-          if (dayMap[cId] === true) {
+          var val = dayMap[cId];
+          if (val === true || (val && (val.done === true || val.completed === true))) {
             set.add(cId);
           }
         });
@@ -13621,7 +14418,8 @@ function loadStaffCustomerData(staffId) {
       try {
         var legacyKey = 'cwp_clean_done_' + dateKey + '_' + staffId;
         var completedList = Object.keys(store[staffId][dateKey] || {}).filter(function(k) {
-          return store[staffId][dateKey][k] === true;
+          var v = store[staffId][dateKey][k];
+          return v === true || (v && (v.done === true || v.completed === true));
         });
         localStorage.setItem(legacyKey, JSON.stringify(completedList));
       } catch (e) {}
@@ -13630,6 +14428,840 @@ function loadStaffCustomerData(staffId) {
       if (state.currentStaffFilteredList) {
         renderCustomerCards(state.currentStaffFilteredList);
       }
+    }
+
+    function getCustomerCompletionData(custId, optStaffId, optDateKey) {
+      var staffId = getCleanStaffId(optStaffId);
+      var dateKey = optDateKey || getTodayDateKey();
+      var store = getDailyCleanStore();
+      var staffMap = store[staffId] || store[staffId.toLowerCase()] || store[staffId.toUpperCase()];
+      if (staffMap && staffMap[dateKey] && staffMap[dateKey][custId]) {
+        var val = staffMap[dateKey][custId];
+        if (typeof val === 'object') return val;
+        if (val === true) return { done: true };
+      }
+      return null;
+    }
+
+    /* =========================================================================
+       STAFF DAILY CAR CLEANING: PHOTO CAPTURE & VISUAL CHECK WORKFLOW
+       ========================================================================= */
+    var cleaningCameraStream = null;
+    var currentCameraFacingMode = 'environment';
+    var activeCameraTarget = null;
+    var currentSnappedPhotoBase64 = '';
+
+    function handleDailyCleanClick(custId, index) {
+      var isHi = (state.lang !== 'en');
+      var item = state.currentStaffFilteredList && state.currentStaffFilteredList[index];
+      if (!item) return;
+
+      var isDone = isCustomerDoneToday(custId);
+      if (isDone) {
+        // Customer is already completed today: give options
+        var completionData = getCustomerCompletionData(custId);
+        var hasPhoto = completionData && completionData.photoUrl;
+        var confirmMsg = isHi
+          ? 'यह गाड़ी आज साफ हो चुकी है!\n' + (hasPhoto ? '✓ फोटो सुरक्षित है।\n' : '') + '\nक्या आप दोबारा फोटो लेना चाहते हैं (OK), या सफाई स्थिति रीसेट करना चाहते हैं (Cancel)?'
+          : 'This vehicle is already marked cleaned today!\n' + (hasPhoto ? '✓ Photo saved.\n' : '') + '\nClick OK to retake photo, or Cancel to mark as undone.';
+        
+        if (hasPhoto) {
+          openImageModal(completionData.photoUrl, item.customerName, item.vehicle || item.vehicleNumbers);
+        } else {
+          if (confirm(confirmMsg)) {
+            openCleaningCameraModal(custId, index);
+          } else {
+            toggleCustomerDoneToday(custId);
+          }
+        }
+        return;
+      }
+
+      // Not done: Open Camera Modal for live photo capture
+      openCleaningCameraModal(custId, index);
+    }
+
+    function openCleaningCameraModal(custId, index) {
+      var item = state.currentStaffFilteredList && state.currentStaffFilteredList[index];
+      if (!item) return;
+
+      activeCameraTarget = { custId: custId, index: index, item: item };
+      currentSnappedPhotoBase64 = '';
+
+      var modal = document.getElementById('cleaningCameraModal');
+      var custEl = document.getElementById('cameraModalCustName');
+      var vehEl = document.getElementById('cameraModalVehInfo');
+
+      if (custEl) custEl.textContent = item.customerName || item.name || 'Customer';
+      if (vehEl) vehEl.textContent = item.vehicle || item.vehicleNumbers || 'Vehicle';
+
+      // Reset view visibility
+      var capView = document.getElementById('cameraCaptureView');
+      var revView = document.getElementById('cameraReviewView');
+      var upView = document.getElementById('cameraUploadingView');
+      if (capView) capView.style.display = 'block';
+      if (revView) revView.style.display = 'none';
+      if (upView) upView.style.display = 'none';
+
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+
+      startCleaningCameraFeed(currentCameraFacingMode);
+    }
+
+    function closeCleaningCameraModal() {
+      stopCleaningCameraFeed();
+      var modal = document.getElementById('cleaningCameraModal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+      activeCameraTarget = null;
+      currentSnappedPhotoBase64 = '';
+    }
+
+    function startCleaningCameraFeed(facing) {
+      stopCleaningCameraFeed();
+      currentCameraFacingMode = facing || 'environment';
+
+      var video = document.getElementById('cleaningCameraFeed');
+      if (!video) return;
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn('getUserMedia not supported in this browser, relying on native camera button.');
+        return;
+      }
+
+      var constraints = {
+        video: {
+          facingMode: { ideal: currentCameraFacingMode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
+
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then(function(stream) {
+          cleaningCameraStream = stream;
+          video.srcObject = stream;
+          video.play().catch(function(e) { console.log('Video play error:', e); });
+        })
+        .catch(function(err) {
+          console.warn('Camera access denied or unavailable:', err.message);
+          showToast('लाइव कैमरा उपलब्ध नहीं है — नीचे "फ़ोन कैमरा" बटन का उपयोग करें', '📷');
+        });
+    }
+
+    function stopCleaningCameraFeed() {
+      if (cleaningCameraStream) {
+        try {
+          cleaningCameraStream.getTracks().forEach(function(t) { t.stop(); });
+        } catch (e) {}
+        cleaningCameraStream = null;
+      }
+      var video = document.getElementById('cleaningCameraFeed');
+      if (video) video.srcObject = null;
+    }
+
+    function flipCleaningCamera() {
+      currentCameraFacingMode = (currentCameraFacingMode === 'environment') ? 'user' : 'environment';
+      startCleaningCameraFeed(currentCameraFacingMode);
+    }
+
+    function snapCleaningPhoto() {
+      var video = document.getElementById('cleaningCameraFeed');
+      if (!video || !cleaningCameraStream) {
+        // Fallback: Trigger native camera file picker
+        var fileIn = document.getElementById('cameraNativeFileInput');
+        if (fileIn) fileIn.click();
+        return;
+      }
+
+      var vw = video.videoWidth || 640;
+      var vh = video.videoHeight || 480;
+
+      var canvas = document.createElement('canvas');
+      canvas.width = vw;
+      canvas.height = vh;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, vw, vh);
+
+      stopCleaningCameraFeed();
+
+      var rawDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      showVisualCheckReview(rawDataUrl);
+    }
+
+    function handleNativeCameraFile(e) {
+      var file = e.target && e.target.files && e.target.files[0];
+      if (!file) return;
+
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        stopCleaningCameraFeed();
+        showVisualCheckReview(evt.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function showVisualCheckReview(imageDataUrl) {
+      currentSnappedPhotoBase64 = imageDataUrl;
+
+      var capView = document.getElementById('cameraCaptureView');
+      var revView = document.getElementById('cameraReviewView');
+      var prevImg = document.getElementById('cameraPreviewImg');
+
+      if (capView) capView.style.display = 'none';
+      if (revView) revView.style.display = 'block';
+      if (prevImg) prevImg.src = imageDataUrl;
+
+      // Update metadata tags on preview
+      var item = activeCameraTarget ? activeCameraTarget.item : {};
+      var carTag = document.getElementById('reviewCarTag');
+      var timeTag = document.getElementById('reviewTimeTag');
+      var custTag = document.getElementById('reviewCustTag');
+      var staffTag = document.getElementById('reviewStaffTag');
+
+      var now = new Date();
+      var timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      var dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+
+      if (carTag) carTag.textContent = '🚗 ' + (item.vehicle || item.vehicleNumbers || 'Vehicle');
+      if (timeTag) timeTag.textContent = '⏰ ' + dateStr + ', ' + timeStr;
+      if (custTag) custTag.textContent = '👤 ' + (item.customerName || item.name || 'Customer');
+      var sName = (state.staffData && state.staffData.staffName) || state.activeStaffName || 'Staff';
+      if (staffTag) staffTag.textContent = '👨‍🔧 ' + sName;
+    }
+
+    function retakeCleaningPhoto() {
+      currentSnappedPhotoBase64 = '';
+      var capView = document.getElementById('cameraCaptureView');
+      var revView = document.getElementById('cameraReviewView');
+      if (capView) capView.style.display = 'block';
+      if (revView) revView.style.display = 'none';
+
+      // Reset file input
+      var fileIn = document.getElementById('cameraNativeFileInput');
+      if (fileIn) fileIn.value = '';
+
+      startCleaningCameraFeed(currentCameraFacingMode);
+    }
+
+    function confirmAndSaveCleaningPhoto() {
+      if (!activeCameraTarget || !currentSnappedPhotoBase64) return;
+
+      var target = activeCameraTarget;
+      var item = target.item;
+      var custId = target.custId;
+
+      var revView = document.getElementById('cameraReviewView');
+      var upView = document.getElementById('cameraUploadingView');
+      if (revView) revView.style.display = 'none';
+      if (upView) upView.style.display = 'block';
+
+      // 1. Client-Side Compression & Metadata Watermarking
+      compressAndStampCleaningPhoto(currentSnappedPhotoBase64, item, function(compressedBase64) {
+        var completedAtDevice = new Date().toISOString();
+        var staffCode = state.activeStaffId || (state.staffData && state.staffData.staffId) || 'STF01';
+
+        var cleanPayload = {
+          subscriptionId: item.subscriptionId || null,
+          vehicleId: (item.vehicles && item.vehicles[0] && item.vehicles[0].id) || item.vehicleId || null,
+          customerId: item.customerId || custId,
+          customerName: item.customerName || item.name,
+          registrationNo: item.vehicle || item.vehicleNumbers,
+          photoBase64: compressedBase64.replace(/^data:image\/[a-z]+;base64,/, ''),
+          mimeType: 'image/jpeg',
+          completedAtDevice: completedAtDevice,
+          notes: 'Daily car cleaning completed with photo proof',
+          staffId: staffCode
+        };
+
+        // 2. Upload to Server
+        apiCall('recordDailyCleanWithPhoto', cleanPayload, function(res) {
+          var uploadedUrl = res.photoUrl || '';
+          
+          // 3. Update Local Storage & Completion Store
+          var dateKey = getTodayDateKey();
+          var store = getDailyCleanStore();
+          if (!store[staffCode]) store[staffCode] = {};
+          if (!store[staffCode][dateKey]) store[staffCode][dateKey] = {};
+
+          store[staffCode][dateKey][custId] = {
+            done: true,
+            photoUrl: uploadedUrl,
+            completedAt: completedAtDevice,
+            vehicle: item.vehicle || item.vehicleNumbers,
+            customerName: item.customerName || item.name
+          };
+
+          saveDailyCleanStore(store);
+
+          // Update legacy list mirror
+          try {
+            var legacyKey = 'cwp_clean_done_' + dateKey + '_' + staffCode;
+            var list = Object.keys(store[staffCode][dateKey]).filter(function(k) {
+              var v = store[staffCode][dateKey][k];
+              return v === true || (v && v.done === true);
+            });
+            localStorage.setItem(legacyKey, JSON.stringify(list));
+          } catch (e) {}
+
+          // 4. Update UI
+          closeCleaningCameraModal();
+          updateRouteProgressBar();
+          if (state.currentStaffFilteredList) {
+            renderCustomerCards(state.currentStaffFilteredList);
+          }
+
+          showToast('कार की सफाई सफलतापूर्वक दर्ज हो गई! ✓', 'success');
+
+          // 5. Trigger Instant WhatsApp Dispatch
+          setTimeout(function() {
+            triggerCleaningWhatsAppShare(item, uploadedUrl, completedAtDevice);
+          }, 400);
+
+        }, function(err) {
+          console.error('Failed to save cleaning photo:', err);
+          // Offline Fallback: Still mark completed locally and store photo locally
+          var dateKey = getTodayDateKey();
+          var store = getDailyCleanStore();
+          if (!store[staffCode]) store[staffCode] = {};
+          if (!store[staffCode][dateKey]) store[staffCode][dateKey] = {};
+
+          store[staffCode][dateKey][custId] = {
+            done: true,
+            photoUrl: compressedBase64, // local data url
+            completedAt: completedAtDevice,
+            vehicle: item.vehicle || item.vehicleNumbers,
+            customerName: item.customerName || item.name,
+            pendingSync: true
+          };
+          saveDailyCleanStore(store);
+
+          closeCleaningCameraModal();
+          updateRouteProgressBar();
+          if (state.currentStaffFilteredList) {
+            renderCustomerCards(state.currentStaffFilteredList);
+          }
+          showToast('ऑफलाइन सुरक्षित: नेटवर्क आते ही सर्वर पर सिंक होगा!', 'warning');
+
+          setTimeout(function() {
+            triggerCleaningWhatsAppShare(item, '', completedAtDevice);
+          }, 400);
+        });
+      });
+    }
+
+    function compressAndStampCleaningPhoto(dataUrl, item, callback) {
+      var img = new Image();
+      img.onload = function() {
+        var maxDim = 1600;
+        var w = img.width;
+        var h = img.height;
+
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+
+        // Draw photo
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // Draw professional watermarking banner on bottom
+        var bannerHeight = Math.max(48, Math.round(h * 0.08));
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.fillRect(0, h - bannerHeight, w, bannerHeight);
+
+        ctx.fillStyle = '#38bdf8';
+        var fontSize = Math.max(14, Math.round(bannerHeight * 0.32));
+        ctx.font = 'bold ' + fontSize + 'px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+
+        var vText = '🚗 ' + (item.vehicle || item.vehicleNumbers || 'CWP Clean');
+        var cText = ' • 👤 ' + (item.customerName || item.name || 'Customer');
+        ctx.fillText(vText + cText, 16, h - (bannerHeight * 0.65));
+
+        ctx.fillStyle = '#f1f5f9';
+        var subFontSize = Math.max(11, Math.round(bannerHeight * 0.25));
+        ctx.font = subFontSize + 'px sans-serif';
+
+        var sName = (state.staffData && state.staffData.staffName) || state.activeStaffName || 'Staff';
+        var dateFormatted = new Date().toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+        var metaLine = '👨‍🔧 ' + sName + ' • ⏰ ' + dateFormatted + ' IST • CWP Detailers';
+        ctx.fillText(metaLine, 16, h - (bannerHeight * 0.25));
+
+        var compressed = canvas.toDataURL('image/jpeg', 0.80);
+        callback(compressed);
+      };
+      img.onerror = function() {
+        callback(dataUrl);
+      };
+      img.src = dataUrl;
+    }
+
+    /* =========================================================================
+       WHATSAPP DISPATCH & SHARING SYSTEM
+       ========================================================================= */
+    function handleCustomerWhatsAppShare(custId, index) {
+      var item = state.currentStaffFilteredList && state.currentStaffFilteredList[index];
+      if (!item) return;
+
+      var compData = getCustomerCompletionData(custId);
+      var photoUrl = (compData && compData.photoUrl) || '';
+      var completedAt = (compData && compData.completedAt) || new Date().toISOString();
+
+      triggerCleaningWhatsAppShare(item, photoUrl, completedAt);
+    }
+
+    function triggerCleaningWhatsAppShare(item, photoUrl, completedAtTime) {
+      var vName = item.vehicle || item.vehicleNumbers || 'Car';
+      var cName = item.customerName || item.name || 'Customer';
+      var loc = item.address || item.parkingDetails || '';
+      var sName = (state.staffData && state.staffData.staffName) || state.activeStaffName || 'Staff';
+      var sCode = state.activeStaffId || 'STF01';
+
+      var dateObj = completedAtTime ? new Date(completedAtTime) : new Date();
+      var dateFormatted = dateObj.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      var textLines = [
+        '✨ *CWP Detailers & Motors - Daily Car Cleaning Report* ✨',
+        '━━━━━━━━━━━━━━━━━━━━━',
+        '🚗 *गाड़ी (Vehicle):* ' + vName,
+        '👤 *ग्राहक (Customer):* ' + cName,
+        (loc ? ('📍 *स्थान (Location):* ' + loc) : ''),
+        '👨‍🔧 *सफाई कर्मी (Staff):* ' + sName + ' (' + sCode + ')',
+        '⏰ *समय (Time):* ' + dateFormatted + ' IST',
+        (photoUrl ? ('📷 *सफाई फोटो प्रमाण (Photo Proof):*\n' + photoUrl) : '📷 *सफाई फोटो:* सत्यापित (Verified)'),
+        '━━━━━━━━━━━━━━━━━━━━━',
+        '_गाड़ी की दैनिक सफाई पूरी कर दी गई है। धन्यवाद!_'
+      ].filter(Boolean);
+
+      var message = textLines.join('\n');
+
+      // Check if staff has defined a WhatsApp group or mobile number
+      var targetGroup = getStaffWhatsAppGroup();
+
+      if (targetGroup) {
+        var cleanTarget = targetGroup.trim();
+        if (cleanTarget.startsWith('http://') || cleanTarget.startsWith('https://')) {
+          copyToClipboard(message);
+          showToast('रिपोर्ट कॉपी हो गई! व्हाट्सएप ग्रुप खुल रहा है...', 'success');
+          window.open(cleanTarget, '_blank');
+          return;
+        } else if (/^\d{10}$/.test(cleanTarget)) {
+          var waUrl = 'https://wa.me/91' + cleanTarget + '?text=' + encodeURIComponent(message);
+          window.open(waUrl, '_blank');
+          return;
+        }
+      }
+
+      // Universal Mobile Web Share API fallback
+      if (navigator.share && /mobile|android|iphone|ipad/i.test(navigator.userAgent)) {
+        navigator.share({
+          title: 'CWP Car Cleaning Proof - ' + vName,
+          text: message
+        }).catch(function(e) {
+          var waFallbackUrl = 'https://wa.me/?text=' + encodeURIComponent(message);
+          window.open(waFallbackUrl, '_blank');
+        });
+      } else {
+        var waUrl = 'https://wa.me/?text=' + encodeURIComponent(message);
+        window.open(waUrl, '_blank');
+      }
+    }
+
+    function getStaffWhatsAppGroup() {
+      var staffId = state.activeStaffId || 'STF01';
+      return localStorage.getItem('cwp_staff_wa_group_' + staffId) || localStorage.getItem('cwp_staff_wa_group') || '';
+    }
+
+    function openStaffWhatsAppGroupModal() {
+      var modal = document.getElementById('staffWhatsAppGroupModal');
+      var input = document.getElementById('staffWaGroupInput');
+      if (input) input.value = getStaffWhatsAppGroup();
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeStaffWhatsAppGroupModal() {
+      var modal = document.getElementById('staffWhatsAppGroupModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function saveStaffWhatsAppGroupSetting() {
+      var input = document.getElementById('staffWaGroupInput');
+      var val = (input ? input.value : '').trim();
+      var staffId = state.activeStaffId || 'STF01';
+      localStorage.setItem('cwp_staff_wa_group_' + staffId, val);
+      localStorage.setItem('cwp_staff_wa_group', val);
+      closeStaffWhatsAppGroupModal();
+      showToast('व्हाट्सएप ग्रुप लिंक सुरक्षित हो गया! ✓', 'success');
+    }
+
+    /* =========================================================================
+       ADMIN DAILY CLEAN REPORTS: FETCH, FILTER, RENDER & EXPORT
+       ========================================================================= */
+    var adminCleanReportsState = {
+      period: 'today',
+      startDate: '',
+      endDate: '',
+      staffId: 'all',
+      hasPhoto: 'all',
+      search: '',
+      records: [],
+      summary: {}
+    };
+
+    function loadDailyCleanReports() {
+      var tbody = document.getElementById('adminCleanReportsTableBody');
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);"><div class="spinner-circle" style="width: 24px; height: 24px; border-width: 2px; margin: 0 auto 8px auto;"></div>रिपोर्ट लोड हो रही है...</td></tr>';
+      }
+
+      populateReportStaffDropdown();
+      computeReportDatesFromPeriod();
+
+      var payload = {
+        startDate: adminCleanReportsState.startDate,
+        endDate: adminCleanReportsState.endDate,
+        staffId: adminCleanReportsState.staffId,
+        hasPhoto: adminCleanReportsState.hasPhoto,
+        search: adminCleanReportsState.search
+      };
+
+      apiCall('getDailyCleanReports', payload, function(res) {
+        adminCleanReportsState.records = res.records || [];
+        adminCleanReportsState.summary = res.summary || {};
+        renderDailyCleanReports(adminCleanReportsState.records, adminCleanReportsState.summary);
+      }, function(err) {
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 24px; color: #ef4444;">Error loading reports: ' + escapeHtml(err.error || err.message || err) + '</td></tr>';
+        }
+      });
+    }
+
+    function populateReportStaffDropdown() {
+      var select = document.getElementById('reportStaffFilter');
+      if (!select || select.options.length > 1) return;
+
+      if (state.staffList && Array.isArray(state.staffList)) {
+        state.staffList.forEach(function(s) {
+          var opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = s.name + ' (' + s.id + ')';
+          select.appendChild(opt);
+        });
+      }
+    }
+
+    function computeReportDatesFromPeriod() {
+      var period = adminCleanReportsState.period;
+      var today = getTodayDateKey();
+
+      var startInput = document.getElementById('reportStartDate');
+      var endInput = document.getElementById('reportEndDate');
+      var customBox = document.getElementById('customDateRangeBox');
+
+      if (period === 'today') {
+        adminCleanReportsState.startDate = today;
+        adminCleanReportsState.endDate = today;
+        if (customBox) customBox.style.display = 'none';
+      } else if (period === 'yesterday') {
+        var yDate = new Date();
+        yDate.setDate(yDate.getDate() - 1);
+        var yKey = yDate.toISOString().split('T')[0];
+        adminCleanReportsState.startDate = yKey;
+        adminCleanReportsState.endDate = yKey;
+        if (customBox) customBox.style.display = 'none';
+      } else if (period === '7days') {
+        var d7 = new Date();
+        d7.setDate(d7.getDate() - 7);
+        adminCleanReportsState.startDate = d7.toISOString().split('T')[0];
+        adminCleanReportsState.endDate = today;
+        if (customBox) customBox.style.display = 'none';
+      } else if (period === 'month') {
+        var mDate = new Date();
+        var y = mDate.getFullYear();
+        var m = String(mDate.getMonth() + 1).padStart(2, '0');
+        adminCleanReportsState.startDate = y + '-' + m + '-01';
+        adminCleanReportsState.endDate = today;
+        if (customBox) customBox.style.display = 'none';
+      } else if (period === 'custom') {
+        if (customBox) customBox.style.display = 'inline-flex';
+        adminCleanReportsState.startDate = (startInput && startInput.value) || today;
+        adminCleanReportsState.endDate = (endInput && endInput.value) || today;
+      }
+
+      if (startInput) startInput.value = adminCleanReportsState.startDate;
+      if (endInput) endInput.value = adminCleanReportsState.endDate;
+    }
+
+    function setReportPeriodChip(period) {
+      adminCleanReportsState.period = period;
+      ['today', 'yesterday', '7days', 'month', 'custom'].forEach(function(p) {
+        var cap = p.charAt(0).toUpperCase() + p.slice(1);
+        var chip = document.getElementById('chipPeriod' + cap);
+        if (chip) chip.classList.toggle('active', p === period);
+      });
+      computeReportDatesFromPeriod();
+      loadDailyCleanReports();
+    }
+
+    function handleReportDateChange() {
+      var startInput = document.getElementById('reportStartDate');
+      var endInput = document.getElementById('reportEndDate');
+      if (startInput) adminCleanReportsState.startDate = startInput.value;
+      if (endInput) adminCleanReportsState.endDate = endInput.value;
+      adminCleanReportsState.period = 'custom';
+      ['today', 'yesterday', '7days', 'month'].forEach(function(p) {
+        var cap = p.charAt(0).toUpperCase() + p.slice(1);
+        var chip = document.getElementById('chipPeriod' + cap);
+        if (chip) chip.classList.remove('active');
+      });
+      var custChip = document.getElementById('chipPeriodCustom');
+      if (custChip) custChip.classList.add('active');
+      loadDailyCleanReports();
+    }
+
+    var reportSearchTimer = null;
+    function debounceReportSearch() {
+      if (reportSearchTimer) clearTimeout(reportSearchTimer);
+      reportSearchTimer = setTimeout(function() {
+        var input = document.getElementById('reportSearchFilter');
+        adminCleanReportsState.search = (input ? input.value : '').trim();
+        loadDailyCleanReports();
+      }, 350);
+    }
+
+    function resetReportFilters() {
+      adminCleanReportsState.period = 'today';
+      adminCleanReportsState.search = '';
+      adminCleanReportsState.staffId = 'all';
+      adminCleanReportsState.hasPhoto = 'all';
+
+      var searchIn = document.getElementById('reportSearchFilter');
+      if (searchIn) searchIn.value = '';
+      var staffSel = document.getElementById('reportStaffFilter');
+      if (staffSel) staffSel.value = 'all';
+      var photoSel = document.getElementById('reportPhotoFilter');
+      if (photoSel) photoSel.value = 'all';
+
+      setReportPeriodChip('today');
+    }
+
+    function renderDailyCleanReports(records, summary) {
+      // 1. Update KPI Tiles
+      var kpiTotal = document.getElementById('kpiTotalCleaned');
+      var kpiRate = document.getElementById('kpiPhotoRate');
+      var kpiPhoto = document.getElementById('kpiPhotoCount');
+      var kpiStaff = document.getElementById('kpiActiveStaff');
+      var kpiPunch = document.getElementById('kpiLatestPunch');
+      var kpiPunchDate = document.getElementById('kpiLatestPunchDate');
+      var tabBadge = document.getElementById('tabCleanReportsCount');
+
+      var total = summary.totalCleaned || records.length || 0;
+      var withPhoto = summary.withPhotoCount || records.filter(function(r) { return !!r.photo_url; }).length || 0;
+      var rate = summary.photoRate !== undefined ? summary.photoRate : (total > 0 ? Math.round((withPhoto / total) * 100) : 0);
+      var staffCount = summary.activeStaffCount !== undefined ? summary.activeStaffCount : new Set(records.map(function(r) { return r.staff_code || r.staff_id; })).size;
+
+      if (kpiTotal) kpiTotal.textContent = total;
+      if (kpiRate) kpiRate.textContent = rate + '%';
+      if (kpiPhoto) kpiPhoto.textContent = withPhoto + ' with photo (' + (total - withPhoto) + ' without)';
+      if (kpiStaff) kpiStaff.textContent = staffCount + ' Staff';
+      if (tabBadge) tabBadge.textContent = total;
+
+      if (summary.latestPunchTime) {
+        var lpDate = new Date(summary.latestPunchTime);
+        var tStr = lpDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        var dStr = lpDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+        if (kpiPunch) kpiPunch.textContent = tStr;
+        if (kpiPunchDate) kpiPunchDate.textContent = dStr + ' IST';
+      } else {
+        if (kpiPunch) kpiPunch.textContent = '--:--';
+        if (kpiPunchDate) kpiPunchDate.textContent = 'None today';
+      }
+
+      // 2. Render Table Rows
+      var tbody = document.getElementById('adminCleanReportsTableBody');
+      if (!tbody) return;
+
+      if (!records || records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);"><div style="font-size: 32px; margin-bottom: 6px;">📋</div>इस अवधि में कोई सफाई रिकॉर्ड नहीं मिला (No cleaning records found for this period).</td></tr>';
+        return;
+      }
+
+      var html = '';
+      records.forEach(function(r, idx) {
+        var completedDate = r.completed_at_device ? new Date(r.completed_at_device) : new Date();
+        var dateFormatted = completedDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        var timeFormatted = completedDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+        var sName = r.staff_name || r.staff_code || 'Staff';
+        var cName = r.customer_name || 'Customer';
+        var cPhone = r.customer_phone || '';
+        var vReg = r.registration_no || 'Car';
+        var vModel = r.brand_or_model ? (' (' + r.brand_or_model + ')') : '';
+        var locText = r.address_text || r.parking_details || '—';
+        var photoUrl = r.photo_url || '';
+
+        html += '<tr>';
+        html += '  <td style="text-align: center; color: var(--text-muted); font-size: 11px;">' + (idx + 1) + '</td>';
+        html += '  <td><div style="display:flex; flex-direction:column;"><strong style="font-size:12px;">' + timeFormatted + '</strong><span style="font-size:10.5px; color:var(--text-muted);">' + dateFormatted + '</span></div></td>';
+        html += '  <td><span class="cust-index-badge" style="background:#eff6ff; color:#1d4ed8; font-weight:700;">' + escapeHtml(sName) + '</span></td>';
+        html += '  <td><div style="display:flex; flex-direction:column;"><strong style="font-size:12.5px;">' + escapeHtml(cName) + '</strong>';
+        if (cPhone) {
+          html += '    <a href="tel:' + escapeHtml(cPhone) + '" style="font-size:11px; color:var(--brand-blue); text-decoration:none;">📞 ' + escapeHtml(cPhone) + '</a>';
+        }
+        html += '  </div></td>';
+        html += '  <td><div style="display:flex; flex-direction:column;"><span class="vehicle-plate-pill" style="display:inline-block; margin-bottom:2px;">' + escapeHtml(vReg) + '</span><span style="font-size:10.5px; color:var(--text-muted);">' + escapeHtml(vModel) + '</span></div></td>';
+        html += '  <td><span style="font-size:11.5px; color:var(--text-secondary);">' + escapeHtml(locText) + '</span></td>';
+        
+        // Photo Proof Thumbnail Column
+        html += '  <td style="text-align: center;">';
+        if (photoUrl) {
+          html += '    <img src="' + escapeHtml(photoUrl) + '" class="report-thumb-img" onclick="openReportPhotoLightbox(\'' + escapeHtml(photoUrl) + '\', \'' + escapeHtml(vReg + ' - ' + cName) + '\', \'Staff: ' + escapeHtml(sName) + ' • Time: ' + timeFormatted + '\', \'' + escapeHtml(cPhone) + '\')" title="Click to view full photo proof">';
+        } else {
+          html += '    <span class="report-no-photo-badge">No Photo</span>';
+        }
+        html += '  </td>';
+
+        html += '  <td style="text-align: center;"><span class="badge-status-pill badge-active" style="font-size:10.5px;">✓ Done</span></td>';
+        html += '</tr>';
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    /* Lightbox Modal Functions */
+    var currentLightboxPhotoUrl = '';
+    var currentLightboxPhone = '';
+    function openReportPhotoLightbox(url, title, metaDetails, customerPhone) {
+      currentLightboxPhotoUrl = url;
+      currentLightboxPhone = customerPhone || '';
+
+      var modal = document.getElementById('reportPhotoLightboxModal');
+      var img = document.getElementById('lightboxModalImg');
+      var titleEl = document.getElementById('lightboxModalTitle');
+      var metaEl = document.getElementById('lightboxMetaDetails');
+      var openNew = document.getElementById('lightboxOpenNewTab');
+
+      if (img) img.src = url;
+      if (titleEl) titleEl.innerHTML = '<span>🚗</span> ' + escapeHtml(title);
+      if (metaEl) metaEl.textContent = metaDetails;
+      if (openNew) openNew.href = url;
+
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeReportPhotoLightbox() {
+      var modal = document.getElementById('reportPhotoLightboxModal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+      currentLightboxPhotoUrl = '';
+      currentLightboxPhone = '';
+    }
+
+    function downloadCurrentReportPhoto() {
+      if (!currentLightboxPhotoUrl) return;
+      var a = document.createElement('a');
+      a.href = currentLightboxPhotoUrl;
+      a.download = 'CWP_Car_Clean_' + Date.now() + '.jpg';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function forwardPhotoFromLightbox() {
+      if (!currentLightboxPhotoUrl) return;
+      var message = 'Hello,\nHere is the photo proof of your vehicle cleaning by CWP Detailers & Motors:\n' + currentLightboxPhotoUrl + '\n\nThank you for choosing CWP Detailers!';
+      var waUrl = currentLightboxPhone
+        ? ('https://wa.me/91' + normalizeIndianMobile(currentLightboxPhone) + '?text=' + encodeURIComponent(message))
+        : ('https://wa.me/?text=' + encodeURIComponent(message));
+      window.open(waUrl, '_blank');
+    }
+
+    /* CSV Export */
+    function exportDailyCleanReportsCSV() {
+      var records = adminCleanReportsState.records;
+      if (!records || records.length === 0) {
+        showToast('डाउनलोड करने के लिए कोई रिकॉर्ड उपलब्ध नहीं है', 'warning');
+        return;
+      }
+
+      var headers = ['S.No', 'Date (IST)', 'Time (IST)', 'Staff Name', 'Staff ID', 'Customer Name', 'Customer Phone', 'Vehicle Reg', 'Brand/Model', 'Address', 'Status', 'Photo URL'];
+      var csvRows = [headers.join(',')];
+
+      records.forEach(function(r, idx) {
+        var d = r.completed_at_device ? new Date(r.completed_at_device) : new Date();
+        var dStr = d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+        var tStr = d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+
+        var row = [
+          idx + 1,
+          JSON.stringify(dStr),
+          JSON.stringify(tStr),
+          JSON.stringify(r.staff_name || ''),
+          JSON.stringify(r.staff_code || ''),
+          JSON.stringify(r.customer_name || ''),
+          JSON.stringify(r.customer_phone || ''),
+          JSON.stringify(r.registration_no || ''),
+          JSON.stringify(r.brand_or_model || ''),
+          JSON.stringify(r.address_text || r.parking_details || ''),
+          JSON.stringify('Completed'),
+          JSON.stringify(r.photo_url || '')
+        ];
+        csvRows.push(row.join(','));
+      });
+
+      var blob = new Blob([csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.href = url;
+      link.download = 'CWP_Daily_Clean_Reports_' + adminCleanReportsState.startDate + '_to_' + adminCleanReportsState.endDate + '.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function printDailyCleanReports() {
+      window.print();
     }
 
     function updateRouteProgressBar() {
@@ -13712,6 +15344,23 @@ function loadStaffCustomerData(staffId) {
       window.getCompletedCustomersSet = getCompletedCustomersSet;
       window.isCustomerDoneToday = isCustomerDoneToday;
       window.toggleCustomerDoneToday = toggleCustomerDoneToday;
+      window.handleDailyCleanClick = handleDailyCleanClick;
+      window.openCleaningCameraModal = openCleaningCameraModal;
+      window.closeCleaningCameraModal = closeCleaningCameraModal;
+      window.snapCleaningPhoto = snapCleaningPhoto;
+      window.retakeCleaningPhoto = retakeCleaningPhoto;
+      window.confirmAndSaveCleaningPhoto = confirmAndSaveCleaningPhoto;
+      window.handleCustomerWhatsAppShare = handleCustomerWhatsAppShare;
+      window.triggerCleaningWhatsAppShare = triggerCleaningWhatsAppShare;
+      window.loadDailyCleanReports = loadDailyCleanReports;
+      window.setReportPeriodChip = setReportPeriodChip;
+      window.openReportPhotoLightbox = openReportPhotoLightbox;
+      window.closeReportPhotoLightbox = closeReportPhotoLightbox;
+      window.exportDailyCleanReportsCSV = exportDailyCleanReportsCSV;
+      window.getCustomerCompletionData = getCustomerCompletionData;
+      window.openStaffWhatsAppGroupModal = openStaffWhatsAppGroupModal;
+      window.closeStaffWhatsAppGroupModal = closeStaffWhatsAppGroupModal;
+      window.saveStaffWhatsAppGroupSetting = saveStaffWhatsAppGroupSetting;
       window.updateRouteProgressBar = updateRouteProgressBar;
       window.checkAndHandleDateChange = checkAndHandleDateChange;
       window.scheduleMidnightCheck = scheduleMidnightCheck;
