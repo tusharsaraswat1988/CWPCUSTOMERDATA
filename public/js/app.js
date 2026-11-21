@@ -3833,12 +3833,16 @@ function loadStaffCustomerData(staffId) {
       if (!sel.value) sel.value = 'all';
     }
 
+    var adminSearchDebounceTimer = null;
     function handleAdminSearchInput() {
-      var searchInput = document.getElementById('adminRecordSearch');
-      var clearBtn = document.getElementById('btnAdminSearchClear');
-      var val = searchInput ? searchInput.value : '';
-      if (clearBtn) clearBtn.style.display = val.trim() ? 'inline-flex' : 'none';
-      filterAdminRecords();
+      clearTimeout(adminSearchDebounceTimer);
+      adminSearchDebounceTimer = setTimeout(function() {
+        var searchInput = document.getElementById('adminRecordSearch');
+        var clearBtn = document.getElementById('btnAdminSearchClear');
+        var val = searchInput ? searchInput.value : '';
+        if (clearBtn) clearBtn.style.display = val.trim() ? 'inline-flex' : 'none';
+        filterAdminRecords();
+      }, 120);
     }
 
     function clearAdminSearch() {
@@ -3887,6 +3891,7 @@ function loadStaffCustomerData(staffId) {
 
     function filterAdminRecords() {
       if (!state.adminRecords) return;
+      if (typeof adminPagination !== 'undefined') adminPagination.page = 1;
 
       var searchEl = document.getElementById('adminRecordSearch');
       var catEl = document.getElementById('filterAdminCategory') || document.getElementById('filterAdminSheet');
@@ -4009,9 +4014,95 @@ function loadStaffCustomerData(staffId) {
       showToast('CSV file downloaded (' + records.length + ' records)', '📥');
     }
 
+    /* =========================================================================
+       ADMIN CUSTOMER RECORDS PAGINATION & SCALABILITY CONTROLS
+       ========================================================================= */
+    var adminPagination = {
+      page: 1,
+      pageSize: 25 // Default 25 per page (Options: 25, 50, 100, 0 = All)
+    };
+
+    function changeAdminPage(newPage) {
+      adminPagination.page = newPage;
+      var records = state.lastFilteredRecords || state.adminRecords || [];
+      renderAdminRecordsTable(records);
+      var table = document.getElementById('adminRecordsTable');
+      if (table) table.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function changeAdminPageSize(newSize) {
+      adminPagination.pageSize = parseInt(newSize, 10) || 0;
+      adminPagination.page = 1;
+      var records = state.lastFilteredRecords || state.adminRecords || [];
+      renderAdminRecordsTable(records);
+    }
+
+    function renderAdminPaginationControls(totalCount, startIndex, endIndex, currentPage, totalPages, pageSize) {
+      var container = document.getElementById('adminTablePagination');
+      if (!container) return;
+
+      if (!totalCount || totalCount <= 0) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'flex';
+
+      var infoHtml = '<div class="pagination-info-wrap">' +
+        '<span>Showing <strong style="color:var(--text-primary);">' + (startIndex + 1) + ' - ' + endIndex + '</strong> of <strong style="color:var(--text-primary);">' + totalCount + '</strong> records</span>' +
+        '<select class="pagination-page-size-select" onchange="changeAdminPageSize(this.value)" title="Rows per page">' +
+          '<option value="25"' + (pageSize === 25 ? ' selected' : '') + '>25 / page</option>' +
+          '<option value="50"' + (pageSize === 50 ? ' selected' : '') + '>50 / page</option>' +
+          '<option value="100"' + (pageSize === 100 ? ' selected' : '') + '>100 / page</option>' +
+          '<option value="0"' + (pageSize === 0 ? ' selected' : '') + '>Show All</option>' +
+        '</select>' +
+      '</div>';
+
+      if (pageSize === 0 || totalPages <= 1) {
+        container.innerHTML = infoHtml + '<div class="pagination-controls-wrap"><span style="font-size:12px; color:var(--text-muted);">All records displayed</span></div>';
+        return;
+      }
+
+      var prevDisabled = currentPage <= 1 ? ' disabled' : '';
+      var nextDisabled = currentPage >= totalPages ? ' disabled' : '';
+
+      var navHtml = '<div class="pagination-controls-wrap">';
+      navHtml += '<button type="button" class="btn-page-nav" onclick="changeAdminPage(' + (currentPage - 1) + ')"' + prevDisabled + ' title="Previous Page">‹ Prev</button>';
+
+      var maxPills = 5;
+      var startPill = Math.max(1, currentPage - 2);
+      var endPill = Math.min(totalPages, startPill + maxPills - 1);
+      if (endPill - startPill + 1 < maxPills) {
+        startPill = Math.max(1, endPill - maxPills + 1);
+      }
+
+      if (startPill > 1) {
+        navHtml += '<button type="button" class="btn-page-num" onclick="changeAdminPage(1)">1</button>';
+        if (startPill > 2) navHtml += '<span style="padding:0 3px; color:var(--text-muted);">…</span>';
+      }
+
+      for (var p = startPill; p <= endPill; p++) {
+        var activeClass = p === currentPage ? ' active' : '';
+        navHtml += '<button type="button" class="btn-page-num' + activeClass + '" onclick="changeAdminPage(' + p + ')">' + p + '</button>';
+      }
+
+      if (endPill < totalPages) {
+        if (endPill < totalPages - 1) navHtml += '<span style="padding:0 3px; color:var(--text-muted);">…</span>';
+        navHtml += '<button type="button" class="btn-page-num" onclick="changeAdminPage(' + totalPages + ')">' + totalPages + '</button>';
+      }
+
+      navHtml += '<button type="button" class="btn-page-nav" onclick="changeAdminPage(' + (currentPage + 1) + ')"' + nextDisabled + ' title="Next Page">Next ›</button>';
+      navHtml += '</div>';
+
+      container.innerHTML = infoHtml + navHtml;
+    }
+
     function renderAdminRecordsTable(records) {
       var tbody = document.getElementById('adminRecordsTableBody');
       if (!tbody) return;
+
+      var paginationContainer = document.getElementById('adminTablePagination');
 
       if (!records || records.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">' +
@@ -4019,11 +4110,28 @@ function loadStaffCustomerData(staffId) {
           '<div style="font-weight: 700; font-size: 13.5px; color: var(--text-primary); margin-bottom: 3px;">No records found</div>' +
           '<div style="font-size: 12px;">Try adjusting your search or filters, or <a href="javascript:void(0)" onclick="resetAllAdminFilters()" style="color:var(--brand-blue); text-decoration:underline; font-weight:600;">Reset filters</a></div>' +
           '</td></tr>';
+        if (paginationContainer) {
+          paginationContainer.innerHTML = '';
+          paginationContainer.style.display = 'none';
+        }
         return;
       }
 
+      var totalCount = records ? records.length : 0;
+      var pageSize = adminPagination ? adminPagination.pageSize : 25;
+      var currentPage = adminPagination ? adminPagination.page : 1;
+      var totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 1;
+      if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+      if (adminPagination) adminPagination.page = currentPage;
+
+      var startIndex = pageSize > 0 ? (currentPage - 1) * pageSize : 0;
+      var endIndex = pageSize > 0 ? Math.min(startIndex + pageSize, totalCount) : totalCount;
+      var pageRecords = pageSize > 0 ? records.slice(startIndex, endIndex) : records;
+
       var html = '';
-      records.forEach(function(r, index) {
+      pageRecords.forEach(function(r, index) {
+        var sNo = startIndex + index + 1;
+        var origIndex = r._origIndex !== undefined ? r._origIndex : (startIndex + index);
         var sNo = index + 1;
         var origIndex = r._origIndex !== undefined ? r._origIndex : index;
         var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
@@ -4156,6 +4264,7 @@ function loadStaffCustomerData(staffId) {
       });
 
       tbody.innerHTML = html;
+      renderAdminPaginationControls(totalCount, startIndex, endIndex, currentPage, totalPages, pageSize);
     }
 
     /* Edit Customer Modal Handlers */
@@ -6381,6 +6490,23 @@ function loadStaffCustomerData(staffId) {
       setReportPeriodChip('today');
     }
 
+    function shareDailyCleanReportDirectly(regNo, custName, custPhone, photoUrl, timeStr, staffName) {
+      var msg = '🚗 *CWP Detailers & Motors - Daily Cleaning Update*\n\n' +
+        'Namaste ' + (custName || 'Valued Customer') + ' ji,\n' +
+        'Your vehicle *' + (regNo || '') + '* has been cleaned and checked by technician *' + (staffName || 'CWP Staff') + '* at *' + (timeStr || 'today') + '*.\n\n';
+      if (photoUrl) {
+        msg += '📸 *Photo Proof:* ' + photoUrl + '\n\n';
+      }
+      msg += 'Thank you for choosing CWP Detailers & Motors!';
+      var cleanPhone = custPhone ? String(custPhone).replace(/[^0-9]/g, '') : '';
+      if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+      var waUrl = cleanPhone
+        ? ('https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(msg))
+        : ('https://wa.me/?text=' + encodeURIComponent(msg));
+      window.open(waUrl, '_blank');
+    }
+    window.shareDailyCleanReportDirectly = shareDailyCleanReportDirectly;
+
     function renderDailyCleanReports(records, summary) {
       // 1. Update KPI Tiles
       var kpiTotal = document.getElementById('kpiTotalCleaned');
@@ -6390,9 +6516,10 @@ function loadStaffCustomerData(staffId) {
       var kpiPunch = document.getElementById('kpiLatestPunch');
       var kpiPunchDate = document.getElementById('kpiLatestPunchDate');
       var tabBadge = document.getElementById('tabCleanReportsCount');
+      var progressBar = document.getElementById('kpiPhotoProgressBar');
 
-      var total = summary.totalCleaned || records.length || 0;
-      var withPhoto = summary.withPhotoCount || records.filter(function(r) { return !!r.photo_url; }).length || 0;
+      var total = summary.totalCleaned !== undefined ? summary.totalCleaned : (records.length || 0);
+      var withPhoto = summary.withPhotoCount !== undefined ? summary.withPhotoCount : (records.filter(function(r) { return !!r.photo_url; }).length || 0);
       var rate = summary.photoRate !== undefined ? summary.photoRate : (total > 0 ? Math.round((withPhoto / total) * 100) : 0);
       var staffCount = summary.activeStaffCount !== undefined ? summary.activeStaffCount : new Set(records.map(function(r) { return r.staff_code || r.staff_id; })).size;
 
@@ -6401,6 +6528,17 @@ function loadStaffCustomerData(staffId) {
       if (kpiPhoto) kpiPhoto.textContent = withPhoto + ' with photo (' + (total - withPhoto) + ' without)';
       if (kpiStaff) kpiStaff.textContent = staffCount + ' Staff';
       if (tabBadge) tabBadge.textContent = total;
+
+      if (progressBar) {
+        progressBar.style.width = rate + '%';
+        if (rate >= 90) {
+          progressBar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+        } else if (rate >= 70) {
+          progressBar.style.background = 'linear-gradient(90deg, #f59e0b, #d97706)';
+        } else {
+          progressBar.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
+        }
+      }
 
       if (summary.latestPunchTime) {
         var lpDate = new Date(summary.latestPunchTime);
@@ -6413,12 +6551,53 @@ function loadStaffCustomerData(staffId) {
         if (kpiPunchDate) kpiPunchDate.textContent = 'None today';
       }
 
-      // 2. Render Table Rows
+      // 2. Operational Intelligence Banner
+      var intelMsg = document.getElementById('intelBannerMessage');
+      var intelBadge = document.getElementById('intelComplianceBadge');
+      if (intelMsg && intelBadge) {
+        if (records && records.length > 0) {
+          // Find top staff contributor
+          var staffCounts = {};
+          records.forEach(function(r) {
+            var s = r.staff_name || r.staff_code || 'Staff';
+            staffCounts[s] = (staffCounts[s] || 0) + 1;
+          });
+          var topStaff = '';
+          var topCount = 0;
+          Object.keys(staffCounts).forEach(function(s) {
+            if (staffCounts[s] > topCount) {
+              topCount = staffCounts[s];
+              topStaff = s;
+            }
+          });
+
+          intelMsg.innerHTML = '<strong>' + total + ' vehicles</strong> cleaned across <strong>' + staffCount + ' field crew</strong>. Top performer: <strong>' + escapeHtml(topStaff) + '</strong> (' + topCount + ' vehicles). Compliance: <strong>' + rate + '% photo proof</strong>.';
+
+          intelBadge.className = 'compliance-badge ' + (rate >= 90 ? 'badge-green' : (rate >= 70 ? 'badge-amber' : 'badge-red'));
+          intelBadge.textContent = rate >= 90 ? '🟢 Optimal (' + rate + '%)' : (rate >= 70 ? '🟡 Fair (' + rate + '%)' : '🔴 Action Needed (' + rate + '%)');
+        } else {
+          intelMsg.textContent = 'Operational Status: No vehicle cleaning punches recorded for this period. Staff rounds typically start at 06:00 AM IST.';
+          intelBadge.className = 'compliance-badge badge-neutral';
+          intelBadge.textContent = 'Awaiting Activity';
+        }
+      }
+
+      // 3. Render Table Rows
       var tbody = document.getElementById('adminCleanReportsTableBody');
       if (!tbody) return;
 
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);"><div style="font-size: 32px; margin-bottom: 6px;">📋</div>इस अवधि में कोई सफाई रिकॉर्ड नहीं मिला (No cleaning records found for this period).</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">' +
+          '<div class="reports-empty-state">' +
+          '  <div class="empty-radar-wrap"><div class="empty-radar-pulse"></div><div class="empty-radar-icon">📋</div></div>' +
+          '  <h3 class="empty-state-title">इस अवधि में कोई सफाई रिकॉर्ड नहीं मिला (No Records Found)</h3>' +
+          '  <p class="empty-state-subtitle">चुनी गई तारीख या फ़िल्टर में कोई गाड़ी सफाई लॉग नहीं मिली। ऊपर से तारीख बदलें या रीसेट करें।</p>' +
+          '  <div class="empty-state-actions">' +
+          '    <button type="button" class="btn-report-action" onclick="setReportPeriodChip(\'today\')">Today (आज)</button>' +
+          '    <button type="button" class="btn-filter-reset" onclick="resetReportFilters()">✕ Reset Filters</button>' +
+          '  </div>' +
+          '</div>' +
+          '</td></tr>';
         return;
       }
 
@@ -6432,32 +6611,46 @@ function loadStaffCustomerData(staffId) {
         var cName = r.customer_name || 'Customer';
         var cPhone = r.customer_phone || '';
         var vReg = r.registration_no || 'Car';
-        var vModel = r.brand_or_model ? (' (' + r.brand_or_model + ')') : '';
+        var vModel = r.brand_or_model ? r.brand_or_model : '';
         var locText = r.address_text || r.parking_details || '—';
         var photoUrl = r.photo_url || '';
 
         html += '<tr>';
-        html += '  <td style="text-align: center; color: var(--text-muted); font-size: 11px;">' + (idx + 1) + '</td>';
-        html += '  <td><div style="display:flex; flex-direction:column;"><strong style="font-size:12px;">' + timeFormatted + '</strong><span style="font-size:10.5px; color:var(--text-muted);">' + dateFormatted + '</span></div></td>';
-        html += '  <td><span class="cust-index-badge" style="background:#eff6ff; color:#1d4ed8; font-weight:700;">' + escapeHtml(sName) + '</span></td>';
-        html += '  <td><div style="display:flex; flex-direction:column;"><strong style="font-size:12.5px;">' + escapeHtml(cName) + '</strong>';
+        html += '  <td style="text-align: center;"><span class="report-row-index">' + (idx + 1) + '</span></td>';
+        html += '  <td><div class="time-cell-main">' + timeFormatted + '</div><div class="time-cell-sub">' + dateFormatted + '</div></td>';
+        html += '  <td><div class="staff-cell-pill"><span class="staff-avatar-dot">' + escapeHtml(sName.charAt(0).toUpperCase()) + '</span><span class="staff-cell-name">' + escapeHtml(sName) + '</span></div></td>';
+        html += '  <td><div class="cust-cell-name">' + escapeHtml(cName) + '</div>';
         if (cPhone) {
-          html += '    <a href="tel:' + escapeHtml(cPhone) + '" style="font-size:11px; color:var(--brand-blue); text-decoration:none;">📞 ' + escapeHtml(cPhone) + '</a>';
+          html += '    <div class="cust-phone-actions"><a href="tel:' + escapeHtml(cPhone) + '" class="table-phone-link">📞 ' + escapeHtml(cPhone) + '</a></div>';
+        }
+        html += '  </td>';
+        html += '  <td><div class="hsrp-plate-wrap"><div class="hsrp-plate"><span class="hsrp-ind">IND</span><span class="hsrp-no">' + escapeHtml(vReg) + '</span></div>';
+        if (vModel) {
+          html += '    <span class="hsrp-model">' + escapeHtml(vModel) + '</span>';
         }
         html += '  </div></td>';
-        html += '  <td><div style="display:flex; flex-direction:column;"><span class="vehicle-plate-pill" style="display:inline-block; margin-bottom:2px;">' + escapeHtml(vReg) + '</span><span style="font-size:10.5px; color:var(--text-muted);">' + escapeHtml(vModel) + '</span></div></td>';
-        html += '  <td><span style="font-size:11.5px; color:var(--text-secondary);">' + escapeHtml(locText) + '</span></td>';
+        html += '  <td><div class="table-loc-cell"><span class="loc-pin">📍</span><span class="loc-text" title="' + escapeHtml(locText) + '">' + escapeHtml(locText) + '</span></div></td>';
         
         // Photo Proof Thumbnail Column
         html += '  <td style="text-align: center;">';
         if (photoUrl) {
-          html += '    <img src="' + escapeHtml(photoUrl) + '" class="report-thumb-img" onclick="openReportPhotoLightbox(\'' + escapeHtml(photoUrl) + '\', \'' + escapeHtml(vReg + ' - ' + cName) + '\', \'Staff: ' + escapeHtml(sName) + ' • Time: ' + timeFormatted + '\', \'' + escapeHtml(cPhone) + '\')" title="Click to view full photo proof">';
+          html += '    <div class="photo-proof-cell">' +
+                  '      <img src="' + escapeHtml(photoUrl) + '" class="report-thumb-img" onclick="openReportPhotoLightbox(\'' + escapeHtml(photoUrl) + '\', \'' + escapeHtml(vReg + ' - ' + cName) + '\', \'Staff: ' + escapeHtml(sName) + ' • Time: ' + timeFormatted + '\', \'' + escapeHtml(cPhone) + '\')" title="Click to view full photo proof">' +
+                  '      <span class="photo-zoom-badge">🔍 Zoom</span>' +
+                  '    </div>';
         } else {
-          html += '    <span class="report-no-photo-badge">No Photo</span>';
+          html += '    <span class="report-no-photo-badge"><span class="warn-dot">⚠️</span> No Photo</span>';
         }
         html += '  </td>';
 
-        html += '  <td style="text-align: center;"><span class="badge-status-pill badge-active" style="font-size:10.5px;">✓ Done</span></td>';
+        html += '  <td style="text-align: center;">' +
+                '    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">' +
+                '      <span class="badge-status-pill badge-active" style="font-size:11px; padding:3px 8px;">✓ Cleaned</span>' +
+                '      <button type="button" class="btn-table-wa-share" onclick="shareDailyCleanReportDirectly(\'' + escapeHtml(vReg) + '\', \'' + escapeHtml(cName) + '\', \'' + escapeHtml(cPhone) + '\', \'' + escapeHtml(photoUrl) + '\', \'' + timeFormatted + '\', \'' + escapeHtml(sName) + '\')" title="Share proof to customer on WhatsApp">' +
+                '        <span>💬</span> Share' +
+                '      </button>' +
+                '    </div>' +
+                '  </td>';
         html += '</tr>';
       });
 
@@ -6914,4 +7107,6 @@ function loadStaffCustomerData(staffId) {
       window.openPwaIosModal = openPwaIosModal;
       window.closePwaIosModal = closePwaIosModal;
       window.applyPwaUpdate = applyPwaUpdate;
+      window.changeAdminPage = changeAdminPage;
+      window.changeAdminPageSize = changeAdminPageSize;
     }

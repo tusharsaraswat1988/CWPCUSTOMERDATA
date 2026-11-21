@@ -668,7 +668,11 @@ async function runTests() {
     // Test 17: Frontend UI/UX Elements in Index.html
     // =========================================================================
     const indexHtmlPath = path.join(__dirname, '..', 'Index.html');
-    const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+    const cssPath = path.join(__dirname, '..', 'public', 'css', 'style.css');
+    const jsPath = path.join(__dirname, '..', 'public', 'js', 'app.js');
+    const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8') +
+      (fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : '') +
+      (fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : '');
 
     // Admin UI checks
     assert(indexHtml.includes('id="tabBtnSequence"'), 'Admin Sequence tab button #tabBtnSequence exists');

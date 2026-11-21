@@ -31,18 +31,12 @@ console.log('===============================================================');
 console.log('🚀 RUNNING TASK P2.6 DAILY CLEAN LOCAL COMPLETION TEST SUITE');
 console.log('===============================================================');
 
-const indexPath = path.join(__dirname, '..', 'Index.html');
-const indexHtml = fs.readFileSync(indexPath, 'utf8');
+const { getFrontendAssets } = require('./test_helpers');
+const { fullDocument: indexHtml, js: clientScriptCode } = getFrontendAssets();
 
 const realDataFilePath = path.join(__dirname, '..', 'local_data.json');
 const realDataBefore = fs.existsSync(realDataFilePath) ? fs.readFileSync(realDataFilePath, 'utf8') : null;
 const realDataMd5Before = realDataBefore ? crypto.createHash('md5').update(realDataBefore).digest('hex') : null;
-
-// Extract client JS from Index.html
-const scriptStart = indexHtml.lastIndexOf('<script>');
-const scriptEnd = indexHtml.lastIndexOf('</script>');
-assert.ok(scriptStart !== -1 && scriptEnd !== -1, 'Could not find main <script> tag in Index.html');
-const clientScriptCode = indexHtml.slice(scriptStart + 8, scriptEnd);
 
 /**
  * Creates an isolated mock browser environment for testing Index.html logic

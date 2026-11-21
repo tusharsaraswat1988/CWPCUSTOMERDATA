@@ -18,7 +18,8 @@ async function runTests() {
 
   try {
     // 1. Verify Index.html structure
-    const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+    const { getFrontendAssets } = require('./test_helpers');
+    const { fullDocument: indexHtml } = getFrontendAssets();
 
     // Add customer form staff select
     assert.ok(indexHtml.includes('id="custStaffSelect" class="form-select"'), 'custStaffSelect exists without required attribute');

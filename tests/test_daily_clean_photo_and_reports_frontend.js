@@ -49,9 +49,14 @@ console.log('✅ PASS: Admin Daily Clean Reports tab, KPI cards, and table exist
 
 // 2. Functional Client-Side Verification in VM
 console.log('\n--- TEST 2: Functional Client-Side JavaScript Logic ---');
-const scriptStart = indexHtml.lastIndexOf('<script>');
-const scriptEnd = indexHtml.lastIndexOf('</script>');
-const clientScriptCode = indexHtml.slice(scriptStart + 8, scriptEnd);
+const appJsPath = path.join(__dirname, '..', 'public', 'js', 'app.js');
+const clientScriptCode = fs.existsSync(appJsPath)
+  ? fs.readFileSync(appJsPath, 'utf8')
+  : (function() {
+      const scriptStart = indexHtml.lastIndexOf('<script>');
+      const scriptEnd = indexHtml.lastIndexOf('</script>');
+      return indexHtml.slice(scriptStart + 8, scriptEnd);
+    })();
 
 function createMockEnv() {
   const localStore = {};

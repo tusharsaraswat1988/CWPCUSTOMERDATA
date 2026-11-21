@@ -1420,6 +1420,21 @@ function computeStaffDataVersion(staffData) {
  * HTTP SERVER & ROUTING ENGINE
  * =========================================================================
  */
+let _indexTemplateCache = null;
+let _indexTemplateMtime = 0;
+function getCachedIndexTemplate(filePath) {
+  try {
+    const stat = fs.statSync(filePath);
+    if (!_indexTemplateCache || stat.mtimeMs !== _indexTemplateMtime) {
+      _indexTemplateCache = fs.readFileSync(filePath, 'utf8');
+      _indexTemplateMtime = stat.mtimeMs;
+    }
+    return _indexTemplateCache;
+  } catch (err) {
+    return fs.readFileSync(filePath, 'utf8');
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   // Production Security Headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -1488,7 +1503,7 @@ const server = http.createServer(async (req, res) => {
   // =========================================================================
 
   // Serve PWA Web App Manifest
-  if (pathname === '/manifest.json' || pathname === '/manifest.webmanifest') {
+  if (pathname === '/manifest.json' || pathname === '/manifest.webmanifest' || pathname === '/staff/manifest.json') {
     const manifestPath = path.join(__dirname, 'manifest.json');
     if (fs.existsSync(manifestPath)) {
       res.writeHead(200, {
@@ -1500,7 +1515,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Serve Service Worker (must NEVER be aggressively cached by browser HTTP cache)
-  if (pathname === '/sw.js' || pathname === '/service-worker.js') {
+  if (pathname === '/sw.js' || pathname === '/service-worker.js' || pathname === '/staff/sw.js') {
     const swPath = path.join(__dirname, 'sw.js');
     if (fs.existsSync(swPath)) {
       res.writeHead(200, {
@@ -1515,7 +1530,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Serve Offline Fallback HTML
-  if (pathname === '/offline.html') {
+  if (pathname === '/offline.html' || pathname === '/staff/offline.html') {
     const offlinePath = path.join(__dirname, 'offline.html');
     if (fs.existsSync(offlinePath)) {
       res.writeHead(200, {
@@ -1604,6 +1619,58 @@ const server = http.createServer(async (req, res) => {
         'Cache-Control': 'public, max-age=86400'
       });
       return fs.createReadStream(fav16).pipe(res);
+    }
+  }
+
+  // =========================================================================
+  // MODULAR STATIC ASSETS (CSS & JS) - CACHED & OPTIMIZED FOR SCALE
+  // =========================================================================
+  if (
+    pathname.startsWith('/css/') ||
+    pathname.startsWith('/js/') ||
+    pathname.startsWith('/public/') ||
+    pathname.startsWith('/staff/css/') ||
+    pathname.startsWith('/staff/js/') ||
+    pathname.startsWith('/admin/css/') ||
+    pathname.startsWith('/admin/js/') ||
+    pathname.endsWith('.css') ||
+    pathname.endsWith('.js')
+  ) {
+    let cleanPath = pathname;
+    if (cleanPath.startsWith('/staff/')) {
+      cleanPath = cleanPath.substring(6);
+    }
+    if (cleanPath.startsWith('/admin/')) {
+      cleanPath = cleanPath.substring(6);
+    }
+    if (cleanPath.startsWith('/public/')) {
+      cleanPath = cleanPath.substring(7);
+    }
+    const safeRelPath = path.normalize(cleanPath).replace(/^(\.\.[\/\\])+/, '');
+    const assetPath = path.join(__dirname, 'public', safeRelPath);
+    if (fs.existsSync(assetPath) && fs.statSync(assetPath).isFile()) {
+      const ext = path.extname(assetPath).toLowerCase();
+      const contentType = ext === '.css'
+        ? 'text/css; charset=utf-8'
+        : (ext === '.js' ? 'application/javascript; charset=utf-8' : 'application/octet-stream');
+
+      const fileStat = fs.statSync(assetPath);
+      const etag = `"${fileStat.size}-${fileStat.mtimeMs.toString(36)}"`;
+
+      if (req.headers['if-none-match'] === etag) {
+        res.writeHead(304, {
+          'ETag': etag,
+          'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600'
+        });
+        return res.end();
+      }
+
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
+        'ETag': etag
+      });
+      return fs.createReadStream(assetPath).pipe(res);
     }
   }
 
@@ -3210,11 +3277,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   // =========================================================================
-  // MAIN UI ROUTE (Index.html)
+  // MAIN UI ROUTE (Index.html) - In-Memory Cached for High Concurrency
   // =========================================================================
   const indexPath = path.join(__dirname, 'Index.html');
   if (fs.existsSync(indexPath)) {
-    let content = fs.readFileSync(indexPath, 'utf8');
+    let content = getCachedIndexTemplate(indexPath);
 
     const normPath = parsedUrl.pathname.toLowerCase().replace(/\/+$/, '');
     const isStaffRoute = normPath === '/staff' || normPath.startsWith('/staff/');

@@ -199,7 +199,9 @@ async function runTestSuite() {
     // TEST 5: Index.html PWA Meta & iOS Capability Tags
     // -------------------------------------------------------------------------
     console.log('\n--- TEST 5: Index.html PWA Head Meta Tags ---');
-    const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+    const appJsPath = path.join(__dirname, '..', 'public', 'js', 'app.js');
+    const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8') +
+      (fs.existsSync(appJsPath) ? fs.readFileSync(appJsPath, 'utf8') : '');
 
     assert.ok(indexHtml.includes('<link rel="manifest" href="/manifest.json">'), 'Must link manifest.json');
     assert.ok(indexHtml.includes('<meta name="theme-color" content="#0f2942">'), 'Must specify brand theme-color #0f2942');

@@ -11,8 +11,8 @@ console.log('===============================================================');
 console.log('🧪 RUNNING TASK P2.3 FORM UX & INDIAN PHONE FORMATTING TEST SUITE');
 console.log('===============================================================');
 
-const indexPath = path.join(__dirname, '..', 'Index.html');
-const html = fs.readFileSync(indexPath, 'utf8');
+const { getFrontendAssets } = require('./test_helpers');
+const { fullDocument: html } = getFrontendAssets();
 
 let passedTests = 0;
 let totalTests = 0;

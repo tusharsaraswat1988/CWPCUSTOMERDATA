@@ -17,6 +17,9 @@ const PRECACHE_ASSETS = [
   '/manifest.json',
   '/offline.html',
   '/cwp_logo.jpg',
+  '/css/style.css',
+  '/js/app.js',
+  '/js/cropper.min.js',
   '/favicon.ico',
   '/icons/favicon.ico',
   '/icons/icon-72x72.png',
@@ -117,6 +120,8 @@ self.addEventListener('fetch', (event) => {
 
   // 2. Static Assets (Icons, Images, Fonts, Stylesheets, Scripts)
   if (
+    url.pathname.startsWith('/css/') ||
+    url.pathname.startsWith('/js/') ||
     url.pathname.startsWith('/icons/') ||
     url.pathname === '/cwp_logo.jpg' ||
     url.pathname === '/manifest.json' ||

@@ -40,7 +40,12 @@ async function runTests() {
     console.log('✅ PASS 2: sanitizeStaffForPublic strictly hides PIN and Phone');
 
     // Test 3: Frontend Index.html checks
-    const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+    const indexHtmlPath = path.join(__dirname, '..', 'Index.html');
+    const cssPath = path.join(__dirname, '..', 'public', 'css', 'style.css');
+    const jsPath = path.join(__dirname, '..', 'public', 'js', 'app.js');
+    const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8') +
+      (fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : '') +
+      (fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : '');
     assert.ok(indexHtml.includes('.btn-toggle-pin'), 'Index.html has .btn-toggle-pin CSS');
     assert.ok(indexHtml.includes('staff-pin-val'), 'Index.html has .staff-pin-val CSS');
     assert.ok(indexHtml.includes('toggleStaffPinDisplay'), 'Index.html defines toggleStaffPinDisplay()');

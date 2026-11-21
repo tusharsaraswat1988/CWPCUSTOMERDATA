@@ -43,7 +43,11 @@ async function runTests() {
   // 1. Verify Index.html UI Markup and Functions
   console.log('\n--- Checking Index.html UI elements & handler functions ---');
   const indexHtmlPath = path.join(__dirname, '..', 'Index.html');
-  const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+  const cssPath = path.join(__dirname, '..', 'public', 'css', 'style.css');
+  const jsPath = path.join(__dirname, '..', 'public', 'js', 'app.js');
+  const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8') +
+    (fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : '') +
+    (fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : '');
 
   // Verify Customer Delete in table
   assert.ok(indexHtml.includes('btn-delete-record'), 'Index.html must contain .btn-delete-record CSS class and button');

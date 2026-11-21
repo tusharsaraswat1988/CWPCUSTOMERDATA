@@ -6,8 +6,8 @@ console.log('===============================================================');
 console.log('🧪 TESTING STAFF PORTAL CARD LOCATION DISPLAY LOGIC');
 console.log('===============================================================');
 
-const indexPath = path.join(__dirname, '..', 'Index.html');
-const indexHtml = fs.readFileSync(indexPath, 'utf8');
+const { getFrontendAssets } = require('./test_helpers');
+const { fullDocument: indexHtml } = getFrontendAssets();
 
 // 1. Verify that addr-sec-pill is not rendered in customer cards
 assert(!indexHtml.includes("html += '      <span class=\"addr-sec-pill\""), 'addr-sec-pill should not be rendered in the card address row');

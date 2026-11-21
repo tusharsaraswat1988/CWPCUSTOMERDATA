@@ -13,8 +13,8 @@ console.log('===============================================================');
 console.log('🚀 RUNNING TASK P3: MOBILE VISIBILITY & LOGIN PERSISTENCE TESTS');
 console.log('===============================================================');
 
-const indexPath = path.join(__dirname, '..', 'Index.html');
-const indexHtml = fs.readFileSync(indexPath, 'utf8');
+const { getFrontendAssets } = require('./test_helpers');
+const { fullDocument: indexHtml } = getFrontendAssets();
 
 // ---------------------------------------------------------------------------
 // TEST SUITE 1: CSS & DOM CHECKS FOR ISSUE 1 (CUSTOMER NAME WRAPPING & MOBILE CARD)

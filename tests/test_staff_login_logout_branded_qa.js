@@ -19,7 +19,11 @@ console.log('🏎️  RUNNING BRANDED CWP DETAILERS LOGIN & LOGOUT QA SUITE');
 console.log('===============================================================\n');
 
 const indexPath = path.join(__dirname, '..', 'Index.html');
-const indexHtml = fs.readFileSync(indexPath, 'utf8');
+const cssPath = path.join(__dirname, '..', 'public', 'css', 'style.css');
+const jsPath = path.join(__dirname, '..', 'public', 'js', 'app.js');
+let indexHtml = fs.readFileSync(indexPath, 'utf8');
+if (fs.existsSync(cssPath)) indexHtml += '\n' + fs.readFileSync(cssPath, 'utf8');
+if (fs.existsSync(jsPath)) indexHtml += '\n' + fs.readFileSync(jsPath, 'utf8');
 
 // --- 1. HTML DOM STRUCTURE TESTS ---
 console.log('--- Test 1: Staff Login Gate & Branded CWP Elements ---');
