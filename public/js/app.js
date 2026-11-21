@@ -971,8 +971,14 @@ var state = {
 
         if (isAuth) {
           if (accountTrigger) accountTrigger.style.display = 'none'; // Keep header uncluttered; logout is located inside Settings
-          if (staffLogout) staffLogout.style.display = 'flex';
-          if (adminLogout) adminLogout.style.display = 'none';
+          if (staffLogout) {
+            staffLogout.style.setProperty('display', 'flex', 'important');
+            staffLogout.classList.remove('is-hidden');
+          }
+          if (adminLogout) {
+            adminLogout.style.setProperty('display', 'none', 'important');
+            adminLogout.classList.add('is-hidden');
+          }
 
           var sId = state.activeStaffId || getActiveStaffId() || 'STAFF';
           var sName = 'Staff Member';
@@ -994,8 +1000,14 @@ var state = {
           if (panelSub) panelSub.textContent = sId + ' • ' + (isHi ? 'फील्ड स्टाफ पोर्टल' : 'Field Staff Portal');
         } else {
           if (accountTrigger) accountTrigger.style.display = 'none';
-          if (staffLogout) staffLogout.style.display = 'none';
-          if (adminLogout) adminLogout.style.display = 'none';
+          if (staffLogout) {
+            staffLogout.style.setProperty('display', 'none', 'important');
+            staffLogout.classList.add('is-hidden');
+          }
+          if (adminLogout) {
+            adminLogout.style.setProperty('display', 'none', 'important');
+            adminLogout.classList.add('is-hidden');
+          }
         }
       } else {
         // Admin Mode
@@ -1007,8 +1019,14 @@ var state = {
 
         if (isAuth) {
           if (accountTrigger) accountTrigger.style.display = 'inline-flex';
-          if (adminLogout) adminLogout.style.display = 'flex';
-          if (staffLogout) staffLogout.style.display = 'none';
+          if (adminLogout) {
+            adminLogout.style.setProperty('display', 'flex', 'important');
+            adminLogout.classList.remove('is-hidden');
+          }
+          if (staffLogout) {
+            staffLogout.style.setProperty('display', 'none', 'important');
+            staffLogout.classList.add('is-hidden');
+          }
 
           if (avatarInitial) avatarInitial.textContent = 'A';
           if (accountName) accountName.textContent = 'Admin';
@@ -1019,8 +1037,14 @@ var state = {
           if (panelSub) panelSub.textContent = 'Full Access • Enterprise Management';
         } else {
           if (accountTrigger) accountTrigger.style.display = 'none';
-          if (adminLogout) adminLogout.style.display = 'none';
-          if (staffLogout) staffLogout.style.display = 'none';
+          if (adminLogout) {
+            adminLogout.style.setProperty('display', 'none', 'important');
+            adminLogout.classList.add('is-hidden');
+          }
+          if (staffLogout) {
+            staffLogout.style.setProperty('display', 'none', 'important');
+            staffLogout.classList.add('is-hidden');
+          }
         }
       }
     }

@@ -719,7 +719,7 @@
     .header-menu-item {
       width: 100% !important;
       box-sizing: border-box !important;
-      display: flex !important;
+      display: flex;
       align-items: center !important;
       gap: 8px !important;
       padding: 8px 12px !important;
@@ -733,6 +733,19 @@
       cursor: pointer !important;
       text-align: left !important;
       transition: all 0.14s ease !important;
+    }
+
+    .header-menu-item[style*="display: none"],
+    .header-menu-item.is-hidden {
+      display: none !important;
+    }
+
+    body.staff-mode-active #adminLogoutBtn {
+      display: none !important;
+    }
+
+    body.admin-mode-active #staffLogoutBtn {
+      display: none !important;
     }
 
     .header-menu-item:hover {

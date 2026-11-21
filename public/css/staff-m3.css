@@ -125,6 +125,12 @@
   background: rgba(255, 255, 255, 0.10) !important;
 }
 
+/* Strict Isolation: Never display Admin logout button in Staff Portal */
+body.staff-mode-active #adminLogoutBtn,
+#adminLogoutBtn.is-hidden {
+  display: none !important;
+}
+
 .top-header .account-avatar {
   width: 28px !important;
   height: 28px !important;
