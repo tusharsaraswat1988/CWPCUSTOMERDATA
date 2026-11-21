@@ -1681,18 +1681,22 @@ const server = http.createServer(async (req, res) => {
   }
 
   // =========================================================================
-  // MODULAR STATIC ASSETS (CSS & JS) - CACHED & OPTIMIZED FOR SCALE
+  // MODULAR STATIC ASSETS (CSS & JS & FONTS) - CACHED & OPTIMIZED FOR SCALE
   // =========================================================================
   if (
     pathname.startsWith('/css/') ||
     pathname.startsWith('/js/') ||
+    pathname.startsWith('/fonts/') ||
     pathname.startsWith('/public/') ||
     pathname.startsWith('/staff/css/') ||
     pathname.startsWith('/staff/js/') ||
     pathname.startsWith('/admin/css/') ||
     pathname.startsWith('/admin/js/') ||
     pathname.endsWith('.css') ||
-    pathname.endsWith('.js')
+    pathname.endsWith('.js') ||
+    pathname.endsWith('.woff2') ||
+    pathname.endsWith('.woff') ||
+    pathname.endsWith('.ttf')
   ) {
     let cleanPath = pathname;
     if (cleanPath.startsWith('/staff/')) {
@@ -1710,7 +1714,10 @@ const server = http.createServer(async (req, res) => {
       const ext = path.extname(assetPath).toLowerCase();
       const contentType = ext === '.css'
         ? 'text/css; charset=utf-8'
-        : (ext === '.js' ? 'application/javascript; charset=utf-8' : 'application/octet-stream');
+        : (ext === '.js' ? 'application/javascript; charset=utf-8'
+        : (ext === '.woff2' ? 'font/woff2'
+        : (ext === '.woff' ? 'font/woff'
+        : (ext === '.ttf' ? 'font/ttf' : 'application/octet-stream'))));
 
       const fileStat = fs.statSync(assetPath);
       const etag = `"${fileStat.size}-${fileStat.mtimeMs.toString(36)}"`;

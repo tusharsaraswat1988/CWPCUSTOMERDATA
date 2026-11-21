@@ -609,11 +609,32 @@ var state = {
       if (icon3) icon3.textContent = iconChar;
       var btn = document.getElementById('btnThemeToggle');
       if (btn) btn.title = isDark ? 'लाइट मोड में बदलें / Switch to Light Mode' : 'डार्क मोड में बदलें / Switch to Dark Mode';
+      if (typeof updateSettingsPrefButtons === 'function') updateSettingsPrefButtons();
     }
 
     function toggleTheme() {
       var current = state.theme || (document.body.classList.contains('theme-dark') ? 'dark' : 'light');
       setTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    function updateSettingsPrefButtons() {
+      var currentLang = state.lang || 'hi';
+      var currentTheme = state.theme || (document.body.classList.contains('theme-dark') ? 'dark' : 'light');
+
+      var btnLangHi = document.getElementById('btnPrefLangHi');
+      var btnLangEn = document.getElementById('btnPrefLangEn');
+      if (btnLangHi) btnLangHi.classList.toggle('active', currentLang === 'hi');
+      if (btnLangEn) btnLangEn.classList.toggle('active', currentLang === 'en');
+
+      var btnThemeLight = document.getElementById('btnPrefThemeLight');
+      var btnThemeDark = document.getElementById('btnPrefThemeDark');
+      if (btnThemeLight) btnThemeLight.classList.toggle('active', currentTheme === 'light');
+      if (btnThemeDark) btnThemeDark.classList.toggle('active', currentTheme === 'dark');
+    }
+
+    function setAppThemeMode(theme) {
+      setTheme(theme);
+      updateSettingsPrefButtons();
     }
 
     function initLanguage() {
@@ -713,7 +734,7 @@ var state = {
       if (loginBtnLabel) loginBtnLabel.textContent = isHi ? 'लॉगिन करें (Log In)' : 'Log In';
       var trustStrip = document.querySelector('.auth-trust-strip');
       if (trustStrip) {
-        trustStrip.innerHTML = '<span>🔒 ' + (isHi ? 'सुरक्षित स्टाफ पोर्टल' : 'Secure Staff Portal') + '</span>';
+        trustStrip.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; color: var(--md-sys-color-tertiary, #059669); margin-right: 4px;" aria-hidden="true">verified_user</span><span>' + (isHi ? 'सुरक्षित स्टाफ पोर्टल' : 'Secure Staff Portal') + '</span>';
       }
       var inactiveMsg = document.getElementById('staffInactiveMsgBox');
       if (inactiveMsg) {
@@ -758,6 +779,7 @@ var state = {
       if (state.currentStaffFilteredList && state.currentStaffFilteredList.length > 0) {
         renderCustomerCards(state.currentStaffFilteredList);
       }
+      if (typeof updateSettingsPrefButtons === 'function') updateSettingsPrefButtons();
     }
 
     /* =========================================================================
@@ -1025,9 +1047,143 @@ var state = {
         }
       });
 
+      /* Centralized CWP Aura Modal Ergonomics & ARIA Focus Trapping */
+      var lastModalTriggerElement = null;
+
+      function recordModalTrigger(triggerEl) {
+        if (triggerEl && typeof triggerEl.focus === 'function') {
+          lastModalTriggerElement = triggerEl;
+        } else if (typeof document !== 'undefined' && document.activeElement) {
+          lastModalTriggerElement = document.activeElement;
+        }
+      }
+
+      function restoreModalTriggerFocus() {
+        if (lastModalTriggerElement && typeof lastModalTriggerElement.focus === 'function') {
+          try {
+            if (document && document.body && document.body.contains(lastModalTriggerElement)) {
+              lastModalTriggerElement.focus();
+            }
+          } catch (err) {
+            // Graceful fallback
+          }
+          lastModalTriggerElement = null;
+        }
+      }
+
+      function getFocusableElements(container) {
+        if (!container || typeof container.querySelectorAll !== 'function') return [];
+        var selector = 'a[href], area[href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex]:not([tabindex="-1"]), [contenteditable]';
+        var rawElements = Array.prototype.slice.call(container.querySelectorAll(selector));
+        return rawElements.filter(function(el) {
+          return el.offsetWidth > 0 || el.offsetHeight > 0 || (typeof document !== 'undefined' && el === document.activeElement);
+        });
+      }
+
+      function trapFocus(modalEl, e) {
+        if (!modalEl) return;
+        var focusable = getFocusableElements(modalEl);
+        if (focusable.length === 0) return;
+        var firstEl = focusable[0];
+        var lastEl = focusable[focusable.length - 1];
+
+        if (!e) {
+          // Direct initialization
+          if (typeof document !== 'undefined' && (!document.activeElement || !modalEl.contains(document.activeElement))) {
+            firstEl.focus();
+          }
+          return;
+        }
+
+        if (e.key === 'Tab' || e.keyCode === 9) {
+          if (e.shiftKey) {
+            if (typeof document !== 'undefined' && (document.activeElement === firstEl || !modalEl.contains(document.activeElement))) {
+              e.preventDefault();
+              lastEl.focus();
+            }
+          } else {
+            if (typeof document !== 'undefined' && (document.activeElement === lastEl || !modalEl.contains(document.activeElement))) {
+              e.preventDefault();
+              firstEl.focus();
+            }
+          }
+        }
+      }
+
+      function getTopmostOpenModal() {
+        if (typeof document === 'undefined') return null;
+        var modalDefinitions = [
+          { id: 'seqResetModal', closer: function() { if (typeof closeSeqResetModal === 'function') closeSeqResetModal(); }, zIndex: 3000 },
+          { id: 'pwaIosModal', closer: function() { if (typeof closePwaIosModal === 'function') closePwaIosModal(); }, zIndex: 10000 },
+          { id: 'logoutConfirmModal', closer: function() { if (typeof closeLogoutModal === 'function') closeLogoutModal(); }, zIndex: 2200 },
+          { id: 'cwpPhotoCropperModal', closer: function() { if (typeof closeCropperModal === 'function') closeCropperModal(); }, zIndex: 1200 },
+          { id: 'cleaningCameraModal', closer: function() { if (typeof closeCleaningCameraModal === 'function') closeCleaningCameraModal(); }, zIndex: 1100 },
+          { id: 'reportPhotoLightboxModal', closer: function() { if (typeof closeReportPhotoLightboxModal === 'function') closeReportPhotoLightboxModal(); }, zIndex: 1100 },
+          { id: 'staffWhatsAppGroupModal', closer: function() { if (typeof closeStaffWhatsAppGroupModal === 'function') closeStaffWhatsAppGroupModal(); }, zIndex: 1100 },
+          { id: 'whatsAppImageShareModal', closer: function() { if (typeof closeWhatsAppImageShareModal === 'function') closeWhatsAppImageShareModal(); }, zIndex: 1100 },
+          { id: 'imageModal', closer: function() { if (typeof closeImageModal === 'function') closeImageModal(); }, zIndex: 1100 },
+          { id: 'addressViewModal', closer: function() { if (typeof closeAddressModal === 'function') closeAddressModal(); }, zIndex: 1050 },
+          { id: 'addCustomerModal', closer: function() { if (typeof closeAddCustomerModal === 'function') closeAddCustomerModal(); }, zIndex: 1000 },
+          { id: 'editCustomerModal', closer: function() { if (typeof closeEditCustomerModal === 'function') closeEditCustomerModal(); }, zIndex: 1000 },
+          { id: 'staffEditModal', closer: function() { if (typeof closeEditStaffModal === 'function') closeEditStaffModal(); }, zIndex: 1000 },
+          { id: 'addLeadModal', closer: function() { if (typeof closeAddLeadModal === 'function') closeAddLeadModal(); }, zIndex: 1000 },
+          { id: 'convertLeadModal', closer: function() { if (typeof closeConvertLeadModal === 'function') closeConvertLeadModal(); }, zIndex: 1000 },
+          { id: 'leadNoteModal', closer: function() { if (typeof closeLeadNoteModal === 'function') closeLeadNoteModal(); }, zIndex: 1000 },
+          { id: 'assignSpecialJobModal', closer: function() { if (typeof closeAssignSpecialJobModal === 'function') closeAssignSpecialJobModal(); }, zIndex: 1000 },
+          { id: 'startSpecialJobModal', closer: function() { if (typeof closeStartSpecialJobModal === 'function') closeStartSpecialJobModal(); }, zIndex: 1000 },
+          { id: 'completeSpecialJobModal', closer: function() { if (typeof closeCompleteSpecialJobModal === 'function') closeCompleteSpecialJobModal(); }, zIndex: 1000 }
+        ];
+
+        var openModals = [];
+        modalDefinitions.forEach(function(item) {
+          var el = document.getElementById(item.id);
+          if (el && el.style.display !== 'none' && (!window.getComputedStyle || window.getComputedStyle(el).display !== 'none')) {
+            var z = (window.getComputedStyle ? parseInt(window.getComputedStyle(el).zIndex, 10) : item.zIndex) || item.zIndex || 1000;
+            openModals.push({ el: el, item: item, z: z });
+          }
+        });
+
+        if (openModals.length === 0) {
+          var dialogs = document.querySelectorAll('[role="dialog"]');
+          Array.prototype.forEach.call(dialogs, function(dialogEl) {
+            if (dialogEl.style.display !== 'none' && (!window.getComputedStyle || window.getComputedStyle(dialogEl).display !== 'none')) {
+              var z = (window.getComputedStyle ? parseInt(window.getComputedStyle(dialogEl).zIndex, 10) : 1000) || 1000;
+              openModals.push({ el: dialogEl, item: { id: dialogEl.id, closer: function() { dialogEl.style.display = 'none'; } }, z: z });
+            }
+          });
+        }
+
+        if (openModals.length === 0) return null;
+        openModals.sort(function(a, b) { return b.z - a.z; });
+        return openModals[0];
+      }
+
+      function closeTopmostModal() {
+        var topmost = getTopmostOpenModal();
+        if (topmost) {
+          if (topmost.item && typeof topmost.item.closer === 'function') {
+            topmost.item.closer();
+          } else if (topmost.el) {
+            topmost.el.style.display = 'none';
+            if (document && document.body) document.body.style.overflow = '';
+          }
+          restoreModalTriggerFocus();
+          return true;
+        }
+        return false;
+      }
+
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' || e.key === 'Esc') {
-          closeAllHeaderPopovers();
+          var closedModal = closeTopmostModal();
+          if (!closedModal) {
+            closeAllHeaderPopovers();
+          }
+        } else if (e.key === 'Tab' || e.keyCode === 9) {
+          var activeModal = getTopmostOpenModal();
+          if (activeModal && activeModal.el) {
+            trapFocus(activeModal.el, e);
+          }
         }
       });
     }
@@ -1055,6 +1211,14 @@ var state = {
       window.closeAllHeaderPopovers = closeAllHeaderPopovers;
       window.handleBrandLogoClick = handleBrandLogoClick;
       window.updateHeaderAccountStatus = updateHeaderAccountStatus;
+
+      /* Export CWP Aura Modal Ergonomics & ARIA APIs */
+      window.trapFocus = trapFocus;
+      window.closeTopmostModal = closeTopmostModal;
+      window.recordModalTrigger = recordModalTrigger;
+      window.restoreModalTriggerFocus = restoreModalTriggerFocus;
+      window.getFocusableElements = getFocusableElements;
+      window.getTopmostOpenModal = getTopmostOpenModal;
     }
 
 
@@ -1350,6 +1514,7 @@ var state = {
 
       if (mode === 'staff') {
         document.body.classList.remove('admin-mode-active');
+        document.body.classList.add('staff-mode-active');
         if (mainContainer) mainContainer.classList.remove('admin-mode-active');
         if (headerInner) headerInner.classList.remove('admin-mode-active');
         if (staffEl) staffEl.style.display = 'block';
@@ -1357,6 +1522,12 @@ var state = {
         if (staffControls) staffControls.style.display = 'flex';
         if (liveBadge) liveBadge.style.display = 'none';
         if (adminControls) adminControls.style.display = 'none';
+        var langWrap = document.getElementById('langDropdownWrap');
+        if (langWrap) langWrap.style.display = 'none';
+        var themeBtn = document.getElementById('btnThemeToggle');
+        if (themeBtn) themeBtn.style.display = 'none';
+        var accWrap = document.getElementById('accountDropdownWrap');
+        if (accWrap) accWrap.style.display = 'none';
         var chipEl = document.getElementById('headerContextChip');
         if (chipEl) {
           chipEl.style.display = 'none';
@@ -1366,14 +1537,22 @@ var state = {
         checkStaffAuthStatus(state.activeStaffId);
         syncBrandLogos();
         if (typeof updatePwaInstallState === 'function') updatePwaInstallState();
+        if (typeof updateSettingsPrefButtons === 'function') updateSettingsPrefButtons();
       } else {
         document.body.classList.add('admin-mode-active');
+        document.body.classList.remove('staff-mode-active');
         if (mainContainer) mainContainer.classList.add('admin-mode-active');
         if (headerInner) headerInner.classList.add('admin-mode-active');
         if (staffEl) staffEl.style.display = 'none';
         if (adminEl) adminEl.style.display = 'block';
         if (staffControls) staffControls.style.display = 'none';
         if (adminControls) adminControls.style.display = 'flex';
+        var langWrap = document.getElementById('langDropdownWrap');
+        if (langWrap) langWrap.style.removeProperty('display');
+        var themeBtn = document.getElementById('btnThemeToggle');
+        if (themeBtn) themeBtn.style.removeProperty('display');
+        var accWrap = document.getElementById('accountDropdownWrap');
+        if (accWrap) accWrap.style.removeProperty('display');
         var chipEl = document.getElementById('headerContextChip');
         if (chipEl) {
           chipEl.style.display = 'inline-flex';
@@ -1478,6 +1657,13 @@ var state = {
           content.removeAttribute('hidden');
           content.style.setProperty('display', 'block', 'important');
         }
+        var bottomNav = document.getElementById('staffBottomNav');
+        if (bottomNav) {
+          bottomNav.style.removeProperty('display');
+          bottomNav.style.display = 'grid';
+          bottomNav.classList.remove('is-keyboard-hidden');
+        }
+        document.body.classList.remove('keyboard-open');
         if (logoutBtn) logoutBtn.style.display = 'inline-flex';
         if (liveBadge) liveBadge.style.display = 'none';
         loadStaffCustomerData(activeId);
@@ -1494,6 +1680,10 @@ var state = {
           content.classList.add('is-hidden');
           content.setAttribute('hidden', 'true');
           content.style.setProperty('display', 'none', 'important');
+        }
+        var bottomNav = document.getElementById('staffBottomNav');
+        if (bottomNav) {
+          bottomNav.style.display = 'none';
         }
         if (logoutBtn) logoutBtn.style.display = 'none';
         if (liveBadge) liveBadge.style.display = 'none';
@@ -1769,6 +1959,7 @@ var state = {
       var progressView = document.getElementById('logoutProgressBox');
       if (promptView) promptView.style.display = 'block';
       if (progressView) progressView.style.display = 'none';
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function proceedLogout() {
@@ -2031,7 +2222,7 @@ var state = {
         el.type = isNowText ? 'text' : 'password';
         var btn = btnEl || (el.parentElement ? el.parentElement.querySelector('.btn-toggle-eye') : null);
         if (btn) {
-          btn.textContent = isNowText ? '🙈' : '👁️';
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">' + (isNowText ? 'visibility_off' : 'visibility') + '</span>';
           btn.title = isNowText ? 'पिन छिपाएं (Hide PIN)' : 'पिन देखें (Show PIN)';
         }
       }
@@ -2911,9 +3102,22 @@ function loadStaffCustomerData(staffId) {
     }
 
     function updateFilterCounts() {
-      var dccCount = state.customers.filter(function(c) { return c.category === 'daily_car_cleaning'; }).length;
-      var cwCount = state.customers.filter(function(c) { return c.category === 'car_washing'; }).length;
-      var spcCount = state.customers.filter(function(c) { return c.category === 'solar_cleaning'; }).length;
+      // Pending/Incomplete task counts for footer tab badges
+      var dccCount = state.customers.filter(function(c) {
+        if (c.category !== 'daily_car_cleaning') return false;
+        var custId = c.customerId || c.id || getCustomerStableId(c);
+        return !isCustomerDoneToday(custId);
+      }).length;
+      var cwCount = state.customers.filter(function(c) {
+        if (c.category !== 'car_washing') return false;
+        var status = c.status || (c.completedToday ? 'completed' : 'assigned');
+        return status !== 'completed' && !c.completedToday;
+      }).length;
+      var spcCount = state.customers.filter(function(c) {
+        if (c.category !== 'solar_cleaning') return false;
+        var status = c.status || (c.completedToday ? 'completed' : 'assigned');
+        return status !== 'completed' && !c.completedToday;
+      }).length;
 
       var elDcc = document.getElementById('countDailyClean');
       var elCw = document.getElementById('countCarWash');
@@ -2935,15 +3139,18 @@ function loadStaffCustomerData(staffId) {
       updateTabBadge(elCw, cwCount);
       updateTabBadge(elSpc, spcCount);
 
-      var currentTabCount = (state.activeFilter === 'car_washing') ? cwCount : ((state.activeFilter === 'solar_cleaning') ? spcCount : dccCount);
+      var totalDcc = state.customers.filter(function(c) { return c.category === 'daily_car_cleaning'; }).length;
+      var totalCw = state.customers.filter(function(c) { return c.category === 'car_washing'; }).length;
+      var totalSpc = state.customers.filter(function(c) { return c.category === 'solar_cleaning'; }).length;
+      var currentTabTotal = (state.activeFilter === 'car_washing') ? totalCw : ((state.activeFilter === 'solar_cleaning') ? totalSpc : totalDcc);
       var badge = document.getElementById('staffCarCount');
       if (badge) {
         if (state.activeFilter === 'solar_cleaning') {
-          badge.textContent = '☀️ ' + currentTabCount + ' साइट्स';
+          badge.textContent = '☀️ ' + currentTabTotal + ' साइट्स';
         } else if (state.activeFilter === 'car_washing') {
-          badge.textContent = '🧼 ' + currentTabCount + ' गाड़ियां';
+          badge.textContent = '🧼 ' + currentTabTotal + ' गाड़ियां';
         } else {
-          badge.textContent = '🚗 ' + currentTabCount + ' गाड़ियां';
+          badge.textContent = '🚗 ' + currentTabTotal + ' गाड़ियां';
         }
       }
     }
@@ -2967,6 +3174,7 @@ function loadStaffCustomerData(staffId) {
         if (jobsPanel) jobsPanel.style.display = 'none';
         if (settingsPanel) settingsPanel.style.display = 'block';
         updateRouteProgressBar();
+        if (typeof updateSettingsPrefButtons === 'function') updateSettingsPrefButtons();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         if (jobsPanel) jobsPanel.style.display = 'block';
@@ -3121,7 +3329,7 @@ function loadStaffCustomerData(staffId) {
         var formattedPhone = cleanPhone ? formatIndianMobile(cleanPhone) : '';
 
         var rawVeh = item.vehicleNumbers || item.vehicleOrSite || item.vehicle;
-        var vehicles = (rawVeh != null ? String(rawVeh) : '').trim() || (isSolar ? 'साइट विवरण Not provided' : 'गाड़ी नंबर Not provided');
+        var vehicles = (rawVeh != null ? String(rawVeh) : '').trim() || (isSolar ? (isHi ? 'साइट विवरण उपलब्ध नहीं' : 'Site Details Not Provided') : (isHi ? 'गाड़ी नंबर उपलब्ध नहीं' : 'Vehicle Not Provided'));
         var notes = (item.staffNotes || item.notes != null ? String(item.staffNotes || item.notes) : '').trim();
 
         var rawAddr = (item.address != null ? String(item.address) : '').trim();
@@ -3171,33 +3379,32 @@ function loadStaffCustomerData(staffId) {
         }
         html += '      </div>';
         html += '      <button type="button" class="btn-card-audio" onclick="speakHindiCustomerDetails(\'' + escapeHtml(displayName).replace(/'/g, "\\'") + '\', \'' + escapeHtml(address).replace(/'/g, "\\'") + '\', event)" title="' + (isHi ? 'नाम और पता सुनें' : 'Listen name & address') + '">';
-        html += '        <span>🔊</span>';
+        html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">volume_up</span>';
         html += '      </button>';
         html += '    </div>';
         
         html += '    <div class="card-action-buttons">';
         if (cleanPhone) {
           html += '      <a href="' + getIndianPhoneLink(cleanPhone) + '" class="btn-card-action btn-call" title="' + (isHi ? 'कॉल करें: ' : 'Call: ') + escapeHtml(formattedPhone) + '">';
-          html += '        <span>📞</span><span>' + (isHi ? 'कॉल' : 'Call') + '</span>';
+          html += '        <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">call</span><span>' + (isHi ? 'कॉल' : 'Call') + '</span>';
           html += '      </a>';
         } else {
           html += '      <button type="button" class="btn-card-action btn-action-disabled" onclick="handleUnavailableItem(\'phone\')" title="' + (isHi ? 'मोबाइल नंबर उपलब्ध नहीं है' : 'Phone number not available') + '">';
-          html += '        <span>📞</span><span>' + (isHi ? 'कॉल नहीं' : 'No Phone') + '</span>';
+          html += '        <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">phone_disabled</span><span>' + (isHi ? 'कॉल नहीं' : 'No Phone') + '</span>';
           html += '      </button>';
         }
 
-
         if (locationCount >= 2) {
           html += '      <button type="button" class="btn-card-action btn-location btn-location-multi" onclick="openStaffAddressModal(' + index + ')" title="' + (isHi ? '2 लोकेशन उपलब्ध हैं: मुख्य और सेकेंडरी' : '2 Locations available: Primary and Secondary') + '">';
-          html += '        <span>📍</span><span>' + (isHi ? '2 लोकेशन' : '2 Locations') + '</span>';
+          html += '        <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">pin_drop</span><span>' + (isHi ? '2 लोकेशन' : '2 Locations') + '</span>';
           html += '      </button>';
         } else if (locationCount === 1) {
           html += '      <button type="button" class="btn-card-action btn-location" onclick="openStaffAddressModal(' + index + ')" title="' + (isHi ? 'ग्राहक की लोकेशन देखें' : 'View customer location') + '">';
-          html += '        <span>📍</span><span>' + (isHi ? 'लोकेशन' : 'Location') + '</span>';
+          html += '        <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">location_on</span><span>' + (isHi ? 'लोकेशन' : 'Location') + '</span>';
           html += '      </button>';
         } else {
           html += '      <button type="button" class="btn-card-action btn-action-disabled" onclick="handleUnavailableItem(\'location\')" title="' + (isHi ? 'लोकेशन / पता उपलब्ध नहीं है' : 'Location / address not available') + '">';
-          html += '        <span>📍</span><span>' + (isHi ? 'लोकेशन नहीं' : 'No Location') + '</span>';
+          html += '        <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">location_off</span><span>' + (isHi ? 'लोकेशन नहीं' : 'No Location') + '</span>';
           html += '      </button>';
         }
         html += '    </div>';
@@ -3221,6 +3428,14 @@ function loadStaffCustomerData(staffId) {
           if (vehInfo.model) {
             html += '        <span class="vehicle-plate-model">' + (vehInfo.reg ? ' • ' : '') + escapeHtml(vehInfo.model) + '</span>';
           }
+          if (!vehInfo.reg && !vehInfo.model) {
+            var rawVehDisplay = vehInfo.display || vehicles;
+            if (rawVehDisplay && !/^(गाड़ी|गाड़ी|vehicle|car)$/i.test(rawVehDisplay.trim())) {
+              html += '        <span class="vehicle-plate-model">' + escapeHtml(rawVehDisplay) + '</span>';
+            } else {
+              html += '        <span class="vehicle-plate-model">' + (isHi ? 'गाड़ी विवरण उपलब्ध नहीं' : 'Vehicle Not Provided') + '</span>';
+            }
+          }
           html += '      </div>';
         } else {
           html += '      <div class="vehicle-plate-badge" title="' + escapeHtml(vehicles) + '">';
@@ -3243,7 +3458,7 @@ function loadStaffCustomerData(staffId) {
           html += '    <div class="card-photo-wrap">';
           html += '      <button type="button" class="btn-photo-thumb" onclick="openStaffPhotoModal(' + index + ')" title="' + (isHi ? 'गाड़ी का फोटो देखें' : 'View vehicle photo') + '">';
           html += '        <img src="' + escapeHtml(thumbUrl) + '" class="card-mini-thumb" alt="Photo" onerror="this.style.display=\'none\'">';
-          html += '        <span class="photo-thumb-label">🖼️ ' + (isHi ? 'फोटो' : 'Photo') + '</span>';
+          html += '        <span class="photo-thumb-label"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: -2px;" aria-hidden="true">photo_camera</span> ' + (isHi ? 'फोटो' : 'Photo') + '</span>';
           html += '      </button>';
           html += '    </div>';
         }
@@ -3298,9 +3513,17 @@ function loadStaffCustomerData(staffId) {
         /* Row 5: Daily Clean Status Action & Persistent WhatsApp Share */
         if (isDaily) {
           html += '  <div class="card-status-actions-bar-split">';
-          html += '    <button type="button" class="btn-clean-done ' + (isDone ? 'done-active' : '') + '" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')">';
-          html += '      <span>' + (isDone ? (isHi ? '✓ साफ हो गई (Done)' : '✓ Cleaned (Done)') : (isHi ? '📷 आज साफ करें (Mark Cleaned)' : '📷 Mark Cleaned')) + '</span>';
-          html += '    </button>';
+          if (isDone) {
+            html += '    <button type="button" class="btn-clean-done done-active card-status-completed" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')" title="' + (isHi ? 'सफाई पूर्ण हो चुकी है (फोटो देखने या रीटेक करने के लिए क्लिक करें)' : 'Cleaning completed (Click to view or retake photo)') + '">';
+            html += '      <span class="material-symbols-outlined status-completed-icon" style="font-size: 18px;" aria-hidden="true">check_circle</span>';
+            html += '      <span>' + (isHi ? 'साफ हो गई (Done)' : 'Cleaned (Done)') + '</span>';
+            html += '    </button>';
+          } else {
+            html += '    <button type="button" class="btn-clean-done" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')">';
+            html += '      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">photo_camera</span>';
+            html += '      <span>' + (isHi ? 'आज साफ करें (Mark Cleaned)' : 'Mark Cleaned') + '</span>';
+            html += '    </button>';
+          }
           html += '    <button type="button" class="btn-clean-wa ' + (isDone ? 'wa-ready' : 'wa-idle') + '" onclick="handleCustomerWhatsAppShare(\'' + escapeHtml(custId) + '\', ' + index + ')" title="' + (isHi ? 'व्हाट्सएप पर शेयर करें' : 'Share to WhatsApp') + '">';
           html += '      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.68 12.04 3.68C14.25 3.68 16.31 4.54 17.87 6.1C19.42 7.66 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.05 20.15Z"/></svg>';
           html += '      <span>' + (isHi ? 'व्हाट्सएप' : 'WhatsApp') + '</span>';
@@ -3317,25 +3540,25 @@ function loadStaffCustomerData(staffId) {
 
           if (jStatus === 'assigned') {
             html += '    <div class="job-card-journey-bar job-status-assigned">';
-            html += '      <span>📋 नया काम (Awaiting Start)</span>';
+            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">assignment</span>नया काम (Awaiting Start)</span>';
             html += '      <span class="job-time-chip">' + (item.scheduledDate ? 'तारीख: ' + escapeHtml(item.scheduledDate) : 'आज का काम') + '</span>';
             html += '    </div>';
             html += '    <button type="button" class="btn-job-action btn-job-start" onclick="openStartSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
-            html += '      <span>▶️ काम शुरू करें (1-2 फ़ोटो लें)</span>';
+            html += '      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>काम शुरू करें (1-2 फ़ोटो लें)</span>';
             html += '    </button>';
           } else if (jStatus === 'in_progress') {
             var stTime = item.startedAt ? formatTimeOnly(item.startedAt) : '';
             html += '    <div class="job-card-journey-bar job-status-in-progress">';
-            html += '      <span>⏳ काम चालू है (In Progress)</span>';
+            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">pending</span>काम चालू है (In Progress)</span>';
             html += '      <span class="job-time-chip">' + (stTime ? 'शुरू: ' + stTime : 'प्रगति पर') + '</span>';
             html += '    </div>';
 
             if (beforeList.length > 0) {
-              html += '    <div style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px;">📷 शुरू करने से पहले की फ़ोटो:</div>';
+              html += '    <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-outline, #64748b); margin-bottom: 4px;"><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle; margin-right: 3px;" aria-hidden="true">photo_camera</span>शुरू करने से पहले की फ़ोटो:</div>';
               html += '    <div class="job-photos-grid">';
               beforeList.forEach(function(pUrl, pIdx) {
                 html += '    <div class="job-photo-item" onclick="openImageModal(\'' + escapeHtml(pUrl) + '\', \'' + escapeHtml(customerName) + '\', \'Before Photo ' + (pIdx + 1) + '\')">';
-                html += '      <img src="' + escapeHtml(pUrl) + '" alt="Before Photo">';
+                html += '      <img src="' + escapeHtml(pUrl) + '" alt="Before Photo" onerror="this.onerror=null; this.classList.add(\'img-broken\'); this.src=\'data:image/svg+xml;utf8,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'120\\\' height=\\\'90\\\' viewBox=\\\'0 0 120 90\\\'><rect width=\\\'100%\\\' height=\\\'100%\\\' fill=\\\'%23f1f5f9\\\'/><circle cx=\\\'60\\\' cy=\\\'36\\\' r=\\\'14\\\' fill=\\\'%23cbd5e1\\\'/><path d=\\\'M52 36l5-5 4 4 5-6 6 7H48z\\\' fill=\\\'%2394a3b8\\\'/><text x=\\\'60\\\' y=\\\'64\\\' font-size=\\\'10\\\' font-family=\\\'sans-serif\\\' fill=\\\'%2364748b\\\' text-anchor=\\\'middle\\\' font-weight=\\\'600\\\'>फोटो लोड विफल</text></svg>\';">';
                 html += '      <span class="job-photo-label">Before ' + (pIdx + 1) + '</span>';
                 html += '    </div>';
               });
@@ -3343,27 +3566,27 @@ function loadStaffCustomerData(staffId) {
             }
 
             html += '    <button type="button" class="btn-job-action btn-job-complete" onclick="openCompleteSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
-            html += '      <span>✓ काम पूरा करें (1-2 फ़ोटो अपलोड करें)</span>';
+            html += '      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">task_alt</span><span>काम पूरा करें (1-2 फ़ोटो अपलोड करें)</span>';
             html += '    </button>';
           } else if (jStatus === 'completed') {
             var compTime = item.completedAt ? formatTimeOnly(item.completedAt) : '';
             html += '    <div class="job-card-journey-bar job-status-completed">';
-            html += '      <span>✅ काम पूरा हुआ (Completed)</span>';
+            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">check_circle</span>काम पूरा हुआ (Completed)</span>';
             html += '      <span class="job-time-chip">' + (compTime ? 'पूर्ण: ' + compTime : 'सफल') + '</span>';
             html += '    </div>';
 
             if (beforeList.length > 0 || afterList.length > 0) {
-              html += '    <div style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px;">📷 सफाई का प्रमाण (Before & After):</div>';
+              html += '    <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-outline, #64748b); margin-bottom: 4px;"><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle; margin-right: 3px;" aria-hidden="true">photo_camera</span>सफाई का प्रमाण (Before & After):</div>';
               html += '    <div class="job-photos-grid">';
               beforeList.forEach(function(pUrl, pIdx) {
                 html += '    <div class="job-photo-item" onclick="openImageModal(\'' + escapeHtml(pUrl) + '\', \'' + escapeHtml(customerName) + '\', \'Before Photo\')">';
-                html += '      <img src="' + escapeHtml(pUrl) + '" alt="Before">';
+                html += '      <img src="' + escapeHtml(pUrl) + '" alt="Before" onerror="this.onerror=null; this.classList.add(\'img-broken\'); this.src=\'data:image/svg+xml;utf8,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'120\\\' height=\\\'90\\\' viewBox=\\\'0 0 120 90\\\'><rect width=\\\'100%\\\' height=\\\'100%\\\' fill=\\\'%23f1f5f9\\\'/><circle cx=\\\'60\\\' cy=\\\'36\\\' r=\\\'14\\\' fill=\\\'%23cbd5e1\\\'/><path d=\\\'M52 36l5-5 4 4 5-6 6 7H48z\\\' fill=\\\'%2394a3b8\\\'/><text x=\\\'60\\\' y=\\\'64\\\' font-size=\\\'10\\\' font-family=\\\'sans-serif\\\' fill=\\\'%2364748b\\\' text-anchor=\\\'middle\\\' font-weight=\\\'600\\\'>फोटो लोड विफल</text></svg>\';">';
                 html += '      <span class="job-photo-label">Before</span>';
                 html += '    </div>';
               });
               afterList.forEach(function(pUrl, pIdx) {
                 html += '    <div class="job-photo-item" onclick="openImageModal(\'' + escapeHtml(pUrl) + '\', \'' + escapeHtml(customerName) + '\', \'After Photo\')">';
-                html += '      <img src="' + escapeHtml(pUrl) + '" alt="After">';
+                html += '      <img src="' + escapeHtml(pUrl) + '" alt="After" onerror="this.onerror=null; this.classList.add(\'img-broken\'); this.src=\'data:image/svg+xml;utf8,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'120\\\' height=\\\'90\\\' viewBox=\\\'0 0 120 90\\\'><rect width=\\\'100%\\\' height=\\\'100%\\\' fill=\\\'%23f1f5f9\\\'/><circle cx=\\\'60\\\' cy=\\\'36\\\' r=\\\'14\\\' fill=\\\'%23cbd5e1\\\'/><path d=\\\'M52 36l5-5 4 4 5-6 6 7H48z\\\' fill=\\\'%2394a3b8\\\'/><text x=\\\'60\\\' y=\\\'64\\\' font-size=\\\'10\\\' font-family=\\\'sans-serif\\\' fill=\\\'%2364748b\\\' text-anchor=\\\'middle\\\' font-weight=\\\'600\\\'>फोटो लोड विफल</text></svg>\';">';
                 html += '      <span class="job-photo-label">After ✓</span>';
                 html += '    </div>';
               });
@@ -3371,14 +3594,14 @@ function loadStaffCustomerData(staffId) {
             }
 
             if (item.completionNotes) {
-              html += '    <div style="font-size: 12px; background: #f8fafc; padding: 6px 10px; border-radius: 6px; margin: 6px 0; color: #475569; border: 1px solid #e2e8f0;">';
+              html += '    <div style="font-size: 12px; background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 6px 10px; border-radius: 6px; margin: 6px 0; color: var(--md-sys-color-on-surface-variant, #475569); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);">';
               html += '      <strong>टिप्पणी:</strong> ' + escapeHtml(item.completionNotes);
               html += '    </div>';
             }
 
             html += '    <button type="button" class="btn-job-action btn-job-wa-share" onclick="shareSpecialJobWhatsApp(\'' + escapeHtml(jId) + '\')">';
             html += '      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.68 12.04 3.68C14.25 3.68 16.31 4.54 17.87 6.1C19.42 7.66 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.05 20.15Z"/></svg>';
-            html += '      <span>📲 ग्राहक को व्हाट्सएप भेजें (Share Proof)</span>';
+            html += '      <span>ग्राहक को व्हाट्सएप भेजें (Share Proof)</span>';
             html += '    </button>';
           }
 
@@ -4781,6 +5004,7 @@ function loadStaffCustomerData(staffId) {
       var modal = document.getElementById('cwpPhotoCropperModal');
       if (modal) modal.style.display = 'none';
       document.body.style.overflow = '';
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
 
       if (cropperInstance) {
         try { cropperInstance.destroy(); } catch (e) {}
@@ -5641,7 +5865,8 @@ function loadStaffCustomerData(staffId) {
       }
     }
 
-    function openAddLeadModal() {
+    function openAddLeadModal(triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl);
       var form = document.getElementById('addLeadForm');
       if (form) form.reset();
       removeLeadPhoto();
@@ -5650,12 +5875,14 @@ function loadStaffCustomerData(staffId) {
       setTimeout(function() {
         var nameEl = document.getElementById('leadName');
         if (nameEl) nameEl.focus();
+        else if (typeof trapFocus === 'function') trapFocus(modal);
       }, 100);
     }
 
     function closeAddLeadModal() {
       var modal = document.getElementById('addLeadModal');
       if (modal) modal.style.display = 'none';
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function triggerLeadPhotoSelect() {
@@ -6080,6 +6307,7 @@ function loadStaffCustomerData(staffId) {
     function closeConvertLeadModal() {
       var modal = document.getElementById('convertLeadModal');
       if (modal) modal.style.display = 'none';
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function handleConvertLeadSubmit(e) {
@@ -6165,6 +6393,7 @@ function loadStaffCustomerData(staffId) {
     function closeLeadNoteModal() {
       var modal = document.getElementById('leadNoteModal');
       if (modal) modal.style.display = 'none';
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function handleSaveLeadNoteSubmit(e) {
@@ -6723,7 +6952,8 @@ function loadStaffCustomerData(staffId) {
     }
 
     /* Add Customer Modal Handlers */
-    function openAddCustomerModal() {
+    function openAddCustomerModal(triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl);
       var modal = document.getElementById('addCustomerModal');
       if (modal) {
         modal.style.display = 'flex';
@@ -6731,6 +6961,7 @@ function loadStaffCustomerData(staffId) {
         setupIndicInputListeners();
         var nameInput = document.getElementById('custName');
         if (nameInput) setTimeout(function() { nameInput.focus(); }, 120);
+        else if (typeof trapFocus === 'function') trapFocus(modal);
       }
     }
 
@@ -6738,6 +6969,7 @@ function loadStaffCustomerData(staffId) {
       var modal = document.getElementById('addCustomerModal');
       if (modal) modal.style.display = 'none';
       document.body.style.overflow = '';
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     /* Static Backdrop Tactile Shake Handler (Prevents Accidental Dismissal on Outside Click) */
@@ -6760,6 +6992,7 @@ function loadStaffCustomerData(staffId) {
       state.editPhotoName = '';
       state.editPhotoType = '';
       state.rawEditPhotoDataUrl = '';
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
       var photoInput = document.getElementById('editCustPhotoFile');
       if (photoInput) photoInput.value = '';
       var editAct = document.getElementById('editPhotoActionsWrap');
@@ -7021,6 +7254,14 @@ function loadStaffCustomerData(staffId) {
 
       if (url) {
         if (img) {
+          img.onerror = function() {
+            this.style.display = 'none';
+            if (noPhotoBox) {
+              noPhotoBox.style.display = 'block';
+              var titleBox = noPhotoBox.querySelector('div:nth-child(2)');
+              if (titleBox) titleBox.textContent = 'फोटो लोड नहीं हो सकी (Photo Unavailable)';
+            }
+          };
           img.src = url;
           img.style.display = 'block';
         }
@@ -7031,6 +7272,7 @@ function loadStaffCustomerData(staffId) {
         if (noPhotoBox) noPhotoBox.style.display = 'none';
       } else {
         if (img) {
+          img.onerror = null;
           img.src = '';
           img.style.display = 'none';
         }
@@ -7052,7 +7294,10 @@ function loadStaffCustomerData(staffId) {
         modal.classList.remove('open');
         modal.style.display = 'none';
       }
-      if (img) img.src = '';
+      if (img) {
+        img.onerror = null;
+        img.src = '';
+      }
       document.body.style.overflow = '';
     }
 
@@ -9538,6 +9783,7 @@ function loadStaffCustomerData(staffId) {
         var isDaily = (state.activeFilter === 'daily_car_cleaning' || !state.activeFilter);
         inlineChip.style.display = isDaily ? 'flex' : 'none';
       }
+      if (typeof updateFilterCounts === 'function') updateFilterCounts();
     }
 
     var midnightTimer = null;
@@ -9606,10 +9852,14 @@ function loadStaffCustomerData(staffId) {
       }
 
       var isStandalone = isPwaStandaloneMode();
-      if (isStandalone) {
+      var isInstalled = isStandalone || (typeof localStorage !== 'undefined' && localStorage.getItem('cwp_app_installed') === 'true');
+      if (isInstalled) {
         if (document.body) document.body.classList.add('pwa-standalone');
         if (banner) banner.style.display = 'none';
-        if (headerBtn) headerBtn.style.display = 'none';
+        if (headerBtn) {
+          headerBtn.style.display = 'none';
+          headerBtn.setAttribute('hidden', 'true');
+        }
         return;
       }
 
@@ -9628,9 +9878,9 @@ function loadStaffCustomerData(staffId) {
         banner.style.display = shouldShowBanner ? 'flex' : 'none';
       }
 
-      // Header install button is always available when installable or on iOS
+      // Header install button is only available if not installed and prompt is ready
       if (headerBtn) {
-        headerBtn.style.display = (deferredPwaPrompt || isIosDevice() || shouldShowBanner) ? 'inline-flex' : 'none';
+        headerBtn.style.display = (!isInstalled && (deferredPwaPrompt || isIosDevice() || shouldShowBanner)) ? 'inline-flex' : 'none';
       }
     }
 
@@ -9648,6 +9898,7 @@ function loadStaffCustomerData(staffId) {
         deferredPwaPrompt.userChoice.then(function(choiceResult) {
           if (choiceResult && choiceResult.outcome === 'accepted') {
             console.log('[PWA] User accepted installation prompt');
+            try { if (typeof localStorage !== 'undefined') localStorage.setItem('cwp_app_installed', 'true'); } catch (e) {}
             if (typeof showToast === 'function') {
               showToast('🎉 CWP Staff ऐप इंस्टॉल हो रहा है!', 'success');
             }
@@ -9777,12 +10028,23 @@ function loadStaffCustomerData(staffId) {
       // 3. Capture appinstalled
       window.addEventListener('appinstalled', function() {
         console.log('[PWA] CWP Staff App installed successfully');
+        try { if (typeof localStorage !== 'undefined') localStorage.setItem('cwp_app_installed', 'true'); } catch (e) {}
         deferredPwaPrompt = null;
         hidePwaUi();
         if (typeof showToast === 'function') {
           showToast('🎉 CWP Staff ऐप सफलतापूर्वक इंस्टॉल हो गया!', 'success');
         }
       });
+
+      // 3b. Check if app was already installed on device
+      if (typeof navigator !== 'undefined' && typeof navigator.getInstalledRelatedApps === 'function') {
+        navigator.getInstalledRelatedApps().then(function(apps) {
+          if (Array.isArray(apps) && apps.length > 0) {
+            try { localStorage.setItem('cwp_app_installed', 'true'); } catch (e) {}
+            hidePwaUi();
+          }
+        }).catch(function() {});
+      }
 
       // 4. Online/Offline network toast notifications
       window.addEventListener('online', function() {
@@ -9819,10 +10081,10 @@ function loadStaffCustomerData(staffId) {
       if (summaryEl) {
         var isSolar = (job.category === 'solar_cleaning' || job.serviceCategoryId === 'solar_cleaning');
         summaryEl.innerHTML = 
-          '<div style="font-weight: 700; font-size: 15px; color: #1e293b; margin-bottom: 3px;">' + escapeHtml(job.customerName || job.name) + '</div>' +
-          '<div style="font-size: 13px; color: #2563eb; font-weight: 600; margin-bottom: 4px;">' + (isSolar ? '☀️ ' : '🧼 ') + escapeHtml(job.serviceType || job.serviceCategory) + '</div>' +
-          '<div style="font-size: 12.5px; color: #64748b;">📍 ' + escapeHtml(job.address || 'Location on map') + '</div>' +
-          (job.specialInstructions ? '<div style="font-size: 12px; color: #b45309; background: #fffbeb; padding: 4px 8px; border-radius: 4px; margin-top: 6px;">📝 ' + escapeHtml(job.specialInstructions) + '</div>' : '');
+          '<div style="font-weight: 700; font-size: 15px; color: var(--md-sys-color-on-surface, #1e293b); margin-bottom: 3px;">' + escapeHtml(job.customerName || job.name) + '</div>' +
+          '<div style="font-size: 13px; color: var(--md-sys-color-primary, #2563eb); font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 16px;">' + (isSolar ? 'solar_power' : 'local_car_wash') + '</span><span>' + escapeHtml(job.serviceType || job.serviceCategory) + '</span></div>' +
+          '<div style="font-size: 12.5px; color: var(--md-sys-color-on-surface-variant, #64748b); display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 15px;">location_on</span><span>' + escapeHtml(job.address || 'Location on map') + '</span></div>' +
+          (job.specialInstructions ? '<div style="font-size: 12px; color: var(--md-sys-color-on-tertiary-container, #b45309); background: var(--md-sys-color-tertiary-container, #fffbeb); padding: 4px 8px; border-radius: 4px; margin-top: 6px; display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px;">info</span><span>' + escapeHtml(job.specialInstructions) + '</span></div>' : '');
       }
       renderStartJobPhotosPreview();
       var err = document.getElementById('startJobErrorMsg');
@@ -9836,6 +10098,7 @@ function loadStaffCustomerData(staffId) {
       if (modal) modal.style.display = 'none';
       currentStartJobId = null;
       startJobPhotos = [];
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function handleStartJobPhotoSelect(event) {
@@ -9968,9 +10231,9 @@ function loadStaffCustomerData(staffId) {
         var isSolar = (job.category === 'solar_cleaning' || job.serviceCategoryId === 'solar_cleaning');
         var stTime = job.startedAt ? formatTimeOnly(job.startedAt) : '';
         summaryEl.innerHTML = 
-          '<div style="font-weight: 700; font-size: 15px; color: #1e293b; margin-bottom: 3px;">' + escapeHtml(job.customerName || job.name) + '</div>' +
-          '<div style="font-size: 13px; color: #059669; font-weight: 600; margin-bottom: 4px;">' + (isSolar ? '☀️ ' : '🧼 ') + escapeHtml(job.serviceType || job.serviceCategory) + '</div>' +
-          (stTime ? '<div style="font-size: 12px; color: #059669;">⏰ काम शुरू हुआ था: ' + stTime + '</div>' : '');
+          '<div style="font-weight: 700; font-size: 15px; color: var(--md-sys-color-on-surface, #1e293b); margin-bottom: 3px;">' + escapeHtml(job.customerName || job.name) + '</div>' +
+          '<div style="font-size: 13px; color: var(--md-sys-color-tertiary, #059669); font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 16px;">' + (isSolar ? 'solar_power' : 'local_car_wash') + '</span><span>' + escapeHtml(job.serviceType || job.serviceCategory) + '</span></div>' +
+          (stTime ? '<div style="font-size: 12px; color: var(--md-sys-color-tertiary, #059669); display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 15px;">schedule</span><span>काम शुरू हुआ था: ' + stTime + '</span></div>' : '');
       }
       renderCompleteJobPhotosPreview();
       var notesEl = document.getElementById('completeJobNotes');
@@ -9986,6 +10249,7 @@ function loadStaffCustomerData(staffId) {
       if (modal) modal.style.display = 'none';
       currentCompleteJobId = null;
       completeJobPhotos = [];
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function handleCompleteJobPhotoSelect(event) {
@@ -10154,6 +10418,7 @@ function loadStaffCustomerData(staffId) {
       var modal = document.getElementById('assignSpecialJobModal');
       if (modal) modal.style.display = 'none';
       preselectedSpecialCustId = null;
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function toggleSpecialCustMode(mode) {
@@ -10567,5 +10832,7 @@ function loadStaffCustomerData(staffId) {
       window.playTaskCompletedChime = playTaskCompletedChime;
       window.showStaffNewTaskBanner = showStaffNewTaskBanner;
       window.jumpToSpecialJob = jumpToSpecialJob;
+      window.setAppThemeMode = setAppThemeMode;
+      window.updateSettingsPrefButtons = updateSettingsPrefButtons;
     }
 

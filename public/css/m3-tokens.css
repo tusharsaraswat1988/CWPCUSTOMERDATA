@@ -1,0 +1,528 @@
+/**
+ * Google Material Design 3 (M3 / Material You) Design Tokens & Utility Classes
+ * Optimized for CWP Customer Data & Staff Portal
+ */
+
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('/fonts/material-symbols-outlined.woff2') format('woff2');
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+  flex-shrink: 0;
+  user-select: none;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+:root {
+  /* ==========================================================================
+     CWP AURA DESIGN SYSTEM — DTCG 2025.10 TOKENS (LIGHT MODE / DEFAULT)
+     ========================================================================== */
+
+  /* --- 1. Primitive Color Tokens --- */
+  /* Navy (Brand Anchor) */
+  --color-primitive-navy-950: #07101c;
+  --color-primitive-navy-900: #0b192c;
+  --color-primitive-navy-800: #0f2942;
+
+  /* Slate (Neutral Canvas & Typography) */
+  --color-primitive-slate-50: #f8fafc;
+  --color-primitive-slate-100: #f1f5f9;
+  --color-primitive-slate-200: #e2e8f0;
+  --color-primitive-slate-300: #cbd5e1;
+  --color-primitive-slate-400: #94a3b8;
+  --color-primitive-slate-500: #64748b;
+  --color-primitive-slate-600: #475569;
+  --color-primitive-slate-700: #334155;
+  --color-primitive-slate-800: #1e293b;
+  --color-primitive-slate-900: #0f172a;
+  --color-primitive-slate-950: #0b0f17;
+
+  /* Cobalt Blue (Action Primary) */
+  --color-primitive-blue-50: #eff6ff;
+  --color-primitive-blue-100: #dbeafe;
+  --color-primitive-blue-200: #bfdbfe;
+  --color-primitive-blue-600: #2563eb;
+  --color-primitive-blue-700: #1d4ed8;
+  --color-primitive-blue-800: #1e3a8a;
+
+  /* Emerald Green (Success & Call) */
+  --color-primitive-green-50: #ecfdf5;
+  --color-primitive-green-100: #d1fae5;
+  --color-primitive-green-600: #059669;
+  --color-primitive-green-700: #047857;
+  --color-primitive-green-900: #064e3b;
+
+  /* Amber (Caution & Aaj/Kal Rotation) */
+  --color-primitive-amber-50: #fffbeb;
+  --color-primitive-amber-100: #fef3c7;
+  --color-primitive-amber-600: #d97706;
+  --color-primitive-amber-700: #b45309;
+  --color-primitive-amber-900: #78350f;
+
+  /* Crimson Red (Destructive & Error) */
+  --color-primitive-red-50: #fef2f2;
+  --color-primitive-red-100: #fee2e2;
+  --color-primitive-red-600: #dc2626;
+  --color-primitive-red-700: #b91c1c;
+  --color-primitive-red-900: #7f1d1d;
+
+  /* --- 2. Semantic Color Tokens --- */
+  /* Surface Containers */
+  --color-surface-canvas: var(--color-primitive-slate-50, #f8fafc);
+  --color-surface-card: #ffffff;
+  --color-surface-container-low: var(--color-primitive-slate-100, #f1f5f9);
+  --color-surface-container-high: var(--color-primitive-slate-200, #e2e8f0);
+  --color-surface-header: var(--color-primitive-navy-900, #0b192c);
+
+  /* Typography Colors */
+  --color-text-primary: var(--color-primitive-slate-900, #0f172a);
+  --color-text-secondary: var(--color-primitive-slate-600, #475569);
+  --color-text-muted: var(--color-primitive-slate-500, #64748b);
+  --color-text-on-header: #ffffff;
+  --color-text-on-action: #ffffff;
+
+  /* Action Colors */
+  --color-action-primary: var(--color-primitive-blue-700, #1d4ed8);
+  --color-action-primary-hover: var(--color-primitive-blue-600, #2563eb);
+  --color-action-call: var(--color-primitive-green-600, #059669);
+  --color-action-navigate: var(--color-primitive-blue-600, #2563eb);
+  --color-action-destructive: var(--color-primitive-red-600, #dc2626);
+
+  /* Status Colors & Backgrounds */
+  --color-status-success: var(--color-primitive-green-600, #059669);
+  --color-status-success-bg: var(--color-primitive-green-100, #d1fae5);
+  --color-status-warning: var(--color-primitive-amber-600, #d97706);
+  --color-status-warning-bg: var(--color-primitive-amber-100, #fef3c7);
+  --color-status-error: var(--color-primitive-red-600, #dc2626);
+  --color-status-error-bg: var(--color-primitive-red-100, #fee2e2);
+
+  /* Borders & Focus */
+  --color-border-subtle: var(--color-primitive-slate-200, #e2e8f0);
+  --color-border-input: var(--color-primitive-slate-300, #cbd5e1);
+  --color-border-focus: var(--color-primitive-blue-600, #2563eb);
+
+  /* Component Tokens */
+  --color-component-license-plate-bg-white: #ffffff;
+  --color-component-license-plate-bg-amber: #fde047;
+  --color-component-license-plate-text: #000000;
+  --color-component-license-plate-border: var(--color-primitive-navy-900, #0b192c);
+  --color-component-license-plate-ind-badge: var(--color-primitive-blue-700, #1d4ed8);
+  --color-component-bottom-nav-bg: #ffffff;
+  --color-component-bottom-nav-active-color: var(--color-primitive-blue-700, #1d4ed8);
+  --color-component-bottom-nav-active-pill: var(--color-primitive-blue-100, #dbeafe);
+  --color-component-bottom-nav-inactive-color: var(--color-primitive-slate-500, #64748b);
+
+  /* --- 3. Spatial Scale (8dp / 4px Grid) --- */
+  --space-0: 0px;
+  --space-half: 4px;
+  --space-05: 4px;
+  --space-1: 8px;
+  --space-15: 12px;
+  --space-2: 16px;
+  --space-25: 20px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+
+  /* Aliases for direct pixel naming */
+  --space-4px: 4px;
+  --space-8px: 8px;
+  --space-12px: 12px;
+  --space-16px: 16px;
+  --space-24px: 24px;
+  --space-32px: 32px;
+  --space-48px: 48px;
+
+  /* Semantic Spatial Roles */
+  --space-touch-target-min: 48px;
+  --space-card-padding: 16px;
+  --space-card-gap: 12px;
+  --space-button-gap: 8px;
+  --space-screen-margin: 16px;
+
+  /* --- 4. Shape & Border Radii --- */
+  --radius-none: 0px;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* --- 5. Elevation Hierarchy (Levels 0 - 5) --- */
+  --elevation-level-0: none;
+  --elevation-level-1: 0 1px 3px 1px rgba(15, 23, 42, 0.08), 0 1px 2px 0 rgba(15, 23, 42, 0.12);
+  --elevation-level-2: 0 2px 6px 2px rgba(15, 23, 42, 0.08), 0 1px 2px 0 rgba(15, 23, 42, 0.14);
+  --elevation-level-3: 0 4px 8px 3px rgba(15, 23, 42, 0.10), 0 1px 3px 0 rgba(15, 23, 42, 0.16);
+  --elevation-level-4: 0 6px 10px 4px rgba(15, 23, 42, 0.10), 0 2px 3px 0 rgba(15, 23, 42, 0.16);
+  --elevation-level-5: 0 8px 12px 6px rgba(15, 23, 42, 0.12), 0 4px 4px 0 rgba(15, 23, 42, 0.18);
+
+  /* --- 6. Typography Scale & Font Stacks --- */
+  --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-indic: 'Noto Sans Devanagari', 'Poppins', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --type-display-lg: 28px;
+  --type-headline-md: 20px;
+  --type-title-md: 16px;
+  --type-body-lg: 15px;
+  --type-body-md: 14px;
+  --type-label-bold: 13px;
+  --type-badge-mono: 14px;
+  --type-caption-sm: 11px;
+
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.3;
+  --line-height-body: 1.5;
+
+  /* --- 7. Motion & Transitions --- */
+  --motion-duration-instant: 100ms;
+  --motion-duration-rapid: 200ms;
+  --motion-duration-standard: 300ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0.0, 0, 1.0);
+
+  /* ==========================================================================
+     MATERIAL DESIGN 3 BACKWARD COMPATIBILITY ALIASES
+     ========================================================================== */
+  /* Primary */
+  --md-sys-color-primary: var(--color-action-primary, #1d4ed8);
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #dbeafe;
+  --md-sys-color-on-primary-container: #1e3a8a;
+
+  /* Secondary */
+  --md-sys-color-secondary: #0f2942;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #e0e7ff;
+  --md-sys-color-on-secondary-container: #0b192c;
+
+  /* Tertiary / Success Accent */
+  --md-sys-color-tertiary: var(--color-status-success, #059669);
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: var(--color-status-success-bg, #d1fae5);
+  --md-sys-color-on-tertiary-container: #064e3b;
+
+  /* Error */
+  --md-sys-color-error: var(--color-status-error, #dc2626);
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: var(--color-status-error-bg, #fee2e2);
+  --md-sys-color-on-error-container: #7f1d1d;
+
+  /* Surface Hierarchy */
+  --md-sys-color-surface: var(--color-surface-card, #ffffff);
+  --md-sys-color-on-surface: var(--color-text-primary, #0f172a);
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: var(--color-surface-container-low, #f8fafc);
+  --md-sys-color-surface-container: var(--color-surface-canvas, #f1f5f9);
+  --md-sys-color-surface-container-high: #e2e8f0;
+  --md-sys-color-surface-container-highest: #cbd5e1;
+
+  /* Outlines & Borders */
+  --md-sys-color-outline: var(--color-border-input, #cbd5e1);
+  --md-sys-color-outline-variant: var(--color-border-subtle, #e2e8f0);
+
+  /* Elevations */
+  --md-sys-elevation-0: var(--elevation-level-0);
+  --md-sys-elevation-1: var(--elevation-level-1);
+  --md-sys-elevation-2: var(--elevation-level-2);
+  --md-sys-elevation-3: var(--elevation-level-3);
+  --md-sys-elevation-4: var(--elevation-level-4);
+  --md-sys-elevation-5: var(--elevation-level-5);
+
+  /* Shapes */
+  --md-sys-shape-none: 0px;
+  --md-sys-shape-xs: var(--radius-xs);
+  --md-sys-shape-sm: var(--radius-sm);
+  --md-sys-shape-md: var(--radius-md);
+  --md-sys-shape-lg: var(--radius-lg);
+  --md-sys-shape-xl: 28px;
+  --md-sys-shape-full: var(--radius-full);
+
+  /* Spacing */
+  --md-sys-spacing-1: var(--space-05);
+  --md-sys-spacing-2: var(--space-1);
+  --md-sys-spacing-3: var(--space-15);
+  --md-sys-spacing-4: var(--space-2);
+  --md-sys-spacing-5: var(--space-25);
+  --md-sys-spacing-6: var(--space-3);
+  --md-sys-spacing-8: var(--space-4);
+  --md-sys-spacing-12: var(--space-6);
+
+  /* Legacy Variable Backward-Compatibility Aliases */
+  --bg-primary: var(--color-surface-canvas, #f8fafc);
+  --bg-surface: var(--color-surface-card, #ffffff);
+  --text-primary: var(--color-text-primary, #0f172a);
+  --text-secondary: var(--color-text-secondary, #475569);
+  --text-muted: var(--color-text-muted, #64748b);
+  --border-color: var(--color-border-subtle, #e2e8f0);
+  --brand-blue: var(--color-action-primary, #1d4ed8);
+}
+
+/* ==========================================================================
+   CWP AURA DESIGN SYSTEM — DARK THEME TOKEN OVERRIDES
+   ========================================================================== */
+:root[data-theme="dark"],
+body.theme-dark {
+  /* Surface Containers */
+  --color-surface-canvas: var(--color-primitive-slate-950, #0b0f17);
+  --color-surface-card: #111827;
+  --color-surface-container-low: var(--color-primitive-slate-800, #1e293b);
+  --color-surface-container-high: #233044;
+  --color-surface-header: var(--color-primitive-navy-950, #07101c);
+
+  /* Typography Colors */
+  --color-text-primary: var(--color-primitive-slate-50, #f8fafc);
+  --color-text-secondary: var(--color-primitive-slate-400, #94a3b8);
+  --color-text-muted: var(--color-primitive-slate-500, #64748b);
+  --color-text-on-header: #ffffff;
+  --color-text-on-action: #ffffff;
+
+  /* Action Colors */
+  --color-action-primary: #3b82f6;
+  --color-action-primary-hover: #2563eb;
+  --color-action-call: #10b981;
+  --color-action-navigate: #3b82f6;
+  --color-action-destructive: #ef4444;
+
+  /* Status Colors & Backgrounds */
+  --color-status-success: #10b981;
+  --color-status-success-bg: rgba(16, 185, 129, 0.15);
+  --color-status-warning: #f59e0b;
+  --color-status-warning-bg: rgba(245, 158, 11, 0.15);
+  --color-status-error: #ef4444;
+  --color-status-error-bg: rgba(239, 68, 68, 0.15);
+
+  /* Borders & Focus */
+  --color-border-subtle: #233044;
+  --color-border-input: var(--color-primitive-slate-700, #334155);
+  --color-border-focus: #60a5fa;
+
+  /* Dark Elevations */
+  --elevation-level-0: none;
+  --elevation-level-1: 0 1px 3px 1px rgba(0, 0, 0, 0.25), 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --elevation-level-2: 0 2px 6px 2px rgba(0, 0, 0, 0.25), 0 1px 2px 0 rgba(0, 0, 0, 0.40);
+  --elevation-level-3: 0 4px 8px 3px rgba(0, 0, 0, 0.30), 0 1px 3px 0 rgba(0, 0, 0, 0.45);
+  --elevation-level-4: 0 6px 10px 4px rgba(0, 0, 0, 0.35), 0 2px 3px 0 rgba(0, 0, 0, 0.50);
+  --elevation-level-5: 0 8px 12px 6px rgba(0, 0, 0, 0.40), 0 4px 4px 0 rgba(0, 0, 0, 0.55);
+
+  /* M3 Tokens in Dark Mode */
+  --md-sys-color-primary: #3b82f6;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: rgba(59, 130, 246, 0.25);
+  --md-sys-color-on-primary-container: #93c5fd;
+  --md-sys-color-surface: #0f172a;
+  --md-sys-color-on-surface: #f8fafc;
+  --md-sys-color-on-surface-variant: #94a3b8;
+  --md-sys-color-surface-container-lowest: #0b1120;
+  --md-sys-color-surface-container-low: #0f172a;
+  --md-sys-color-surface-container: #1e293b;
+  --md-sys-color-surface-container-high: #334155;
+  --md-sys-color-surface-container-highest: #475569;
+  --md-sys-color-outline: #64748b;
+  --md-sys-color-outline-variant: #334155;
+  --md-sys-elevation-1: var(--elevation-level-1);
+  --md-sys-elevation-2: var(--elevation-level-2);
+  --md-sys-elevation-3: var(--elevation-level-3);
+  --md-sys-elevation-4: var(--elevation-level-4);
+  --md-sys-elevation-5: var(--elevation-level-5);
+}
+
+/* ==========================================================================
+   5. COMPONENT CLASSES
+   ========================================================================== */
+
+/* --- Buttons --- */
+.m3-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-sys-spacing-2);
+  height: 40px;
+  padding: 0 var(--md-sys-spacing-6);
+  border-radius: var(--md-sys-shape-full);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  box-sizing: border-box;
+}
+
+.m3-btn-filled {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+.m3-btn-filled:hover {
+  box-shadow: var(--md-sys-elevation-1);
+  filter: brightness(1.08);
+}
+
+.m3-btn-tonal {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+.m3-btn-tonal:hover {
+  box-shadow: var(--md-sys-elevation-1);
+}
+
+.m3-btn-outlined {
+  background: transparent;
+  color: var(--md-sys-color-primary);
+  border: 1px solid var(--md-sys-color-outline);
+}
+.m3-btn-outlined:hover {
+  background: var(--md-sys-color-primary-container);
+}
+
+.m3-btn-text {
+  background: transparent;
+  color: var(--md-sys-color-primary);
+  padding: 0 var(--md-sys-spacing-3);
+}
+
+/* Icon Button */
+.m3-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-sys-shape-full);
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.m3-icon-button:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+}
+
+/* Floating Action Button (FAB) */
+.m3-fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-sys-spacing-3);
+  min-width: 56px;
+  height: 56px;
+  padding: 0 var(--md-sys-spacing-4);
+  border-radius: var(--md-sys-shape-lg);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: var(--md-sys-elevation-3);
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.m3-fab:hover {
+  box-shadow: var(--md-sys-elevation-4);
+  transform: translateY(-2px);
+}
+
+/* --- Cards --- */
+.m3-card {
+  background: var(--md-sys-color-surface);
+  border-radius: var(--md-sys-shape-md);
+  padding: var(--md-sys-spacing-4);
+  transition: box-shadow 0.2s;
+}
+.m3-card-outlined {
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+.m3-card-elevated {
+  box-shadow: var(--md-sys-elevation-1);
+}
+.m3-card-elevated:hover {
+  box-shadow: var(--md-sys-elevation-2);
+}
+
+/* --- Chips --- */
+.m3-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-sys-spacing-2);
+  height: 32px;
+  padding: 0 var(--md-sys-spacing-4);
+  border-radius: var(--md-sys-shape-sm);
+  border: 1px solid var(--md-sys-color-outline);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.m3-chip-selected {
+  background: var(--md-sys-color-secondary-container);
+  border-color: transparent;
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+/* --- Badges --- */
+.m3-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--md-sys-shape-full);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.m3-badge-success {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+.m3-badge-error {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+/* --- Modals / Dialogs --- */
+.m3-dialog-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+.m3-dialog {
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: var(--md-sys-shape-xl);
+  padding: var(--md-sys-spacing-6);
+  max-width: 480px;
+  width: 90%;
+  box-shadow: var(--md-sys-elevation-3);
+}
+.m3-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--md-sys-spacing-2);
+  margin-top: var(--md-sys-spacing-6);
+}

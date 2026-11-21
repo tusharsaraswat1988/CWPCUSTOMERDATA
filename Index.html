@@ -52,6 +52,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <link rel="stylesheet" href="/css/style.css?v=3.2.2">
+  <link rel="stylesheet" href="/css/m3-tokens.css?v=3.2.3">
+  <link rel="stylesheet" href="/css/staff-m3.css?v=3.2.3">
   <style>
     /* Critical FOUC Prevention & Immediate Logo/Header Constraints */
     :root {
@@ -266,10 +268,12 @@
               <div class="auth-field-wrapper">
                 <div class="auth-input-group">
                   <div class="auth-input-icon">
-                    <span>🔐</span>
+                    <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">lock</span>
                   </div>
                   <input type="password" id="staffPinInput" class="auth-field-input" placeholder="6-अंकों का पिन दर्ज करें" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="current-password" required style="letter-spacing: 2px;">
-                  <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('staffPinInput', this)" title="पिन देखें / छिपाएं">👁️</button>
+                  <button type="button" class="btn-toggle-eye" id="btnToggleStaffPin" onclick="togglePasswordVisibility('staffPinInput', this)" title="पिन देखें / छिपाएं">
+                    <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">visibility</span>
+                  </button>
                 </div>
                 <div class="cwp-pin-dots-row" id="staffPinDotsRow" aria-hidden="true" title="6-Digit PIN Progress">
                   <span class="cwp-pin-dot" data-idx="0"></span>
@@ -304,7 +308,8 @@
               </div>
             </form>
             <div class="auth-trust-strip">
-              <span>🔒 सुरक्षित स्टाफ पोर्टल</span>
+              <span class="material-symbols-outlined" style="font-size: 16px; color: var(--md-sys-color-tertiary, #059669); margin-right: 4px;" aria-hidden="true">verified_user</span>
+              <span>सुरक्षित स्टाफ पोर्टल</span>
             </div>
           </div>
         </div>
@@ -313,13 +318,15 @@
         <div id="staffJobsPanel" class="staff-jobs-panel">
           <div class="staff-search-row">
             <div class="search-bar-wrapper">
-              <span class="search-icon">🔍</span>
+              <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
               <input type="text" id="staffSearchInput" class="search-input" placeholder="ग्राहक का नाम, गाड़ी नंबर या पता खोजें..." oninput="handleStaffSearch(this.value)">
-              <button type="button" id="btnStaffSearchClear" class="search-clear-btn" onclick="clearStaffSearch()" style="display: none;" title="Clear search">✕</button>
+              <button type="button" id="btnStaffSearchClear" class="search-clear-btn" onclick="clearStaffSearch()" style="display: none;" title="Clear search">
+                <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">close</span>
+              </button>
             </div>
             <button type="button" class="staff-inline-progress-chip" id="staffInlineProgressChip" onclick="setStaffFilter('settings')" title="क्लिक करके पूरा रूट और सेटिंग्स देखें">
               <div class="inline-progress-meta">
-                <span class="inline-progress-icon">🚗</span>
+                <span class="material-symbols-outlined inline-progress-icon" style="font-size: 18px; color: var(--md-sys-color-primary, #1d4ed8);" aria-hidden="true">directions_car</span>
                 <span class="inline-progress-nums" id="inlineRouteProgressCount">0/0</span>
                 <span class="inline-progress-pct" id="inlineRouteProgressPercent">(0%)</span>
               </div>
@@ -415,9 +422,38 @@
             </div>
           </div>
         </div>
+        <!-- App Preferences (Language & Theme Mode) -->
+        <div class="staff-settings-info-card staff-settings-prefs-card">
+          <div class="settings-card-header">
+            <span class="material-symbols-outlined settings-card-icon" style="color: var(--md-sys-color-primary, #1d4ed8);" aria-hidden="true">tune</span>
+            <span class="settings-card-title">ऐप सेटिंग्स (App Preferences)</span>
+          </div>
+          <div class="settings-prefs-grid">
+            <div class="pref-row">
+              <div class="pref-label-group">
+                <span class="material-symbols-outlined pref-icon" aria-hidden="true">translate</span>
+                <span class="pref-title">भाषा (Language)</span>
+              </div>
+              <div class="pref-toggle-segmented" role="group" aria-label="Language selection">
+                <button type="button" class="btn-pref-segment" id="btnPrefLangHi" onclick="selectAppLanguage('hi', event)">हिन्दी</button>
+                <button type="button" class="btn-pref-segment" id="btnPrefLangEn" onclick="selectAppLanguage('en', event)">English</button>
+              </div>
+            </div>
+            <div class="pref-row">
+              <div class="pref-label-group">
+                <span class="material-symbols-outlined pref-icon" aria-hidden="true">dark_mode</span>
+                <span class="pref-title">थीम (Theme)</span>
+              </div>
+              <div class="pref-toggle-segmented" role="group" aria-label="Theme mode">
+                <button type="button" class="btn-pref-segment" id="btnPrefThemeLight" onclick="setAppThemeMode('light')">☀️ Light</button>
+                <button type="button" class="btn-pref-segment" id="btnPrefThemeDark" onclick="setAppThemeMode('dark')">🌙 Dark</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="staff-settings-info-card">
           <div class="settings-card-header">
-            <span class="settings-card-icon">⚡</span>
+            <span class="material-symbols-outlined settings-card-icon" style="color: #f59e0b;" aria-hidden="true">bolt</span>
             <span class="settings-card-title">शिफ्ट व सिस्टम स्थिति (Shift Diagnostics)</span>
           </div>
           <div class="settings-info-grid">
@@ -437,30 +473,34 @@
         </div>
         <div class="staff-settings-logout-card">
           <button type="button" class="btn-staff-settings-logout" id="btnStaffSettingsLogout" onclick="handleStaffLogout()">
-            <span class="logout-icon">🚪</span>
+            <span class="material-symbols-outlined logout-icon" style="font-size: 18px;" aria-hidden="true">logout</span>
             <span class="logout-label">लॉगआउट करें (Shift Sign Out)</span>
           </button>
           <div class="logout-subtext">सुरक्षित रूप से अपनी आज की शिफ्ट समाप्त करें</div>
         </div>
       </div>
-      <nav class="staff-bottom-nav" id="staffBottomNav" role="tablist" aria-label="Staff Navigation">
-        <button type="button" class="staff-bottom-tab active" id="pillDailyClean" role="tab" onclick="setStaffFilter('daily_car_cleaning')">
-          <span class="bottom-tab-label pill-text">दैनिक सफाई</span>
-          <span class="bottom-tab-badge pill-badge" id="countDailyClean" style="display: none;">0</span>
-        </button>
-        <button type="button" class="staff-bottom-tab" id="pillCarWash" role="tab" onclick="setStaffFilter('car_washing')">
-          <span class="bottom-tab-label pill-text">कार वॉश</span>
-          <span class="bottom-tab-badge pill-badge" id="countCarWash" style="display: none;">0</span>
-        </button>
-        <button type="button" class="staff-bottom-tab" id="pillSolarClean" role="tab" onclick="setStaffFilter('solar_cleaning')">
-          <span class="bottom-tab-label pill-text">सोलर सफाई</span>
-          <span class="bottom-tab-badge pill-badge" id="countSolarClean" style="display: none;">0</span>
-        </button>
-        <button type="button" class="staff-bottom-tab" id="pillStaffSettings" role="tab" onclick="setStaffFilter('settings')">
-          <span class="bottom-tab-label pill-text">सेटिंग्स</span>
-        </button>
-      </nav>
     </div>
+    <nav class="staff-bottom-nav" id="staffBottomNav" role="tablist" aria-label="Staff Navigation" style="display: none;">
+      <button type="button" class="staff-bottom-tab active" id="pillDailyClean" role="tab" aria-selected="true" onclick="setStaffFilter('daily_car_cleaning')">
+        <span class="material-symbols-outlined" aria-hidden="true">cleaning_services</span>
+        <span class="bottom-tab-label pill-text">दैनिक सफाई</span>
+        <span class="bottom-tab-badge pill-badge" id="countDailyClean" style="display: none;">0</span>
+      </button>
+      <button type="button" class="staff-bottom-tab" id="pillCarWash" role="tab" aria-selected="false" onclick="setStaffFilter('car_washing')">
+        <span class="material-symbols-outlined" aria-hidden="true">local_car_wash</span>
+        <span class="bottom-tab-label pill-text">कार वॉश</span>
+        <span class="bottom-tab-badge pill-badge" id="countCarWash" style="display: none;">0</span>
+      </button>
+      <button type="button" class="staff-bottom-tab" id="pillSolarClean" role="tab" aria-selected="false" onclick="setStaffFilter('solar_cleaning')">
+        <span class="material-symbols-outlined" aria-hidden="true">solar_power</span>
+        <span class="bottom-tab-label pill-text">सोलर सफाई</span>
+        <span class="bottom-tab-badge pill-badge" id="countSolarClean" style="display: none;">0</span>
+      </button>
+      <button type="button" class="staff-bottom-tab" id="pillStaffSettings" role="tab" aria-selected="false" onclick="setStaffFilter('settings')">
+        <span class="material-symbols-outlined" aria-hidden="true">settings</span>
+        <span class="bottom-tab-label pill-text">सेटिंग्स</span>
+      </button>
+    </nav>
   </div>
     <div id="adminView" class="admin-container">
       <div id="adminAuthGate" class="auth-gate-box is-hidden" style="display: none;" hidden>
@@ -565,7 +605,7 @@
                     <button type="button" class="admin-tab-btn sidebar-sub-btn" id="tabBtnSpecialJobs" role="tab" onclick="switchAdminTab('specialJobs')" title="On-Demand / Special Jobs (Solar Panel Cleaning, Car Washing)">
                       <span class="sub-btn-icon">⚡</span>
                       <span class="tab-text">Special Jobs</span>
-                      <span class="admin-tab-badge badge-amber" id="tabSpecialJobsCount" style="background: rgba(217, 119, 6, 0.2); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.35);">0</span>
+                      <span class="admin-tab-badge badge-amber" id="tabSpecialJobsCount" style="background: rgba(217, 119, 6, 0.16); color: #78350f; border: 1px solid rgba(180, 83, 9, 0.45); font-weight: 700;">0</span>
                     </button>
                   </div>
                 </div>
@@ -592,7 +632,7 @@
                     </svg>
                     <span class="tab-text">🎯 Leads Pipeline</span>
                   </div>
-                  <span class="admin-tab-badge badge-amber" id="tabLeadsCount" style="background: rgba(245, 158, 11, 0.2); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.35);">0</span>
+                  <span class="admin-tab-badge badge-amber" id="tabLeadsCount" style="background: rgba(245, 158, 11, 0.16); color: #78350f; border: 1px solid rgba(180, 83, 9, 0.45); font-weight: 700;">0</span>
                 </button>
 
                 <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnSequence" role="tab" onclick="switchAdminTab('sequence')" title="Daily car cleaning route sequence management">
@@ -773,12 +813,12 @@
           </div>
         </div>
       </div>
-      <div id="seqResetModal" class="image-modal-overlay" onclick="closeSeqResetModal()" style="display: none; align-items: center; justify-content: center; z-index: 2300;">
+      <div id="seqResetModal" class="image-modal-overlay" onclick="closeSeqResetModal()" style="display: none; align-items: center; justify-content: center; z-index: 2300;" role="dialog" aria-modal="true" aria-labelledby="seqResetModalTitle">
         <div class="logout-confirm-box seq-confirm-modal" onclick="event.stopPropagation()" style="max-width: 440px; text-align: center; border-top: 4px solid #ef4444;">
           <div style="width: 54px; height: 54px; border-radius: 50%; background: #fef2f2; border: 2px solid #fecaca; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 12px;">
             ⚠️
           </div>
-          <h3 class="logout-confirm-heading" style="color: #b91c1c; font-size: 18px; margin-bottom: 8px;">
+          <h3 class="logout-confirm-heading" id="seqResetModalTitle" style="color: #b91c1c; font-size: 18px; margin-bottom: 8px;">
             Reset Route Sequence?
           </h3>
           <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
@@ -1124,80 +1164,15 @@
               <span class="compliance-badge badge-neutral" id="intelComplianceBadge">Calculating...</span>
             </div>
           </div>
-          <div class="reports-kpi-grid">
-            <div class="reports-kpi-card card-kpi-blue">
-              <div class="kpi-card-glow"></div>
-              <div class="kpi-icon-wrap kpi-blue">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
-                  <circle cx="7" cy="17" r="2"/>
-                  <path d="M9 17h6"/>
-                  <circle cx="17" cy="17" r="2"/>
-                </svg>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-label">Total Cleaned</div>
-                <div class="kpi-value-row">
-                  <span class="kpi-value" id="kpiTotalCleaned">0</span>
-                  <span class="kpi-unit">Cars</span>
-                </div>
-                <div class="kpi-sub" id="kpiCleanedSub">In selected period</div>
-              </div>
-            </div>
-            <div class="reports-kpi-card card-kpi-green">
-              <div class="kpi-card-glow"></div>
-              <div class="kpi-icon-wrap kpi-green">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                  <circle cx="12" cy="13" r="4"/>
-                </svg>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-label">Proof Compliance</div>
-                <div class="kpi-value-row">
-                  <span class="kpi-value" id="kpiPhotoRate">0%</span>
-                  <span class="kpi-unit">Verified</span>
-                </div>
-                <div class="kpi-progress-track">
-                  <div class="kpi-progress-bar" id="kpiPhotoProgressBar" style="width: 0%;"></div>
-                </div>
-                <div class="kpi-sub" id="kpiPhotoCount">0 with photo</div>
-              </div>
-            </div>
-            <div class="reports-kpi-card card-kpi-amber">
-              <div class="kpi-card-glow"></div>
-              <div class="kpi-icon-wrap kpi-amber">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-label">Active Field Crew</div>
-                <div class="kpi-value-row">
-                  <span class="kpi-value" id="kpiActiveStaff">0 Staff</span>
-                </div>
-                <div class="kpi-sub">On active route duties</div>
-              </div>
-            </div>
-            <div class="reports-kpi-card card-kpi-purple">
-              <div class="kpi-card-glow"></div>
-              <div class="kpi-icon-wrap kpi-purple">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12 6 12 12 16 14"/>
-                </svg>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-label">Latest Logged Punch</div>
-                <div class="kpi-value-row">
-                  <span class="kpi-value font-mono" id="kpiLatestPunch">--:--</span>
-                </div>
-                <div class="kpi-sub font-mono" id="kpiLatestPunchDate">IST Timestamp</div>
-              </div>
-            </div>
+          <!-- Consolidated Single-Source KPI State Store (Eliminates redundant visual KPI row per user feedback) -->
+          <div class="reports-kpi-grid" style="display: none !important;" aria-hidden="true">
+            <span id="kpiTotalCleaned">0</span>
+            <span id="kpiPhotoRate">0%</span>
+            <div id="kpiPhotoProgressBar"></div>
+            <span id="kpiPhotoCount">0 with photo</span>
+            <span id="kpiActiveStaff">0 Staff</span>
+            <span id="kpiLatestPunch">--:--</span>
+            <span id="kpiLatestPunchDate">IST Timestamp</span>
           </div>
           <div class="reports-filter-panel">
             <div class="reports-filter-tier">
@@ -1357,7 +1332,7 @@
       </div>
     </div>
   </div>
-  <div id="cleaningCameraModal" class="camera-modal-overlay" style="display: none;">
+  <div id="cleaningCameraModal" class="camera-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="cameraModalCustName">
     <div class="camera-modal-box" onclick="event.stopPropagation()">
       <div class="camera-modal-header">
         <div class="camera-header-info">
@@ -1366,7 +1341,7 @@
           </h3>
           <span class="camera-modal-sub" id="cameraModalVehInfo">गाड़ी नंबर</span>
         </div>
-        <button type="button" class="camera-close-btn" onclick="closeCleaningCameraModal()" title="Close (बंद करें)">✕</button>
+        <button type="button" class="camera-close-btn" onclick="closeCleaningCameraModal()" title="Close (बंद करें)" aria-label="Close dialog">✕</button>
       </div>
       <div id="cameraCaptureView">
         <div class="camera-viewport-wrap">
@@ -1419,8 +1394,8 @@
       </div>
     </div>
   </div>
-  <div id="reportPhotoLightboxModal" class="image-modal-overlay" onclick="closeReportPhotoLightbox()" style="display: none;">
-    <button type="button" class="image-modal-floating-close" onclick="closeReportPhotoLightbox()" title="Close (ESC)">✕</button>
+  <div id="reportPhotoLightboxModal" class="image-modal-overlay" onclick="closeReportPhotoLightbox()" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="lightboxModalTitle">
+    <button type="button" class="image-modal-floating-close" onclick="closeReportPhotoLightbox()" title="Close (ESC)" aria-label="Close dialog">✕</button>
     <div class="image-modal-content" onclick="event.stopPropagation()" style="max-width: 720px;">
       <div class="image-modal-header">
         <div class="image-modal-title" id="lightboxModalTitle">
@@ -1433,7 +1408,7 @@
           <a id="lightboxOpenNewTab" href="" target="_blank" class="image-modal-btn" title="Open full resolution in new tab">
             ↗ Full Size
           </a>
-          <button type="button" class="image-modal-close-icon" onclick="closeReportPhotoLightbox()" title="Close (ESC)">✕</button>
+          <button type="button" class="image-modal-close-icon" onclick="closeReportPhotoLightbox()" title="Close (ESC)" aria-label="Close dialog">✕</button>
         </div>
       </div>
       <div class="image-modal-body" style="background: #000; text-align: center; padding: 0;">
@@ -1450,11 +1425,11 @@
       </div>
     </div>
   </div>
-  <div id="staffWhatsAppGroupModal" class="camera-modal-overlay" style="display: none;">
+  <div id="staffWhatsAppGroupModal" class="camera-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="staffWhatsAppGroupModalTitle">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 440px; width: 94%;">
       <div class="modal-card-header">
-        <h3 class="modal-card-title">📱 Team WhatsApp Group Settings</h3>
-        <button type="button" class="modal-close-x" onclick="closeStaffWhatsAppGroupModal()">✕</button>
+        <h3 class="modal-card-title" id="staffWhatsAppGroupModalTitle">📱 Team WhatsApp Group Settings</h3>
+        <button type="button" class="modal-close-x" onclick="closeStaffWhatsAppGroupModal()" aria-label="Close dialog">✕</button>
       </div>
       <div style="padding: 16px;">
         <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
@@ -1476,14 +1451,14 @@
       </div>
     </div>
   </div>
-  <div id="whatsAppImageShareModal" class="camera-modal-overlay" style="display: none;" onclick="closeWhatsAppImageModal()">
+  <div id="whatsAppImageShareModal" class="camera-modal-overlay" style="display: none;" onclick="closeWhatsAppImageModal()" role="dialog" aria-modal="true" aria-labelledby="whatsAppImageShareModalTitle">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 440px; width: 94%; text-align: center; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 48px rgba(0,0,0,0.4);">
       <div class="modal-card-header" style="justify-content: space-between; display: flex; align-items: center; padding: 14px 18px; background: #0f172a; color: #fff;">
-        <h3 class="modal-card-title" style="display: flex; align-items: center; gap: 8px; font-size: 15px; margin: 0; color: #fff;">
+        <h3 class="modal-card-title" id="whatsAppImageShareModalTitle" style="display: flex; align-items: center; gap: 8px; font-size: 15px; margin: 0; color: #fff;">
           <span style="font-size: 18px;">📸</span>
           <span>WhatsApp फोटो शेयर</span>
         </h3>
-        <button type="button" class="modal-close-x" onclick="closeWhatsAppImageModal()" style="color: #fff; background: transparent; border: none; font-size: 18px; cursor: pointer;">✕</button>
+        <button type="button" class="modal-close-x" onclick="closeWhatsAppImageModal()" style="color: #fff; background: transparent; border: none; font-size: 18px; cursor: pointer;" aria-label="Close dialog">✕</button>
       </div>
       <div style="padding: 18px;">
         <div style="position: relative; margin-bottom: 14px; border-radius: 12px; overflow: hidden; border: 2px solid var(--border-color); background: #0f172a;">
@@ -1519,18 +1494,18 @@
       </div>
     </div>
   </div>
-  <div id="imageModal" class="image-modal-overlay" onclick="closeImageModal()" style="display: none;">
-    <button type="button" class="image-modal-floating-close" onclick="closeImageModal()" title="Close (ESC)">✕</button>
+  <div id="imageModal" class="image-modal-overlay" onclick="closeImageModal()" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="imageModalTitleText">
+    <button type="button" class="image-modal-floating-close" onclick="closeImageModal()" title="Close (ESC)" aria-label="Close dialog">✕</button>
     <div class="image-modal-content" onclick="event.stopPropagation()">
       <div class="image-modal-header">
         <div class="image-modal-title" id="imageModalTitleText">
-          <span>🚗</span> Vehicle / Customer Photo
+          <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 6px;" aria-hidden="true">directions_car</span>Vehicle / Customer Photo
         </div>
         <div class="image-modal-actions">
           <a id="imageModalOpenNewTab" href="" target="_blank" class="image-modal-btn" title="View full photo in new tab">
             ↗ Open in New Tab
           </a>
-          <button type="button" class="image-modal-close-icon" onclick="closeImageModal()" title="Close (ESC)">✕</button>
+          <button type="button" class="image-modal-close-icon" onclick="closeImageModal()" title="Close (ESC)" aria-label="Close dialog">✕</button>
         </div>
       </div>
       <div class="image-modal-body">
@@ -1544,11 +1519,11 @@
       </div>
     </div>
   </div>
-  <div id="addressViewModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('addressViewModal')" style="display: none; align-items: center; justify-content: center; z-index: 1050;">
+  <div id="addressViewModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('addressViewModal')" style="display: none; align-items: center; justify-content: center; z-index: 1050;" role="dialog" aria-modal="true" aria-labelledby="addressViewModalTitle">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px; width: 94%; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-card-header">
-        <h3 class="modal-card-title">📍 Customer Locations</h3>
-        <button type="button" class="modal-close-x" onclick="closeAddressModal()" title="Close (ESC)">✕</button>
+        <h3 class="modal-card-title" id="addressViewModalTitle"><span class="material-symbols-outlined" style="font-size: 20px; color: var(--md-sys-color-primary, #1d4ed8); margin-right: 6px; vertical-align: middle;" aria-hidden="true">pin_drop</span>Customer Locations</h3>
+        <button type="button" class="modal-close-x" onclick="closeAddressModal()" title="Close (ESC)" aria-label="Close dialog">✕</button>
       </div>
       <div style="padding: 16px 18px; overflow-y: auto;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
@@ -1565,34 +1540,34 @@
         <div id="addrModalPrimaryCard" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span style="font-size: 12px; font-weight: 700; color: #1e3a8a; display: inline-flex; align-items: center; gap: 4px;">
-              <span>🏠</span> Primary Location
+              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">home</span> Primary Location
             </span>
             <span id="addrModalPrimaryBadge" style="font-size: 10.5px; background: #dbeafe; color: #1e40af; padding: 2px 7px; border-radius: 10px; font-weight: 600;">Main Location</span>
           </div>
           <div id="addrModalPrimary" style="font-size: 13px; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; line-height: 1.45; word-break: break-word; min-height: 38px;">-</div>
           <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 10px;">
             <a id="addrModalPrimaryMapLink" href="" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" style="display: none; padding: 6px 12px; font-size: 12px; width: auto; font-weight: 600;" title="Open primary location in Google Maps">
-              <span>🗺️ Open Map / Directions ↗</span>
+              <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;" aria-hidden="true">directions</span><span>Open Map / Directions ↗</span>
             </a>
-            <button type="button" class="btn-cell-action" onclick="copyLocationAddress('primary')" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 6px 10px; font-size: 12px; width: auto;" title="Copy primary address">
-              <span>📋 Copy</span>
+            <button type="button" class="btn-cell-action" onclick="copyLocationAddress('primary')" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 6px 10px; font-size: 12px; width: auto; display: inline-flex; align-items: center; gap: 4px;" title="Copy primary address">
+              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">content_copy</span><span>Copy</span>
             </button>
           </div>
         </div>
         <div id="addrModalSecondaryCard" style="display: none; background: #faf5ff; border: 1.5px solid #e9d5ff; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span style="font-size: 12px; font-weight: 700; color: #6b21a8; display: inline-flex; align-items: center; gap: 4px;">
-              <span>🏢</span> Secondary Location (Office / Alternate)
+              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">apartment</span> Secondary Location (Office / Alternate)
             </span>
             <span style="font-size: 10.5px; background: #f3e8ff; color: #7e22ce; padding: 2px 7px; border-radius: 10px; font-weight: 600;">Alternate Location</span>
           </div>
           <div id="addrModalSecondary" style="font-size: 13px; color: #1e293b; background: #ffffff; border: 1px solid #e9d5ff; border-radius: 6px; padding: 8px 10px; line-height: 1.45; word-break: break-word; min-height: 38px;">-</div>
           <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 10px;">
             <a id="addrModalSecondaryMapLink" href="" target="_blank" rel="noopener noreferrer" class="btn-cell-action btn-map-view" style="display: none; padding: 6px 12px; font-size: 12px; width: auto; font-weight: 600; background: #fdf4ff; color: #7e22ce; border-color: #f0abfc;" title="Open secondary location in Google Maps">
-              <span>🗺️ Open Map / Directions ↗</span>
+              <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;" aria-hidden="true">directions</span><span>Open Map / Directions ↗</span>
             </a>
-            <button type="button" class="btn-cell-action" onclick="copyLocationAddress('secondary')" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 6px 10px; font-size: 12px; width: auto;" title="Copy secondary address">
-              <span>📋 Copy</span>
+            <button type="button" class="btn-cell-action" onclick="copyLocationAddress('secondary')" style="background: #f1f5f9; color: #334155; border-color: #cbd5e1; padding: 6px 10px; font-size: 12px; width: auto; display: inline-flex; align-items: center; gap: 4px;" title="Copy secondary address">
+              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">content_copy</span><span>Copy</span>
             </button>
           </div>
         </div>
@@ -1606,7 +1581,7 @@
       </div>
     </div>
   </div>
-  <div id="logoutConfirmModal" class="image-modal-overlay" onclick="closeLogoutModal()" style="display: none; align-items: center; justify-content: center; z-index: 2200;">
+  <div id="logoutConfirmModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="logoutConfirmModalTitle" onclick="closeLogoutModal()" style="display: none; align-items: center; justify-content: center; z-index: 2200;">
     <div class="logout-confirm-box cwp-branded-logout" onclick="event.stopPropagation()">
       <div class="cwp-logout-accent-bar"></div>
       <div id="logoutPromptView">
@@ -1623,7 +1598,7 @@
           <span id="logoutStaffNameText" class="chip-name">स्टाफ सदस्य</span>
           <span id="logoutStaffIdText" class="chip-id">STF01</span>
         </div>
-        <h3 class="logout-confirm-heading">स्टाफ लॉगआउट (Sign Out)</h3>
+        <h3 class="logout-confirm-heading" id="logoutConfirmModalTitle">स्टाफ लॉगआउट (Sign Out)</h3>
         <p class="logout-confirm-desc">क्या आप वाकई अपना आज का कार्य सत्र (Shift) सुरक्षित रूप से समाप्त करके लॉगआउट करना चाहते हैं?</p>
         <div class="logout-confirm-actions">
           <button type="button" class="btn-logout-cancel" id="btnLogoutCancel" onclick="closeLogoutModal()">
@@ -1682,14 +1657,14 @@
     <option value="Gold"></option>
     <option value="Yellow"></option>
   </datalist>
-  <div id="addCustomerModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('addCustomerModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div id="addCustomerModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addCustomerModalTitle" onclick="handleStaticBackdropClick('addCustomerModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box modal-card-box-lg" onclick="event.stopPropagation()" style="display: flex; flex-direction: column;">
       <div class="modal-card-header">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <h3 class="modal-card-title" style="margin-bottom: 0;">✨ Add New Customer</h3>
+          <h3 class="modal-card-title" id="addCustomerModalTitle" style="margin-bottom: 0;">✨ Add New Customer</h3>
           <div id="custDraftBadge" class="cwp-draft-badge" style="display: none;"></div>
         </div>
-        <button type="button" class="modal-close-x" onclick="closeAddCustomerModal()" title="Close (ESC)">✕</button>
+        <button type="button" class="modal-close-x" onclick="closeAddCustomerModal()" aria-label="Close dialog" title="Close (ESC)">✕</button>
       </div>
       <div class="modal-card-scrollable-body" style="overflow-y: auto; padding: 16px; flex: 1;">
         <div id="custDraftRestoreBanner" class="cwp-draft-banner" style="display: none; margin-bottom: 12px;">
@@ -1916,14 +1891,14 @@
       </div>
     </div>
   </div>
-  <div id="editCustomerModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('editCustomerModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div id="editCustomerModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="editCustomerModalTitle" onclick="handleStaticBackdropClick('editCustomerModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()">
       <div class="modal-card-header">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <h3 class="modal-card-title" style="margin-bottom: 0;">✏️ Edit Customer</h3>
+          <h3 class="modal-card-title" id="editCustomerModalTitle" style="margin-bottom: 0;">✏️ Edit Customer</h3>
           <div id="editDraftBadge" class="cwp-draft-badge" style="display: none;"></div>
         </div>
-        <button type="button" class="modal-close-x" onclick="closeEditCustomerModal()">✕</button>
+        <button type="button" class="modal-close-x" onclick="closeEditCustomerModal()" aria-label="Close dialog">✕</button>
       </div>
       <div id="editDraftRestoreBanner" class="cwp-draft-banner" style="display: none; margin: 12px 16px 0 16px;">
         <div class="cwp-draft-banner-content">
@@ -2146,11 +2121,11 @@
       </form>
     </div>
   </div>
-  <div id="staffEditModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('staffEditModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div id="staffEditModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="staffEditModalTitle" onclick="handleStaticBackdropClick('staffEditModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px;">
       <div class="modal-card-header">
-        <h3 class="modal-card-title">✏️ Edit Staff Profile</h3>
-        <button type="button" class="modal-close-x" onclick="closeEditStaffModal()">✕</button>
+        <h3 class="modal-card-title" id="staffEditModalTitle">✏️ Edit Staff Profile</h3>
+        <button type="button" class="modal-close-x" onclick="closeEditStaffModal()" aria-label="Close dialog">✕</button>
       </div>
       <form id="editStaffForm" onsubmit="handleEditStaffSubmit(event)" style="padding: 16px;">
         <input type="hidden" id="editStaffId">
@@ -2224,17 +2199,17 @@
       </form>
     </div>
   </div>
-  <div id="cwpPhotoCropperModal" class="image-modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 1200;" onclick="cropperHandleOverlayClick(event)">
+  <div id="cwpPhotoCropperModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="cwpPhotoCropperModalTitle" style="display: none; align-items: center; justify-content: center; z-index: 1200;" onclick="cropperHandleOverlayClick(event)">
     <div class="cropper-modal-card" onclick="event.stopPropagation()">
       <div class="cropper-modal-header">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 18px;">✂️</span>
           <div>
-            <h3 style="font-size: 14.5px; font-weight: 700; color: #ffffff; margin: 0; line-height: 1.2;">Crop & Straighten Photo</h3>
+            <h3 id="cwpPhotoCropperModalTitle" style="font-size: 14.5px; font-weight: 700; color: #ffffff; margin: 0; line-height: 1.2;">Crop & Straighten Photo</h3>
             <div style="font-size: 11px; color: #94a3b8;">Rotate by degrees and adjust crop box</div>
           </div>
         </div>
-        <button type="button" class="modal-close-x" onclick="closeCropperModal()" style="color: #cbd5e1;">✕</button>
+        <button type="button" class="modal-close-x" onclick="closeCropperModal()" aria-label="Close dialog" style="color: #cbd5e1;">✕</button>
       </div>
       <div class="cropper-canvas-wrap">
         <img id="cwpCropperSourceImg" src="" alt="To Crop" style="max-width: 100%;">
@@ -2317,14 +2292,14 @@
     <span>🚀 CWP Staff का नया अपडेट उपलब्ध है!</span>
     <button type="button" class="btn-pwa-update-now" onclick="applyPwaUpdate()">अभी अपडेट करें (Update)</button>
   </div>
-  <div id="pwaIosModal" class="camera-modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
+  <div id="pwaIosModal" class="camera-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pwaIosModalTitle" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 420px; width: 92%; padding: 22px;">
       <div class="modal-card-header" style="margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 24px;">📱</span>
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0;">iPhone / iPad पर ऐप इंस्टॉल करें</h3>
+          <h3 id="pwaIosModalTitle" style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0;">iPhone / iPad पर ऐप इंस्टॉल करें</h3>
         </div>
-        <button type="button" class="modal-close-x" onclick="closePwaIosModal()" title="Close">✕</button>
+        <button type="button" class="modal-close-x" onclick="closePwaIosModal()" aria-label="Close dialog" title="Close">✕</button>
       </div>
       <div style="margin-bottom: 18px;">
         <div class="pwa-ios-step">
@@ -2345,17 +2320,17 @@
       </button>
     </div>
   </div>
-  <div id="addLeadModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('addLeadModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div id="addLeadModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addLeadModalTitle" onclick="handleStaticBackdropClick('addLeadModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box modal-card-box-lg" onclick="event.stopPropagation()" style="display: flex; flex-direction: column; max-width: 640px;">
       <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(217, 119, 6, 0.04));">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px;">🎯</div>
           <div>
-            <h3 class="modal-card-title" style="margin-bottom: 0;">Add New Lead</h3>
+            <h3 class="modal-card-title" id="addLeadModalTitle" style="margin-bottom: 0;">Add New Lead</h3>
             <span style="font-size: 12px; color: var(--text-secondary);">Capture prospect inquiry, vehicle info & initial remarks</span>
           </div>
         </div>
-        <button type="button" class="modal-close-x" onclick="closeAddLeadModal()" title="Close (ESC)">✕</button>
+        <button type="button" class="modal-close-x" onclick="closeAddLeadModal()" aria-label="Close dialog" title="Close (ESC)">✕</button>
       </div>
       <div class="modal-card-scrollable-body" style="overflow-y: auto; padding: 16px; flex: 1;">
         <form id="addLeadForm" onsubmit="handleLeadSubmit(event)" class="cwp-compact-form">
@@ -2531,17 +2506,17 @@
       </div>
     </div>
   </div>
-  <div id="convertLeadModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('convertLeadModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div id="convertLeadModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="convertLeadModalTitle" onclick="handleStaticBackdropClick('convertLeadModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 520px;">
       <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.04));">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px;">🌟</div>
           <div>
-            <h3 class="modal-card-title" style="margin-bottom: 0;">Confirm & Convert Lead</h3>
+            <h3 class="modal-card-title" id="convertLeadModalTitle" style="margin-bottom: 0;">Confirm & Convert Lead</h3>
             <span style="font-size: 12px; color: var(--text-secondary);">Assign package & staff to move lead to active customers</span>
           </div>
         </div>
-        <button type="button" class="modal-close-x" onclick="closeConvertLeadModal()">✕</button>
+        <button type="button" class="modal-close-x" onclick="closeConvertLeadModal()" aria-label="Close dialog">✕</button>
       </div>
       <form id="convertLeadForm" onsubmit="handleConvertLeadSubmit(event)" style="padding: 16px;">
         <input type="hidden" id="convertLeadId">
@@ -2595,17 +2570,17 @@
       </form>
     </div>
   </div>
-  <div id="leadNoteModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('leadNoteModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div id="leadNoteModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="leadNoteModalTitle" onclick="handleStaticBackdropClick('leadNoteModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px;">
       <div class="modal-card-header">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div style="font-size: 20px;">📝</div>
           <div>
-            <h3 class="modal-card-title" style="margin-bottom: 0;">Lead Follow-up Notes</h3>
+            <h3 class="modal-card-title" id="leadNoteModalTitle" style="margin-bottom: 0;">Lead Follow-up Notes</h3>
             <span id="leadNoteCustomerName" style="font-size: 12px; color: var(--text-secondary);">—</span>
           </div>
         </div>
-        <button type="button" class="modal-close-x" onclick="closeLeadNoteModal()">✕</button>
+        <button type="button" class="modal-close-x" onclick="closeLeadNoteModal()" aria-label="Close dialog">✕</button>
       </div>
       <form id="leadNoteForm" onsubmit="handleSaveLeadNoteSubmit(event)" style="padding: 16px;">
         <input type="hidden" id="leadNoteTargetId">
@@ -2633,17 +2608,17 @@
       </form>
     </div>
   </div>
-  <div id="assignSpecialJobModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('assignSpecialJobModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div id="assignSpecialJobModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="assignSpecialJobModalTitle" onclick="handleStaticBackdropClick('assignSpecialJobModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box modal-card-box-lg" onclick="event.stopPropagation()" style="max-width: 600px; display: flex; flex-direction: column;">
       <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(217, 119, 6, 0.12), rgba(180, 83, 9, 0.05));">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div style="width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, #d97706, #b45309); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px;">⚡</div>
           <div>
-            <h3 class="modal-card-title" style="margin-bottom: 0;">Assign On-Demand / Special Job</h3>
+            <h3 class="modal-card-title" id="assignSpecialJobModalTitle" style="margin-bottom: 0;">Assign On-Demand / Special Job</h3>
             <span style="font-size: 12px; color: var(--text-secondary);">Direct dispatch for Solar Panel Cleaning or Car Washing (Verbal request)</span>
           </div>
         </div>
-        <button type="button" class="modal-close-x" onclick="closeAssignSpecialJobModal()" title="Close (ESC)">✕</button>
+        <button type="button" class="modal-close-x" onclick="closeAssignSpecialJobModal()" aria-label="Close dialog" title="Close (ESC)">✕</button>
       </div>
       <div class="modal-card-scrollable-body" style="overflow-y: auto; padding: 18px; flex: 1;">
         <form id="assignSpecialJobForm" onsubmit="handleAssignSpecialJobSubmit(event)" class="cwp-compact-form">
@@ -2758,87 +2733,87 @@
       </div>
     </div>
   </div>
-  <div id="startSpecialJobModal" class="camera-modal-overlay" style="display: none;" onclick="handleStaticBackdropClick('startSpecialJobModal')">
+  <div id="startSpecialJobModal" class="camera-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="startSpecialJobModalTitle" style="display: none;" onclick="handleStaticBackdropClick('startSpecialJobModal')">
     <div class="camera-modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
-      <div class="camera-modal-header" style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #ffffff;">
+      <div class="camera-modal-header">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 22px;">▶️</span>
+          <span class="material-symbols-outlined" style="font-size: 24px; color: var(--md-sys-color-primary, #1d4ed8);" aria-hidden="true">play_circle</span>
           <div>
-            <h3 style="margin: 0; font-size: 16px; font-weight: 700;">काम शुरू करें (Start Job)</h3>
-            <span id="startJobSubTitle" style="font-size: 12px; opacity: 0.9;">सफाई से पहले की फोटो (1 या 2 फोटो)</span>
+            <h3 id="startSpecialJobModalTitle" style="margin: 0; font-size: 16px; font-weight: 700;">काम शुरू करें (Start Job)</h3>
+            <span id="startJobSubTitle" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">सफाई से पहले की फोटो (1 या 2 फोटो)</span>
           </div>
         </div>
-        <button type="button" class="modal-close-x" style="color: #fff;" onclick="closeStartSpecialJobModal()">✕</button>
+        <button type="button" class="modal-close-x" onclick="closeStartSpecialJobModal()" aria-label="Close dialog" title="Close">✕</button>
       </div>
       <div class="camera-modal-body" style="padding: 18px;">
-        <div id="startJobCustomerSummary" style="background: #f1f5f9; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: #334155;"></div>
+        <div id="startJobCustomerSummary" style="background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: var(--md-sys-color-on-surface, #0f172a); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);"></div>
         <div style="margin-bottom: 14px;">
-          <label style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 6px;">
-            📸 काम शुरू करने से पहले की फोटो (Before Photos - 1 या 2) <span style="color:#ef4444;">*</span>
+          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">photo_camera</span>काम शुरू करने से पहले की फोटो (Before Photos - 1 या 2) <span style="color:#ef4444;">*</span>
           </label>
-          <p style="font-size: 12px; color: #64748b; margin-top: 0; margin-bottom: 10px;">
+          <p style="font-size: 12px; color: var(--md-sys-color-outline, #64748b); margin-top: 0; margin-bottom: 10px;">
             काम शुरू करने से पहले की स्थिति दिखाने के लिए 1 या 2 फोटो लें।
           </p>
           <input type="file" id="startJobPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleStartJobPhotoSelect(event)">
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <button type="button" id="btnStartJobAddPhoto" onclick="document.getElementById('startJobPhotoInput').click()" style="display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
-              <span>📷 फोटो लें / अपलोड करें</span>
+            <button type="button" id="btnStartJobAddPhoto" onclick="document.getElementById('startJobPhotoInput').click()" style="display: inline-flex; align-items: center; gap: 6px; background: var(--md-sys-color-primary, #1d4ed8); color: #ffffff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+              <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">add_a_photo</span><span>फोटो लें / अपलोड करें</span>
             </button>
-            <span id="startJobPhotoCountHint" style="font-size: 12px; color: #64748b;">0 / 2 फोटो चुनी गई</span>
+            <span id="startJobPhotoCountHint" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">0 / 2 फोटो चुनी गई</span>
           </div>
           <div id="startJobPhotosPreview" style="display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap;"></div>
         </div>
         <div id="startJobErrorMsg" style="display: none; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px;"></div>
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-          <button type="button" onclick="closeStartSpecialJobModal()" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">रद्द करें (Cancel)</button>
-          <button type="button" id="btnSubmitStartJob" onclick="submitStartSpecialJob()" style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-            <span>🚀 काम शुरू करें</span>
+          <button type="button" onclick="closeStartSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">रद्द करें (Cancel)</button>
+          <button type="button" id="btnSubmitStartJob" onclick="submitStartSpecialJob()" style="background: var(--md-sys-color-primary, #1d4ed8); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>काम शुरू करें</span>
           </button>
         </div>
       </div>
     </div>
   </div>
-  <div id="completeSpecialJobModal" class="camera-modal-overlay" style="display: none;" onclick="handleStaticBackdropClick('completeSpecialJobModal')">
+  <div id="completeSpecialJobModal" class="camera-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="completeSpecialJobModalTitle" style="display: none;" onclick="handleStaticBackdropClick('completeSpecialJobModal')">
     <div class="camera-modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
-      <div class="camera-modal-header" style="background: linear-gradient(135deg, #065f46, #059669); color: #ffffff;">
+      <div class="camera-modal-header">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 22px;">✅</span>
+          <span class="material-symbols-outlined" style="font-size: 24px; color: var(--md-sys-color-tertiary, #059669);" aria-hidden="true">task_alt</span>
           <div>
-            <h3 style="margin: 0; font-size: 16px; font-weight: 700;">काम पूरा करें (Complete Job)</h3>
-            <span id="completeJobSubTitle" style="font-size: 12px; opacity: 0.9;">सफाई के बाद की फोटो (1 या 2 फोटो)</span>
+            <h3 id="completeSpecialJobModalTitle" style="margin: 0; font-size: 16px; font-weight: 700;">काम पूरा करें (Complete Job)</h3>
+            <span id="completeJobSubTitle" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">सफाई के बाद की फोटो (1 या 2 फोटो)</span>
           </div>
         </div>
-        <button type="button" class="modal-close-x" style="color: #fff;" onclick="closeCompleteSpecialJobModal()">✕</button>
+        <button type="button" class="modal-close-x" onclick="closeCompleteSpecialJobModal()" aria-label="Close dialog" title="Close">✕</button>
       </div>
       <div class="camera-modal-body" style="padding: 18px;">
-        <div id="completeJobCustomerSummary" style="background: #f1f5f9; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: #334155;"></div>
+        <div id="completeJobCustomerSummary" style="background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: var(--md-sys-color-on-surface, #0f172a); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);"></div>
         <div style="margin-bottom: 14px;">
-          <label style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 6px;">
-            📸 काम पूरा होने के बाद की फोटो (After Photos - 1 या 2) <span style="color:#ef4444;">*</span>
+          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">photo_camera</span>काम पूरा होने के बाद की फोटो (After Photos - 1 या 2) <span style="color:#ef4444;">*</span>
           </label>
-          <p style="font-size: 12px; color: #64748b; margin-top: 0; margin-bottom: 10px;">
+          <p style="font-size: 12px; color: var(--md-sys-color-outline, #64748b); margin-top: 0; margin-bottom: 10px;">
             चमकती हुई सफाई दिखाने के लिए 1 या 2 फोटो लें।
           </p>
           <input type="file" id="completeJobPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleCompleteJobPhotoSelect(event)">
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <button type="button" id="btnCompleteJobAddPhoto" onclick="document.getElementById('completeJobPhotoInput').click()" style="display: inline-flex; align-items: center; gap: 6px; background: #059669; color: #ffffff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
-              <span>📷 फोटो लें / अपलोड करें</span>
+            <button type="button" id="btnCompleteJobAddPhoto" onclick="document.getElementById('completeJobPhotoInput').click()" style="display: inline-flex; align-items: center; gap: 6px; background: var(--md-sys-color-tertiary, #059669); color: #ffffff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+              <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">add_a_photo</span><span>फोटो लें / अपलोड करें</span>
             </button>
-            <span id="completeJobPhotoCountHint" style="font-size: 12px; color: #64748b;">0 / 2 फोटो चुनी गई</span>
+            <span id="completeJobPhotoCountHint" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">0 / 2 फोटो चुनी गई</span>
           </div>
           <div id="completeJobPhotosPreview" style="display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap;"></div>
         </div>
         <div style="margin-bottom: 14px;">
-          <label style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 6px;">
-            📝 विशेष टिप्पणी / विवरण (Optional)
+          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">notes</span>विशेष टिप्पणी / विवरण (Optional)
           </label>
-          <textarea id="completeJobNotes" rows="2" class="form-textarea" placeholder="उदा. 20 सोलर पैनल अच्छी तरह साफ किए..." style="width: 100%; border-radius: 8px; padding: 8px 12px; font-size: 13px; border: 1px solid #cbd5e1;"></textarea>
+          <textarea id="completeJobNotes" rows="2" class="form-textarea" placeholder="उदा. 20 सोलर पैनल अच्छी तरह साफ किए..." style="width: 100%; border-radius: 8px; padding: 8px 12px; font-size: 13px; border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1);"></textarea>
         </div>
         <div id="completeJobErrorMsg" style="display: none; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px;"></div>
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-          <button type="button" onclick="closeCompleteSpecialJobModal()" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">रद्द करें (Cancel)</button>
-          <button type="button" id="btnSubmitCompleteJob" onclick="submitCompleteSpecialJob()" style="background: linear-gradient(135deg, #059669, #047857); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-            <span>✅ काम पूर्ण और सबमिट करें</span>
+          <button type="button" onclick="closeCompleteSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">रद्द करें (Cancel)</button>
+          <button type="button" id="btnSubmitCompleteJob" onclick="submitCompleteSpecialJob()" style="background: var(--md-sys-color-tertiary, #059669); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">check</span><span>काम पूर्ण और सबमिट करें</span>
           </button>
         </div>
       </div>
