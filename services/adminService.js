@@ -1055,71 +1055,73 @@ async function getDailyCleanReports(filters = {}, adminUser = 'admin') {
 }
 
 async function backfillHindiCustomerData(adminUser = 'admin') {
-  return db.withTransaction(async (client) => {
-    const allCusts = await repos.customers.findAll({ includeDeleted: false, limit: 1000, client });
-    let updatedCount = 0;
+  const allCusts = await repos.customers.findAll({ includeDeleted: false, limit: 1000 });
+  let updatedCount = 0;
 
-    for (const c of allCusts) {
-      let needsUpdate = false;
-      let nameHi = c.name_hi;
-      let addrHi = c.address_hi;
-      let secAddrHi = c.secondary_address_hi;
+  for (const c of allCusts) {
+    let needsUpdate = false;
+    let nameHi = c.name_hi;
+    let addrHi = c.address_hi;
+    let secAddrHi = c.secondary_address_hi;
 
-      if (!nameHi && c.name) {
-        try {
-          nameHi = await indicService.transliterateName(c.name);
-          needsUpdate = true;
-        } catch (e) {
-          nameHi = c.name;
-        }
-      }
-
-      const locs = await repos.serviceLocations.findByCustomerId(c.id, { client });
-      const primaryLoc = locs.find(l => l.is_primary) || locs[0] || null;
-      const secLoc = locs.find(l => !l.is_primary) || (locs.length > 1 ? locs[1] : null);
-
-      if (primaryLoc && (!primaryLoc.address_text_hi || !addrHi)) {
-        try {
-          const trans = await indicService.transliterateAddress(primaryLoc.address_text);
-          addrHi = trans;
-          await repos.serviceLocations.updateLocation(primaryLoc.id, { addressTextHi: trans }, client);
-          needsUpdate = true;
-        } catch (e) {
-          addrHi = primaryLoc.address_text;
-        }
-      }
-
-      if (secLoc && (!secLoc.address_text_hi || !secAddrHi)) {
-        try {
-          const transSec = await indicService.transliterateAddress(secLoc.address_text);
-          secAddrHi = transSec;
-          await repos.serviceLocations.updateLocation(secLoc.id, { addressTextHi: transSec }, client);
-          needsUpdate = true;
-        } catch (e) {
-          secAddrHi = secLoc.address_text;
-        }
-      }
-
-      if (needsUpdate) {
-        await repos.customers.updateCustomer(c.id, {
-          nameHi,
-          addressHi: addrHi,
-          secondaryAddressHi: secAddrHi
-        }, client);
-        updatedCount++;
+    if (!nameHi && c.name) {
+      try {
+        nameHi = await indicService.transliterateName(c.name);
+        needsUpdate = true;
+      } catch (e) {
+        nameHi = c.name;
       }
     }
 
+    const locs = await repos.serviceLocations.findByCustomerId(c.id);
+    const primaryLoc = locs.find(l => l.is_primary) || locs[0] || null;
+    const secLoc = locs.find(l => !l.is_primary) || (locs.length > 1 ? locs[1] : null);
+
+    if (primaryLoc && (!primaryLoc.address_text_hi || !addrHi)) {
+      try {
+        const trans = await indicService.transliterateAddress(primaryLoc.address_text);
+        addrHi = trans;
+        await repos.serviceLocations.updateLocation(primaryLoc.id, { addressTextHi: trans });
+        needsUpdate = true;
+      } catch (e) {
+        addrHi = primaryLoc.address_text;
+      }
+    }
+
+    if (secLoc && (!secLoc.address_text_hi || !secAddrHi)) {
+      try {
+        const transSec = await indicService.transliterateAddress(secLoc.address_text);
+        secAddrHi = transSec;
+        await repos.serviceLocations.updateLocation(secLoc.id, { addressTextHi: transSec });
+        needsUpdate = true;
+      } catch (e) {
+        secAddrHi = secLoc.address_text;
+      }
+    }
+
+    if (needsUpdate) {
+      await repos.customers.updateCustomer(c.id, {
+        nameHi,
+        addressHi: addrHi,
+        secondaryAddressHi: secAddrHi
+      });
+      updatedCount++;
+    }
+  }
+
+  try {
     await repos.auditLogs.logChange({
       entityType: 'customers',
-      entityId: null,
-      action: 'backfill_hindi_transliteration',
+      entityId: 'ALL_CUSTOMERS',
+      action: 'backfill_hindi',
       changedBy: adminUser,
       afterState: { total: allCusts.length, updated: updatedCount }
     });
+  } catch (auditErr) {
+    console.warn('[Audit] backfill log skipped:', auditErr.message);
+  }
 
-    return { success: true, total: allCusts.length, updated: updatedCount };
-  });
+  return { success: true, total: allCusts.length, updated: updatedCount };
 }
 
 module.exports = {

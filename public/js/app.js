@@ -415,9 +415,16 @@ var state = {
       state.lang = lang;
       var isHi = (lang === 'hi');
 
-      // Update Header Toggles
+      // Update Header Toggles & Menus
       var langText = document.getElementById('langToggleText');
       if (langText) langText.textContent = isHi ? 'EN' : 'हिन्दी';
+      var checkEn = document.getElementById('checkLangEn');
+      var checkHi = document.getElementById('checkLangHi');
+      var optEn = document.getElementById('langOptEn');
+      var optHi = document.getElementById('langOptHi');
+      if (optEn) optEn.classList.toggle('is-selected', !isHi);
+      if (optHi) optHi.classList.toggle('is-selected', isHi);
+
       var gateLang = document.getElementById('gateLangText');
       if (gateLang) gateLang.textContent = isHi ? 'English' : 'हिन्दी';
       var adminGateLang = document.getElementById('adminGateLangText');
@@ -425,21 +432,41 @@ var state = {
       var btnLang = document.getElementById('btnLangToggle');
       if (btnLang) btnLang.title = isHi ? 'Switch to English' : 'हिन्दी में बदलें';
 
-      // Header Title if in Staff View
+      // Header Title & Context Chip
       var titleEl = document.getElementById('pageMainTitle');
-      if (titleEl && state.currentView === 'staff') {
-        titleEl.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
+      var chipEl = document.getElementById('headerContextChip');
+      if (state.currentView === 'staff') {
+        if (titleEl) titleEl.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
+        if (chipEl) chipEl.textContent = isHi ? 'स्टाफ' : 'STAFF';
+      } else {
+        if (titleEl) titleEl.textContent = 'Admin Portal';
+        if (chipEl) chipEl.textContent = 'ADMIN';
       }
 
-      // Header Controls
+      // Live Sync Header Indicator
       var syncText = document.getElementById('staffSyncText');
       if (syncText) syncText.textContent = isHi ? 'लाइव' : 'Live';
       var syncBadge = document.getElementById('staffLiveBadge');
       if (syncBadge) syncBadge.title = isHi ? 'ऑटो-सिंक सक्रिय (30s) • लाइव डेटा सिंक चालू' : 'Auto-Sync Active (30s) • Live data connected';
-      var logoutBtn = document.getElementById('staffLogoutBtn');
-      if (logoutBtn) {
-        var txt = logoutBtn.querySelector('.logout-text');
-        if (txt) txt.textContent = isHi ? 'लॉगआउट' : 'Logout';
+      
+      var popHeading = document.getElementById('popoverStatusHeading');
+      if (popHeading) popHeading.textContent = isHi ? 'रीयल-टाइम कनेक्शन' : 'Realtime Connection';
+      var popSyncMode = document.getElementById('popoverSyncModeLabel');
+      if (popSyncMode) popSyncMode.textContent = isHi ? 'सिंक फ्रीक्वेंसी:' : 'Sync Frequency:';
+      var popLastSync = document.getElementById('popoverLastSyncLabel');
+      if (popLastSync) popLastSync.textContent = isHi ? 'अंतिम सिंक:' : 'Last Synchronized:';
+      var popNet = document.getElementById('popoverNetworkLabel');
+      if (popNet) popNet.textContent = isHi ? 'नेटवर्क स्थिति:' : 'Network State:';
+      var popBtn = document.getElementById('popoverSyncBtnText');
+      if (popBtn) popBtn.textContent = isHi ? 'अभी सिंक करें' : 'Sync Now';
+
+      var pwaBtnText = document.querySelector('#staffPwaInstallBtn .pwa-btn-text');
+      if (pwaBtnText) pwaBtnText.textContent = isHi ? 'ऐप इंस्टॉल' : 'Install App';
+
+      var staffLogoutBtn = document.getElementById('staffLogoutBtn');
+      if (staffLogoutBtn) {
+        var txt = staffLogoutBtn.querySelector('.logout-text');
+        if (txt) txt.textContent = isHi ? 'लॉगआउट (Shift Sign Out)' : 'Logout (Shift Sign Out)';
       }
 
       // Staff Auth Gate
@@ -512,6 +539,98 @@ var state = {
       }
     }
 
+    /* =========================================================================
+       GOOGLE INDIC TRANSLITERATION & DUAL LANGUAGE HELPERS
+       ========================================================================= */
+    function transliterateTextViaApi(text, type) {
+      if (!text || !text.trim()) return Promise.resolve({ success: true, text: '', transliterated: '' });
+      return fetch('/api/indic/transliterate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, type: type || 'general' })
+      }).then(function(res) {
+        if (!res.ok) throw new Error('Transliterate HTTP error: ' + res.status);
+        return res.json();
+      });
+    }
+
+    function setupIndicInputListeners() {
+      function bindDebouncedTransliterate(sourceId, targetId, type) {
+        var src = document.getElementById(sourceId);
+        var tgt = document.getElementById(targetId);
+        if (!src || !tgt) return;
+        var timer = null;
+        src.addEventListener('input', function() {
+          clearTimeout(timer);
+          var val = src.value.trim();
+          if (!val) { tgt.value = ''; return; }
+          timer = setTimeout(function() {
+            transliterateTextViaApi(val, type).then(function(res) {
+              if (res && res.transliterated) {
+                tgt.value = res.transliterated;
+              }
+            }).catch(function(e) {
+              console.warn('[IndicTransliterate] failed:', e.message);
+            });
+          }, 350);
+        });
+      }
+
+      bindDebouncedTransliterate('custName', 'custNameHi', 'name');
+      bindDebouncedTransliterate('custAddress', 'custAddressHi', 'address');
+      bindDebouncedTransliterate('custSecAddress', 'custSecAddressHi', 'address');
+      bindDebouncedTransliterate('editCustName', 'editCustNameHi', 'name');
+      bindDebouncedTransliterate('editCustAddress', 'editCustAddressHi', 'address');
+      bindDebouncedTransliterate('editCustSecAddress', 'editCustSecAddressHi', 'address');
+    }
+
+    function speakHindiCustomerDetails(name, address, event) {
+      if (event) event.stopPropagation();
+      if (!('speechSynthesis' in window)) {
+        showToast('स्पीच सिंथेसाइज़र समर्थित नहीं है', '⚠️');
+        return;
+      }
+      try {
+        window.speechSynthesis.cancel();
+        var text = (name || '').trim();
+        if (address) text += ', पता: ' + address;
+        var utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'hi-IN';
+        utterance.rate = 0.88;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.warn('Speech error:', e);
+      }
+    }
+
+    function handleBackfillHindi() {
+      var isHi = (state.lang !== 'en');
+      var msg = isHi
+        ? 'क्या आप Google Indic के माध्यम से सभी मौजूदा ग्राहकों के नाम और पते हिंदी में स्वतः बनाना चाहते हैं?'
+        : 'Do you want to auto-generate Hindi Name & Address for all existing customers using Google Indic?';
+      if (!confirm(msg)) return;
+
+      var btn = document.getElementById('btnAdminBackfillHindi');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="cwp-spinner"></span> ' + (isHi ? 'प्रोसेसिंग...' : 'Translating...');
+      }
+
+      apiCall('backfillHindi', {}, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="btn-admin-icon-text">🌐 Auto Indic</span>';
+        }
+        if (res && res.success) {
+          showToast(isHi ? (res.updated + ' ग्राहकों का हिंदी डेटा अपडेट हो गया!') : (res.updated + ' customers updated with Hindi data!'), '🌐');
+          loadAdminRecords(true);
+        } else {
+          showToast(res && res.error ? res.error : 'Failed to backfill Hindi data', '⚠️');
+        }
+      });
+    }
+
     /* Initialize Application */
     document.addEventListener('DOMContentLoaded', function() {
       initTheme();
@@ -519,6 +638,7 @@ var state = {
       initAllPhoneFormatters();
       initStaffPinDots();
       syncBrandLogos();
+      setupIndicInputListeners();
       var editPhotoInp = document.getElementById('editStaffPhotoFile');
       if (editPhotoInp) {
         editPhotoInp.addEventListener('change', function(e) { handleStaffPhotoSelect(e, 'edit'); });
@@ -622,6 +742,7 @@ var state = {
         syncBrandLogos();
         if (typeof hidePwaUi === 'function') hidePwaUi();
       }
+      if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
     }
 
     /* Staff Authentication & Security Logic */
@@ -718,6 +839,7 @@ var state = {
         if (logoutBtn) logoutBtn.style.display = 'inline-flex';
         if (liveBadge) liveBadge.style.display = 'inline-flex';
         loadStaffCustomerData(activeId);
+        if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
       } else {
         if (authGate) {
           authGate.classList.remove('is-hidden');
@@ -733,6 +855,7 @@ var state = {
         }
         if (logoutBtn) logoutBtn.style.display = 'none';
         if (liveBadge) liveBadge.style.display = 'none';
+        if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
 
         // Auto-fill phone if previously entered or saved
         var savedPhone = sessionStorage.getItem('cwp_last_staff_phone') || localStorage.getItem('cwp_last_staff_phone') || '';
@@ -1163,6 +1286,7 @@ var state = {
         // Restore current active tab (keeps same panel on refresh, or records on login)
         var currentTab = getSavedAdminTab();
         switchAdminTab(currentTab, true);
+        if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
       } else {
         if (authGate) {
           authGate.classList.remove('is-hidden');
@@ -1176,6 +1300,7 @@ var state = {
           unlocked.style.setProperty('display', 'none', 'important');
         }
         if (logoutBtn) logoutBtn.style.display = 'none';
+        if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
         setTimeout(function() {
           var input = document.getElementById('adminPasswordInput');
           if (input) input.focus();
@@ -1497,23 +1622,38 @@ var state = {
       var text = document.getElementById('staffSyncText');
       if (!badge || !text) return;
 
+      var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
       var timeStr = formatSyncTime(timestamp || lastStaffSyncTimestamp);
 
       if (status === 'checking') {
-        badge.className = 'staff-live-badge sync-checking';
-        badge.title = 'नवीनतम डेटा की Verifying... (Checking for updates)';
-        if (dot) dot.innerHTML = '<span class="staff-sync-spinner"></span>';
-        text.textContent = 'सिंक...';
+        badge.className = 'header-status-pill staff-live-badge status-syncing sync-checking';
+        badge.title = isHi ? 'नवीनतम डेटा की जाँच हो रही है... (Checking updates)' : 'Checking latest data updates...';
+        if (dot) dot.innerHTML = '<span class="status-sync-spinner"></span>';
+        text.textContent = isHi ? 'सिंक...' : 'Syncing...';
       } else if (status === 'offline') {
-        badge.className = 'staff-live-badge sync-offline';
-        badge.title = 'इंटरनेट कनेक्शन में रुकावट — पिछला उपलब्ध डेटा प्रदर्शित है।';
-        if (dot) dot.innerHTML = '<span style="font-size: 10px;">⚠️</span>';
-        text.textContent = 'ऑफ़लाइन';
+        badge.className = 'header-status-pill staff-live-badge status-offline sync-offline';
+        badge.title = isHi ? 'इंटरनेट कनेक्शन में रुकावट — पिछला उपलब्ध डेटा प्रदर्शित है।' : 'Network connection offline — displaying cached data.';
+        if (dot) dot.innerHTML = '<span class="dot-offline">●</span>';
+        text.textContent = isHi ? 'ऑफ़लाइन' : 'Offline';
+      } else if (status === 'error') {
+        badge.className = 'header-status-pill staff-live-badge status-error';
+        badge.title = isHi ? 'डेटा सिंक में समस्या' : 'Sync error occurred';
+        if (dot) dot.innerHTML = '<span class="dot-error">●</span>';
+        text.textContent = isHi ? 'त्रुटि' : 'Error';
       } else {
-        badge.className = 'staff-live-badge';
-        badge.title = '● ऑटो-सिंक सक्रिय (30s) • ' + (message || 'लाइव') + ' • अंतिम जांच: ' + timeStr + ' (क्लिक करके अभी चेक करें)';
+        badge.className = 'header-status-pill staff-live-badge status-live';
+        badge.title = isHi 
+          ? '● ऑटो-सिंक सक्रिय (30s) • ' + (message || 'लाइव') + ' • अंतिम जांच: ' + timeStr + ' (क्लिक करके विवरण देखें)'
+          : '● Auto-Sync Active (30s) • ' + (message || 'Live') + ' • Last sync: ' + timeStr + ' (Click for details)';
         if (dot) dot.innerHTML = '<span class="dot-live">●</span>';
-        text.textContent = 'लाइव';
+        text.textContent = isHi ? 'लाइव' : 'Live';
+      }
+
+      var popTime = document.getElementById('popoverLastSyncVal');
+      if (popTime) popTime.textContent = timeStr;
+      var popDot = document.getElementById('popoverStatusDot');
+      if (popDot) {
+        popDot.className = 'popover-dot ' + (status === 'checking' ? 'status-sync-spinner' : (status === 'offline' ? 'dot-offline' : (status === 'error' ? 'dot-error' : 'dot-live')));
       }
     }
 
@@ -1990,15 +2130,29 @@ function loadStaffCustomerData(staffId) {
         var isSolar = item.category === 'solar_cleaning';
         var isCarWash = item.category === 'car_washing';
         var isDaily = item.category === 'daily_car_cleaning' || (!isSolar && !isCarWash);
-        var customerName = escapeHtml(item.customerName || 'Customer');
+
+        // Smart Dual-Language Display (English + Google Indic Hindi)
+        var rawName = item.customerName || 'Customer';
+        var hiName = (item.nameHi || item.name_hi || '').trim();
+        var displayName = (isHi && hiName) ? hiName : rawName;
+        var customerName = escapeHtml(displayName);
+        var subNameEn = (isHi && hiName && hiName !== rawName) ? escapeHtml(rawName) : '';
+
         var cleanPhone = normalizeIndianMobile(item.customerNumber);
         var formattedPhone = cleanPhone ? formatIndianMobile(cleanPhone) : '';
 
         var rawVeh = item.vehicleNumbers || item.vehicleOrSite || item.vehicle;
         var vehicles = (rawVeh != null ? String(rawVeh) : '').trim() || (isSolar ? 'साइट विवरण Not provided' : 'गाड़ी नंबर Not provided');
         var notes = (item.staffNotes || item.notes != null ? String(item.staffNotes || item.notes) : '').trim();
-        var address = (item.address != null ? String(item.address) : '').trim();
-        var secAddress = (item.secondaryAddress != null ? String(item.secondaryAddress) : '').trim();
+
+        var rawAddr = (item.address != null ? String(item.address) : '').trim();
+        var hiAddr = (item.addressHi || item.address_hi != null ? String(item.addressHi || item.address_hi) : '').trim();
+        var address = (isHi && hiAddr) ? hiAddr : rawAddr;
+
+        var rawSecAddr = (item.secondaryAddress != null ? String(item.secondaryAddress) : '').trim();
+        var hiSecAddr = (item.secondaryAddressHi || item.secondary_address_hi != null ? String(item.secondaryAddressHi || item.secondary_address_hi) : '').trim();
+        var secAddress = (isHi && hiSecAddr) ? hiSecAddr : rawSecAddr;
+
         var mapsUrl = formatGoogleMapsUrl(item.googleMapsUrl, address);
         var secMapsUrl = formatGoogleMapsUrl(item.secondaryMapsUrl, secAddress);
         var hasPrimaryLoc = !!(mapsUrl || address);
@@ -2031,7 +2185,15 @@ function loadStaffCustomerData(staffId) {
         } else {
           html += '      <span class="cust-index-badge">#' + seqNumber + '</span>';
         }
-        html += '      <h3 class="cust-full-name" title="' + customerName + '">' + customerName + '</h3>';
+        html += '      <div class="cust-name-with-audio" style="display: flex; flex-direction: column; min-width: 0;">';
+        html += '        <h3 class="cust-full-name" title="' + customerName + '">' + customerName + '</h3>';
+        if (subNameEn) {
+          html += '        <span class="cust-bilingual-sub" title="' + subNameEn + '">(' + subNameEn + ')</span>';
+        }
+        html += '      </div>';
+        html += '      <button type="button" class="btn-card-audio" onclick="speakHindiCustomerDetails(\'' + escapeHtml(displayName).replace(/'/g, "\\'") + '\', \'' + escapeHtml(address).replace(/'/g, "\\'") + '\', event)" title="' + (isHi ? 'नाम और पता सुनें' : 'Listen name & address') + '">';
+        html += '        <span>🔊</span>';
+        html += '      </button>';
         html += '    </div>';
         
         html += '    <div class="card-action-buttons">';
@@ -3913,8 +4075,10 @@ function loadStaffCustomerData(staffId) {
         staffId: staffId,
         staffName: staffName,
         customerName: document.getElementById('custName').value.trim(),
+        nameHi: document.getElementById('custNameHi') ? document.getElementById('custNameHi').value.trim() : '',
         customerNumber: normalizeIndianMobile(document.getElementById('custPhone').value),
         address: document.getElementById('custAddress').value.trim(),
+        addressHi: document.getElementById('custAddressHi') ? document.getElementById('custAddressHi').value.trim() : '',
         googleMapsUrl: document.getElementById('custMapsUrl').value.trim(),
         staffNotes: document.getElementById('custNotes').value.trim(),
         active: 'Yes',
@@ -3925,6 +4089,7 @@ function loadStaffCustomerData(staffId) {
         vehicleOrSite: vehText,
         vehicle: vehText,
         secondaryAddress: isDaily && document.getElementById('custSecAddress') ? document.getElementById('custSecAddress').value.trim() : '',
+        secondaryAddressHi: isDaily && document.getElementById('custSecAddressHi') ? document.getElementById('custSecAddressHi').value.trim() : '',
         secondaryMapsUrl: isDaily && document.getElementById('custSecMaps') ? document.getElementById('custSecMaps').value.trim() : '',
         photoFile: photoPayload,
         photoData: photoPayload
@@ -4549,10 +4714,15 @@ function loadStaffCustomerData(staffId) {
           '</div>';
         }
 
+        var hiName = (r.nameHi || r.name_hi || '').trim();
+        var nameDisplayHtml = escapeHtml(r.customerName || 'Unknown Customer');
+        if (hiName && hiName !== r.customerName) {
+          nameDisplayHtml += ' <span class="table-hi-sub" title="हिन्दी: ' + escapeHtml(hiName) + '">(' + escapeHtml(hiName) + ')</span>';
+        }
         var custHtml = '<div class="cust-name-cell-modern">' +
           avatarHtml +
           '<div class="cust-meta-col">' +
-            '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + escapeHtml(r.customerName || 'Unknown Customer') + '</span>' +
+            '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + nameDisplayHtml + '</span>' +
             phoneHtml +
             '<div class="cust-tag-wrap">' +
               '<span class="cust-sheet-tag ' + tagClass + '"><span class="tag-status-dot"></span>' + escapeHtml(catName) + '</span>' +
@@ -4703,9 +4873,13 @@ function loadStaffCustomerData(staffId) {
       document.getElementById('editRowIndex').value = r.rowIndex || '';
       document.getElementById('editPhotoUrl').value = r.photoUrl || '';
       document.getElementById('editCustName').value = r.customerName || '';
+      var editNameHi = document.getElementById('editCustNameHi');
+      if (editNameHi) editNameHi.value = r.nameHi || r.name_hi || '';
       setPhoneInputValue(document.getElementById('editCustPhone'), r.customerNumber || '');
       document.getElementById('editCustVehicles').value = r.vehicle || r.vehicleNumbers || '';
       document.getElementById('editCustAddress').value = r.address || '';
+      var editAddrHi = document.getElementById('editCustAddressHi');
+      if (editAddrHi) editAddrHi.value = r.addressHi || r.address_hi || '';
       document.getElementById('editCustMapsUrl').value = r.googleMapsUrl || '';
       document.getElementById('editCustNotes').value = r.notes || r.staffNotes || '';
       document.getElementById('editCustActive').value = (r.active || 'Yes').toLowerCase() === 'no' ? 'No' : 'Yes';
@@ -4717,6 +4891,8 @@ function loadStaffCustomerData(staffId) {
       var secAddrInput = document.getElementById('editCustSecAddress');
       var secMapsInput = document.getElementById('editCustSecMaps');
       if (secAddrInput) secAddrInput.value = r.secondaryAddress || '';
+      var secAddrHiInput = document.getElementById('editCustSecAddressHi');
+      if (secAddrHiInput) secAddrHiInput.value = r.secondaryAddressHi || r.secondary_address_hi || '';
       if (secMapsInput) secMapsInput.value = r.secondaryMapsUrl || '';
       toggleEditSecLocation(!!((r.secondaryAddress && r.secondaryAddress.trim()) || (r.secondaryMapsUrl && r.secondaryMapsUrl.trim())));
 
@@ -5036,6 +5212,7 @@ function loadStaffCustomerData(staffId) {
         sheetName: sheetName,
         rowIndex: rowIndex,
         customerName: document.getElementById('editCustName').value.trim(),
+        nameHi: document.getElementById('editCustNameHi') ? document.getElementById('editCustNameHi').value.trim() : '',
         customerNumber: normalizeIndianMobile(document.getElementById('editCustPhone').value),
         staffName: editStaffName,
         staffId: editStaffId,
@@ -5048,7 +5225,9 @@ function loadStaffCustomerData(staffId) {
         vehicleOrSite: vehText,
         vehicle: vehText,
         address: document.getElementById('editCustAddress').value.trim(),
+        addressHi: document.getElementById('editCustAddressHi') ? document.getElementById('editCustAddressHi').value.trim() : '',
         secondaryAddress: secAddressVal,
+        secondaryAddressHi: document.getElementById('editCustSecAddressHi') ? document.getElementById('editCustSecAddressHi').value.trim() : '',
         secondaryMapsUrl: secMapsVal,
         googleMapsUrl: document.getElementById('editCustMapsUrl').value.trim(),
         staffNotes: document.getElementById('editCustNotes').value.trim(),
@@ -5157,11 +5336,15 @@ function loadStaffCustomerData(staffId) {
       if (!r) return;
       _activeModalRecord = r;
 
-      var custName = r.customerName || 'Unknown Customer';
+      var isHi = (state.lang !== 'en');
+      var hiName = (r.nameHi || r.name_hi || '').trim();
+      var custName = (isHi && hiName) ? hiName : (r.customerName || 'Unknown Customer');
       var custPhone = (r.customerNumber != null ? String(r.customerNumber) : '').trim();
       var rawVehicle = (r.vehicle || r.vehicleNumbers || r.vehicleOrSite != null ? String(r.vehicle || r.vehicleNumbers || r.vehicleOrSite) : '').trim();
-      var primaryAddr = (r.address != null ? String(r.address) : '').trim();
-      var secAddr = (r.secondaryAddress != null ? String(r.secondaryAddress) : '').trim();
+      var hiAddr = (r.addressHi || r.address_hi || '').trim();
+      var primaryAddr = (isHi && hiAddr) ? hiAddr : (r.address != null ? String(r.address) : '').trim();
+      var hiSecAddr = (r.secondaryAddressHi || r.secondary_address_hi || '').trim();
+      var secAddr = (isHi && hiSecAddr) ? hiSecAddr : (r.secondaryAddress != null ? String(r.secondaryAddress) : '').trim();
       var primaryMapUrl = formatGoogleMapsUrl(r.googleMapsUrl, primaryAddr);
       var secMapUrl = formatGoogleMapsUrl(r.secondaryMapsUrl, secAddr);
 
@@ -6675,6 +6858,113 @@ function loadStaffCustomerData(staffId) {
     /* =========================================================================
        WHATSAPP DISPATCH & SHARING SYSTEM
        ========================================================================= */
+    /* =========================================================================
+       WHATSAPP DIRECT IMAGE DISPATCH & SHARING SYSTEM (Photo-First)
+       ========================================================================= */
+    var currentWaModalBlob = null;
+    var currentWaModalFile = null;
+    var currentWaModalItem = null;
+    var currentWaModalSrc = '';
+
+    function getCleaningPhotoFile(photoUrlOrBase64, vehicleNumber, callback) {
+      var filename = 'CWP_' + (vehicleNumber ? String(vehicleNumber).replace(/[^a-zA-Z0-9]/g, '_') : 'Car') + '_' + Date.now() + '.jpg';
+
+      if (!photoUrlOrBase64) {
+        if (callback) callback(null, null);
+        return;
+      }
+
+      // 1. Data URL (Base64)
+      if (typeof photoUrlOrBase64 === 'string' && photoUrlOrBase64.startsWith('data:')) {
+        try {
+          var arr = photoUrlOrBase64.split(',');
+          var mimeMatch = arr[0].match(/:(.*?);/);
+          var mime = (mimeMatch && mimeMatch[1]) || 'image/jpeg';
+          var bstr = atob(arr[1]);
+          var n = bstr.length;
+          var u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          var blob = new Blob([u8arr], { type: mime });
+          var file = (typeof File !== 'undefined') ? new File([blob], filename, { type: mime }) : blob;
+          if (callback) callback(file, blob);
+          return;
+        } catch (e) {
+          console.warn('Failed to parse base64 photo for WhatsApp:', e);
+        }
+      }
+
+      // 2. Relative or Remote URL
+      var fetchUrl = photoUrlOrBase64;
+      if (typeof fetchUrl === 'string' && fetchUrl.startsWith('/')) {
+        fetchUrl = (typeof window !== 'undefined' && window.location ? window.location.origin : '') + fetchUrl;
+      }
+
+      if (typeof fetch === 'function') {
+        fetch(fetchUrl)
+          .then(function(res) { return res.blob(); })
+          .then(function(blob) {
+            var mime = blob.type || 'image/jpeg';
+            var file = (typeof File !== 'undefined') ? new File([blob], filename, { type: mime }) : blob;
+            if (callback) callback(file, blob);
+          })
+          .catch(function(err) {
+            console.warn('Failed to fetch photo blob for WhatsApp:', err);
+            if (callback) callback(null, null);
+          });
+      } else {
+        if (callback) callback(null, null);
+      }
+    }
+
+    function copyImageBlobToClipboard(blob, callback) {
+      if (typeof navigator === 'undefined' || !navigator || !navigator.clipboard || typeof navigator.clipboard.write !== 'function' || typeof ClipboardItem === 'undefined') {
+        if (callback) callback(false);
+        return;
+      }
+
+      // If already image/png, write directly
+      if (blob.type === 'image/png') {
+        var item = new ClipboardItem({ 'image/png': blob });
+        navigator.clipboard.write([item])
+          .then(function() { if (callback) callback(true); })
+          .catch(function(e) { if (callback) callback(false); });
+        return;
+      }
+
+      // Convert to image/png via offscreen canvas
+      if (typeof document !== 'undefined' && document.createElement) {
+        var img = new Image();
+        var url = (typeof URL !== 'undefined' && URL.createObjectURL) ? URL.createObjectURL(blob) : '';
+        img.onload = function() {
+          if (url && URL.revokeObjectURL) URL.revokeObjectURL(url);
+          var canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob(function(pngBlob) {
+            if (pngBlob) {
+              var clipItem = new ClipboardItem({ 'image/png': pngBlob });
+              navigator.clipboard.write([clipItem])
+                .then(function() { if (callback) callback(true); })
+                .catch(function(err) { if (callback) callback(false); });
+            } else {
+              if (callback) callback(false);
+            }
+          }, 'image/png');
+        };
+        img.onerror = function() {
+          if (url && URL.revokeObjectURL) URL.revokeObjectURL(url);
+          if (callback) callback(false);
+        };
+        img.src = url;
+      } else {
+        if (callback) callback(false);
+      }
+    }
+
     function handleCustomerWhatsAppShare(custId, index) {
       var item = state.currentStaffFilteredList && state.currentStaffFilteredList[index];
       if (!item) return;
@@ -6686,69 +6976,125 @@ function loadStaffCustomerData(staffId) {
       triggerCleaningWhatsAppShare(item, photoUrl, completedAt);
     }
 
-    function triggerCleaningWhatsAppShare(item, photoUrl, completedAtTime) {
-      var vName = item.vehicle || item.vehicleNumbers || 'Car';
-      var cName = item.customerName || item.name || 'Customer';
-      var loc = item.address || item.parkingDetails || '';
+    function triggerCleaningWhatsAppShare(item, photoUrl, completedAtTime, fallbackDataUrl) {
+      var vName = (item && (item.vehicle || item.vehicleNumbers)) || 'Car';
+      var cName = (item && (item.customerName || item.name)) || 'Customer';
       var sName = (state.staffData && state.staffData.staffName) || state.activeStaffName || 'Staff';
-      var sCode = state.activeStaffId || 'STF01';
 
-      var dateObj = completedAtTime ? new Date(completedAtTime) : new Date();
-      var dateFormatted = dateObj.toLocaleString('en-IN', {
-        timeZone: 'Asia/Kolkata',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
+      var effectivePhoto = photoUrl || fallbackDataUrl || (typeof currentSnappedPhotoBase64 !== 'undefined' ? currentSnappedPhotoBase64 : '');
+
+      if (!effectivePhoto && item) {
+        var custId = item.id || item.customerId || (typeof getCustomerStableId === 'function' ? getCustomerStableId(item) : '');
+        if (custId) {
+          var compData = getCustomerCompletionData(custId);
+          if (compData && compData.photoUrl) {
+            effectivePhoto = compData.photoUrl;
+          }
+        }
+      }
+
+      if (!effectivePhoto) {
+        showToast('सफाई फोटो नहीं मिली। कृपया पहले फोटो लें।', '⚠️');
+        return;
+      }
+
+      getCleaningPhotoFile(effectivePhoto, vName, function(file, blob) {
+        // 1. Mobile First: Native Web Share API with actual IMAGE file
+        if (file && typeof navigator !== 'undefined' && navigator && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            files: [file],
+            title: 'CWP Cleaning Proof - ' + vName
+          }).catch(function(err) {
+            // If user did not simply cancel the dialog, open desktop helper
+            if (err && err.name !== 'AbortError') {
+              openDesktopWhatsAppImageHelper(blob, file, item, effectivePhoto);
+            }
+          });
+          return;
+        }
+
+        // 2. Desktop / WhatsApp Web / Fallback: Copy Image & Open Helper
+        openDesktopWhatsAppImageHelper(blob, file, item, effectivePhoto);
       });
+    }
 
-      var textLines = [
-        '✨ *CWP Detailers & Motors - Daily Car Cleaning Report* ✨',
-        '━━━━━━━━━━━━━━━━━━━━━',
-        '🚗 *गाड़ी (Vehicle):* ' + vName,
-        '👤 *ग्राहक (Customer):* ' + cName,
-        (loc ? ('📍 *स्थान (Location):* ' + loc) : ''),
-        '👨‍🔧 *सफाई कर्मी (Staff):* ' + sName + ' (' + sCode + ')',
-        '⏰ *समय (Time):* ' + dateFormatted + ' IST',
-        (photoUrl ? ('📷 *सफाई फोटो प्रमाण (Photo Proof):*\n' + photoUrl) : '📷 *सफाई फोटो:* सत्यापित (Verified)'),
-        '━━━━━━━━━━━━━━━━━━━━━',
-        '_गाड़ी की दैनिक सफाई पूरी कर दी गई है। धन्यवाद!_'
-      ].filter(Boolean);
+    function openDesktopWhatsAppImageHelper(blob, file, item, photoSrc) {
+      currentWaModalBlob = blob;
+      currentWaModalFile = file;
+      currentWaModalItem = item;
+      currentWaModalSrc = photoSrc;
 
-      var message = textLines.join('\n');
+      var vName = (item && (item.vehicle || item.vehicleNumbers)) || 'Car';
+      var sName = (state.staffData && state.staffData.staffName) || state.activeStaffName || 'Staff';
 
-      // Check if staff has defined a WhatsApp group or mobile number
+      var previewImg = document.getElementById('waShareModalPreviewImg');
+      var vehTag = document.getElementById('waShareModalVehTag');
+      var staffTag = document.getElementById('waShareModalStaffTag');
+      var modal = document.getElementById('whatsAppImageShareModal');
+
+      if (previewImg) previewImg.src = photoSrc;
+      if (vehTag) vehTag.textContent = '🚗 ' + vName;
+      if (staffTag) staffTag.textContent = '👨‍🔧 ' + sName;
+
+      // Copy image to clipboard immediately
+      if (blob) {
+        copyImageBlobToClipboard(blob, function(success) {
+          if (success) {
+            showToast('📸 फोटो कॉपी हो चुकी है! WhatsApp में Ctrl+V (Paste) करें।', 'success');
+          }
+        });
+      }
+
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    }
+
+    function closeWhatsAppImageModal() {
+      var modal = document.getElementById('whatsAppImageShareModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function proceedToWhatsAppChat() {
       var targetGroup = getStaffWhatsAppGroup();
+      var targetUrl = 'https://web.whatsapp.com/';
 
       if (targetGroup) {
         var cleanTarget = targetGroup.trim();
         if (cleanTarget.startsWith('http://') || cleanTarget.startsWith('https://')) {
-          copyToClipboard(message);
-          showToast('रिपोर्ट कॉपी हो गई! व्हाट्सएप ग्रुप खुल रहा है...', 'success');
-          window.open(cleanTarget, '_blank');
-          return;
+          targetUrl = cleanTarget;
         } else if (/^\d{10}$/.test(cleanTarget)) {
-          var waUrl = 'https://wa.me/91' + cleanTarget + '?text=' + encodeURIComponent(message);
-          window.open(waUrl, '_blank');
-          return;
+          targetUrl = 'https://web.whatsapp.com/send?phone=91' + cleanTarget;
         }
       }
 
-      // Universal Mobile Web Share API fallback
-      if (navigator.share && /mobile|android|iphone|ipad/i.test(navigator.userAgent)) {
-        navigator.share({
-          title: 'CWP Car Cleaning Proof - ' + vName,
-          text: message
-        }).catch(function(e) {
-          var waFallbackUrl = 'https://wa.me/?text=' + encodeURIComponent(message);
-          window.open(waFallbackUrl, '_blank');
+      window.open(targetUrl, '_blank');
+      showToast('चैट खुलते ही Ctrl+V (Paste) दबाकर फोटो भेजें', 'info');
+      closeWhatsAppImageModal();
+    }
+
+    function copyWaModalImageAgain() {
+      if (currentWaModalBlob) {
+        copyImageBlobToClipboard(currentWaModalBlob, function(success) {
+          if (success) {
+            showToast('✓ फोटो क्लिपबोर्ड में कॉपी हो गई!', 'success');
+          } else {
+            showToast('क्लिपबोर्ड कॉपी असफल। नीचे डाउनलोड बटन का उपयोग करें।', 'warning');
+          }
         });
-      } else {
-        var waUrl = 'https://wa.me/?text=' + encodeURIComponent(message);
-        window.open(waUrl, '_blank');
       }
+    }
+
+    function downloadWaModalImage() {
+      if (!currentWaModalSrc) return;
+      var a = document.createElement('a');
+      a.href = currentWaModalSrc;
+      a.download = 'CWP_Car_Clean_' + Date.now() + '.jpg';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('फोटो डाउनलोड हो गई!', 'success');
     }
 
     function getStaffWhatsAppGroup() {
@@ -7534,6 +7880,11 @@ function loadStaffCustomerData(staffId) {
       window.confirmAndSaveCleaningPhoto = confirmAndSaveCleaningPhoto;
       window.handleCustomerWhatsAppShare = handleCustomerWhatsAppShare;
       window.triggerCleaningWhatsAppShare = triggerCleaningWhatsAppShare;
+      window.openDesktopWhatsAppImageHelper = openDesktopWhatsAppImageHelper;
+      window.closeWhatsAppImageModal = closeWhatsAppImageModal;
+      window.proceedToWhatsAppChat = proceedToWhatsAppChat;
+      window.copyWaModalImageAgain = copyWaModalImageAgain;
+      window.downloadWaModalImage = downloadWaModalImage;
       window.loadDailyCleanReports = loadDailyCleanReports;
       window.handleStaffPhotoSelect = handleStaffPhotoSelect;
       window.clearNewStaffPhoto = clearNewStaffPhoto;
@@ -7563,4 +7914,283 @@ function loadStaffCustomerData(staffId) {
       window.applyPwaUpdate = applyPwaUpdate;
       window.changeAdminPage = changeAdminPage;
       window.changeAdminPageSize = changeAdminPageSize;
+      window.speakHindiCustomerDetails = speakHindiCustomerDetails;
+      window.handleBackfillHindi = handleBackfillHindi;
+      window.transliterateTextViaApi = transliterateTextViaApi;
+      window.setupIndicInputListeners = setupIndicInputListeners;
+    }
+
+    /* =========================================================================
+       GLOBAL UNIFIED HEADER CONTROLLERS & DROPDOWNS
+       ========================================================================= */
+
+    function toggleLangDropdown(e) {
+      if (e) e.stopPropagation();
+      var wrap = document.getElementById('langDropdownWrap');
+      var panel = document.getElementById('langMenuPanel');
+      if (!panel || !wrap) return;
+      
+      var isOpen = panel.style.display !== 'none';
+      closeAllHeaderPopovers();
+      
+      if (!isOpen) {
+        panel.style.display = 'flex';
+        wrap.classList.add('is-open');
+        var trigger = document.getElementById('btnLangToggle');
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    function closeLangDropdown() {
+      var wrap = document.getElementById('langDropdownWrap');
+      var panel = document.getElementById('langMenuPanel');
+      if (panel) panel.style.display = 'none';
+      if (wrap) wrap.classList.remove('is-open');
+      var trigger = document.getElementById('btnLangToggle');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function selectAppLanguage(lang, e) {
+      if (e) e.stopPropagation();
+      closeLangDropdown();
+      setLanguage(lang);
+    }
+
+    function toggleSyncDetailsPopover(e) {
+      if (e) e.stopPropagation();
+      var popover = document.getElementById('syncDetailsPopover');
+      if (!popover) return;
+      var isOpen = popover.style.display !== 'none';
+      closeAllHeaderPopovers();
+      
+      if (!isOpen) {
+        refreshSyncDetailsPopover();
+        popover.style.display = 'block';
+        var badge = document.getElementById('staffLiveBadge');
+        if (badge) badge.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    function closeSyncDetailsPopover(e) {
+      if (e) e.stopPropagation();
+      var popover = document.getElementById('syncDetailsPopover');
+      if (popover) popover.style.display = 'none';
+      var badge = document.getElementById('staffLiveBadge');
+      if (badge) badge.setAttribute('aria-expanded', 'false');
+    }
+
+    function refreshSyncDetailsPopover() {
+      var popTime = document.getElementById('popoverLastSyncVal');
+      var popDot = document.getElementById('popoverStatusDot');
+      var popHeading = document.getElementById('popoverStatusHeading');
+      var popNet = document.getElementById('popoverNetworkVal');
+      var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
+      var isOnline = (typeof navigator !== 'undefined' && navigator.onLine !== false);
+
+      if (popTime) {
+        popTime.textContent = formatSyncTime(lastStaffSyncTimestamp);
+      }
+      if (popNet) {
+        popNet.textContent = isOnline 
+          ? (isHi ? 'कनेक्टेड (सक्रिय)' : 'Online (Connected)')
+          : (isHi ? 'ऑफ़लाइन (कैश्ड डेटा)' : 'Offline (Cached data)');
+      }
+      if (popDot) {
+        if (!isOnline) {
+          popDot.className = 'popover-dot dot-offline';
+          if (popHeading) popHeading.textContent = isHi ? 'ऑफ़लाइन स्थिति' : 'Offline Status';
+        } else if (isStaffSyncInProgress) {
+          popDot.className = 'popover-dot status-sync-spinner';
+          if (popHeading) popHeading.textContent = isHi ? 'डेटा सिंक हो रहा है...' : 'Syncing Data...';
+        } else {
+          popDot.className = 'popover-dot dot-live';
+          if (popHeading) popHeading.textContent = isHi ? 'रीयल-टाइम कनेक्शन सक्रिय' : 'Realtime Connection Active';
+        }
+      }
+    }
+
+    function handleManualSyncClick(e) {
+      if (e) e.stopPropagation();
+      closeSyncDetailsPopover();
+      if (typeof state !== 'undefined' && state.currentView === 'staff') {
+        triggerManualStaffSync();
+      } else if (typeof loadAdminRecords === 'function') {
+        loadAdminRecords(true);
+      }
+    }
+
+    function toggleAccountMenu(e) {
+      if (e) e.stopPropagation();
+      var wrap = document.getElementById('accountDropdownWrap');
+      var panel = document.getElementById('accountMenuPanel');
+      if (!panel || !wrap) return;
+      var isOpen = panel.style.display !== 'none';
+      closeAllHeaderPopovers();
+      
+      if (!isOpen) {
+        updateHeaderAccountStatus();
+        panel.style.display = 'flex';
+        wrap.classList.add('is-open');
+        var trigger = document.getElementById('headerAccountTrigger');
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    function closeAccountMenu() {
+      var wrap = document.getElementById('accountDropdownWrap');
+      var panel = document.getElementById('accountMenuPanel');
+      if (panel) panel.style.display = 'none';
+      if (wrap) wrap.classList.remove('is-open');
+      var trigger = document.getElementById('headerAccountTrigger');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function closeAllHeaderPopovers() {
+      closeLangDropdown();
+      closeSyncDetailsPopover();
+      closeAccountMenu();
+    }
+
+    function handleBrandLogoClick() {
+      if (typeof state !== 'undefined' && state.currentView === 'admin') {
+        if (typeof switchAdminTab === 'function') {
+          switchAdminTab('records', true);
+        }
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function updateHeaderAccountStatus() {
+      var accountTrigger = document.getElementById('headerAccountTrigger');
+      var avatarInitial = document.getElementById('headerAccountInitial');
+      var accountName = document.getElementById('headerAccountName');
+      var accountRole = document.getElementById('headerAccountRole');
+      var panelAvatar = document.getElementById('menuPanelAvatar');
+      var panelName = document.getElementById('menuPanelName');
+      var panelSub = document.getElementById('menuPanelSub');
+      var staffLogout = document.getElementById('staffLogoutBtn');
+      var adminLogout = document.getElementById('adminLogoutBtn');
+      var contextChip = document.getElementById('headerContextChip');
+      var mainTitle = document.getElementById('pageMainTitle');
+      var liveBadge = document.getElementById('staffLiveBadge');
+
+      var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
+      var mode = (typeof state !== 'undefined' && state.currentView) || 'staff';
+
+      if (mode === 'staff') {
+        var isAuth = isUserStaffAuthenticated(state.activeStaffId);
+        if (contextChip) contextChip.textContent = isHi ? 'स्टाफ' : 'STAFF';
+        if (mainTitle) mainTitle.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
+        
+        if (liveBadge) liveBadge.style.display = isAuth ? 'inline-flex' : 'none';
+
+        if (isAuth) {
+          if (accountTrigger) accountTrigger.style.display = 'inline-flex';
+          if (staffLogout) staffLogout.style.display = 'flex';
+          if (adminLogout) adminLogout.style.display = 'none';
+
+          var sId = state.activeStaffId || getActiveStaffId() || 'STAFF';
+          var sName = 'Staff Member';
+          var nameHeader = document.getElementById('staffNameHeader');
+          if (nameHeader && nameHeader.textContent && nameHeader.textContent !== 'लोड हो रहा है...') {
+            sName = nameHeader.textContent;
+          } else if (typeof appState !== 'undefined' && appState.staffList) {
+            var found = appState.staffList.find(function(s) { return (s.id || '').toUpperCase() === sId.toUpperCase(); });
+            if (found && found.name) sName = found.name;
+          }
+
+          var initial = (sName && sName.trim()) ? sName.trim().charAt(0).toUpperCase() : 'S';
+          if (avatarInitial) avatarInitial.textContent = initial;
+          if (accountName) accountName.textContent = sName;
+          if (accountRole) accountRole.textContent = sId;
+
+          if (panelAvatar) panelAvatar.textContent = initial;
+          if (panelName) panelName.textContent = sName;
+          if (panelSub) panelSub.textContent = sId + ' • ' + (isHi ? 'फील्ड स्टाफ पोर्टल' : 'Field Staff Portal');
+        } else {
+          if (accountTrigger) accountTrigger.style.display = 'none';
+          if (staffLogout) staffLogout.style.display = 'none';
+          if (adminLogout) adminLogout.style.display = 'none';
+        }
+      } else {
+        // Admin Mode
+        var isAuth = isUserAdminAuthenticated();
+        if (contextChip) contextChip.textContent = 'ADMIN';
+        if (mainTitle) mainTitle.textContent = 'Admin Portal';
+
+        if (liveBadge) liveBadge.style.display = isAuth ? 'inline-flex' : 'none';
+
+        if (isAuth) {
+          if (accountTrigger) accountTrigger.style.display = 'inline-flex';
+          if (adminLogout) adminLogout.style.display = 'flex';
+          if (staffLogout) staffLogout.style.display = 'none';
+
+          if (avatarInitial) avatarInitial.textContent = 'A';
+          if (accountName) accountName.textContent = 'Admin';
+          if (accountRole) accountRole.textContent = 'SUPER ADMIN';
+
+          if (panelAvatar) panelAvatar.textContent = '🛡️';
+          if (panelName) panelName.textContent = 'Super Administrator';
+          if (panelSub) panelSub.textContent = 'Full Access • Enterprise Management';
+        } else {
+          if (accountTrigger) accountTrigger.style.display = 'none';
+          if (adminLogout) adminLogout.style.display = 'none';
+          if (staffLogout) staffLogout.style.display = 'none';
+        }
+      }
+    }
+
+    // Global document listeners for popover dismissal
+    if (typeof document !== 'undefined') {
+      document.addEventListener('click', function(e) {
+        var langWrap = document.getElementById('langDropdownWrap');
+        var langPanel = document.getElementById('langMenuPanel');
+        if (langWrap && langPanel && !langWrap.contains(e.target)) {
+          closeLangDropdown();
+        }
+
+        var accountWrap = document.getElementById('accountDropdownWrap');
+        var accountPanel = document.getElementById('accountMenuPanel');
+        if (accountWrap && accountPanel && !accountWrap.contains(e.target)) {
+          closeAccountMenu();
+        }
+
+        var statusWrap = document.querySelector('.header-status-wrapper');
+        var syncPopover = document.getElementById('syncDetailsPopover');
+        if (statusWrap && syncPopover && !statusWrap.contains(e.target)) {
+          closeSyncDetailsPopover();
+        }
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' || e.key === 'Esc') {
+          closeAllHeaderPopovers();
+        }
+      });
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', function() {
+        updateStaffSyncIndicator('active', 'Online');
+        refreshSyncDetailsPopover();
+      });
+
+      window.addEventListener('offline', function() {
+        updateStaffSyncIndicator('offline', 'Network Offline');
+        refreshSyncDetailsPopover();
+      });
+
+      window.toggleLangDropdown = toggleLangDropdown;
+      window.closeLangDropdown = closeLangDropdown;
+      window.selectAppLanguage = selectAppLanguage;
+      window.toggleSyncDetailsPopover = toggleSyncDetailsPopover;
+      window.closeSyncDetailsPopover = closeSyncDetailsPopover;
+      window.refreshSyncDetailsPopover = refreshSyncDetailsPopover;
+      window.handleManualSyncClick = handleManualSyncClick;
+      window.toggleAccountMenu = toggleAccountMenu;
+      window.closeAccountMenu = closeAccountMenu;
+      window.closeAllHeaderPopovers = closeAllHeaderPopovers;
+      window.handleBrandLogoClick = handleBrandLogoClick;
+      window.updateHeaderAccountStatus = updateHeaderAccountStatus;
     }

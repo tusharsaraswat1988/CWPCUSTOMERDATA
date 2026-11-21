@@ -1679,14 +1679,14 @@ const server = http.createServer(async (req, res) => {
       if (req.headers['if-none-match'] === etag) {
         res.writeHead(304, {
           'ETag': etag,
-          'Cache-Control': 'no-cache, must-revalidate'
+          'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600'
         });
         return res.end();
       }
 
       res.writeHead(200, {
         'Content-Type': contentType,
-        'Cache-Control': 'no-cache, must-revalidate',
+        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
         'ETag': etag
       });
       return fs.createReadStream(assetPath).pipe(res);
