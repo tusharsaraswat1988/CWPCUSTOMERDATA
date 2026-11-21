@@ -557,10 +557,14 @@
       box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.5), 0 4px 10px rgba(0, 0, 0, 0.3) !important;
       z-index: 1050 !important;
       padding: 6px !important;
-      display: flex !important;
+      display: none;
       flex-direction: column !important;
       gap: 2px !important;
       animation: popoverFadeIn 0.16s ease-out !important;
+    }
+
+    .header-dropdown-wrap.is-open .header-menu-panel {
+      display: flex !important;
     }
 
     .header-menu-item {
@@ -10633,8 +10637,8 @@ body.theme-dark .report-no-photo-badge {
 
 /* Top Header & Console Bar Polish */
 .top-header {
-  background: #090e17 !important;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.15) !important;
+  background: var(--cwp-header-bg) !important;
+  border-bottom: 1px solid var(--cwp-header-border) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
 }
@@ -10644,6 +10648,11 @@ body.theme-dark .report-no-photo-badge {
   font-weight: 700 !important;
   letter-spacing: -0.2px !important;
   color: #f8fafc !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  text-shadow: none !important;
 }
 
 .header-logout-btn {

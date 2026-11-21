@@ -3481,6 +3481,10 @@ const server = http.createServer(async (req, res) => {
       content = content.replace('id="pageMainTitle">Staff Portal</h1>', 'id="pageMainTitle">Admin Portal</h1>');
     }
 
+    // Force v2.7.0 cache-buster on script and style tags across ALL routes
+    content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, '/js/app.js?v=2.7.0');
+    content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, '/css/style.css?v=2.7.0');
+
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',

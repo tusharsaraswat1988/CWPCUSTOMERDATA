@@ -538,7 +538,7 @@ var state = {
       var panel = document.getElementById('langMenuPanel');
       if (!panel || !wrap) return;
       
-      var isOpen = panel.style.display !== 'none';
+      var isOpen = wrap.classList.contains('is-open') && panel.style.display !== 'none';
       closeAllHeaderPopovers();
       
       if (!isOpen) {
@@ -562,6 +562,12 @@ var state = {
       if (e) e.stopPropagation();
       closeLangDropdown();
       setLanguage(lang);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.toggleLangDropdown = toggleLangDropdown;
+      window.closeLangDropdown = closeLangDropdown;
+      window.selectAppLanguage = selectAppLanguage;
     }
 
     function toggleSyncDetailsPopover(e) {
@@ -632,7 +638,7 @@ var state = {
       var wrap = document.getElementById('accountDropdownWrap');
       var panel = document.getElementById('accountMenuPanel');
       if (!panel || !wrap) return;
-      var isOpen = panel.style.display !== 'none';
+      var isOpen = wrap.classList.contains('is-open') && panel.style.display !== 'none';
       closeAllHeaderPopovers();
       
       if (!isOpen) {
@@ -839,8 +845,11 @@ var state = {
         var src = document.getElementById(sourceId);
         var tgt = document.getElementById(targetId);
         if (!src || !tgt) return;
+        if (typeof src.addEventListener !== 'function') return;
+        if (src._indicBound) return;
+        src._indicBound = true;
         var timer = null;
-        src.addEventListener('input', function() {
+        function doTransliterate() {
           clearTimeout(timer);
           var val = src.value.trim();
           if (!val) { tgt.value = ''; return; }
@@ -852,8 +861,10 @@ var state = {
             }).catch(function(e) {
               console.warn('[IndicTransliterate] failed:', e.message);
             });
-          }, 350);
-        });
+          }, 300);
+        }
+        src.addEventListener('input', doTransliterate);
+        src.addEventListener('change', doTransliterate);
       }
 
       bindDebouncedTransliterate('custName', 'custNameHi', 'name');
@@ -909,6 +920,21 @@ var state = {
           showToast(res && res.error ? res.error : 'Failed to backfill Hindi data', '⚠️');
         }
       });
+    }
+
+    if (typeof window !== 'undefined') {
+      window.transliterateTextViaApi = transliterateTextViaApi;
+      window.setupIndicInputListeners = setupIndicInputListeners;
+      window.speakHindiCustomerDetails = speakHindiCustomerDetails;
+      window.handleBackfillHindi = handleBackfillHindi;
+    }
+
+    if (typeof document !== 'undefined') {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupIndicInputListeners);
+      } else {
+        setupIndicInputListeners();
+      }
     }
 
     /* Initialize Application */
@@ -5280,6 +5306,7 @@ function loadStaffCustomerData(staffId) {
       if (modal) {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
+        setupIndicInputListeners();
         var nameInput = document.getElementById('custName');
         if (nameInput) setTimeout(function() { nameInput.focus(); }, 120);
       }

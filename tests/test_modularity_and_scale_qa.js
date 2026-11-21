@@ -46,11 +46,11 @@ assert.ok(indexLines < 2500, `Index.html lines must be < 2500 (was ${indexLines}
 
 // Verify no massive inlined style block
 assert.ok(!indexContent.includes('@keyframes cwpShimmerSweep'), 'CSS animations must not be inlined in Index.html');
-assert.ok(indexContent.includes('<link rel="stylesheet" href="/css/style.css">'), 'Index.html must link external style.css');
+assert.ok(/<link[^>]+href=["']\/css\/style\.css(\?v=[^"']+)?["']/.test(indexContent), 'Index.html must link external style.css');
 
 // Verify no massive inlined script block
 assert.ok(!indexContent.includes('function normalizeIndianMobile'), 'Application JS must not be inlined in Index.html');
-assert.ok(indexContent.includes('<script src="/js/app.js" defer></script>'), 'Index.html must defer-load external app.js');
+assert.ok(/<script[^>]+src=["']\/js\/app\.js(\?v=[^"']+)?["'][^>]*defer/.test(indexContent), 'Index.html must defer-load external app.js');
 assert.ok(indexContent.includes('<script src="/js/cropper.min.js"></script>'), 'Index.html must load modular cropper.min.js');
 
 // Verify zero massive Base64 images
@@ -211,8 +211,8 @@ async function runServerTests() {
     const rootRes = await httpGet('/');
     assert.strictEqual(rootRes.statusCode, 200, 'GET / must return HTTP 200');
     assert.ok(rootRes.headers['content-type'].includes('text/html'), 'Root Content-Type must be text/html');
-    assert.ok(rootRes.body.includes('<link rel="stylesheet" href="/css/style.css">'), 'HTML must link external style.css');
-    assert.ok(rootRes.body.includes('<script src="/js/app.js" defer></script>'), 'HTML must defer-load app.js');
+    assert.ok(/<link[^>]+href=["']\/css\/style\.css(\?v=[^"']+)?["']/.test(rootRes.body), 'HTML must link external style.css');
+    assert.ok(/<script[^>]+src=["']\/js\/app\.js(\?v=[^"']+)?["'][^>]*defer/.test(rootRes.body), 'HTML must defer-load app.js');
 
     // 6. Fetch /staff (Staff Portal View)
     const staffRes = await httpGet('/staff');
