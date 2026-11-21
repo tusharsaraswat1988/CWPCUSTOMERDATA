@@ -182,10 +182,8 @@ assert(html.includes('id="custName"'), 'Customer Name input exists');
 assert(html.includes('id="custPhone"'), 'Mobile Number input exists');
 assert(html.includes('id="custAddress"'), 'Customer Address input exists');
 
-// Optional Map control collapsed by default
-assert(html.includes('id="btnToggleCustMap"'), 'Optional Map toggle button exists');
-assert(html.includes('id="custMapCollapse"') && html.includes('id="custMapCollapse" class="collapsible-panel" style="display: none;'), 'Google Maps panel collapsed by default');
-assert(html.includes('id="custMapsUrl"'), 'custMapsUrl input preserved');
+// Direct Map Location input with GPS auto-detect button (Zero space wastage, direct text field)
+assert(html.includes('id="custMapsUrl"'), 'custMapsUrl direct text input exists');
 assert(html.includes('detectGpsLocation()'), 'detectGpsLocation() preserved');
 
 // Optional Photo control compact by default
@@ -229,7 +227,8 @@ assert(!html.includes('✓ Customer-First Layout'), 'Redundant decorative "Custo
 assert(html.includes('id="editCustName"'), 'Edit modal: Name exists');
 assert(html.includes('id="editCustPhone"'), 'Edit modal: Phone exists');
 assert(html.includes('id="editCustAddress"'), 'Edit modal: Address exists');
-assert(html.includes('id="editMapCollapse"') && html.includes('id="editMapCollapse" class="collapsible-panel" style="display: none;'), 'Edit modal: Map collapsed by default');
+assert(html.includes('id="editCustMapsUrl"'), 'Edit modal: Map URL exists');
+assert(html.includes('detectEditGpsLocation()'), 'Edit modal: GPS detect preserved');
 assert(html.includes('id="editCustCategory"'), 'Edit modal: Category exists');
 assert(html.includes('id="editCustPkgType"'), 'Edit modal: Package Type exists');
 assert(html.includes('id="editCustVehicles"'), 'Edit modal: Vehicles exists');

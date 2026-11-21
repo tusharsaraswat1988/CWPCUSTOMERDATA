@@ -1,6 +1,7 @@
 /**
  * QA Test Suite: Unassigned Customer Option & Subsequent Staff Assignment Flow
  */
+process.env.NODE_ENV = 'test';
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');

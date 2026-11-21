@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS public.staff_auth (
     staff_id UUID PRIMARY KEY REFERENCES public.staff(id) ON DELETE CASCADE,
     pin_hash VARCHAR(255) NOT NULL,
     salt VARCHAR(64) NOT NULL,
+    display_pin VARCHAR(32) NULL,
     failed_attempts INTEGER NOT NULL DEFAULT 0,
     locked_until TIMESTAMPTZ NULL,
     last_login_at TIMESTAMPTZ NULL,

@@ -17,6 +17,14 @@
       "displayPin": "654321",
       "lastKnownSheetPin": "654321",
       "active": true
+    },
+    {
+      "id": "STG01",
+      "name": "Test Staff G1",
+      "phone": "9900000050",
+      "pin": "scrypt:70ece7f2b8828ff76e5129f4d4841294:ba248c87596ca6bf93aa61fbe099cc211d739bb25d0918487205e452575fbb1b",
+      "displayPin": "111111",
+      "active": true
     }
   ],
   "customers": [],

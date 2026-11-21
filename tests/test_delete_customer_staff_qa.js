@@ -9,6 +9,7 @@ const http = require('http');
 
 const TEST_PORT = 5999;
 const tempFixturePath = path.join(__dirname, 'temp_delete_test_data.json');
+process.env.NODE_ENV = 'test';
 process.env.DATA_FILE = tempFixturePath;
 process.env.ADMIN_PASSWORD = 'TestAdminPass@2026';
 

@@ -12,19 +12,20 @@ async function findByStaffId(staffId, client = null) {
   return res.rows[0] || null;
 }
 
-async function setPin(staffId, pinHash, salt, client = null) {
+async function setPin(staffId, pinHash, salt, client = null, displayPin = null) {
   const runner = client || db;
   const res = await runner.query(
-    `INSERT INTO public.staff_auth (staff_id, pin_hash, salt, failed_attempts, locked_until, updated_at)
-     VALUES ($1, $2, $3, 0, NULL, CURRENT_TIMESTAMP)
+    `INSERT INTO public.staff_auth (staff_id, pin_hash, salt, display_pin, failed_attempts, locked_until, updated_at)
+     VALUES ($1, $2, $3, $4, 0, NULL, CURRENT_TIMESTAMP)
      ON CONFLICT (staff_id) DO UPDATE
      SET pin_hash = EXCLUDED.pin_hash,
          salt = EXCLUDED.salt,
+         display_pin = COALESCE(EXCLUDED.display_pin, public.staff_auth.display_pin),
          failed_attempts = 0,
          locked_until = NULL,
          updated_at = CURRENT_TIMESTAMP
      RETURNING *`,
-    [staffId, pinHash, salt]
+    [staffId, pinHash, salt, displayPin]
   );
   return res.rows[0];
 }
