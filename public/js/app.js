@@ -626,20 +626,22 @@ var state = {
 
       // Update Header Toggles & Menus
       var langText = document.getElementById('langToggleText');
-      if (langText) langText.textContent = isHi ? 'EN' : 'हिन्दी';
+      if (langText) langText.textContent = isHi ? 'HI' : 'EN';
       var checkEn = document.getElementById('checkLangEn');
       var checkHi = document.getElementById('checkLangHi');
       var optEn = document.getElementById('langOptEn');
       var optHi = document.getElementById('langOptHi');
       if (optEn) optEn.classList.toggle('is-selected', !isHi);
       if (optHi) optHi.classList.toggle('is-selected', isHi);
+      if (checkEn) checkEn.style.display = isHi ? 'none' : 'inline';
+      if (checkHi) checkHi.style.display = isHi ? 'inline' : 'none';
 
       var gateLang = document.getElementById('gateLangText');
       if (gateLang) gateLang.textContent = isHi ? 'English' : 'हिन्दी';
       var adminGateLang = document.getElementById('adminGateLangText');
       if (adminGateLang) adminGateLang.textContent = isHi ? 'English' : 'हिन्दी';
       var btnLang = document.getElementById('btnLangToggle');
-      if (btnLang) btnLang.title = isHi ? 'Switch to English' : 'हिन्दी में बदलें';
+      if (btnLang) btnLang.title = isHi ? 'भाषा: हिन्दी (बदलने के लिए क्लिक करें)' : 'Language: English (Click to change)';
 
       // Header Title & Context Chip
       var titleEl = document.getElementById('pageMainTitle');
@@ -751,6 +753,19 @@ var state = {
       closeAllHeaderPopovers();
       
       if (!isOpen) {
+        var currentLang = state.lang || localStorage.getItem('cwp_lang') || 'en';
+        var isHi = (currentLang === 'hi');
+        var optEn = document.getElementById('langOptEn');
+        var optHi = document.getElementById('langOptHi');
+        if (optEn) optEn.classList.toggle('is-selected', !isHi);
+        if (optHi) optHi.classList.toggle('is-selected', isHi);
+        var checkEn = document.getElementById('checkLangEn');
+        var checkHi = document.getElementById('checkLangHi');
+        if (checkEn) checkEn.style.display = isHi ? 'none' : 'inline';
+        if (checkHi) checkHi.style.display = isHi ? 'inline' : 'none';
+        var langText = document.getElementById('langToggleText');
+        if (langText) langText.textContent = isHi ? 'HI' : 'EN';
+
         panel.style.display = 'flex';
         wrap.classList.add('is-open');
         var trigger = document.getElementById('btnLangToggle');
@@ -1774,7 +1789,7 @@ var state = {
     }
 
     /* Standard Valid Admin Tabs Constant */
-    var ADMIN_VALID_TABS = ['records', 'leads', 'sequence', 'staff', 'cleanReports', 'addCust'];
+    var ADMIN_VALID_TABS = ['records', 'leads', 'specialJobs', 'sequence', 'staff', 'cleanReports', 'addCust'];
 
     function clearAdminTokens() {
       sessionStorage.removeItem('cwp_admin_token');
@@ -1977,6 +1992,10 @@ var state = {
         loadAdminLeads();
       }
 
+      if (tabName === 'specialJobs') {
+        loadAdminSpecialJobs();
+      }
+
       if (tabName === 'cleanReports') {
         loadDailyCleanReports();
         if (typeof startDailyCleanReportsAutoSync === 'function') {
@@ -2158,6 +2177,83 @@ var state = {
     var staffDataVersion = '';
     var lastStaffSyncTimestamp = 0;
     var STAFF_SYNC_INTERVAL_MS = 30000; // 30 seconds
+    var knownStaffJobIds = new Set();
+    var hasStaffInitialLoadDone = false;
+
+    /* Native Web Audio Chimes (100% offline-ready, zero external audio asset dependency) */
+    function playNewTaskChime() {
+      try {
+        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        var ctx = new AudioContextClass();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        var now = ctx.currentTime;
+        // Two-tone pleasant chime: E5 (659.25Hz) -> A5 (880.00Hz)
+        osc.frequency.setValueAtTime(659.25, now);
+        osc.frequency.setValueAtTime(880.00, now + 0.15);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      } catch (e) {
+        console.warn('Audio chime playback blocked or unavailable:', e);
+      }
+    }
+
+    function playTaskCompletedChime() {
+      try {
+        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        var ctx = new AudioContextClass();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'triangle';
+        var now = ctx.currentTime;
+        // Triad chord chime: C5 (523Hz) -> E5 (659Hz) -> G5 (784Hz)
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.12);
+        osc.frequency.setValueAtTime(783.99, now + 0.24);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.6);
+      } catch (e) {
+        console.warn('Completion chime error:', e);
+      }
+    }
+
+    function showStaffNewTaskBanner(job, totalCount) {
+      var banner = document.getElementById('staffNewTaskAlertBanner');
+      if (!banner) return;
+      var cName = job.name || job.customerName || 'ग्राहक';
+      var sName = job.serviceType || (job.category === 'solar_cleaning' ? 'सोलर सफाई' : 'कार वॉश');
+      var countText = totalCount > 1 ? ' (' + totalCount + ' नए काम)' : '';
+      banner.className = 'staff-new-task-banner';
+      banner.innerHTML = 
+        '<div class="banner-text-wrap">' +
+          '<span class="banner-icon">🔔</span>' +
+          '<div>' +
+            '<div class="banner-title">नया काम असाइन हुआ!' + countText + '</div>' +
+            '<div class="banner-desc">' + escapeHtml(cName) + ' • ' + escapeHtml(sName) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<button type="button" class="btn-banner-action" onclick="jumpToSpecialJob(\'' + escapeHtml(job.category || 'solar_cleaning') + '\', \'' + escapeHtml(job.jobId || job.id) + '\')">देखें ➔</button>';
+      banner.style.display = 'flex';
+    }
+
+    function jumpToSpecialJob(category, jobId) {
+      setStaffFilter(category);
+      var banner = document.getElementById('staffNewTaskAlertBanner');
+      if (banner) banner.style.display = 'none';
+      var badge = (category === 'solar_cleaning') ? document.getElementById('countSolarClean') : document.getElementById('countCarWash');
+      if (badge) badge.classList.remove('pulse-badge');
+    }
 
     function formatSyncTime(ts) {
       try {
@@ -2428,6 +2524,45 @@ function loadStaffCustomerData(staffId) {
       state.staffData = data;
       state.activeStaffName = sName;
       if (sId) state.activeStaffId = sId;
+
+      /* On-Demand / Special Jobs Real-Time Alerting (Audio, Vibration & PWA Notification) */
+      var allJobs = (data.carWashing || []).concat(data.solarCleaning || []);
+      var newlyAssignedJobs = [];
+
+      allJobs.forEach(function(j) {
+        var jId = j.jobId || j.id;
+        if (jId) {
+          if (!knownStaffJobIds.has(jId)) {
+            if (hasStaffInitialLoadDone && (j.status === 'assigned' || !j.status)) {
+              newlyAssignedJobs.push(j);
+            }
+            knownStaffJobIds.add(jId);
+          }
+        }
+      });
+
+      if (!hasStaffInitialLoadDone) {
+        hasStaffInitialLoadDone = true;
+      } else if (newlyAssignedJobs.length > 0) {
+        playNewTaskChime();
+        if (navigator.vibrate) {
+          try { navigator.vibrate([200, 100, 200]); } catch (ve) {}
+        }
+        var firstNew = newlyAssignedJobs[0];
+        showStaffNewTaskBanner(firstNew, newlyAssignedJobs.length);
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification('🔔 CWP: नया काम असाइन हुआ!', {
+              body: (firstNew.name || firstNew.customerName) + ' - ' + (firstNew.serviceType || 'विशेष कार्य') + ' (' + (firstNew.address || '') + ')',
+              icon: '/cwp_logo.jpg'
+            });
+          } catch (ne) {}
+        }
+        var badgeToPulse = (firstNew.serviceCategoryId === 'solar_cleaning' || firstNew.category === 'solar_cleaning') ? document.getElementById('countSolarClean') : document.getElementById('countCarWash');
+        if (badgeToPulse) {
+          badgeToPulse.classList.add('pulse-badge');
+        }
+      }
       document.getElementById('staffNameHeader').textContent = sName;
       document.getElementById('staffIdHeader').textContent = 'ID: ' + sId;
       var staffPhoto = (data.staffPhotoUrl || data.photoUrl || '').trim();
@@ -2658,6 +2793,16 @@ function loadStaffCustomerData(staffId) {
           '⏳ गाड़ियों की लिस्ट लोड हो रही है...' +
         '</div>';
       return html;
+    }
+
+    function formatTimeOnly(isoString) {
+      if (!isoString) return '';
+      try {
+        var d = new Date(isoString);
+        return d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+      } catch (e) {
+        return '';
+      }
     }
 
     /* =========================================================================
@@ -2891,6 +3036,83 @@ function loadStaffCustomerData(staffId) {
           html += '      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.68 12.04 3.68C14.25 3.68 16.31 4.54 17.87 6.1C19.42 7.66 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.05 20.15Z"/></svg>';
           html += '      <span>' + (isHi ? 'व्हाट्सएप' : 'WhatsApp') + '</span>';
           html += '    </button>';
+          html += '  </div>';
+        } else {
+          /* On-Demand / Special Job: 3-Step Completion Journey */
+          var jId = item.jobId || item.id;
+          var jStatus = item.status || (item.completedToday ? 'completed' : 'assigned');
+          var beforeList = Array.isArray(item.beforePhotos) ? item.beforePhotos : [];
+          var afterList = Array.isArray(item.afterPhotos) ? item.afterPhotos : [];
+
+          html += '  <div class="card-special-job-journey" style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color);">';
+
+          if (jStatus === 'assigned') {
+            html += '    <div class="job-card-journey-bar job-status-assigned">';
+            html += '      <span>📋 नया काम (Awaiting Start)</span>';
+            html += '      <span class="job-time-chip">' + (item.scheduledDate ? 'तारीख: ' + escapeHtml(item.scheduledDate) : 'आज का काम') + '</span>';
+            html += '    </div>';
+            html += '    <button type="button" class="btn-job-action btn-job-start" onclick="openStartSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
+            html += '      <span>▶️ काम शुरू करें (1-2 फ़ोटो लें)</span>';
+            html += '    </button>';
+          } else if (jStatus === 'in_progress') {
+            var stTime = item.startedAt ? formatTimeOnly(item.startedAt) : '';
+            html += '    <div class="job-card-journey-bar job-status-in-progress">';
+            html += '      <span>⏳ काम चालू है (In Progress)</span>';
+            html += '      <span class="job-time-chip">' + (stTime ? 'शुरू: ' + stTime : 'प्रगति पर') + '</span>';
+            html += '    </div>';
+
+            if (beforeList.length > 0) {
+              html += '    <div style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px;">📷 शुरू करने से पहले की फ़ोटो:</div>';
+              html += '    <div class="job-photos-grid">';
+              beforeList.forEach(function(pUrl, pIdx) {
+                html += '    <div class="job-photo-item" onclick="openImageModal(\'' + escapeHtml(pUrl) + '\', \'' + escapeHtml(customerName) + '\', \'Before Photo ' + (pIdx + 1) + '\')">';
+                html += '      <img src="' + escapeHtml(pUrl) + '" alt="Before Photo">';
+                html += '      <span class="job-photo-label">Before ' + (pIdx + 1) + '</span>';
+                html += '    </div>';
+              });
+              html += '    </div>';
+            }
+
+            html += '    <button type="button" class="btn-job-action btn-job-complete" onclick="openCompleteSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
+            html += '      <span>✓ काम पूरा करें (1-2 फ़ोटो अपलोड करें)</span>';
+            html += '    </button>';
+          } else if (jStatus === 'completed') {
+            var compTime = item.completedAt ? formatTimeOnly(item.completedAt) : '';
+            html += '    <div class="job-card-journey-bar job-status-completed">';
+            html += '      <span>✅ काम पूरा हुआ (Completed)</span>';
+            html += '      <span class="job-time-chip">' + (compTime ? 'पूर्ण: ' + compTime : 'सफल') + '</span>';
+            html += '    </div>';
+
+            if (beforeList.length > 0 || afterList.length > 0) {
+              html += '    <div style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px;">📷 सफाई का प्रमाण (Before & After):</div>';
+              html += '    <div class="job-photos-grid">';
+              beforeList.forEach(function(pUrl, pIdx) {
+                html += '    <div class="job-photo-item" onclick="openImageModal(\'' + escapeHtml(pUrl) + '\', \'' + escapeHtml(customerName) + '\', \'Before Photo\')">';
+                html += '      <img src="' + escapeHtml(pUrl) + '" alt="Before">';
+                html += '      <span class="job-photo-label">Before</span>';
+                html += '    </div>';
+              });
+              afterList.forEach(function(pUrl, pIdx) {
+                html += '    <div class="job-photo-item" onclick="openImageModal(\'' + escapeHtml(pUrl) + '\', \'' + escapeHtml(customerName) + '\', \'After Photo\')">';
+                html += '      <img src="' + escapeHtml(pUrl) + '" alt="After">';
+                html += '      <span class="job-photo-label">After ✓</span>';
+                html += '    </div>';
+              });
+              html += '    </div>';
+            }
+
+            if (item.completionNotes) {
+              html += '    <div style="font-size: 12px; background: #f8fafc; padding: 6px 10px; border-radius: 6px; margin: 6px 0; color: #475569; border: 1px solid #e2e8f0;">';
+              html += '      <strong>टिप्पणी:</strong> ' + escapeHtml(item.completionNotes);
+              html += '    </div>';
+            }
+
+            html += '    <button type="button" class="btn-job-action btn-job-wa-share" onclick="shareSpecialJobWhatsApp(\'' + escapeHtml(jId) + '\')">';
+            html += '      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.68 12.04 3.68C14.25 3.68 16.31 4.54 17.87 6.1C19.42 7.66 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.05 20.15Z"/></svg>';
+            html += '      <span>📲 ग्राहक को व्हाट्सएप भेजें (Share Proof)</span>';
+            html += '    </button>';
+          }
+
           html += '  </div>';
         }
 
@@ -4736,36 +4958,36 @@ function loadStaffCustomerData(staffId) {
       var html = '';
       for (var i = 0; i < count; i++) {
         html += '<tr class="skeleton-tr">' +
-          '<td style="text-align:center;"><div class="skeleton-shimmer" style="width:24px; height:18px; margin:0 auto; border-radius:4px;"></div></td>' +
+          '<td style="text-align:center;"><div class="skeleton-shimmer" style="width:22px; height:18px; margin:0 auto; border-radius:4px;"></div></td>' +
           '<td>' +
-            '<div class="skeleton-shimmer" style="width:68%; height:16px; margin-bottom:6px; border-radius:4px;"></div>' +
-            '<div class="skeleton-shimmer" style="width:42%; height:12px; margin-bottom:6px; border-radius:4px;"></div>' +
-            '<div style="display:flex; gap:4px; margin-top:2px;">' +
-              '<div class="skeleton-shimmer" style="width:78px; height:18px; border-radius:12px;"></div>' +
-            '</div>' +
+            '<div class="skeleton-shimmer" style="width:80%; height:15px; margin-bottom:4px; border-radius:4px;"></div>' +
           '</td>' +
           '<td>' +
-            '<div class="skeleton-shimmer" style="width:125px; height:24px; border-radius:6px; margin-bottom:6px;"></div>' +
-            '<div class="skeleton-shimmer" style="width:60px; height:18px; border-radius:4px;"></div>' +
+            '<div class="skeleton-shimmer" style="width:85px; height:14px; border-radius:4px;"></div>' +
           '</td>' +
           '<td>' +
-            '<div class="skeleton-shimmer" style="width:90%; height:14px; margin-bottom:4px; border-radius:4px;"></div>' +
-            '<div class="skeleton-shimmer" style="width:60%; height:12px; border-radius:4px;"></div>' +
-          '</td>' +
-          '<td style="text-align:center;">' +
-            '<div class="skeleton-shimmer" style="width:55px; height:22px; margin:0 auto; border-radius:4px;"></div>' +
+            '<div class="skeleton-shimmer" style="width:78px; height:18px; border-radius:10px;"></div>' +
           '</td>' +
           '<td>' +
-            '<div class="skeleton-shimmer" style="width:85%; height:14px; margin-bottom:4px; border-radius:4px;"></div>' +
+            '<div class="skeleton-shimmer" style="width:90px; height:20px; border-radius:4px;"></div>' +
+          '</td>' +
+          '<td>' +
+            '<div class="skeleton-shimmer" style="width:90%; height:14px; border-radius:4px;"></div>' +
           '</td>' +
           '<td style="text-align:center;">' +
-            '<div class="skeleton-shimmer" style="width:55px; height:22px; margin:0 auto; border-radius:4px;"></div>' +
+            '<div class="skeleton-shimmer" style="width:50px; height:20px; margin:0 auto; border-radius:4px;"></div>' +
+          '</td>' +
+          '<td>' +
+            '<div class="skeleton-shimmer" style="width:85%; height:14px; border-radius:4px;"></div>' +
           '</td>' +
           '<td style="text-align:center;">' +
-            '<div class="skeleton-shimmer" style="width:80px; height:22px; margin:0 auto; border-radius:12px;"></div>' +
+            '<div class="skeleton-shimmer" style="width:50px; height:20px; margin:0 auto; border-radius:4px;"></div>' +
           '</td>' +
           '<td style="text-align:center;">' +
-            '<div class="skeleton-shimmer" style="width:54px; height:26px; margin:0 auto; border-radius:6px;"></div>' +
+            '<div class="skeleton-shimmer" style="width:75px; height:20px; margin:0 auto; border-radius:12px;"></div>' +
+          '</td>' +
+          '<td style="text-align:center;">' +
+            '<div class="skeleton-shimmer" style="width:54px; height:24px; margin:0 auto; border-radius:6px;"></div>' +
           '</td>' +
         '</tr>';
       }
@@ -5847,7 +6069,7 @@ function loadStaffCustomerData(staffId) {
       var paginationContainer = document.getElementById('adminTablePagination');
 
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
           '<div style="font-size: 32px; margin-bottom: 10px;">🔍</div>' +
           '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">No customer records match your filter</div>' +
           '<div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">Try adjusting your search criteria, staff assignment or category filters</div>' +
@@ -5877,46 +6099,56 @@ function loadStaffCustomerData(staffId) {
         var origIndex = r._origIndex !== undefined ? r._origIndex : (startIndex + index);
         var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
 
-        /* 1. Customer Cell (Name + Phone + Category Tag) */
+        /* 1. Serial Number Cell */
+        var sNoHtml = '<span class="sno-badge">' + sNo + '</span>';
+
+        /* 2. Customer Name Cell (Dedicated column: name only, natural display & tooltip) */
+        var avatarHtml = renderCustomerAvatar(r.customerName || 'Customer');
+        var hiName = (r.nameHi || r.name_hi || '').trim();
+        var nameDisplayHtml = escapeHtml(r.customerName || 'Unknown Customer');
+        if (hiName && hiName !== r.customerName) {
+          nameDisplayHtml += ' <span class="table-hi-sub" title="हिन्दी: ' + escapeHtml(hiName) + '">(' + escapeHtml(hiName) + ')</span>';
+        }
+        var custNameHtml = '<div class="cust-name-cell-modern">' +
+          avatarHtml +
+          '<div class="cust-name-wrap">' +
+            '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + nameDisplayHtml + '</span>' +
+          '</div>' +
+        '</div>';
+
+        /* 2b. Mobile Number Cell (Dedicated column: phone link + WhatsApp action) */
+        var phoneHtml = '';
+        if (r.customerNumber) {
+          var nPhone = normalizeIndianMobile(r.customerNumber);
+          var formattedPhone = formatIndianMobile(nPhone);
+          phoneHtml = '<div class="table-phone-cell">' +
+            '<a href="' + getIndianPhoneLink(nPhone) + '" class="cust-phone-link" title="Call: ' + escapeHtml(formattedPhone) + '">' +
+              '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 4V3z"/></svg> ' +
+              '<span class="phone-digits-text">' + escapeHtml(formattedPhone) + '</span>' +
+            '</a>' +
+            '<a href="https://wa.me/91' + escapeHtml(nPhone) + '" target="_blank" rel="noopener noreferrer" class="cust-wa-pill" title="WhatsApp ' + escapeHtml(r.customerName || '') + '" onclick="event.stopPropagation();">' +
+              '<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z"/></svg>' +
+            '</a>' +
+          '</div>';
+        } else {
+          phoneHtml = '<span class="cell-empty-dash" title="No phone number">—</span>';
+        }
+
+        /* 2c. Service Category & Plan Cell (Dedicated column) */
         var catName = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
         var tagClass = 'tag-daily';
         if (catName === 'Car Washing') tagClass = 'tag-wash';
         else if (catName === 'Solar Panel Cleaning') tagClass = 'tag-solar';
         var pkgLabel = (r.packageType || r.serviceType || '').trim();
 
-        var avatarHtml = renderCustomerAvatar(r.customerName || 'Customer');
-        var phoneHtml = '';
-        if (r.customerNumber) {
-          var nPhone = normalizeIndianMobile(r.customerNumber);
-          var formattedPhone = formatIndianMobile(nPhone);
-          phoneHtml = '<div class="cust-phone-row">' +
-            '<a href="' + getIndianPhoneLink(nPhone) + '" class="cust-phone-link" title="Call: ' + escapeHtml(formattedPhone) + '">' +
-              '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 4V3z"/></svg> ' +
-              escapeHtml(formattedPhone) +
-            '</a>' +
-            '<a href="https://wa.me/91' + escapeHtml(nPhone) + '" target="_blank" rel="noopener noreferrer" class="cust-wa-pill" title="Chat on WhatsApp with ' + escapeHtml(r.customerName || '') + '" onclick="event.stopPropagation();">' +
-              '<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z"/></svg>' +
-            '</a>' +
-          '</div>';
+        var serviceHtml = '<div class="table-service-cell">' +
+          '<span class="cust-sheet-tag ' + tagClass + '"><span class="tag-status-dot"></span>' + escapeHtml(catName) + '</span>';
+        if (pkgLabel) {
+          serviceHtml += '<div class="table-pkg-badge-wrap">' + renderModernPackageBadge(pkgLabel) + '</div>';
         }
+        serviceHtml += '</div>';
 
-        var hiName = (r.nameHi || r.name_hi || '').trim();
-        var nameDisplayHtml = escapeHtml(r.customerName || 'Unknown Customer');
-        if (hiName && hiName !== r.customerName) {
-          nameDisplayHtml += ' <span class="table-hi-sub" title="हिन्दी: ' + escapeHtml(hiName) + '">(' + escapeHtml(hiName) + ')</span>';
-        }
-        var custHtml = '<div class="cust-name-cell-modern">' +
-          avatarHtml +
-          '<div class="cust-meta-col">' +
-            '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + nameDisplayHtml + '</span>' +
-            phoneHtml +
-            '<div class="cust-tag-wrap">' +
-              '<span class="cust-sheet-tag ' + tagClass + '"><span class="tag-status-dot"></span>' + escapeHtml(catName) + '</span>' +
-            '</div>' +
-          '</div>' +
-        '</div>';
-
-        /* 2. Vehicle / Site Cell + Photo Micro-Thumb */
+        /* 2d. Vehicle / Site Cell + Photo Micro-Thumb (Dedicated column) */
         var carText = (r.vehicle || r.vehicleNumbers || '').trim();
         var carHtml = '<div class="vehicle-cell-wrap-modern">';
         if (carText) {
@@ -5927,9 +6159,6 @@ function loadStaffCustomerData(staffId) {
           }
         } else {
           carHtml += '<span class="cell-empty-dash">—</span>';
-        }
-        if (pkgLabel) {
-          carHtml += '<div style="margin-top: 3px;">' + renderModernPackageBadge(pkgLabel) + '</div>';
         }
         if (r.photoUrl && r.photoUrl.trim()) {
           var aThumb = r.photoUrl.indexOf('res.cloudinary.com') !== -1 && r.photoUrl.indexOf('/upload/') !== -1 ? r.photoUrl.replace('/upload/', '/upload/w_80,h_80,c_fill,q_auto,f_auto/') : r.photoUrl;
@@ -6021,6 +6250,9 @@ function loadStaffCustomerData(staffId) {
 
         /* 8. Actions: Edit and Delete Buttons */
         var actionsHtml = '<div class="records-actions-cluster">' +
+          '<button type="button" class="btn-cell-action btn-cust-special-assign" onclick="openAssignSpecialJobModal(\'' + escapeHtml(r.id || r.customerId || r.customerCode || '') + '\')" title="Assign On-Demand Solar Cleaning or Car Wash">' +
+            '<span>⚡ Assign</span>' +
+          '</button>' +
           '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="Edit customer details">' +
             '<svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>' +
             '<span>Edit</span>' +
@@ -6031,8 +6263,10 @@ function loadStaffCustomerData(staffId) {
         '</div>';
 
         html += '<tr>';
-        html += '  <td style="text-align: center;"><span class="sno-badge">' + sNo + '</span></td>';
-        html += '  <td>' + custHtml + '</td>';
+        html += '  <td style="text-align: center;">' + sNoHtml + '</td>';
+        html += '  <td>' + custNameHtml + '</td>';
+        html += '  <td>' + phoneHtml + '</td>';
+        html += '  <td>' + serviceHtml + '</td>';
         html += '  <td>' + carHtml + '</td>';
         html += '  <td>' + primaryAddrHtml + '</td>';
         html += '  <td style="text-align: center;">' + primaryMapHtml + '</td>';
@@ -9213,6 +9447,679 @@ function loadStaffCustomerData(staffId) {
       });
     }
 
+    /* =========================================================================
+       ON-DEMAND & SPECIAL JOBS CONTROLLER (Solar Cleaning & Car Washing)
+       ========================================================================= */
+
+    /* Staff: Starting Special Job (Before Photos) */
+    var currentStartJobId = null;
+    var startJobPhotos = [];
+
+    function openStartSpecialJobModal(jobId) {
+      currentStartJobId = jobId;
+      startJobPhotos = [];
+      var job = (state.customers || []).find(function(c) { return (c.jobId || c.id) === jobId; });
+      if (!job) {
+        showToast('काम की जानकारी नहीं मिली।', '⚠️');
+        return;
+      }
+      var summaryEl = document.getElementById('startJobCustomerSummary');
+      if (summaryEl) {
+        var isSolar = (job.category === 'solar_cleaning' || job.serviceCategoryId === 'solar_cleaning');
+        summaryEl.innerHTML = 
+          '<div style="font-weight: 700; font-size: 15px; color: #1e293b; margin-bottom: 3px;">' + escapeHtml(job.customerName || job.name) + '</div>' +
+          '<div style="font-size: 13px; color: #2563eb; font-weight: 600; margin-bottom: 4px;">' + (isSolar ? '☀️ ' : '🧼 ') + escapeHtml(job.serviceType || job.serviceCategory) + '</div>' +
+          '<div style="font-size: 12.5px; color: #64748b;">📍 ' + escapeHtml(job.address || 'Location on map') + '</div>' +
+          (job.specialInstructions ? '<div style="font-size: 12px; color: #b45309; background: #fffbeb; padding: 4px 8px; border-radius: 4px; margin-top: 6px;">📝 ' + escapeHtml(job.specialInstructions) + '</div>' : '');
+      }
+      renderStartJobPhotosPreview();
+      var err = document.getElementById('startJobErrorMsg');
+      if (err) err.style.display = 'none';
+      var modal = document.getElementById('startSpecialJobModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeStartSpecialJobModal() {
+      var modal = document.getElementById('startSpecialJobModal');
+      if (modal) modal.style.display = 'none';
+      currentStartJobId = null;
+      startJobPhotos = [];
+    }
+
+    function handleStartJobPhotoSelect(event) {
+      var file = event.target.files && event.target.files[0];
+      if (!file) return;
+      if (startJobPhotos.length >= 2) {
+        showToast('अधिकतम 2 फोटो अपलोड कर सकते हैं', '⚠️');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        var dataUrl = evt.target.result;
+        compressImageToJpeg(dataUrl, function(compressedUrl) {
+          startJobPhotos.push({ base64: compressedUrl, mimeType: 'image/jpeg' });
+          renderStartJobPhotosPreview();
+        });
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+
+    function compressImageToJpeg(dataUrl, callback) {
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var maxDim = 1200;
+        var w = img.width;
+        var h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        var comp = canvas.toDataURL('image/jpeg', 0.82);
+        callback(comp);
+      };
+      img.onerror = function() {
+        callback(dataUrl);
+      };
+      img.src = dataUrl;
+    }
+
+    function renderStartJobPhotosPreview() {
+      var preview = document.getElementById('startJobPhotosPreview');
+      var countHint = document.getElementById('startJobPhotoCountHint');
+      if (countHint) countHint.textContent = startJobPhotos.length + ' / 2 फोटो चुनी गई';
+      if (!preview) return;
+      preview.innerHTML = startJobPhotos.map(function(p, idx) {
+        return '<div style="position: relative; width: 100px; height: 80px; border-radius: 8px; overflow: hidden; border: 2px solid #2563eb;">' +
+          '<img src="' + p.base64 + '" style="width: 100%; height: 100%; object-fit: cover;">' +
+          '<button type="button" onclick="removeStartJobPhoto(' + idx + ')" style="position: absolute; top: 3px; right: 3px; background: rgba(239, 68, 68, 0.9); color: #fff; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>' +
+        '</div>';
+      }).join('');
+      var addBtn = document.getElementById('btnStartJobAddPhoto');
+      if (addBtn) addBtn.style.display = startJobPhotos.length >= 2 ? 'none' : 'inline-flex';
+    }
+
+    function removeStartJobPhoto(idx) {
+      startJobPhotos.splice(idx, 1);
+      renderStartJobPhotosPreview();
+    }
+
+    function submitStartSpecialJob() {
+      if (!currentStartJobId) return;
+      if (startJobPhotos.length === 0) {
+        var err = document.getElementById('startJobErrorMsg');
+        if (err) {
+          err.textContent = 'कृपया काम शुरू करने से पहले की कम से कम 1 फोटो लें।';
+          err.style.display = 'block';
+        }
+        return;
+      }
+      var submitBtn = document.getElementById('btnSubmitStartJob');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳ फोटो अपलोड हो रही है...</span>';
+      }
+
+      var payload = {
+        jobId: currentStartJobId,
+        staffId: state.activeStaffId,
+        staffToken: getStaffToken(state.activeStaffId),
+        photos: startJobPhotos,
+        startedAtDevice: new Date().toISOString()
+      };
+
+      apiCall('startSpecialJob', payload, function(res) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>🚀 काम शुरू करें</span>';
+        }
+        if (res && res.success) {
+          showToast('▶️ काम शुरू हो गया! स्टेटस लाइव अपडेट हो गया।', '✅');
+          closeStartSpecialJobModal();
+          loadStaffCustomerData(state.activeStaffId);
+        } else {
+          showToast((res && res.error) || 'काम शुरू करने में त्रुटि', '❌');
+        }
+      }, function(err) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>🚀 काम शुरू करें</span>';
+        }
+        showToast('Error: ' + err.message, '❌');
+      });
+    }
+
+    /* Staff: Completing Special Job (After Photos & Notes) */
+    var currentCompleteJobId = null;
+    var completeJobPhotos = [];
+
+    function openCompleteSpecialJobModal(jobId) {
+      currentCompleteJobId = jobId;
+      completeJobPhotos = [];
+      var job = (state.customers || []).find(function(c) { return (c.jobId || c.id) === jobId; });
+      if (!job) {
+        showToast('काम की जानकारी नहीं मिली।', '⚠️');
+        return;
+      }
+      var summaryEl = document.getElementById('completeJobCustomerSummary');
+      if (summaryEl) {
+        var isSolar = (job.category === 'solar_cleaning' || job.serviceCategoryId === 'solar_cleaning');
+        var stTime = job.startedAt ? formatTimeOnly(job.startedAt) : '';
+        summaryEl.innerHTML = 
+          '<div style="font-weight: 700; font-size: 15px; color: #1e293b; margin-bottom: 3px;">' + escapeHtml(job.customerName || job.name) + '</div>' +
+          '<div style="font-size: 13px; color: #059669; font-weight: 600; margin-bottom: 4px;">' + (isSolar ? '☀️ ' : '🧼 ') + escapeHtml(job.serviceType || job.serviceCategory) + '</div>' +
+          (stTime ? '<div style="font-size: 12px; color: #059669;">⏰ काम शुरू हुआ था: ' + stTime + '</div>' : '');
+      }
+      renderCompleteJobPhotosPreview();
+      var notesEl = document.getElementById('completeJobNotes');
+      if (notesEl) notesEl.value = '';
+      var err = document.getElementById('completeJobErrorMsg');
+      if (err) err.style.display = 'none';
+      var modal = document.getElementById('completeSpecialJobModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeCompleteSpecialJobModal() {
+      var modal = document.getElementById('completeSpecialJobModal');
+      if (modal) modal.style.display = 'none';
+      currentCompleteJobId = null;
+      completeJobPhotos = [];
+    }
+
+    function handleCompleteJobPhotoSelect(event) {
+      var file = event.target.files && event.target.files[0];
+      if (!file) return;
+      if (completeJobPhotos.length >= 2) {
+        showToast('अधिकतम 2 फोटो अपलोड कर सकते हैं', '⚠️');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        var dataUrl = evt.target.result;
+        compressImageToJpeg(dataUrl, function(compressedUrl) {
+          completeJobPhotos.push({ base64: compressedUrl, mimeType: 'image/jpeg' });
+          renderCompleteJobPhotosPreview();
+        });
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+
+    function renderCompleteJobPhotosPreview() {
+      var preview = document.getElementById('completeJobPhotosPreview');
+      var countHint = document.getElementById('completeJobPhotoCountHint');
+      if (countHint) countHint.textContent = completeJobPhotos.length + ' / 2 फोटो चुनी गई';
+      if (!preview) return;
+      preview.innerHTML = completeJobPhotos.map(function(p, idx) {
+        return '<div style="position: relative; width: 100px; height: 80px; border-radius: 8px; overflow: hidden; border: 2px solid #059669;">' +
+          '<img src="' + p.base64 + '" style="width: 100%; height: 100%; object-fit: cover;">' +
+          '<button type="button" onclick="removeCompleteJobPhoto(' + idx + ')" style="position: absolute; top: 3px; right: 3px; background: rgba(239, 68, 68, 0.9); color: #fff; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>' +
+        '</div>';
+      }).join('');
+      var addBtn = document.getElementById('btnCompleteJobAddPhoto');
+      if (addBtn) addBtn.style.display = completeJobPhotos.length >= 2 ? 'none' : 'inline-flex';
+    }
+
+    function removeCompleteJobPhoto(idx) {
+      completeJobPhotos.splice(idx, 1);
+      renderCompleteJobPhotosPreview();
+    }
+
+    function submitCompleteSpecialJob() {
+      if (!currentCompleteJobId) return;
+      if (completeJobPhotos.length === 0) {
+        var err = document.getElementById('completeJobErrorMsg');
+        if (err) {
+          err.textContent = 'कृपया काम पूरा होने के बाद की कम से कम 1 फोटो अपलोड करें।';
+          err.style.display = 'block';
+        }
+        return;
+      }
+      var submitBtn = document.getElementById('btnSubmitCompleteJob');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳ काम सबमिट हो रहा है...</span>';
+      }
+
+      var notes = (document.getElementById('completeJobNotes') ? document.getElementById('completeJobNotes').value : '').trim();
+
+      var payload = {
+        jobId: currentCompleteJobId,
+        staffId: state.activeStaffId,
+        staffToken: getStaffToken(state.activeStaffId),
+        photos: completeJobPhotos,
+        notes: notes,
+        completedAtDevice: new Date().toISOString()
+      };
+
+      apiCall('completeSpecialJob', payload, function(res) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>✅ काम पूर्ण और सबमिट करें</span>';
+        }
+        if (res && res.success) {
+          playTaskCompletedChime();
+          showToast('🎉 बहुत बढ़िया! काम सफलतापूर्वक पूरा हो गया और रिकॉर्ड सेव हो गया।', '✅');
+          closeCompleteSpecialJobModal();
+          loadStaffCustomerData(state.activeStaffId);
+        } else {
+          showToast((res && res.error) || 'काम सबमिट करने में समस्या', '❌');
+        }
+      }, function(err) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>✅ काम पूर्ण और सबमिट करें</span>';
+        }
+        showToast('Error: ' + err.message, '❌');
+      });
+    }
+
+    /* WhatsApp Proof Dispatch for Special Jobs */
+    function shareSpecialJobWhatsApp(jobId) {
+      var job = (state.customers || []).find(function(c) { return (c.jobId || c.id) === jobId; });
+      if (!job) return;
+
+      var custName = job.customerName || job.name || 'ग्राहक';
+      var cleanPhone = normalizeIndianMobile(job.customerNumber || job.phone);
+      var isSolar = (job.category === 'solar_cleaning' || job.serviceCategoryId === 'solar_cleaning');
+      var serviceName = isSolar ? 'सोलर पैनल सफाई (Solar Cleaning)' : 'कार वॉशिंग (Car Wash)';
+
+      var msg = 'नमस्ते ' + custName + ' जी! 🙏\n\n' +
+        'CWP Detailers & Motors द्वारा आपकी ' + serviceName + ' सफलतापूर्वक पूरी कर दी गई है। ✨\n\n' +
+        (job.afterPhotos && job.afterPhotos.length > 0 ? 'सफाई की तस्वीरें:\n' + job.afterPhotos.join('\n') + '\n\n' : '') +
+        'हमेशा बेहतरीन सेवा के लिए तत्पर — CWP Detailers 🚗⚡';
+
+      var waUrl = cleanPhone 
+        ? 'https://wa.me/91' + cleanPhone + '?text=' + encodeURIComponent(msg)
+        : 'https://wa.me/?text=' + encodeURIComponent(msg);
+
+      window.open(waUrl, '_blank');
+    }
+
+    /* Admin: Assign Special Job Workflow */
+    var preselectedSpecialCustId = null;
+
+    function openAssignSpecialJobModal(preselectedCustomerId) {
+      preselectedSpecialCustId = preselectedCustomerId || null;
+      var modal = document.getElementById('assignSpecialJobModal');
+      if (!modal) return;
+
+      // Populate Staff Dropdown
+      var staffSelect = document.getElementById('specialStaffSelect');
+      if (staffSelect) {
+        staffSelect.innerHTML = '<option value="">-- Choose Active Staff --</option>';
+        var staffList = state.staffList || [];
+        staffList.filter(function(s) { return s.active !== false && s.isActive !== false; }).forEach(function(s) {
+          staffSelect.innerHTML += '<option value="' + escapeHtml(s.id || s.staffCode || s.staff_code) + '">' + escapeHtml(s.name) + ' (' + escapeHtml(s.id || s.staff_code || '') + ')</option>';
+        });
+      }
+
+      // Populate Existing Customer Dropdown
+      var custSelect = document.getElementById('specialExistingCustSelect');
+      if (custSelect) {
+        custSelect.innerHTML = '<option value="">-- Choose Existing Customer --</option>';
+        var records = state.adminRecords || [];
+        records.forEach(function(r) {
+          var cid = r.id || r.customerId || r.customerCode;
+          var cName = r.customerName || 'Customer';
+          var cPhone = r.customerNumber ? ' - ' + r.customerNumber : '';
+          var cCar = r.vehicle ? ' (' + r.vehicle + ')' : '';
+          var isSel = (preselectedSpecialCustId && cid === preselectedSpecialCustId) ? ' selected' : '';
+          custSelect.innerHTML += '<option value="' + escapeHtml(cid) + '"' + isSel + '>' + escapeHtml(cName + cPhone + cCar) + '</option>';
+        });
+      }
+
+      // Set default scheduled date to today
+      var dateInput = document.getElementById('specialScheduledDate');
+      if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+      }
+
+      if (preselectedSpecialCustId) {
+        toggleSpecialCustMode('existing');
+        handleSpecialCustSelected(preselectedSpecialCustId);
+      } else {
+        toggleSpecialCustMode('existing');
+      }
+
+      var err = document.getElementById('assignSpecialJobError');
+      if (err) err.style.display = 'none';
+
+      modal.style.display = 'flex';
+    }
+
+    function closeAssignSpecialJobModal() {
+      var modal = document.getElementById('assignSpecialJobModal');
+      if (modal) modal.style.display = 'none';
+      preselectedSpecialCustId = null;
+    }
+
+    function toggleSpecialCustMode(mode) {
+      var existBlock = document.getElementById('specialExistingCustBlock');
+      var nameInput = document.getElementById('specialCustName');
+      var phoneInput = document.getElementById('specialCustPhone');
+      var addrInput = document.getElementById('specialCustAddress');
+
+      if (mode === 'new') {
+        if (existBlock) existBlock.style.display = 'none';
+        if (nameInput) { nameInput.value = ''; nameInput.readOnly = false; }
+        if (phoneInput) { phoneInput.value = ''; phoneInput.readOnly = false; }
+        if (addrInput) { addrInput.value = ''; addrInput.readOnly = false; }
+      } else {
+        if (existBlock) existBlock.style.display = 'block';
+        var select = document.getElementById('specialExistingCustSelect');
+        if (select && select.value) {
+          handleSpecialCustSelected(select.value);
+        }
+      }
+    }
+
+    function handleSpecialCustSelected(custId) {
+      if (!custId) return;
+      var records = state.adminRecords || [];
+      var found = records.find(function(r) {
+        return (r.id === custId || r.customerId === custId || r.customerCode === custId);
+      });
+      if (found) {
+        var nameInput = document.getElementById('specialCustName');
+        var phoneInput = document.getElementById('specialCustPhone');
+        var addrInput = document.getElementById('specialCustAddress');
+        var carInput = document.getElementById('specialCarVehicle');
+
+        if (nameInput) { nameInput.value = found.customerName || ''; nameInput.readOnly = true; }
+        if (phoneInput) { phoneInput.value = found.customerNumber || ''; phoneInput.readOnly = true; }
+        if (addrInput) { addrInput.value = found.address || ''; }
+        if (carInput && found.vehicle) { carInput.value = found.vehicle; }
+      }
+    }
+
+    function handleSpecialCategoryChange(cat) {
+      var solarBlock = document.getElementById('specialSolarDetailsBlock');
+      var carBlock = document.getElementById('specialCarWashDetailsBlock');
+      if (cat === 'solar_cleaning') {
+        if (solarBlock) solarBlock.style.display = 'block';
+        if (carBlock) carBlock.style.display = 'none';
+      } else {
+        if (solarBlock) solarBlock.style.display = 'none';
+        if (carBlock) carBlock.style.display = 'block';
+      }
+    }
+
+    function handleAssignSpecialJobSubmit(event) {
+      event.preventDefault();
+      var err = document.getElementById('assignSpecialJobError');
+      if (err) err.style.display = 'none';
+
+      var mode = document.querySelector('input[name="specialCustMode"]:checked')?.value || 'existing';
+      var custId = (mode === 'existing') ? (document.getElementById('specialExistingCustSelect')?.value || '') : null;
+      var custName = document.getElementById('specialCustName')?.value.trim() || '';
+      var custPhone = document.getElementById('specialCustPhone')?.value.trim() || '';
+      var custAddress = document.getElementById('specialCustAddress')?.value.trim() || '';
+      var serviceCat = document.getElementById('specialServiceCategory')?.value || 'solar_cleaning';
+      var scheduledDate = document.getElementById('specialScheduledDate')?.value || '';
+      var staffId = document.getElementById('specialStaffSelect')?.value || '';
+      var solarPanels = document.getElementById('specialSolarPanels')?.value.trim() || '';
+      var carVeh = document.getElementById('specialCarVehicle')?.value.trim() || '';
+      var instructions = document.getElementById('specialInstructions')?.value.trim() || '';
+
+      if (!staffId) {
+        if (err) { err.textContent = 'कृपया काम करने के लिए स्टाफ चुनें।'; err.style.display = 'block'; }
+        return;
+      }
+      if (!custName || !custPhone) {
+        if (err) { err.textContent = 'कृपया ग्राहक का नाम और मोबाइल नंबर भरें।'; err.style.display = 'block'; }
+        return;
+      }
+
+      var submitBtn = document.getElementById('btnSubmitAssignSpecial');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳ असाइन हो रहा है...</span>';
+      }
+
+      var payload = {
+        customerId: custId,
+        customerName: custName,
+        phone: custPhone,
+        address: custAddress,
+        serviceCategoryId: serviceCat,
+        serviceType: serviceCat === 'solar_cleaning' ? 'Solar Panel Cleaning' : 'Car Washing',
+        packageDetails: serviceCat === 'solar_cleaning' ? (solarPanels || 'Solar Cleaning') : (carVeh || 'Car Washing'),
+        siteDetails: serviceCat === 'solar_cleaning' ? { panelScope: solarPanels } : null,
+        vehicleDetails: serviceCat === 'car_washing' ? carVeh : null,
+        scheduledDate: scheduledDate,
+        staffId: staffId,
+        specialInstructions: instructions
+      };
+
+      apiCall('assignSpecialJob', { jobData: payload }, function(res) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>🚀 Assign & Dispatch Task</span>';
+        }
+        if (res && res.success) {
+          showToast('⚡ काम स्टाफ को सफलतापूर्वक असाइन हो गया!', '✅');
+          closeAssignSpecialJobModal();
+          if (getSavedAdminTab() === 'specialJobs') {
+            loadAdminSpecialJobs();
+          }
+        } else {
+          if (err) { err.textContent = (res && res.error) || 'असाइनमेंट में त्रुटि'; err.style.display = 'block'; }
+        }
+      }, function(netErr) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>🚀 Assign & Dispatch Task</span>';
+        }
+        if (err) { err.textContent = 'Error: ' + netErr.message; err.style.display = 'block'; }
+      });
+    }
+
+    /* Admin: Special Jobs Management & Table View */
+    var adminSpecialJobsCache = [];
+
+    function loadAdminSpecialJobs() {
+      var tbody = document.getElementById('adminSpecialJobsTableBody');
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 36px; color: var(--text-muted);"><span class="status-sync-spinner" style="display:inline-block; margin-right:8px;"></span> Loading special jobs...</td></tr>';
+      }
+
+      // Populate Staff Filter
+      var staffFilter = document.getElementById('adminSpecialStaffFilter');
+      if (staffFilter && staffFilter.options.length <= 1) {
+        var staffList = state.staffList || [];
+        staffList.forEach(function(s) {
+          staffFilter.innerHTML += '<option value="' + escapeHtml(s.id || s.staffCode || s.staff_code) + '">' + escapeHtml(s.name) + '</option>';
+        });
+      }
+
+      apiCall('getSpecialJobs', {}, function(res) {
+        if (res && res.success) {
+          adminSpecialJobsCache = res.jobs || [];
+          updateSpecialJobsKPIs(adminSpecialJobsCache);
+          filterAdminSpecialJobs();
+        } else {
+          if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 36px; color: #b91c1c;">Failed to load jobs: ' + escapeHtml((res && res.error) || 'Unknown error') + '</td></tr>';
+        }
+      }, function(err) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 36px; color: #b91c1c;">Connection error: ' + escapeHtml(err.message) + '</td></tr>';
+      });
+    }
+
+    function updateSpecialJobsKPIs(jobs) {
+      var total = jobs.length;
+      var assigned = jobs.filter(function(j) { return j.status === 'assigned' || !j.status; }).length;
+      var inProgress = jobs.filter(function(j) { return j.status === 'in_progress'; }).length;
+      var completed = jobs.filter(function(j) { return j.status === 'completed'; }).length;
+
+      var kTotal = document.getElementById('kpiSpecialTotal');
+      var kAssigned = document.getElementById('kpiSpecialAssigned');
+      var kProg = document.getElementById('kpiSpecialInProgress');
+      var kComp = document.getElementById('kpiSpecialCompleted');
+      var badgeTab = document.getElementById('tabSpecialJobsCount');
+
+      if (kTotal) kTotal.textContent = total;
+      if (kAssigned) kAssigned.textContent = assigned;
+      if (kProg) kProg.textContent = inProgress;
+      if (kComp) kComp.textContent = completed;
+      if (badgeTab) badgeTab.textContent = total;
+    }
+
+    function filterAdminSpecialJobs() {
+      var catFilter = document.getElementById('adminSpecialCategoryFilter')?.value || 'all';
+      var statusFilter = document.getElementById('adminSpecialStatusFilter')?.value || 'all';
+      var staffFilter = document.getElementById('adminSpecialStaffFilter')?.value || 'all';
+      var searchVal = (document.getElementById('adminSpecialSearch')?.value || '').trim().toLowerCase();
+
+      var filtered = adminSpecialJobsCache.filter(function(j) {
+        if (catFilter !== 'all' && j.serviceCategoryId !== catFilter) return false;
+        if (statusFilter !== 'all') {
+          var s = j.status || 'assigned';
+          if (s !== statusFilter) return false;
+        }
+        if (staffFilter !== 'all') {
+          var matchStaff = (j.staffId && j.staffId.toLowerCase() === staffFilter.toLowerCase()) ||
+                           (j.staffName && j.staffName.toLowerCase() === staffFilter.toLowerCase());
+          if (!matchStaff) return false;
+        }
+        if (searchVal) {
+          var match = (j.customerName && j.customerName.toLowerCase().includes(searchVal)) ||
+                      (j.customerPhone && j.customerPhone.includes(searchVal)) ||
+                      (j.address && j.address.toLowerCase().includes(searchVal)) ||
+                      (j.serviceType && j.serviceType.toLowerCase().includes(searchVal));
+          if (!match) return false;
+        }
+        return true;
+      });
+
+      var countEl = document.getElementById('adminSpecialJobsFilteredCount');
+      var totalEl = document.getElementById('adminSpecialJobsTotalCount');
+      if (countEl) countEl.textContent = filtered.length;
+      if (totalEl) totalEl.textContent = adminSpecialJobsCache.length;
+
+      renderAdminSpecialJobsTable(filtered);
+    }
+
+    function resetAdminSpecialFilters() {
+      var s = document.getElementById('adminSpecialSearch');
+      var c = document.getElementById('adminSpecialCategoryFilter');
+      var st = document.getElementById('adminSpecialStatusFilter');
+      var sf = document.getElementById('adminSpecialStaffFilter');
+      if (s) s.value = '';
+      if (c) c.value = 'all';
+      if (st) st.value = 'all';
+      if (sf) sf.value = 'all';
+      filterAdminSpecialJobs();
+    }
+
+    function handleAdminSpecialSearch(val) {
+      filterAdminSpecialJobs();
+    }
+
+    function renderAdminSpecialJobsTable(jobs) {
+      var tbody = document.getElementById('adminSpecialJobsTableBody');
+      if (!tbody) return;
+
+      if (!jobs || jobs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 48px; color: var(--text-muted);">' +
+          '<div style="font-size: 28px; margin-bottom: 8px;">📋</div>' +
+          '<div style="font-weight: 600; font-size: 14px;">No on-demand jobs found matching filters</div>' +
+          '<div style="font-size: 12px; margin-top: 4px;">Assign a new job using "+ Assign Job" button above.</div>' +
+        '</td></tr>';
+        return;
+      }
+
+      var html = '';
+      jobs.forEach(function(j, idx) {
+        var isSolar = j.serviceCategoryId === 'solar_cleaning';
+        var catBadge = isSolar
+          ? '<span style="background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.35); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">☀️ Solar Clean</span>'
+          : '<span style="background: rgba(37, 99, 235, 0.12); color: #1d4ed8; border: 1px solid rgba(37, 99, 235, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">🧼 Car Wash</span>';
+
+        var statusBadge = '';
+        if (j.status === 'in_progress') {
+          statusBadge = '<span class="status-badge" style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a;">⏳ In Progress</span>';
+        } else if (j.status === 'completed') {
+          statusBadge = '<span class="status-badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">✅ Done</span>';
+        } else {
+          statusBadge = '<span class="status-badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">📋 Assigned</span>';
+        }
+
+        var photosHtml = '<div style="display: flex; gap: 6px; justify-content: center; align-items: center;">';
+        var bList = Array.isArray(j.beforePhotos) ? j.beforePhotos : [];
+        var aList = Array.isArray(j.afterPhotos) ? j.afterPhotos : [];
+
+        if (bList.length > 0) {
+          photosHtml += '<button type="button" onclick="openImageModal(\'' + escapeHtml(bList[0]) + '\', \'' + escapeHtml(j.customerName) + '\', \'Before Photo\')" style="background: none; border: none; padding: 0; cursor: pointer;" title="View Before Photo">' +
+            '<img src="' + escapeHtml(bList[0]) + '" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px; border: 1.5px solid #2563eb;">' +
+          '</button>';
+        }
+        if (aList.length > 0) {
+          photosHtml += '<button type="button" onclick="openImageModal(\'' + escapeHtml(aList[0]) + '\', \'' + escapeHtml(j.customerName) + '\', \'After Photo\')" style="background: none; border: none; padding: 0; cursor: pointer;" title="View After Photo">' +
+            '<img src="' + escapeHtml(aList[0]) + '" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px; border: 1.5px solid #059669;">' +
+          '</button>';
+        }
+        if (bList.length === 0 && aList.length === 0) {
+          photosHtml += '<span style="font-size: 11px; color: var(--text-muted);">No photos yet</span>';
+        }
+        photosHtml += '</div>';
+
+        var mapsBtn = j.googleMapsUrl 
+          ? '<a href="' + escapeHtml(j.googleMapsUrl) + '" target="_blank" rel="noopener noreferrer" style="font-size: 11px; color: #2563eb; text-decoration: underline;">Map ↗</a>'
+          : '';
+
+        html += '<tr>' +
+          '<td style="text-align: center;"><span class="sno-badge">' + (idx + 1) + '</span></td>' +
+          '<td>' + catBadge + '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">' + (j.scheduledDate || 'Today') + '</div></td>' +
+          '<td>' +
+            '<div style="font-weight: 700; color: var(--text-primary); font-size: 13.5px;">' + escapeHtml(j.customerName || 'Customer') + '</div>' +
+            (j.customerPhone ? '<div style="font-size: 12px; color: var(--text-secondary);"><a href="tel:' + escapeHtml(j.customerPhone) + '" style="color:inherit;">📞 ' + escapeHtml(j.customerPhone) + '</a></div>' : '') +
+            (j.packageDetails ? '<div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">' + escapeHtml(j.packageDetails) + '</div>' : '') +
+          '</td>' +
+          '<td>' +
+            '<div style="font-size: 12px; color: var(--text-primary); max-width: 240px;">' + escapeHtml(j.address || 'Location provided') + '</div>' +
+            (mapsBtn ? '<div style="margin-top: 2px;">' + mapsBtn + '</div>' : '') +
+          '</td>' +
+          '<td>' +
+            '<span class="staff-chip-pill"><span class="staff-chip-avatar">👨‍🔧</span><span class="staff-chip-name">' + escapeHtml(j.staffName || 'Unassigned') + '</span></span>' +
+          '</td>' +
+          '<td style="text-align: center;">' + statusBadge + (j.durationMinutes ? '<div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 2px;">⏱️ ' + j.durationMinutes + ' min</div>' : '') + '</td>' +
+          '<td style="text-align: center;">' + photosHtml + '</td>' +
+          '<td style="text-align: center;">' +
+            '<button type="button" class="btn-cell-action btn-delete-record" onclick="deleteAdminSpecialJob(\'' + escapeHtml(j.id || j.jobId) + '\')" title="Cancel job">' +
+              '<svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>' +
+            '</button>' +
+          '</td>' +
+        '</tr>';
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function deleteAdminSpecialJob(jobId) {
+      if (!confirm('क्या आप इस काम को रद्द (Cancel) करना चाहते हैं?')) return;
+      apiCall('deleteSpecialJob', { jobId: jobId }, function(res) {
+        if (res && res.success) {
+          showToast('काम रद्द कर दिया गया।', 'info');
+          loadAdminSpecialJobs();
+        } else {
+          showToast((res && res.error) || 'रद्द करने में त्रुटि', '❌');
+        }
+      }, function(err) {
+        showToast('Error: ' + err.message, '❌');
+      });
+    }
+
     // Initialize PWA engine
     initPwa();
 
@@ -9273,5 +10180,34 @@ function loadStaffCustomerData(staffId) {
       window.handleBackfillHindi = handleBackfillHindi;
       window.transliterateTextViaApi = transliterateTextViaApi;
       window.setupIndicInputListeners = setupIndicInputListeners;
+
+      // Special on-demand jobs (Car Wash & Solar Panel Cleaning)
+      window.openStartSpecialJobModal = openStartSpecialJobModal;
+      window.closeStartSpecialJobModal = closeStartSpecialJobModal;
+      window.handleStartJobPhotoSelect = handleStartJobPhotoSelect;
+      window.removeStartJobPhoto = removeStartJobPhoto;
+      window.submitStartSpecialJob = submitStartSpecialJob;
+      window.openCompleteSpecialJobModal = openCompleteSpecialJobModal;
+      window.closeCompleteSpecialJobModal = closeCompleteSpecialJobModal;
+      window.handleCompleteJobPhotoSelect = handleCompleteJobPhotoSelect;
+      window.removeCompleteJobPhoto = removeCompleteJobPhoto;
+      window.submitCompleteSpecialJob = submitCompleteSpecialJob;
+      window.shareSpecialJobWhatsApp = shareSpecialJobWhatsApp;
+      window.openAssignSpecialJobModal = openAssignSpecialJobModal;
+      window.closeAssignSpecialJobModal = closeAssignSpecialJobModal;
+      window.toggleSpecialCustMode = toggleSpecialCustMode;
+      window.handleSpecialCustSelected = handleSpecialCustSelected;
+      window.handleSpecialCategoryChange = handleSpecialCategoryChange;
+      window.handleAssignSpecialJobSubmit = handleAssignSpecialJobSubmit;
+      window.loadAdminSpecialJobs = loadAdminSpecialJobs;
+      window.filterAdminSpecialJobs = filterAdminSpecialJobs;
+      window.resetAdminSpecialFilters = resetAdminSpecialFilters;
+      window.handleAdminSpecialSearch = handleAdminSpecialSearch;
+      window.renderAdminSpecialJobsTable = renderAdminSpecialJobsTable;
+      window.deleteAdminSpecialJob = deleteAdminSpecialJob;
+      window.playNewTaskChime = playNewTaskChime;
+      window.playTaskCompletedChime = playTaskCompletedChime;
+      window.showStaffNewTaskBanner = showStaffNewTaskBanner;
+      window.jumpToSpecialJob = jumpToSpecialJob;
     }
 

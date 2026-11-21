@@ -1365,6 +1365,324 @@ async function addLeadNote(leadId, noteText, adminUser = 'admin') {
   };
 }
 
+/**
+ * Assign Special / On-Demand Service Job (Solar Cleaning, Car Washing, Detailing)
+ * Supports assigning to an existing customer or creating a new customer on the fly
+ */
+async function assignSpecialJob(params, adminUser = 'admin') {
+  const {
+    customerId = null,
+    customerName = null,
+    customerPhone = null,
+    phone = null,
+    address = null,
+    googleMapsUrl = null,
+    parkingDetails = null,
+    serviceCategoryId,
+    serviceType = null,
+    packageDetails = null,
+    siteDetails = null,
+    scheduledDate = null,
+    staffId,
+    specialInstructions = null,
+    vehicleId = null,
+    vehicleDetails = null,
+    locationId = null
+  } = params;
+
+  if (!serviceCategoryId) {
+    return { success: false, error: 'Service category is required (solar_cleaning or car_washing).' };
+  }
+
+  const catId = (serviceCategoryId === 'Solar Panel Cleaning' || serviceCategoryId === 'solar_cleaning')
+    ? 'solar_cleaning'
+    : 'car_washing';
+
+  return db.withTransaction(async (client) => {
+    // 1. Resolve Customer
+    let targetCustomer = null;
+    if (customerId) {
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(customerId)) {
+        targetCustomer = await repos.customers.findById(customerId, client);
+      }
+      if (!targetCustomer) {
+        targetCustomer = await repos.customers.findByCode(customerId, client);
+      }
+    }
+
+    if (!targetCustomer) {
+      const rawName = (customerName || '').trim();
+      if (!rawName) {
+        return { success: false, error: 'Customer name is required for new customer assignment.' };
+      }
+      const rawPhone = (customerPhone || phone || '').trim();
+      if (!rawPhone || !isValidIndianMobile(rawPhone)) {
+        return { success: false, error: 'Valid 10-digit Indian mobile number is required.' };
+      }
+      const normPhone = normalizeIndianMobile(rawPhone);
+
+      let nameHi = null;
+      let addressHi = null;
+      try { nameHi = await indicService.transliterateName(rawName); } catch (e) { nameHi = rawName; }
+      if (address) {
+        try { addressHi = await indicService.transliterateAddress(address); } catch (e) { addressHi = address; }
+      }
+
+      const uniqueSuffix = Date.now().toString().slice(-4);
+      const customerCode = `CUST_${normPhone.slice(-6)}_${uniqueSuffix}`;
+
+      targetCustomer = await repos.customers.createCustomer({
+        customerCode,
+        name: rawName,
+        phone: normPhone,
+        notes: specialInstructions || null,
+        sourceSheetName: 'All Other Work',
+        sourceRowIndex: 0,
+        isActive: true,
+        nameHi,
+        addressHi
+      }, client);
+    }
+
+    // 2. Resolve Service Location
+    let targetLocationId = locationId;
+    if (!targetLocationId) {
+      const existingLocs = await repos.serviceLocations.findByCustomerId(targetCustomer.id, { client });
+      if (existingLocs && existingLocs.length > 0) {
+        const primary = existingLocs.find(l => l.is_primary) || existingLocs[0];
+        targetLocationId = primary.id;
+      } else {
+        const locAddr = address || targetCustomer.address || 'Location provided verbally';
+        let locAddrHi = null;
+        try { locAddrHi = await indicService.transliterateAddress(locAddr); } catch (e) { locAddrHi = locAddr; }
+        const newLoc = await repos.serviceLocations.createLocation({
+          customerId: targetCustomer.id,
+          addressType: 'primary',
+          addressText: locAddr,
+          addressTextHi: locAddrHi,
+          googleMapsUrl: googleMapsUrl || null,
+          parkingDetails: parkingDetails || null,
+          isPrimary: true,
+          isActive: true
+        }, client);
+        targetLocationId = newLoc.id;
+      }
+    }
+
+    // 3. Resolve Vehicle if Car Washing
+    let targetVehicleId = vehicleId;
+    if (!targetVehicleId && catId === 'car_washing') {
+      const custVehs = await repos.vehicles.findByCustomerId(targetCustomer.id, { client });
+      if (custVehs && custVehs.length > 0) {
+        targetVehicleId = custVehs[0].id;
+      } else if (vehicleDetails) {
+        const parsed = parseVehicleString(vehicleDetails);
+        const newVeh = await repos.vehicles.createVehicle({
+          customerId: targetCustomer.id,
+          defaultLocationId: targetLocationId,
+          registrationNo: parsed.reg || vehicleDetails.trim(),
+          brandOrModel: parsed.model || null,
+          vehicleType: 'Car',
+          isActive: true
+        }, client);
+        targetVehicleId = newVeh.id;
+      }
+    }
+
+    // 4. Resolve Staff
+    if (!staffId) {
+      return { success: false, error: 'Staff assignment is required.' };
+    }
+    let targetStaff = null;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffId)) {
+      targetStaff = await repos.staff.findById(staffId, client);
+    }
+    if (!targetStaff) {
+      targetStaff = await repos.staff.findByStaffCode(staffId, client);
+    }
+    if (!targetStaff) {
+      const allStaff = await repos.staff.findAll({ client });
+      targetStaff = allStaff.find(s => s.name.toLowerCase() === staffId.toLowerCase() || s.staff_code.toLowerCase() === staffId.toLowerCase()) || null;
+    }
+    if (!targetStaff) {
+      return { success: false, error: `Staff member '${staffId}' not found.` };
+    }
+
+    // 5. Determine IST Scheduled Date
+    const istDate = scheduledDate || repos.serviceLogs.computeIstServiceDate(new Date().toISOString());
+
+    // 6. Create Service Job
+    const job = await repos.serviceJobs.createJob({
+      customerId: targetCustomer.id,
+      vehicleId: targetVehicleId,
+      locationId: targetLocationId,
+      serviceCategoryId: catId,
+      serviceType: serviceType || (catId === 'solar_cleaning' ? 'Solar Panel Cleaning' : 'Car Washing'),
+      packageDetails: packageDetails || null,
+      siteDetails: siteDetails || (catId === 'solar_cleaning' ? { panelCount: 10 } : null),
+      scheduledDate: istDate,
+      status: 'assigned',
+      specialInstructions: specialInstructions ? specialInstructions.trim() : null
+    }, client);
+
+    // 7. Assign Staff to Job in staff_assignments ledger
+    const assignment = await repos.staffAssignments.assignStaffToJob({
+      staffId: targetStaff.id,
+      jobId: job.id,
+      assignedBy: adminUser
+    }, client);
+
+    // 8. Operational Audit Log
+    await repos.auditLogs.logChange({
+      entityType: 'service_job',
+      entityId: job.id,
+      action: 'assign_special_job',
+      changedBy: adminUser,
+      afterState: {
+        jobId: job.id,
+        customerId: targetCustomer.id,
+        customerName: targetCustomer.name,
+        serviceCategoryId: catId,
+        staffId: targetStaff.staff_code,
+        staffName: targetStaff.name,
+        scheduledDate: istDate
+      }
+    }, client);
+
+    return {
+      success: true,
+      job: {
+        id: job.id,
+        jobId: job.id,
+        customerId: targetCustomer.id,
+        customerName: targetCustomer.name,
+        customerPhone: targetCustomer.phone,
+        serviceCategoryId: catId,
+        serviceType: job.service_type,
+        scheduledDate: istDate,
+        status: job.status,
+        assignedStaffId: targetStaff.staff_code,
+        assignedStaffName: targetStaff.name
+      },
+      assignmentId: assignment.id,
+      message: `Job assigned to ${targetStaff.name} successfully.`
+    };
+  });
+}
+
+/**
+ * Query Special / On-Demand Service Jobs for Admin Dashboard
+ */
+async function getSpecialJobsAdmin({ status = null, serviceCategoryId = null, staffId = null, scheduledDate = null, limit = 200, offset = 0 } = {}) {
+  const conditions = ['j.deleted_at IS NULL'];
+  const params = [];
+
+  if (status && status !== 'all') {
+    params.push(status);
+    conditions.push(`j.status = $${params.length}`);
+  }
+
+  if (serviceCategoryId && serviceCategoryId !== 'all') {
+    const cat = (serviceCategoryId === 'Solar Panel Cleaning' || serviceCategoryId === 'solar_cleaning') ? 'solar_cleaning' : 'car_washing';
+    params.push(cat);
+    conditions.push(`j.service_category_id = $${params.length}`);
+  }
+
+  if (scheduledDate) {
+    params.push(scheduledDate);
+    conditions.push(`j.scheduled_date = $${params.length}`);
+  }
+
+  if (staffId && staffId !== 'all') {
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffId)) {
+      params.push(staffId);
+      conditions.push(`sa.staff_id = $${params.length}`);
+    } else {
+      params.push(staffId.toUpperCase());
+      conditions.push(`UPPER(s.staff_code) = $${params.length}`);
+    }
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  params.push(limit);
+  const limitIdx = params.length;
+  params.push(offset);
+  const offsetIdx = params.length;
+
+  const sql = `
+    SELECT j.*,
+           c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
+           v.registration_no, v.brand_or_model, v.photo_url AS vehicle_photo_url,
+           loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
+           sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code
+    FROM public.service_jobs j
+    JOIN public.customers c ON j.customer_id = c.id
+    LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
+    JOIN public.service_locations loc ON j.location_id = loc.id
+    LEFT JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
+    LEFT JOIN public.staff s ON sa.staff_id = s.id
+    ${whereClause}
+    ORDER BY j.created_at DESC
+    LIMIT $${limitIdx} OFFSET $${offsetIdx}
+  `;
+
+  const res = await db.query(sql, params);
+
+  const jobs = res.rows.map(row => {
+    let beforePhotos = [];
+    if (Array.isArray(row.before_photos)) beforePhotos = row.before_photos;
+    else if (typeof row.before_photos === 'string' && row.before_photos) {
+      try { beforePhotos = JSON.parse(row.before_photos); } catch (e) { beforePhotos = []; }
+    }
+
+    let afterPhotos = [];
+    if (Array.isArray(row.after_photos)) afterPhotos = row.after_photos;
+    else if (typeof row.after_photos === 'string' && row.after_photos) {
+      try { afterPhotos = JSON.parse(row.after_photos); } catch (e) { afterPhotos = []; }
+    }
+
+    let durationMinutes = null;
+    if (row.started_at && row.completed_at) {
+      const diffMs = new Date(row.completed_at).getTime() - new Date(row.started_at).getTime();
+      durationMinutes = Math.max(1, Math.round(diffMs / 60000));
+    }
+
+    return {
+      id: row.id,
+      jobId: row.id,
+      customerId: row.customer_id,
+      customerCode: row.customer_code,
+      customerName: row.customer_name,
+      customerNameHi: row.customer_name_hi,
+      customerPhone: row.customer_phone,
+      address: row.address_text,
+      addressHi: row.address_text_hi,
+      googleMapsUrl: row.google_maps_url,
+      parkingDetails: row.parking_details,
+      vehicle: row.registration_no ? (row.brand_or_model ? `${row.registration_no} (${row.brand_or_model})` : row.registration_no) : '',
+      serviceCategoryId: row.service_category_id,
+      serviceCategory: row.service_category_id === 'solar_cleaning' ? 'Solar Panel Cleaning' : 'Car Washing',
+      serviceType: row.service_type,
+      packageDetails: row.package_details,
+      siteDetails: row.site_details,
+      scheduledDate: row.scheduled_date,
+      status: row.status,
+      specialInstructions: row.special_instructions,
+      beforePhotos,
+      afterPhotos,
+      startedAt: row.started_at,
+      completedAt: row.completed_at,
+      completionNotes: row.completion_notes,
+      durationMinutes,
+      staffId: row.assigned_staff_code || (row.assigned_staff_name ? row.assigned_staff_name : ''),
+      staffName: row.assigned_staff_name || 'Unassigned',
+      createdAt: row.created_at
+    };
+  });
+
+  return { success: true, jobs };
+}
+
 module.exports = {
   normalizeIndianMobile,
   isValidIndianMobile,
@@ -1385,5 +1703,7 @@ module.exports = {
   backfillHindiCustomerData,
   getLeads,
   convertLeadToCustomer,
-  addLeadNote
+  addLeadNote,
+  assignSpecialJob,
+  getSpecialJobsAdmin
 };

@@ -3619,6 +3619,281 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ success: true, staffList: (appState.staffList || []).map(s => sanitizeStaffForAdmin(s)) }));
         }
 
+        // =====================================================================
+        // ON-DEMAND / SPECIAL JOBS (Solar Cleaning, Car Washing) WORKFLOWS
+        // =====================================================================
+
+        // Admin: Assign Special Job to Staff
+        if (payload.action === 'assignSpecialJob') {
+          if (!isValidAdminSession(token)) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to assign special jobs',
+              unauthorized: true
+            }));
+          }
+
+          try {
+            const adminUser = 'admin';
+            if (isNeonConfigured()) {
+              const result = await adminService.assignSpecialJob(payload.jobData || payload, adminUser);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(result));
+            }
+
+            // Local fallback
+            if (!appState.serviceJobs) appState.serviceJobs = [];
+            const jId = 'job_' + Date.now();
+            const localJob = Object.assign({
+              id: jId,
+              status: 'assigned',
+              created_at: new Date().toISOString()
+            }, payload.jobData || payload);
+            appState.serviceJobs.push(localJob);
+            saveLocalData(appState);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, job: localJob }));
+          } catch (err) {
+            console.error('assignSpecialJob error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Query Special Jobs with Filters
+        if (payload.action === 'getSpecialJobs') {
+          if (!isValidAdminSession(token)) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required',
+              unauthorized: true
+            }));
+          }
+
+          try {
+            if (isNeonConfigured()) {
+              const result = await adminService.getSpecialJobsAdmin(payload);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(result));
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, jobs: appState.serviceJobs || [] }));
+          } catch (err) {
+            console.error('getSpecialJobs error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Staff: Start Special Job with 1 or max 2 Before Photos
+        if (payload.action === 'startSpecialJob') {
+          const sess = await getSessionInfo(token);
+          const staffSess = (sess && sess.userType === 'staff') ? sess : getValidStaffSession(token);
+          const adminSess = isValidAdminSession(token);
+
+          if (!staffSess && !adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff session required' }));
+          }
+
+          const jobId = payload.jobId || payload.id;
+          if (!jobId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Job ID is required' }));
+          }
+
+          // Upload before photos (up to 2)
+          let beforePhotoUrls = Array.isArray(payload.beforePhotoUrls) ? payload.beforePhotoUrls.slice(0, 2) : [];
+          const rawPhotos = Array.isArray(payload.photos) ? payload.photos : (payload.photoBase64 ? [{ base64: payload.photoBase64 }] : (payload.photoFile ? [payload.photoFile] : []));
+
+          for (let i = 0; i < Math.min(rawPhotos.length, 2); i++) {
+            const pObj = rawPhotos[i];
+            if (pObj && pObj.base64) {
+              try {
+                const uUrl = await uploadToCloudinary(pObj);
+                if (uUrl) beforePhotoUrls.push(uUrl);
+              } catch (uErr) {
+                console.error('Before photo upload error:', uErr.message);
+              }
+            } else if (typeof pObj === 'string' && pObj.startsWith('http')) {
+              beforePhotoUrls.push(pObj);
+            }
+          }
+          beforePhotoUrls = beforePhotoUrls.slice(0, 2);
+
+          const startedAt = payload.startedAtDevice || new Date().toISOString();
+
+          try {
+            if (isNeonConfigured()) {
+              const updatedJob = await repos.serviceJobs.startJob(jobId, {
+                beforePhotos: beforePhotoUrls,
+                startedAt: startedAt
+              });
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: true,
+                job: updatedJob,
+                beforePhotos: beforePhotoUrls,
+                startedAt: startedAt,
+                message: 'Job started successfully'
+              }));
+            }
+
+            // Local fallback
+            if (appState.serviceJobs) {
+              const j = appState.serviceJobs.find(x => x.id === jobId);
+              if (j) {
+                j.status = 'in_progress';
+                j.started_at = startedAt;
+                j.before_photos = beforePhotoUrls;
+                saveLocalData(appState);
+              }
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, status: 'in_progress', beforePhotos: beforePhotoUrls }));
+          } catch (err) {
+            console.error('startSpecialJob error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Staff: Complete Special Job with 1 or max 2 After Photos & Notes
+        if (payload.action === 'completeSpecialJob') {
+          const sess = await getSessionInfo(token);
+          const staffSess = (sess && sess.userType === 'staff') ? sess : getValidStaffSession(token);
+          const adminSess = isValidAdminSession(token);
+
+          if (!staffSess && !adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff session required' }));
+          }
+
+          const jobId = payload.jobId || payload.id;
+          if (!jobId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Job ID is required' }));
+          }
+
+          const staffCode = (staffSess && (staffSess.staffCode || staffSess.staffId)) || payload.staffId || 'STF01';
+
+          // Upload after photos (up to 2)
+          let afterPhotoUrls = Array.isArray(payload.afterPhotoUrls) ? payload.afterPhotoUrls.slice(0, 2) : [];
+          const rawPhotos = Array.isArray(payload.photos) ? payload.photos : (payload.photoBase64 ? [{ base64: payload.photoBase64 }] : (payload.photoFile ? [payload.photoFile] : []));
+
+          for (let i = 0; i < Math.min(rawPhotos.length, 2); i++) {
+            const pObj = rawPhotos[i];
+            if (pObj && pObj.base64) {
+              try {
+                const uUrl = await uploadToCloudinary(pObj);
+                if (uUrl) afterPhotoUrls.push(uUrl);
+              } catch (uErr) {
+                console.error('After photo upload error:', uErr.message);
+              }
+            } else if (typeof pObj === 'string' && pObj.startsWith('http')) {
+              afterPhotoUrls.push(pObj);
+            }
+          }
+          afterPhotoUrls = afterPhotoUrls.slice(0, 2);
+
+          const completedAt = payload.completedAtDevice || new Date().toISOString();
+          const notes = (payload.notes || payload.completionNotes || '').trim();
+
+          try {
+            if (isNeonConfigured()) {
+              const updatedJob = await repos.serviceJobs.completeJob(jobId, {
+                afterPhotos: afterPhotoUrls,
+                completedAt: completedAt,
+                completionNotes: notes
+              });
+
+              // Record in service_logs for audit ledger
+              let staff = null;
+              if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffCode)) {
+                staff = await repos.staff.findById(staffCode);
+              } else {
+                staff = await repos.staff.findByStaffCode(staffCode);
+              }
+
+              if (staff) {
+                const mutationId = payload.clientMutationId || crypto.randomUUID();
+                const istDate = repos.serviceLogs.computeIstServiceDate(completedAt);
+                await repos.serviceLogs.recordCompletion({
+                  clientMutationId: mutationId,
+                  staffId: staff.id,
+                  jobId: jobId,
+                  serviceDate: istDate,
+                  status: 'completed',
+                  completedAtDevice: completedAt,
+                  notes: notes || 'Special job completed with photo proof',
+                  photoUrl: afterPhotoUrls[0] || null,
+                  source: 'staff_portal'
+                });
+              }
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: true,
+                job: updatedJob,
+                afterPhotos: afterPhotoUrls,
+                completedAt: completedAt,
+                message: 'Job completed successfully'
+              }));
+            }
+
+            // Local fallback
+            if (appState.serviceJobs) {
+              const j = appState.serviceJobs.find(x => x.id === jobId);
+              if (j) {
+                j.status = 'completed';
+                j.completed_at = completedAt;
+                j.after_photos = afterPhotoUrls;
+                j.completion_notes = notes;
+                saveLocalData(appState);
+              }
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, status: 'completed', afterPhotos: afterPhotoUrls }));
+          } catch (err) {
+            console.error('completeSpecialJob error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Cancel / Soft-Delete Special Job
+        if (payload.action === 'deleteSpecialJob') {
+          if (!isValidAdminSession(token)) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required',
+              unauthorized: true
+            }));
+          }
+
+          const jobId = payload.jobId || payload.id;
+          try {
+            if (isNeonConfigured()) {
+              await repos.serviceJobs.softDelete(jobId);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, message: 'Job cancelled successfully' }));
+            }
+            if (appState.serviceJobs) {
+              appState.serviceJobs = appState.serviceJobs.filter(x => x.id !== jobId);
+              saveLocalData(appState);
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, message: 'Job cancelled' }));
+          } catch (err) {
+            console.error('deleteSpecialJob error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
         res.writeHead(400, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ success: false, error: 'Unknown or unsupported action: ' + (payload.action || '') }));
       } catch (parseErr) {

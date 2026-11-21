@@ -16,8 +16,8 @@ function computeStaffDataVersion(data) {
   const str = JSON.stringify({
     staffId: data.staffId,
     dc: (data.dailyCarCleaning || []).map(c => [c.customerName, c.vehicle, c.active, c.completedToday]),
-    cw: (data.carWashing || []).map(j => [j.customerName, j.serviceType, j.status]),
-    sc: (data.solarCleaning || []).map(j => [j.customerName, j.serviceType, j.status])
+    cw: (data.carWashing || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt]),
+    sc: (data.solarCleaning || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt])
   });
   return crypto.createHash('md5').update(str).digest('hex').substring(0, 16);
 }
@@ -203,8 +203,22 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
 
   dispatchedJobs.forEach(j => {
     const isCompleted = j.status === 'completed' || completedJobIds.has(j.id);
+    let beforePhotos = [];
+    if (Array.isArray(j.before_photos)) {
+      beforePhotos = j.before_photos;
+    } else if (typeof j.before_photos === 'string' && j.before_photos.trim()) {
+      try { beforePhotos = JSON.parse(j.before_photos); } catch (e) { beforePhotos = []; }
+    }
+    let afterPhotos = [];
+    if (Array.isArray(j.after_photos)) {
+      afterPhotos = j.after_photos;
+    } else if (typeof j.after_photos === 'string' && j.after_photos.trim()) {
+      try { afterPhotos = JSON.parse(j.after_photos); } catch (e) { afterPhotos = []; }
+    }
+
     const jobItem = {
       jobId: j.id,
+      id: j.id,
       customerId: j.customer_id,
       customerCode: j.customer_code,
       customerName: j.customer_name,
@@ -220,11 +234,17 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       vehiclePhotoUrl: j.vehicle_photo_url,
       siteDetails: j.site_details,
       serviceType: j.service_type,
+      serviceCategoryId: j.service_category_id,
       packageDetails: j.package_details,
       specialInstructions: j.special_instructions,
       scheduledDate: j.scheduled_date,
       status: j.status,
       completedToday: isCompleted,
+      beforePhotos: beforePhotos,
+      afterPhotos: afterPhotos,
+      startedAt: j.started_at,
+      completedAt: j.completed_at,
+      completionNotes: j.completion_notes,
       staffId: staff.staff_code,
       staffName: staff.name
     };

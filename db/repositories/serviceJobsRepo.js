@@ -1,5 +1,6 @@
 /**
  * Repository for table: service_jobs
+ * On-Demand / Special Jobs (Solar Panel Cleaning, Car Washing, Detailing)
  */
 const db = require('../index');
 
@@ -43,9 +44,9 @@ async function findAll({
 
   const sql = `
     SELECT j.*,
-           c.name AS customer_name, c.phone AS customer_phone, c.customer_code,
+           c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
            v.registration_no, v.brand_or_model, v.photo_url AS vehicle_photo_url,
-           loc.address_text, loc.google_maps_url, loc.parking_details,
+           loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
            sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code
     FROM public.service_jobs j
     JOIN public.customers c ON j.customer_id = c.id
@@ -96,7 +97,15 @@ async function findDispatchedForStaff(staffId, client = null) {
      JOIN public.service_locations loc ON j.location_id = loc.id
      JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
      WHERE sa.staff_id = $1 AND j.deleted_at IS NULL AND j.status != 'cancelled'
-     ORDER BY j.scheduled_date ASC NULLS LAST, j.created_at ASC`,
+     ORDER BY 
+       CASE j.status 
+         WHEN 'in_progress' THEN 1 
+         WHEN 'assigned' THEN 2 
+         WHEN 'completed' THEN 3 
+         ELSE 4 
+       END ASC,
+       j.scheduled_date ASC NULLS LAST, 
+       j.created_at DESC`,
     [staffId]
   );
   return res.rows;
@@ -114,15 +123,18 @@ async function createJob({
   status = 'assigned',
   specialInstructions = null,
   photoUrl = null,
-  photoStorageKey = null
+  photoStorageKey = null,
+  beforePhotos = [],
+  afterPhotos = []
 }, client = null) {
   const runner = client || db;
   const res = await runner.query(
     `INSERT INTO public.service_jobs (
        customer_id, vehicle_id, location_id, service_category_id,
        service_type, package_details, site_details, scheduled_date,
-       status, special_instructions, photo_url, photo_storage_key
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       status, special_instructions, photo_url, photo_storage_key,
+       before_photos, after_photos
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      RETURNING *`,
     [
       customerId,
@@ -136,10 +148,54 @@ async function createJob({
       status || 'assigned',
       specialInstructions ? specialInstructions.trim() : null,
       photoUrl,
-      photoStorageKey
+      photoStorageKey,
+      JSON.stringify(beforePhotos || []),
+      JSON.stringify(afterPhotos || [])
     ]
   );
   return res.rows[0];
+}
+
+async function startJob(id, opts = {}, client = null) {
+  const runner = client || db;
+  const beforePhotos = Array.isArray(opts) ? opts : (opts && opts.beforePhotos ? opts.beforePhotos : []);
+  const startedAt = Array.isArray(opts) ? null : (opts && opts.startedAt);
+  const stAt = startedAt || new Date().toISOString();
+  const res = await runner.query(
+    `UPDATE public.service_jobs
+     SET status = 'in_progress',
+         started_at = $2,
+         before_photos = $3,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND deleted_at IS NULL
+     RETURNING *`,
+    [id, stAt, JSON.stringify(beforePhotos || [])]
+  );
+  return res.rows[0] || null;
+}
+
+async function completeJob(id, opts = {}, clientOrNotes = null, maybeClient = null) {
+  const isLegacySig = Array.isArray(opts);
+  const afterPhotos = isLegacySig ? opts : (opts && opts.afterPhotos ? opts.afterPhotos : []);
+  const completedAt = isLegacySig ? null : (opts && opts.completedAt);
+  const completionNotes = isLegacySig 
+    ? (typeof clientOrNotes === 'string' ? clientOrNotes : null)
+    : (opts && opts.completionNotes ? opts.completionNotes : null);
+  const runner = (isLegacySig ? maybeClient : clientOrNotes) || db;
+
+  const compAt = completedAt || new Date().toISOString();
+  const res = await runner.query(
+    `UPDATE public.service_jobs
+     SET status = 'completed',
+         completed_at = $2,
+         after_photos = $3,
+         completion_notes = $4,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND deleted_at IS NULL
+     RETURNING *`,
+    [id, compAt, JSON.stringify(afterPhotos || []), completionNotes ? completionNotes.trim() : null]
+  );
+  return res.rows[0] || null;
 }
 
 async function updateJobStatus(id, status, client = null) {
@@ -171,6 +227,8 @@ module.exports = {
   findById,
   findDispatchedForStaff,
   createJob,
+  startJob,
+  completeJob,
   updateJobStatus,
   softDelete
 };
