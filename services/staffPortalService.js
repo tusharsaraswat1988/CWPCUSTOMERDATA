@@ -144,7 +144,10 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     const secondaryLoc = custLocs.find(l => !l.is_primary) || (custLocs.length > 1 ? custLocs[1] : null);
 
     // Multi-vehicle details
-    const vehicleSummary = svList.map(sv => sv.brand_or_model ? `${sv.registration_no} (${sv.brand_or_model})` : sv.registration_no).join(', ');
+    const vehicleSummary = svList.map(sv => {
+      const cleanModel = (sv.brand_or_model && !/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(sv.brand_or_model.trim())) ? sv.brand_or_model.trim() : '';
+      return cleanModel ? `${sv.registration_no} (${cleanModel})` : sv.registration_no;
+    }).join(', ');
     const mainPhoto = svList[0]?.vehicle_photo_url || '';
 
     // Check completion today
@@ -177,7 +180,7 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
         subVehId: sv.id,
         subscriptionVehicleId: sv.id,
         registrationNo: sv.registration_no,
-        brandOrModel: sv.brand_or_model,
+        brandOrModel: (sv.brand_or_model && !/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(sv.brand_or_model.trim())) ? sv.brand_or_model.trim() : '',
         carMake: sv.car_make || '',
         carColor: sv.car_color || '',
         photoUrl: sv.vehicle_photo_url,

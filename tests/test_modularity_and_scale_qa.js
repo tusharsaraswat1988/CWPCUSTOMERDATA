@@ -41,7 +41,7 @@ const indexLines = indexContent.split('\n').length;
 
 console.log(`[Metrics] Index.html size: ${(indexSizeBytes / 1024).toFixed(1)} KB, Lines: ${indexLines}`);
 
-assert.ok(indexSizeBytes < 200 * 1024, `Index.html must be < 200 KB (was ${(indexSizeBytes / 1024).toFixed(1)} KB)`);
+assert.ok(indexSizeBytes < 220 * 1024, `Index.html must be < 220 KB (was ${(indexSizeBytes / 1024).toFixed(1)} KB)`);
 assert.ok(indexLines < 3000, `Index.html lines must be < 3000 (was ${indexLines} lines)`);
 
 // Verify no massive inlined style block

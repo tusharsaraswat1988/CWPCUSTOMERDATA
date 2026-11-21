@@ -1,6 +1,6 @@
 {
   "name": "cwp-staff-viewer",
-  "version": "1.0.0",
+  "version": "3.2.0",
   "description": "Customer Data and Staff Portal Application for CWP Detailers & Motors (Neon PostgreSQL)",
   "main": "server.js",
   "engines": {

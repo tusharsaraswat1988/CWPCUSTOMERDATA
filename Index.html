@@ -51,7 +51,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-  <link rel="stylesheet" href="/css/style.css?v=3.1.0">
+  <link rel="stylesheet" href="/css/style.css?v=3.2.0">
   <style>
     /* Critical FOUC Prevention & Immediate Logo/Header Constraints */
     :root {
@@ -523,53 +523,157 @@
         </div>
       </div>
       <div id="adminUnlockedContent" style="display: none;">
-        <div class="admin-tab-container">
-          <div class="admin-tab-nav" role="tablist">
-            <button type="button" class="admin-tab-btn active" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')" title="View customer records">
-              <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
-                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
-              </svg>
-              <span class="tab-text">Customer Records</span>
-              <span class="admin-tab-badge" id="tabRecordsCount">0</span>
-            </button>
-            <button type="button" class="admin-tab-btn" id="tabBtnLeads" role="tab" onclick="switchAdminTab('leads')" title="Manage prospective customer inquiries and leads">
-              <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
-              </svg>
-              <span class="tab-text">🎯 Leads</span>
-              <span class="admin-tab-badge" id="tabLeadsCount" style="background: rgba(245, 158, 11, 0.2); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.35);">0</span>
-            </button>
-            <button type="button" class="admin-tab-btn" id="tabBtnSequence" role="tab" onclick="switchAdminTab('sequence')" title="Daily car cleaning route sequence management">
-              <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
-                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
-              </svg>
-              <span class="tab-text">Route Sequence</span>
-              <span class="admin-tab-badge" id="tabSequenceBadge">Route</span>
-            </button>
-            <button type="button" class="admin-tab-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')" title="Staff management and login links">
-              <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
-                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
-              </svg>
-              <span class="tab-text">Staff Management</span>
-              <span class="admin-tab-badge" id="tabStaffCount">0</span>
-            </button>
-            <button type="button" class="admin-tab-btn" id="tabBtnCleanReports" role="tab" onclick="switchAdminTab('cleanReports')" title="Daily Car Cleaning Reports & Proof of Work">
-              <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
-                <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z"/>
-                <path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd"/>
-              </svg>
-              <span class="tab-text">Daily Clean Reports</span>
-              <span class="admin-tab-badge" id="tabCleanReportsCount">0</span>
-            </button>
-            <button type="button" class="admin-tab-btn" id="tabBtnSpecialJobs" role="tab" onclick="switchAdminTab('specialJobs')" title="On-Demand / Special Jobs (Solar Panel Cleaning, Car Washing)">
-              <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
-                <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
-              </svg>
-              <span class="tab-text">⚡ Special Jobs</span>
-              <span class="admin-tab-badge" id="tabSpecialJobsCount" style="background: rgba(217, 119, 6, 0.2); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.35);">0</span>
-            </button>
-          </div>
-        </div>
+        <!-- Mobile Sidebar Backdrop Overlay -->
+        <div class="admin-sidebar-backdrop" id="adminSidebarBackdrop" onclick="closeAdminSidebar()"></div>
+
+        <!-- Master Admin Layout Wrapper -->
+        <div class="admin-layout-wrapper">
+          <!-- Professional Side Menu Navigation -->
+          <aside class="admin-sidebar" id="adminSidebar" role="navigation" aria-label="Admin Navigation">
+            <!-- Sidebar Header & Portal Identity -->
+            <div class="sidebar-header-box">
+              <div class="sidebar-brand-badge">
+                <div class="sidebar-brand-icon-wrap">🛡️</div>
+                <div class="sidebar-brand-meta">
+                  <div class="sidebar-brand-title">Admin Console</div>
+                  <div class="sidebar-brand-sub">Operations & Audit Hub</div>
+                </div>
+              </div>
+              <button type="button" class="sidebar-mobile-close-btn" onclick="closeAdminSidebar()" aria-label="Close sidebar" title="Close Menu">✕</button>
+            </div>
+
+            <!-- Sidebar Navigation Links Container -->
+            <div class="admin-tab-container sidebar-nav-container">
+              <div class="admin-tab-nav sidebar-nav-list" role="tablist">
+                
+                <!-- Category 1: Operations Dashboard (Clubbed Daily Cleans & Special Jobs) -->
+                <div class="sidebar-section-label">
+                  <span>OPERATIONS DASHBOARD</span>
+                </div>
+
+                <div class="sidebar-hub-group" id="sidebarOpsHubGroup">
+                  <button type="button" class="sidebar-hub-header-btn" id="sideNavDashboard" onclick="switchAdminTab('cleanReports')" title="Unified Operations Dashboard (Daily Cleans & Special Jobs)">
+                    <div class="hub-header-left">
+                      <span class="hub-header-icon">📊</span>
+                      <span class="hub-header-title">Operations Hub</span>
+                    </div>
+                    <span class="hub-live-badge"><span class="hub-live-dot"></span>LIVE</span>
+                  </button>
+                  <div class="sidebar-hub-sublinks">
+                    <button type="button" class="admin-tab-btn sidebar-sub-btn" id="tabBtnCleanReports" role="tab" onclick="switchAdminTab('cleanReports')" title="Daily Car Cleaning Reports & Proof of Work">
+                      <span class="sub-btn-icon">🚗</span>
+                      <span class="tab-text">Daily Clean Reports</span>
+                      <span class="admin-tab-badge" id="tabCleanReportsCount">0</span>
+                    </button>
+                    <button type="button" class="admin-tab-btn sidebar-sub-btn" id="tabBtnSpecialJobs" role="tab" onclick="switchAdminTab('specialJobs')" title="On-Demand / Special Jobs (Solar Panel Cleaning, Car Washing)">
+                      <span class="sub-btn-icon">⚡</span>
+                      <span class="tab-text">Special Jobs</span>
+                      <span class="admin-tab-badge badge-amber" id="tabSpecialJobsCount" style="background: rgba(217, 119, 6, 0.2); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.35);">0</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Category 2: Records & Route Sequencing -->
+                <div class="sidebar-section-label">
+                  <span>DATA & DIRECTORY</span>
+                </div>
+
+                <button type="button" class="admin-tab-btn sidebar-nav-btn active" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')" title="View customer records">
+                  <div class="nav-btn-left">
+                    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                      <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="tab-text">Customer Records</span>
+                  </div>
+                  <span class="admin-tab-badge" id="tabRecordsCount">0</span>
+                </button>
+
+                <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnLeads" role="tab" onclick="switchAdminTab('leads')" title="Manage prospective customer inquiries and leads">
+                  <div class="nav-btn-left">
+                    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="tab-text">🎯 Leads Pipeline</span>
+                  </div>
+                  <span class="admin-tab-badge badge-amber" id="tabLeadsCount" style="background: rgba(245, 158, 11, 0.2); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.35);">0</span>
+                </button>
+
+                <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnSequence" role="tab" onclick="switchAdminTab('sequence')" title="Daily car cleaning route sequence management">
+                  <div class="nav-btn-left">
+                    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                      <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="tab-text">Route Sequence</span>
+                  </div>
+                  <span class="admin-tab-badge badge-sky" id="tabSequenceBadge">Route</span>
+                </button>
+
+                <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')" title="Staff management and login links">
+                  <div class="nav-btn-left">
+                    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                    </svg>
+                    <span class="tab-text">Staff Management</span>
+                  </div>
+                  <span class="admin-tab-badge" id="tabStaffCount">0</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Quick Creation Actions -->
+            <div class="sidebar-quick-actions-box">
+              <div class="sidebar-section-label">
+                <span>QUICK ACTIONS</span>
+              </div>
+              <div class="sidebar-quick-actions-grid">
+                <button type="button" class="sidebar-quick-action-btn" onclick="openAddCustomerModal()" title="Add New Customer">
+                  <span>➕</span> <span>New Client</span>
+                </button>
+                <button type="button" class="sidebar-quick-action-btn" onclick="openAddLeadModal()" title="Add New Lead">
+                  <span>✨</span> <span>New Lead</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Sidebar Footer: Profile, Portal Switcher & Logout at bottom -->
+            <div class="sidebar-footer-box">
+              <div class="sidebar-user-card">
+                <div class="sidebar-user-avatar">A</div>
+                <div class="sidebar-user-meta">
+                  <span class="sidebar-user-name">Administrator</span>
+                  <span class="sidebar-user-role">SUPER ADMIN</span>
+                </div>
+              </div>
+              <div class="sidebar-footer-actions">
+                <button type="button" class="sidebar-switch-btn" onclick="applyViewMode('staff')" title="Switch to Staff Portal">
+                  <span>🚗</span> <span>Switch to Staff Portal</span>
+                </button>
+                <!-- LOGOUT BUTTON AT THE VERY BOTTOM OF SIDE MENU -->
+                <button type="button" class="sidebar-logout-btn item-destructive" id="sidebarAdminLogoutBtn" onclick="handleAdminLogout()" title="Logout from Admin Portal">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" class="logout-icon-svg">
+                    <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
+                  </svg>
+                  <span>Logout from Admin</span>
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Main Admin Workspace Container -->
+          <main class="admin-main-workspace" id="adminMainWorkspace">
+            <!-- Mobile Topbar with Hamburger Toggle -->
+            <div class="admin-mobile-topbar" id="adminMobileTopbar">
+              <button type="button" class="btn-sidebar-hamburger" onclick="toggleAdminSidebar()" aria-label="Open Navigation Menu" title="Open Navigation Menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="20" height="20">
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <line x1="3" y1="12" x2="21" y2="12"></line>
+                  <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+                <span class="hamburger-label">Menu</span>
+              </button>
+              <div class="admin-mobile-active-pane" id="adminMobileActivePane">Customer Records</div>
+              <button type="button" class="btn-mobile-logout" onclick="handleAdminLogout()" title="Logout">🚪</button>
+            </div>
       <div id="adminTabAddCust" class="admin-tab-pane" style="display: none;"></div>
       <div id="adminTabLeads" class="admin-tab-pane" style="display: none;">
         <div class="admin-card-section leads-executive-section">
@@ -931,42 +1035,88 @@
           <div id="adminTablePagination" class="admin-table-pagination-bar"></div>
         </div>
       </div>
-      <div id="adminTabCleanReports" class="admin-tab-pane" style="display: none;">
-        <div class="admin-card-section reports-executive-section">
-          <div class="clean-reports-hero-strip">
-            <div class="clean-reports-hero-left">
-              <div class="clean-reports-brand-icon">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
-                  <circle cx="7" cy="17" r="2"/>
-                  <path d="M9 17h6"/>
-                  <circle cx="17" cy="17" r="2"/>
-                </svg>
-              </div>
+        <div id="adminOpsDashboardHub" class="ops-dashboard-hub-header" style="display: none;">
+          <div class="ops-hub-top-row">
+            <div class="ops-hub-title-group">
+              <div class="ops-hub-icon">📊</div>
               <div>
-                <div class="clean-reports-title-row">
-                  <h2 class="clean-reports-h2">Daily Clean Reports & Proof of Work</h2>
-                  <span id="reportsLiveSyncPill" class="live-sync-pill" onclick="toggleCleanReportsAutoSync()" title="Live Auto-Sync Active (Click to pause/resume)" style="cursor: pointer; user-select: none;"><span class="live-dot-pulse" id="reportsLiveDot"></span> <span id="reportsLiveSyncText">LIVE AUDIT</span></span>
-                  <span id="reportsLastSyncTime" class="reports-last-sync-time" title="Last background sync time">Live sync active (15s)</span>
+                <div class="ops-hub-title-row">
+                  <h2 class="ops-hub-title">Operations & Field Reports Dashboard</h2>
+                  <span id="reportsLiveSyncPill" class="live-sync-pill" onclick="toggleCleanReportsAutoSync()" title="Live Auto-Sync Active" style="cursor: pointer;"><span class="live-dot-pulse" id="reportsLiveDot"></span> <span id="reportsLiveSyncText">LIVE AUDIT</span></span>
+                  <span id="reportsLastSyncTime" class="reports-last-sync-time" title="Last sync time">Live sync active (15s)</span>
                 </div>
-                <p class="clean-reports-subtitle">Realtime field completion audit, timestamped photo evidence, and staff verification intelligence</p>
+                <p class="ops-hub-subtitle">Unified executive intelligence hub for scheduled daily car cleaning, on-demand special jobs & field crew verification</p>
               </div>
             </div>
-            <div class="clean-reports-hero-actions">
-              <button type="button" class="btn-report-action btn-report-refresh" onclick="loadDailyCleanReports()" title="Refresh latest data (नया डेटा लोड करें)">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                <span>Refresh</span>
+            <div class="ops-hub-actions">
+              <button type="button" class="btn-report-action btn-ops-refresh-all" onclick="refreshOperationsDashboard()" title="Refresh All">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                <span>Refresh All</span>
               </button>
-              <button type="button" class="btn-report-action" onclick="exportDailyCleanReportsCSV()" title="Download CSV for Excel (एक्सेल फाइल डाउनलोड करें)">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <button type="button" class="btn-report-action btn-ops-assign-special" onclick="openAssignSpecialJobModal()" title="Assign Special Job" style="background: linear-gradient(135deg, #d97706, #b45309); color: #fff; border-color: #b45309;">
+                <span>⚡ + Assign Job</span>
+              </button>
+              <button type="button" class="btn-report-action" onclick="exportDailyCleanReportsCSV()" title="Export CSV">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                 <span>Export CSV</span>
               </button>
-              <button type="button" class="btn-report-action" onclick="printDailyCleanReports()" title="Print Summary (प्रिंट रिपोर्ट)">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              <button type="button" class="btn-report-action" onclick="printDailyCleanReports()" title="Print Summary">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 <span>Print</span>
               </button>
             </div>
           </div>
+
+          <!-- Aggregated Executive Metric Deck (Combined Daily Cleans + Special Jobs) -->
+          <div class="ops-kpi-deck">
+            <div class="ops-kpi-tile ops-tile-cleans active-tile" onclick="switchAdminTab('cleanReports')" title="View Daily Clean Reports">
+              <div class="ops-tile-icon">🚗</div>
+              <div class="ops-tile-body">
+                <div class="ops-tile-num"><span id="dashTotalDailyCleans">0</span> Cars</div>
+                <div class="ops-tile-caption">Daily Cleans Today (<span id="dashDailyPhotoRate">0%</span> verified)</div>
+              </div>
+            </div>
+            <div class="ops-kpi-tile ops-tile-special" onclick="switchAdminTab('specialJobs')" title="View Special Jobs">
+              <div class="ops-tile-icon">⚡</div>
+              <div class="ops-tile-body">
+                <div class="ops-tile-num"><span id="dashTotalSpecialJobs">0</span> Tasks</div>
+                <div class="ops-tile-caption">Special Jobs (<span id="dashSpecialCompleted">0</span> Done • <span id="dashSpecialPending">0</span> Active)</div>
+              </div>
+            </div>
+            <div class="ops-kpi-tile ops-tile-crew">
+              <div class="ops-kpi-icon">👥</div>
+              <div class="ops-tile-body">
+                <div class="ops-tile-num"><span id="dashActiveCrew">0</span> Staff</div>
+                <div class="ops-tile-caption">Active Field Crew on Route</div>
+              </div>
+            </div>
+            <div class="ops-kpi-tile ops-tile-punch">
+              <div class="ops-kpi-icon">⏱️</div>
+              <div class="ops-tile-body">
+                <div class="ops-tile-num"><span id="dashLatestActivity">--:--</span></div>
+                <div class="ops-tile-caption">Latest Field Activity Logged</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Segmented Club Switcher Bar -->
+          <div class="ops-club-switcher">
+            <button type="button" class="ops-club-btn active" id="dashBtnSubCleanReports" onclick="switchAdminTab('cleanReports')">
+              <span class="ops-club-icon">🚗</span>
+              <span class="ops-club-text">Daily Clean Reports & Proof of Work</span>
+              <span class="ops-club-badge" id="dashSubCleanCount">0</span>
+            </button>
+            <button type="button" class="ops-club-btn" id="dashBtnSubSpecialJobs" onclick="switchAdminTab('specialJobs')">
+              <span class="ops-club-icon">⚡</span>
+              <span class="ops-club-text">On-Demand & Special Jobs</span>
+              <span class="ops-club-badge badge-amber" id="dashSubSpecialCount">0</span>
+            </button>
+          </div>
+        </div>
+
+      <div id="adminTabCleanReports" class="admin-tab-pane" style="display: none;">
+        <div class="admin-card-section reports-executive-section">
+          <h2 class="clean-reports-h2" style="display: none;">Daily Clean Reports & Proof of Work</h2>
           <div id="reportsIntelligenceBanner" class="reports-intel-banner">
             <div class="intel-banner-icon">✨</div>
             <div class="intel-banner-content">
@@ -1205,6 +1355,8 @@
           </div>
         </div>
       </div>
+          </main>
+        </div>
       </div>
     </div>
   </div>
@@ -2701,7 +2853,7 @@
     var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
   </script>
   <script src="/js/cropper.min.js"></script>
-  <script src="/js/app.js?v=3.1.0" defer></script>
+  <script src="/js/app.js?v=3.2.0" defer></script>
   <script>
     // Failsafe listener for staff photo selection
     document.addEventListener('change', function(e) {

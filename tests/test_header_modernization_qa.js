@@ -159,8 +159,8 @@ console.log('✅ PASS 8: Account profile menu and destructive logout verified.\n
 // -----------------------------------------------------------------------------
 console.log('--- Test 9: Admin Navigation Tabs in Separate Row ---');
 
-assert.ok(indexHtml.includes('<div class="admin-tab-container">'), '9.1 admin-tab-container row preserved');
-assert.ok(indexHtml.includes('<div class="admin-tab-nav" role="tablist">'), '9.2 admin-tab-nav segmented control preserved');
+assert.ok(indexHtml.includes('admin-tab-container'), '9.1 admin-tab-container row preserved');
+assert.ok(indexHtml.includes('admin-tab-nav') && indexHtml.includes('role="tablist"'), '9.2 admin-tab-nav segmented control preserved');
 assert.ok(indexHtml.includes('id="tabBtnRecords"'), '9.3 Records tab button preserved');
 assert.ok(indexHtml.includes('id="tabBtnSequence"'), '9.4 Sequence tab button preserved');
 assert.ok(indexHtml.includes('id="tabBtnStaff"'), '9.5 Staff tab button preserved');
@@ -168,7 +168,7 @@ assert.ok(indexHtml.includes('id="tabBtnCleanReports"'), '9.6 Clean reports tab 
 
 // Verify that admin tabs are NOT inside .top-header
 const headerCloseIdx = indexHtml.indexOf('</header>');
-const adminTabsIdx = indexHtml.indexOf('class="admin-tab-container"');
+const adminTabsIdx = indexHtml.indexOf('admin-tab-container');
 assert.ok(adminTabsIdx > headerCloseIdx, '9.7 Admin tabs must strictly remain outside and beneath <header>');
 
 console.log('✅ PASS 9: Admin navigation tabs remain strictly separated in sub-row.\n');

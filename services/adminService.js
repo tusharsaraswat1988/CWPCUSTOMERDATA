@@ -43,7 +43,8 @@ function parseVehicleString(str) {
   let match = s.match(/^([A-Z0-9\s]+?)(?:\s*\((.*?)\))?$/i);
   if (match && match[2] !== undefined) {
     const reg = (match[1] || '').trim().toUpperCase().slice(0, 20);
-    const model = (match[2] || '').trim();
+    let model = (match[2] || '').trim();
+    if (/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(model)) model = '';
     return { reg, model };
   }
 
@@ -51,7 +52,8 @@ function parseVehicleString(str) {
   match = s.match(/^([A-Z0-9\s]+?)(?:\s*[-–—]\s*(.*))$/i);
   if (match && match[2]) {
     const reg = (match[1] || '').trim().toUpperCase().slice(0, 20);
-    const model = (match[2] || '').trim();
+    let model = (match[2] || '').trim();
+    if (/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(model)) model = '';
     return { reg, model };
   }
 

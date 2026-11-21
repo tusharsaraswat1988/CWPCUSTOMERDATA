@@ -801,7 +801,7 @@ function parseVehicleDetails(vehicleStr) {
 
   if (match) {
     reg = match[1].toUpperCase().replace(/\s+/g, ' ');
-    const remaining = raw.replace(match[0], '').replace(/^[-–—:,/|\s]+|[-–—:,/|\s]+$/g, '').trim();
+    const remaining = raw.replace(match[0], '').replace(/^[-–—:,/|\s()]+|[-–—:,/|\s()]+$/g, '').trim();
     model = (remaining.toLowerCase() === 'vehicle' || remaining.toLowerCase() === 'car') ? '' : remaining;
   } else if (raw.includes('-')) {
     const parts = raw.split('-');
@@ -815,6 +815,16 @@ function parseVehicleDetails(vehicleStr) {
   } else {
     model = raw;
     reg = '';
+  }
+
+  if (model) {
+    model = model.replace(/^[-–—:,/|\s()]+|[-–—:,/|\s()]+$/g, '').trim();
+    if (/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(model)) {
+      model = '';
+    }
+  }
+  if (reg) {
+    reg = reg.replace(/\s*[-–—]\s*(vehicle|car|गाड़ी|गाड़ी)$/i, '').trim();
   }
 
   return {
@@ -3953,9 +3963,10 @@ const server = http.createServer(async (req, res) => {
       content = content.replace('id="pageMainTitle">Staff Portal</h1>', 'id="pageMainTitle">Admin Portal</h1>');
     }
 
-    // Force v2.7.1 cache-buster on script and style tags across ALL routes
-    content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, '/js/app.js?v=2.7.1');
-    content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, '/css/style.css?v=2.7.1');
+    // Force latest asset version cache-buster across ALL routes
+    const APP_ASSET_VERSION = '3.2.0';
+    content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, `/js/app.js?v=${APP_ASSET_VERSION}`);
+    content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, `/css/style.css?v=${APP_ASSET_VERSION}`);
 
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',

@@ -1830,10 +1830,12 @@ var state = {
       try {
         var urlParams = new URLSearchParams(window.location.search);
         var urlTab = urlParams.get('tab');
+        if (urlTab === 'dashboard') return 'cleanReports';
         if (urlTab && ADMIN_VALID_TABS.indexOf(urlTab) !== -1) {
           return urlTab;
         }
         var localTab = localStorage.getItem('cwp_admin_active_tab');
+        if (localTab === 'dashboard') return 'cleanReports';
         if (localTab && ADMIN_VALID_TABS.indexOf(localTab) !== -1) {
           return localTab;
         }
@@ -1989,6 +1991,10 @@ var state = {
 
     /* Switch Admin Sub Tabs with URL & LocalStorage State Persistence */
     function switchAdminTab(tabName, updateUrl) {
+      if (tabName === 'dashboard') {
+        tabName = 'cleanReports';
+      }
+
       if (ADMIN_VALID_TABS.indexOf(tabName) === -1) {
         tabName = 'records';
       }
@@ -2004,6 +2010,42 @@ var state = {
         if (pane) pane.style.display = (t === tabName) ? 'block' : 'none';
         if (btn) btn.classList.toggle('active', t === tabName);
       });
+
+      // Synchronize Unified Operations Hub & Segmented Switchers
+      var isOpsTab = (tabName === 'cleanReports' || tabName === 'specialJobs');
+      var opsHub = document.getElementById('adminOpsDashboardHub');
+      if (opsHub) {
+        opsHub.style.display = isOpsTab ? 'block' : 'none';
+      }
+      var sideNavDash = document.getElementById('sideNavDashboard');
+      if (sideNavDash) {
+        sideNavDash.classList.toggle('active', isOpsTab);
+      }
+
+      var subCleanBtns = document.querySelectorAll('#dashBtnSubCleanReports, #dashBtnSubCleanReports2, .dashBtnSubCleanReports');
+      subCleanBtns.forEach(function(btn) { btn.classList.toggle('active', tabName === 'cleanReports'); });
+
+      var subSpecBtns = document.querySelectorAll('#dashBtnSubSpecialJobs, #dashBtnSubSpecialJobs2, .dashBtnSubSpecialJobs');
+      subSpecBtns.forEach(function(btn) { btn.classList.toggle('active', tabName === 'specialJobs'); });
+
+      // Update mobile topbar pane title
+      var mobileActivePane = document.getElementById('adminMobileActivePane');
+      if (mobileActivePane) {
+        var titles = {
+          records: 'Customer Records',
+          leads: 'Leads Pipeline',
+          sequence: 'Route Sequence',
+          staff: 'Staff Management',
+          cleanReports: 'Operations: Daily Cleans',
+          specialJobs: 'Operations: Special Jobs'
+        };
+        mobileActivePane.textContent = titles[tabName] || 'Admin Portal';
+      }
+
+      // Close mobile drawer on tab selection
+      if (typeof closeAdminSidebar === 'function') {
+        closeAdminSidebar();
+      }
 
       if (tabName === 'leads') {
         loadAdminLeads();
@@ -2022,6 +2064,11 @@ var state = {
         if (typeof stopDailyCleanReportsAutoSync === 'function') {
           stopDailyCleanReportsAutoSync();
         }
+      }
+
+      // Update aggregated dashboard KPIs
+      if (typeof updateOperationsDashboardKPIs === 'function') {
+        setTimeout(updateOperationsDashboardKPIs, 100);
       }
 
       // Persist active tab across refreshes
@@ -2048,6 +2095,100 @@ var state = {
         }
       }
     }
+
+    /* Mobile Sidebar Drawer Controllers */
+    function toggleAdminSidebar(forceState) {
+      var sidebar = document.getElementById('adminSidebar');
+      var backdrop = document.getElementById('adminSidebarBackdrop');
+      if (!sidebar) return;
+      var isOpen = sidebar.classList.contains('sidebar-open');
+      var nextState = (typeof forceState === 'boolean') ? forceState : !isOpen;
+      if (nextState) {
+        sidebar.classList.add('sidebar-open');
+        if (backdrop) backdrop.classList.add('active');
+        if (window.innerWidth <= 1024) document.body.style.overflow = 'hidden';
+      } else {
+        sidebar.classList.remove('sidebar-open');
+        if (backdrop) backdrop.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    }
+    window.toggleAdminSidebar = toggleAdminSidebar;
+
+    function closeAdminSidebar() {
+      toggleAdminSidebar(false);
+    }
+    window.closeAdminSidebar = closeAdminSidebar;
+
+    /* Unified Operations Dashboard Aggregated KPIs */
+    function updateOperationsDashboardKPIs() {
+      // 1. Daily Clean metrics
+      var cleanTotalEl = document.getElementById('kpiTotalCleaned');
+      var cleanRateEl = document.getElementById('kpiPhotoRate');
+      var cleanStaffEl = document.getElementById('kpiActiveStaff');
+      var cleanPunchEl = document.getElementById('kpiLatestPunch');
+      var cleanBadgeEl = document.getElementById('tabCleanReportsCount');
+
+      var dailyCount = cleanTotalEl ? cleanTotalEl.textContent.trim() : (cleanBadgeEl ? cleanBadgeEl.textContent.trim() : '0');
+      var dailyRate = cleanRateEl ? cleanRateEl.textContent.trim() : '0%';
+      var activeStaff = cleanStaffEl ? cleanStaffEl.textContent.replace(/[^\d]/g, '').trim() : '0';
+      var latestPunch = cleanPunchEl ? cleanPunchEl.textContent.trim() : '--:--';
+
+      // 2. Special Jobs metrics
+      var specTotalEl = document.getElementById('kpiSpecialTotal');
+      var specAssignedEl = document.getElementById('kpiSpecialAssigned');
+      var specInProgEl = document.getElementById('kpiSpecialInProgress');
+      var specDoneEl = document.getElementById('kpiSpecialCompleted');
+      var specBadgeEl = document.getElementById('tabSpecialJobsCount');
+
+      var specTotal = specTotalEl ? specTotalEl.textContent.trim() : (specBadgeEl ? specBadgeEl.textContent.trim() : '0');
+      var specAssigned = specAssignedEl ? (parseInt(specAssignedEl.textContent.trim(), 10) || 0) : 0;
+      var specInProg = specInProgEl ? (parseInt(specInProgEl.textContent.trim(), 10) || 0) : 0;
+      var specDone = specDoneEl ? specDoneEl.textContent.trim() : '0';
+      var specActive = specAssigned + specInProg;
+
+      // Update aggregated KPIs across all Operations Hub headers
+      var dCleans = document.querySelectorAll('#dashTotalDailyCleans, .dashTotalDailyCleans');
+      dCleans.forEach(function(el) { el.textContent = dailyCount || '0'; });
+
+      var dRates = document.querySelectorAll('#dashDailyPhotoRate, .dashDailyPhotoRate');
+      dRates.forEach(function(el) { el.textContent = dailyRate || '0%'; });
+
+      var dSpec = document.querySelectorAll('#dashTotalSpecialJobs, .dashTotalSpecialJobs');
+      dSpec.forEach(function(el) { el.textContent = specTotal || '0'; });
+
+      var dSpecDone = document.querySelectorAll('#dashSpecialCompleted, .dashSpecialCompleted');
+      dSpecDone.forEach(function(el) { el.textContent = specDone || '0'; });
+
+      var dSpecPend = document.querySelectorAll('#dashSpecialPending, .dashSpecialPending');
+      dSpecPend.forEach(function(el) { el.textContent = specActive; });
+
+      var dCrew = document.querySelectorAll('#dashActiveCrew, .dashActiveCrew');
+      dCrew.forEach(function(el) { el.textContent = activeStaff || '0'; });
+
+      var dPunch = document.querySelectorAll('#dashLatestActivity, .dashLatestActivity');
+      dPunch.forEach(function(el) { el.textContent = latestPunch || '--:--'; });
+
+      // Update sub-switch count badges
+      var subClean = document.querySelectorAll('#dashSubCleanCount, .dashSubCleanCount');
+      subClean.forEach(function(el) { el.textContent = dailyCount || '0'; });
+
+      var subSpec = document.querySelectorAll('#dashSubSpecialCount, .dashSubSpecialCount');
+      subSpec.forEach(function(el) { el.textContent = specTotal || '0'; });
+    }
+    window.updateOperationsDashboardKPIs = updateOperationsDashboardKPIs;
+
+    /* Refresh All Operations in the Unified Dashboard */
+    function refreshOperationsDashboard() {
+      if (typeof loadDailyCleanReports === 'function') {
+        loadDailyCleanReports(false);
+      }
+      if (typeof loadAdminSpecialJobs === 'function') {
+        loadAdminSpecialJobs(false);
+      }
+      setTimeout(updateOperationsDashboardKPIs, 300);
+    }
+    window.refreshOperationsDashboard = refreshOperationsDashboard;
 
     // Listen to browser back/forward buttons to switch admin tab seamlessly
     window.addEventListener('popstate', function(e) {
@@ -2697,6 +2838,7 @@ function loadStaffCustomerData(staffId) {
       state.customers = list;
       updateFilterCounts();
       applyCustomerFilterAndSearch();
+      updateRouteProgressBar();
     }
 
     function updateFilterCounts() {
@@ -2801,6 +2943,7 @@ function loadStaffCustomerData(staffId) {
       }
 
       renderCustomerCards(filtered);
+      updateRouteProgressBar();
     }
 
     function renderSkeletonCards(count) {
@@ -2874,6 +3017,7 @@ function loadStaffCustomerData(staffId) {
           '<p class="empty-desc">' + emptyMsg + '</p>' +
           actionBtnHtml +
         '</div>';
+        updateRouteProgressBar();
         return;
       }
 
@@ -6357,6 +6501,9 @@ function loadStaffCustomerData(staffId) {
       });
 
       tbody.innerHTML = html;
+      if (typeof updateOperationsDashboardKPIs === 'function') {
+        updateOperationsDashboardKPIs();
+      }
       renderAdminPaginationControls(totalCount, startIndex, endIndex, currentPage, totalPages, pageSize);
     }
 
@@ -7152,7 +7299,7 @@ function loadStaffCustomerData(staffId) {
 
       if (match) {
         reg = match[1].toUpperCase().replace(/\s+/g, ' ');
-        var remaining = raw.replace(match[0], '').replace(/^[-–—:,/|\s]+|[-–—:,/|\s]+$/g, '').trim();
+        var remaining = raw.replace(match[0], '').replace(/^[-–—:,/|\s()]+|[-–—:,/|\s()]+$/g, '').trim();
         model = (remaining.toLowerCase() === 'vehicle' || remaining.toLowerCase() === 'car') ? '' : remaining;
       } else if (raw.indexOf('-') !== -1) {
         var parts = raw.split('-');
@@ -7166,6 +7313,16 @@ function loadStaffCustomerData(staffId) {
       } else {
         model = raw;
         reg = '';
+      }
+
+      if (model) {
+        model = model.replace(/^[-–—:,/|\s()]+|[-–—:,/|\s()]+$/g, '').trim();
+        if (/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(model)) {
+          model = '';
+        }
+      }
+      if (reg) {
+        reg = reg.replace(/\s*[-–—]\s*(vehicle|car|गाड़ी|गाड़ी)$/i, '').trim();
       }
 
       return {
@@ -9134,6 +9291,9 @@ function loadStaffCustomerData(staffId) {
       });
 
       tbody.innerHTML = html;
+      if (typeof updateOperationsDashboardKPIs === 'function') {
+        updateOperationsDashboardKPIs();
+      }
     }
 
     /* Lightbox Modal Functions */
@@ -9241,7 +9401,7 @@ function loadStaffCustomerData(staffId) {
     function updateRouteProgressBar() {
       var header = document.getElementById('staffDailyRouteHeader');
       var allDaily = (state.customers || []).filter(function(c) {
-        return c.category === 'daily_car_cleaning';
+        return c.category === 'daily_car_cleaning' || c.serviceCategory === 'Daily Car Cleaning' || c.sheetName === 'Daily Clean';
       });
       if (allDaily.length === 0 && state.staffData && Array.isArray(state.staffData.dailyCarCleaning)) {
         allDaily = state.staffData.dailyCarCleaning;
@@ -9252,7 +9412,7 @@ function loadStaffCustomerData(staffId) {
       var doneCount = 0;
       allDaily.forEach(function(c) {
         var cId = c.customerId || c.id || getCustomerStableId(c);
-        if (completedSet.has(cId)) {
+        if (completedSet.has(cId) || c.completedToday) {
           doneCount++;
         }
       });
@@ -10083,6 +10243,9 @@ function loadStaffCustomerData(staffId) {
       if (kProg) kProg.textContent = inProgress;
       if (kComp) kComp.textContent = completed;
       if (badgeTab) badgeTab.textContent = total;
+      if (typeof updateOperationsDashboardKPIs === 'function') {
+        updateOperationsDashboardKPIs();
+      }
     }
 
     function filterAdminSpecialJobs() {
@@ -10214,6 +10377,9 @@ function loadStaffCustomerData(staffId) {
       });
 
       tbody.innerHTML = html;
+      if (typeof updateOperationsDashboardKPIs === 'function') {
+        updateOperationsDashboardKPIs();
+      }
     }
 
     function deleteAdminSpecialJob(jobId) {
