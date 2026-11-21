@@ -986,6 +986,9 @@
                 </svg>
                 <span>New Customer</span>
               </button>
+              <button type="button" class="btn-admin-secondary btn-admin-indic" id="btnAdminBackfillHindi" onclick="handleBackfillHindi()" title="Auto-generate Hindi Name & Address for records using Google Indic">
+                <span class="btn-admin-icon-text">🌐 Auto Indic</span>
+              </button>
               <button type="button" class="btn-admin-secondary" onclick="exportAdminRecordsCSV()" title="Export filtered records to CSV">
                 <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
                   <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -1719,6 +1722,10 @@
                   <span class="input-icon">👤</span>
                   <input type="text" id="custName" class="form-input with-icon" placeholder="e.g. Shreyansh Jain" required>
                 </div>
+                <div class="indic-assist-wrap" id="custNameHiWrap">
+                  <span class="indic-assist-label">🌐 हिन्दी नाम:</span>
+                  <input type="text" id="custNameHi" class="form-input form-input-indic" placeholder="हिंदी नाम स्वतः आएगा..." title="Google Indic Phonetic Transliteration">
+                </div>
               </div>
 
               <div class="form-group">
@@ -1735,6 +1742,10 @@
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="custAddress">Customer Address <span class="req-star">*</span></label>
                 <textarea id="custAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House No, Colony, Landmark, City..." required></textarea>
+                <div class="indic-assist-wrap" id="custAddressHiWrap" style="margin-top: 5px;">
+                  <span class="indic-assist-label">🌐 हिन्दी पता:</span>
+                  <input type="text" id="custAddressHi" class="form-input form-input-indic" placeholder="हिंदी पता स्वतः आएगा..." title="Google Indic Transliteration">
+                </div>
               </div>
 
               <div class="form-group" style="margin-bottom: 0;">
@@ -1858,6 +1869,10 @@
                 <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label" for="custSecAddress">Secondary Address</label>
                   <input type="text" id="custSecAddress" class="form-input" placeholder="e.g. Office address / Basement parking">
+                  <div class="indic-assist-wrap" id="custSecAddressHiWrap" style="margin-top: 5px;">
+                    <span class="indic-assist-label">🌐 हिन्दी सेकेंडरी पता:</span>
+                    <input type="text" id="custSecAddressHi" class="form-input form-input-indic" placeholder="सेकेंडरी हिंदी पता स्वतः आएगा...">
+                  </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label" for="custSecMaps">Secondary Map Link</label>
@@ -1946,6 +1961,10 @@
                 <span class="input-icon">👤</span>
                 <input type="text" id="editCustName" class="form-input with-icon" required>
               </div>
+              <div class="indic-assist-wrap" id="editCustNameHiWrap">
+                <span class="indic-assist-label">🌐 हिन्दी नाम:</span>
+                <input type="text" id="editCustNameHi" class="form-input form-input-indic" placeholder="हिंदी नाम स्वतः आएगा..." title="Google Indic Phonetic Transliteration">
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label" for="editCustPhone">Mobile Number <span class="req-star">*</span></label>
@@ -1961,6 +1980,10 @@
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" for="editCustAddress">Customer Address <span class="req-star">*</span></label>
               <textarea id="editCustAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House No, Colony, City..."></textarea>
+              <div class="indic-assist-wrap" id="editCustAddressHiWrap" style="margin-top: 5px;">
+                <span class="indic-assist-label">🌐 हिन्दी पता:</span>
+                <input type="text" id="editCustAddressHi" class="form-input form-input-indic" placeholder="हिंदी पता स्वतः आएगा..." title="Google Indic Transliteration">
+              </div>
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
@@ -2083,6 +2106,10 @@
                 <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label" for="editCustSecAddress">Secondary Address</label>
                   <input type="text" id="editCustSecAddress" class="form-input" placeholder="e.g. Office address / Basement parking">
+                  <div class="indic-assist-wrap" id="editCustSecAddressHiWrap" style="margin-top: 5px;">
+                    <span class="indic-assist-label">🌐 हिन्दी सेकेंडरी पता:</span>
+                    <input type="text" id="editCustSecAddressHi" class="form-input form-input-indic" placeholder="सेकेंडरी हिंदी पता स्वतः आएगा...">
+                  </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label" for="editCustSecMaps">Secondary Map Link</label>
