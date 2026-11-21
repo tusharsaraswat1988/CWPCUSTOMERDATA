@@ -5235,24 +5235,33 @@ function loadStaffCustomerData(staffId) {
     function handleLeadSubmit(e) {
       e.preventDefault();
       var btn = document.getElementById('btnSaveLead');
+
+      var nameVal = (document.getElementById('leadName').value || '').trim();
+      if (!nameVal) {
+        alert('Please enter the customer / prospect name.');
+        var nameEl = document.getElementById('leadName');
+        if (nameEl) nameEl.focus();
+        return;
+      }
+
+      var phoneEl = document.getElementById('leadPhone');
+      var rawPhone = phoneEl ? phoneEl.value.trim() : '';
+      var normPhone = '';
+      if (rawPhone) {
+        normPhone = normalizeIndianMobile(rawPhone);
+        if (!isValidIndianMobile(normPhone)) {
+          alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9 (or leave blank if unknown).');
+          if (phoneEl) phoneEl.focus();
+          return;
+        }
+      }
+
       if (btn) {
+        if (btn.disabled) return;
         btn.disabled = true;
         btn.innerHTML = '<span class="cwp-spinner"></span> Saving lead...';
       }
 
-      var phoneEl = document.getElementById('leadPhone');
-      var normPhone = normalizeIndianMobile(phoneEl ? phoneEl.value : '');
-      if (!isValidIndianMobile(normPhone)) {
-        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
-        if (phoneEl) phoneEl.focus();
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = '<span>💾</span> Save Lead';
-        }
-        return;
-      }
-
-      var nameVal = (document.getElementById('leadName').value || '').trim();
       var nameHiVal = document.getElementById('leadNameHi') ? document.getElementById('leadNameHi').value.trim() : '';
       var addrVal = (document.getElementById('leadAddress').value || '').trim();
       var addrHiVal = document.getElementById('leadAddressHi') ? document.getElementById('leadAddressHi').value.trim() : '';
@@ -5373,17 +5382,17 @@ function loadStaffCustomerData(staffId) {
         var name = l.customerName || 'Prospect Lead';
         var nameHi = l.nameHi ? ' (' + l.nameHi + ')' : '';
         var phone = l.customerNumber || l.phone || '';
-        var veh = l.vehicle || 'Vehicle details pending';
-        var addr = l.address || 'Address pending';
+        var rawVeh = l.vehicle || '';
+        var rawAddr = l.address || '';
         var addrHi = l.addressHi ? ' • ' + l.addressHi : '';
         var maps = l.googleMapsUrl || '';
         var photo = l.photoUrl || '';
         var notes = l.leadNotes || l.notes || '';
         var sCategory = l.interestedService || l.serviceCategory || 'Daily Car Cleaning';
 
-        var parsedVeh = parseVehicleString(veh);
-        var regBadge = parsedVeh.reg || veh;
-        var modelText = parsedVeh.model ? ' ' + parsedVeh.model : '';
+        var parsedVeh = rawVeh ? parseVehicleString(rawVeh) : null;
+        var regBadge = (parsedVeh && parsedVeh.reg) ? parsedVeh.reg : (rawVeh || 'Vehicle not provided');
+        var modelText = (parsedVeh && parsedVeh.model) ? ' ' + parsedVeh.model : '';
 
         html += '<div class="cwp-lead-card" id="leadCard_' + escapeHtml(id) + '">';
         
@@ -5395,10 +5404,12 @@ function loadStaffCustomerData(staffId) {
         if (nameHi) html += '        <span class="cwp-lead-name-hi">' + escapeHtml(nameHi) + '</span>';
         html += '      </div>';
         html += '      <div class="cwp-lead-phone-row">';
-        html += '        <span class="cwp-lead-phone-num">📞 +91 ' + escapeHtml(phone) + '</span>';
         if (phone) {
+          html += '        <span class="cwp-lead-phone-num">📞 +91 ' + escapeHtml(phone) + '</span>';
           html += '        <a href="tel:+91' + escapeHtml(phone) + '" class="cwp-lead-quick-call" title="Call lead">📞 Call</a>';
           html += '        <a href="https://wa.me/91' + escapeHtml(phone) + '?text=Namaste%20' + encodeURIComponent(name) + '%2C%20CWP%20Detailers%20ki%20taraf%20se%20sampark%20kar%20rahe%20hain." target="_blank" rel="noopener" class="cwp-lead-quick-wa" title="WhatsApp Message">💬 WhatsApp</a>';
+        } else {
+          html += '        <span class="cwp-lead-phone-num" style="opacity: 0.6; font-style: italic;">📞 No phone added</span>';
         }
         html += '      </div>';
         html += '    </div>';
@@ -5408,8 +5419,12 @@ function loadStaffCustomerData(staffId) {
         // Vehicle Box
         html += '  <div class="cwp-lead-car-box">';
         html += '    <div class="cwp-lead-plate-wrap">';
-        html += '      <span class="cwp-lead-plate-badge">' + escapeHtml(regBadge) + '</span>';
-        if (modelText) html += '      <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">' + escapeHtml(modelText) + '</span>';
+        if (rawVeh) {
+          html += '      <span class="cwp-lead-plate-badge">' + escapeHtml(regBadge) + '</span>';
+          if (modelText) html += '      <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">' + escapeHtml(modelText) + '</span>';
+        } else {
+          html += '      <span class="cwp-lead-plate-badge" style="opacity: 0.7; background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); border-style: dashed;">No vehicle info</span>';
+        }
         html += '    </div>';
         if (photo) {
           html += '    <img src="' + escapeHtml(photo) + '" class="cwp-lead-photo-thumb" alt="Car photo" onclick="openPhotoLightbox(\'' + escapeHtml(photo) + '\')" title="Click to view photo">';
@@ -5422,7 +5437,11 @@ function loadStaffCustomerData(staffId) {
         html += '  <div class="cwp-lead-loc-box">';
         html += '    <span>📍</span>';
         html += '    <div style="flex: 1;">';
-        html += '      <span>' + escapeHtml(addr) + escapeHtml(addrHi) + '</span>';
+        if (rawAddr) {
+          html += '      <span>' + escapeHtml(rawAddr) + escapeHtml(addrHi) + '</span>';
+        } else {
+          html += '      <span style="opacity: 0.6; font-style: italic;">No address added</span>';
+        }
         if (maps) {
           html += '      <div style="margin-top: 3px;"><a href="' + escapeHtml(maps) + '" target="_blank" rel="noopener" style="font-size: 11.5px; font-weight: 600; color: var(--brand-blue); text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">🗺️ Open in Google Maps ↗</a></div>';
         }
@@ -5495,7 +5514,7 @@ function loadStaffCustomerData(staffId) {
 
       document.getElementById('convertLeadId').value = lead.id || lead.customerCode;
       document.getElementById('convertLeadNameDisplay').textContent = lead.customerName || '—';
-      document.getElementById('convertLeadPhoneDisplay').textContent = '+91 ' + (lead.customerNumber || lead.phone || '—');
+      document.getElementById('convertLeadPhoneDisplay').textContent = (lead.customerNumber || lead.phone) ? ('+91 ' + (lead.customerNumber || lead.phone)) : '— (No phone)';
       document.getElementById('convertLeadVehicleDisplay').textContent = lead.vehicle || '—';
       document.getElementById('convertLeadAddressDisplay').textContent = lead.address || '—';
       document.getElementById('convertNotes').value = '';

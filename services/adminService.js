@@ -268,15 +268,25 @@ async function getCustomerById(id) {
  * Save Customer Workflow (Transactions + Foreign Key Safeguards + Audit Logging)
  */
 async function saveCustomer(custData, adminUser = 'admin') {
-  const rawPhone = custData.customerNumber || custData.phone || custData.custPhone || custData.mobile || '';
-  if (!isValidIndianMobile(rawPhone)) {
+  const isLeadRecord = Boolean(custData.isLead || custData.is_lead || custData.tag === 'lead');
+  const rawPhone = (custData.customerNumber || custData.phone || custData.custPhone || custData.mobile || '').toString().trim();
+  let normPhone = null;
+
+  if (rawPhone) {
+    if (!isValidIndianMobile(rawPhone)) {
+      return {
+        success: false,
+        error: 'Please enter a valid 10-digit Indian mobile number (starting with 6, 7, 8, or 9). (Invalid Indian mobile number)'
+      };
+    }
+    normPhone = normalizeIndianMobile(rawPhone);
+  } else if (!isLeadRecord) {
     return {
       success: false,
       error: 'Please enter a valid 10-digit Indian mobile number (starting with 6, 7, 8, or 9). (Invalid Indian mobile number)'
     };
   }
 
-  const normPhone = normalizeIndianMobile(rawPhone);
   const custName = (custData.customerName || custData.name || '').trim();
   if (!custName) {
     return { success: false, error: 'Customer name is required.' };
@@ -284,9 +294,15 @@ async function saveCustomer(custData, adminUser = 'admin') {
 
   return db.withTransaction(async (client) => {
     // Generate unique customer_code
-    const codePrefix = (custData.sheetName === 'All Other Work') ? 'CUST_AOW_' : 'CUST_DC_';
     const uniqueSuffix = Date.now().toString().slice(-4);
-    const customerCode = `${codePrefix}${normPhone}_${uniqueSuffix}`;
+    let customerCode = '';
+    if (isLeadRecord) {
+      const phoneSnippet = normPhone ? normPhone.slice(-6) : `NOP_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      customerCode = `LEAD_${phoneSnippet}_${uniqueSuffix}`.slice(0, 32);
+    } else {
+      const codePrefix = (custData.sheetName === 'All Other Work') ? 'CUST_AOW_' : 'CUST_DC_';
+      customerCode = `${codePrefix}${normPhone}_${uniqueSuffix}`.slice(0, 32);
+    }
 
     // Auto-transliterate to Hindi if not explicitly provided
     let nameHi = (custData.nameHi || custData.name_hi || '').trim() || null;
@@ -305,7 +321,6 @@ async function saveCustomer(custData, adminUser = 'admin') {
       try { secAddressHi = await indicService.transliterateAddress(secAddr); } catch (e) { secAddressHi = secAddr; }
     }
 
-    const isLeadRecord = Boolean(custData.isLead || custData.is_lead || custData.tag === 'lead');
     const leadNotes = custData.leadNotes || custData.lead_notes || custData.notes || null;
     const interestedService = custData.serviceCategory || custData.serviceType || custData.interestedService || 'Daily Car Cleaning';
 

@@ -3051,13 +3051,33 @@ const server = http.createServer(async (req, res) => {
         // Admin: Save Customer / Save Lead (Task P2.4: Strict Server-Side Indian Mobile Validation & Normalization)
         if ((payload.action === 'saveCustomer' || payload.action === 'saveLead') && payload.customerData) {
           const cust = payload.customerData;
-          if (payload.action === 'saveLead') {
+          const isLeadSave = Boolean(payload.action === 'saveLead' || cust.isLead || cust.tag === 'lead');
+          if (isLeadSave) {
             cust.isLead = true;
             cust.tag = 'lead';
           }
 
+          const rawCustName = (cust.customerName || cust.name || '').toString().trim();
+          if (!rawCustName) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Customer name is required.'
+            }));
+          }
+
           const rawCustPhone = (cust.customerNumber || cust.phone || cust.custPhone || cust.mobile || '').toString().trim();
-          if (!rawCustPhone || !isValidIndianMobile(rawCustPhone)) {
+          let normCustPhone = '';
+          if (rawCustPhone) {
+            if (!isValidIndianMobile(rawCustPhone)) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: 'Please enter a valid 10-digit Indian mobile number (starting with 6, 7, 8, or 9). (Invalid Indian mobile number)'
+              }));
+            }
+            normCustPhone = normalizeIndianMobile(rawCustPhone);
+          } else if (!isLeadSave) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -3065,11 +3085,10 @@ const server = http.createServer(async (req, res) => {
             }));
           }
 
-          const normCustPhone = normalizeIndianMobile(rawCustPhone);
           cust.customerNumber = normCustPhone;
-          if (cust.phone) cust.phone = normCustPhone;
-          if (cust.custPhone) cust.custPhone = normCustPhone;
-          if (cust.mobile) cust.mobile = normCustPhone;
+          if (cust.phone !== undefined) cust.phone = normCustPhone;
+          if (cust.custPhone !== undefined) cust.custPhone = normCustPhone;
+          if (cust.mobile !== undefined) cust.mobile = normCustPhone;
           const photoObj = cust.photoFile || cust.photoData;
           if (photoObj && photoObj.base64) {
             try {
@@ -3142,7 +3161,21 @@ const server = http.createServer(async (req, res) => {
             try { cust.secondaryAddressHi = await indicService.transliterateAddress(cust.secondaryAddress); } catch (e) { cust.secondaryAddressHi = cust.secondaryAddress; }
           }
 
-          const existingIdx = appState.customers.findIndex(c => c.customerNumber === cust.customerNumber && c.customerName === cust.customerName);
+          if (!cust.id) {
+            cust.id = (isLeadSave ? 'lead_' : 'cust_') + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+          }
+          if (!cust.customerCode) {
+            const codePrefix = isLeadSave ? 'LEAD_' : (cust.sheetName === 'All Other Work' ? 'CUST_AOW_' : 'CUST_DC_');
+            const phonePart = normCustPhone || `NOP_${Date.now().toString().slice(-4)}`;
+            cust.customerCode = `${codePrefix}${phonePart}_${Date.now().toString().slice(-3)}`.slice(0, 32);
+          }
+
+          const existingIdx = appState.customers.findIndex(c => {
+            if (cust.id && c.id === cust.id) return true;
+            if (cust.customerCode && c.customerCode === cust.customerCode) return true;
+            if (normCustPhone && c.customerNumber === normCustPhone && c.customerName === cust.customerName) return true;
+            return false;
+          });
           if (existingIdx >= 0) {
             appState.customers[existingIdx] = Object.assign({}, appState.customers[existingIdx], cust);
           } else {

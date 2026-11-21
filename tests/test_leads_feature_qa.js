@@ -121,6 +121,42 @@ console.log('\n--- Test 4: Backend Service & Lifecycle Logic ---');
       // 4f. Cleanup
       await adminService.deleteCustomer(leadId, { reason: 'QA cleanup', adminUser: 'test_qa' });
       console.log('✅ PASS 4d: QA test data cleaned up');
+
+      // 4g. Test: Only Name is Mandatory, all other fields optional
+      console.log('\n--- Test 5: Only Name Mandatory Validation (Rest Optional) ---');
+      const nameOnlyLead = {
+        customerName: 'Aman Saxena (Name Only Prospect)',
+        isLead: true,
+        tag: 'lead'
+      };
+      const nameOnlyRes = await adminService.saveCustomer(nameOnlyLead, 'test_qa');
+      assert.ok(nameOnlyRes.success, 'Saving lead with only name must succeed');
+      assert.strictEqual(nameOnlyRes.isLead, true);
+      const nameOnlyId = nameOnlyRes.customerId;
+
+      const leadsAfterNameOnly = await adminService.getLeads();
+      const foundNameOnly = leadsAfterNameOnly.find(l => l.id === nameOnlyId);
+      assert.ok(foundNameOnly, 'Name-only lead must be retrievable from getLeads()');
+      assert.strictEqual(foundNameOnly.customerName, 'Aman Saxena (Name Only Prospect)');
+      assert.ok(!foundNameOnly.phone, 'Phone should be empty/null for name-only lead');
+      assert.strictEqual(foundNameOnly.address, '', 'Address should be empty for name-only lead');
+      assert.strictEqual(foundNameOnly.vehicle, '', 'Vehicle should be empty for name-only lead');
+      console.log('✅ PASS 5a: Lead created with ONLY name successfully; phone, vehicle, and address verified optional');
+
+      // 4h. Empty Name must fail
+      const emptyNameLead = {
+        customerName: '   ',
+        isLead: true,
+        tag: 'lead'
+      };
+      const emptyNameRes = await adminService.saveCustomer(emptyNameLead, 'test_qa');
+      assert.strictEqual(emptyNameRes.success, false, 'Lead with empty name must fail');
+      assert.ok(emptyNameRes.error.includes('Customer name is required'), 'Error must specify customer name required');
+      console.log('✅ PASS 5b: Saving lead with empty name correctly rejected');
+
+      // Cleanup name-only lead
+      await adminService.deleteCustomer(nameOnlyId, { reason: 'QA cleanup', adminUser: 'test_qa' });
+      console.log('✅ PASS 5c: Name-only lead cleaned up');
     } else {
       console.log('[Mode]: Testing with Mock/Local Environment');
     }

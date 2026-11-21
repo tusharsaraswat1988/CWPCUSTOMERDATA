@@ -63,7 +63,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   
-  <link rel="stylesheet" href="/css/style.css?v=2.8.0">
+  <link rel="stylesheet" href="/css/style.css?v=2.9.0">
 
   <style>
     /* Critical FOUC Prevention & Immediate Logo/Header Constraints */
@@ -2543,7 +2543,10 @@
 
             <div class="form-row-2">
               <div class="form-group">
-                <label class="form-label" for="leadName">Prospect Name <span class="req-star">*</span></label>
+                <label class="form-label" for="leadName">
+                  <span>Prospect Name <span class="req-star" style="color: #ef4444; font-weight: bold; margin-left: 2px;">*</span></span>
+                  <span class="req-tag" style="font-size: 11px; color: #ef4444; font-weight: 600;">(Required)</span>
+                </label>
                 <div class="input-icon-wrap">
                   <span class="input-icon">👤</span>
                   <input type="text" id="leadName" class="form-input with-icon" placeholder="e.g. Amit Sharma" required>
@@ -2555,18 +2558,24 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="leadPhone">Mobile Number <span class="req-star">*</span></label>
+                <label class="form-label" for="leadPhone">
+                  <span>Mobile Number</span>
+                  <span class="opt-tag" style="font-size: 11px; color: var(--text-secondary); font-weight: normal;">(Optional)</span>
+                </label>
                 <div class="cwp-phone-group">
                   <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
-                  <input type="tel" id="leadPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
+                  <input type="tel" id="leadPhone" class="form-input cwp-phone-input" placeholder="98765 43210 (Optional)" maxlength="14" inputmode="numeric" autocomplete="tel">
                 </div>
               </div>
             </div>
 
             <div class="form-row-2">
               <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="leadAddress">Address / Society <span class="req-star">*</span></label>
-                <textarea id="leadAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House/Flat No, Society, Landmark..." required></textarea>
+                <label class="form-label" for="leadAddress">
+                  <span>Address / Society</span>
+                  <span class="opt-tag" style="font-size: 11px; color: var(--text-secondary); font-weight: normal;">(Optional)</span>
+                </label>
+                <textarea id="leadAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House/Flat No, Society, Landmark... (Optional)"></textarea>
                 <div class="indic-assist-wrap" id="leadAddressHiWrap" style="margin-top: 5px;">
                   <span class="indic-assist-label">🌐 हिन्दी पता:</span>
                   <input type="text" id="leadAddressHi" class="form-input form-input-indic" placeholder="हिंदी पता स्वतः आएगा...">
@@ -2574,7 +2583,10 @@
               </div>
 
               <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="leadMapsUrl">Map Location / GPS <span class="opt-tag">(Optional)</span></label>
+                <label class="form-label" for="leadMapsUrl">
+                  <span>Map Location / GPS</span>
+                  <span class="opt-tag" style="font-size: 11px; color: var(--text-secondary); font-weight: normal;">(Optional)</span>
+                </label>
                 <div class="form-input-addon-group map-input-group">
                   <input type="text" id="leadMapsUrl" class="form-input" placeholder="Google Maps Link or Plus Code">
                   <button type="button" class="form-addon-btn btn-gps-detect" onclick="detectLeadGpsLocation()" title="Auto-detect current GPS location">
@@ -2608,16 +2620,22 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="leadVehicle">Car Number & Model <span class="req-star">*</span></label>
+                <label class="form-label" for="leadVehicle">
+                  <span>Car Number & Model</span>
+                  <span class="opt-tag" style="font-size: 11px; color: var(--text-secondary); font-weight: normal;">(Optional)</span>
+                </label>
                 <div class="input-icon-wrap">
                   <span class="input-icon">🚗</span>
-                  <input type="text" id="leadVehicle" class="form-input with-icon" placeholder="e.g. UP32 AB 1234 - Creta" required>
+                  <input type="text" id="leadVehicle" class="form-input with-icon" placeholder="e.g. UP32 AB 1234 - Creta (Optional)">
                 </div>
               </div>
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Car Photo <span class="opt-tag">(Optional)</span></label>
+              <label class="form-label">
+                <span>Car Photo</span>
+                <span class="opt-tag" style="font-size: 11px; color: var(--text-secondary); font-weight: normal;">(Optional)</span>
+              </label>
               <div class="photo-compact-card" id="leadPhotoDropzone">
                 <input type="file" id="leadPhotoFile" accept="image/*" style="display: none;" onchange="handleLeadPhotoSelect(event)">
                 <button type="button" class="btn-photo-upload-box" id="leadPhotoPlaceholder" onclick="triggerLeadPhotoSelect()" title="Upload vehicle photo">
@@ -2808,7 +2826,7 @@
 
   <!-- Vendor Libraries & Modular Application Logic -->
   <script src="/js/cropper.min.js"></script>
-  <script src="/js/app.js?v=2.8.0" defer></script>
+  <script src="/js/app.js?v=2.9.0" defer></script>
   <script>
     // Failsafe listener for staff photo selection
     document.addEventListener('change', function(e) {
