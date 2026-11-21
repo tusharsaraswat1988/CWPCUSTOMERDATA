@@ -485,8 +485,8 @@ var state = {
     var CWP_I18N = {
       hi: {
         admin_title: "Admin Portal",
-        staff_title: "स्टाफ पोर्टल",
-        staff_login_title: "स्टाफ पोर्टल लॉगिन",
+        staff_title: "पोर्टल",
+        staff_login_title: "पोर्टल लॉगिन",
         staff_login_desc: "पंजीकृत मोबाइल नंबर और 6-अंकों का पिन दर्ज करें",
         staff_pin_placeholder: "6-अंकों का पिन दर्ज करें",
         remember_device: "इस फोन पर लॉगिन याद रखें",
@@ -530,8 +530,8 @@ var state = {
       },
       en: {
         admin_title: "Admin Portal",
-        staff_title: "Staff Portal",
-        staff_login_title: "Staff Portal Login",
+        staff_title: "Portal",
+        staff_login_title: "Portal Login",
         staff_login_desc: "Enter registered mobile number and 6-digit PIN",
         staff_pin_placeholder: "Enter 6-digit PIN",
         remember_device: "Remember login on this device",
@@ -655,24 +655,28 @@ var state = {
       var btnLang = document.getElementById('btnLangToggle');
       if (btnLang) btnLang.title = isHi ? 'भाषा: हिन्दी (बदलने के लिए क्लिक करें)' : 'Language: English (Click to change)';
 
-      // Header Title & Context Chip
+      // Header Title & Context Chip (Staff word removed from both Hindi & English)
       var titleEl = document.getElementById('pageMainTitle');
       var chipEl = document.getElementById('headerContextChip');
       if (state.currentView === 'staff') {
-        if (titleEl) titleEl.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
-        if (chipEl) chipEl.textContent = isHi ? 'स्टाफ' : 'STAFF';
+        if (titleEl) titleEl.textContent = isHi ? 'पोर्टल' : 'Portal';
+        if (chipEl) {
+          chipEl.style.display = 'none';
+          chipEl.textContent = '';
+        }
       } else {
-        var chipEl = document.getElementById('headerContextChip');
-        if (chipEl) chipEl.textContent = 'ADMIN';
+        if (chipEl) {
+          chipEl.style.display = 'inline-flex';
+          chipEl.textContent = 'ADMIN';
+        }
         if (titleEl) titleEl.textContent = 'Admin Portal';
-        if (chipEl) chipEl.textContent = 'ADMIN';
       }
 
-      // Live Sync Header Indicator
+      // Live Sync Header Indicator (Hidden - user requested: live hata do. not needed at all.)
       var syncText = document.getElementById('staffSyncText');
       if (syncText) syncText.textContent = isHi ? 'लाइव' : 'Live';
       var syncBadge = document.getElementById('staffLiveBadge');
-      if (syncBadge) syncBadge.title = isHi ? 'ऑटो-सिंक सक्रिय (30s) • लाइव डेटा सिंक चालू' : 'Auto-Sync Active (30s) • Live data connected';
+      if (syncBadge) syncBadge.style.display = 'none';
       
       var popHeading = document.getElementById('popoverStatusHeading');
       if (popHeading) popHeading.textContent = isHi ? 'रीयल-टाइम कनेक्शन' : 'Realtime Connection';
@@ -935,10 +939,13 @@ var state = {
 
       if (mode === 'staff') {
         var isAuth = isUserStaffAuthenticated(state.activeStaffId);
-        if (contextChip) contextChip.textContent = isHi ? 'स्टाफ' : 'STAFF';
-        if (mainTitle) mainTitle.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
+        if (contextChip) {
+          contextChip.style.display = 'none';
+          contextChip.textContent = '';
+        }
+        if (mainTitle) mainTitle.textContent = isHi ? 'पोर्टल' : 'Portal';
         
-        if (liveBadge) liveBadge.style.display = 'inline-flex';
+        if (liveBadge) liveBadge.style.display = 'none';
 
         if (isAuth) {
           if (accountTrigger) accountTrigger.style.display = 'none'; // Keep header uncluttered; logout is located inside Settings
@@ -1295,11 +1302,14 @@ var state = {
         if (staffEl) staffEl.style.display = 'block';
         if (adminEl) adminEl.style.display = 'none';
         if (staffControls) staffControls.style.display = 'flex';
-        if (liveBadge) liveBadge.style.display = 'inline-flex';
+        if (liveBadge) liveBadge.style.display = 'none';
         if (adminControls) adminControls.style.display = 'none';
         var chipEl = document.getElementById('headerContextChip');
-        if (chipEl) chipEl.textContent = state.lang === 'en' ? 'STAFF' : 'स्टाफ';
-        if (titleEl) titleEl.textContent = state.lang === 'en' ? 'Staff Portal' : 'स्टाफ पोर्टल';
+        if (chipEl) {
+          chipEl.style.display = 'none';
+          chipEl.textContent = '';
+        }
+        if (titleEl) titleEl.textContent = state.lang === 'en' ? 'Portal' : 'पोर्टल';
         checkStaffAuthStatus(state.activeStaffId);
         syncBrandLogos();
         if (typeof updatePwaInstallState === 'function') updatePwaInstallState();
@@ -1312,7 +1322,10 @@ var state = {
         if (staffControls) staffControls.style.display = 'none';
         if (adminControls) adminControls.style.display = 'flex';
         var chipEl = document.getElementById('headerContextChip');
-        if (chipEl) chipEl.textContent = 'ADMIN';
+        if (chipEl) {
+          chipEl.style.display = 'inline-flex';
+          chipEl.textContent = 'ADMIN';
+        }
         if (titleEl) titleEl.textContent = 'Admin Portal';
         checkAdminAuthStatus();
         syncBrandLogos();
@@ -1413,7 +1426,7 @@ var state = {
           content.style.setProperty('display', 'block', 'important');
         }
         if (logoutBtn) logoutBtn.style.display = 'inline-flex';
-        if (liveBadge) liveBadge.style.display = 'inline-flex';
+        if (liveBadge) liveBadge.style.display = 'none';
         loadStaffCustomerData(activeId);
         if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
       } else {
@@ -2433,6 +2446,7 @@ var state = {
 
     function updateStaffSyncIndicator(status, message, timestamp) {
       var badge = document.getElementById('staffLiveBadge');
+      if (badge) badge.style.display = 'none';
       var dot = document.getElementById('staffSyncDot');
       var text = document.getElementById('staffSyncText');
       if (!badge || !text) return;
@@ -2745,11 +2759,13 @@ function loadStaffCustomerData(staffId) {
         }
       }
 
-      /* Data Source Reliability Feedback */
+      /* Data Source Reliability Feedback (Live badge removed - user requested: live hata do. not needed at all.) */
       var liveBadge = document.getElementById('staffLiveBadge');
+      if (liveBadge) liveBadge.style.display = 'none';
       var isLive = data.isLive !== false && data.dataSource !== 'local_fallback';
 
       if (liveBadge) {
+        liveBadge.style.display = 'none';
         if (isLive) {
           liveBadge.innerHTML = '<span class="dot-live">●</span> लाइव';
           liveBadge.style.background = 'rgba(16, 185, 129, 0.16)';

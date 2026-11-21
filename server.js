@@ -3959,12 +3959,14 @@ const server = http.createServer(async (req, res) => {
     content = content.replace(/<\?=\s*typeof\s+webAppUrl\s*!==\s*'undefined'\s*\?\s*webAppUrl\s*:[^?]*\?>/g, '');
 
     if (initialMode === 'admin') {
+      content = content.replace('id="headerContextChip" style="display: none;">STAFF</span>', 'id="headerContextChip">ADMIN</span>');
       content = content.replace('id="headerContextChip">STAFF</span>', 'id="headerContextChip">ADMIN</span>');
+      content = content.replace('id="pageMainTitle">Portal</h1>', 'id="pageMainTitle">Admin Portal</h1>');
       content = content.replace('id="pageMainTitle">Staff Portal</h1>', 'id="pageMainTitle">Admin Portal</h1>');
     }
 
     // Force latest asset version cache-buster across ALL routes
-    const APP_ASSET_VERSION = '3.2.0';
+    const APP_ASSET_VERSION = '3.2.1';
     content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, `/js/app.js?v=${APP_ASSET_VERSION}`);
     content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, `/css/style.css?v=${APP_ASSET_VERSION}`);
 
