@@ -734,6 +734,11 @@ function loadLocalData() {
       } else {
         appState.staffSequences = appState.staffSequences || [];
       }
+      if (loaded && Array.isArray(loaded.serviceLogs)) {
+        appState.serviceLogs = loaded.serviceLogs;
+      } else {
+        appState.serviceLogs = appState.serviceLogs || [];
+      }
       // Upgrade any legacy plaintext adminPassword to scrypt hash immediately
       if (loaded && loaded.adminPassword) {
         if (!loaded.adminPasswordHash) {
@@ -1476,6 +1481,130 @@ const server = http.createServer(async (req, res) => {
       configured: isCloudinaryConfigured(),
       cloudName: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME || (process.env.CLOUDINARY_URL ? 'Configured via CLOUDINARY_URL' : 'Not configured')
     }));
+  }
+
+  // =========================================================================
+  // PWA STATIC ASSETS (Manifest, Service Worker, Offline Shell & Icons)
+  // =========================================================================
+
+  // Serve PWA Web App Manifest
+  if (pathname === '/manifest.json' || pathname === '/manifest.webmanifest') {
+    const manifestPath = path.join(__dirname, 'manifest.json');
+    if (fs.existsSync(manifestPath)) {
+      res.writeHead(200, {
+        'Content-Type': 'application/manifest+json; charset=utf-8',
+        'Cache-Control': 'public, max-age=3600'
+      });
+      return fs.createReadStream(manifestPath).pipe(res);
+    }
+  }
+
+  // Serve Service Worker (must NEVER be aggressively cached by browser HTTP cache)
+  if (pathname === '/sw.js' || pathname === '/service-worker.js') {
+    const swPath = path.join(__dirname, 'sw.js');
+    if (fs.existsSync(swPath)) {
+      res.writeHead(200, {
+        'Content-Type': 'application/javascript; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Service-Worker-Allowed': '/'
+      });
+      return fs.createReadStream(swPath).pipe(res);
+    }
+  }
+
+  // Serve Offline Fallback HTML
+  if (pathname === '/offline.html') {
+    const offlinePath = path.join(__dirname, 'offline.html');
+    if (fs.existsSync(offlinePath)) {
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'public, max-age=3600'
+      });
+      return fs.createReadStream(offlinePath).pipe(res);
+    }
+  }
+
+  // Serve static PWA icons
+  if (pathname.startsWith('/icons/')) {
+    const iconName = path.basename(pathname);
+    const iconPath = path.join(__dirname, 'icons', iconName);
+    if (fs.existsSync(iconPath)) {
+      const ext = path.extname(iconPath).toLowerCase();
+      const mimeTypes = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon'
+      };
+      res.writeHead(200, {
+        'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+        'Cache-Control': 'public, max-age=86400'
+      });
+      return fs.createReadStream(iconPath).pipe(res);
+    }
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    return res.end('Icon not found');
+  }
+
+  // Serve favicon (.ico)
+  if (pathname === '/favicon.ico') {
+    const favIcoPath = path.join(__dirname, 'favicon.ico');
+    const favIcoInIcons = path.join(__dirname, 'icons', 'favicon.ico');
+    const favPng = path.join(__dirname, 'icons', 'favicon-32x32.png');
+
+    const targetIco = fs.existsSync(favIcoPath) ? favIcoPath : (fs.existsSync(favIcoInIcons) ? favIcoInIcons : null);
+    if (targetIco) {
+      res.writeHead(200, {
+        'Content-Type': 'image/x-icon',
+        'Cache-Control': 'public, max-age=86400'
+      });
+      return fs.createReadStream(targetIco).pipe(res);
+    } else if (fs.existsSync(favPng)) {
+      res.writeHead(200, {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=86400'
+      });
+      return fs.createReadStream(favPng).pipe(res);
+    }
+  }
+
+  // Serve root-level Apple Touch Icon requests (e.g. iOS Safari bookmarks and homescreen pins)
+  if (pathname === '/apple-touch-icon.png' || 
+      pathname === '/apple-touch-icon-precomposed.png' ||
+      pathname.startsWith('/apple-touch-icon')) {
+    const applePath = path.join(__dirname, 'icons', 'apple-touch-icon.png');
+    if (fs.existsSync(applePath)) {
+      res.writeHead(200, {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=86400'
+      });
+      return fs.createReadStream(applePath).pipe(res);
+    }
+  }
+
+  // Serve root-level PNG favicon requests
+  if (pathname === '/favicon.png' || pathname === '/favicon-32x32.png') {
+    const fav32 = path.join(__dirname, 'icons', 'favicon-32x32.png');
+    if (fs.existsSync(fav32)) {
+      res.writeHead(200, {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=86400'
+      });
+      return fs.createReadStream(fav32).pipe(res);
+    }
+  }
+  if (pathname === '/favicon-16x16.png') {
+    const fav16 = path.join(__dirname, 'icons', 'favicon-16x16.png');
+    if (fs.existsSync(fav16)) {
+      res.writeHead(200, {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=86400'
+      });
+      return fs.createReadStream(fav16).pipe(res);
+    }
   }
 
   // Serve static logo
@@ -2892,6 +3021,171 @@ const server = http.createServer(async (req, res) => {
           });
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, logs }));
+        }
+
+        // Staff: Record Single Daily Clean with Photo Proof
+        if (payload.action === 'recordDailyCleanWithPhoto') {
+          const sess = await getSessionInfo(token);
+          const staffSess = (sess && sess.userType === 'staff') ? sess : getValidStaffSession(token);
+          const adminSess = isValidAdminSession(token);
+
+          if (!staffSess && !adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff or Admin session required' }));
+          }
+
+          const staffCode = (staffSess && (staffSess.staffCode || staffSess.staffId)) || payload.staffId || 'STF01';
+          let uploadedPhotoUrl = payload.photoUrl || null;
+
+          // Upload photo if base64 provided
+          const photoObj = payload.photoData || payload.photoFile || (payload.photoBase64 ? { base64: payload.photoBase64, mimeType: payload.mimeType || 'image/jpeg' } : null);
+          if (photoObj && photoObj.base64) {
+            try {
+              uploadedPhotoUrl = await uploadToCloudinary(photoObj);
+            } catch (uErr) {
+              console.error('Photo upload failed:', uErr.message);
+            }
+          }
+
+          const completedAt = payload.completedAtDevice || new Date().toISOString();
+          const mutationId = payload.clientMutationId || crypto.randomUUID();
+
+          if (isNeonConfigured()) {
+            try {
+              let staff = null;
+              if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffCode)) {
+                staff = await repos.staff.findById(staffCode);
+              } else {
+                staff = await repos.staff.findByStaffCode(staffCode);
+              }
+
+              if (!staff) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: `Staff '${staffCode}' not found` }));
+              }
+
+              const istDate = repos.serviceLogs.computeIstServiceDate(completedAt);
+              const outcome = await repos.serviceLogs.recordCompletion({
+                clientMutationId: mutationId,
+                staffId: staff.id,
+                subscriptionId: payload.subscriptionId || null,
+                vehicleId: payload.vehicleId || null,
+                serviceDate: istDate,
+                status: payload.status || 'completed',
+                completedAtDevice: completedAt,
+                notes: payload.notes || 'Daily clean verified with photo proof',
+                photoUrl: uploadedPhotoUrl,
+                source: 'staff_portal',
+                deviceMetadata: payload.deviceMetadata || null
+              });
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: true,
+                log: outcome.log,
+                photoUrl: uploadedPhotoUrl,
+                serviceDate: istDate,
+                idempotent: outcome.idempotent || false
+              }));
+            } catch (neonErr) {
+              console.error('Neon recordCompletion error:', neonErr.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: neonErr.message }));
+            }
+          }
+
+          // Local fallback mode
+          if (!appState.serviceLogs) appState.serviceLogs = [];
+          const localLog = {
+            id: mutationId,
+            client_mutation_id: mutationId,
+            staff_code: staffCode,
+            subscription_id: payload.subscriptionId,
+            vehicle_id: payload.vehicleId,
+            customer_id: payload.customerId,
+            customer_name: payload.customerName,
+            registration_no: payload.registrationNo,
+            photo_url: uploadedPhotoUrl,
+            service_date: completedAt.split('T')[0],
+            completed_at_device: completedAt,
+            synced_at_server: new Date().toISOString(),
+            status: 'completed',
+            notes: payload.notes || 'Daily clean verified with photo proof'
+          };
+          appState.serviceLogs.unshift(localLog);
+          saveLocalData(appState);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            log: localLog,
+            photoUrl: uploadedPhotoUrl,
+            serviceDate: localLog.service_date
+          }));
+        }
+
+        // Admin: Query Daily Clean Reports with Rich Filtering
+        if (payload.action === 'getDailyCleanReports') {
+          if (!isValidAdminSession(token)) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to view daily clean reports',
+              unauthorized: true
+            }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const reports = await adminService.getDailyCleanReports({
+                startDate: payload.startDate || null,
+                endDate: payload.endDate || null,
+                staffId: payload.staffId || null,
+                search: payload.search || null,
+                hasPhoto: payload.hasPhoto || null,
+                limit: payload.limit ? parseInt(payload.limit, 10) : 200,
+                offset: payload.offset ? parseInt(payload.offset, 10) : 0
+              });
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(reports));
+            } catch (reportErr) {
+              console.error('getDailyCleanReports error:', reportErr.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: reportErr.message }));
+            }
+          }
+
+          // Local fallback mode
+          const logs = appState.serviceLogs || [];
+          const filtered = logs.filter(l => {
+            if (payload.startDate && l.service_date < payload.startDate) return false;
+            if (payload.endDate && l.service_date > payload.endDate) return false;
+            if (payload.staffId && payload.staffId !== 'all' && l.staff_code !== payload.staffId) return false;
+            if (payload.hasPhoto === 'yes' && (!l.photo_url || !l.photo_url.trim())) return false;
+            if (payload.hasPhoto === 'no' && l.photo_url && l.photo_url.trim()) return false;
+            if (payload.search && payload.search.trim()) {
+              const s = payload.search.trim().toLowerCase();
+              const match = (l.customer_name && l.customer_name.toLowerCase().includes(s)) ||
+                            (l.registration_no && l.registration_no.toLowerCase().includes(s));
+              if (!match) return false;
+            }
+            return true;
+          });
+
+          const withPhotoCount = filtered.filter(l => l.photo_url && l.photo_url.trim()).length;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            records: filtered,
+            summary: {
+              totalCleaned: filtered.length,
+              withPhotoCount,
+              withoutPhotoCount: filtered.length - withPhotoCount,
+              activeStaffCount: new Set(filtered.map(l => l.staff_code)).size,
+              photoRate: filtered.length > 0 ? Math.round((withPhotoCount / filtered.length) * 100) : 0,
+              latestPunchTime: filtered.length > 0 ? filtered[0].completed_at_device : null
+            }
+          }));
         }
 
         // Legacy staff sync

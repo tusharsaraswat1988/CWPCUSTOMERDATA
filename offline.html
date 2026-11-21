@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CWP Staff - ऑफलाइन मोड</title>
+
+  <!-- Progressive Web App (PWA) Meta & Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f2942">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="CWP Staff">
+
+  <!-- Favicons & App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="72x72" href="/icons/icon-72x72.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96x96.png">
+  <link rel="icon" type="image/png" sizes="128x128" href="/icons/icon-128x128.png">
+  <link rel="icon" type="image/png" sizes="144x144" href="/icons/icon-144x144.png">
+  <link rel="icon" type="image/png" sizes="152x152" href="/icons/icon-152x152.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="384x384" href="/icons/icon-384x384.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
+
+  <!-- Apple iOS PWA Meta Tags & Icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CWP Staff">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+
+  <!-- Windows Tile Meta Tags -->
+  <meta name="msapplication-TileColor" content="#0f2942">
+  <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
+  <style>
+    :root {
+      --brand-navy: #0f2942;
+      --brand-blue: #2563eb;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --bg-page: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background: var(--bg-page);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .offline-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 32px 24px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(15, 41, 66, 0.1);
+    }
+    .offline-icon-wrap {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #fef3c7;
+      color: #b45309;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--brand-navy);
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .btn-retry {
+      background: var(--brand-blue);
+      color: #ffffff;
+      border: none;
+      padding: 12px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+    .btn-retry:hover {
+      background: #1d4ed8;
+    }
+    .note {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-card">
+    <div style="margin-bottom: 16px;">
+      <img src="/icons/icon-96x96.png" alt="CWP Detailers" style="width: 64px; height: 64px; border-radius: 16px; box-shadow: 0 4px 14px rgba(15, 41, 66, 0.18);">
+    </div>
+    <div class="offline-icon-wrap">📶</div>
+    <h1>आप ऑफलाइन हैं</h1>
+    <p>इंटरनेट कनेक्शन उपलब्ध नहीं है। कृपया अपना नेटवर्क कनेक्शन जांचें। यदि आपने पहले ऐप खोला था, तो स्थानीय डेटा सुरक्षित है।</p>
+    <button type="button" class="btn-retry" onclick="window.location.reload()">
+      🔄 पुनः प्रयास करें (Retry)
+    </button>
+    <div class="note">CWP Detailers & Motors • Staff Portal PWA</div>
+  </div>
+
+  <script>
+    window.addEventListener('online', function() {
+      window.location.href = '/staff';
+    });
+  </script>
+</body>
+</html>

@@ -978,6 +978,15 @@ async function resetStaffSequence(staffCode, adminUser = 'admin') {
   };
 }
 
+async function getDailyCleanReports(filters = {}, adminUser = 'admin') {
+  const result = await repos.serviceLogs.queryDailyCleanReports(filters);
+  return {
+    success: true,
+    ...result,
+    fetchedAt: new Date().toISOString()
+  };
+}
+
 module.exports = {
   normalizeIndianMobile,
   isValidIndianMobile,
@@ -993,5 +1002,6 @@ module.exports = {
   toggleStaffActive,
   getStaffSequence,
   saveStaffSequence,
-  resetStaffSequence
+  resetStaffSequence,
+  getDailyCleanReports
 };

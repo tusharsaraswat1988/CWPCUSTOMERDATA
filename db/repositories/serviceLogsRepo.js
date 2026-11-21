@@ -131,11 +131,169 @@ async function resolveConflict({
   return res.rows[0] || null;
 }
 
+/**
+ * Query daily clean reports for Admin Portal with multi-dimensional filtering
+ */
+async function queryDailyCleanReports({
+  startDate = null,
+  endDate = null,
+  staffId = null,
+  search = null,
+  hasPhoto = null,
+  limit = 200,
+  offset = 0
+} = {}, client = null) {
+  const runner = client || db;
+
+  const conditions = [];
+  const params = [];
+
+  // Default to today's date in IST if no dates are provided
+  const todayIst = computeIstServiceDate(new Date().toISOString());
+  const effectiveStart = startDate || todayIst;
+  const effectiveEnd = endDate || effectiveStart;
+
+  params.push(effectiveStart);
+  conditions.push(`sl.service_date >= $${params.length}`);
+
+  params.push(effectiveEnd);
+  conditions.push(`sl.service_date <= $${params.length}`);
+
+  if (staffId && staffId !== 'all') {
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffId)) {
+      params.push(staffId);
+      conditions.push(`sl.staff_id = $${params.length}`);
+    } else {
+      params.push(staffId.toUpperCase());
+      conditions.push(`s.staff_code = $${params.length}`);
+    }
+  }
+
+  if (search && search.trim()) {
+    const sTerm = `%${search.trim().toLowerCase()}%`;
+    params.push(sTerm);
+    const pIdx = params.length;
+    conditions.push(`(
+      LOWER(COALESCE(c.name, jc.name, '')) LIKE $${pIdx} OR
+      LOWER(COALESCE(c.phone, jc.phone, '')) LIKE $${pIdx} OR
+      LOWER(COALESCE(v.registration_no, jv.registration_no, '')) LIKE $${pIdx} OR
+      LOWER(COALESCE(v.brand_or_model, jv.brand_or_model, '')) LIKE $${pIdx}
+    )`);
+  }
+
+  if (hasPhoto === 'yes' || hasPhoto === true || hasPhoto === 'true') {
+    conditions.push(`(sl.photo_url IS NOT NULL AND TRIM(sl.photo_url) != '')`);
+  } else if (hasPhoto === 'no' || hasPhoto === false || hasPhoto === 'false') {
+    conditions.push(`(sl.photo_url IS NULL OR TRIM(sl.photo_url) = '')`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  // 1. Fetch Records
+  const querySql = `
+    SELECT 
+      sl.id,
+      sl.client_mutation_id,
+      sl.service_date,
+      sl.status,
+      sl.completed_at_device,
+      sl.synced_at_server,
+      sl.notes,
+      sl.photo_url,
+      sl.source,
+      sl.device_metadata,
+      s.id AS staff_id,
+      s.staff_code,
+      s.name AS staff_name,
+      s.phone AS staff_phone,
+      COALESCE(c.id, jc.id) AS customer_id,
+      COALESCE(c.customer_code, jc.customer_code) AS customer_code,
+      COALESCE(c.name, jc.name) AS customer_name,
+      COALESCE(c.phone, jc.phone) AS customer_phone,
+      COALESCE(c.alt_phone, jc.alt_phone) AS customer_alt_phone,
+      COALESCE(v.id, jv.id) AS vehicle_id,
+      COALESCE(v.registration_no, jv.registration_no) AS registration_no,
+      COALESCE(v.brand_or_model, jv.brand_or_model) AS brand_or_model,
+      COALESCE(v.photo_url, jv.photo_url) AS vehicle_master_photo,
+      sub.package_name,
+      COALESCE(loc.address_text, jloc.address_text) AS address_text,
+      COALESCE(loc.parking_details, jloc.parking_details) AS parking_details,
+      COALESCE(loc.google_maps_url, jloc.google_maps_url) AS google_maps_url
+    FROM public.service_logs sl
+    LEFT JOIN public.staff s ON sl.staff_id = s.id
+    LEFT JOIN public.subscriptions sub ON sl.subscription_id = sub.id
+    LEFT JOIN public.customers c ON sub.customer_id = c.id
+    LEFT JOIN public.vehicles v ON sl.vehicle_id = v.id
+    LEFT JOIN public.subscription_vehicles sv ON sv.subscription_id = sl.subscription_id AND sv.vehicle_id = sl.vehicle_id
+    LEFT JOIN public.service_locations loc ON sv.location_id = loc.id
+    LEFT JOIN public.service_jobs sj ON sl.job_id = sj.id
+    LEFT JOIN public.customers jc ON sj.customer_id = jc.id
+    LEFT JOIN public.vehicles jv ON sj.vehicle_id = jv.id
+    LEFT JOIN public.service_locations jloc ON sj.location_id = jloc.id
+    ${whereClause}
+    ORDER BY sl.completed_at_device DESC
+    LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+  `;
+
+  const queryParams = [...params, limit, offset];
+  const recordsRes = await runner.query(querySql, queryParams);
+
+  // 2. Fetch Summary Statistics
+  const countSql = `
+    SELECT 
+      COUNT(*)::int AS total_cleaned,
+      COUNT(CASE WHEN sl.photo_url IS NOT NULL AND TRIM(sl.photo_url) != '' THEN 1 END)::int AS with_photo_count,
+      COUNT(CASE WHEN sl.photo_url IS NULL OR TRIM(sl.photo_url) = '' THEN 1 END)::int AS without_photo_count,
+      COUNT(DISTINCT sl.staff_id)::int AS active_staff_count,
+      MAX(sl.completed_at_device) AS latest_punch_time
+    FROM public.service_logs sl
+    LEFT JOIN public.staff s ON sl.staff_id = s.id
+    LEFT JOIN public.subscriptions sub ON sl.subscription_id = sub.id
+    LEFT JOIN public.customers c ON sub.customer_id = c.id
+    LEFT JOIN public.vehicles v ON sl.vehicle_id = v.id
+    LEFT JOIN public.service_jobs sj ON sl.job_id = sj.id
+    LEFT JOIN public.customers jc ON sj.customer_id = jc.id
+    LEFT JOIN public.vehicles jv ON sj.vehicle_id = jv.id
+    ${whereClause}
+  `;
+
+  const countRes = await runner.query(countSql, params);
+  const summary = countRes.rows[0] || {
+    total_cleaned: 0,
+    with_photo_count: 0,
+    without_photo_count: 0,
+    active_staff_count: 0,
+    latest_punch_time: null
+  };
+
+  return {
+    records: recordsRes.rows,
+    summary: {
+      totalCleaned: summary.total_cleaned || 0,
+      withPhotoCount: summary.with_photo_count || 0,
+      withoutPhotoCount: summary.without_photo_count || 0,
+      activeStaffCount: summary.active_staff_count || 0,
+      photoRate: (summary.total_cleaned && summary.total_cleaned > 0)
+        ? Math.round((summary.with_photo_count / summary.total_cleaned) * 100)
+        : 0,
+      latestPunchTime: summary.latest_punch_time
+    },
+    filterApplied: {
+      startDate: effectiveStart,
+      endDate: effectiveEnd,
+      staffId: staffId || 'all',
+      search: search || '',
+      hasPhoto: hasPhoto || 'all'
+    }
+  };
+}
+
 module.exports = {
   computeIstServiceDate,
   recordCompletion,
   findByStaffAndDate,
   findBySubscriptionVehicleAndDate,
   findByJobId,
-  resolveConflict
+  resolveConflict,
+  queryDailyCleanReports
 };

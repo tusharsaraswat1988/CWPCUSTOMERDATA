@@ -2,9 +2,9 @@
   "staffList": [
     {
       "id": "STF01",
-      "name": "Chandan Soni",
-      "phone": "8887759207",
-      "pin": "scrypt:6ee5dd22d2fbacd05906aa57ca0f8ce4:d57c0199a51baa30d97af2f87beba33c7f32444631e0c1e6b9ab459480e1bc2b",
+      "name": "New Staff",
+      "phone": "7054007733",
+      "pin": "scrypt:67caf16e352a23a3aa77690ad048e101:fc7c798362f7398ecf57bfda89b198ff47e670cf8f3e7c1152c4940efbac72b5",
       "displayPin": "123456",
       "lastKnownSheetPin": "123456",
       "active": true
@@ -19,14 +19,15 @@
       "active": true
     },
     {
-      "id": "STG01",
-      "name": "Test Staff G1",
-      "phone": "9900000050",
-      "pin": "scrypt:70ece7f2b8828ff76e5129f4d4841294:ba248c87596ca6bf93aa61fbe099cc211d739bb25d0918487205e452575fbb1b",
-      "displayPin": "111111",
+      "id": "STF03",
+      "name": "Tushar Testing",
+      "phone": "8707488250",
+      "pin": "scrypt:c54f7a759c53261945fa8b07195d6958:15c7e33167bf5b6e07b763663409e02a06b35c12ec41a47b2ad418729ed2926e",
+      "displayPin": "181288",
       "active": true
     }
   ],
   "customers": [],
-  "staffSequences": []
+  "staffSequences": [],
+  "serviceLogs": []
 }
