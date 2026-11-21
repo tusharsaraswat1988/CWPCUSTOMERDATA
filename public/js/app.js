@@ -1703,7 +1703,27 @@ function loadStaffCustomerData(staffId) {
       if (sId) state.activeStaffId = sId;
       document.getElementById('staffNameHeader').textContent = sName;
       document.getElementById('staffIdHeader').textContent = 'ID: ' + sId;
-      document.getElementById('staffAvatarInitial').textContent = sName.charAt(0).toUpperCase();
+      var staffPhoto = (data.staffPhotoUrl || data.photoUrl || '').trim();
+      var avatarImg = document.getElementById('staffAvatarImg');
+      var avatarInit = document.getElementById('staffAvatarInitial');
+      if (staffPhoto && avatarImg) {
+        avatarImg.src = staffPhoto;
+        avatarImg.style.display = 'block';
+        if (avatarInit) avatarInit.style.display = 'none';
+        avatarImg.onerror = function() {
+          this.style.display = 'none';
+          if (avatarInit) {
+            avatarInit.textContent = sName.charAt(0).toUpperCase();
+            avatarInit.style.display = 'block';
+          }
+        };
+      } else {
+        if (avatarImg) avatarImg.style.display = 'none';
+        if (avatarInit) {
+          avatarInit.textContent = sName.charAt(0).toUpperCase();
+          avatarInit.style.display = 'block';
+        }
+      }
 
       /* Data Source Reliability Feedback */
       var liveBadge = document.getElementById('staffLiveBadge');
@@ -2212,6 +2232,117 @@ function loadStaffCustomerData(staffId) {
       });
     }
 
+    
+    function compressStaffPhoto(dataUrl, callback) {
+      var img = new Image();
+      img.onload = function() {
+        var maxDim = 500;
+        var w = img.width;
+        var h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        var compressed = canvas.toDataURL('image/jpeg', 0.85);
+        callback(compressed);
+      };
+      img.onerror = function() {
+        callback(dataUrl);
+      };
+      img.src = dataUrl;
+    }
+
+    function handleStaffPhotoSelect(e, mode) {
+      var file = e.target && e.target.files && e.target.files[0];
+      if (!file) return;
+      if (!file.type || !file.type.startsWith('image/')) {
+        alert('Please choose a valid image file (JPG, PNG, WebP).');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        var rawDataUrl = evt.target.result;
+        compressStaffPhoto(rawDataUrl, function(compressedUrl) {
+          var commaIdx = compressedUrl.indexOf(',');
+          var b64 = commaIdx !== -1 ? compressedUrl.slice(commaIdx + 1) : compressedUrl;
+          if (mode === 'edit') {
+            state.editStaffPhotoObj = { base64: b64, mimeType: 'image/jpeg' };
+            state.editStaffPhotoRemove = false;
+            var preview = document.getElementById('editStaffPhotoPreview');
+            var init = document.getElementById('editStaffPhotoInitial');
+            var btnRem = document.getElementById('btnRemoveStaffPhoto');
+            var btnTxt = document.getElementById('editStaffPhotoBtnText');
+            if (preview) { preview.src = compressedUrl; preview.style.display = 'block'; }
+            if (init) init.style.display = 'none';
+            if (btnRem) btnRem.style.display = 'inline-flex';
+            if (btnTxt) btnTxt.textContent = 'Change Photo';
+          } else {
+            state.newStaffPhotoObj = { base64: b64, mimeType: 'image/jpeg' };
+            var pImg = document.getElementById('newStaffPhotoPreviewImg');
+            var pWrap = document.getElementById('newStaffPhotoPreview');
+            var pIcon = document.getElementById('newStaffPhotoIcon');
+            var pTxt = document.getElementById('newStaffPhotoText');
+            var btnClr = document.getElementById('btnClearNewStaffPhoto');
+            if (pImg) pImg.src = compressedUrl;
+            if (pWrap) pWrap.style.display = 'inline-block';
+            if (pIcon) pIcon.style.display = 'none';
+            if (pTxt) pTxt.textContent = 'Change';
+            if (btnClr) btnClr.style.display = 'flex';
+          }
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearNewStaffPhoto(e) {
+      if (e) e.stopPropagation();
+      state.newStaffPhotoObj = null;
+      var f = document.getElementById('newStaffPhotoFile');
+      if (f) f.value = '';
+      var pImg = document.getElementById('newStaffPhotoPreviewImg');
+      var pWrap = document.getElementById('newStaffPhotoPreview');
+      var pIcon = document.getElementById('newStaffPhotoIcon');
+      var pTxt = document.getElementById('newStaffPhotoText');
+      var btnClr = document.getElementById('btnClearNewStaffPhoto');
+      if (pImg) pImg.src = '';
+      if (pWrap) pWrap.style.display = 'none';
+      if (pIcon) pIcon.style.display = 'inline';
+      if (pTxt) pTxt.textContent = 'Photo';
+      if (btnClr) btnClr.style.display = 'none';
+    }
+
+    function removeEditStaffPhoto() {
+      state.editStaffPhotoObj = null;
+      state.editStaffPhotoRemove = true;
+      var fileInput = document.getElementById('editStaffPhotoFile');
+      var urlInput = document.getElementById('editStaffPhotoUrl');
+      var preview = document.getElementById('editStaffPhotoPreview');
+      var init = document.getElementById('editStaffPhotoInitial');
+      var btnRem = document.getElementById('btnRemoveStaffPhoto');
+      var btnTxt = document.getElementById('editStaffPhotoBtnText');
+      if (fileInput) fileInput.value = '';
+      if (urlInput) urlInput.value = '';
+      if (preview) { preview.src = ''; preview.style.display = 'none'; }
+      if (init) {
+        var name = (document.getElementById('editStaffName') ? document.getElementById('editStaffName').value : 'S') || 'S';
+        init.textContent = name.charAt(0).toUpperCase();
+        init.style.display = 'block';
+      }
+      if (btnRem) btnRem.style.display = 'none';
+      if (btnTxt) btnTxt.textContent = 'Upload Photo';
+      showToast('Photo marked for removal', '🗑️');
+    }
+
     function populateAdminStaffList(list) {
       state.staffList = list || [];
       var staffBadge = document.getElementById('tabStaffCount');
@@ -2258,9 +2389,17 @@ function loadStaffCustomerData(staffId) {
         var waMessage = 'Hello ' + s.name + ',\nHere is your CWP Detailers & Motors staff portal link:\n' + staffUrl + '\n\nPlease log in using your registered mobile number (' + (formattedPhone || s.phone) + ')' + (sPin ? (' and 6-digit security PIN: ' + sPin) : ' and 6-digit security PIN') + '.';
         var waHref = normPhone ? getIndianWhatsAppLink(normPhone, waMessage) : ('https:\x2F\x2Fwa.me/?text=' + encodeURIComponent(waMessage));
 
-        cardsHtml += '<div class="staff-admin-card">';
-        cardsHtml += '  <div class="staff-admin-info" style="display: flex; flex-direction: column; gap: 4px;">';
-        cardsHtml += '    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">';
+        var sPhoto = (s.photoUrl || s.photo_url || s.photo || '').trim();
+        cardsHtml += '<div class="staff-admin-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px;">';
+        cardsHtml += '  <div class="staff-card-avatar">';
+        if (sPhoto) {
+          cardsHtml += '    <img src="' + escapeHtml(sPhoto) + '" alt="' + escapeHtml(s.name) + '" onerror="this.style.display=\'none\'; if(this.nextElementSibling) this.nextElementSibling.style.display=\'flex\';">';
+          cardsHtml += '    <div style="display:none; width:100%; height:100%; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; font-size:18px; font-weight:700; align-items:center; justify-content:center;">' + escapeHtml(s.name.charAt(0).toUpperCase()) + '</div>';
+        } else {
+          cardsHtml += '    <div style="width:100%; height:100%; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; font-size:18px; font-weight:700; display:flex; align-items:center; justify-content:center;">' + escapeHtml(s.name.charAt(0).toUpperCase()) + '</div>';
+        }
+        cardsHtml += '  </div>';
+        cardsHtml += '  <div class="staff-admin-info" style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">';        cardsHtml += '    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">';
         cardsHtml += '      <span class="staff-admin-name">' + escapeHtml(s.name) + '</span>';
         cardsHtml += '      <button type="button" class="badge-status-pill ' + (isActive ? 'badge-active' : 'badge-inactive') + '" onclick="toggleStaffActiveStatus(\'' + escapeHtml(s.id) + '\', ' + (!isActive) + ')" title="Click to toggle status">';
         cardsHtml += '        ' + (isActive ? '● Active' : '○ Inactive');
@@ -2477,6 +2616,33 @@ function loadStaffCustomerData(staffId) {
       setPhoneInputValue(document.getElementById('editStaffPhone'), staff.phone || '');
       document.getElementById('editStaffPin').value = '';
 
+      state.editStaffPhotoObj = null;
+      state.editStaffPhotoRemove = false;
+      var pFile = document.getElementById('editStaffPhotoFile');
+      if (pFile) pFile.value = '';
+      var pUrl = (staff.photoUrl || staff.photo_url || staff.photo || '').trim();
+      var pUrlEl = document.getElementById('editStaffPhotoUrl');
+      if (pUrlEl) pUrlEl.value = pUrl;
+      var pPreview = document.getElementById('editStaffPhotoPreview');
+      var pInit = document.getElementById('editStaffPhotoInitial');
+      var pBtnRem = document.getElementById('btnRemoveStaffPhoto');
+      var pBtnTxt = document.getElementById('editStaffPhotoBtnText');
+      if (pUrl && pPreview) {
+        pPreview.src = pUrl;
+        pPreview.style.display = 'block';
+        if (pInit) pInit.style.display = 'none';
+        if (pBtnRem) pBtnRem.style.display = 'inline-flex';
+        if (pBtnTxt) pBtnTxt.textContent = 'Change Photo';
+      } else {
+        if (pPreview) { pPreview.src = ''; pPreview.style.display = 'none'; }
+        if (pInit) {
+          pInit.textContent = (staff.name || 'S').charAt(0).toUpperCase();
+          pInit.style.display = 'block';
+        }
+        if (pBtnRem) pBtnRem.style.display = 'none';
+        if (pBtnTxt) pBtnTxt.textContent = 'Upload Photo';
+      }
+
       var curPinEl = document.getElementById('editStaffCurrentPinDisplay');
       var curPinBtn = document.getElementById('btnToggleModalPin');
       var curPinVal = (staff.pin || staff.displayPin || '').toString().trim();
@@ -2547,6 +2713,15 @@ function loadStaffCustomerData(staffId) {
       };
       if (pin) {
         staffPayload.pin = pin;
+      }
+      if (state.editStaffPhotoObj) {
+        staffPayload.photoObj = state.editStaffPhotoObj;
+      } else if (state.editStaffPhotoRemove) {
+        staffPayload.removePhoto = true;
+        staffPayload.photoUrl = '';
+      } else {
+        var curPUrl = document.getElementById('editStaffPhotoUrl');
+        if (curPUrl && curPUrl.value) staffPayload.photoUrl = curPUrl.value;
       }
 
       apiCall('saveStaffMember', { staffData: staffPayload }, function(res) {
@@ -2646,12 +2821,16 @@ function loadStaffCustomerData(staffId) {
         pin: pin,
         active: true
       };
+      if (state.newStaffPhotoObj) {
+        staffPayload.photoObj = state.newStaffPhotoObj;
+      }
 
       apiCall('saveStaffMember', { staffData: staffPayload }, function(res) {
         if (nameInput) nameInput.value = '';
         if (phoneInput) phoneInput.value = '';
         if (pinInput) pinInput.value = '';
         if (idEl) idEl.value = '';
+        clearNewStaffPhoto();
         showToast('Staff member "' + name + '" added successfully!', '✓');
         if (res && res.staffList) {
           populateAdminStaffList(res.staffList);
@@ -4236,7 +4415,16 @@ function loadStaffCustomerData(staffId) {
         var staffName = (r.staffName || '').trim();
         var staffHtml = '<div style="text-align: center;">';
         if (staffName && staffName.toLowerCase() !== 'none' && staffName.toLowerCase() !== 'unassigned') {
-          staffHtml += '<span class="staff-assigned-badge" title="' + escapeHtml(staffName) + '">' + escapeHtml(staffName) + '</span>';
+          var matchedStaff = (state.staffList || []).find(function(s) {
+            return (s.name && s.name.toLowerCase() === staffName.toLowerCase()) ||
+                   (s.id && r.staffId && s.id.toUpperCase() === r.staffId.toUpperCase());
+          });
+          var matchedPhoto = matchedStaff ? (matchedStaff.photoUrl || matchedStaff.photo_url || '') : '';
+          staffHtml += '<span class="staff-assigned-badge" title="' + escapeHtml(staffName) + '" style="display:inline-flex; align-items:center; gap:5px;">';
+          if (matchedPhoto) {
+            staffHtml += '<img src="' + escapeHtml(matchedPhoto) + '" style="width:16px; height:16px; border-radius:50%; object-fit:cover; flex-shrink:0;" onerror="this.style.display=\'none\';">';
+          }
+          staffHtml += escapeHtml(staffName) + '</span>';
         } else {
           staffHtml += '<span class="staff-none-badge" title="No staff assigned">Unassigned</span>';
         }
@@ -5147,6 +5335,21 @@ function loadStaffCustomerData(staffId) {
 
         var staffNameDisplay = res.staffName || state.seqManagement.currentStaffName;
         document.getElementById('seqCurrentStaffName').textContent = staffNameDisplay;
+        var selStaff = (state.staffList || state.adminStaffList || []).find(function(s) {
+          return (s.id || '').toUpperCase() === (sId || '').toUpperCase();
+        });
+        var seqAvatarImg = document.getElementById('seqStaffAvatarImg');
+        var seqAvatarDot = document.getElementById('seqStaffAvatarDot');
+        var selPhoto = selStaff ? (selStaff.photoUrl || selStaff.photo_url || '') : '';
+        if (selPhoto && seqAvatarImg) {
+          seqAvatarImg.src = selPhoto;
+          seqAvatarImg.style.display = 'inline-block';
+          if (seqAvatarDot) seqAvatarDot.style.display = 'none';
+        } else if (seqAvatarDot) {
+          seqAvatarDot.textContent = (staffNameDisplay || 'S').charAt(0).toUpperCase();
+          seqAvatarDot.style.display = 'inline-flex';
+          if (seqAvatarImg) seqAvatarImg.style.display = 'none';
+        }
         document.getElementById('seqTotalCustCount').textContent = state.seqManagement.customers.length;
 
         var statusBadge = document.getElementById('seqCustomStatusBadge');
@@ -6620,7 +6823,19 @@ function loadStaffCustomerData(staffId) {
         html += '<tr>';
         html += '  <td style="text-align: center;"><span class="report-row-index">' + (idx + 1) + '</span></td>';
         html += '  <td><div class="time-cell-main">' + timeFormatted + '</div><div class="time-cell-sub">' + dateFormatted + '</div></td>';
-        html += '  <td><div class="staff-cell-pill"><span class="staff-avatar-dot">' + escapeHtml(sName.charAt(0).toUpperCase()) + '</span><span class="staff-cell-name">' + escapeHtml(sName) + '</span></div></td>';
+        var stfObj = (state.staffList || []).find(function(s) {
+          return (s.id && r.staff_code && s.id.toUpperCase() === r.staff_code.toUpperCase()) ||
+                 (s.name && s.name.toLowerCase() === sName.toLowerCase());
+        });
+        var stfPhoto = stfObj ? (stfObj.photoUrl || stfObj.photo_url || '') : '';
+        html += '  <td><div class="staff-cell-pill">';
+        if (stfPhoto) {
+          html += '<img src="' + escapeHtml(stfPhoto) + '" class="staff-avatar-dot-img" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.1);" onerror="this.style.display=\'none\'; if(this.nextElementSibling) this.nextElementSibling.style.display=\'inline-flex\';">';
+          html += '<span class="staff-avatar-dot" style="display: none;">' + escapeHtml(sName.charAt(0).toUpperCase()) + '</span>';
+        } else {
+          html += '<span class="staff-avatar-dot">' + escapeHtml(sName.charAt(0).toUpperCase()) + '</span>';
+        }
+        html += '<span class="staff-cell-name">' + escapeHtml(sName) + '</span></div></td>';
         html += '  <td><div class="cust-cell-name">' + escapeHtml(cName) + '</div>';
         if (cPhone) {
           html += '    <div class="cust-phone-actions"><a href="tel:' + escapeHtml(cPhone) + '" class="table-phone-link">📞 ' + escapeHtml(cPhone) + '</a></div>';
@@ -7086,6 +7301,9 @@ function loadStaffCustomerData(staffId) {
       window.handleCustomerWhatsAppShare = handleCustomerWhatsAppShare;
       window.triggerCleaningWhatsAppShare = triggerCleaningWhatsAppShare;
       window.loadDailyCleanReports = loadDailyCleanReports;
+      window.handleStaffPhotoSelect = handleStaffPhotoSelect;
+      window.clearNewStaffPhoto = clearNewStaffPhoto;
+      window.removeEditStaffPhoto = removeEditStaffPhoto;
       window.setReportPeriodChip = setReportPeriodChip;
       window.openReportPhotoLightbox = openReportPhotoLightbox;
       window.closeReportPhotoLightbox = closeReportPhotoLightbox;
