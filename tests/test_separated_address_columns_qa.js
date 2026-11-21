@@ -64,27 +64,33 @@ assert.ok(css.includes('body.theme-dark .table-inline-map-btn'), 'style.css must
 assert.ok(css.includes('body.theme-dark .card-sec-address-row'), 'style.css must include dark mode support for secondary card row');
 console.log('✅ PASS 5: public/css/style.css has complete light & dark mode styles for all separated address & map elements');
 
-// 6. Verify Live Server API Returns Secondary Address Data
-http.get('http://localhost:3000/api/customers', (res) => {
-  assert.strictEqual(res.statusCode, 200, '/api/customers must return HTTP 200');
-  let raw = '';
-  res.on('data', chunk => raw += chunk);
-  res.on('end', () => {
-    try {
-      const parsed = JSON.parse(raw);
-      const records = parsed.records || parsed;
-      assert.ok(Array.isArray(records), 'Response must be an array of records');
-      console.log(`✅ PASS 6: Live server on port 3000 returned ${records.length} customer records with schema integrity intact`);
-      console.log('\n===============================================================');
-      console.log('🎉 ALL 6 SEPARATED ADDRESS & MAP VERIFICATION TESTS PASSED!');
-      console.log('===============================================================');
-      process.exit(0);
-    } catch (e) {
-      console.error('Failed to parse customer records JSON:', e);
-      process.exit(1);
-    }
+// 6. Verify Server API Returns Secondary Address Data (Isolated Port)
+const serverModule = require('../server.js');
+const server = serverModule.server || serverModule;
+
+const testServer = server.listen(0, '127.0.0.1', () => {
+  const port = testServer.address().port;
+  http.get(`http://127.0.0.1:${port}/api/customers`, (res) => {
+    assert.strictEqual(res.statusCode, 200, '/api/customers must return HTTP 200');
+    let raw = '';
+    res.on('data', chunk => raw += chunk);
+    res.on('end', () => {
+      try {
+        const parsed = JSON.parse(raw);
+        const records = parsed.records || parsed;
+        assert.ok(Array.isArray(records), 'Response must be an array of records');
+        console.log(`✅ PASS 6: Test server on port ${port} returned ${records.length} customer records with schema integrity intact`);
+        console.log('\n===============================================================');
+        console.log('🎉 ALL 6 SEPARATED ADDRESS & MAP VERIFICATION TESTS PASSED!');
+        console.log('===============================================================');
+        testServer.close(() => process.exit(0));
+      } catch (e) {
+        console.error('Failed to parse customer records JSON:', e);
+        testServer.close(() => process.exit(1));
+      }
+    });
+  }).on('error', (err) => {
+    console.error('Failed to connect to test server:', err.message);
+    testServer.close(() => process.exit(1));
   });
-}).on('error', (err) => {
-  console.error('Failed to connect to server on port 3000:', err.message);
-  process.exit(1);
 });

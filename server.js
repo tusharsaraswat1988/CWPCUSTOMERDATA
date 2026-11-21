@@ -1099,19 +1099,23 @@ function mergeStaffList(remoteList) {
       if ((oldPhoneNorm && cleanPhoneNorm && oldPhoneNorm !== cleanPhoneNorm) || (oldActive && !newActive)) {
         revokeAllStaffSessionsForId(loc.id);
       }
+      const staffPhotoUrl = rem.photoUrl || rem.photo_url || (idx >= 0 ? (appState.staffList[idx].photoUrl || appState.staffList[idx].photo_url || '') : '') || '';
       appState.staffList[idx] = {
         id: loc.id || rem.id || ('STF0' + (idx + 1)),
         name: rem.name || loc.name,
         phone: cleanStaffPhone,
+        photoUrl: staffPhotoUrl,
         pin: finalPin,
         displayPin: finalDisplayPin,
         active: newActive
       };
     } else {
+      const staffPhotoUrl = rem.photoUrl || rem.photo_url || '';
       appState.staffList.push({
         id: rem.id || ('STF' + String(appState.staffList.length + 1).padStart(2, '0')),
         name: rem.name,
         phone: cleanStaffPhone,
+        photoUrl: staffPhotoUrl,
         pin: finalPin,
         displayPin: finalDisplayPin || incomingDisplayPin,
         active: rem.active !== undefined ? (rem.active === true || rem.active === 'Yes' || rem.active === 'Active') : true
@@ -1352,10 +1356,13 @@ function formatStaffDataResponse(staffId, fetchResult) {
     active: c.active
   }));
 
+  const staffPhoto = staffObj ? (staffObj.photoUrl || staffObj.photo_url || staffObj.photo || '') : '';
   const formatted = {
     success: true,
     staffId: staffObj ? staffObj.id : staffId,
     staffName: staffObj ? staffObj.name : staffId,
+    staffPhotoUrl: staffPhoto,
+    photoUrl: staffPhoto,
     dailyCarCleaning: dailyCarCleaning,
     carWashing: carWashing,
     solarCleaning: solarCleaning,
@@ -2611,6 +2618,19 @@ const server = http.createServer(async (req, res) => {
           const pinChanged = existingStaff && pinToStore && existingStaff.pin && existingStaff.pin !== pinToStore;
           const deactivated = existingStaff && existingStaff.active && !active;
 
+          let photoUrl = (sData.photoUrl || sData.photo || payload.photoUrl || payload.photo || '').trim();
+          const photoObj = sData.photoData || sData.photoObj || payload.photoData || payload.photoObj;
+          if (photoObj && photoObj.base64) {
+            try {
+              const uploaded = await uploadToCloudinary(photoObj);
+              if (uploaded) photoUrl = uploaded;
+            } catch (uErr) {
+              console.error('Staff photo upload error:', uErr.message);
+            }
+          } else if (!photoUrl && !sData.removePhoto && !payload.removePhoto && idx >= 0 && (appState.staffList[idx].photoUrl || appState.staffList[idx].photo_url)) {
+            photoUrl = appState.staffList[idx].photoUrl || appState.staffList[idx].photo_url || '';
+          }
+
           if (isNeonPrimaryActive()) {
             try {
               const adminUser = 'admin';
@@ -2619,6 +2639,7 @@ const server = http.createServer(async (req, res) => {
                 name: name,
                 phone: normalizedPhone,
                 pin: rawPin,
+                photoUrl: photoUrl,
                 active: active
               }, adminUser);
 
@@ -2627,7 +2648,7 @@ const server = http.createServer(async (req, res) => {
                 return res.end(JSON.stringify({ success: false, error: neonStaffRes ? neonStaffRes.error : 'Failed to save staff member.' }));
               }
 
-              const newObj = { id, name, phone: normalizedPhone, pin: pinToStore, displayPin: displayPinToStore, active };
+              const newObj = { id, name, phone: normalizedPhone, photoUrl: photoUrl, pin: pinToStore, displayPin: displayPinToStore, active };
               if (idx >= 0) {
                 appState.staffList[idx] = Object.assign({}, appState.staffList[idx], newObj);
               } else {
@@ -2635,6 +2656,10 @@ const server = http.createServer(async (req, res) => {
               }
               saveLocalData(appState);
               invalidateLiveCustomersCache();
+
+              if (existingStaff && (phoneChanged || pinChanged || deactivated)) {
+                revokeAllStaffSessionsForId(newObj.id);
+              }
 
               const allStaff = await adminService.getStaffList({ isAdmin: true });
               const sanitizedList = allStaff.map(s => sanitizeStaffForAdmin(s));
@@ -2653,7 +2678,7 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          const newObj = { id, name, phone: normalizedPhone, pin: pinToStore, displayPin: displayPinToStore, active };
+          const newObj = { id, name, phone: normalizedPhone, photoUrl: photoUrl, pin: pinToStore, displayPin: displayPinToStore, active };
 
           if (idx >= 0) {
             appState.staffList[idx] = Object.assign({}, appState.staffList[idx], newObj);
@@ -2698,9 +2723,18 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Toggle Staff Active
         if (payload.action === 'toggleStaffActive') {
+          if (!payload.active) {
+            revokeAllStaffSessionsForId(payload.staffId);
+          }
           if (isNeonConfigured()) {
             try {
               const toggleRes = await adminService.toggleStaffActive(payload.staffId, payload.active, 'admin');
+              const localStaff = (appState.staffList || []).find(x => (x.id || '').toLowerCase() === (payload.staffId || '').toLowerCase());
+              if (localStaff) {
+                localStaff.active = !!payload.active;
+                saveLocalData(appState);
+              }
+              invalidateLiveCustomersCache();
               const allStaff = await adminService.getStaffList({ isAdmin: true });
               const sanitizedList = allStaff.map(item => sanitizeStaffForAdmin(item));
               res.writeHead(200, { 'Content-Type': 'application/json' });
