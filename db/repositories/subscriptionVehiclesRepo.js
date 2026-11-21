@@ -7,7 +7,7 @@ async function findBySubscriptionId(subscriptionId, client = null) {
   const runner = client || db;
   const res = await runner.query(
     `SELECT sv.*, 
-            v.registration_no, v.brand_or_model, v.vehicle_type, v.photo_url AS vehicle_photo_url,
+            v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.vehicle_type, v.photo_url AS vehicle_photo_url,
             loc.address_text, loc.google_maps_url, loc.parking_details
      FROM public.subscription_vehicles sv
      JOIN public.vehicles v ON sv.vehicle_id = v.id

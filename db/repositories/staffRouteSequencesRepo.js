@@ -8,7 +8,7 @@ async function getStaffRoute(staffId, client = null) {
   const res = await runner.query(
     `SELECT srs.*,
             c.name AS customer_name, c.phone AS customer_phone, c.customer_code,
-            v.registration_no, v.brand_or_model, v.photo_url AS vehicle_photo_url,
+            v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
             loc.address_text, loc.google_maps_url, loc.parking_details,
             sub.package_name, sub.rotation_type, sub.rotation_notes,
             job.service_type, job.status AS job_status

@@ -802,7 +802,7 @@ function parseVehicleDetails(vehicleStr) {
   if (match) {
     reg = match[1].toUpperCase().replace(/\s+/g, ' ');
     const remaining = raw.replace(match[0], '').replace(/^[-–—:,/|\s]+|[-–—:,/|\s]+$/g, '').trim();
-    model = remaining || 'Vehicle';
+    model = (remaining.toLowerCase() === 'vehicle' || remaining.toLowerCase() === 'car') ? '' : remaining;
   } else if (raw.includes('-')) {
     const parts = raw.split('-');
     if (/\d/.test(parts[0]) && !/\d/.test(parts[1])) {
@@ -818,7 +818,7 @@ function parseVehicleDetails(vehicleStr) {
   }
 
   return {
-    model: model || raw,
+    model: model,
     reg: reg,
     display: raw
   };
@@ -3051,6 +3051,12 @@ const server = http.createServer(async (req, res) => {
         // Admin: Save Customer / Save Lead (Task P2.4: Strict Server-Side Indian Mobile Validation & Normalization)
         if ((payload.action === 'saveCustomer' || payload.action === 'saveLead') && payload.customerData) {
           const cust = payload.customerData;
+          if (cust) {
+            if (cust.carMake === undefined && cust.car_make !== undefined) cust.carMake = cust.car_make;
+            if (cust.carColor === undefined && cust.car_color !== undefined) cust.carColor = cust.car_color;
+            if (cust.car_make === undefined && cust.carMake !== undefined) cust.car_make = cust.carMake;
+            if (cust.car_color === undefined && cust.carColor !== undefined) cust.car_color = cust.carColor;
+          }
           const isLeadSave = Boolean(payload.action === 'saveLead' || cust.isLead || cust.tag === 'lead');
           if (isLeadSave) {
             cust.isLead = true;
@@ -3196,6 +3202,12 @@ const server = http.createServer(async (req, res) => {
         // Admin: Update Customer (Guards against duplicate/orphaned rows and cross-sheet corruption)
         if (payload.action === 'updateCustomer') {
           const cust = payload.customerData;
+          if (cust) {
+            if (cust.carMake === undefined && cust.car_make !== undefined) cust.carMake = cust.car_make;
+            if (cust.carColor === undefined && cust.car_color !== undefined) cust.carColor = cust.car_color;
+            if (cust.car_make === undefined && cust.carMake !== undefined) cust.car_make = cust.carMake;
+            if (cust.car_color === undefined && cust.carColor !== undefined) cust.car_color = cust.carColor;
+          }
           if (!cust || (!cust.id && (!cust.sheetName || !cust.rowIndex))) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'Missing customer reference for update' }));

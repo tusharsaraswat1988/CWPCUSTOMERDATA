@@ -40,14 +40,20 @@ async function createVehicle({
   vehicleType = 'Car',
   photoUrl = null,
   photoStorageKey = null,
-  isActive = true
+  isActive = true,
+  carMake = null,
+  carColor = null,
+  car_make = null,
+  car_color = null
 }, client = null) {
   const runner = client || db;
+  const makeVal = (carMake || car_make) ? String(carMake || car_make).trim() : null;
+  const colorVal = (carColor || car_color) ? String(carColor || car_color).trim() : null;
   const res = await runner.query(
     `INSERT INTO public.vehicles (
        customer_id, default_location_id, registration_no, brand_or_model,
-       vehicle_type, photo_url, photo_storage_key, is_active
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       vehicle_type, photo_url, photo_storage_key, is_active, car_make, car_color
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING *`,
     [
       customerId,
@@ -57,7 +63,9 @@ async function createVehicle({
       vehicleType || 'Car',
       photoUrl,
       photoStorageKey,
-      Boolean(isActive)
+      Boolean(isActive),
+      makeVal,
+      colorVal
     ]
   );
   return res.rows[0];
@@ -70,7 +78,11 @@ async function updateVehicle(id, {
   vehicleType,
   photoUrl,
   photoStorageKey,
-  isActive
+  isActive,
+  carMake,
+  carColor,
+  car_make,
+  car_color
 }, client = null) {
   const runner = client || db;
   const updates = [];
@@ -103,6 +115,16 @@ async function updateVehicle(id, {
   if (isActive !== undefined) {
     params.push(Boolean(isActive));
     updates.push(`is_active = $${params.length}`);
+  }
+  const makeVal = carMake !== undefined ? carMake : car_make;
+  if (makeVal !== undefined) {
+    params.push(makeVal ? String(makeVal).trim() : null);
+    updates.push(`car_make = $${params.length}`);
+  }
+  const colorVal = carColor !== undefined ? carColor : car_color;
+  if (colorVal !== undefined) {
+    params.push(colorVal ? String(colorVal).trim() : null);
+    updates.push(`car_color = $${params.length}`);
   }
   updates.push('updated_at = CURRENT_TIMESTAMP');
 

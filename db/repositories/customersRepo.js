@@ -38,7 +38,9 @@ async function findAll({
       phone LIKE $${pIdx} OR 
       LOWER(customer_code) LIKE $${pIdx} OR
       LOWER(COALESCE(name_hi, '')) LIKE $${pIdx} OR
-      LOWER(COALESCE(address_hi, '')) LIKE $${pIdx}
+      LOWER(COALESCE(address_hi, '')) LIKE $${pIdx} OR
+      LOWER(COALESCE(car_make, '')) LIKE $${pIdx} OR
+      LOWER(COALESCE(car_color, '')) LIKE $${pIdx}
     )`);
   }
 
@@ -102,19 +104,27 @@ async function createCustomer({
   isLead = false,
   leadStatus = 'open',
   leadNotes = null,
-  interestedService = 'Daily Car Cleaning'
+  interestedService = 'Daily Car Cleaning',
+  carMake = null,
+  carColor = null,
+  car_make = null,
+  car_color = null
 }, client = null) {
   const runner = client || db;
+  const code = (customerCode || ('CUST_' + Date.now())).trim();
+  const makeVal = (carMake || car_make) ? String(carMake || car_make).trim() : null;
+  const colorVal = (carColor || car_color) ? String(carColor || car_color).trim() : null;
   const res = await runner.query(
     `INSERT INTO public.customers (
        customer_code, name, phone, alt_phone, email, notes, 
        source_sheet_name, source_row_index, is_active,
        name_hi, address_hi, secondary_address_hi,
-       is_lead, lead_status, lead_notes, interested_service
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+       is_lead, lead_status, lead_notes, interested_service,
+       car_make, car_color
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
      RETURNING *`,
     [
-      customerCode.trim(),
+      code,
       name.trim(),
       phone ? phone.trim() : null,
       altPhone ? altPhone.trim() : null,
@@ -129,7 +139,9 @@ async function createCustomer({
       Boolean(isLead),
       leadStatus ? leadStatus.trim() : 'open',
       leadNotes ? leadNotes.trim() : null,
-      interestedService ? interestedService.trim() : 'Daily Car Cleaning'
+      interestedService ? interestedService.trim() : 'Daily Car Cleaning',
+      makeVal,
+      colorVal
     ]
   );
   return res.rows[0];
@@ -148,7 +160,11 @@ async function updateCustomer(id, {
   isLead,
   leadStatus,
   leadNotes,
-  interestedService
+  interestedService,
+  carMake,
+  carColor,
+  car_make,
+  car_color
 }, client = null) {
   const runner = client || db;
   const updates = [];
@@ -205,6 +221,16 @@ async function updateCustomer(id, {
   if (interestedService !== undefined) {
     params.push(interestedService ? interestedService.trim() : null);
     updates.push(`interested_service = $${params.length}`);
+  }
+  const makeVal = carMake !== undefined ? carMake : car_make;
+  if (makeVal !== undefined) {
+    params.push(makeVal ? String(makeVal).trim() : null);
+    updates.push(`car_make = $${params.length}`);
+  }
+  const colorVal = carColor !== undefined ? carColor : car_color;
+  if (colorVal !== undefined) {
+    params.push(colorVal ? String(colorVal).trim() : null);
+    updates.push(`car_color = $${params.length}`);
   }
   updates.push('updated_at = CURRENT_TIMESTAMP');
 

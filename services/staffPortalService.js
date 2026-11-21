@@ -85,7 +85,7 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
   if (subIds.length > 0) {
     const svRes = await db.query(
       `SELECT sv.*, 
-              v.registration_no, v.brand_or_model, v.photo_url AS vehicle_photo_url,
+              v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
               loc.address_text, loc.google_maps_url, loc.parking_details
        FROM public.subscription_vehicles sv
        JOIN public.vehicles v ON sv.vehicle_id = v.id
@@ -169,6 +169,8 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       secondaryMapsUrl: secondaryLoc?.google_maps_url || '',
       secondaryParkingDetails: secondaryLoc?.parking_details || '',
       vehicle: vehicleSummary,
+      carMake: svList[0]?.car_make || subRow.car_make || '',
+      carColor: svList[0]?.car_color || subRow.car_color || '',
       vehicles: svList.map(sv => ({
         id: sv.vehicle_id,
         vehicleId: sv.vehicle_id,
@@ -176,6 +178,8 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
         subscriptionVehicleId: sv.id,
         registrationNo: sv.registration_no,
         brandOrModel: sv.brand_or_model,
+        carMake: sv.car_make || '',
+        carColor: sv.car_color || '',
         photoUrl: sv.vehicle_photo_url,
         scheduleTag: sv.schedule_tag,
         completedToday: completedSubVehKeys.has(`${subRow.id}_${sv.vehicle_id}`)
@@ -231,6 +235,8 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       googleMapsUrl: j.google_maps_url,
       parkingDetails: j.parking_details,
       vehicle: j.registration_no ? (j.brand_or_model ? `${j.registration_no} (${j.brand_or_model})` : j.registration_no) : '',
+      carMake: j.car_make || '',
+      carColor: j.car_color || '',
       vehiclePhotoUrl: j.vehicle_photo_url,
       siteDetails: j.site_details,
       serviceType: j.service_type,

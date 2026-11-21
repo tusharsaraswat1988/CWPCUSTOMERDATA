@@ -45,7 +45,7 @@ async function findAll({
   const sql = `
     SELECT j.*,
            c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
-           v.registration_no, v.brand_or_model, v.photo_url AS vehicle_photo_url,
+           v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
            loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
            sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code
     FROM public.service_jobs j
@@ -68,7 +68,7 @@ async function findById(id, client = null) {
   const res = await runner.query(
     `SELECT j.*,
             c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
-            v.registration_no, v.brand_or_model, v.photo_url AS vehicle_photo_url,
+            v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
             loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
             sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code
      FROM public.service_jobs j
@@ -89,7 +89,7 @@ async function findDispatchedForStaff(staffId, client = null) {
   const res = await runner.query(
     `SELECT j.*,
             c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
-            v.registration_no, v.brand_or_model, v.photo_url AS vehicle_photo_url,
+            v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
             loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details
      FROM public.service_jobs j
      JOIN public.customers c ON j.customer_id = c.id

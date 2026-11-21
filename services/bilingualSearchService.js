@@ -185,6 +185,18 @@ function recordMatchesQuery(record, query) {
 
   // Vehicle / site information
   addField(record.vehicle || record.vehicleNumbers || record.vehicleOrSite);
+  addField(record.carMake || record.car_make);
+  addField(record.carColor || record.car_color);
+  if (Array.isArray(record.vehicles)) {
+    record.vehicles.forEach(v => {
+      if (v) {
+        addField(v.registrationNo || v.registration_no);
+        addField(v.brandOrModel || v.brand_or_model);
+        addField(v.carMake || v.car_make);
+        addField(v.carColor || v.car_color);
+      }
+    });
+  }
 
   // Address fields
   addField(record.address);

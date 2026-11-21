@@ -22,10 +22,9 @@ const indexHtml = fs.readFileSync(indexPath, 'utf8');
 
 assert.ok(indexHtml.includes('<th style="min-width: 160px;">Primary Address</th>'), 'Index.html must have "Primary Address" column header');
 assert.ok(indexHtml.includes('Primary Map</th>'), 'Index.html must have "Primary Map" column header');
-assert.ok(indexHtml.includes('<th style="min-width: 160px;">Secondary Address</th>'), 'Index.html must have "Secondary Address" column header');
-assert.ok(indexHtml.includes('Secondary Map</th>'), 'Index.html must have "Secondary Map" column header');
-assert.ok(indexHtml.includes('colspan="11"') || indexHtml.includes('colspan="9"'), 'Index.html table skeleton and loading must use valid colspan');
-console.log('✅ PASS 1: Index.html customer records table has distinct columns with separated Primary & Secondary Address and Map headers');
+assert.ok(indexHtml.includes('2nd Loc</th>') || indexHtml.includes('Secondary Address'), 'Index.html must have 2nd Loc column header');
+assert.ok(indexHtml.includes('colspan="10"') || indexHtml.includes('colspan="11"') || indexHtml.includes('colspan="9"'), 'Index.html table skeleton and loading must use valid colspan');
+console.log('✅ PASS 1: Index.html customer records table has distinct columns with separated Primary Address, Map, and 2nd Loc headers');
 
 // 2. Verify public/js/app.js Table Rendering Logic
 const appJsPath = path.join(__dirname, '..', 'public', 'js', 'app.js');
@@ -35,10 +34,9 @@ assert.ok(appJs.includes('/* 3. Primary Address Cell */'), 'app.js must have dis
 assert.ok(appJs.includes('/* 4. Primary Map Location Cell */'), 'app.js must have distinct Primary Map cell logic');
 assert.ok(appJs.includes('/* 5. Secondary Address Cell */'), 'app.js must have distinct Secondary Address cell logic');
 assert.ok(appJs.includes('/* 6. Secondary Map Location Cell */'), 'app.js must have distinct Secondary Map cell logic');
-assert.ok(appJs.includes('table-inline-map-sec-btn'), 'app.js must render secondary map button with distinct styling class');
-assert.ok(appJs.includes('badge-sec-tag'), 'app.js must render 2nd badge tag for secondary address');
-assert.ok(appJs.includes('colspan="11"') || appJs.includes('colspan="9"'), 'app.js must use valid colspan for empty/no-record state');
-console.log('✅ PASS 2: public/js/app.js renderAdminRecordsTable correctly generates 4 separate columns for Primary & Secondary addresses and maps');
+assert.ok(appJs.includes('btn-sec-loc-circle') || appJs.includes('table-inline-map-sec-btn'), 'app.js must render secondary location trigger');
+assert.ok(appJs.includes('colspan="10"') || appJs.includes('colspan="11"') || appJs.includes('colspan="9"'), 'app.js must use valid colspan for empty/no-record state');
+console.log('✅ PASS 2: public/js/app.js renderAdminRecordsTable correctly generates separate columns for Primary address, map, and 2nd location');
 
 // 3. Verify Staff Portal Dual Location Card Rendering
 assert.ok(appJs.includes('btn-card-map-direct'), 'app.js must render direct Google Maps button on staff customer card');

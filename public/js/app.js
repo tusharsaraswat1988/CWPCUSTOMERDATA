@@ -305,6 +305,18 @@ function recordMatchesBilingualSearch(record, query) {
 
   // Vehicle / site information
   addField(record.vehicle || record.vehicleNumbers || record.vehicleOrSite);
+  addField(record.carMake || record.car_make);
+  addField(record.carColor || record.car_color);
+  if (Array.isArray(record.vehicles)) {
+    record.vehicles.forEach(function(v) {
+      if (v) {
+        addField(v.registrationNo || v.registration_no);
+        addField(v.brandOrModel || v.brand_or_model);
+        addField(v.carMake || v.car_make);
+        addField(v.carColor || v.car_color);
+      }
+    });
+  }
 
   // Address fields (English & Hindi)
   addField(record.address);
@@ -726,11 +738,16 @@ var state = {
         var tSolar = pillSolar.querySelector('.pill-text');
         if (tSolar) tSolar.textContent = isHi ? 'सोलर पैनल सफाई' : 'Solar Panel Cleaning';
       }
+      var pillSet = document.getElementById('pillStaffSettings');
+      if (pillSet) {
+        var tSet = pillSet.querySelector('.pill-text');
+        if (tSet) tSet.textContent = isHi ? 'सेटिंग्स' : 'Settings';
+      }
 
       // Route sequence header
       var rHeaderTitle = document.getElementById('routeHeaderTitle');
       if (rHeaderTitle) {
-        rHeaderTitle.textContent = "Today's Cleaning Route";
+        rHeaderTitle.textContent = isHi ? "आज का सफाई रूट (Today's Route)" : "Today's Cleaning Route";
       }
 
       // Re-render customer cards if already loaded
@@ -924,7 +941,7 @@ var state = {
         if (liveBadge) liveBadge.style.display = 'inline-flex';
 
         if (isAuth) {
-          if (accountTrigger) accountTrigger.style.display = 'inline-flex';
+          if (accountTrigger) accountTrigger.style.display = 'none'; // Keep header uncluttered; logout is located inside Settings
           if (staffLogout) staffLogout.style.display = 'flex';
           if (adminLogout) adminLogout.style.display = 'none';
 
@@ -2712,11 +2729,31 @@ function loadStaffCustomerData(staffId) {
       var pillDcc = document.getElementById('pillDailyClean');
       var pillCw = document.getElementById('pillCarWash');
       var pillSpc = document.getElementById('pillSolarClean');
+      var pillSet = document.getElementById('pillStaffSettings');
+      var jobsPanel = document.getElementById('staffJobsPanel');
+      var settingsPanel = document.getElementById('staffSettingsPanel');
+      var inlineChip = document.getElementById('staffInlineProgressChip');
+
       if (pillDcc) pillDcc.classList.toggle('active', filter === 'daily_car_cleaning');
       if (pillCw) pillCw.classList.toggle('active', filter === 'car_washing');
       if (pillSpc) pillSpc.classList.toggle('active', filter === 'solar_cleaning');
-      updateFilterCounts();
-      applyCustomerFilterAndSearch();
+      if (pillSet) pillSet.classList.toggle('active', filter === 'settings');
+
+      if (filter === 'settings') {
+        if (jobsPanel) jobsPanel.style.display = 'none';
+        if (settingsPanel) settingsPanel.style.display = 'block';
+        updateRouteProgressBar();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        if (jobsPanel) jobsPanel.style.display = 'block';
+        if (settingsPanel) settingsPanel.style.display = 'none';
+        if (inlineChip) {
+          inlineChip.style.display = (filter === 'daily_car_cleaning' || !filter) ? 'flex' : 'none';
+        }
+        updateFilterCounts();
+        applyCustomerFilterAndSearch();
+        updateRouteProgressBar();
+      }
     }
 
     function handleStaffSearch(query) {
@@ -2967,6 +3004,12 @@ function loadStaffCustomerData(staffId) {
         }
         if (pkgLabel) {
           html += '      <span class="package-pill-badge">' + escapeHtml(pkgLabel) + '</span>';
+        }
+        var cardMake = (item.carMake || item.car_make || '').trim();
+        var cardColor = (item.carColor || item.car_color || '').trim();
+        if (!isSolar && (cardMake || cardColor)) {
+          var makeColorText = [cardMake, cardColor].filter(Boolean).join(' • ');
+          html += '      <span class="vehicle-make-color-pill" title="Car Make & Color: ' + escapeHtml(makeColorText) + '">🚘 ' + escapeHtml(makeColorText) + '</span>';
         }
         html += '    </div>';
 
@@ -3948,6 +3991,8 @@ function loadStaffCustomerData(staffId) {
             '<option value="OTHER">OTHER</option>';
         }
       }
+      var carMakeColorRow = document.getElementById('custCarMakeColorRow');
+      if (carMakeColorRow) carMakeColorRow.style.display = isSolar ? 'none' : 'grid';
       handlePackageTypeChange(pkgSelect ? pkgSelect.value : '');
     }
 
@@ -3965,6 +4010,8 @@ function loadStaffCustomerData(staffId) {
       if (secGroup) {
         secGroup.style.display = (cat === 'Daily Car Cleaning') ? 'block' : 'none';
       }
+      var editCarMakeColorRow = document.getElementById('editCustCarMakeColorRow');
+      if (editCarMakeColorRow) editCarMakeColorRow.style.display = (cat === 'Solar Panel Cleaning') ? 'none' : 'grid';
 
       var pkgSelect = document.getElementById('editCustPkgType');
       if (!pkgSelect) return;
@@ -4105,6 +4152,8 @@ function loadStaffCustomerData(staffId) {
       var notesEl = document.getElementById('custNotes');
       var secAddrEl = document.getElementById('custSecAddress');
       var secMapsEl = document.getElementById('custSecMaps');
+      var carMakeEl = document.getElementById('custCarMake');
+      var carColorEl = document.getElementById('custCarColor');
 
       var name = (nameEl ? nameEl.value : '').trim();
       var phone = (phoneEl ? phoneEl.value : '').trim();
@@ -4118,9 +4167,11 @@ function loadStaffCustomerData(staffId) {
       var notes = (notesEl ? notesEl.value : '').trim();
       var secAddr = (secAddrEl ? secAddrEl.value : '').trim();
       var secMaps = (secMapsEl ? secMapsEl.value : '').trim();
+      var carMake = (carMakeEl ? carMakeEl.value : '').trim();
+      var carColor = (carColorEl ? carColorEl.value : '').trim();
 
       /* Check if there is meaningful input worth preserving */
-      var hasContent = name || phone || maps || addr || veh || notes || secAddr || secMaps || (pkg === 'OTHER' && pkgCustom) || state.selectedPhotoBase64;
+      var hasContent = name || phone || maps || addr || veh || notes || secAddr || secMaps || carMake || carColor || (pkg === 'OTHER' && pkgCustom) || state.selectedPhotoBase64;
       var badge = document.getElementById('custDraftBadge');
 
       if (!hasContent) {
@@ -4136,6 +4187,8 @@ function loadStaffCustomerData(staffId) {
         addr: addr,
         cat: cat,
         veh: veh,
+        carMake: carMake,
+        carColor: carColor,
         pkg: pkg,
         pkgCustom: pkgCustom,
         staff: staff,
@@ -4204,6 +4257,8 @@ function loadStaffCustomerData(staffId) {
           toggleCategoryFields(d.cat);
         }
         if (d.veh !== undefined && document.getElementById('custVehicles')) document.getElementById('custVehicles').value = d.veh;
+        if (d.carMake !== undefined && document.getElementById('custCarMake')) document.getElementById('custCarMake').value = d.carMake;
+        if (d.carColor !== undefined && document.getElementById('custCarColor')) document.getElementById('custCarColor').value = d.carColor;
         if (d.pkg !== undefined && document.getElementById('custPkgType')) {
           document.getElementById('custPkgType').value = d.pkg;
           handlePackageTypeChange(d.pkg);
@@ -4305,6 +4360,8 @@ function loadStaffCustomerData(staffId) {
       var secAddrEl = document.getElementById('editCustSecAddress');
       var secMapsEl = document.getElementById('editCustSecMaps');
       var notesEl = document.getElementById('editCustNotes');
+      var carMakeEl = document.getElementById('editCustCarMake');
+      var carColorEl = document.getElementById('editCustCarColor');
 
       var draftData = {
         name: (nameEl ? nameEl.value : '').trim(),
@@ -4315,6 +4372,8 @@ function loadStaffCustomerData(staffId) {
         pkg: pkgEl ? pkgEl.value : 'DCC ONLY',
         pkgCustom: (pkgCustomEl ? pkgCustomEl.value : '').trim(),
         vehicles: (vehEl ? vehEl.value : '').trim(),
+        carMake: (carMakeEl ? carMakeEl.value : '').trim(),
+        carColor: (carColorEl ? carColorEl.value : '').trim(),
         maps: (mapsEl ? mapsEl.value : '').trim(),
         address: (addrEl ? addrEl.value : '').trim(),
         secAddress: (secAddrEl ? secAddrEl.value : '').trim(),
@@ -4379,6 +4438,8 @@ function loadStaffCustomerData(staffId) {
           document.getElementById('editCustPkgTypeCustom').value = d.pkgCustom;
         }
         if (d.vehicles !== undefined && document.getElementById('editCustVehicles')) document.getElementById('editCustVehicles').value = d.vehicles;
+        if (d.carMake !== undefined && document.getElementById('editCustCarMake')) document.getElementById('editCustCarMake').value = d.carMake;
+        if (d.carColor !== undefined && document.getElementById('editCustCarColor')) document.getElementById('editCustCarColor').value = d.carColor;
         if (d.maps !== undefined && document.getElementById('editCustMapsUrl')) document.getElementById('editCustMapsUrl').value = d.maps;
         if (d.address !== undefined && document.getElementById('editCustAddress')) document.getElementById('editCustAddress').value = d.address;
         if (d.secAddress !== undefined && document.getElementById('editCustSecAddress')) {
@@ -4860,6 +4921,8 @@ function loadStaffCustomerData(staffId) {
       }
 
       var vehText = document.getElementById('custVehicles').value.trim();
+      var carMakeVal = (document.getElementById('custCarMake') ? document.getElementById('custCarMake').value : '').trim();
+      var carColorVal = (document.getElementById('custCarColor') ? document.getElementById('custCarColor').value : '').trim();
 
       var isLeadCheck = document.getElementById('custIsLeadCheck');
       var isLeadMarked = isLeadCheck && isLeadCheck.checked;
@@ -4887,6 +4950,10 @@ function loadStaffCustomerData(staffId) {
         vehicleNumbers: vehText,
         vehicleOrSite: vehText,
         vehicle: vehText,
+        carMake: carMakeVal,
+        car_make: carMakeVal,
+        carColor: carColorVal,
+        car_color: carColorVal,
         secondaryAddress: isDaily && document.getElementById('custSecAddress') ? document.getElementById('custSecAddress').value.trim() : '',
         secondaryAddressHi: isDaily && document.getElementById('custSecAddressHi') ? document.getElementById('custSecAddressHi').value.trim() : '',
         secondaryMapsUrl: isDaily && document.getElementById('custSecMaps') ? document.getElementById('custSecMaps').value.trim() : '',
@@ -4977,11 +5044,8 @@ function loadStaffCustomerData(staffId) {
           '<td style="text-align:center;">' +
             '<div class="skeleton-shimmer" style="width:50px; height:20px; margin:0 auto; border-radius:4px;"></div>' +
           '</td>' +
-          '<td>' +
-            '<div class="skeleton-shimmer" style="width:85%; height:14px; border-radius:4px;"></div>' +
-          '</td>' +
           '<td style="text-align:center;">' +
-            '<div class="skeleton-shimmer" style="width:50px; height:20px; margin:0 auto; border-radius:4px;"></div>' +
+            '<div class="skeleton-shimmer" style="width:44px; height:20px; margin:0 auto; border-radius:12px;"></div>' +
           '</td>' +
           '<td style="text-align:center;">' +
             '<div class="skeleton-shimmer" style="width:75px; height:20px; margin:0 auto; border-radius:12px;"></div>' +
@@ -5489,6 +5553,8 @@ function loadStaffCustomerData(staffId) {
       var addrHiVal = document.getElementById('leadAddressHi') ? document.getElementById('leadAddressHi').value.trim() : '';
       var mapsVal = (document.getElementById('leadMapsUrl').value || '').trim();
       var vehVal = (document.getElementById('leadVehicle').value || '').trim();
+      var leadCarMakeVal = (document.getElementById('leadCarMake') ? document.getElementById('leadCarMake').value : '').trim();
+      var leadCarColorVal = (document.getElementById('leadCarColor') ? document.getElementById('leadCarColor').value : '').trim();
       var catVal = (document.getElementById('leadCategory').value || 'Daily Car Cleaning').trim();
       var notesVal = (document.getElementById('leadNotes').value || '').trim();
 
@@ -5507,6 +5573,10 @@ function loadStaffCustomerData(staffId) {
         googleMapsUrl: mapsVal,
         vehicle: vehVal,
         vehicleDetails: vehVal,
+        carMake: leadCarMakeVal,
+        car_make: leadCarMakeVal,
+        carColor: leadCarColorVal,
+        car_color: leadCarColorVal,
         serviceCategory: catVal,
         serviceType: catVal,
         interestedService: catVal,
@@ -5738,6 +5808,18 @@ function loadStaffCustomerData(staffId) {
       document.getElementById('convertLeadNameDisplay').textContent = lead.customerName || '—';
       document.getElementById('convertLeadPhoneDisplay').textContent = (lead.customerNumber || lead.phone) ? ('+91 ' + (lead.customerNumber || lead.phone)) : '— (No phone)';
       document.getElementById('convertLeadVehicleDisplay').textContent = lead.vehicle || '—';
+      var leadMake = (lead.carMake || lead.car_make || '').trim();
+      var leadColor = (lead.carColor || lead.car_color || '').trim();
+      var makeColorWrap = document.getElementById('convertLeadMakeColorWrap');
+      var makeColorDisplay = document.getElementById('convertLeadMakeColorDisplay');
+      if (makeColorWrap && makeColorDisplay) {
+        if (leadMake || leadColor) {
+          makeColorDisplay.textContent = [leadMake, leadColor].filter(Boolean).join(' • ');
+          makeColorWrap.style.display = 'flex';
+        } else {
+          makeColorWrap.style.display = 'none';
+        }
+      }
       document.getElementById('convertLeadAddressDisplay').textContent = lead.address || '—';
       document.getElementById('convertNotes').value = '';
 
@@ -6069,7 +6151,7 @@ function loadStaffCustomerData(staffId) {
       var paginationContainer = document.getElementById('adminTablePagination');
 
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
           '<div style="font-size: 32px; margin-bottom: 10px;">🔍</div>' +
           '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">No customer records match your filter</div>' +
           '<div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">Try adjusting your search criteria, staff assignment or category filters</div>' +
@@ -6160,6 +6242,14 @@ function loadStaffCustomerData(staffId) {
         } else {
           carHtml += '<span class="cell-empty-dash">—</span>';
         }
+        var rowMake = (r.carMake || r.car_make || '').trim();
+        var rowColor = (r.carColor || r.car_color || '').trim();
+        if (catName !== 'Solar Panel Cleaning' && (rowMake || rowColor)) {
+          var makeColorDisplay = [rowMake, rowColor].filter(Boolean).join(' • ');
+          carHtml += '<div class="table-vehicle-make-color" title="Car Make & Color: ' + escapeHtml(makeColorDisplay) + '">' +
+            '<span>🚘 ' + escapeHtml(makeColorDisplay) + '</span>' +
+          '</div>';
+        }
         if (r.photoUrl && r.photoUrl.trim()) {
           var aThumb = r.photoUrl.indexOf('res.cloudinary.com') !== -1 && r.photoUrl.indexOf('/upload/') !== -1 ? r.photoUrl.replace('/upload/', '/upload/w_80,h_80,c_fill,q_auto,f_auto/') : r.photoUrl;
           carHtml += '<div style="margin-top: 3px;">' +
@@ -6203,29 +6293,19 @@ function loadStaffCustomerData(staffId) {
         primaryMapHtml += '</div>';
 
         /* 5. Secondary Address Cell */
-        var secAddrText = (r.secondaryAddress != null ? String(r.secondaryAddress) : '').trim();
-        var secAddrHtml = '<div class="table-addr-col-wrap">';
-        if (secAddrText) {
-          secAddrHtml += '<div class="table-addr-text table-addr-sec-text" onclick="openAddressModal(' + origIndex + ')" title="Click to view full address & details">' +
-            '<span class="badge-sec-tag">2nd Site</span> <span class="sec-text-content">' + escapeHtml(secAddrText) + '</span>' +
-          '</div>';
-        } else {
-          secAddrHtml += '<span class="cell-empty-dash" title="No secondary address">—</span>';
-        }
-        secAddrHtml += '</div>';
-
         /* 6. Secondary Map Location Cell */
+        var secAddrText = (r.secondaryAddress != null ? String(r.secondaryAddress) : '').trim();
         var secMapsUrl = formatGoogleMapsUrl(r.secondaryMapsUrl, secAddrText);
-        var secMapHtml = '<div style="text-align: center;">';
-        if (secMapsUrl) {
-          secMapHtml += '<a href="' + escapeHtml(secMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="table-inline-map-btn table-inline-map-sec-btn smart-map-sec-btn" onclick="event.stopPropagation();" title="Open secondary location in Google Maps">' +
-            '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>' +
-            '<span>2nd Map ↗</span>' +
-          '</a>';
+        var secLocHtml = '<div style="text-align: center;">';
+        if (secAddrText || secMapsUrl) {
+          secLocHtml += '<button type="button" class="btn-sec-loc-circle" onclick="openAddressModal(' + origIndex + ')" title="2nd Location: ' + escapeHtml(secAddrText || 'Map Available') + ' • Click to view full details">' +
+            '<span class="sec-loc-circle-dot">✓</span> ' +
+            '<span class="sec-loc-circle-text">Yes</span>' +
+          '</button>';
         } else {
-          secMapHtml += '<span class="cell-empty-dash" title="No secondary map link">—</span>';
+          secLocHtml += '<span class="cell-empty-dash" title="No secondary location">—</span>';
         }
-        secMapHtml += '</div>';
+        secLocHtml += '</div>';
 
         /* 7. Staff Assigned Name or Unassigned Badge */
         var staffName = (r.staffName || '').trim();
@@ -6270,8 +6350,7 @@ function loadStaffCustomerData(staffId) {
         html += '  <td>' + carHtml + '</td>';
         html += '  <td>' + primaryAddrHtml + '</td>';
         html += '  <td style="text-align: center;">' + primaryMapHtml + '</td>';
-        html += '  <td>' + secAddrHtml + '</td>';
-        html += '  <td style="text-align: center;">' + secMapHtml + '</td>';
+        html += '  <td style="text-align: center;">' + secLocHtml + '</td>';
         html += '  <td style="text-align: center;">' + staffHtml + '</td>';
         html += '  <td style="text-align: center;">' + actionsHtml + '</td>';
         html += '</tr>';
@@ -6297,6 +6376,10 @@ function loadStaffCustomerData(staffId) {
       if (editNameHi) editNameHi.value = r.nameHi || r.name_hi || '';
       setPhoneInputValue(document.getElementById('editCustPhone'), r.customerNumber || '');
       document.getElementById('editCustVehicles').value = r.vehicle || r.vehicleNumbers || '';
+      var editMakeInput = document.getElementById('editCustCarMake');
+      if (editMakeInput) editMakeInput.value = r.carMake || r.car_make || '';
+      var editColorInput = document.getElementById('editCustCarColor');
+      if (editColorInput) editColorInput.value = r.carColor || r.car_color || '';
       document.getElementById('editCustAddress').value = r.address || '';
       var editAddrHi = document.getElementById('editCustAddressHi');
       if (editAddrHi) editAddrHi.value = r.addressHi || r.address_hi || '';
@@ -6609,6 +6692,8 @@ function loadStaffCustomerData(staffId) {
       }
 
       var vehText = document.getElementById('editCustVehicles').value.trim();
+      var editCarMakeVal = (document.getElementById('editCustCarMake') ? document.getElementById('editCustCarMake').value : '').trim();
+      var editCarColorVal = (document.getElementById('editCustCarColor') ? document.getElementById('editCustCarColor').value : '').trim();
 
       var rawEditStaffVal = (document.getElementById('editCustStaff') ? document.getElementById('editCustStaff').value : '').trim();
       var editStaffName = '';
@@ -6645,6 +6730,10 @@ function loadStaffCustomerData(staffId) {
         vehicleNumbers: vehText,
         vehicleOrSite: vehText,
         vehicle: vehText,
+        carMake: editCarMakeVal,
+        car_make: editCarMakeVal,
+        carColor: editCarColorVal,
+        car_color: editCarColorVal,
         address: document.getElementById('editCustAddress').value.trim(),
         addressHi: document.getElementById('editCustAddressHi') ? document.getElementById('editCustAddressHi').value.trim() : '',
         secondaryAddress: secAddressVal,
@@ -6785,7 +6874,14 @@ function loadStaffCustomerData(staffId) {
       var modal = document.getElementById('addressViewModal');
 
       if (nameEl) {
-        nameEl.textContent = custName + (rawVehicle ? ' (' + rawVehicle + ')' : '');
+        var modalVehicleDesc = rawVehicle;
+        var rMake = (r.carMake || r.car_make || '').trim();
+        var rColor = (r.carColor || r.car_color || '').trim();
+        if (rMake || rColor) {
+          var mc = [rMake, rColor].filter(Boolean).join(' • ');
+          modalVehicleDesc = modalVehicleDesc ? (modalVehicleDesc + ' • ' + mc) : mc;
+        }
+        nameEl.textContent = custName + (modalVehicleDesc ? ' (' + modalVehicleDesc + ')' : '');
       }
       if (phoneLink && phoneWrapper) {
         var normCustPhone = normalizeIndianMobile(custPhone);
@@ -7057,7 +7153,7 @@ function loadStaffCustomerData(staffId) {
       if (match) {
         reg = match[1].toUpperCase().replace(/\s+/g, ' ');
         var remaining = raw.replace(match[0], '').replace(/^[-–—:,/|\s]+|[-–—:,/|\s]+$/g, '').trim();
-        model = remaining || 'Vehicle';
+        model = (remaining.toLowerCase() === 'vehicle' || remaining.toLowerCase() === 'car') ? '' : remaining;
       } else if (raw.indexOf('-') !== -1) {
         var parts = raw.split('-');
         if (/\d/.test(parts[0]) && !/\d/.test(parts[1])) {
@@ -7073,7 +7169,7 @@ function loadStaffCustomerData(staffId) {
       }
 
       return {
-        model: model || raw,
+        model: model,
         reg: reg,
         display: raw
       };
@@ -9144,15 +9240,6 @@ function loadStaffCustomerData(staffId) {
 
     function updateRouteProgressBar() {
       var header = document.getElementById('staffDailyRouteHeader');
-      if (!header) return;
-
-      var isDaily = (state.activeFilter === 'daily_car_cleaning');
-      if (!isDaily) {
-        header.style.display = 'none';
-        return;
-      }
-
-      header.style.display = 'block';
       var allDaily = (state.customers || []).filter(function(c) {
         return c.category === 'daily_car_cleaning';
       });
@@ -9186,6 +9273,29 @@ function loadStaffCustomerData(staffId) {
 
       var barFill = document.getElementById('routeProgressBarFill');
       if (barFill) barFill.style.width = percent + '%';
+
+      // Update compact inline progress chip beside search bar
+      var inlineCount = document.getElementById('inlineRouteProgressCount');
+      if (inlineCount) inlineCount.textContent = doneCount + '/' + total;
+
+      var inlinePct = document.getElementById('inlineRouteProgressPercent');
+      if (inlinePct) inlinePct.textContent = '(' + percent + '%)';
+
+      var inlineBar = document.getElementById('inlineRouteProgressBarFill');
+      if (inlineBar) {
+        inlineBar.style.width = percent + '%';
+        if (percent === 100) {
+          inlineBar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+        } else {
+          inlineBar.style.background = 'linear-gradient(90deg, #2563eb, #38bdf8)';
+        }
+      }
+
+      var inlineChip = document.getElementById('staffInlineProgressChip');
+      if (inlineChip) {
+        var isDaily = (state.activeFilter === 'daily_car_cleaning' || !state.activeFilter);
+        inlineChip.style.display = isDaily ? 'flex' : 'none';
+      }
     }
 
     var midnightTimer = null;

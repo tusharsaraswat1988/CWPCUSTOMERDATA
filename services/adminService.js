@@ -177,6 +177,8 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
     const vehicleStrings = vehs.map(v => v.brand_or_model ? `${v.registration_no} (${v.brand_or_model})` : v.registration_no);
     const mainVehicle = vehicleStrings[0] || '';
     const mainPhoto = vehs[0]?.photo_url || '';
+    const resolvedCarMake = c.car_make || vehs[0]?.car_make || '';
+    const resolvedCarColor = c.car_color || vehs[0]?.car_color || '';
 
     results.push({
       id: c.id,
@@ -202,6 +204,10 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
       secondaryParkingDetails: secondaryLoc?.parking_details || '',
       vehicle: mainVehicle,
       vehicles: vehs,
+      carMake: resolvedCarMake,
+      car_make: resolvedCarMake,
+      carColor: resolvedCarColor,
+      car_color: resolvedCarColor,
       locations: locs,
       photoUrl: mainPhoto,
       serviceCategory: serviceCategory,
@@ -323,6 +329,8 @@ async function saveCustomer(custData, adminUser = 'admin') {
 
     const leadNotes = custData.leadNotes || custData.lead_notes || custData.notes || null;
     const interestedService = custData.serviceCategory || custData.serviceType || custData.interestedService || 'Daily Car Cleaning';
+    const carMake = (custData.carMake || custData.car_make || '').trim() || null;
+    const carColor = (custData.carColor || custData.car_color || '').trim() || null;
 
     // 1. Create Customer Master
     const customer = await repos.customers.createCustomer({
@@ -341,7 +349,9 @@ async function saveCustomer(custData, adminUser = 'admin') {
       isLead: isLeadRecord,
       leadStatus: custData.leadStatus || 'open',
       leadNotes: leadNotes,
-      interestedService: interestedService
+      interestedService: interestedService,
+      carMake,
+      carColor
     }, client);
 
     // 2. Create Service Locations
@@ -407,7 +417,9 @@ async function saveCustomer(custData, adminUser = 'admin') {
           brandOrModel: parsed.model || null,
           vehicleType: 'Car',
           photoUrl: vItem.photo || null,
-          isActive: true
+          isActive: true,
+          carMake,
+          carColor
         }, client);
         createdVehicles.push(veh);
       }
@@ -582,6 +594,9 @@ async function updateCustomer(custData, adminUser = 'admin') {
       try { secAddressHi = await indicService.transliterateAddress(secAddr); } catch (e) { secAddressHi = secAddr; }
     }
 
+    const carMakeUpdate = custData.carMake !== undefined ? custData.carMake : custData.car_make;
+    const carColorUpdate = custData.carColor !== undefined ? custData.carColor : custData.car_color;
+
     await repos.customers.updateCustomer(customer.id, {
       name: finalName,
       phone: normPhone,
@@ -591,7 +606,9 @@ async function updateCustomer(custData, adminUser = 'admin') {
       isActive: custData.active !== undefined ? (custData.active === 'Yes' || custData.active === true) : customer.is_active,
       nameHi,
       addressHi,
-      secondaryAddressHi: secAddressHi
+      secondaryAddressHi: secAddressHi,
+      carMake: carMakeUpdate,
+      carColor: carColorUpdate
     }, client);
 
     // 2. Update / Upsert Primary Location
@@ -650,7 +667,9 @@ async function updateCustomer(custData, adminUser = 'admin') {
         await repos.vehicles.updateVehicle(existingVehs[0].id, {
           registrationNo: parsed.reg,
           brandOrModel: parsed.model || existingVehs[0].brand_or_model,
-          photoUrl: custData.photoUrl || existingVehs[0].photo_url
+          photoUrl: custData.photoUrl || existingVehs[0].photo_url,
+          carMake: carMakeUpdate !== undefined ? carMakeUpdate : existingVehs[0].car_make,
+          carColor: carColorUpdate !== undefined ? carColorUpdate : existingVehs[0].car_color
         }, client);
       } else if (parsed.reg) {
         await repos.vehicles.createVehicle({
@@ -658,7 +677,17 @@ async function updateCustomer(custData, adminUser = 'admin') {
           defaultLocationId: primaryLoc?.id || null,
           registrationNo: parsed.reg,
           brandOrModel: parsed.model || null,
-          photoUrl: custData.photoUrl || null
+          photoUrl: custData.photoUrl || null,
+          carMake: carMakeUpdate || null,
+          carColor: carColorUpdate || null
+        }, client);
+      }
+    } else if (carMakeUpdate !== undefined || carColorUpdate !== undefined) {
+      const existingVehs = await repos.vehicles.findByCustomerId(customer.id, { client });
+      if (existingVehs.length > 0) {
+        await repos.vehicles.updateVehicle(existingVehs[0].id, {
+          carMake: carMakeUpdate,
+          carColor: carColorUpdate
         }, client);
       }
     }

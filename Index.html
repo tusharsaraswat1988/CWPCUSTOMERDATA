@@ -4,12 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>CWP Detailers & Motors - Staff Viewer</title>
-  <!-- Progressive Web App (PWA) Meta & Manifest -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0f2942">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="application-name" content="CWP Staff">
-  <!-- Favicons & App Icons (Universal Desktop & Mobile Support) -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
@@ -22,7 +20,6 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
   <link rel="icon" type="image/png" sizes="384x384" href="/icons/icon-384x384.png">
   <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
-  <!-- Apple iOS PWA Meta Tags & Icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CWP Staff">
@@ -36,10 +33,8 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
-  <!-- Windows Tile Meta Tags -->
   <meta name="msapplication-TileColor" content="#0f2942">
   <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
-  <!-- Social Share / Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="CWP Detailers & Motors">
   <meta property="og:description" content="CWP Detailers & Motors - Field Staff and Car Cleaning Management Portal">
@@ -56,7 +51,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-  <link rel="stylesheet" href="/css/style.css?v=3.0.0">
+  <link rel="stylesheet" href="/css/style.css?v=3.1.0">
   <style>
     /* Critical FOUC Prevention & Immediate Logo/Header Constraints */
     :root {
@@ -93,10 +88,8 @@
   </style>
 </head>
 <body class="admin-mode-active">
-  <!-- Top Brand Navigation (Unified SaaS Global Header) -->
   <header class="top-header" role="banner">
     <div class="header-inner">
-      <!-- Left: Natural Left-Aligned Brand Group (Logo, Brand Separator, Context Tag & Title) -->
       <div class="header-brand-group">
         <a href="javascript:void(0)" class="brand-logo-wrap" title="CWP Detailers & Motors" onclick="handleBrandLogoClick()">
           <img src="/cwp_logo.jpg" alt="CWP Detailers" class="brand-logo-img">
@@ -107,15 +100,12 @@
           <h1 class="header-app-title" id="pageMainTitle">Staff Portal</h1>
         </div>
       </div>
-      <!-- Right: Compact, Coherent Utility Area -->
       <div class="header-utility-group">
-        <!-- Staff / Live Connection Status Indicator (Interactive Pill, Not a loud CTA) -->
         <div class="header-status-wrapper">
           <button type="button" class="header-status-pill staff-live-badge status-live" id="staffLiveBadge" onclick="toggleSyncDetailsPopover(event)" aria-haspopup="true" aria-expanded="false" title="Auto-Sync Active (30s) • Live data connected (Click for details)">
             <span class="status-indicator-dot dot-live" id="staffSyncDot">●</span>
             <span class="status-indicator-text" id="staffSyncText">Live</span>
           </button>
-          <!-- Connection / Sync Diagnostics Popover -->
           <div class="header-popover sync-details-popover" id="syncDetailsPopover" style="display: none;" onclick="event.stopPropagation()">
             <div class="popover-header">
               <div class="popover-title">
@@ -148,14 +138,12 @@
             </div>
           </div>
         </div>
-        <!-- PWA In-App Install Quick Action (Neutral SaaS button, only when installable) -->
         <button type="button" id="staffPwaInstallBtn" class="header-util-btn pwa-install-header-btn" onclick="triggerPwaInstallPrompt()" style="display: none;" title="Install CWP Staff App on your device">
           <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" class="util-btn-icon">
             <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
           <span class="pwa-btn-text">Install App</span>
         </button>
-        <!-- Compact Language Dropdown Selector -->
         <div class="header-dropdown-wrap" id="langDropdownWrap">
           <button type="button" id="btnLangToggle" class="header-util-btn header-lang-trigger" onclick="toggleLangDropdown(event)" title="भाषा बदलें / Select Language" aria-haspopup="true" aria-expanded="false">
             <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" class="util-btn-icon">
@@ -179,11 +167,9 @@
             </button>
           </div>
         </div>
-        <!-- Standardized Icon-Only Theme Toggle -->
         <button type="button" id="btnThemeToggle" class="header-util-btn header-icon-btn" onclick="toggleTheme()" title="थीम बदलें / Toggle Dark/Light Mode" aria-label="Toggle Theme">
           <span id="themeToggleIcon" class="util-btn-icon">🌙</span>
         </button>
-        <!-- Account / Profile Dropdown Menu with Embedded Destructive Logout -->
         <div class="header-dropdown-wrap" id="accountDropdownWrap">
           <button type="button" id="headerAccountTrigger" class="header-account-trigger" onclick="toggleAccountMenu(event)" title="Account profile & session options" aria-haspopup="true" aria-expanded="false" style="display: none;">
             <div class="account-avatar" id="headerAccountAvatar">
@@ -207,14 +193,12 @@
             </div>
             <div class="menu-separator"></div>
             <div class="account-panel-actions">
-              <!-- Staff Logout Action (preserved id, class & handler) -->
               <button type="button" id="staffLogoutBtn" class="header-menu-item item-destructive" onclick="handleStaffLogout()" style="display: none;" title="स्टाफ पोर्टल से लॉगआउट करें">
                 <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" class="menu-item-icon">
                   <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
                 </svg>
                 <span class="logout-text">लॉगआउट (Shift Sign Out)</span>
               </button>
-              <!-- Admin Logout Action (preserved id, class & handler) -->
               <button type="button" id="adminLogoutBtn" class="header-menu-item item-destructive" onclick="handleAdminLogout()" style="display: none;" title="Logout from Admin Portal">
                 <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" class="menu-item-icon">
                   <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
@@ -224,19 +208,13 @@
             </div>
           </div>
         </div>
-        <!-- Hidden Legacy Containers for Codebase Compatibility -->
         <div id="staffHeaderControls" style="display: none;"></div>
         <div id="adminHeaderControls" style="display: none;"></div>
       </div>
     </div>
   </header>
-  <!-- Main Content Container -->
   <div class="main-container admin-mode-active">
-    <!-- =====================================================================
-         1. STAFF VIEWER SECTION (Completely isolated, NO Admin navigation)
-         ===================================================================== -->
     <div id="staffView" style="display: block;">
-      <!-- Staff PWA In-App Install Banner -->
       <div id="staffPwaInstallBanner" class="pwa-install-banner" style="display: none;">
         <div class="pwa-banner-content">
           <div class="pwa-banner-icon">
@@ -257,41 +235,33 @@
           <button type="button" class="btn-pwa-dismiss" onclick="dismissPwaBanner()" title="हटाएं">✕</button>
         </div>
       </div>
-      <!-- Staff Security Gate (6-Digit PIN Authentication) -->
       <div id="staffAuthGate" class="auth-gate-box is-hidden" style="display: none;" hidden>
-        <!-- Background Ambient Detailing Reflections -->
         <div class="cwp-ambient-glow glow-cyan"></div>
         <div class="cwp-ambient-glow glow-blue"></div>
         <div class="cwp-gloss-reflection"></div>
         <div class="admin-auth-card staff-login-card">
-          <!-- Top Ceramic Coating Accent Bar with Animated Shimmer -->
           <div class="auth-accent-bar staff-accent cwp-accent-shimmer"></div>
           <div class="auth-card-content cwp-staff-card-body">
-            <!-- CWP Detailers Brand Bezel & Emblem -->
             <div class="auth-brand-emblem cwp-brand-bezel" title="CWP Detailers">
               <div class="cwp-emblem-shine"></div>
               <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo" style="height: 48px; width: auto; max-width: 200px; object-fit: contain;">
             </div>
-            <!-- Clean Brand Tag -->
             <div class="cwp-crew-pill">
               <span class="cwp-pulse-dot"></span>
               <span>CWP DETAILERS</span>
             </div>
             <h2 class="admin-auth-title" id="staffAuthTitle">स्टाफ लॉगिन</h2>
             <p class="admin-auth-desc" id="staffAuthDesc">ऑटोमोटिव सर्विस पोर्टल</p>
-            <!-- Inactive Alert Banner (Shown if staff account is disabled by admin) -->
             <div id="staffInactiveMsgBox" class="cwp-auth-inactive-box" style="display: none;">
               🚫 आपका स्टाफ अकाउंट Inactive कर दिया गया है।<br>कृपया अपने एडमिन से संपर्क करें।
             </div>
             <form id="staffAuthForm" onsubmit="handleStaffAuthSubmit(event)">
-              <!-- Registered Mobile Number Input -->
               <div class="auth-field-wrapper">
                 <div class="auth-input-group">
                   <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
                   <input type="tel" id="staffPhoneInput" class="auth-field-input cwp-phone-input" placeholder="मोबाइल नंबर दर्ज करें" maxlength="14" inputmode="numeric" autocomplete="tel" required>
                 </div>
               </div>
-              <!-- 6-Digit PIN Input -->
               <div class="auth-field-wrapper">
                 <div class="auth-input-group">
                   <div class="auth-input-icon">
@@ -300,7 +270,6 @@
                   <input type="password" id="staffPinInput" class="auth-field-input" placeholder="6-अंकों का पिन दर्ज करें" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="current-password" required style="letter-spacing: 2px;">
                   <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('staffPinInput', this)" title="पिन देखें / छिपाएं">👁️</button>
                 </div>
-                <!-- Interactive 6 PIN Progress Dots -->
                 <div class="cwp-pin-dots-row" id="staffPinDotsRow" aria-hidden="true" title="6-Digit PIN Progress">
                   <span class="cwp-pin-dot" data-idx="0"></span>
                   <span class="cwp-pin-dot" data-idx="1"></span>
@@ -323,7 +292,6 @@
                 <span class="btn-label">लॉगिन करें (Log In)</span>
                 <span class="btn-icon">→</span>
               </button>
-              <!-- In-Card Ceramic Scan Loader Banner -->
               <div id="staffLoginLoaderBanner" class="cwp-login-loader-banner" style="display: none;">
                 <div class="cwp-scanner-track">
                   <div class="cwp-scanner-beam"></div>
@@ -340,82 +308,27 @@
           </div>
         </div>
       </div>
-      <!-- Staff Unlocked Content (Shown only after correct PIN & Active status) -->
       <div id="staffContent" style="display: none;">
-        <!-- Staff Profile Summary Strip -->
-        <div class="staff-profile-card">
-          <div class="staff-avatar-group">
-            <div class="staff-avatar-circle" id="staffAvatarCircle">
-              <img id="staffAvatarImg" src="" alt="Staff Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: none;">
-              <span id="staffAvatarInitial">S</span>
+        <div id="staffJobsPanel" class="staff-jobs-panel">
+          <div class="staff-search-row">
+            <div class="search-bar-wrapper">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="staffSearchInput" class="search-input" placeholder="ग्राहक का नाम, गाड़ी नंबर या पता खोजें..." oninput="handleStaffSearch(this.value)">
+              <button type="button" id="btnStaffSearchClear" class="search-clear-btn" onclick="clearStaffSearch()" style="display: none;" title="Clear search">✕</button>
             </div>
-            <div>
-              <div class="staff-name-text" id="staffNameHeader">लोड हो रहा है...</div>
-              <div class="staff-id-text" id="staffIdHeader" style="display:none;"></div>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">CWP Verified Staff Portal</div>
-            </div>
-          </div>
-          <div class="staff-car-count-badge" id="staffCarCount">
-            🚗 0 गाड़ियां
-          </div>
-        </div>
-        <!-- Search & Category Filters -->
-        <div class="search-filter-box">
-          <div class="search-bar-wrapper">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="staffSearchInput" class="search-input" placeholder="ग्राहक का नाम, गाड़ी नंबर या पता खोजें..." oninput="handleStaffSearch(this.value)">
-            <button type="button" id="btnStaffSearchClear" class="search-clear-btn" onclick="clearStaffSearch()" style="display: none;" title="Clear search">✕</button>
-          </div>
-          <div class="filter-pills-row" id="filterPillsRow" role="tablist">
-            <button type="button" class="filter-pill active" id="pillDailyClean" role="tab" onclick="setStaffFilter('daily_car_cleaning')">
-              <span class="pill-icon">🚗</span>
-              <span class="pill-text">Daily Car Cleaning</span>
-              <span class="pill-badge" id="countDailyClean">0</span>
-            </button>
-            <button type="button" class="filter-pill" id="pillCarWash" role="tab" onclick="setStaffFilter('car_washing')">
-              <span class="pill-icon">🧼</span>
-              <span class="pill-text">Car Washing</span>
-              <span class="pill-badge" id="countCarWash">0</span>
-            </button>
-            <button type="button" class="filter-pill" id="pillSolarClean" role="tab" onclick="setStaffFilter('solar_cleaning')">
-              <span class="pill-icon">☀️</span>
-              <span class="pill-text">Solar Panel Cleaning</span>
-              <span class="pill-badge" id="countSolarClean">0</span>
+            <button type="button" class="staff-inline-progress-chip" id="staffInlineProgressChip" onclick="setStaffFilter('settings')" title="क्लिक करके पूरा रूट और सेटिंग्स देखें">
+              <div class="inline-progress-meta">
+                <span class="inline-progress-icon">🚗</span>
+                <span class="inline-progress-nums" id="inlineRouteProgressCount">0/0</span>
+                <span class="inline-progress-pct" id="inlineRouteProgressPercent">(0%)</span>
+              </div>
+              <div class="inline-progress-track">
+                <div class="inline-progress-bar" id="inlineRouteProgressBarFill" style="width: 0%;"></div>
+              </div>
             </button>
           </div>
-        </div>
-        <!-- New Special Task Alert Banner (Audio, PWA & Vibration Alerted) -->
-        <div id="staffNewTaskAlertBanner" style="display: none;"></div>
-        <!-- Offline Fallback Feedback Banner -->
-        <div id="staffOfflineBannerContainer" style="display: none;"></div>
-        <!-- Today's Cleaning Route Header Box (Task P2.5) -->
-        <div id="staffDailyRouteHeader" class="staff-route-header-box" style="display: none;">
-          <div class="route-header-top">
-            <div class="route-header-title-wrap">
-              <span class="route-header-icon">🧭</span>
-              <div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <h3 class="route-header-title" id="routeHeaderTitle" style="margin: 0;">Today's Cleaning Route</h3>
-                  <button type="button" class="btn-clean-wa wa-ready" style="height: 26px; padding: 0 8px; font-size: 11px; border-radius: 6px; box-shadow: none;" onclick="openStaffWhatsAppGroupModal()" title="Set Team WhatsApp Group">
-                    <span>📱 WhatsApp ग्रुप</span>
-                  </button>
-                </div>
-                <div class="route-header-sub">
-                  स्टाफ: <strong id="routeStaffName">स्टाफ</strong> • कुल असाइन गाड़ियां: <strong id="routeTotalCount">0</strong>
-                </div>
-              </div>
-            </div>
-            <div class="route-progress-wrap">
-              <div class="route-progress-text">
-                प्रोग्रेस: <strong id="routeProgressCount">0 / 0</strong> पूर्ण (<span id="routeProgressPercent">0%</span>)
-              </div>
-              <div class="route-progress-bar-bg">
-                <div class="route-progress-bar-fill" id="routeProgressBarFill" style="width: 0%;"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Smart Compact Customer Cards Feed -->
+          <div id="staffNewTaskAlertBanner" style="display: none;"></div>
+          <div id="staffOfflineBannerContainer" style="display: none;"></div>
         <div class="customer-feed-grid" id="customerFeed">
           <div class="skeleton-feed">
             <div class="smart-card skeleton-card">
@@ -458,17 +371,105 @@
           </div>
         </div>
       </div>
+      <div id="staffSettingsPanel" class="staff-settings-panel" style="display: none;">
+        <div class="staff-profile-card">
+          <div class="staff-avatar-group">
+            <div class="staff-avatar-circle" id="staffAvatarCircle">
+              <img id="staffAvatarImg" src="" alt="Staff Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: none;">
+              <span id="staffAvatarInitial">S</span>
+            </div>
+            <div>
+              <div class="staff-name-text" id="staffNameHeader">लोड हो रहा है...</div>
+              <div class="staff-id-text" id="staffIdHeader" style="display:none;"></div>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">CWP Verified Staff Portal</div>
+            </div>
+          </div>
+          <div class="staff-car-count-badge" id="staffCarCount">
+            🚗 0 गाड़ियां
+          </div>
+        </div>
+        <div id="staffDailyRouteHeader" class="staff-route-header-box">
+          <div class="route-header-top">
+            <div class="route-header-title-wrap">
+              <span class="route-header-icon">🧭</span>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <h3 class="route-header-title" id="routeHeaderTitle" style="margin: 0;">Today's Cleaning Route</h3>
+                  <button type="button" class="btn-clean-wa wa-ready" style="height: 28px; padding: 0 10px; font-size: 11.5px; border-radius: 6px; box-shadow: none;" onclick="openStaffWhatsAppGroupModal()" title="Set Team WhatsApp Group">
+                    <span>📱 WhatsApp ग्रुप</span>
+                  </button>
+                </div>
+                <div class="route-header-sub">
+                  स्टाफ: <strong id="routeStaffName">स्टाफ</strong> • कुल असाइन गाड़ियां: <strong id="routeTotalCount">0</strong>
+                </div>
+              </div>
+            </div>
+            <div class="route-progress-wrap">
+              <div class="route-progress-text">
+                प्रोग्रेस: <strong id="routeProgressCount">0 / 0</strong> पूर्ण (<span id="routeProgressPercent">0%</span>)
+              </div>
+              <div class="route-progress-bar-bg">
+                <div class="route-progress-bar-fill" id="routeProgressBarFill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="staff-settings-info-card">
+          <div class="settings-card-header">
+            <span class="settings-card-icon">⚡</span>
+            <span class="settings-card-title">शिफ्ट व सिस्टम स्थिति (Shift Diagnostics)</span>
+          </div>
+          <div class="settings-info-grid">
+            <div class="settings-info-item">
+              <span class="info-label">ऑटो-सिंक स्थिति:</span>
+              <span class="info-value text-emerald">🟢 लाइव कनेक्टेड (30s)</span>
+            </div>
+            <div class="settings-info-item">
+              <span class="info-label">ऑफलाइन मोड:</span>
+              <span class="info-value">सुरक्षित लोकल कैश एक्टिव</span>
+            </div>
+            <div class="settings-info-item">
+              <span class="info-label">एप्लिकेशन:</span>
+              <span class="info-value">CWP Staff PWA v3.0</span>
+            </div>
+          </div>
+        </div>
+        <div class="staff-settings-logout-card">
+          <button type="button" class="btn-staff-settings-logout" id="btnStaffSettingsLogout" onclick="handleStaffLogout()">
+            <span class="logout-icon">🚪</span>
+            <span class="logout-label">लॉगआउट करें (Shift Sign Out)</span>
+          </button>
+          <div class="logout-subtext">सुरक्षित रूप से अपनी आज की शिफ्ट समाप्त करें</div>
+        </div>
+      </div>
+      <nav class="staff-bottom-nav" id="staffBottomNav" role="tablist" aria-label="Staff Navigation">
+        <button type="button" class="staff-bottom-tab active" id="pillDailyClean" role="tab" onclick="setStaffFilter('daily_car_cleaning')">
+          <span class="bottom-tab-icon">🚗</span>
+          <span class="bottom-tab-label pill-text">दैनिक सफाई</span>
+          <span class="bottom-tab-badge pill-badge" id="countDailyClean">0</span>
+        </button>
+        <button type="button" class="staff-bottom-tab" id="pillCarWash" role="tab" onclick="setStaffFilter('car_washing')">
+          <span class="bottom-tab-icon">🧼</span>
+          <span class="bottom-tab-label pill-text">कार वॉश</span>
+          <span class="bottom-tab-badge pill-badge" id="countCarWash">0</span>
+        </button>
+        <button type="button" class="staff-bottom-tab" id="pillSolarClean" role="tab" onclick="setStaffFilter('solar_cleaning')">
+          <span class="bottom-tab-icon">☀️</span>
+          <span class="bottom-tab-label pill-text">सोलर सफाई</span>
+          <span class="bottom-tab-badge pill-badge" id="countSolarClean">0</span>
+        </button>
+        <button type="button" class="staff-bottom-tab" id="pillStaffSettings" role="tab" onclick="setStaffFilter('settings')">
+          <span class="bottom-tab-icon">⚙️</span>
+          <span class="bottom-tab-label pill-text">सेटिंग्स</span>
+        </button>
+      </nav>
     </div>
-    <!-- =====================================================================
-         2. ADMIN VIEW SECTION (Dedicated admin portal for management)
-         ===================================================================== -->
+  </div>
     <div id="adminView" class="admin-container">
-      <!-- Admin Security Gate (Password Lock) -->
       <div id="adminAuthGate" class="auth-gate-box is-hidden" style="display: none;" hidden>
         <div class="admin-auth-card">
           <div class="auth-accent-bar admin-accent"></div>
           <div class="auth-card-content">
-            <!-- Admin Login Mode & Theme Quick Toggles -->
             <div class="auth-top-actions">
               <button type="button" class="btn-gate-toggle" id="btnAdminGateLangToggle" onclick="toggleLanguage()" title="भाषा बदलें / Change Language">
                 <span class="gate-toggle-icon">🌐</span>
@@ -521,9 +522,7 @@
           </div>
         </div>
       </div>
-      <!-- Admin Unlocked Content (Only visible after password verification) -->
       <div id="adminUnlockedContent" style="display: none;">
-        <!-- Admin Sub Tabs (Modern UI/UX Segmented Control) -->
         <div class="admin-tab-container">
           <div class="admin-tab-nav" role="tablist">
             <button type="button" class="admin-tab-btn active" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')" title="View customer records">
@@ -571,12 +570,9 @@
             </button>
           </div>
         </div>
-      <!-- Admin Tab 1: Backward-compatibility placeholder -->
       <div id="adminTabAddCust" class="admin-tab-pane" style="display: none;"></div>
-      <!-- Admin Tab: Leads Management Section -->
       <div id="adminTabLeads" class="admin-tab-pane" style="display: none;">
         <div class="admin-card-section leads-executive-section">
-          <!-- Leads Hero Strip -->
           <div class="records-hero-strip">
             <div class="records-hero-left">
               <div class="records-brand-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-size: 15px; font-weight: 700;">
@@ -602,7 +598,6 @@
               </button>
             </div>
           </div>
-          <!-- Leads Filter & Search Toolbar -->
           <div class="leads-filter-toolbar" style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
             <div class="records-search-group" style="flex: 1; min-width: 260px; max-width: 480px;">
               <span class="records-search-icon">🔍</span>
@@ -615,7 +610,6 @@
               </span>
             </div>
           </div>
-          <!-- Leads Dynamic Cards Container -->
           <div id="leadsListContainer" class="leads-grid-container">
             <div class="skeleton-feed" style="padding: 24px; text-align: center; color: var(--text-muted);">
               Loading leads...
@@ -623,10 +617,8 @@
           </div>
         </div>
       </div>
-      <!-- Admin Tab: Staff-Wise Customer Sequence Management (Task P2.5) -->
       <div id="adminTabSequence" class="admin-tab-pane" style="display: none;">
         <div class="admin-card-section">
-          <!-- Header Row -->
           <div class="seq-header-bar">
             <div>
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -646,31 +638,25 @@
               </button>
             </div>
           </div>
-          <!-- Alert / Feedback Banner -->
           <div id="seqAlertBanner" class="seq-alert-banner" style="display: none;"></div>
-          <!-- Toolbar: Staff Selector + Search + Stats -->
           <div class="seq-toolbar-box">
             <div class="seq-toolbar-row">
-              <!-- Staff Selector -->
               <div class="seq-staff-select-wrap">
                 <label class="seq-label" for="seqStaffSelect"><strong>Select Staff:</strong></label>
                 <select id="seqStaffSelect" class="filter-select seq-staff-select" onchange="handleSeqStaffChange()">
                   <option value="">Loading staff...</option>
                 </select>
               </div>
-              <!-- Search Input -->
               <div class="seq-search-wrap">
                 <span class="records-search-icon">🔍</span>
                 <input type="text" id="seqSearchInput" class="records-search-input" placeholder="Search by customer name, vehicle number, or phone..." oninput="handleSeqSearch(this.value)">
                 <button type="button" id="btnSeqSearchClear" class="search-clear-btn" onclick="clearSeqSearch()" style="display: none;" title="Clear search">✕</button>
               </div>
-              <!-- View Switcher (Cards vs Compact Table) -->
               <div class="seq-view-toggle-group">
                 <button type="button" id="btnSeqViewCard" class="seq-view-btn active" onclick="switchSeqViewMode('card')" title="Full Cards View">📋 Cards</button>
                 <button type="button" id="btnSeqViewCompact" class="seq-view-btn" onclick="switchSeqViewMode('compact')" title="Compact Table for fast overview of 50+ customers">⚡ Compact List</button>
               </div>
             </div>
-            <!-- Stats Bar -->
             <div class="seq-stats-strip">
               <div id="seqSummaryText" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <span id="seqStaffAvatarWrap" style="display: inline-flex; align-items: center; gap: 6px;">
@@ -682,13 +668,10 @@
               <div id="seqCustomStatusBadge" class="seq-status-badge default">Default Route Order</div>
             </div>
           </div>
-          <!-- Sequence List Container (Drag-and-Drop & Up/Down List) -->
           <div class="seq-list-container" id="seqCustomerList">
-            <!-- Populated dynamically -->
           </div>
         </div>
       </div>
-      <!-- Reset Sequence Confirmation Warning Modal (High Caution) -->
       <div id="seqResetModal" class="image-modal-overlay" onclick="closeSeqResetModal()" style="display: none; align-items: center; justify-content: center; z-index: 2300;">
         <div class="logout-confirm-box seq-confirm-modal" onclick="event.stopPropagation()" style="max-width: 440px; text-align: center; border-top: 4px solid #ef4444;">
           <div style="width: 54px; height: 54px; border-radius: 50%; background: #fef2f2; border: 2px solid #fecaca; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 12px;">
@@ -710,7 +693,6 @@
           </div>
         </div>
       </div>
-      <!-- Admin Tab 2: Staff Management & Links -->
       <div id="adminTabStaff" class="admin-tab-pane" style="display: none;">
         <div class="admin-card-section">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
@@ -718,7 +700,6 @@
               <h2 class="admin-card-title">Staff Management</h2>
             </div>
           </div>
-          <!-- Add Staff Form (Name, Mobile Number, 6-digit PIN) -->
           <form onsubmit="handleAddStaff(event)" style="margin-bottom: 16px;">
             <div id="addStaffFormGrid" style="display: grid; grid-template-columns: auto 2fr 1.5fr 1fr auto; gap: 8px; align-items: center;">
               <div class="new-staff-photo-btn-wrap" style="position: relative;">
@@ -742,11 +723,9 @@
               </button>
             </div>
           </form>
-          <!-- Staff Cards List -->
           <div id="adminStaffList">
             <div class="empty-state-box">Loading staff list...</div>
           </div>
-          <!-- Change Admin Password Card -->
           <div style="margin-top: 24px; border-top: 1px dashed var(--border-color); padding-top: 16px;">
             <h3 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Change Admin Password</h3>
             <form onsubmit="handleUpdateAdminPassword(event)" style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -758,10 +737,8 @@
           </div>
         </div>
       </div>
-            <!-- Admin Tab 3: Active Records Table (Default Primary Dashboard) -->
       <div id="adminTabRecords" class="admin-tab-pane">
         <div class="admin-card-section records-executive-section">
-          <!-- Executive Hero Strip: Directory Title, Realtime Status & Actions -->
           <div class="records-hero-strip">
             <div class="records-hero-left">
               <div class="records-brand-icon">
@@ -811,7 +788,6 @@
               </button>
             </div>
           </div>
-          <!-- Interactive KPI Metrics Strip (1-Click Intelligent Filter Strip) -->
           <div class="records-kpi-grid">
             <div class="records-kpi-tile tile-kpi-all active" id="kpiTileAll" onclick="setKpiCategoryFilter('all')" title="Filter: All Customers">
               <div class="kpi-tile-icon icon-all">
@@ -885,9 +861,7 @@
               </div>
             </div>
           </div>
-          <!-- Ultra-Modern Single-Row Search & Filters Toolbar -->
           <div class="records-toolbar">
-            <!-- Search Input with inline SVG and instant Clear button -->
             <div class="records-search-wrapper">
               <svg class="records-search-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
                 <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
@@ -896,7 +870,6 @@
               <div class="search-kbd-hint">/</div>
               <button type="button" class="btn-search-clear-inline" id="btnAdminSearchClear" onclick="clearAdminSearch()" style="display: none;" title="Clear search">✕</button>
             </div>
-            <!-- Filters Group -->
             <div class="records-filters-group">
               <div class="filter-select-wrapper">
                 <select id="filterAdminCategory" class="filter-select" onchange="filterAdminRecords()" title="Service Category">
@@ -934,37 +907,32 @@
               </div>
             </div>
           </div>
-          <!-- Professional High-Efficiency Customer Records Table (11 Dedicated Columns) -->
           <div class="records-table-wrapper">
             <table class="records-table" id="adminRecordsTable">
               <thead>
                 <tr>
                   <th style="width: 38px; text-align: center;">#</th>
-                  <th style="min-width: 130px;">Customer Name</th>
+                  <th style="min-width: 140px;">Customer Name</th>
                   <th style="width: 120px; min-width: 110px;">Mobile Number</th>
                   <th style="width: 115px; min-width: 105px;">Service</th>
                   <th style="width: 130px; min-width: 120px;">Vehicle / Site</th>
                   <th style="min-width: 160px;">Primary Address</th>
                   <th style="width: 72px; min-width: 68px; text-align: center;">Primary Map</th>
-                  <th style="min-width: 160px;">Secondary Address</th>
-                  <th style="width: 72px; min-width: 68px; text-align: center;">Secondary Map</th>
+                  <th style="width: 68px; min-width: 65px; text-align: center;">2nd Loc</th>
                   <th style="width: 105px; min-width: 95px; text-align: center;">Staff</th>
                   <th style="width: 90px; min-width: 85px; text-align: center;">Actions</th>
                 </tr>
               </thead>
               <tbody id="adminRecordsTableBody">
-                <tr><td colspan="11" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading customer records...</td></tr>
+                <tr><td colspan="10" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading customer records...</td></tr>
               </tbody>
             </table>
           </div>
-          <!-- Admin Customer Records Scalable Pagination Controls -->
           <div id="adminTablePagination" class="admin-table-pagination-bar"></div>
         </div>
       </div>
-      <!-- Admin Tab 4: Daily Clean Reports & Proof of Work -->
       <div id="adminTabCleanReports" class="admin-tab-pane" style="display: none;">
         <div class="admin-card-section reports-executive-section">
-          <!-- Top Executive Header Strip -->
           <div class="clean-reports-hero-strip">
             <div class="clean-reports-hero-left">
               <div class="clean-reports-brand-icon">
@@ -999,7 +967,6 @@
               </button>
             </div>
           </div>
-          <!-- Smart Operational Intelligence Banner -->
           <div id="reportsIntelligenceBanner" class="reports-intel-banner">
             <div class="intel-banner-icon">✨</div>
             <div class="intel-banner-content">
@@ -1010,7 +977,6 @@
               <span class="compliance-badge badge-neutral" id="intelComplianceBadge">Calculating...</span>
             </div>
           </div>
-          <!-- KPI Summary Cards (Modern Metric Tiles) -->
           <div class="reports-kpi-grid">
             <div class="reports-kpi-card card-kpi-blue">
               <div class="kpi-card-glow"></div>
@@ -1086,9 +1052,7 @@
               </div>
             </div>
           </div>
-          <!-- Command-Center Filter & Search Toolbar -->
           <div class="reports-filter-panel">
-            <!-- Horizon Row -->
             <div class="reports-filter-tier">
               <div class="filter-tier-label">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -1112,7 +1076,6 @@
                 </div>
               </div>
             </div>
-            <!-- Granular Slicing Row -->
             <div class="reports-filter-tier reports-filter-slice-row">
               <div class="filter-select-wrapper">
                 <select id="reportStaffFilter" class="report-select-input" onchange="loadDailyCleanReports()">
@@ -1137,7 +1100,6 @@
               </button>
             </div>
           </div>
-          <!-- Reports Table Wrapper -->
           <div class="records-table-wrapper reports-table-card">
             <table class="records-table">
               <thead>
@@ -1159,10 +1121,8 @@
           </div>
         </div>
       </div>
-      <!-- Admin Tab: Special / On-Demand Service Jobs (Solar Cleaning & Car Washing) -->
       <div id="adminTabSpecialJobs" class="admin-tab-pane" style="display: none;">
         <div class="reports-container">
-          <!-- Hero Section -->
           <div class="records-hero-card" style="margin-bottom: 16px;">
             <div class="records-hero-left">
               <div class="records-hero-icon" style="background: linear-gradient(135deg, #d97706, #b45309);">⚡</div>
@@ -1180,7 +1140,6 @@
               </button>
             </div>
           </div>
-          <!-- KPI Summary Cards -->
           <div class="special-kpi-grid">
             <div class="special-kpi-card">
               <div class="kpi-label">Total Assigned Jobs</div>
@@ -1199,7 +1158,6 @@
               <div class="kpi-value" id="kpiSpecialCompleted" style="color: #059669;">0</div>
             </div>
           </div>
-          <!-- Filter Toolbar -->
           <div class="reports-filter-bar" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; background: #ffffff; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 16px;">
             <div style="flex: 1; min-width: 180px;">
               <input type="text" id="adminSpecialSearch" class="form-input" placeholder="Search customer, phone, or address..." oninput="handleAdminSpecialSearch(this.value)" style="height: 38px;">
@@ -1226,7 +1184,6 @@
             </div>
             <button type="button" class="btn-table-reset" onclick="resetAdminSpecialFilters()" style="height: 38px; padding: 0 14px; border: 1px solid var(--border-color); background: var(--bg-surface); border-radius: 8px; font-weight: 600; cursor: pointer;">Reset</button>
           </div>
-          <!-- Jobs Table -->
           <div class="table-responsive-wrapper" style="background: #ffffff; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
             <table class="cwp-table" id="adminSpecialJobsTable">
               <thead>
@@ -1248,13 +1205,11 @@
           </div>
         </div>
       </div>
-      </div><!-- /adminUnlockedContent -->
+      </div>
     </div>
   </div>
-  <!-- Staff Camera Modal for Car Cleaning Proof -->
   <div id="cleaningCameraModal" class="camera-modal-overlay" style="display: none;">
     <div class="camera-modal-box" onclick="event.stopPropagation()">
-      <!-- Header -->
       <div class="camera-modal-header">
         <div class="camera-header-info">
           <h3 class="camera-modal-title">
@@ -1264,7 +1219,6 @@
         </div>
         <button type="button" class="camera-close-btn" onclick="closeCleaningCameraModal()" title="Close (बंद करें)">✕</button>
       </div>
-      <!-- VIEW 1: Live Camera Viewfinder -->
       <div id="cameraCaptureView">
         <div class="camera-viewport-wrap">
           <video id="cleaningCameraFeed" playsinline autoplay muted></video>
@@ -1286,7 +1240,6 @@
           </label>
         </div>
       </div>
-      <!-- VIEW 2: Visual Check & Review (After Click) -->
       <div id="cameraReviewView" style="display: none;">
         <div class="camera-review-wrap">
           <img id="cameraPreviewImg" src="" alt="Captured Car Photo">
@@ -1310,7 +1263,6 @@
           </button>
         </div>
       </div>
-      <!-- VIEW 3: Saving Loader -->
       <div id="cameraUploadingView" style="display: none; padding: 48px 20px; text-align: center;">
         <div class="spinner-circle" style="width: 44px; height: 44px; border-width: 4px; margin: 0 auto 16px auto;"></div>
         <h4 style="color: #f8fafc; font-size: 16px; margin-bottom: 6px;">फोटो सेव हो रही है...</h4>
@@ -1318,7 +1270,6 @@
       </div>
     </div>
   </div>
-  <!-- Admin Daily Clean Photo Lightbox Modal -->
   <div id="reportPhotoLightboxModal" class="image-modal-overlay" onclick="closeReportPhotoLightbox()" style="display: none;">
     <button type="button" class="image-modal-floating-close" onclick="closeReportPhotoLightbox()" title="Close (ESC)">✕</button>
     <div class="image-modal-content" onclick="event.stopPropagation()" style="max-width: 720px;">
@@ -1350,7 +1301,6 @@
       </div>
     </div>
   </div>
-  <!-- Staff Team WhatsApp Group Settings Modal -->
   <div id="staffWhatsAppGroupModal" class="camera-modal-overlay" style="display: none;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 440px; width: 94%;">
       <div class="modal-card-header">
@@ -1377,7 +1327,6 @@
       </div>
     </div>
   </div>
-  <!-- WhatsApp Image Direct Share & Paste Helper Modal -->
   <div id="whatsAppImageShareModal" class="camera-modal-overlay" style="display: none;" onclick="closeWhatsAppImageModal()">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 440px; width: 94%; text-align: center; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 48px rgba(0,0,0,0.4);">
       <div class="modal-card-header" style="justify-content: space-between; display: flex; align-items: center; padding: 14px 18px; background: #0f172a; color: #fff;">
@@ -1421,9 +1370,7 @@
       </div>
     </div>
   </div>
-  <!-- Image Modal for Full Preview -->
   <div id="imageModal" class="image-modal-overlay" onclick="closeImageModal()" style="display: none;">
-    <!-- Universal Floating Close Button (Always visible on mobile & desktop) -->
     <button type="button" class="image-modal-floating-close" onclick="closeImageModal()" title="Close (ESC)">✕</button>
     <div class="image-modal-content" onclick="event.stopPropagation()">
       <div class="image-modal-header">
@@ -1448,7 +1395,6 @@
       </div>
     </div>
   </div>
-  <!-- View Customer Address / Locations Modal (Dual Location Support) -->
   <div id="addressViewModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('addressViewModal')" style="display: none; align-items: center; justify-content: center; z-index: 1050;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px; width: 94%; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-card-header">
@@ -1456,7 +1402,6 @@
         <button type="button" class="modal-close-x" onclick="closeAddressModal()" title="Close (ESC)">✕</button>
       </div>
       <div style="padding: 16px 18px; overflow-y: auto;">
-        <!-- Top Customer Details Strip -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
           <div>
             <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">CUSTOMER</div>
@@ -1468,7 +1413,6 @@
           </div>
         </div>
         <div id="addrModalMultiNotice" style="display: none !important;"></div>
-        <!-- Location 1 Box: Primary Location -->
         <div id="addrModalPrimaryCard" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span style="font-size: 12px; font-weight: 700; color: #1e3a8a; display: inline-flex; align-items: center; gap: 4px;">
@@ -1486,7 +1430,6 @@
             </button>
           </div>
         </div>
-        <!-- Location 2 Box: Secondary Location -->
         <div id="addrModalSecondaryCard" style="display: none; background: #faf5ff; border: 1.5px solid #e9d5ff; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span style="font-size: 12px; font-weight: 700; color: #6b21a8; display: inline-flex; align-items: center; gap: 4px;">
@@ -1504,10 +1447,8 @@
             </button>
           </div>
         </div>
-        <!-- Hidden legacy fallback elements to avoid any JS errors in older references -->
         <div id="addrModalSecWrapper" style="display: none;"></div>
         <a id="addrModalMapLink" href="" target="_blank" rel="noopener noreferrer" style="display: none;"></a>
-        <!-- Modal Bottom Close -->
         <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 6px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
           <button type="button" class="btn-primary-smart" onclick="closeAddressModal()" style="padding: 7px 22px; font-size: 12px; width: auto;">
             ✕ Close
@@ -1516,11 +1457,9 @@
       </div>
     </div>
   </div>
-  <!-- Logout Confirmation Modal (Centered Popup) -->
   <div id="logoutConfirmModal" class="image-modal-overlay" onclick="closeLogoutModal()" style="display: none; align-items: center; justify-content: center; z-index: 2200;">
     <div class="logout-confirm-box cwp-branded-logout" onclick="event.stopPropagation()">
       <div class="cwp-logout-accent-bar"></div>
-      <!-- Prompt View (shown initially) -->
       <div id="logoutPromptView">
         <div class="cwp-logout-emblem-wrap">
           <div class="cwp-logout-bezel">
@@ -1530,7 +1469,6 @@
         <div class="cwp-logout-brand-pill">
           <span class="cwp-badge-star">★</span> CWP DETAILERS & MOTORS
         </div>
-        <!-- Dynamic User Shift Badge -->
         <div id="logoutStaffUserBadge" class="logout-user-chip" style="display: none;">
           <span class="chip-avatar">🚗</span>
           <span id="logoutStaffNameText" class="chip-name">स्टाफ सदस्य</span>
@@ -1549,7 +1487,6 @@
           </button>
         </div>
       </div>
-      <!-- Logout Loading & Transition View (shown when logging out) -->
       <div id="logoutProgressBox" style="display: none;">
         <div class="cwp-logout-spinner-wrap">
           <div class="cwp-logout-spinner"></div>
@@ -1563,7 +1500,39 @@
       </div>
     </div>
   </div>
-  <!-- Add New Customer Modal Popup -->
+  <datalist id="carMakeList">
+    <option value="Maruti Suzuki"></option>
+    <option value="Hyundai"></option>
+    <option value="Tata Motors"></option>
+    <option value="Mahindra"></option>
+    <option value="Kia"></option>
+    <option value="Toyota"></option>
+    <option value="Honda"></option>
+    <option value="Volkswagen"></option>
+    <option value="Skoda"></option>
+    <option value="MG"></option>
+    <option value="Renault"></option>
+    <option value="Nissan"></option>
+    <option value="Ford"></option>
+    <option value="BMW"></option>
+    <option value="Mercedes-Benz"></option>
+    <option value="Audi"></option>
+    <option value="Jeep"></option>
+  </datalist>
+  <datalist id="carColorList">
+    <option value="White"></option>
+    <option value="Silver"></option>
+    <option value="Grey"></option>
+    <option value="Black"></option>
+    <option value="Red"></option>
+    <option value="Blue"></option>
+    <option value="Brown"></option>
+    <option value="Beige"></option>
+    <option value="Green"></option>
+    <option value="Orange"></option>
+    <option value="Gold"></option>
+    <option value="Yellow"></option>
+  </datalist>
   <div id="addCustomerModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('addCustomerModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box modal-card-box-lg" onclick="event.stopPropagation()" style="display: flex; flex-direction: column;">
       <div class="modal-card-header">
@@ -1574,7 +1543,6 @@
         <button type="button" class="modal-close-x" onclick="closeAddCustomerModal()" title="Close (ESC)">✕</button>
       </div>
       <div class="modal-card-scrollable-body" style="overflow-y: auto; padding: 16px; flex: 1;">
-        <!-- Auto-Draft Restoration Banner -->
         <div id="custDraftRestoreBanner" class="cwp-draft-banner" style="display: none; margin-bottom: 12px;">
           <div class="cwp-draft-banner-content">
             <span class="cwp-draft-banner-icon">📝</span>
@@ -1593,7 +1561,6 @@
           </div>
         </div>
         <form id="addCustomerForm" onsubmit="handleCustomerSubmit(event)" class="cwp-compact-form">
-          <!-- SECTION 1: CUSTOMER DETAILS -->
           <div class="cwp-form-section-card">
             <div class="form-section-head">
               <span class="section-num-pill">1</span>
@@ -1602,7 +1569,6 @@
                 <span class="section-subtitle-text">Name, mobile number & location details</span>
               </div>
             </div>
-            <!-- Customer Name & Mobile (Two Column on Desktop) -->
             <div class="form-row-2">
               <div class="form-group">
                 <label class="form-label" for="custName">Customer Name <span class="req-star">*</span></label>
@@ -1623,7 +1589,6 @@
                 </div>
               </div>
             </div>
-            <!-- Customer Address & Direct Map Location (Zero Space Wastage) -->
             <div class="form-row-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="custAddress">Customer Address <span class="req-star">*</span></label>
@@ -1645,7 +1610,6 @@
               </div>
             </div>
           </div>
-          <!-- SECTION 2: SERVICE DETAILS -->
           <div class="cwp-form-section-card">
             <div class="form-section-head">
               <span class="section-num-pill">2</span>
@@ -1654,7 +1618,6 @@
                 <span class="section-subtitle-text">Service category, package & vehicle info</span>
               </div>
             </div>
-            <!-- Service Category & Package Type (Side by Side on Desktop) -->
             <div class="form-row-2">
               <div class="form-group">
                 <label class="form-label" for="custCategory">Service Category <span class="req-star">*</span></label>
@@ -1675,7 +1638,6 @@
                 <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="Other package details..." style="display: none; margin-top: 6px;">
               </div>
             </div>
-            <!-- Vehicle Number & Vehicle Photo (Together in One Dedicated Compact Row!) -->
             <div class="form-row-vehicle-photo">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" id="custVehicleLabel" for="custVehicles">Vehicle Number & Model <span class="req-star">*</span></label>
@@ -1714,8 +1676,29 @@
                 </div>
               </div>
             </div>
+            <div class="form-row-2" id="custCarMakeColorRow" style="margin-top: 10px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="custCarMake">
+                  <span>Car Make</span>
+                  <span class="opt-tag">(Optional)</span>
+                </label>
+                <div class="input-icon-wrap">
+                  <span class="input-icon">🚘</span>
+                  <input type="text" id="custCarMake" class="form-input with-icon" list="carMakeList" placeholder="e.g. Hyundai, Maruti Suzuki, Tata...">
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="custCarColor">
+                  <span>Car Color</span>
+                  <span class="opt-tag">(Optional)</span>
+                </label>
+                <div class="input-icon-wrap">
+                  <span class="input-icon">🎨</span>
+                  <input type="text" id="custCarColor" class="form-input with-icon" list="carColorList" placeholder="e.g. White, Silver, Black, Red...">
+                </div>
+              </div>
+            </div>
           </div>
-          <!-- SECTION 3: STAFF ASSIGNMENT -->
           <div class="cwp-form-section-card">
             <div class="form-section-head">
               <span class="section-num-pill">3</span>
@@ -1731,7 +1714,6 @@
                   <option value="">Unassigned</option>
                 </select>
               </div>
-              <!-- Secondary Location Trigger (Daily Car Cleaning Only) -->
               <div class="form-group" id="secondaryAddressGroup">
                 <label class="form-label">Secondary Location <span class="opt-tag">(Daily Clean Only)</span></label>
                 <button type="button" class="btn-secondary-loc-toggle" id="btnToggleCustSec" onclick="toggleCustSecLocation()">
@@ -1739,7 +1721,6 @@
                 </button>
               </div>
             </div>
-            <!-- Collapsible Secondary Location Panel -->
             <div id="custSecCollapse" class="collapsible-panel" style="display: none; margin-bottom: 10px;">
               <div class="form-row-2">
                 <div class="form-group" style="margin-bottom: 0;">
@@ -1756,7 +1737,6 @@
                 </div>
               </div>
             </div>
-            <!-- Staff Notes (Compact 2-row with inline chips) -->
             <div class="form-group" style="margin-bottom: 0;">
               <div class="notes-header-flex">
                 <label class="form-label" for="custNotes" style="margin-bottom: 0;">Staff Notes & Instructions <span class="opt-tag">(Optional)</span></label>
@@ -1787,7 +1767,6 @@
       </div>
     </div>
   </div>
-  <!-- Edit Customer Modal -->
   <div id="editCustomerModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('editCustomerModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()">
       <div class="modal-card-header">
@@ -1797,7 +1776,6 @@
         </div>
         <button type="button" class="modal-close-x" onclick="closeEditCustomerModal()">✕</button>
       </div>
-      <!-- Edit Draft Restore Banner -->
       <div id="editDraftRestoreBanner" class="cwp-draft-banner" style="display: none; margin: 12px 16px 0 16px;">
         <div class="cwp-draft-banner-content">
           <span class="cwp-draft-banner-icon">📝</span>
@@ -1820,7 +1798,6 @@
         <input type="hidden" id="editSheetName">
         <input type="hidden" id="editRowIndex">
         <input type="hidden" id="editPhotoUrl">
-        <!-- SECTION 1: CUSTOMER DETAILS -->
         <div class="cwp-form-section-card">
           <div class="form-section-head">
             <span class="section-num-pill">1</span>
@@ -1849,7 +1826,6 @@
               </div>
             </div>
           </div>
-          <!-- Customer Address & Direct Map Location (Zero Space Wastage) -->
           <div class="form-row-2">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" for="editCustAddress">Customer Address <span class="req-star">*</span></label>
@@ -1871,7 +1847,6 @@
             </div>
           </div>
         </div>
-        <!-- SECTION 2: SERVICE DETAILS -->
         <div class="cwp-form-section-card">
           <div class="form-section-head">
             <span class="section-num-pill">2</span>
@@ -1900,7 +1875,6 @@
               <input type="text" id="editCustPkgTypeCustom" class="form-input" placeholder="Other package details..." style="display: none; margin-top: 6px;">
             </div>
           </div>
-          <!-- Vehicle Number & Vehicle Photo in One Unified Compact Row -->
           <div class="form-row-vehicle-photo">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" id="editCustVehiclesLabel" for="editCustVehicles">Vehicle Number & Model <span class="req-star">*</span></label>
@@ -1939,8 +1913,29 @@
               </div>
             </div>
           </div>
+          <div class="form-row-2" id="editCustCarMakeColorRow" style="margin-top: 10px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="editCustCarMake">
+                <span>Car Make</span>
+                <span class="opt-tag">(Optional)</span>
+              </label>
+              <div class="input-icon-wrap">
+                <span class="input-icon">🚘</span>
+                <input type="text" id="editCustCarMake" class="form-input with-icon" list="carMakeList" placeholder="e.g. Hyundai, Maruti Suzuki, Tata...">
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="editCustCarColor">
+                <span>Car Color</span>
+                <span class="opt-tag">(Optional)</span>
+              </label>
+              <div class="input-icon-wrap">
+                <span class="input-icon">🎨</span>
+                <input type="text" id="editCustCarColor" class="form-input with-icon" list="carColorList" placeholder="e.g. White, Silver, Black, Red...">
+              </div>
+            </div>
+          </div>
         </div>
-        <!-- SECTION 3: STAFF & STATUS -->
         <div class="cwp-form-section-card">
           <div class="form-section-head">
             <span class="section-num-pill">3</span>
@@ -1962,7 +1957,6 @@
               </select>
             </div>
           </div>
-          <!-- Secondary Location (Daily Car Cleaning Only) -->
           <div class="form-group" id="editSecondaryAddressGroup" style="margin-bottom: 8px;">
             <button type="button" class="btn-secondary-loc-toggle" id="btnToggleEditSec" onclick="toggleEditSecLocation()">
               <span>🏢</span> <span id="editSecBtnText">+ Add Secondary Location (Office / Alternate)</span>
@@ -2003,7 +1997,6 @@
       </form>
     </div>
   </div>
-  <!-- Edit Staff Modal -->
   <div id="staffEditModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('staffEditModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px;">
       <div class="modal-card-header">
@@ -2016,7 +2009,6 @@
           <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Staff ID</span>
           <span id="editStaffIdDisplay" style="font-size: 13px; font-weight: 700; color: var(--brand-blue); font-family: monospace;">STF01</span>
         </div>
-        <!-- Staff Photo Upload Section in Edit Modal -->
         <div style="background: var(--bg-surface); padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 14px; display: flex; align-items: center; gap: 14px;">
           <div id="editStaffAvatarWrapper" onclick="var f=document.getElementById('editStaffPhotoFile'); if(f){f.value=''; f.click();}" title="Click to upload/change photo" style="position: relative; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: #e2e8f0; border: 2px solid var(--brand-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer;">
             <img id="editStaffPhotoPreview" src="" alt="Staff Photo" style="width: 100%; height: 100%; object-fit: cover; display: none;">
@@ -2083,13 +2075,8 @@
       </form>
     </div>
   </div>
-  <!-- =====================================================================
-       ENHANCED PHOTO CROP & DEGREE-WISE ROTATION MODAL
-       Allows users to straighten (degree slider, 90° flips) and crop photos
-       ===================================================================== -->
   <div id="cwpPhotoCropperModal" class="image-modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 1200;" onclick="cropperHandleOverlayClick(event)">
     <div class="cropper-modal-card" onclick="event.stopPropagation()">
-      <!-- Modal Header -->
       <div class="cropper-modal-header">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 18px;">✂️</span>
@@ -2100,13 +2087,10 @@
         </div>
         <button type="button" class="modal-close-x" onclick="closeCropperModal()" style="color: #cbd5e1;">✕</button>
       </div>
-      <!-- Main Cropper Viewport -->
       <div class="cropper-canvas-wrap">
         <img id="cwpCropperSourceImg" src="" alt="To Crop" style="max-width: 100%;">
       </div>
-      <!-- Rotation & Straighten Toolbar (Degree Wise) -->
       <div class="cropper-controls-panel">
-        <!-- Degree Slider Row -->
         <div class="cropper-control-row">
           <div class="cropper-label-group">
             <span class="cropper-ctrl-icon">📐</span>
@@ -2133,7 +2117,6 @@
           <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(1)" title="1° Right">+1°</button>
           <button type="button" class="btn-nudge-angle" onclick="cropperNudgeAngle(5)" title="5° Right">+5°</button>
         </div>
-        <!-- Quick 90 deg Rotate & Flip Buttons -->
         <div class="cropper-buttons-row">
           <button type="button" class="btn-crop-action" onclick="cropperStepRotate(-90)" title="Rotate 90° Left">
             <span>↶</span> <span>90° Left</span>
@@ -2151,7 +2134,6 @@
             <span>↕️</span> <span>Vertical</span>
           </button>
         </div>
-        <!-- Aspect Ratio & Tools Row -->
         <div class="cropper-secondary-row">
           <div class="cropper-aspect-group">
             <span style="font-size: 11px; font-weight: 600; color: #94a3b8; margin-right: 4px;">Ratio:</span>
@@ -2170,7 +2152,6 @@
           </div>
         </div>
       </div>
-      <!-- Modal Footer -->
       <div class="cropper-modal-footer">
         <button type="button" class="btn-cropper-cancel" onclick="closeCropperModal()">Cancel</button>
         <button type="button" class="btn-cropper-apply" onclick="applyCroppedPhoto()">
@@ -2179,17 +2160,14 @@
       </div>
     </div>
   </div>
-  <!-- Toast Notification -->
   <div id="toastNotification" class="toast-popup">
     <span id="toastIcon">✓</span>
     <span id="toastMessage">Success</span>
   </div>
-  <!-- PWA App Update Bar (Service Worker Update Notification) -->
   <div id="pwaUpdateBar" class="pwa-update-bar" style="display: none;">
     <span>🚀 CWP Staff का नया अपडेट उपलब्ध है!</span>
     <button type="button" class="btn-pwa-update-now" onclick="applyPwaUpdate()">अभी अपडेट करें (Update)</button>
   </div>
-  <!-- iOS PWA Install Instructions Modal -->
   <div id="pwaIosModal" class="camera-modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 420px; width: 92%; padding: 22px;">
       <div class="modal-card-header" style="margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">
@@ -2218,14 +2196,6 @@
       </button>
     </div>
   </div>
-  <!-- =====================================================================
-       CLIENT APPLICATION LOGIC
-       - Escaped forward slashes in URLs
-       ===================================================================== -->
-  <!-- =====================================================================
-       LEADS MODALS (Add Lead, Convert Lead, Add Lead Note)
-       ===================================================================== -->
-  <!-- Add New Lead Modal Popup -->
   <div id="addLeadModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('addLeadModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box modal-card-box-lg" onclick="event.stopPropagation()" style="display: flex; flex-direction: column; max-width: 640px;">
       <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(217, 119, 6, 0.04));">
@@ -2240,7 +2210,6 @@
       </div>
       <div class="modal-card-scrollable-body" style="overflow-y: auto; padding: 16px; flex: 1;">
         <form id="addLeadForm" onsubmit="handleLeadSubmit(event)" class="cwp-compact-form">
-          <!-- SECTION 1: PROSPECT DETAILS -->
           <div class="cwp-form-section-card">
             <div class="form-section-head">
               <span class="section-num-pill" style="background: #f59e0b;">1</span>
@@ -2302,7 +2271,6 @@
               </div>
             </div>
           </div>
-          <!-- SECTION 2: VEHICLE & SERVICE -->
           <div class="cwp-form-section-card">
             <div class="form-section-head">
               <span class="section-num-pill" style="background: #f59e0b;">2</span>
@@ -2329,6 +2297,28 @@
                 <div class="input-icon-wrap">
                   <span class="input-icon">🚗</span>
                   <input type="text" id="leadVehicle" class="form-input with-icon" placeholder="e.g. UP32 AB 1234 - Creta (Optional)">
+                </div>
+              </div>
+            </div>
+            <div class="form-row-2" id="leadCarMakeColorRow" style="margin-top: 10px; margin-bottom: 10px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="leadCarMake">
+                  <span>Car Make</span>
+                  <span class="opt-tag" style="font-size: 11px; color: var(--text-secondary); font-weight: normal;">(Optional)</span>
+                </label>
+                <div class="input-icon-wrap">
+                  <span class="input-icon">🚘</span>
+                  <input type="text" id="leadCarMake" class="form-input with-icon" list="carMakeList" placeholder="e.g. Hyundai, Tata, Maruti...">
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="leadCarColor">
+                  <span>Car Color</span>
+                  <span class="opt-tag" style="font-size: 11px; color: var(--text-secondary); font-weight: normal;">(Optional)</span>
+                </label>
+                <div class="input-icon-wrap">
+                  <span class="input-icon">🎨</span>
+                  <input type="text" id="leadCarColor" class="form-input with-icon" list="carColorList" placeholder="e.g. White, Silver, Black...">
                 </div>
               </div>
             </div>
@@ -2361,7 +2351,6 @@
               </div>
             </div>
           </div>
-          <!-- SECTION 3: LEAD NOTES -->
           <div class="cwp-form-section-card">
             <div class="form-section-head">
               <span class="section-num-pill" style="background: #f59e0b;">3</span>
@@ -2393,7 +2382,6 @@
       </div>
     </div>
   </div>
-  <!-- Convert Lead to Active Customer Modal -->
   <div id="convertLeadModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('convertLeadModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 520px;">
       <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.04));">
@@ -2408,7 +2396,6 @@
       </div>
       <form id="convertLeadForm" onsubmit="handleConvertLeadSubmit(event)" style="padding: 16px;">
         <input type="hidden" id="convertLeadId">
-        <!-- Lead Summary Card -->
         <div style="background: var(--bg-surface); padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 14px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <strong id="convertLeadNameDisplay" style="font-size: 14px; color: var(--text-primary);">—</strong>
@@ -2417,9 +2404,11 @@
           <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
             <span>🚗 Vehicle:</span> <strong id="convertLeadVehicleDisplay" style="color: var(--text-primary);">—</strong>
           </div>
+          <div id="convertLeadMakeColorWrap" style="font-size: 12px; color: var(--text-secondary); display: none; align-items: center; gap: 6px; margin-top: 3px;">
+            <span>🏷️ Make & Color:</span> <strong id="convertLeadMakeColorDisplay" style="color: var(--text-primary);">—</strong>
+          </div>
           <div id="convertLeadAddressDisplay" style="font-size: 12px; color: var(--text-muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">—</div>
         </div>
-        <!-- Service Category -->
         <div class="form-group">
           <label class="form-label" for="convertServiceCategory">Service Category <span class="req-star">*</span></label>
           <select id="convertServiceCategory" class="form-select" onchange="handleConvertCategoryChange(this.value)" required>
@@ -2428,7 +2417,6 @@
             <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
           </select>
         </div>
-        <!-- Package Type -->
         <div class="form-group" id="convertPackageGroup">
           <label class="form-label" for="convertPackageType">Package Type <span class="req-star">*</span></label>
           <select id="convertPackageType" class="form-select" required>
@@ -2438,7 +2426,6 @@
             <option value="OTHER">OTHER (Custom Subscription)</option>
           </select>
         </div>
-        <!-- Assign Staff -->
         <div class="form-group">
           <label class="form-label" for="convertStaffSelect">Assign Cleaner / Staff <span class="opt-tag">(Optional)</span></label>
           <select id="convertStaffSelect" class="form-select">
@@ -2446,7 +2433,6 @@
           </select>
           <span class="form-field-hint">Assign to field cleaner's daily route sequence immediately</span>
         </div>
-        <!-- Confirmation Notes -->
         <div class="form-group" style="margin-bottom: 0;">
           <label class="form-label" for="convertNotes">Confirmation Notes & Cleaning Instructions <span class="opt-tag">(Optional)</span></label>
           <textarea id="convertNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="e.g. Confirmed for ₹1,500/mo starting tomorrow 7 AM."></textarea>
@@ -2460,7 +2446,6 @@
       </form>
     </div>
   </div>
-  <!-- Add Lead Note Modal Popup -->
   <div id="leadNoteModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('leadNoteModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px;">
       <div class="modal-card-header">
@@ -2475,14 +2460,12 @@
       </div>
       <form id="leadNoteForm" onsubmit="handleSaveLeadNoteSubmit(event)" style="padding: 16px;">
         <input type="hidden" id="leadNoteTargetId">
-        <!-- Existing Notes Log -->
         <div class="form-group">
           <label class="form-label">Notes History</label>
           <div id="leadNotesHistoryList" class="lead-notes-history-box" style="max-height: 160px; overflow-y: auto; background: var(--bg-surface); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); font-size: 12.5px; color: var(--text-secondary); white-space: pre-line;">
             No prior notes.
           </div>
         </div>
-        <!-- Add New Note -->
         <div class="form-group" style="margin-bottom: 0;">
           <label class="form-label" for="newLeadNoteText">New Follow-up Note <span class="req-star">*</span></label>
           <div class="quick-chips-inline" style="margin-bottom: 6px;">
@@ -2501,10 +2484,6 @@
       </form>
     </div>
   </div>
-  <!-- =====================================================================
-       ON-DEMAND & SPECIAL SERVICES MODALS (Solar Cleaning & Car Washing)
-       ===================================================================== -->
-  <!-- Modal 1: Assign Special Job (Admin) -->
   <div id="assignSpecialJobModal" class="image-modal-overlay" onclick="handleStaticBackdropClick('assignSpecialJobModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box modal-card-box-lg" onclick="event.stopPropagation()" style="max-width: 600px; display: flex; flex-direction: column;">
       <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(217, 119, 6, 0.12), rgba(180, 83, 9, 0.05));">
@@ -2519,7 +2498,6 @@
       </div>
       <div class="modal-card-scrollable-body" style="overflow-y: auto; padding: 18px; flex: 1;">
         <form id="assignSpecialJobForm" onsubmit="handleAssignSpecialJobSubmit(event)" class="cwp-compact-form">
-          <!-- SECTION 1: CUSTOMER SELECTION -->
           <div class="cwp-form-section-card">
             <div class="form-section-head">
               <span class="section-num-pill" style="background: #d97706;">1</span>
@@ -2528,7 +2506,6 @@
                 <span class="section-subtitle-text">Select existing customer or enter new client info</span>
               </div>
             </div>
-            <!-- Customer Mode Toggle: Existing vs New -->
             <div style="display: flex; gap: 10px; margin-bottom: 12px;">
               <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
                 <input type="radio" name="specialCustMode" value="existing" checked onchange="toggleSpecialCustMode(this.value)">
@@ -2539,7 +2516,6 @@
                 <span>+ New Customer (नया ग्राहक)</span>
               </label>
             </div>
-            <!-- Existing Customer Picker -->
             <div id="specialExistingCustBlock">
               <div class="form-group">
                 <label class="form-label" for="specialExistingCustSelect">
@@ -2551,7 +2527,6 @@
                 <span class="form-field-hint">Auto-fills customer phone, location and vehicle details</span>
               </div>
             </div>
-            <!-- New Customer Fields (or pre-filled existing fields) -->
             <div id="specialCustFieldsBlock">
               <div class="form-row-2">
                 <div class="form-group">
@@ -2569,7 +2544,6 @@
               </div>
             </div>
           </div>
-          <!-- SECTION 2: SERVICE & TASK SPECIFICATIONS -->
           <div class="cwp-form-section-card">
             <div class="form-section-head">
               <span class="section-num-pill" style="background: #d97706;">2</span>
@@ -2591,14 +2565,12 @@
                 <input type="date" id="specialScheduledDate" class="form-input" required style="height: 40px;">
               </div>
             </div>
-            <!-- Solar Specific Options -->
             <div id="specialSolarDetailsBlock">
               <div class="form-group">
                 <label class="form-label" for="specialSolarPanels">Panel Capacity / Roof Scope</label>
                 <input type="text" id="specialSolarPanels" class="form-input" placeholder="e.g. 10KW Rooftop (~24 panels), 3rd floor terrace">
               </div>
             </div>
-            <!-- Car Wash Specific Options -->
             <div id="specialCarWashDetailsBlock" style="display: none;">
               <div class="form-group">
                 <label class="form-label" for="specialCarVehicle">Vehicle Details (Car Number & Model)</label>
@@ -2610,7 +2582,6 @@
               <textarea id="specialInstructions" class="form-textarea form-textarea-compact" rows="2" placeholder="e.g. Customer verbally requested 2:30 PM slot. Terrace key with guard."></textarea>
             </div>
           </div>
-          <!-- SECTION 3: STAFF DISPATCH -->
           <div class="cwp-form-section-card">
             <div class="form-section-head">
               <span class="section-num-pill" style="background: #d97706;">3</span>
@@ -2638,7 +2609,6 @@
       </div>
     </div>
   </div>
-  <!-- Modal 2: Start Special Job (Staff - Before Photos) -->
   <div id="startSpecialJobModal" class="camera-modal-overlay" style="display: none;" onclick="handleStaticBackdropClick('startSpecialJobModal')">
     <div class="camera-modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
       <div class="camera-modal-header" style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #ffffff;">
@@ -2679,7 +2649,6 @@
       </div>
     </div>
   </div>
-  <!-- Modal 3: Complete Special Job (Staff - After Photos & Notes) -->
   <div id="completeSpecialJobModal" class="camera-modal-overlay" style="display: none;" onclick="handleStaticBackdropClick('completeSpecialJobModal')">
     <div class="camera-modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
       <div class="camera-modal-header" style="background: linear-gradient(135deg, #065f46, #059669); color: #ffffff;">
@@ -2726,15 +2695,13 @@
       </div>
     </div>
   </div>
-    <!-- Application Launch Parameters Injected by Server -->
   <script>
     var initialStaffId = "<?= typeof initialStaffId !== 'undefined' ? initialStaffId : '' ?>";
     var initialMode = "<?= typeof initialMode !== 'undefined' ? initialMode : 'admin' ?>";
     var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
   </script>
-  <!-- Vendor Libraries & Modular Application Logic -->
   <script src="/js/cropper.min.js"></script>
-  <script src="/js/app.js?v=3.0.0" defer></script>
+  <script src="/js/app.js?v=3.1.0" defer></script>
   <script>
     // Failsafe listener for staff photo selection
     document.addEventListener('change', function(e) {
@@ -2750,4 +2717,4 @@
     });
   </script>
 </body>
-</html>
+</html>
