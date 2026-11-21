@@ -439,6 +439,8 @@ var state = {
         if (titleEl) titleEl.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
         if (chipEl) chipEl.textContent = isHi ? 'स्टाफ' : 'STAFF';
       } else {
+        var chipEl = document.getElementById('headerContextChip');
+        if (chipEl) chipEl.textContent = 'ADMIN';
         if (titleEl) titleEl.textContent = 'Admin Portal';
         if (chipEl) chipEl.textContent = 'ADMIN';
       }
@@ -525,6 +527,284 @@ var state = {
         renderCustomerCards(state.currentStaffFilteredList);
       }
     }
+
+    /* =========================================================================
+       GLOBAL UNIFIED HEADER CONTROLLERS & DROPDOWNS
+       ========================================================================= */
+
+    function toggleLangDropdown(e) {
+      if (e) e.stopPropagation();
+      var wrap = document.getElementById('langDropdownWrap');
+      var panel = document.getElementById('langMenuPanel');
+      if (!panel || !wrap) return;
+      
+      var isOpen = panel.style.display !== 'none';
+      closeAllHeaderPopovers();
+      
+      if (!isOpen) {
+        panel.style.display = 'flex';
+        wrap.classList.add('is-open');
+        var trigger = document.getElementById('btnLangToggle');
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    function closeLangDropdown() {
+      var wrap = document.getElementById('langDropdownWrap');
+      var panel = document.getElementById('langMenuPanel');
+      if (panel) panel.style.display = 'none';
+      if (wrap) wrap.classList.remove('is-open');
+      var trigger = document.getElementById('btnLangToggle');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function selectAppLanguage(lang, e) {
+      if (e) e.stopPropagation();
+      closeLangDropdown();
+      setLanguage(lang);
+    }
+
+    function toggleSyncDetailsPopover(e) {
+      if (e) e.stopPropagation();
+      var popover = document.getElementById('syncDetailsPopover');
+      if (!popover) return;
+      var isOpen = popover.style.display !== 'none';
+      closeAllHeaderPopovers();
+      
+      if (!isOpen) {
+        refreshSyncDetailsPopover();
+        popover.style.display = 'block';
+        var badge = document.getElementById('staffLiveBadge');
+        if (badge) badge.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    function closeSyncDetailsPopover(e) {
+      if (e) e.stopPropagation();
+      var popover = document.getElementById('syncDetailsPopover');
+      if (popover) popover.style.display = 'none';
+      var badge = document.getElementById('staffLiveBadge');
+      if (badge) badge.setAttribute('aria-expanded', 'false');
+    }
+
+    function refreshSyncDetailsPopover() {
+      var popTime = document.getElementById('popoverLastSyncVal');
+      var popDot = document.getElementById('popoverStatusDot');
+      var popHeading = document.getElementById('popoverStatusHeading');
+      var popNet = document.getElementById('popoverNetworkVal');
+      var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
+      var isOnline = (typeof navigator !== 'undefined' && navigator.onLine !== false);
+
+      if (popTime) {
+        popTime.textContent = formatSyncTime(lastStaffSyncTimestamp);
+      }
+      if (popNet) {
+        popNet.textContent = isOnline 
+          ? (isHi ? 'कनेक्टेड (सक्रिय)' : 'Online (Connected)')
+          : (isHi ? 'ऑफ़लाइन (कैश्ड डेटा)' : 'Offline (Cached data)');
+      }
+      if (popDot) {
+        if (!isOnline) {
+          popDot.className = 'popover-dot dot-offline';
+          if (popHeading) popHeading.textContent = isHi ? 'ऑफ़लाइन स्थिति' : 'Offline Status';
+        } else if (isStaffSyncInProgress) {
+          popDot.className = 'popover-dot status-sync-spinner';
+          if (popHeading) popHeading.textContent = isHi ? 'डेटा सिंक हो रहा है...' : 'Syncing Data...';
+        } else {
+          popDot.className = 'popover-dot dot-live';
+          if (popHeading) popHeading.textContent = isHi ? 'रीयल-टाइम कनेक्शन सक्रिय' : 'Realtime Connection Active';
+        }
+      }
+    }
+
+    function handleManualSyncClick(e) {
+      if (e) e.stopPropagation();
+      closeSyncDetailsPopover();
+      if (typeof state !== 'undefined' && state.currentView === 'staff') {
+        triggerManualStaffSync();
+      } else if (typeof loadAdminRecords === 'function') {
+        loadAdminRecords(true);
+      }
+    }
+
+    function toggleAccountMenu(e) {
+      if (e) e.stopPropagation();
+      var wrap = document.getElementById('accountDropdownWrap');
+      var panel = document.getElementById('accountMenuPanel');
+      if (!panel || !wrap) return;
+      var isOpen = panel.style.display !== 'none';
+      closeAllHeaderPopovers();
+      
+      if (!isOpen) {
+        updateHeaderAccountStatus();
+        panel.style.display = 'flex';
+        wrap.classList.add('is-open');
+        var trigger = document.getElementById('headerAccountTrigger');
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    function closeAccountMenu() {
+      var wrap = document.getElementById('accountDropdownWrap');
+      var panel = document.getElementById('accountMenuPanel');
+      if (panel) panel.style.display = 'none';
+      if (wrap) wrap.classList.remove('is-open');
+      var trigger = document.getElementById('headerAccountTrigger');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function closeAllHeaderPopovers() {
+      closeLangDropdown();
+      closeSyncDetailsPopover();
+      closeAccountMenu();
+    }
+
+    function handleBrandLogoClick() {
+      if (typeof state !== 'undefined' && state.currentView === 'admin') {
+        if (typeof switchAdminTab === 'function') {
+          switchAdminTab('records', true);
+        }
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function updateHeaderAccountStatus() {
+      var accountTrigger = document.getElementById('headerAccountTrigger');
+      var avatarInitial = document.getElementById('headerAccountInitial');
+      var accountName = document.getElementById('headerAccountName');
+      var accountRole = document.getElementById('headerAccountRole');
+      var panelAvatar = document.getElementById('menuPanelAvatar');
+      var panelName = document.getElementById('menuPanelName');
+      var panelSub = document.getElementById('menuPanelSub');
+      var staffLogout = document.getElementById('staffLogoutBtn');
+      var adminLogout = document.getElementById('adminLogoutBtn');
+      var contextChip = document.getElementById('headerContextChip');
+      var mainTitle = document.getElementById('pageMainTitle');
+      var liveBadge = document.getElementById('staffLiveBadge');
+
+      var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
+      var mode = (typeof state !== 'undefined' && state.currentView) || 'staff';
+
+      if (mode === 'staff') {
+        var isAuth = isUserStaffAuthenticated(state.activeStaffId);
+        if (contextChip) contextChip.textContent = isHi ? 'स्टाफ' : 'STAFF';
+        if (mainTitle) mainTitle.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
+        
+        if (liveBadge) liveBadge.style.display = 'inline-flex';
+
+        if (isAuth) {
+          if (accountTrigger) accountTrigger.style.display = 'inline-flex';
+          if (staffLogout) staffLogout.style.display = 'flex';
+          if (adminLogout) adminLogout.style.display = 'none';
+
+          var sId = state.activeStaffId || getActiveStaffId() || 'STAFF';
+          var sName = 'Staff Member';
+          var nameHeader = document.getElementById('staffNameHeader');
+          if (nameHeader && nameHeader.textContent && nameHeader.textContent !== 'लोड हो रहा है...') {
+            sName = nameHeader.textContent;
+          } else if (typeof appState !== 'undefined' && appState.staffList) {
+            var found = appState.staffList.find(function(s) { return (s.id || '').toUpperCase() === sId.toUpperCase(); });
+            if (found && found.name) sName = found.name;
+          }
+
+          var initial = (sName && sName.trim()) ? sName.trim().charAt(0).toUpperCase() : 'S';
+          if (avatarInitial) avatarInitial.textContent = initial;
+          if (accountName) accountName.textContent = sName;
+          if (accountRole) accountRole.textContent = sId;
+
+          if (panelAvatar) panelAvatar.textContent = initial;
+          if (panelName) panelName.textContent = sName;
+          if (panelSub) panelSub.textContent = sId + ' • ' + (isHi ? 'फील्ड स्टाफ पोर्टल' : 'Field Staff Portal');
+        } else {
+          if (accountTrigger) accountTrigger.style.display = 'none';
+          if (staffLogout) staffLogout.style.display = 'none';
+          if (adminLogout) adminLogout.style.display = 'none';
+        }
+      } else {
+        // Admin Mode
+        var isAuth = isUserAdminAuthenticated();
+        if (contextChip) contextChip.textContent = 'ADMIN';
+        if (mainTitle) mainTitle.textContent = 'Admin Portal';
+
+        if (liveBadge) liveBadge.style.display = 'inline-flex';
+
+        if (isAuth) {
+          if (accountTrigger) accountTrigger.style.display = 'inline-flex';
+          if (adminLogout) adminLogout.style.display = 'flex';
+          if (staffLogout) staffLogout.style.display = 'none';
+
+          if (avatarInitial) avatarInitial.textContent = 'A';
+          if (accountName) accountName.textContent = 'Admin';
+          if (accountRole) accountRole.textContent = 'SUPER ADMIN';
+
+          if (panelAvatar) panelAvatar.textContent = '🛡️';
+          if (panelName) panelName.textContent = 'Super Administrator';
+          if (panelSub) panelSub.textContent = 'Full Access • Enterprise Management';
+        } else {
+          if (accountTrigger) accountTrigger.style.display = 'none';
+          if (adminLogout) adminLogout.style.display = 'none';
+          if (staffLogout) staffLogout.style.display = 'none';
+        }
+      }
+    }
+
+    // Global document listeners for popover dismissal
+    if (typeof document !== 'undefined') {
+      document.addEventListener('click', function(e) {
+        var langWrap = document.getElementById('langDropdownWrap');
+        var langPanel = document.getElementById('langMenuPanel');
+        if (langWrap && langPanel && !langWrap.contains(e.target)) {
+          closeLangDropdown();
+        }
+
+        var accountWrap = document.getElementById('accountDropdownWrap');
+        var accountPanel = document.getElementById('accountMenuPanel');
+        if (accountWrap && accountPanel && !accountWrap.contains(e.target)) {
+          closeAccountMenu();
+        }
+
+        var statusWrap = document.querySelector('.header-status-wrapper');
+        var syncPopover = document.getElementById('syncDetailsPopover');
+        if (statusWrap && syncPopover && !statusWrap.contains(e.target)) {
+          closeSyncDetailsPopover();
+        }
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' || e.key === 'Esc') {
+          closeAllHeaderPopovers();
+        }
+      });
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', function() {
+        updateStaffSyncIndicator('active', 'Online');
+        refreshSyncDetailsPopover();
+      });
+
+      window.addEventListener('offline', function() {
+        updateStaffSyncIndicator('offline', 'Network Offline');
+        refreshSyncDetailsPopover();
+      });
+
+      window.toggleLangDropdown = toggleLangDropdown;
+      window.closeLangDropdown = closeLangDropdown;
+      window.selectAppLanguage = selectAppLanguage;
+      window.toggleSyncDetailsPopover = toggleSyncDetailsPopover;
+      window.closeSyncDetailsPopover = closeSyncDetailsPopover;
+      window.refreshSyncDetailsPopover = refreshSyncDetailsPopover;
+      window.handleManualSyncClick = handleManualSyncClick;
+      window.toggleAccountMenu = toggleAccountMenu;
+      window.closeAccountMenu = closeAccountMenu;
+      window.closeAllHeaderPopovers = closeAllHeaderPopovers;
+      window.handleBrandLogoClick = handleBrandLogoClick;
+      window.updateHeaderAccountStatus = updateHeaderAccountStatus;
+    }
+
+
+
 
     /* Sync CWP Brand Logo across all Auth and Modal views */
     function syncBrandLogos() {
@@ -725,6 +1005,8 @@ var state = {
         if (staffControls) staffControls.style.display = 'flex';
         if (liveBadge) liveBadge.style.display = 'inline-flex';
         if (adminControls) adminControls.style.display = 'none';
+        var chipEl = document.getElementById('headerContextChip');
+        if (chipEl) chipEl.textContent = state.lang === 'en' ? 'STAFF' : 'स्टाफ';
         if (titleEl) titleEl.textContent = state.lang === 'en' ? 'Staff Portal' : 'स्टाफ पोर्टल';
         checkStaffAuthStatus(state.activeStaffId);
         syncBrandLogos();
@@ -737,6 +1019,8 @@ var state = {
         if (adminEl) adminEl.style.display = 'block';
         if (staffControls) staffControls.style.display = 'none';
         if (adminControls) adminControls.style.display = 'flex';
+        var chipEl = document.getElementById('headerContextChip');
+        if (chipEl) chipEl.textContent = 'ADMIN';
         if (titleEl) titleEl.textContent = 'Admin Portal';
         checkAdminAuthStatus();
         syncBrandLogos();
@@ -7920,277 +8204,3 @@ function loadStaffCustomerData(staffId) {
       window.setupIndicInputListeners = setupIndicInputListeners;
     }
 
-    /* =========================================================================
-       GLOBAL UNIFIED HEADER CONTROLLERS & DROPDOWNS
-       ========================================================================= */
-
-    function toggleLangDropdown(e) {
-      if (e) e.stopPropagation();
-      var wrap = document.getElementById('langDropdownWrap');
-      var panel = document.getElementById('langMenuPanel');
-      if (!panel || !wrap) return;
-      
-      var isOpen = panel.style.display !== 'none';
-      closeAllHeaderPopovers();
-      
-      if (!isOpen) {
-        panel.style.display = 'flex';
-        wrap.classList.add('is-open');
-        var trigger = document.getElementById('btnLangToggle');
-        if (trigger) trigger.setAttribute('aria-expanded', 'true');
-      }
-    }
-
-    function closeLangDropdown() {
-      var wrap = document.getElementById('langDropdownWrap');
-      var panel = document.getElementById('langMenuPanel');
-      if (panel) panel.style.display = 'none';
-      if (wrap) wrap.classList.remove('is-open');
-      var trigger = document.getElementById('btnLangToggle');
-      if (trigger) trigger.setAttribute('aria-expanded', 'false');
-    }
-
-    function selectAppLanguage(lang, e) {
-      if (e) e.stopPropagation();
-      closeLangDropdown();
-      setLanguage(lang);
-    }
-
-    function toggleSyncDetailsPopover(e) {
-      if (e) e.stopPropagation();
-      var popover = document.getElementById('syncDetailsPopover');
-      if (!popover) return;
-      var isOpen = popover.style.display !== 'none';
-      closeAllHeaderPopovers();
-      
-      if (!isOpen) {
-        refreshSyncDetailsPopover();
-        popover.style.display = 'block';
-        var badge = document.getElementById('staffLiveBadge');
-        if (badge) badge.setAttribute('aria-expanded', 'true');
-      }
-    }
-
-    function closeSyncDetailsPopover(e) {
-      if (e) e.stopPropagation();
-      var popover = document.getElementById('syncDetailsPopover');
-      if (popover) popover.style.display = 'none';
-      var badge = document.getElementById('staffLiveBadge');
-      if (badge) badge.setAttribute('aria-expanded', 'false');
-    }
-
-    function refreshSyncDetailsPopover() {
-      var popTime = document.getElementById('popoverLastSyncVal');
-      var popDot = document.getElementById('popoverStatusDot');
-      var popHeading = document.getElementById('popoverStatusHeading');
-      var popNet = document.getElementById('popoverNetworkVal');
-      var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
-      var isOnline = (typeof navigator !== 'undefined' && navigator.onLine !== false);
-
-      if (popTime) {
-        popTime.textContent = formatSyncTime(lastStaffSyncTimestamp);
-      }
-      if (popNet) {
-        popNet.textContent = isOnline 
-          ? (isHi ? 'कनेक्टेड (सक्रिय)' : 'Online (Connected)')
-          : (isHi ? 'ऑफ़लाइन (कैश्ड डेटा)' : 'Offline (Cached data)');
-      }
-      if (popDot) {
-        if (!isOnline) {
-          popDot.className = 'popover-dot dot-offline';
-          if (popHeading) popHeading.textContent = isHi ? 'ऑफ़लाइन स्थिति' : 'Offline Status';
-        } else if (isStaffSyncInProgress) {
-          popDot.className = 'popover-dot status-sync-spinner';
-          if (popHeading) popHeading.textContent = isHi ? 'डेटा सिंक हो रहा है...' : 'Syncing Data...';
-        } else {
-          popDot.className = 'popover-dot dot-live';
-          if (popHeading) popHeading.textContent = isHi ? 'रीयल-टाइम कनेक्शन सक्रिय' : 'Realtime Connection Active';
-        }
-      }
-    }
-
-    function handleManualSyncClick(e) {
-      if (e) e.stopPropagation();
-      closeSyncDetailsPopover();
-      if (typeof state !== 'undefined' && state.currentView === 'staff') {
-        triggerManualStaffSync();
-      } else if (typeof loadAdminRecords === 'function') {
-        loadAdminRecords(true);
-      }
-    }
-
-    function toggleAccountMenu(e) {
-      if (e) e.stopPropagation();
-      var wrap = document.getElementById('accountDropdownWrap');
-      var panel = document.getElementById('accountMenuPanel');
-      if (!panel || !wrap) return;
-      var isOpen = panel.style.display !== 'none';
-      closeAllHeaderPopovers();
-      
-      if (!isOpen) {
-        updateHeaderAccountStatus();
-        panel.style.display = 'flex';
-        wrap.classList.add('is-open');
-        var trigger = document.getElementById('headerAccountTrigger');
-        if (trigger) trigger.setAttribute('aria-expanded', 'true');
-      }
-    }
-
-    function closeAccountMenu() {
-      var wrap = document.getElementById('accountDropdownWrap');
-      var panel = document.getElementById('accountMenuPanel');
-      if (panel) panel.style.display = 'none';
-      if (wrap) wrap.classList.remove('is-open');
-      var trigger = document.getElementById('headerAccountTrigger');
-      if (trigger) trigger.setAttribute('aria-expanded', 'false');
-    }
-
-    function closeAllHeaderPopovers() {
-      closeLangDropdown();
-      closeSyncDetailsPopover();
-      closeAccountMenu();
-    }
-
-    function handleBrandLogoClick() {
-      if (typeof state !== 'undefined' && state.currentView === 'admin') {
-        if (typeof switchAdminTab === 'function') {
-          switchAdminTab('records', true);
-        }
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-
-    function updateHeaderAccountStatus() {
-      var accountTrigger = document.getElementById('headerAccountTrigger');
-      var avatarInitial = document.getElementById('headerAccountInitial');
-      var accountName = document.getElementById('headerAccountName');
-      var accountRole = document.getElementById('headerAccountRole');
-      var panelAvatar = document.getElementById('menuPanelAvatar');
-      var panelName = document.getElementById('menuPanelName');
-      var panelSub = document.getElementById('menuPanelSub');
-      var staffLogout = document.getElementById('staffLogoutBtn');
-      var adminLogout = document.getElementById('adminLogoutBtn');
-      var contextChip = document.getElementById('headerContextChip');
-      var mainTitle = document.getElementById('pageMainTitle');
-      var liveBadge = document.getElementById('staffLiveBadge');
-
-      var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
-      var mode = (typeof state !== 'undefined' && state.currentView) || 'staff';
-
-      if (mode === 'staff') {
-        var isAuth = isUserStaffAuthenticated(state.activeStaffId);
-        if (contextChip) contextChip.textContent = isHi ? 'स्टाफ' : 'STAFF';
-        if (mainTitle) mainTitle.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
-        
-        if (liveBadge) liveBadge.style.display = isAuth ? 'inline-flex' : 'none';
-
-        if (isAuth) {
-          if (accountTrigger) accountTrigger.style.display = 'inline-flex';
-          if (staffLogout) staffLogout.style.display = 'flex';
-          if (adminLogout) adminLogout.style.display = 'none';
-
-          var sId = state.activeStaffId || getActiveStaffId() || 'STAFF';
-          var sName = 'Staff Member';
-          var nameHeader = document.getElementById('staffNameHeader');
-          if (nameHeader && nameHeader.textContent && nameHeader.textContent !== 'लोड हो रहा है...') {
-            sName = nameHeader.textContent;
-          } else if (typeof appState !== 'undefined' && appState.staffList) {
-            var found = appState.staffList.find(function(s) { return (s.id || '').toUpperCase() === sId.toUpperCase(); });
-            if (found && found.name) sName = found.name;
-          }
-
-          var initial = (sName && sName.trim()) ? sName.trim().charAt(0).toUpperCase() : 'S';
-          if (avatarInitial) avatarInitial.textContent = initial;
-          if (accountName) accountName.textContent = sName;
-          if (accountRole) accountRole.textContent = sId;
-
-          if (panelAvatar) panelAvatar.textContent = initial;
-          if (panelName) panelName.textContent = sName;
-          if (panelSub) panelSub.textContent = sId + ' • ' + (isHi ? 'फील्ड स्टाफ पोर्टल' : 'Field Staff Portal');
-        } else {
-          if (accountTrigger) accountTrigger.style.display = 'none';
-          if (staffLogout) staffLogout.style.display = 'none';
-          if (adminLogout) adminLogout.style.display = 'none';
-        }
-      } else {
-        // Admin Mode
-        var isAuth = isUserAdminAuthenticated();
-        if (contextChip) contextChip.textContent = 'ADMIN';
-        if (mainTitle) mainTitle.textContent = 'Admin Portal';
-
-        if (liveBadge) liveBadge.style.display = isAuth ? 'inline-flex' : 'none';
-
-        if (isAuth) {
-          if (accountTrigger) accountTrigger.style.display = 'inline-flex';
-          if (adminLogout) adminLogout.style.display = 'flex';
-          if (staffLogout) staffLogout.style.display = 'none';
-
-          if (avatarInitial) avatarInitial.textContent = 'A';
-          if (accountName) accountName.textContent = 'Admin';
-          if (accountRole) accountRole.textContent = 'SUPER ADMIN';
-
-          if (panelAvatar) panelAvatar.textContent = '🛡️';
-          if (panelName) panelName.textContent = 'Super Administrator';
-          if (panelSub) panelSub.textContent = 'Full Access • Enterprise Management';
-        } else {
-          if (accountTrigger) accountTrigger.style.display = 'none';
-          if (adminLogout) adminLogout.style.display = 'none';
-          if (staffLogout) staffLogout.style.display = 'none';
-        }
-      }
-    }
-
-    // Global document listeners for popover dismissal
-    if (typeof document !== 'undefined') {
-      document.addEventListener('click', function(e) {
-        var langWrap = document.getElementById('langDropdownWrap');
-        var langPanel = document.getElementById('langMenuPanel');
-        if (langWrap && langPanel && !langWrap.contains(e.target)) {
-          closeLangDropdown();
-        }
-
-        var accountWrap = document.getElementById('accountDropdownWrap');
-        var accountPanel = document.getElementById('accountMenuPanel');
-        if (accountWrap && accountPanel && !accountWrap.contains(e.target)) {
-          closeAccountMenu();
-        }
-
-        var statusWrap = document.querySelector('.header-status-wrapper');
-        var syncPopover = document.getElementById('syncDetailsPopover');
-        if (statusWrap && syncPopover && !statusWrap.contains(e.target)) {
-          closeSyncDetailsPopover();
-        }
-      });
-
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' || e.key === 'Esc') {
-          closeAllHeaderPopovers();
-        }
-      });
-    }
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', function() {
-        updateStaffSyncIndicator('active', 'Online');
-        refreshSyncDetailsPopover();
-      });
-
-      window.addEventListener('offline', function() {
-        updateStaffSyncIndicator('offline', 'Network Offline');
-        refreshSyncDetailsPopover();
-      });
-
-      window.toggleLangDropdown = toggleLangDropdown;
-      window.closeLangDropdown = closeLangDropdown;
-      window.selectAppLanguage = selectAppLanguage;
-      window.toggleSyncDetailsPopover = toggleSyncDetailsPopover;
-      window.closeSyncDetailsPopover = closeSyncDetailsPopover;
-      window.refreshSyncDetailsPopover = refreshSyncDetailsPopover;
-      window.handleManualSyncClick = handleManualSyncClick;
-      window.toggleAccountMenu = toggleAccountMenu;
-      window.closeAccountMenu = closeAccountMenu;
-      window.closeAllHeaderPopovers = closeAllHeaderPopovers;
-      window.handleBrandLogoClick = handleBrandLogoClick;
-      window.updateHeaderAccountStatus = updateHeaderAccountStatus;
-    }

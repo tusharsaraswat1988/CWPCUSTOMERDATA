@@ -1676,17 +1676,19 @@ const server = http.createServer(async (req, res) => {
       const fileStat = fs.statSync(assetPath);
       const etag = `"${fileStat.size}-${fileStat.mtimeMs.toString(36)}"`;
 
+      const cacheControl = 'public, max-age=86400, stale-while-revalidate=3600';
+
       if (req.headers['if-none-match'] === etag) {
         res.writeHead(304, {
           'ETag': etag,
-          'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600'
+          'Cache-Control': cacheControl
         });
         return res.end();
       }
 
       res.writeHead(200, {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
+        'Cache-Control': cacheControl,
         'ETag': etag
       });
       return fs.createReadStream(assetPath).pipe(res);
@@ -3473,6 +3475,11 @@ const server = http.createServer(async (req, res) => {
     content = content.replace(/<\?=\s*typeof\s+initialStaffId\s*!==\s*'undefined'\s*\?\s*initialStaffId\s*:\s*''\s*\?>/g, staffParam);
     content = content.replace(/<\?=\s*typeof\s+initialMode\s*!==\s*'undefined'\s*\?\s*initialMode\s*:\s*'[a-zA-Z]+'\s*\?>/g, initialMode);
     content = content.replace(/<\?=\s*typeof\s+webAppUrl\s*!==\s*'undefined'\s*\?\s*webAppUrl\s*:[^?]*\?>/g, '');
+
+    if (initialMode === 'admin') {
+      content = content.replace('id="headerContextChip">STAFF</span>', 'id="headerContextChip">ADMIN</span>');
+      content = content.replace('id="pageMainTitle">Staff Portal</h1>', 'id="pageMainTitle">Admin Portal</h1>');
+    }
 
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',

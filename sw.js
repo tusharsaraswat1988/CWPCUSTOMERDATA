@@ -9,7 +9,7 @@
  *  - Immediate update activation with skipWaiting & clientsClaim
  */
 
-const CACHE_NAME = 'cwp-staff-pwa-v1.0.7';
+const CACHE_NAME = 'cwp-staff-pwa-v1.0.8';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -119,7 +119,14 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 2. Application Scripts and Styles: Network-First so updates take effect immediately
-  if (url.pathname === '/js/app.js' || url.pathname === '/css/style.css' || url.pathname.startsWith('/js/app.js') || url.pathname.startsWith('/css/style.css')) {
+  if (
+    url.pathname === '/js/app.js' ||
+    url.pathname === '/css/style.css' ||
+    url.pathname.endsWith('/app.js') ||
+    url.pathname.endsWith('/style.css') ||
+    url.pathname.startsWith('/js/app.js') ||
+    url.pathname.startsWith('/css/style.css')
+  ) {
     event.respondWith(
       fetch(req)
         .then((networkRes) => {
