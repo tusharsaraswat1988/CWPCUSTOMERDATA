@@ -726,21 +726,21 @@ var state = {
         searchInp.placeholder = isHi ? 'ग्राहक का नाम, गाड़ी नंबर या पता खोजें...' : 'Search customer name, vehicle or address...';
       }
 
-      // Category filter pills
+      // Category filter pills (Icon-free, clean bilingual labels)
       var pillDaily = document.getElementById('pillDailyClean');
       if (pillDaily) {
         var tDaily = pillDaily.querySelector('.pill-text');
-        if (tDaily) tDaily.textContent = isHi ? 'दैनिक कार सफाई' : 'Daily Car Cleaning';
+        if (tDaily) tDaily.textContent = isHi ? 'दैनिक सफाई' : 'Daily Clean';
       }
       var pillWash = document.getElementById('pillCarWash');
       if (pillWash) {
         var tWash = pillWash.querySelector('.pill-text');
-        if (tWash) tWash.textContent = isHi ? 'कार वॉशिंग' : 'Car Washing';
+        if (tWash) tWash.textContent = isHi ? 'कार वॉश' : 'Car Wash';
       }
       var pillSolar = document.getElementById('pillSolarClean');
       if (pillSolar) {
         var tSolar = pillSolar.querySelector('.pill-text');
-        if (tSolar) tSolar.textContent = isHi ? 'सोलर पैनल सफाई' : 'Solar Panel Cleaning';
+        if (tSolar) tSolar.textContent = isHi ? 'सोलर सफाई' : 'Solar Clean';
       }
       var pillSet = document.getElementById('pillStaffSettings');
       if (pillSet) {
@@ -1200,6 +1200,58 @@ var state = {
 
       window.speakHindiCustomerDetails = speakHindiCustomerDetails;
       window.handleBackfillHindi = handleBackfillHindi;
+      window.initStaffBottomNavKeyboardHandling = initStaffBottomNavKeyboardHandling;
+    }
+
+    function initStaffBottomNavKeyboardHandling() {
+      var nav = document.getElementById('staffBottomNav');
+      if (!nav) return;
+
+      var hideTimer = null;
+      function hideNav() {
+        if (hideTimer) clearTimeout(hideTimer);
+        nav.classList.add('is-keyboard-hidden');
+        document.body.classList.add('keyboard-open');
+      }
+
+      function showNav() {
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(function() {
+          nav.classList.remove('is-keyboard-hidden');
+          document.body.classList.remove('keyboard-open');
+        }, 120);
+      }
+
+      document.addEventListener('focusin', function(e) {
+        var target = e.target;
+        if (!target) return;
+        var tag = (target.tagName || '').toLowerCase();
+        var type = (target.type || '').toLowerCase();
+        if (tag === 'textarea' || (tag === 'input' && (type === 'text' || type === 'tel' || type === 'search' || type === 'number' || type === 'password'))) {
+          hideNav();
+        }
+      });
+
+      document.addEventListener('focusout', function(e) {
+        var target = e.target;
+        if (!target) return;
+        var tag = (target.tagName || '').toLowerCase();
+        if (tag === 'textarea' || tag === 'input') {
+          showNav();
+        }
+      });
+
+      if (window.visualViewport) {
+        var baseHeight = window.visualViewport.height;
+        window.visualViewport.addEventListener('resize', function() {
+          if (window.visualViewport.height < baseHeight * 0.78) {
+            hideNav();
+          } else {
+            showNav();
+            baseHeight = window.visualViewport.height;
+          }
+        });
+      }
     }
 
     if (typeof document !== 'undefined') {
@@ -1218,6 +1270,7 @@ var state = {
       initStaffPinDots();
       syncBrandLogos();
       setupIndicInputListeners();
+      initStaffBottomNavKeyboardHandling();
       var editPhotoInp = document.getElementById('editStaffPhotoFile');
       if (editPhotoInp) {
         editPhotoInp.addEventListener('change', function(e) { handleStaffPhotoSelect(e, 'edit'); });
@@ -2865,9 +2918,22 @@ function loadStaffCustomerData(staffId) {
       var elDcc = document.getElementById('countDailyClean');
       var elCw = document.getElementById('countCarWash');
       var elSpc = document.getElementById('countSolarClean');
-      if (elDcc) elDcc.textContent = dccCount;
-      if (elCw) elCw.textContent = cwCount;
-      if (elSpc) elSpc.textContent = spcCount;
+
+      function updateTabBadge(badgeEl, count) {
+        if (!badgeEl) return;
+        var num = parseInt(count, 10) || 0;
+        if (num > 0) {
+          badgeEl.textContent = num > 99 ? '99+' : String(num);
+          badgeEl.style.display = 'inline-flex';
+        } else {
+          badgeEl.textContent = '0';
+          badgeEl.style.display = 'none';
+        }
+      }
+
+      updateTabBadge(elDcc, dccCount);
+      updateTabBadge(elCw, cwCount);
+      updateTabBadge(elSpc, spcCount);
 
       var currentTabCount = (state.activeFilter === 'car_washing') ? cwCount : ((state.activeFilter === 'solar_cleaning') ? spcCount : dccCount);
       var badge = document.getElementById('staffCarCount');
