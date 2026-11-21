@@ -994,6 +994,7 @@ function sanitizeStaffForPublic(staff) {
   return {
     id: staff.id,
     name: staff.name,
+    photoUrl: staff.photoUrl || staff.photo_url || staff.photo || '',
     active: staff.active !== undefined ? staff.active : true
   };
 }
@@ -1019,6 +1020,7 @@ function sanitizeStaffForAdmin(staff) {
     id: staff.id,
     name: staff.name,
     phone: staff.phone || '',
+    photoUrl: staff.photoUrl || staff.photo_url || staff.photo || '',
     active: staff.active !== undefined ? staff.active : true,
     hasPin: hasPinVal,
     pin: pinVal,
@@ -1725,6 +1727,23 @@ const server = http.createServer(async (req, res) => {
     );
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify(sanitized));
+  }
+
+  // GET /api/customers - Return customer records
+  if (req.method === 'GET' && pathname === '/api/customers') {
+    let records = [];
+    if (isNeonConfigured()) {
+      try {
+        records = await adminService.getAllCustomers();
+      } catch (e) {
+        console.warn('Neon getAllCustomers error:', e.message);
+        records = getCombinedCustomerRecords();
+      }
+    } else {
+      records = getCombinedCustomerRecords();
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ success: true, records }));
   }
 
   // GET /api/staff-sequence - Requires valid Admin Session
@@ -3279,6 +3298,11 @@ const server = http.createServer(async (req, res) => {
   // =========================================================================
   // MAIN UI ROUTE (Index.html) - In-Memory Cached for High Concurrency
   // =========================================================================
+  if (pathname.startsWith('/api/')) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'Endpoint Not Found', pathname }));
+  }
+
   const indexPath = path.join(__dirname, 'Index.html');
   if (fs.existsSync(indexPath)) {
     let content = getCachedIndexTemplate(indexPath);

@@ -41,18 +41,18 @@ async function findByPhone(phone, client = null) {
   return res.rows[0] || null;
 }
 
-async function createStaff({ staffCode, name, phone, isActive = true }, client = null) {
+async function createStaff({ staffCode, name, phone, photoUrl = null, isActive = true }, client = null) {
   const runner = client || db;
   const res = await runner.query(
-    `INSERT INTO public.staff (staff_code, name, phone, is_active)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO public.staff (staff_code, name, phone, photo_url, is_active)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [staffCode.trim().toUpperCase(), name.trim(), phone.trim(), Boolean(isActive)]
+    [staffCode.trim().toUpperCase(), name.trim(), phone.trim(), photoUrl ? photoUrl.trim() : null, Boolean(isActive)]
   );
   return res.rows[0];
 }
 
-async function updateStaff(id, { name, phone, isActive }, client = null) {
+async function updateStaff(id, { name, phone, photoUrl, isActive }, client = null) {
   const runner = client || db;
   const updates = [];
   const params = [id];
@@ -64,6 +64,10 @@ async function updateStaff(id, { name, phone, isActive }, client = null) {
   if (phone !== undefined) {
     params.push(phone.trim());
     updates.push(`phone = $${params.length}`);
+  }
+  if (photoUrl !== undefined) {
+    params.push(photoUrl ? photoUrl.trim() : null);
+    updates.push(`photo_url = $${params.length}`);
   }
   if (isActive !== undefined) {
     params.push(Boolean(isActive));

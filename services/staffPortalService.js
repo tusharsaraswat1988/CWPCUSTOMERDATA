@@ -235,6 +235,8 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     staffId: staff.staff_code,
     staffName: staff.name,
     staffPhone: staff.phone,
+    staffPhotoUrl: staff.photo_url || '',
+    photoUrl: staff.photo_url || '',
     dailyCarCleaning,
     carWashing,
     solarCleaning,

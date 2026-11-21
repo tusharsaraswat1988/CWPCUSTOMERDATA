@@ -678,6 +678,7 @@ async function getStaffList({ isAdmin = true } = {}) {
       results.push({
         id: s.staff_code,
         name: s.name,
+        photoUrl: s.photo_url || '',
         active: s.is_active ? 'Yes' : 'No'
       });
     } else {
@@ -697,6 +698,7 @@ async function getStaffList({ isAdmin = true } = {}) {
         dbId: s.id,
         name: s.name,
         phone: s.phone,
+        photoUrl: s.photo_url || '',
         active: s.is_active ? 'Yes' : 'No',
         isActive: s.is_active,
         pin: displayPin,
@@ -713,7 +715,7 @@ async function getStaffList({ isAdmin = true } = {}) {
 /**
  * Save / Create Staff Member
  */
-async function saveStaffMember({ staffId, staffCode, name, phone, pin, active = true }, adminUser = 'admin') {
+async function saveStaffMember({ staffId, staffCode, name, phone, pin, photoUrl, active = true }, adminUser = 'admin') {
   if (!name || !name.trim()) {
     return { success: false, error: 'Staff name is required.' };
   }
@@ -736,6 +738,8 @@ async function saveStaffMember({ staffId, staffCode, name, phone, pin, active = 
       return { success: false, error: 'Please enter a valid 10-digit Indian mobile number.' };
     }
 
+    const isNowActive = active === true || active === 'Yes' || active === 'yes' || active === 'true';
+
     if (!staff) {
       isNew = true;
       if (!pin || !/^\d{6}$/.test(pin.trim())) {
@@ -753,15 +757,20 @@ async function saveStaffMember({ staffId, staffCode, name, phone, pin, active = 
         staffCode: code,
         name: name.trim(),
         phone: cleanPhone,
-        isActive: active === true || active === 'Yes' || active === 'yes'
+        photoUrl: photoUrl !== undefined ? photoUrl : null,
+        isActive: isNowActive
       }, client);
     } else {
       // Update existing
-      staff = await repos.staff.updateStaff(staff.id, {
+      const updateData = {
         name: name.trim(),
         phone: cleanPhone,
-        isActive: active === true || active === 'Yes' || active === 'yes'
-      }, client);
+        isActive: isNowActive
+      };
+      if (photoUrl !== undefined) {
+        updateData.photoUrl = photoUrl;
+      }
+      staff = await repos.staff.updateStaff(staff.id, updateData, client);
     }
 
     // Update PIN if provided and valid
@@ -769,6 +778,11 @@ async function saveStaffMember({ staffId, staffCode, name, phone, pin, active = 
       const pinHash = authService.hashPinScrypt(pin.trim());
       const salt = pinHash.split(':')[1];
       await repos.staffAuth.setPin(staff.id, pinHash, salt, client, pin.trim());
+    }
+
+    // Revoke sessions immediately if staff deactivated
+    if (!isNowActive && staff && staff.id) {
+      await authService.revokeAllStaffSessions(staff.id, `deactivated_by_${adminUser}`);
     }
 
     // Audit Log
