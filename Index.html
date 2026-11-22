@@ -1781,11 +1781,11 @@
             <div class="form-group">
               <label class="form-label" for="custCategory">Service Category <span class="req-star">*</span></label>
               <select id="custCategory" class="form-select" onchange="toggleCategoryFields(this.value)" required>
-                <option value="Daily Car Cleaning">Daily Car Cleaning</option>
-                <option value="Car Washing">Car Washing</option>
-                <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
-                <option value="Interior Detailing">Interior Detailing</option>
-                <option value="Exterior Detailing">Exterior Detailing</option>
+                <option value="Daily Car Cleaning">🚗 Daily Car Cleaning (दैनिक कार सफाई)</option>
+                <option value="Car Washing">🧼 Car Washing (कार वॉश)</option>
+                <option value="Solar Panel Cleaning">☀️ Solar Panel Cleaning (सोलर पैनल सफाई)</option>
+                <option value="Interior Detailing">✨ Interior Detailing (इंटीरियर डिटेलिंग)</option>
+                <option value="Exterior Detailing">🛡️ Exterior Detailing (एक्सटीरियर डिटेलिंग)</option>
               </select>
             </div>
             <div class="form-group">
@@ -2046,11 +2046,11 @@
           <div class="form-group">
             <label class="form-label" for="editCustCategory">Service Category <span class="req-star">*</span></label>
             <select id="editCustCategory" class="form-select" onchange="handleEditCategoryChange(this.value)" required>
-              <option value="Daily Car Cleaning">Daily Car Cleaning</option>
-              <option value="Car Washing">Car Washing</option>
-              <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
-              <option value="Interior Detailing">Interior Detailing</option>
-              <option value="Exterior Detailing">Exterior Detailing</option>
+              <option value="Daily Car Cleaning">🚗 Daily Car Cleaning (दैनिक कार सफाई)</option>
+              <option value="Car Washing">🧼 Car Washing (कार वॉश)</option>
+              <option value="Solar Panel Cleaning">☀️ Solar Panel Cleaning (सोलर पैनल सफाई)</option>
+              <option value="Interior Detailing">✨ Interior Detailing (इंटीरियर डिटेलिंग)</option>
+              <option value="Exterior Detailing">🛡️ Exterior Detailing (एक्सटीरियर डिटेलिंग)</option>
             </select>
           </div>
           <div class="form-group">
@@ -2689,10 +2689,12 @@
             <div class="form-group">
               <label class="form-label" for="leadCategory">Interested Service</label>
               <select id="leadCategory" class="form-select">
-                <option value="Daily Car Cleaning" selected>Daily Car Cleaning (DCC)</option>
-                <option value="Car Washing">Car Washing (Deep / Foam Wash)</option>
-                <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
-                <option value="Other">Other / Detailing Inquiry</option>
+                <option value="Daily Car Cleaning" selected>🚗 Daily Car Cleaning (दैनिक कार सफाई)</option>
+                <option value="Car Washing">🧼 Car Washing (कार वॉश)</option>
+                <option value="Solar Panel Cleaning">☀️ Solar Panel Cleaning (सोलर पैनल सफाई)</option>
+                <option value="Interior Detailing">✨ Interior Detailing (इंटीरियर डिटेलिंग)</option>
+                <option value="Exterior Detailing">🛡️ Exterior Detailing (एक्सटीरियर डिटेलिंग)</option>
+                <option value="Other">📋 Other / Detailing Inquiry (अन्य सेवा)</option>
               </select>
             </div>
             <div class="form-group">
@@ -3198,7 +3200,7 @@
   var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
   </script>
   <script src="/js/cropper.min.js"></script>
-  <script src="/js/app.js?v=3.3.0" defer></script>
+  <script src="/js/app.js?v=3.3.1" defer></script>
   <script>
   // Failsafe listener for staff photo selection
   document.addEventListener('change', function(e) {

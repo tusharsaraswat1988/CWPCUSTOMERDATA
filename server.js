@@ -1295,8 +1295,22 @@ function classifyServiceCategory(sheetName, serviceType, packageType, packageDet
   if (sName === 'car washing' || sName === 'car wash') {
     return 'Car Washing';
   }
+  if (sName === 'interior detailing' || sName === 'interior') {
+    return 'Interior Detailing';
+  }
+  if (sName === 'exterior detailing' || sName === 'exterior') {
+    return 'Exterior Detailing';
+  }
 
   const serviceScope = (sType + ' ' + pType + ' ' + pDetails).trim();
+
+  // 1b. Explicit Detailing indicators
+  if (serviceScope.includes('interior detailing') || sType === 'interior detailing') {
+    return 'Interior Detailing';
+  }
+  if (serviceScope.includes('exterior detailing') || sType === 'exterior detailing') {
+    return 'Exterior Detailing';
+  }
 
   // 2. Explicit Solar Panel Cleaning indicators
   // NEVER classify solar solely from generic words like "site"!
@@ -3678,25 +3692,23 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Invalid row index for update' }));
           }
 
-          // Integrity check: prohibit cross-sheet moves without explicit migration
-          if (cust.sheetName === 'Daily Clean') {
-            const cat = (cust.serviceCategory || '').toString().trim();
-            if (cat && cat !== 'Daily Car Cleaning') {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({
-                success: false,
-                error: 'Cannot move record from Daily Clean to All Other Work during edit. Cross-sheet moves require explicit migration.'
-              }));
-            }
+          // Service category & sheet mapping: dynamic support for all categories
+          const cat = (cust.serviceCategory || cust.category || '').toString().trim();
+          if (cat === 'Daily Car Cleaning' || cat === 'Daily Clean' || cat === 'daily_car_cleaning' || /daily/i.test(cat) || /dcc/i.test(cat)) {
             cust.serviceCategory = 'Daily Car Cleaning';
-          } else if (cust.sheetName === 'All Other Work') {
-            const cat = (cust.serviceCategory || '').toString().trim();
-            if (cat === 'Daily Car Cleaning') {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({
-                success: false,
-                error: 'Cannot move record from All Other Work to Daily Clean during edit. Cross-sheet moves require explicit migration.'
-              }));
+            cust.sheetName = 'Daily Clean';
+          } else if (cat) {
+            cust.sheetName = 'All Other Work';
+            if (cat === 'solar_cleaning' || cat === 'Solar Panel Cleaning' || /solar/i.test(cat)) {
+              cust.serviceCategory = 'Solar Panel Cleaning';
+            } else if (cat === 'interior_detailing' || cat === 'Interior Detailing' || /interior/i.test(cat)) {
+              cust.serviceCategory = 'Interior Detailing';
+            } else if (cat === 'exterior_detailing' || cat === 'Exterior Detailing' || /exterior/i.test(cat)) {
+              cust.serviceCategory = 'Exterior Detailing';
+            } else if (cat === 'car_washing' || cat === 'Car Washing' || cat === 'Car Wash' || /wash/i.test(cat)) {
+              cust.serviceCategory = 'Car Washing';
+            } else {
+              cust.serviceCategory = cat;
             }
           }
 
@@ -3780,7 +3792,7 @@ const server = http.createServer(async (req, res) => {
           }
 
           if (appState.customers && appState.customers.length > 0) {
-            const localIdx = appState.customers.findIndex(c => c.sheetName === cust.sheetName && parseInt(c.rowIndex, 10) === rowIdx);
+            const localIdx = appState.customers.findIndex(c => (cust.id && c.id === cust.id) || (c.sheetName === cust.sheetName && parseInt(c.rowIndex, 10) === rowIdx) || (parseInt(c.rowIndex, 10) === rowIdx));
             if (localIdx >= 0) {
               if (!cust.nameHi && cust.customerName) {
                 try { cust.nameHi = await indicService.transliterateName(cust.customerName); } catch (e) { cust.nameHi = cust.customerName; }

@@ -7362,7 +7362,7 @@ function loadStaffCustomerData(staffId) {
       var catSelect = document.getElementById('leadCategory');
       if (catSelect) {
         var cat = lead.interestedService || lead.serviceCategory || 'Daily Car Cleaning';
-        if (['Daily Car Cleaning', 'Car Washing', 'Solar Panel Cleaning', 'Other'].indexOf(cat) !== -1) {
+        if (['Daily Car Cleaning', 'Car Washing', 'Solar Panel Cleaning', 'Interior Detailing', 'Exterior Detailing', 'Other'].indexOf(cat) !== -1) {
           catSelect.value = cat;
         } else {
           catSelect.value = 'Daily Car Cleaning';
@@ -8750,6 +8750,8 @@ function loadStaffCustomerData(staffId) {
         var tagClass = 'tag-daily';
         if (catName === 'Car Washing') tagClass = 'tag-wash';
         else if (catName === 'Solar Panel Cleaning') tagClass = 'tag-solar';
+        else if (catName === 'Interior Detailing') tagClass = 'tag-interior';
+        else if (catName === 'Exterior Detailing') tagClass = 'tag-exterior';
         var pkgLabel = (r.packageType || r.serviceType || '').trim();
 
         var serviceHtml = '<div class="table-service-cell">' +
@@ -8931,21 +8933,31 @@ function loadStaffCustomerData(staffId) {
 
       /* Set Category and dynamic package types */
       var catSelect = document.getElementById('editCustCategory');
-      var catVal = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
+      var rawCat = (r.serviceCategory || r.category || r.interestedService || '').toString().trim();
+      var catVal = 'Daily Car Cleaning';
+      if (/solar/i.test(rawCat)) {
+        catVal = 'Solar Panel Cleaning';
+      } else if (/interior/i.test(rawCat)) {
+        catVal = 'Interior Detailing';
+      } else if (/exterior/i.test(rawCat)) {
+        catVal = 'Exterior Detailing';
+      } else if (/wash/i.test(rawCat)) {
+        catVal = 'Car Washing';
+      } else if (/daily/i.test(rawCat) || /dcc/i.test(rawCat)) {
+        catVal = 'Daily Car Cleaning';
+      } else if (r.sheetName === 'All Other Work') {
+        catVal = 'Car Washing';
+      } else {
+        catVal = 'Daily Car Cleaning';
+      }
+
       if (catSelect) {
-        if (r.sheetName === 'Daily Clean') {
-          catSelect.innerHTML = '<option value="Daily Car Cleaning">Daily Car Cleaning</option>';
-          catVal = 'Daily Car Cleaning';
-        } else {
-          catSelect.innerHTML = 
-            '<option value="Car Washing">Car Washing</option>' +
-            '<option value="Solar Panel Cleaning">Solar Panel Cleaning</option>' +
-            '<option value="Interior Detailing">Interior Detailing</option>' +
-            '<option value="Exterior Detailing">Exterior Detailing</option>';
-          if (['Car Washing', 'Solar Panel Cleaning', 'Interior Detailing', 'Exterior Detailing'].indexOf(catVal) === -1) {
-            catVal = 'Car Washing';
-          }
-        }
+        catSelect.innerHTML = 
+          '<option value="Daily Car Cleaning">🚗 Daily Car Cleaning (दैनिक कार सफाई)</option>' +
+          '<option value="Car Washing">🧼 Car Washing (कार वॉश)</option>' +
+          '<option value="Solar Panel Cleaning">☀️ Solar Panel Cleaning (सोलर पैनल सफाई)</option>' +
+          '<option value="Interior Detailing">✨ Interior Detailing (इंटीरियर डिटेलिंग)</option>' +
+          '<option value="Exterior Detailing">🛡️ Exterior Detailing (एक्सटीरियर डिटेलिंग)</option>';
         catSelect.value = catVal;
         handleEditCategoryChange(catVal);
       }
@@ -9229,6 +9241,7 @@ function loadStaffCustomerData(staffId) {
       var serviceCategory = catSelect ? catSelect.value : 'Daily Car Cleaning';
       var isSolarEdit = (serviceCategory === 'Solar Panel Cleaning' || serviceCategory === 'solar_cleaning');
       var isCarWashEdit = (serviceCategory === 'Car Washing' || serviceCategory === 'car_washing');
+      var resolvedSheetName = (serviceCategory === 'Daily Car Cleaning' || serviceCategory === 'daily_car_cleaning') ? 'Daily Clean' : 'All Other Work';
       var resolvedServiceType = isSolarEdit ? 'Solar Cleaning' : (isCarWashEdit ? 'Car Wash' : (serviceCategory === 'Interior Detailing' ? 'Interior Detailing' : (serviceCategory === 'Exterior Detailing' ? 'Exterior Detailing' : 'Daily Clean')));
       var editPanelInput = document.getElementById('editCustSolarPanelsCount') || document.getElementById('editCustPanelCount');
       var panelCountVal = isSolarEdit ? (parseInt(editPanelInput ? editPanelInput.value : '', 10) || null) : null;
@@ -9273,7 +9286,7 @@ function loadStaffCustomerData(staffId) {
 
       var updatedData = {
         id: editCustId,
-        sheetName: sheetName,
+        sheetName: resolvedSheetName,
         rowIndex: rowIndex,
         customerName: document.getElementById('editCustName').value.trim(),
         nameHi: document.getElementById('editCustNameHi') ? document.getElementById('editCustNameHi').value.trim() : '',
