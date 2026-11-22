@@ -65,16 +65,11 @@ assert.ok(indexHtml.includes('id="dashSpecialPending"'), '2.7 #dashSpecialPendin
 assert.ok(indexHtml.includes('id="dashActiveCrew"'), '2.8 #dashActiveCrew must exist in dashboard');
 assert.ok(indexHtml.includes('id="dashLatestActivity"'), '2.9 #dashLatestActivity must exist in dashboard');
 
-// 2.3 Intelligent Segmented View Switcher & Smart Operations Intelligence Deck
-assert.ok(indexHtml.includes('class="ops-club-switcher"'), '2.10 .ops-club-switcher must exist');
-assert.ok(indexHtml.includes('id="dashBtnSubCleanReports"'), '2.11 #dashBtnSubCleanReports switcher button must exist');
-assert.ok(indexHtml.includes('id="dashBtnSubSpecialJobs"'), '2.12 #dashBtnSubSpecialJobs switcher button must exist');
-
-// 2.4 Intelligent Operations Deck Cards
-assert.ok(indexHtml.includes('class="ops-intelligence-deck"'), '2.13 .ops-intelligence-deck must exist');
-assert.ok(indexHtml.includes('id="dashCombinedDone"'), '2.14 #dashCombinedDone must exist in intelligent workload card');
-assert.ok(indexHtml.includes('id="dashAuditRate"'), '2.15 #dashAuditRate must exist in proof-of-work quality card');
-assert.ok(indexHtml.includes('id="dashCrewActiveCount"'), '2.16 #dashCrewActiveCount must exist in route velocity card');
+// 2.3 Intelligent Operations Deck Cards (Replacing redundant segment switcher)
+assert.ok(indexHtml.includes('class="ops-intelligence-deck"'), '2.10 .ops-intelligence-deck must exist');
+assert.ok(indexHtml.includes('id="dashCombinedDone"'), '2.11 #dashCombinedDone must exist in intelligent workload card');
+assert.ok(indexHtml.includes('id="dashAuditRate"'), '2.12 #dashAuditRate must exist in proof-of-work quality card');
+assert.ok(indexHtml.includes('id="dashCrewActiveCount"'), '2.13 #dashCrewActiveCount must exist in route velocity card');
 
 console.log('✅ PASS 2: Unified Operations Dashboard, combined KPIs, and intelligent cards verified.');
 
@@ -110,7 +105,7 @@ assert.ok(styleCss.includes('.sidebar-logout-btn'), '4.3 .sidebar-logout-btn sty
 // 4.2 Dashboard styles
 assert.ok(styleCss.includes('.ops-dashboard-hub-header'), '4.4 .ops-dashboard-hub-header styled');
 assert.ok(styleCss.includes('.ops-kpi-deck'), '4.5 .ops-kpi-deck grid styled');
-assert.ok(styleCss.includes('.ops-club-switcher'), '4.6 .ops-club-switcher segmented styled');
+assert.ok(styleCss.includes('.ops-intelligence-deck'), '4.6 .ops-intelligence-deck grid styled');
 
 // 4.3 Mobile Drawer breakpoint
 assert.ok(styleCss.includes('@media (max-width: 1024px)'), '4.7 Tablet/Mobile media query defined for sidebar drawer');

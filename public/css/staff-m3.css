@@ -1735,6 +1735,34 @@ body.staff-mode-active #adminLogoutBtn,
   font-weight: 700 !important;
 }
 
+/* Audio Alarm Test Button */
+.btn-test-alarm-chime {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  background: var(--md-sys-color-primary-container, #eff6ff) !important;
+  border: 1px solid #bfdbfe !important;
+  color: var(--md-sys-color-primary, #1d4ed8) !important;
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  font-family: inherit !important;
+  box-shadow: 0 1px 2px rgba(29, 78, 216, 0.08) !important;
+}
+
+.btn-test-alarm-chime:hover {
+  background: #dbeafe !important;
+  border-color: #93c5fd !important;
+}
+
+.btn-test-alarm-chime:active {
+  transform: scale(0.96) !important;
+}
+
 /* Shift Diagnostics & App Info */
 .staff-settings-info-card .settings-card-header {
   display: flex !important;
@@ -2119,4 +2147,15 @@ body.theme-dark .btn-pref-segment.active {
   background: #0f172a !important;
   color: #38bdf8 !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.theme-dark .btn-test-alarm-chime {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-color: rgba(56, 189, 248, 0.28) !important;
+  color: #38bdf8 !important;
+}
+
+body.theme-dark .btn-test-alarm-chime:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border-color: #38bdf8 !important;
 }

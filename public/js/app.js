@@ -3374,24 +3374,87 @@ var state = {
     var hasStaffInitialLoadDone = false;
 
     /* Native Web Audio Chimes (100% offline-ready, zero external audio asset dependency) */
+    var sharedAudioContext = null;
+    function getOrCreateAudioContext() {
+      try {
+        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+        if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+          sharedAudioContext = new AudioContextClass();
+        }
+        if (sharedAudioContext.state === 'suspended') {
+          sharedAudioContext.resume().catch(function() {});
+        }
+        return sharedAudioContext;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Pre-warm / unlock Web Audio on first user interaction so mobile browsers never block alarms
+    if (typeof document !== 'undefined') {
+      var unlockAudio = function() {
+        try {
+          var ctx = getOrCreateAudioContext();
+          if (ctx && ctx.state === 'suspended') {
+            ctx.resume().catch(function() {});
+          }
+        } catch (e) {}
+        document.removeEventListener('click', unlockAudio, true);
+        document.removeEventListener('touchstart', unlockAudio, true);
+      };
+      document.addEventListener('click', unlockAudio, true);
+      document.addEventListener('touchstart', unlockAudio, true);
+    }
+
+    /* High-Impact Alarming Dispatch Alert Chime (100% Full Volume, Piercing Multi-Burst) */
     function playNewTaskChime() {
       try {
         var AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) return;
-        var ctx = new AudioContextClass();
+        var ctx = getOrCreateAudioContext() || new AudioContextClass();
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(function() {});
+        }
+        var now = ctx.currentTime;
+
+        // Master Gain at Full Scale (1.0 = 100% Volume, zero attenuation)
+        var masterGain = ctx.createGain();
+        masterGain.connect(ctx.destination);
+        masterGain.gain.setValueAtTime(1.0, now);
+
+        // High-penetration triangle oscillator (rich piercing harmonics that cut through noisy outdoor field environments)
         var osc = ctx.createOscillator();
         var gain = ctx.createGain();
+        osc.type = 'triangle';
         osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        var now = ctx.currentTime;
-        // Two-tone pleasant chime: E5 (659.25Hz) -> A5 (880.00Hz)
-        osc.frequency.setValueAtTime(659.25, now);
-        osc.frequency.setValueAtTime(880.00, now + 0.15);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        gain.connect(masterGain);
+
+        // Urgent 3-Pulse Dispatch Motif: High C6 (1046.5Hz) -> High G6 (1567.98Hz) -> High C7 (2093Hz)
+        // Burst 1 (Staccato alert)
+        gain.gain.setValueAtTime(1.0, now);
+        osc.frequency.setValueAtTime(1046.50, now);
+        osc.frequency.setValueAtTime(1567.98, now + 0.12);
+        gain.gain.setValueAtTime(0.001, now + 0.28);
+
+        // Burst 2 (Repeating urgency)
+        gain.gain.setValueAtTime(1.0, now + 0.36);
+        osc.frequency.setValueAtTime(1046.50, now + 0.36);
+        osc.frequency.setValueAtTime(1567.98, now + 0.48);
+        gain.gain.setValueAtTime(0.001, now + 0.64);
+
+        // Burst 3 (Piercing Crescendo Finale at High C7)
+        gain.gain.setValueAtTime(1.0, now + 0.74);
+        osc.frequency.setValueAtTime(2093.00, now + 0.74);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.25);
+
         osc.start(now);
-        osc.stop(now + 0.5);
+        osc.stop(now + 1.25);
+
+        // High-intensity haptic vibration sequence (3 distinct pulses synced to audio)
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          try { navigator.vibrate([300, 100, 300, 100, 500]); } catch (ve) {}
+        }
       } catch (e) {
         console.warn('Audio chime playback blocked or unavailable:', e);
       }
@@ -3745,7 +3808,7 @@ function loadStaffCustomerData(staffId) {
       } else if (newlyAssignedJobs.length > 0) {
         playNewTaskChime();
         if (navigator.vibrate) {
-          try { navigator.vibrate([200, 100, 200]); } catch (ve) {}
+          try { navigator.vibrate([300, 100, 300, 100, 500]); } catch (ve) {}
         }
         var firstNew = newlyAssignedJobs[0];
         showStaffNewTaskBanner(firstNew, newlyAssignedJobs.length);

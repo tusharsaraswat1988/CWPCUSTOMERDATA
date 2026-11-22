@@ -125,6 +125,12 @@
       "role": "superadmin",
       "createdAt": 1795337164036,
       "expiresAt": 1795380364036
+    },
+    "adm_aa291819ef9effbbce23a85753a2b76eef9548e716b7722114072e4e69fe2552": {
+      "username": "admin",
+      "role": "superadmin",
+      "createdAt": 1795337299912,
+      "expiresAt": 1795380499912
     }
   }
 }

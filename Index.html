@@ -414,6 +414,16 @@
               <button type="button" class="btn-pref-segment" id="btnPrefThemeDark" onclick="setAppThemeMode('dark')">🌙 Dark</button>
             </div>
           </div>
+          <div class="pref-row">
+            <div class="pref-label-group">
+              <span class="material-symbols-outlined pref-icon" aria-hidden="true">notifications_active</span>
+              <span class="pref-title">अलार्म साउंड (Alarm Volume)</span>
+            </div>
+            <button type="button" class="btn-test-alarm-chime" id="btnTestAlarmSound" onclick="playNewTaskChime()" title="नया काम असाइन होने पर बजने वाला अलार्म चलाकर चेक करें">
+              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">volume_up</span>
+              <span>🔊 टेस्ट अलार्म (Full Vol)</span>
+            </button>
+          </div>
         </div>
       </div>
       <div class="staff-settings-info-card">
@@ -977,12 +987,6 @@
         </div>
         
         <div class="ops-intelligence-deck" id="dashOpsIntelligenceDeck">
-          
-          <div class="ops-club-switcher" style="display: none;" aria-hidden="true">
-            <button type="button" id="dashBtnSubCleanReports"><span id="dashSubCleanCount">0</span></button>
-            <button type="button" id="dashBtnSubSpecialJobs"><span id="dashSubSpecialCount">0</span></button>
-          </div>
-
           <div class="ops-intel-card intel-card-workload">
             <div class="intel-card-header">
               <div class="intel-card-title-group">
@@ -1220,8 +1224,8 @@
           <div class="special-kpi-card kpi-card-progress" onclick="filterAdminSpecialByStatus('in_progress')" title="Click to filter by In Progress" role="button" tabindex="0"><div class="kpi-icon-wrap"><span class="material-symbols-outlined">play_circle</span></div><div class="kpi-content"><div class="kpi-label">⏳ In Progress (Started)</div><div class="kpi-value" id="kpiSpecialInProgress">0</div><div class="kpi-subtext">Active on-site cleaning</div></div></div>
           <div class="special-kpi-card kpi-card-completed" onclick="filterAdminSpecialByStatus('completed')" title="Click to filter by Completed" role="button" tabindex="0"><div class="kpi-icon-wrap"><span class="material-symbols-outlined">check_circle</span></div><div class="kpi-content"><div class="kpi-label">✅ Completed (Done)</div><div class="kpi-value" id="kpiSpecialCompleted">0</div><div class="kpi-subtext">Verified with photos</div></div></div>
         </div>
-        <div class="special-category-chips-bar" role="tablist" aria-label="Service Category Filters">
-          <button type="button" class="category-chip active" data-cat="all" onclick="selectAdminSpecialCategoryChip('all')"><span class="chip-label">All Categories</span><span class="chip-count" id="chipCatCountAll">0</span></button>
+        <div class="special-category-chips-bar" role="tablist" aria-label="Work Type Filters">
+          <button type="button" class="category-chip active" data-cat="all" onclick="selectAdminSpecialCategoryChip('all')"><span class="chip-label">All Work Types</span><span class="chip-count" id="chipCatCountAll">0</span></button>
           <button type="button" class="category-chip" data-cat="solar_cleaning" onclick="selectAdminSpecialCategoryChip('solar_cleaning')"><span class="material-symbols-outlined">solar_power</span><span class="chip-label">Solar Clean</span><span class="chip-count" id="chipCatCountSolar">0</span></button>
           <button type="button" class="category-chip" data-cat="interior_detailing" onclick="selectAdminSpecialCategoryChip('interior_detailing')"><span class="material-symbols-outlined">auto_awesome</span><span class="chip-label">Interior Detail</span><span class="chip-count" id="chipCatCountInterior">0</span></button>
           <button type="button" class="category-chip" data-cat="exterior_detailing" onclick="selectAdminSpecialCategoryChip('exterior_detailing')"><span class="material-symbols-outlined">shield</span><span class="chip-label">Exterior Detail</span><span class="chip-count" id="chipCatCountExterior">0</span></button>
@@ -1236,8 +1240,8 @@
           </div>
           <div class="filter-controls-group">
             <div class="filter-dropdown-wrap">
-              <select id="adminSpecialCategoryFilter" class="form-select filter-select" onchange="handleAdminSpecialCategorySelect(this.value)" aria-label="Category Filter">
-                <option value="all">All Categories</option>
+              <select id="adminSpecialCategoryFilter" class="form-select filter-select" onchange="handleAdminSpecialCategorySelect(this.value)" aria-label="Work Type Filter">
+                <option value="all">All Work Types</option>
                 <option value="solar_cleaning">☀️ Solar Clean</option>
                 <option value="interior_detailing">✨ Interior Detailing</option>
                 <option value="exterior_detailing">🛡️ Exterior Detailing</option>
@@ -1264,17 +1268,19 @@
             <thead>
               <tr>
                 <th class="col-sno">#</th>
-                <th class="col-service">Category</th>
-                <th class="col-customer">Customer Info</th>
-                <th class="col-location">Location / Address</th>
+                <th class="col-worktype">Work Type</th>
+                <th class="col-scope">Scope / Vehicle</th>
+                <th class="col-customer">Customer</th>
+                <th class="col-location">Location</th>
                 <th class="col-staff">Staff</th>
+                <th class="col-timeline">Timeline & Timing</th>
                 <th class="col-status">Status</th>
-                <th class="col-photos">Before / After Photos</th>
+                <th class="col-photos">Photos</th>
                 <th class="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody id="adminSpecialJobsTableBody">
-              <tr><td colspan="8" class="table-loading-cell"><span class="status-sync-spinner"></span> Loading on-demand jobs...</td></tr>
+              <tr><td colspan="10" class="table-loading-cell"><span class="status-sync-spinner"></span> Loading Wash & Solar jobs...</td></tr>
             </tbody>
           </table>
         </div>
