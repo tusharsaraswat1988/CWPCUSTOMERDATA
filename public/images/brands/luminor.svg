@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60" aria-label="Luminor Logo">
+  <rect width="200" height="60" fill="transparent"/>
+  <!-- Gold Radiance Crown -->
+  <g transform="translate(12, 10)">
+    <circle cx="20" cy="20" r="16" fill="none" stroke="#D97706" stroke-width="3"/>
+    <circle cx="20" cy="20" r="8" fill="#FBBF24"/>
+    <path d="M20 0 L20 6 M20 34 L20 40 M0 20 L6 20 M34 20 L40 20" stroke="#D97706" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="60" y="32" font-family="'Poppins', sans-serif" font-weight="900" font-size="21" fill="#78350F" letter-spacing="2px">LUMINOR</text>
+  <text x="60" y="46" font-family="'Poppins', sans-serif" font-weight="600" font-size="9" fill="#D97706" letter-spacing="2px">SURFACE LABS</text>
+</svg>

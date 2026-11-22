@@ -24,39 +24,79 @@ const DEFAULT_CONFIG = {
   },
   gst: {
     percent: 18,
-    label: '(GST Extra)',
-    notice: 'All rates are exclusive of 18% GST (GST Extra)'
+    label: 'GST additional',
+    notice: 'GST additional'
   },
   rates: {
+    carCare: {
+      dcc: {
+        fiveSeater: {
+          basic: 1100,
+          silver: 1500,
+          gold: 2000
+        },
+        fivePlusSeater: {
+          basic: 1200,
+          silver: 1600,
+          gold: 2200
+        }
+      },
+      wash: {
+        fiveSeater: {
+          oneTime: 600,
+          subscription4: 1800
+        },
+        fivePlusSeater: {
+          oneTime: 700,
+          subscription4: 2100
+        }
+      },
+      detailing: {
+        ceramicCoatingStarts: 11999,
+        interiorDetailingStarts: 1499
+      }
+    },
+    solarCare: {
+      oneTime: {
+        tier1_30: 60,
+        tier30_100: 50,
+        tier100Plus: 'Site Visit',
+        minBilling: 800
+      },
+      amc6Month: {
+        tier1_30: 50,
+        tier30_100: 45,
+        tier100Plus: 'Site Visit'
+      },
+      amc12Month: {
+        tier1_30: 45,
+        tier30_100: 40,
+        tier100Plus: 'Site Visit'
+      }
+    },
     hatchback: {
-      dailyClean: 1999,
+      dailyClean: 1100,
       interiorExteriorDetail: 1499,
-      ceramicCoating: 8999,
+      ceramicCoating: 11999,
       examples: 'Swift, i20, Baleno, Tiago, Altroz, Grand i10'
     },
     sedan: {
-      dailyClean: 2199,
-      interiorExteriorDetail: 1699,
-      ceramicCoating: 9999,
+      dailyClean: 1100,
+      interiorExteriorDetail: 1499,
+      ceramicCoating: 11999,
       examples: 'City, Verna, Ciaz, Slavia, Virtus, Dzire, Amaze'
     },
     compactSuv: {
-      dailyClean: 2299,
-      interiorExteriorDetail: 1799,
-      ceramicCoating: 10999,
+      dailyClean: 1100,
+      interiorExteriorDetail: 1499,
+      ceramicCoating: 11999,
       examples: 'Creta, Seltos, Brezza, Nexon, Venue, Grand Vitara'
     },
     fullSuvLuxury: {
-      dailyClean: 2699,
-      interiorExteriorDetail: 2199,
-      ceramicCoating: 13999,
+      dailyClean: 1200,
+      interiorExteriorDetail: 1499,
+      ceramicCoating: 11999,
       examples: 'Fortuner, Safari, XUV700, Scorpio-N, BMW, Mercedes'
-    },
-    solarCare: {
-      perPanelSingle: 40,
-      perPanelSubscription6Mo: 30,
-      perPanelSubscription12Mo: 25,
-      minimumPanels: 10
     }
   },
   offers: [
@@ -101,7 +141,8 @@ const DEFAULT_CONFIG = {
     ratingMax: '5.0',
     totalReviews: '100+',
     activeMembers: '450+',
-    waterTds: '0 TDS (Pure RO)',
+    waterTds: 'Treated Soft Water (Spot-Free)',
+    waterQuality: 'Treated Soft Water (Spot-Free)',
     onTimeRate: '98.4%'
   }
 };

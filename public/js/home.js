@@ -8,7 +8,9 @@
 
   // State
   let activeServiceMode = 'car'; // 'car' or 'solar'
-  let activeVehicleTab = 'hatchback'; // 'hatchback', 'sedan', 'compactSuv', 'fullSuvLuxury'
+  let activeCarSubSegment = 'dcc'; // 'dcc' or 'wash'
+  let activeVehicleCategory = 'fiveSeater'; // 'fiveSeater' or 'fivePlusSeater'
+  let activeVehicleTab = 'hatchback'; // backwards compatibility alias
   let homepageConfig = null;
 
   // DOM Elements
@@ -30,8 +32,13 @@
   const pricingEyebrow = document.getElementById('pricingEyebrow');
   const pricingTitle = document.getElementById('pricingTitle');
   const pricingSubtitle = document.getElementById('pricingSubtitle');
-  const vehicleTabsWrap = document.getElementById('vehicleTabsWrap');
+  const carSubsegmentWrap = document.getElementById('carSubsegmentWrap');
+  const vehicleCategoryWrap = document.getElementById('vehicleCategoryWrap');
+  const gstNoticeBar = document.getElementById('gstNoticeBar');
   const pricingCardsContainer = document.getElementById('pricingCardsContainer');
+  const pricingFootnote = document.getElementById('pricingFootnote');
+  const detailingHighlightsWrap = document.getElementById('detailingHighlightsWrap');
+  const brandsShowcaseWrap = document.getElementById('brandsShowcaseWrap');
   const baTitle = document.getElementById('baTitle');
   const baSubtitle = document.getElementById('baSubtitle');
   const baTagBefore = document.getElementById('baTagBefore');
@@ -130,7 +137,7 @@
         heroTitle.classList.add('solar-mode');
       }
       if (heroDesc) {
-        heroDesc.textContent = 'Varanasi ki dhool aur scaling se solar generation 20-30% gir jaata hai. CWP ke de-mineralized pure Zero-TDS RO water aur soft non-abrasive wash se panels ko banaiye dust-free.';
+        heroDesc.textContent = 'Varanasi ki dhool aur scaling se solar generation 20-30% gir jaata hai. CWP ke specialized soft-water wash aur non-abrasive technique se panels ko banaiye dust-free.';
       }
       if (heroPrimaryCta) {
         heroPrimaryCta.textContent = 'Get Solar Rooftop Quote →';
@@ -151,17 +158,22 @@
 
       // Pricing Header & Tabs
       if (pricingEyebrow) {
-        pricingEyebrow.textContent = 'Solar Maintenance Pricing';
+        pricingEyebrow.textContent = 'Services & Rates';
         pricingEyebrow.classList.add('amber');
       }
       if (pricingTitle) {
-        pricingTitle.textContent = 'Transparent Rooftop Solar Cleaning Plans';
+        pricingTitle.textContent = 'Rooftop Solar Panel Cleaning Rate Card';
       }
       if (pricingSubtitle) {
-        pricingSubtitle.textContent = 'Billed per panel or save with 6-month & annual recurring plans. 100% Zero-TDS RO demineralized water.';
+        pricingSubtitle.textContent = 'Glass-safe soft-water wash & anti-scaling care across Varanasi. GST additional.';
       }
-      if (vehicleTabsWrap) {
-        vehicleTabsWrap.style.display = 'none';
+      if (carSubsegmentWrap) carSubsegmentWrap.style.display = 'none';
+      if (vehicleCategoryWrap) vehicleCategoryWrap.style.display = 'none';
+      if (detailingHighlightsWrap) detailingHighlightsWrap.style.display = 'none';
+      if (brandsShowcaseWrap) brandsShowcaseWrap.style.display = 'none';
+      if (pricingFootnote) {
+        pricingFootnote.textContent = 'One-time cleaning minimum billing ₹800. All rates are per panel per visit. GST additional.';
+        pricingFootnote.style.display = 'block';
       }
 
       // Before / After Slider
@@ -187,7 +199,7 @@
         heroTitle.classList.remove('solar-mode');
       }
       if (heroDesc) {
-        heroDesc.textContent = 'Regular doorstep cleaning, professional detailing and recurring care plans — trained CWP specialists at your gate, every week. No colony-cleaner swirls, 100% Zero-TDS RO water.';
+        heroDesc.textContent = 'Regular doorstep cleaning, professional detailing and recurring care plans — trained CWP specialists at your gate, every week. No colony-cleaner swirls, treated soft-water & scratch-free care.';
       }
       if (heroPrimaryCta) {
         heroPrimaryCta.textContent = 'Book Doorstep Service →';
@@ -208,17 +220,21 @@
 
       // Pricing Header & Tabs
       if (pricingEyebrow) {
-        pricingEyebrow.textContent = 'Transparent Pricing';
+        pricingEyebrow.textContent = 'Complete Rate Card';
         pricingEyebrow.classList.remove('amber');
       }
       if (pricingTitle) {
-        pricingTitle.textContent = 'Simple, Honest Monthly Plans for Varanasi';
+        pricingTitle.textContent = 'Transparent Doorstep Service Rates';
       }
       if (pricingSubtitle) {
-        pricingSubtitle.textContent = 'Select your car body type below to view doorstep routine charges. Zero hidden fees.';
+        pricingSubtitle.textContent = 'Professional doorstep car maintenance, deep car washes, and detailing. GST additional.';
       }
-      if (vehicleTabsWrap) {
-        vehicleTabsWrap.style.display = 'flex';
+      if (carSubsegmentWrap) carSubsegmentWrap.style.display = 'flex';
+      if (vehicleCategoryWrap) vehicleCategoryWrap.style.display = 'flex';
+      if (detailingHighlightsWrap) detailingHighlightsWrap.style.display = 'grid';
+      if (brandsShowcaseWrap) brandsShowcaseWrap.style.display = 'block';
+      if (pricingFootnote) {
+        pricingFootnote.style.display = 'block';
       }
 
       // Before / After Slider
@@ -241,7 +257,7 @@
     if (mode === 'solar') {
       trustChipsContainer.innerHTML = `
         <div class="trust-chip" style="border-color: #fde68a; background: #fffbeb;">20% to 30% Higher Power Generation</div>
-        <div class="trust-chip" style="border-color: #fde68a; background: #fffbeb;">Demineralized Zero-TDS RO Wash (No Scaling)</div>
+        <div class="trust-chip" style="border-color: #fde68a; background: #fffbeb;">Spot-Free Soft Water Wash (No Scaling)</div>
         <div class="trust-chip">Anti-Scratch Soft Telescopic Brushes</div>
         <div class="trust-chip">Rooftop Safety Harness Certified Staff</div>
         <div class="trust-chip">Inverter Reading Verified Before & After</div>
@@ -249,7 +265,7 @@
       `;
     } else {
       trustChipsContainer.innerHTML = `
-        <div class="trust-chip">100% Zero-TDS RO Water (Zero Swirls)</div>
+        <div class="trust-chip">Treated Soft-Water Wash (Spot-Free Finish)</div>
         <div class="trust-chip">2-Bucket Microfiber Technique</div>
         <div class="trust-chip">WhatsApp Photos Every Visit</div>
         <div class="trust-chip">24-Hour Re-Do Guarantee</div>
@@ -318,7 +334,7 @@
           <div class="timeline-step">
             <span class="timeline-time amber">Step 1</span>
             <h3 class="timeline-title">Rooftop Safety Setup</h3>
-            <p class="timeline-desc">Certified technicians anchor safety harnesses and assemble telescopic soft-wash system with pure demineralized RO water.</p>
+            <p class="timeline-desc">Certified technicians anchor safety harnesses and assemble telescopic soft-wash system with treated soft water.</p>
           </div>
           <div class="timeline-step">
             <span class="timeline-time amber">Step 2</span>
@@ -327,8 +343,8 @@
           </div>
           <div class="timeline-step">
             <span class="timeline-time amber">Step 3</span>
-            <h3 class="timeline-title">Demineralized RO Wash</h3>
-            <p class="timeline-desc">100% Zero-TDS RO water and specialized non-abrasive soft fiber brush dissolve baked-on dust and bird droppings.</p>
+            <h3 class="timeline-title">Glass-Safe Soft Wash</h3>
+            <p class="timeline-desc">Treated soft water and specialized non-abrasive soft fiber brush dissolve baked-on dust and bird droppings safely.</p>
           </div>
           <div class="timeline-step">
             <span class="timeline-time amber">Step 4</span>
@@ -366,7 +382,7 @@
           <div class="timeline-step">
             <span class="timeline-time">6:42 AM</span>
             <h3 class="timeline-title">Dispatched from Hub</h3>
-            <p class="timeline-desc">Specialist dispatched from our Sigra hub with pre-filled Zero-TDS RO water and battery pressure gear.</p>
+            <p class="timeline-desc">Specialist dispatched from our Sigra hub with onboard treated water supply and battery pressure gear.</p>
           </div>
           <div class="timeline-step">
             <span class="timeline-time">6:58 AM</span>
@@ -425,7 +441,7 @@
           </div>
           <div class="review-stars">★★★★★</div>
           <p class="review-quote">
-            "Varanasi ki dhool se generation 14 units se 10 units pe aa gaya tha. CWP ke Zero-TDS RO wash ke baad turant 13.8 units daily generate hone laga. Inverter display pe live difference dikhta hai."
+            "Varanasi ki dhool se generation 14 units se 10 units pe aa gaya tha. CWP ke specialized soft wash ke baad turant 13.8 units daily generate hone laga. Inverter display pe live difference dikhta hai."
           </p>
         </div>
 
@@ -470,7 +486,7 @@
           </div>
           <div class="review-stars">★★★★★</div>
           <p class="review-quote">
-            "With an Abyss Black Creta in Varanasi dust, colony washes left endless swirl circles. CWP's zero-TDS RO water and 2-bucket microfiber technique completely ended swirl marks. My morning school run starts with a spotless, glossy car."
+            "With an Abyss Black Creta in Varanasi dust, colony washes left endless swirl circles. CWP's treated soft water and 2-bucket microfiber technique completely ended swirl marks. My morning school run starts with a spotless, glossy car."
           </p>
         </div>
 
@@ -498,7 +514,7 @@
           </div>
           <div class="review-stars">★★★★★</div>
           <p class="review-quote">
-            "Cleaning a full-size SUV properly used to eat up half my Sunday at wash stations. Their self-powered mobile rig pulls right into my driveway with pure RO water and power. Steam cleaning removed monsoon grime effortlessly."
+            "Cleaning a full-size SUV properly used to eat up half my Sunday at wash stations. Their self-powered mobile rig pulls right into my driveway with dedicated soft-water supply and equipment. Steam cleaning removed monsoon grime effortlessly."
           </p>
         </div>
       `;
@@ -517,7 +533,7 @@
             <span class="faq-icon">▼</span>
           </button>
           <div class="faq-answer">
-            Varanasi ke ground water mein high TDS aur calcium hota hai. Nal ke paani se dhone par glass par permanent safed scale (hard water spots) jam jaati hai, jisse solar cells dhoop absorb nahi kar pate aur 'hot-spots' banne se panel damage ho sakta hai. CWP 100% Zero-TDS demineralized pure RO water se dhota hai jisse zero scaling banti hai.
+            Varanasi ke ground water mein high mineral hardness aur calcium hota hai. Nal ke paani se dhone par glass par permanent safed scale (hard water spots) jam jaati hai, jisse solar cells dhoop absorb nahi kar pate aur 'hot-spots' banne se panel damage ho sakta hai. CWP treated soft water aur glass-safe soft wash technique use karta hai jisse koi hard water scaling nahi jamti.
           </div>
         </div>
 
@@ -547,7 +563,7 @@
             <span class="faq-icon">▼</span>
           </button>
           <div class="faq-answer">
-            Agar panels par 3-4 hafte ki dhool hai, toh CWP ke RO wash ke baad turant 15% se 30% units ka generation jump hota hai. Aap cleaning ke 15 minute baad apne solar inverter display ya mobile app par live generation boost dekh sakte hain.
+            Agar panels par 3-4 hafte ki dhool hai, toh CWP ke soft-wash cleaning ke baad turant 15% se 30% units ka generation jump hota hai. Aap cleaning ke 15 minute baad apne solar inverter display ya mobile app par live generation boost dekh sakte hain.
           </div>
         </div>
       `;
@@ -566,11 +582,11 @@
 
         <div class="faq-item">
           <button class="faq-question">
-            <span>CWP ke Zero-TDS RO water aur ordinary paani mein kya farq hai?</span>
+            <span>CWP ke treated water wash aur ordinary colony wash mein kya farq hai?</span>
             <span class="faq-icon">▼</span>
           </button>
           <div class="faq-answer">
-            Varanasi ke ground water mein high TDS aur calcium hota hai, jisse car ke clear coat par safed daag (water spots) jam jaate hain. CWP 100% demineralized Zero-TDS RO water carry karta hai, jisse paint par zero spot banta hai aur paint life double rehti hai.
+            Varanasi ke ground water mein excessive mineral hardness aur calcium hota hai, jisse car ke clear coat par safed daag (hard water spots) jam jaate hain. CWP treated soft water aur pH-neutral automotive shampoo use karta hai, jisse paint par spots nahi aate aur clear coat सुरक्षित rehta hai.
           </div>
         </div>
 
@@ -590,7 +606,7 @@
             <span class="faq-icon">▼</span>
           </button>
           <div class="faq-answer">
-            Daily clean plan mein 26 exterior washes per month hote hain jisme Zero-TDS RO water rinse, 2-bucket microfiber body wash, windshield glass polishing, tire dressing, aur daily WhatsApp photo log shamil hota hai.
+            Daily clean plan mein 26 exterior visits per month hote hain jisme treated soft-water rinse, 2-bucket microfiber body wash, windshield glass polishing, tire dressing, aur daily WhatsApp photo log shamil hota hai.
           </div>
         </div>
       `;
@@ -598,179 +614,286 @@
     initFaq();
   }
 
-  // Switch vehicle tab
+  // Switch car sub-segment (DCC vs Doorstep Car Wash)
+  window.setCarSubSegment = function (sub) {
+    activeCarSubSegment = sub;
+    document.getElementById('subtabDcc')?.classList.toggle('active', sub === 'dcc');
+    document.getElementById('subtabWash')?.classList.toggle('active', sub === 'wash');
+    renderPricing();
+  };
+
+  // Switch vehicle category (5-Seater vs 5+ Seater)
+  window.setVehicleCategory = function (cat) {
+    activeVehicleCategory = cat;
+    document.getElementById('vPill5Seater')?.classList.toggle('active', cat === 'fiveSeater');
+    document.getElementById('vPill5PlusSeater')?.classList.toggle('active', cat === 'fivePlusSeater');
+    renderPricing();
+  };
+
+  // Backward compatibility alias for tests
   function setVehicleTab(tabKey) {
     activeVehicleTab = tabKey;
-    document.querySelectorAll('.v-tab-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === tabKey);
-    });
+    if (tabKey === 'fullSuvLuxury') {
+      window.setVehicleCategory('fivePlusSeater');
+    } else {
+      window.setVehicleCategory('fiveSeater');
+    }
     renderPricing();
   }
+  window.setVehicleTab = setVehicleTab;
 
   // Render pricing cards dynamically
   function renderPricing() {
     if (!pricingCardsContainer) return;
 
     if (activeServiceMode === 'solar') {
-      const solarRates = (homepageConfig && homepageConfig.rates && homepageConfig.rates.solarCare) || {
-        perPanelSingle: 40,
-        perPanelSubscription6Mo: 30,
-        perPanelSubscription12Mo: 25
-      };
-
+      pricingCardsContainer.className = 'pricing-cards-grid';
       pricingCardsContainer.innerHTML = `
-        <div class="pricing-card">
-          <h3 class="pkg-title">One-Time Deep Clean</h3>
-          <p class="pkg-desc">Single rooftop solar cleaning session with zero-TDS RO demineralized water.</p>
-          <div class="pkg-price-wrap">
-            <span class="price-currency">₹</span>
-            <span class="price-num">${solarRates.perPanelSingle}</span>
-            <span class="price-unit">/ panel</span>
-            <span class="price-gst-tag">+ 18% GST Extra (Min. 10 panels)</span>
+        <div class="solar-matrix-wrapper">
+          <div class="solar-matrix-header">
+            <h3 class="solar-matrix-title">Services &amp; Rates — Solar Panel Cleaning</h3>
+            <p class="solar-matrix-subtitle">Glass-safe soft-water wash &amp; anti-scaling care across Varanasi. GST additional.</p>
           </div>
-          <ul class="feature-list">
-            <li class="feature-item"><span class="check">✓</span> 100% Zero-TDS RO Demineralized Water</li>
-            <li class="feature-item"><span class="check">✓</span> Specialized anti-scratch soft microfiber wash</li>
-            <li class="feature-item"><span class="check">✓</span> Inverter generation check before & after</li>
-            <li class="feature-item"><span class="check">✓</span> Digital inspection report on WhatsApp</li>
-          </ul>
-          <button class="btn-primary" onclick="window.openBookingModal('Solar One-Time Clean', 'Solar Panel Cleaning')">Book Solar Clean</button>
-        </div>
 
-        <div class="pricing-card featured">
-          <div class="card-badge" style="background-color: var(--md-sys-color-tertiary);">Most Popular</div>
-          <h3 class="pkg-title">6-Month Maintenance Plan</h3>
-          <p class="pkg-desc">Bi-annual plan with monthly cleaning visits to ensure maximum solar output.</p>
-          <div class="pkg-price-wrap">
-            <span class="price-currency">₹</span>
-            <span class="price-num">${solarRates.perPanelSubscription6Mo}</span>
-            <span class="price-unit">/ panel / visit</span>
-            <span class="price-gst-tag">+ 18% GST Extra (6 Visits total)</span>
+          <div class="table-responsive">
+            <table class="solar-matrix-table">
+              <thead>
+                <tr>
+                  <th>Service / Plan</th>
+                  <th>1 To 30 PANELS<br><span class="col-sub">Residential Rooftop</span></th>
+                  <th>30 To 100 PANELS<br><span class="col-sub">Commercial / Villa</span></th>
+                  <th>100+ Plus<br><span class="col-sub">Industrial / Society</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="row-label">
+                    <strong>ONE TIME</strong>
+                    <span class="row-sub">Single Deep Clean</span>
+                  </td>
+                  <td class="cell-price">
+                    <span class="price-val">₹60</span>
+                    <span class="price-per">per panel</span>
+                    <span class="price-min">(Min. billing ₹800)</span>
+                  </td>
+                  <td class="cell-price">
+                    <span class="price-val">₹50</span>
+                    <span class="price-per">per panel</span>
+                  </td>
+                  <td class="cell-custom" rowspan="3">
+                    <div class="custom-quote-badge">
+                      <strong>साइट विजिट के बाद फैसला लिया जाएगा</strong>
+                      <span>Decided after site inspection</span>
+                      <button class="btn-primary btn-sm" onclick="window.openBookingModal('Solar 100+ Commercial Quote', 'Solar Panel Cleaning')">
+                        Book Site Visit →
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="row-highlight">
+                  <td class="row-label">
+                    <strong>6 MONTHS</strong>
+                    <span class="row-sub">Bi-Annual Maintenance</span>
+                  </td>
+                  <td class="cell-price">
+                    <span class="price-val">₹50</span>
+                    <span class="price-per">per panel / visit</span>
+                  </td>
+                  <td class="cell-price">
+                    <span class="price-val">₹45</span>
+                    <span class="price-per">per panel / visit</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="row-label">
+                    <strong>12 MONTHS</strong>
+                    <span class="row-sub">Annual Peace of Mind</span>
+                  </td>
+                  <td class="cell-price">
+                    <span class="price-val">₹45</span>
+                    <span class="price-per">per panel / visit</span>
+                  </td>
+                  <td class="cell-price">
+                    <span class="price-val">₹40</span>
+                    <span class="price-per">per panel / visit</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <ul class="feature-list">
-            <li class="feature-item"><span class="check">✓</span> 1 Scheduled RO wash every month (6 total)</li>
-            <li class="feature-item"><span class="check">✓</span> Up to 25% higher monthly power generation</li>
-            <li class="feature-item"><span class="check">✓</span> Visual frame & cable wear check</li>
-            <li class="feature-item"><span class="check">✓</span> Priority weekend or morning slots</li>
-          </ul>
-          <button class="btn-primary" onclick="window.openBookingModal('Solar 6-Month Plan', 'Solar Panel Cleaning')" style="background-color: var(--md-sys-color-tertiary);">Book 6-Month Plan</button>
-        </div>
 
-        <div class="pricing-card">
-          <h3 class="pkg-title">12-Month Annual Care</h3>
-          <p class="pkg-desc">Annual 12-visit comprehensive rooftop maintenance for homes & businesses.</p>
-          <div class="pkg-price-wrap">
-            <span class="price-currency">₹</span>
-            <span class="price-num">${solarRates.perPanelSubscription12Mo}</span>
-            <span class="price-unit">/ panel / visit</span>
-            <span class="price-gst-tag">+ 18% GST Extra (12 Visits total)</span>
+          <div class="solar-quick-actions">
+            <button class="btn-primary" onclick="window.openBookingModal('Solar One-Time Clean (₹60/panel)', 'Solar Panel Cleaning')">
+              Book One-Time Clean (₹60/panel)
+            </button>
+            <button class="btn-secondary" onclick="window.openBookingModal('Solar 6-Month AMC (₹50/panel)', 'Solar Panel Cleaning')">
+              Book 6-Month AMC (₹50/panel)
+            </button>
+            <button class="btn-secondary" onclick="window.openBookingModal('Solar 12-Month AMC (₹45/panel)', 'Solar Panel Cleaning')">
+              Book 12-Month AMC (₹45/panel)
+            </button>
           </div>
-          <ul class="feature-list">
-            <li class="feature-item"><span class="check">✓</span> Lowest per-panel rate in Varanasi</li>
-            <li class="feature-item"><span class="check">✓</span> Year-round peak solar efficiency</li>
-            <li class="feature-item"><span class="check">✓</span> Dedicated solar specialist assigned</li>
-            <li class="feature-item"><span class="check">✓</span> Flexible date rescheduling via WhatsApp</li>
-          </ul>
-          <button class="btn-primary" onclick="window.openBookingModal('Solar Annual Care', 'Solar Panel Cleaning')">Book Annual Plan</button>
         </div>
       `;
+
+      if (pricingFootnote) {
+        pricingFootnote.textContent = 'One-time cleaning minimum billing ₹800. All rates are per panel per visit. GST additional.';
+      }
       return;
     }
 
-    // Car care packages
-    const defaultVehicleRates = {
-      hatchback: { dailyClean: 1999, interiorExteriorDetail: 1499, ceramicCoating: 8999, examples: 'Swift, i20, Baleno, Tiago, Altroz' },
-      sedan: { dailyClean: 2199, interiorExteriorDetail: 1699, ceramicCoating: 9999, examples: 'City, Verna, Ciaz, Slavia, Virtus, Dzire' },
-      compactSuv: { dailyClean: 2299, interiorExteriorDetail: 1799, ceramicCoating: 10999, examples: 'Creta, Seltos, Brezza, Nexon, Venue' },
-      fullSuvLuxury: { dailyClean: 2699, interiorExteriorDetail: 2199, ceramicCoating: 13999, examples: 'Fortuner, Safari, XUV700, Scorpio-N, BMW, Mercedes' }
-    };
-    const baseRates = defaultVehicleRates[activeVehicleTab] || defaultVehicleRates.hatchback;
-    const serverRates = (homepageConfig && homepageConfig.rates && homepageConfig.rates[activeVehicleTab]) || {};
-    const rates = { ...baseRates, ...serverRates };
-    const firstExample = ((rates.examples || 'Vehicle').split(',')[0] || 'Vehicle').trim();
+    // Car Care Segment
+    const isFiveSeater = activeVehicleCategory === 'fiveSeater';
+    const catLabel = isFiveSeater ? '5-Seater Car' : '5+ Seater Car';
 
+    if (activeCarSubSegment === 'wash') {
+      // 2. Doorstep Car Wash & Packages
+      const oneTimeRate = isFiveSeater ? 600 : 700;
+      const subRate = isFiveSeater ? 1800 : 2100;
+      const perWashCost = isFiveSeater ? 450 : 525;
+      const savings = isFiveSeater ? 600 : 700;
+
+      pricingCardsContainer.className = 'pricing-cards-grid two-col';
+      pricingCardsContainer.innerHTML = `
+        <div class="pricing-card">
+          <div class="card-badge" style="background-color: var(--md-sys-color-secondary);">One-Time Service</div>
+          <h3 class="pkg-title">Doorstep Car Wash</h3>
+          <p class="pkg-desc">Segment: Individual customers / Non-subscription single doorstep visit.</p>
+          <div class="pkg-price-wrap">
+            <span class="price-currency">₹</span>
+            <span class="price-num">${oneTimeRate.toLocaleString('en-IN')}</span>
+            <span class="price-unit">/ wash</span>
+            <span class="price-gst-tag">GST additional (${catLabel})</span>
+          </div>
+          <ul class="feature-list">
+            <li class="feature-item"><span class="check">✓</span> <strong>Interior:</strong> Dry vacuuming of seats, floor &amp; boot</li>
+            <li class="feature-item"><span class="check">✓</span> <strong>Interior:</strong> Foot mat wash &amp; dust extraction</li>
+            <li class="feature-item"><span class="check">✓</span> <strong>Interior:</strong> Gate pads &amp; dashboard light polishing</li>
+            <li class="feature-item"><span class="check">✓</span> <strong>Glass:</strong> Windshield &amp; window glass cleaning</li>
+            <li class="feature-item"><span class="check">✓</span> <strong>Exterior:</strong> Snow foam hand wash (Treated soft water)</li>
+            <li class="feature-item"><span class="check">✓</span> <strong>Exterior:</strong> Tyre dressing &amp; exterior trim polishing</li>
+            <li class="feature-item"><span class="check">✓</span> <em>Hand Waxing Extra</em></li>
+          </ul>
+          <button class="btn-primary" onclick="window.openBookingModal('Doorstep Car Wash (${catLabel} ₹${oneTimeRate})', 'Doorstep Car Wash')">
+            Book One-Time Wash (₹${oneTimeRate})
+          </button>
+        </div>
+
+        <div class="pricing-card featured">
+          <div class="card-badge">Save ₹${savings}</div>
+          <h3 class="pkg-title">Car Wash Subscription</h3>
+          <p class="pkg-desc">Segment: Subscription customers · 4 washes · 6-month validity</p>
+          <div class="pkg-price-wrap">
+            <span class="price-currency">₹</span>
+            <span class="price-num">${subRate.toLocaleString('en-IN')}</span>
+            <span class="price-unit">for 4 washes</span>
+            <span class="price-gst-tag">Only ₹${perWashCost}/wash · GST additional (${catLabel})</span>
+          </div>
+          <ul class="feature-list">
+            <li class="feature-item"><span class="check">✓</span> <strong>4 Full Doorstep Washes</strong> with 6-month flexible validity</li>
+            <li class="feature-item"><span class="check">✓</span> <strong>Interior:</strong> Dry vacuuming, mat cleaning &amp; glass wipe</li>
+            <li class="feature-item"><span class="check">✓</span> <strong>Interior:</strong> Gate pads &amp; dashboard light polish</li>
+            <li class="feature-item"><span class="check">✓</span> <strong>Exterior:</strong> Snow foam wash with treated soft water</li>
+            <li class="feature-item"><span class="check">✓</span> <strong>Exterior:</strong> Tyre &amp; trim conditioning</li>
+            <li class="feature-item"><span class="check">✓</span> Book anytime via WhatsApp when convenient</li>
+            <li class="feature-item"><span class="check">✓</span> <em>Hand Waxing Extra</em></li>
+          </ul>
+          <button class="btn-primary" onclick="window.openBookingModal('Car Wash Subscription (${catLabel} 4 Washes ₹${subRate})', 'Car Wash Subscription')">
+            Get 4-Wash Subscription (₹${subRate})
+          </button>
+        </div>
+      `;
+
+      if (pricingFootnote) {
+        pricingFootnote.textContent = 'Car wash includes Interior Dry Vacuuming, Mat Cleaning, Interior Gate and Dashboard Light Polishing, Glass Cleaning, Exterior Foam Wash, Tyre and Trim Polishing. Hand Waxing Extra. GST additional.';
+      }
+      return;
+    }
+
+    // 1. Daily Car Cleaning (DCC)
+    const dccRates = isFiveSeater
+      ? { basic: 1100, silver: 1500, gold: 2000 }
+      : { basic: 1200, silver: 1600, gold: 2200 };
+
+    pricingCardsContainer.className = 'pricing-cards-grid';
     pricingCardsContainer.innerHTML = `
-      <div class="pricing-card featured">
-        <div class="card-badge">Most Loved</div>
-        <h3 class="pkg-title">Daily Clean Plan</h3>
-        <p class="pkg-desc">Doorstep exterior rhythm — pure RO wash before your morning commute starts.</p>
+      <div class="pricing-card">
+        <h3 class="pkg-title">Basic DCC</h3>
+        <p class="pkg-desc">Segment: Daily maintenance customers · Clean exterior at your gate every morning.</p>
         <div class="pkg-price-wrap">
           <span class="price-currency">₹</span>
-          <span class="price-num">${rates.dailyClean.toLocaleString('en-IN')}</span>
+          <span class="price-num">${dccRates.basic.toLocaleString('en-IN')}</span>
           <span class="price-unit">/ month</span>
-          <span class="price-gst-tag">+ 18% GST Extra</span>
+          <span class="price-gst-tag">GST additional (${catLabel})</span>
         </div>
         <ul class="feature-list">
-          <li class="feature-item"><span class="check">✓</span> 26 Doorstep washes per month</li>
-          <li class="feature-item"><span class="check">✓</span> 100% De-mineralized RO water (Zero TDS)</li>
-          <li class="feature-item"><span class="check">✓</span> Scratch-free 2-bucket microfiber technique</li>
-          <li class="feature-item"><span class="check">✓</span> Tire dressing & exterior glass polish</li>
-          <li class="feature-item"><span class="check">✓</span> Dedicated morning slot (6:30 AM – 9:00 AM)</li>
-          <li class="feature-item"><span class="check">✓</span> WhatsApp inspection photos every visit</li>
+          <li class="feature-item"><span class="check">✓</span> <strong>Daily Exterior Cleaning</strong> (26 visits/month)</li>
+          <li class="feature-item"><span class="check">✓</span> Treated soft-water cleaning (Anti-spot &amp; anti-swirl)</li>
+          <li class="feature-item"><span class="check">✓</span> 2-Bucket scratch-free microfiber technique</li>
+          <li class="feature-item"><span class="check">✓</span> Exterior windshield wipe &amp; tire dressing</li>
+          <li class="feature-item"><span class="check">✓</span> Daily WhatsApp inspection photos sent to you</li>
         </ul>
-        <button class="btn-primary" onclick="window.openBookingModal('Daily Clean Plan (' + firstExample + ')', 'Daily Car Cleaning')">Book Daily Clean</button>
-      </div>
-
-      <div class="pricing-card">
-        <h3 class="pkg-title">Interior + Exterior Detail</h3>
-        <p class="pkg-desc">Deep cabin steam sanitization, snow foam bathe, and paint protection top-up.</p>
-        <div class="pkg-price-wrap">
-          <span class="price-currency">₹</span>
-          <span class="price-num">${rates.interiorExteriorDetail.toLocaleString('en-IN')}</span>
-          <span class="price-unit">/ visit</span>
-          <span class="price-gst-tag">+ 18% GST Extra</span>
-        </div>
-        <ul class="feature-list">
-          <li class="feature-item"><span class="check">✓</span> High-pressure snow foam hand wash</li>
-          <li class="feature-item"><span class="check">✓</span> Deep cabin vacuum & seat upholstery steam extraction</li>
-          <li class="feature-item"><span class="check">✓</span> Roof fabric & door pad stain treatment</li>
-          <li class="feature-item"><span class="check">✓</span> Dashboard & vinyl UV shine conditioning</li>
-          <li class="feature-item"><span class="check">✓</span> Complete AC vent bacterial sanitization</li>
-        </ul>
-        <button class="btn-primary" onclick="window.openBookingModal('Interior + Exterior Detail', 'Car Detailing')">Book Detailing Visit</button>
-      </div>
-
-      <div class="pricing-card">
-        <h3 class="pkg-title">9H Ceramic Coating</h3>
-        <p class="pkg-desc">Long-lasting 9H nano-shield with deep showroom mirror gloss & swirl defense.</p>
-        <div class="pkg-price-wrap">
-          <span class="price-currency">₹</span>
-          <span class="price-num">${rates.ceramicCoating.toLocaleString('en-IN')}</span>
-          <span class="price-unit">onwards</span>
-          <span class="price-gst-tag">+ 18% GST Extra</span>
-        </div>
-        <ul class="feature-list">
-          <li class="feature-item"><span class="check">✓</span> 3-Stage dual-action machine paint correction</li>
-          <li class="feature-item"><span class="check">✓</span> 90%+ elimination of swirls & oxidation</li>
-          <li class="feature-item"><span class="check">✓</span> Extreme hydrophobic self-cleaning water-beading</li>
-          <li class="feature-item"><span class="check">✓</span> Multi-year written warranty & maintenance visits</li>
-          <li class="feature-item"><span class="check">✓</span> Free doorstep pick and drop in Varanasi</li>
-        </ul>
-        <button class="btn-primary" onclick="window.openBookingModal('9H Ceramic Coating', 'Ceramic Coating & PPF')">Inquire for Ceramic</button>
-      </div>
-    `;
-  }
-
-  // Render promotional offers
-  function renderOffers() {
-    const offersContainer = document.getElementById('offersContainer');
-    if (!offersContainer || !homepageConfig || !homepageConfig.offers) return;
-
-    offersContainer.innerHTML = homepageConfig.offers.map(offer => `
-      <div class="offer-card">
-        <span class="offer-badge">${offer.badge}</span>
-        <h3 class="offer-title">${offer.title}</h3>
-        <div class="offer-discount">${offer.discountText}</div>
-        <p class="offer-desc">${offer.description}</p>
-        <div class="coupon-pill">
-          <span>CODE: <strong>${offer.code}</strong></span>
-          <button class="copy-btn" onclick="navigator.clipboard.writeText('${offer.code}'); alert('Coupon code ${offer.code} copied!');">Copy</button>
-        </div>
-        <button class="btn-whatsapp" onclick="window.claimOffer('${offer.code}', '${offer.title}')">
-          Claim on WhatsApp →
+        <button class="btn-primary" onclick="window.openBookingModal('Basic DCC (${catLabel} ₹${dccRates.basic})', 'Daily Car Cleaning')">
+          Book Basic (₹${dccRates.basic}/mo)
         </button>
       </div>
-    `).join('');
+
+      <div class="pricing-card featured">
+        <div class="card-badge">Most Popular</div>
+        <h3 class="pkg-title">Silver DCC</h3>
+        <p class="pkg-desc">Segment: Daily maintenance customers · Daily clean plus 1 deep wash included.</p>
+        <div class="pkg-price-wrap">
+          <span class="price-currency">₹</span>
+          <span class="price-num">${dccRates.silver.toLocaleString('en-IN')}</span>
+          <span class="price-unit">/ month</span>
+          <span class="price-gst-tag">GST additional (${catLabel})</span>
+        </div>
+        <ul class="feature-list">
+          <li class="feature-item"><span class="check">✓</span> <strong>Daily Exterior Cleaning</strong> (26 visits/month)</li>
+          <li class="feature-item"><span class="check">✓</span> <strong>+ 1 Full Doorstep Wash Included</strong> per month</li>
+          <li class="feature-item"><span class="check">✓</span> Interior dry vacuuming &amp; mat cleaning included</li>
+          <li class="feature-item"><span class="check">✓</span> Gate pads &amp; dashboard light polishing included</li>
+          <li class="feature-item"><span class="check">✓</span> Treated soft-water wash · Spot-free finish</li>
+          <li class="feature-item"><span class="check">✓</span> WhatsApp inspection photos every visit</li>
+        </ul>
+        <button class="btn-primary" onclick="window.openBookingModal('Silver DCC (${catLabel} ₹${dccRates.silver})', 'Daily Car Cleaning')">
+          Book Silver (₹${dccRates.silver}/mo)
+        </button>
+      </div>
+
+      <div class="pricing-card">
+        <div class="card-badge" style="background-color: var(--md-sys-color-tertiary);">Complete Care</div>
+        <h3 class="pkg-title">Gold DCC</h3>
+        <p class="pkg-desc">Segment: Daily maintenance customers · Daily clean plus 2 deep washes included.</p>
+        <div class="pkg-price-wrap">
+          <span class="price-currency">₹</span>
+          <span class="price-num">${dccRates.gold.toLocaleString('en-IN')}</span>
+          <span class="price-unit">/ month</span>
+          <span class="price-gst-tag">GST additional (${catLabel})</span>
+        </div>
+        <ul class="feature-list">
+          <li class="feature-item"><span class="check">✓</span> <strong>Daily Exterior Cleaning</strong> (26 visits/month)</li>
+          <li class="feature-item"><span class="check">✓</span> <strong>+ 2 Full Doorstep Washes Included</strong> per month</li>
+          <li class="feature-item"><span class="check">✓</span> Fortnightly complete interior dry vacuuming &amp; mats</li>
+          <li class="feature-item"><span class="check">✓</span> Dashboard &amp; gate trim conditioning</li>
+          <li class="feature-item"><span class="check">✓</span> Dedicated morning schedule (6:30 – 9:00 AM)</li>
+          <li class="feature-item"><span class="check">✓</span> Dedicated senior specialist assigned</li>
+        </ul>
+        <button class="btn-primary" onclick="window.openBookingModal('Gold DCC (${catLabel} ₹${dccRates.gold})', 'Daily Car Cleaning')">
+          Book Gold (₹${dccRates.gold}/mo)
+        </button>
+      </div>
+    `;
+
+    if (pricingFootnote) {
+      pricingFootnote.textContent = 'DCC packages are monthly subscriptions. The service operates on your defined cleaning schedule and operational policy. GST additional.';
+    }
+  }
+
+  // Safe no-op if offersContainer is absent
+  function renderOffers() {
+    const offersContainer = document.getElementById('offersContainer');
+    if (!offersContainer) return;
   }
 
   // Interactive Before/After Comparison Slider
@@ -854,7 +977,7 @@
       legalModalTitle.textContent = 'Terms & Conditions — CWP Detailers';
       legalModalBody.innerHTML = `
         <p><strong>1. Doorstep Service Window:</strong> Daily car cleaning visits are conducted between 6:00 AM and 9:30 AM based on your assigned route sequence in Varanasi. Technicians require unobstructed gate access.</p>
-        <p><strong>2. Water & Power:</strong> CWP brings 100% de-mineralized Zero-TDS RO water on-board. For deep detailing or steam extraction, standard domestic electrical connection may be requested.</p>
+        <p><strong>2. Water & Power:</strong> CWP brings dedicated treated water equipment on-board. For deep detailing or steam extraction, standard domestic electrical connection may be requested.</p>
         <p><strong>3. Pause Policy:</strong> Members may pause recurring subscriptions at zero penalty with 24 hours advance notice via WhatsApp (7054007733).</p>
         <p><strong>4. Pricing & Taxes:</strong> All advertised rates are exclusive of 18% GST (GST Extra).</p>
       `;

@@ -1847,6 +1847,7 @@ const server = http.createServer(async (req, res) => {
     pathname.startsWith('/css/') ||
     pathname.startsWith('/js/') ||
     pathname.startsWith('/fonts/') ||
+    pathname.startsWith('/images/') ||
     pathname.startsWith('/public/') ||
     pathname.startsWith('/staff/css/') ||
     pathname.startsWith('/staff/js/') ||
@@ -1854,6 +1855,10 @@ const server = http.createServer(async (req, res) => {
     pathname.startsWith('/admin/js/') ||
     pathname.endsWith('.css') ||
     pathname.endsWith('.js') ||
+    pathname.endsWith('.svg') ||
+    pathname.endsWith('.png') ||
+    pathname.endsWith('.jpg') ||
+    pathname.endsWith('.webp') ||
     pathname.endsWith('.woff2') ||
     pathname.endsWith('.woff') ||
     pathname.endsWith('.ttf')
@@ -1875,14 +1880,20 @@ const server = http.createServer(async (req, res) => {
       const contentType = ext === '.css'
         ? 'text/css; charset=utf-8'
         : (ext === '.js' ? 'application/javascript; charset=utf-8'
+        : (ext === '.svg' ? 'image/svg+xml'
+        : (ext === '.png' ? 'image/png'
+        : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+        : (ext === '.webp' ? 'image/webp'
         : (ext === '.woff2' ? 'font/woff2'
         : (ext === '.woff' ? 'font/woff'
-        : (ext === '.ttf' ? 'font/ttf' : 'application/octet-stream'))));
+        : (ext === '.ttf' ? 'font/ttf' : 'application/octet-stream'))))))));
 
       const fileStat = fs.statSync(assetPath);
       const etag = `"${fileStat.size}-${fileStat.mtimeMs.toString(36)}"`;
 
-      const cacheControl = 'public, max-age=86400, stale-while-revalidate=3600';
+      const cacheControl = (ext === '.js' || ext === '.css' || ext === '.html')
+        ? 'no-cache, must-revalidate'
+        : 'public, max-age=86400, stale-while-revalidate=3600';
 
       if (req.headers['if-none-match'] === etag) {
         res.writeHead(304, {

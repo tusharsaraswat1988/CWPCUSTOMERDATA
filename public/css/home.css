@@ -634,8 +634,78 @@ img {
 }
 
 /* =========================================================================
-   SERVICES & PRICING SECTION
+   SERVICES & PRICING SECTION (COMPLETE RATE CARD)
    ========================================================================= */
+/* Car Service Sub-Segment Tabs (DCC vs Car Wash) */
+.car-subsegment-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.car-subsegment-tabs {
+  display: inline-flex;
+  background-color: var(--md-sys-color-surface-container-high);
+  padding: 6px;
+  border-radius: var(--radius-full);
+  gap: 8px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+}
+.car-sub-tab {
+  padding: 10px 24px;
+  border-radius: var(--radius-full);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+.car-sub-tab.active {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  box-shadow: var(--elevation-1);
+}
+
+/* Vehicle Category Selector (5-Seater vs 5+ Seater) */
+.vehicle-category-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.vehicle-cat-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.vehicle-pill-tabs {
+  display: inline-flex;
+  background-color: var(--md-sys-color-surface-container);
+  padding: 4px;
+  border-radius: var(--radius-full);
+  gap: 6px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+.v-pill {
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+.v-pill.active {
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-primary);
+  box-shadow: var(--elevation-1);
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
 .pricing-tabs-wrap {
   display: flex;
   justify-content: center;
@@ -665,20 +735,25 @@ img {
 .gst-notice-bar {
   text-align: center;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--md-sys-color-primary);
   background-color: var(--md-sys-color-primary-container);
   padding: 10px 20px;
   border-radius: var(--radius-md);
   margin-bottom: 32px;
-  max-width: 680px;
+  max-width: 420px;
   margin-left: auto;
   margin-right: auto;
 }
 .pricing-cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
   gap: 28px;
+}
+.pricing-cards-grid.two-col {
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .pricing-card {
   background-color: var(--md-sys-color-surface);
@@ -758,6 +833,304 @@ img {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.feature-item .check {
+  color: var(--md-sys-color-primary);
+  font-weight: 800;
+}
+
+/* Pricing Footnote */
+.pricing-footnote {
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  background-color: var(--md-sys-color-surface-container);
+  border-left: 4px solid var(--md-sys-color-primary);
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  margin-top: 24px;
+  margin-bottom: 40px;
+  line-height: 1.5;
+}
+
+/* Detailing Highlights Wrap */
+.detailing-highlights-wrap {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 48px;
+}
+.detailing-highlight-card {
+  background: linear-gradient(135deg, var(--md-sys-color-surface) 0%, var(--md-sys-color-surface-container-low) 100%);
+  border: 1.5px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  position: relative;
+  box-shadow: var(--elevation-1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+.detailing-highlight-card:hover {
+  border-color: var(--md-sys-color-primary);
+  box-shadow: var(--elevation-2);
+}
+.highlight-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-primary-container);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  margin-bottom: 12px;
+}
+.highlight-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--md-sys-color-on-surface);
+  margin-bottom: 6px;
+}
+.highlight-desc {
+  font-size: 0.875rem;
+  color: var(--md-sys-color-on-surface-variant);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+.highlight-pricing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  flex-wrap: wrap;
+}
+.highlight-price-tag {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--md-sys-color-on-surface);
+}
+.highlight-gst {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--md-sys-color-tertiary);
+  margin-left: 4px;
+}
+
+/* Brands Showcase Section */
+.brands-showcase-wrap {
+  margin-top: 24px;
+  padding: 36px 32px;
+  background-color: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--elevation-1);
+}
+.brands-showcase-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.brands-eyebrow {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--md-sys-color-primary);
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+.brands-heading {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--md-sys-color-on-surface);
+  margin-bottom: 6px;
+}
+.brands-subtext {
+  font-size: 0.875rem;
+  color: var(--md-sys-color-on-surface-variant);
+  max-width: 640px;
+  margin: 0 auto;
+}
+.brands-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.brand-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background-color: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+}
+.brand-card:hover {
+  background-color: var(--md-sys-color-surface);
+  border-color: var(--md-sys-color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--elevation-1);
+}
+.brand-logo-img {
+  width: 80px;
+  height: 38px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.brand-meta {
+  display: flex;
+  flex-direction: column;
+}
+.brand-name {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--md-sys-color-on-surface);
+}
+.brand-desc {
+  font-size: 0.75rem;
+  color: var(--md-sys-color-on-surface-variant);
+  line-height: 1.3;
+}
+
+/* Solar Rate Matrix Table */
+.solar-matrix-wrapper {
+  grid-column: 1 / -1;
+  background-color: var(--md-sys-color-surface);
+  border: 1.5px solid #fde68a;
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  box-shadow: var(--elevation-2);
+}
+.solar-matrix-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.solar-matrix-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #78350F;
+  margin-bottom: 6px;
+}
+.solar-matrix-subtitle {
+  font-size: 0.9375rem;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.solar-matrix-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-bottom: 24px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid #fef3c7;
+}
+.solar-matrix-table th {
+  background-color: #fef3c7;
+  color: #78350F;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  padding: 16px 20px;
+  text-align: center;
+  border-bottom: 2px solid #fde68a;
+}
+.solar-matrix-table th:first-child {
+  text-align: left;
+}
+.col-sub {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #92400e;
+  margin-top: 2px;
+}
+.solar-matrix-table td {
+  padding: 18px 20px;
+  text-align: center;
+  border-bottom: 1px solid #fef3c7;
+  background-color: #fffdfa;
+}
+.solar-matrix-table td:first-child {
+  text-align: left;
+  border-right: 1px solid #fef3c7;
+}
+.solar-matrix-table tr.row-highlight td {
+  background-color: #fffbeb;
+}
+.solar-matrix-table td.cell-price {
+  border-right: 1px solid #fef3c7;
+}
+.row-label strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #78350F;
+}
+.row-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.price-val {
+  display: block;
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: #047857;
+}
+.price-per {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.price-min {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #b45309;
+  margin-top: 2px;
+}
+.cell-custom {
+  vertical-align: middle;
+  background-color: #fffbeb !important;
+}
+.custom-quote-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+}
+.custom-quote-badge strong {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: #78350F;
+}
+.custom-quote-badge span {
+  font-size: 0.75rem;
+  color: #92400e;
+}
+.solar-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+}
   font-size: 0.875rem;
   color: var(--md-sys-color-on-surface);
   margin-bottom: 12px;
@@ -1329,6 +1702,12 @@ img {
   .pricing-cards-grid, .offers-grid, .reviews-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .brands-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .detailing-highlights-wrap {
+    grid-template-columns: 1fr;
+  }
   .timeline-step-list {
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
@@ -1367,6 +1746,42 @@ img {
   }
   .pricing-cards-grid, .offers-grid, .reviews-grid, .video-grid {
     grid-template-columns: 1fr;
+  }
+  .car-subsegment-tabs {
+    flex-direction: column;
+    width: 100%;
+  }
+  .car-sub-tab {
+    text-align: center;
+    width: 100%;
+  }
+  .vehicle-category-wrap {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .vehicle-pill-tabs {
+    width: 100%;
+    justify-content: center;
+  }
+  .v-pill {
+    flex: 1;
+    text-align: center;
+  }
+  .brands-grid {
+    grid-template-columns: 1fr;
+  }
+  .solar-matrix-table th, .solar-matrix-table td {
+    padding: 12px 10px;
+    font-size: 0.8125rem;
+  }
+  .price-val {
+    font-size: 1.375rem;
+  }
+  .solar-quick-actions {
+    flex-direction: column;
+  }
+  .solar-quick-actions button {
+    width: 100%;
   }
   .timeline-step-list {
     grid-template-columns: 1fr;

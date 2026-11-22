@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/home.css?v=1.2.0">
+  <link rel="stylesheet" href="/css/home.css?v=2.1.0">
 </head>
 <body>
 
@@ -100,7 +100,7 @@
         <a href="#packages" class="drawer-item" onclick="window.handleDrawerServiceClick('solar')">
           <div>
             <strong>Rooftop Solar Cleaning</strong>
-            <div class="drawer-sub">Demineralized pure RO wash for maximum power generation</div>
+            <div class="drawer-sub">Specialized glass-safe soft wash for maximum power generation</div>
           </div>
         </a>
         <a href="#work" class="drawer-item" onclick="window.closeDrawer()">
@@ -116,9 +116,6 @@
         </a>
         <a href="#work" class="drawer-item" onclick="window.closeDrawer()">
           Work Gallery
-        </a>
-        <a href="#offers" class="drawer-item" onclick="window.closeDrawer()">
-          Special Offers & Coupons
         </a>
         <a href="#founder" class="drawer-item" onclick="window.closeDrawer()">
           Founder's Note
@@ -182,7 +179,7 @@
         </h2>
 
         <p class="hero-desc" id="heroDesc">
-          Regular doorstep cleaning, professional detailing and recurring care plans — trained CWP specialists at your gate, every week. No colony-cleaner swirls, 100% Zero-TDS RO water.
+          Regular doorstep cleaning, professional detailing and recurring care plans — trained CWP specialists at your gate, every week. No colony-cleaner swirls, treated soft-water &amp; scratch-free care.
         </p>
 
         <!-- Google Rating Badge -->
@@ -244,52 +241,148 @@
     </section>
 
     <!-- =======================================================================
-         SERVICES & DYNAMIC PRICING MATRIX (GST EXTRA NOTED CLEARLY)
+         SERVICES & DYNAMIC PRICING MATRIX (CWP COMPLETE RATE CARD)
          ======================================================================= -->
     <section class="section section-alt" id="packages">
       <div class="container">
         <div class="section-header">
-          <span class="eyebrow" id="pricingEyebrow">Transparent Pricing</span>
-          <h2 class="section-title" id="pricingTitle">Simple, Honest Monthly Plans for Varanasi</h2>
-          <p class="section-subtitle" id="pricingSubtitle">Select your car body type below to view doorstep routine charges. Zero hidden fees.</p>
+          <span class="eyebrow" id="pricingEyebrow">Complete Rate Card</span>
+          <h2 class="section-title" id="pricingTitle">Transparent Doorstep Service Rates</h2>
+          <p class="section-subtitle" id="pricingSubtitle">Professional doorstep car maintenance, deep car washes, and rooftop solar cleaning. GST additional.</p>
         </div>
 
-        <!-- Vehicle Type Tabs (Visible in Car Mode only) -->
-        <div class="pricing-tabs-wrap" id="vehicleTabsWrap">
-          <div class="vehicle-tabs" role="tablist">
-            <button class="v-tab-btn active" data-tab="hatchback" role="tab">Hatchback</button>
-            <button class="v-tab-btn" data-tab="sedan" role="tab">Sedan</button>
-            <button class="v-tab-btn" data-tab="compactSuv" role="tab">Compact SUV</button>
-            <button class="v-tab-btn" data-tab="fullSuvLuxury" role="tab">5+ Seater / Luxury</button>
+        <!-- Car Service Sub-Segment Switcher (DCC vs Doorstep Car Wash) -->
+        <div class="car-subsegment-wrap" id="carSubsegmentWrap">
+          <div class="car-subsegment-tabs" role="tablist">
+            <button class="car-sub-tab active" id="subtabDcc" role="tab" onclick="window.setCarSubSegment('dcc')">
+              Daily Car Cleaning (DCC)
+            </button>
+            <button class="car-sub-tab" id="subtabWash" role="tab" onclick="window.setCarSubSegment('wash')">
+              Doorstep Car Wash &amp; Packages
+            </button>
           </div>
         </div>
 
-        <div class="gst-notice-bar" id="gstNoticeBar">
-          All displayed rates are exclusive of 18% GST (GST Extra) · Managed dynamically by CWP admin
+        <!-- Vehicle Category Selector (5-Seater vs 5+ Seater) -->
+        <div class="vehicle-category-wrap" id="vehicleCategoryWrap">
+          <span class="vehicle-cat-label">Select Vehicle:</span>
+          <div class="vehicle-pill-tabs" role="tablist">
+            <button class="v-pill active" id="vPill5Seater" role="tab" onclick="window.setVehicleCategory('fiveSeater')">
+              5-Seater Car
+            </button>
+            <button class="v-pill" id="vPill5PlusSeater" role="tab" onclick="window.setVehicleCategory('fivePlusSeater')">
+              5+ Seater Car
+            </button>
+          </div>
         </div>
 
-        <!-- Dynamic Cards Container -->
+        <!-- GST Notice Bar -->
+        <div class="gst-notice-bar" id="gstNoticeBar">
+          GST additional
+        </div>
+
+        <!-- Dynamic Cards / Solar Matrix Container -->
         <div class="pricing-cards-grid" id="pricingCardsContainer">
           <!-- Populated dynamically by public/js/home.js -->
         </div>
 
-      </div>
-    </section>
-
-    <!-- =======================================================================
-         SPECIAL OFFERS & PROMO COUPONS
-         ======================================================================= -->
-    <section class="section" id="offers">
-      <div class="container">
-        <div class="section-header">
-          <span class="eyebrow">Special Offers</span>
-          <h2 class="section-title">Active Offers & Discount Coupons</h2>
-          <p class="section-subtitle">Claim these promotional offers directly on WhatsApp with our team.</p>
+        <!-- DCC / Wash Footnote Notice -->
+        <div class="pricing-footnote" id="pricingFootnote">
+          DCC packages are monthly subscriptions. The service operates on your defined cleaning schedule and operational policy. GST additional.
         </div>
 
-        <div class="offers-grid" id="offersContainer">
-          <!-- Populated dynamically by public/js/home.js -->
+        <!-- Premium Detailing Highlights (Ceramic & Interior) -->
+        <div class="detailing-highlights-wrap" id="detailingHighlightsWrap">
+          <div class="detailing-highlight-card">
+            <div class="highlight-badge">9H Nano Shield</div>
+            <div class="highlight-body">
+              <h3 class="highlight-title">Ceramic Coating</h3>
+              <p class="highlight-desc">3-Stage machine paint correction, showroom mirror gloss &amp; multi-year swirl protection.</p>
+            </div>
+            <div class="highlight-pricing">
+              <span class="highlight-price-tag">Starts at ₹11,999</span>
+              <span class="highlight-gst">GST additional</span>
+              <button class="btn-primary btn-sm" onclick="window.openBookingModal('Ceramic Coating Inquiry', 'Ceramic Coating & PPF')">
+                Inquire on WhatsApp →
+              </button>
+            </div>
+          </div>
+
+          <div class="detailing-highlight-card">
+            <div class="highlight-badge">Deep Sanitization</div>
+            <div class="highlight-body">
+              <h3 class="highlight-title">Interior Detailing</h3>
+              <p class="highlight-desc">High-pressure steam extraction for seats, roof &amp; floor mats, AC hygiene &amp; dashboard UV polish.</p>
+            </div>
+            <div class="highlight-pricing">
+              <span class="highlight-price-tag">Starts at ₹1,499</span>
+              <span class="highlight-gst">GST additional</span>
+              <button class="btn-primary btn-sm" onclick="window.openBookingModal('Interior Detailing Inquiry', 'Car Detailing')">
+                Book Detailing →
+              </button>
+            </div>
+          </div>
         </div>
+
+        <!-- Professional Detailing Brands Showcase -->
+        <div class="brands-showcase-wrap" id="brandsShowcaseWrap">
+          <div class="brands-showcase-header">
+            <span class="brands-eyebrow">Professional Products</span>
+            <h3 class="brands-heading">Brands We Use in Our Work</h3>
+            <p class="brands-subtext">We exclusively use world-renowned auto care formulations to safeguard your vehicle's paint, glass, and interior.</p>
+          </div>
+
+          <div class="brands-grid">
+            <div class="brand-card">
+              <img src="/images/brands/3m.svg" alt="3M" class="brand-logo-img">
+              <div class="brand-meta">
+                <strong class="brand-name">3M</strong>
+                <span class="brand-desc">Automotive Aftermarket &amp; Finishing</span>
+              </div>
+            </div>
+
+            <div class="brand-card">
+              <img src="/images/brands/turtlewax.svg" alt="Turtle Wax" class="brand-logo-img">
+              <div class="brand-meta">
+                <strong class="brand-name">Turtle Wax</strong>
+                <span class="brand-desc">USA Premium Carnauba &amp; Ceramic</span>
+              </div>
+            </div>
+
+            <div class="brand-card">
+              <img src="/images/brands/meguiars.svg" alt="Meguiar's" class="brand-logo-img">
+              <div class="brand-meta">
+                <strong class="brand-name">Meguiar's</strong>
+                <span class="brand-desc">Mirror Glaze &amp; Professional Tech</span>
+              </div>
+            </div>
+
+            <div class="brand-card">
+              <img src="/images/brands/wavex.svg" alt="WaveX" class="brand-logo-img">
+              <div class="brand-meta">
+                <strong class="brand-name">WaveX</strong>
+                <span class="brand-desc">Advanced Auto Care &amp; Foaming</span>
+              </div>
+            </div>
+
+            <div class="brand-card">
+              <img src="/images/brands/glasspaints.svg" alt="Glasspaints" class="brand-logo-img">
+              <div class="brand-meta">
+                <strong class="brand-name">Glasspaints</strong>
+                <span class="brand-desc">Nano Paint Sealant &amp; Optical Glass</span>
+              </div>
+            </div>
+
+            <div class="brand-card">
+              <img src="/images/brands/luminor.svg" alt="Luminor" class="brand-logo-img">
+              <div class="brand-meta">
+                <strong class="brand-name">Luminor</strong>
+                <span class="brand-desc">High-Gloss Nanotechnology Labs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -339,13 +432,13 @@
             </div>
           </div>
 
-          <div class="video-card" onclick="window.openVideoModal('Solar Rooftop Demineralized RO Wash', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')">
+          <div class="video-card" onclick="window.openVideoModal('Solar Rooftop Glass-Safe Soft Wash', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')">
             <div class="video-thumb-wrap">
               <img src="/cwp_logo.jpg" alt="Solar Rooftop Wash" class="video-thumb-img">
               <div class="play-btn-overlay">▶</div>
             </div>
             <div class="video-info">
-              <h3 class="video-title">Rooftop Solar Demineralized RO Wash</h3>
+              <h3 class="video-title">Rooftop Solar Glass-Safe Soft Wash</h3>
               <span class="video-tag" style="color: var(--md-sys-color-tertiary);">Solar Care · Mahmoorganj</span>
             </div>
           </div>
@@ -389,7 +482,7 @@
             <h3>Building Varanasi's Most Trusted Doorstep Auto & Solar Care</h3>
             <p class="founder-message">
               "Namaste Varanasi! For years, vehicle and rooftop owners in our city faced painful trade-offs: handing car keys to colony cleaners who scratch paint with dirty cloths and hard tap water, or watching rooftop solar panels lose 25% of their electricity output due to thick dust and scaling.<br><br>
-              We built CWP Detailers to establish a scientific standard right at your gate: <strong>100% Zero-TDS demineralized pure RO water</strong>, 2-bucket scratch-free microfiber cleaning for cars, and specialized non-abrasive soft wash for solar panels.<br><br>
+              We built CWP Detailers to establish a scientific standard right at your gate: <strong>Treated soft-water wash system</strong>, 2-bucket scratch-free microfiber cleaning for cars, and specialized non-abrasive soft wash for solar panels.<br><br>
               Today, over 1,200 Varanasi families wake up to a gleaming car and peak solar generation without lifting a finger. If you ever have any feedback or question, I am just one WhatsApp message away."
             </p>
             <a href="https://wa.me/917054007733?text=Hi%20Founder%20CWP%2C%20I%20have%20a%20question%20about%20your%20services%20in%20Varanasi" target="_blank" rel="noopener noreferrer" class="btn-whatsapp">
@@ -630,6 +723,6 @@
     </div>
   </div>
 
-  <script src="/js/home.js?v=1.2.0"></script>
+  <script src="/js/home.js?v=2.1.0"></script>
 </body>
 </html>

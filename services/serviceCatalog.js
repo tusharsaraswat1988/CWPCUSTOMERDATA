@@ -86,7 +86,7 @@ const SERVICE_CATEGORIES = {
     nature: 'instance_or_subscription',
     targetType: 'solar',
     pricingUnit: 'per_panel',
-    description: 'Rooftop solar panel demineralized cleaning calculated on Rs. per panel basis.',
+    description: 'Rooftop solar panel specialized glass-safe cleaning calculated on Rs. per panel basis.',
     descriptionHi: 'छत पर लगे सोलर पैनलों की विशेष सफाई (प्रति पैनल दर आधारित)।',
     packages: [
       {

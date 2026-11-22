@@ -13,7 +13,7 @@ function getHomepageSeoHead(config) {
   const mapsUrl = config.contact.googleMapsUrl || 'https://share.google/1sg9sRwZpnyFeYQty';
 
   const title = "CWP Detailers & Motors — Doorstep Car Wash, Detailing & Solar Panel Cleaning in Varanasi";
-  const description = "Ab gaadiyaan hongi roj saaf. Varanasi's #1 doorstep car cleaning, ceramic coating, PPF, foam wash & rooftop solar panel cleaning. 100% Zero-TDS RO water & scratch-free care. Call 7054007733.";
+  const description = "Ab gaadiyaan hongi roj saaf. Varanasi's #1 doorstep car cleaning, ceramic coating, PPF, foam wash & rooftop solar panel cleaning. Treated soft water & scratch-free 2-bucket care. Call 7054007733.";
   const keywords = [
     "doorstep car wash near me",
     "carwash in varanasi",
@@ -111,7 +111,7 @@ function getHomepageSeoHead(config) {
         "name": "CWP ki cleaning mein kaun sa paani use hota hai?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "CWP Detailers 100% de-mineralized Zero-TDS RO water use karta hai, jisse gaadi ke paint par hard water scaling ya safed daag nahi aate."
+          "text": "CWP Detailers treated soft water aur pH-neutral auto shampoo use karta hai, jisse gaadi ke paint par hard water scaling ya safed daag nahi aate."
         }
       },
       {
@@ -119,7 +119,7 @@ function getHomepageSeoHead(config) {
         "name": "Kya rooftop solar panel cleaning se bijli generation badhta hai?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Haan, Varanasi ki dhool aur pollution se solar panels par layer ban jaati hai. CWP ke demineralized RO water se scientific wash karane par generation 20% se 30% tak badh jaata hai."
+          "text": "Haan, Varanasi ki dhool aur pollution se solar panels par layer ban jaati hai. CWP ke glass-safe soft wash aur specialized equipment se scientific wash karane par generation 20% se 30% tak badh jaata hai."
         }
       },
       {
@@ -170,7 +170,7 @@ function getCareersSeoHead(config) {
   const phone = config.contact.phone || '7054007733';
   const email = config.contact.email || 'cwpdetailers@gmail.com';
   const title = "Careers at CWP Detailers — Car Cleaner, Wash & Detailing Jobs in Varanasi";
-  const description = "Join CWP Detailers in Varanasi. Smart uniform, company ID, zero-TDS RO technology training, respectful team culture & on-time payouts. Apply now with just your name & mobile. Call 7054007733.";
+  const description = "Join CWP Detailers in Varanasi. Smart uniform, company ID, modern auto detailing & soft-wash training, respectful team culture & on-time payouts. Apply now with just your name & mobile. Call 7054007733.";
   const keywords = [
     "car cleaner job in varanasi",
     "car wash job near me",

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60" width="220" height="60" aria-label="Meguiar's Logo">
+  <rect width="220" height="60" fill="transparent"/>
+  <!-- Meguiar's Distinctive Script & Red M Badge -->
+  <g transform="translate(10, 8)">
+    <rect x="0" y="2" width="40" height="40" rx="8" fill="#1B1C1D"/>
+    <text x="20" y="32" font-family="'Georgia', serif" font-weight="900" font-size="32" fill="#E61C24" text-anchor="middle" font-style="italic">M</text>
+  </g>
+  <text x="60" y="34" font-family="'Brush Script MT', 'Lucida Calligraphy', 'Georgia', cursive, serif" font-weight="800" font-size="28" fill="#1B1C1D" font-style="italic">Meguiar's</text>
+  <text x="62" y="47" font-family="'Poppins', sans-serif" font-weight="600" font-size="9" fill="#E61C24" letter-spacing="2px">SINCE 1901</text>
+</svg>

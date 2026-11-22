@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60" aria-label="WaveX Logo">
+  <rect width="200" height="60" fill="transparent"/>
+  <!-- Modern Wave Crest -->
+  <g transform="translate(10, 14)">
+    <path d="M4 22 C10 12, 18 8, 26 14 C34 20, 38 12, 42 6" fill="none" stroke="#0072CE" stroke-width="5" stroke-linecap="round"/>
+    <path d="M8 28 C14 18, 22 14, 30 20 C38 26, 42 18, 46 12" fill="none" stroke="#00A3E0" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="64" y="32" font-family="'Poppins', sans-serif" font-weight="900" font-size="24" fill="#0072CE" letter-spacing="1px">Wave<tspan fill="#00A3E0">X</tspan></text>
+  <text x="64" y="46" font-family="'Poppins', sans-serif" font-weight="600" font-size="9" fill="#5F6368" letter-spacing="2px">AUTO CARE TECH</text>
+</svg>
