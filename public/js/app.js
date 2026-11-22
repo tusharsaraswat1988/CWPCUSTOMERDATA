@@ -1653,6 +1653,8 @@ var state = {
       var adminHeader = document.getElementById('adminHeader');
 
       if (mode === 'staff') {
+        document.documentElement.classList.remove('admin-login-lock');
+        document.body.classList.remove('admin-login-lock');
         document.body.classList.remove('admin-mode-active');
         document.body.classList.add('staff-mode-active');
         if (mainContainer) mainContainer.classList.remove('admin-mode-active');
@@ -1685,7 +1687,13 @@ var state = {
         document.body.classList.remove('staff-mode-active');
         if (mainContainer) mainContainer.classList.add('admin-mode-active');
         if (headerInner) headerInner.classList.add('admin-mode-active');
-        if (adminHeader) adminHeader.style.setProperty('display', 'block', 'important');
+        if (adminHeader) {
+          if (isUserAdminAuthenticated()) {
+            adminHeader.style.setProperty('display', 'block', 'important');
+          } else {
+            adminHeader.style.setProperty('display', 'none', 'important');
+          }
+        }
         if (staffHeader) staffHeader.style.setProperty('display', 'none', 'important');
         if (staffEl) staffEl.style.display = 'none';
         if (adminEl) adminEl.style.display = 'block';
@@ -2268,8 +2276,12 @@ var state = {
       var authGate = document.getElementById('adminAuthGate');
       var unlocked = document.getElementById('adminUnlockedContent');
       var logoutBtn = document.getElementById('adminLogoutBtn');
+      var adminHeader = document.getElementById('adminHeader');
 
       if (isUserAdminAuthenticated()) {
+        document.documentElement.classList.remove('admin-login-lock');
+        document.body.classList.remove('admin-login-lock');
+        if (adminHeader) adminHeader.style.setProperty('display', 'block', 'important');
         if (authGate) {
           authGate.classList.add('is-hidden');
           authGate.setAttribute('hidden', 'true');
@@ -2290,7 +2302,14 @@ var state = {
         var currentTab = getSavedAdminTab();
         switchAdminTab(currentTab, true);
         if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
+        if (window.CwpNeuralCore && typeof window.CwpNeuralCore.reset === 'function') {
+          window.CwpNeuralCore.reset();
+        }
       } else {
+        document.documentElement.classList.add('admin-login-lock');
+        document.body.classList.add('admin-login-lock');
+        // User explicitly requested: no header on admin login screen
+        if (adminHeader) adminHeader.style.setProperty('display', 'none', 'important');
         if (authGate) {
           authGate.classList.remove('is-hidden');
           authGate.removeAttribute('hidden');
@@ -2304,9 +2323,14 @@ var state = {
         }
         if (logoutBtn) logoutBtn.style.display = 'none';
         if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
+        if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
+          window.CwpNeuralCore.setStage('intro');
+        }
         setTimeout(function() {
           var input = document.getElementById('adminPasswordInput');
-          if (input) input.focus();
+          if (input && window.CwpNeuralCore && window.CwpNeuralCore.getStage() === 'passwordPrompt') {
+            input.focus();
+          }
         }, 150);
       }
     }
@@ -2316,19 +2340,23 @@ var state = {
       var input = document.getElementById('adminPasswordInput');
       var password = (input.value || '').trim();
       var errBox = document.getElementById('adminAuthError');
+      var errText = document.getElementById('adminAuthErrorText');
       var btn = document.getElementById('btnAdminLogin');
 
       if (!password) return;
 
+      if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
+        window.CwpNeuralCore.setStage('authenticating');
+      }
+
       btn.disabled = true;
-      btn.innerHTML = '<span class="btn-icon">⏳</span> <span class="btn-label">Verifying...</span>';
-      errBox.style.display = 'none';
+      if (errBox) errBox.style.display = 'none';
 
       apiCall('verifyAdminPassword', { password: password }, function(res) {
         btn.disabled = false;
-        btn.innerHTML = '<span class="btn-icon">🔓</span> <span class="btn-label">Unlock Admin Dashboard</span>';
         if (res && res.success) {
-          var remember = document.getElementById('rememberAdminDevice').checked;
+          var rememberEl = document.getElementById('rememberAdminDevice');
+          var remember = rememberEl ? rememberEl.checked : true;
           var token = res.token || 'authenticated';
           sessionStorage.setItem('cwp_admin_token', token);
           sessionStorage.setItem('cwp_admin_auth', token);
@@ -2348,6 +2376,9 @@ var state = {
             unlocked.removeAttribute('hidden');
             unlocked.style.setProperty('display', 'block', 'important');
           }
+          if (window.CwpNeuralCore && typeof window.CwpNeuralCore.reset === 'function') {
+            window.CwpNeuralCore.reset();
+          }
           // On fresh login: Active members list opens first as requested!
           var urlParams = new URLSearchParams(window.location.search);
           if (!urlParams.get('tab')) {
@@ -2359,16 +2390,31 @@ var state = {
           showToast('Login successful!', '✓');
           checkAdminAuthStatus();
         } else {
-          errBox.textContent = '❌ ' + (res && res.error ? res.error : 'Incorrect password! Please enter the correct password.');
-          errBox.style.display = 'block';
+          if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
+            window.CwpNeuralCore.setStage('passwordPrompt');
+          }
+          var errMsg = (res && res.error) ? res.error : 'Incorrect password! Please enter the correct password.';
+          if (errText) {
+            errText.textContent = errMsg;
+          } else if (errBox) {
+            errBox.textContent = '❌ ' + errMsg;
+          }
+          if (errBox) errBox.style.display = 'flex';
           triggerInputShake(input);
           input.focus();
         }
       }, function(err) {
         btn.disabled = false;
-        btn.innerHTML = '<span class="btn-icon">🔓</span> <span class="btn-label">Unlock Admin Dashboard</span>';
-        errBox.textContent = '❌ ' + (err.message || 'Verification failed');
-        errBox.style.display = 'block';
+        if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
+          window.CwpNeuralCore.setStage('passwordPrompt');
+        }
+        var errMsg = (err && err.message) ? err.message : 'Verification failed';
+        if (errText) {
+          errText.textContent = errMsg;
+        } else if (errBox) {
+          errBox.textContent = '❌ ' + errMsg;
+        }
+        if (errBox) errBox.style.display = 'flex';
         triggerInputShake(input);
       });
     }

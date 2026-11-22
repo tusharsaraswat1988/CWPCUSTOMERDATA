@@ -33,7 +33,14 @@ async function recordCompletion({
   source = 'staff_portal',
   deviceMetadata = null,
   carNotPresent = false,
-  tag = null
+  tag = null,
+  punchLatitude = null,
+  punchLongitude = null,
+  punchAccuracyMeters = null,
+  punchDistanceMeters = null,
+  punchVerified = null,
+  punchVerificationStatus = null,
+  punchMetadata = null
 }, client = null) {
   const runner = client || db;
 
@@ -47,9 +54,12 @@ async function recordCompletion({
     `INSERT INTO public.service_logs (
        client_mutation_id, staff_id, subscription_id, vehicle_id, job_id,
        service_date, status, completed_at_device, synced_at_server,
-       notes, photo_url, source, device_metadata, car_not_present, tag
+       notes, photo_url, source, device_metadata, car_not_present, tag,
+       punch_latitude, punch_longitude, punch_accuracy_meters, punch_distance_meters,
+       punch_verified, punch_verification_status, punch_metadata
      ) VALUES (
-       $1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, $9, $10, $11, $12, $13, $14
+       $1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, $9, $10, $11, $12, $13, $14,
+       $15, $16, $17, $18, $19, $20, $21
      )
      ON CONFLICT (client_mutation_id) DO NOTHING
      RETURNING *`,
@@ -67,7 +77,14 @@ async function recordCompletion({
       source || 'staff_portal',
       deviceMetadata ? (typeof deviceMetadata === 'string' ? deviceMetadata : JSON.stringify(deviceMetadata)) : null,
       Boolean(carNotPresent),
-      effectiveTag
+      effectiveTag,
+      punchLatitude !== null && punchLatitude !== undefined ? parseFloat(punchLatitude) : null,
+      punchLongitude !== null && punchLongitude !== undefined ? parseFloat(punchLongitude) : null,
+      punchAccuracyMeters !== null && punchAccuracyMeters !== undefined ? parseFloat(punchAccuracyMeters) : null,
+      punchDistanceMeters !== null && punchDistanceMeters !== undefined ? parseFloat(punchDistanceMeters) : null,
+      punchVerified !== null && punchVerified !== undefined ? Boolean(punchVerified) : null,
+      punchVerificationStatus || (punchLatitude !== null ? 'pending' : null),
+      punchMetadata ? (typeof punchMetadata === 'string' ? punchMetadata : JSON.stringify(punchMetadata)) : null
     ]
   );
 

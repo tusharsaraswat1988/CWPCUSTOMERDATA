@@ -16,5 +16,6 @@ module.exports = {
   staffRouteSequences: require('./staffRouteSequencesRepo'),
   serviceJobs: require('./serviceJobsRepo'),
   serviceLogs: require('./serviceLogsRepo'),
-  auditLogs: require('./auditLogsRepo')
+  auditLogs: require('./auditLogsRepo'),
+  staffTracking: require('./staffTrackingRepo')
 };

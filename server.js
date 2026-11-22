@@ -1912,6 +1912,32 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // GET /api/staff-ping-stream - SSE stream for realtime on-demand location pings
+  if (req.method === 'GET' && pathname === '/api/staff-ping-stream') {
+    const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const staffId = parsedUrl.searchParams.get('staffId');
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive'
+    });
+    res.write('retry: 5000\n\n');
+    const interval = setInterval(async () => {
+      try {
+        if (staffId && isNeonConfigured()) {
+          const pings = await repos.staffTracking.getPendingPings(staffId);
+          if (pings && pings.length > 0) {
+            res.write(`data: ${JSON.stringify({ type: 'LOCATION_PING', pings })}\n\n`);
+          }
+        }
+      } catch (err) {}
+    }, 3000);
+    req.on('close', () => {
+      clearInterval(interval);
+    });
+    return;
+  }
+
   // GET /api/staff - Sanitized (Public list has NO PIN and NO PHONE numbers)
   if (req.method === 'GET' && pathname === '/api/staff') {
     const token = extractAuthToken(req, null);
@@ -3973,6 +3999,38 @@ const server = http.createServer(async (req, res) => {
               const effectiveStatus = payload.status || (isCarNotPresent ? 'car_not_present' : 'completed');
               const effectiveNotes = payload.notes || (isCarNotPresent ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)' : 'Daily clean verified with photo proof');
 
+              // Phase 2 Pre-Alignment: Calculate in-house Haversine distance against customer location (non-blocking)
+              let punchDistMeters = null;
+              let punchVerified = null;
+              let punchStatus = payload.punchVerificationStatus || 'pending';
+
+              if (payload.punchLatitude !== undefined && payload.punchLongitude !== undefined && payload.punchLatitude !== null && payload.punchLongitude !== null) {
+                try {
+                  let custId = payload.customerId;
+                  if (!custId && payload.subscriptionId) {
+                    const sub = await repos.subscriptions.findById(payload.subscriptionId);
+                    if (sub) custId = sub.customer_id;
+                  }
+                  if (custId) {
+                    const custLoc = await repos.serviceLocations.findPrimaryByCustomerId(custId);
+                    if (custLoc && custLoc.latitude && custLoc.longitude) {
+                      punchDistMeters = repos.staffTracking.calculateHaversineDistanceMeters(
+                        custLoc.latitude, custLoc.longitude,
+                        payload.punchLatitude, payload.punchLongitude
+                      );
+                      punchVerified = (punchDistMeters <= 200);
+                      punchStatus = punchVerified ? 'verified' : 'out_of_range';
+                    } else {
+                      punchStatus = 'no_customer_coords';
+                    }
+                  } else {
+                    punchStatus = 'no_customer_coords';
+                  }
+                } catch (cErr) {
+                  punchStatus = 'unverified';
+                }
+              }
+
               const outcome = await repos.serviceLogs.recordCompletion({
                 clientMutationId: mutationId,
                 staffId: staff.id,
@@ -3986,7 +4044,14 @@ const server = http.createServer(async (req, res) => {
                 source: 'staff_portal',
                 deviceMetadata: payload.deviceMetadata || null,
                 carNotPresent: isCarNotPresent,
-                tag: effectiveTag
+                tag: effectiveTag,
+                punchLatitude: payload.punchLatitude !== undefined ? payload.punchLatitude : null,
+                punchLongitude: payload.punchLongitude !== undefined ? payload.punchLongitude : null,
+                punchAccuracyMeters: payload.punchAccuracyMeters !== undefined ? payload.punchAccuracyMeters : null,
+                punchDistanceMeters: punchDistMeters,
+                punchVerified: punchVerified,
+                punchVerificationStatus: punchStatus,
+                punchMetadata: payload.punchMetadata || null
               });
 
               res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -4165,6 +4230,234 @@ const server = http.createServer(async (req, res) => {
           }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, staffList: (appState.staffList || []).map(s => sanitizeStaffForAdmin(s)) }));
+        }
+
+        // =====================================================================
+        // REALTIME STAFF LOCATION TRACKING, MOVEMENTS, STOPPAGES & PINGS
+        // =====================================================================
+
+        // 1. Staff: Record 15-Minute or Event Location Heartbeat
+        if (payload.action === 'recordStaffHeartbeat' || payload.action === 'recordStaffLocationHeartbeat') {
+          const staffSess = await resolveStaffSession(token);
+          const adminSess = await resolveAdminSession(token);
+          if (!staffSess && !adminSess && !payload.staffId) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff or Admin session required' }));
+          }
+
+          const staffIdentifier = (staffSess && (staffSess.staffId || staffSess.staffCode)) || payload.staffId || payload.staffCode;
+          if (!staffIdentifier) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'staffId is required' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const trackingResult = await repos.staffTracking.recordLocation(staffIdentifier, {
+                latitude: payload.latitude,
+                longitude: payload.longitude,
+                accuracy: payload.accuracy,
+                altitude: payload.altitude,
+                speed: payload.speed,
+                heading: payload.heading,
+                batteryLevel: payload.batteryLevel,
+                isCharging: payload.isCharging,
+                triggerType: payload.triggerType || payload.trigger || 'heartbeat',
+                capturedAt: payload.capturedAt || new Date().toISOString()
+              });
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: true,
+                todayDistanceKm: trackingResult.todayDistanceKm,
+                status: trackingResult.status,
+                hasPendingPing: trackingResult.hasPendingPing,
+                pendingPingId: trackingResult.pendingPingId
+              }));
+            } catch (trackErr) {
+              console.error('recordStaffHeartbeat error:', trackErr.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: trackErr.message }));
+            }
+          }
+
+          // Fallback mock response for non-neon mode
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            todayDistanceKm: 0.0,
+            status: 'moving',
+            hasPendingPing: false,
+            pendingPingId: null
+          }));
+        }
+
+        // 2. Admin: Get Live Tracking Summary & KPIs
+        if (payload.action === 'getStaffTrackingSummary' || payload.action === 'getStaffTrackingData') {
+          const adminSess = await resolveAdminSession(token);
+          const staffSess = await resolveStaffSession(token);
+          if (!adminSess && !staffSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const summary = await repos.staffTracking.getCurrentTrackingSummary(payload.date || null);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(summary));
+            } catch (sumErr) {
+              console.error('getStaffTrackingSummary error:', sumErr.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: sumErr.message }));
+            }
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            kpis: { activeStaffCount: 0, totalStaffCount: 0, fleetDistanceKm: 0, totalStoppages: 0, avgDwellMinutes: 0 },
+            staff: [],
+            stoppages: []
+          }));
+        }
+
+        // 3. Admin: Get Movement History & Stoppages for a Staff
+        if (payload.action === 'getStaffMovementHistory') {
+          const adminSess = await resolveAdminSession(token);
+          const staffSess = await resolveStaffSession(token);
+          if (!adminSess && !staffSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
+          }
+
+          const staffIdentifier = payload.staffId || (staffSess && staffSess.staffId);
+          if (!staffIdentifier) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'staffId is required' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const history = await repos.staffTracking.getMovementHistory(staffIdentifier, payload.date || null);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(history));
+            } catch (histErr) {
+              console.error('getStaffMovementHistory error:', histErr.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: histErr.message }));
+            }
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, staffId: staffIdentifier, breadcrumbs: [], stoppages: [] }));
+        }
+
+        // 4. Admin: On-Demand Location Ping Trigger
+        if (payload.action === 'pingStaffLocation' || payload.action === 'requestStaffLocationPing') {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin session required' }));
+          }
+
+          if (!payload.staffId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'staffId is required' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const pingResult = await repos.staffTracking.createLocationPing(
+                payload.staffId,
+                adminSess.username || 'admin'
+              );
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(pingResult));
+            } catch (pingErr) {
+              console.error('pingStaffLocation error:', pingErr.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: pingErr.message }));
+            }
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, pingId: crypto.randomUUID(), status: 'pending' }));
+        }
+
+        // 5. Staff: Respond to Location Ping
+        if (payload.action === 'respondToLocationPing' || payload.action === 'respondStaffLocationPing') {
+          const staffSess = await resolveStaffSession(token);
+          const adminSess = await resolveAdminSession(token);
+          if (!staffSess && !adminSess && !payload.staffId) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
+          }
+
+          if (!payload.pingId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'pingId is required' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const fulfillResult = await repos.staffTracking.fulfillLocationPing(payload.pingId, {
+                latitude: payload.latitude,
+                longitude: payload.longitude,
+                accuracy: payload.accuracy,
+                speed: payload.speed,
+                heading: payload.heading,
+                batteryLevel: payload.batteryLevel,
+                isCharging: payload.isCharging
+              });
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(fulfillResult));
+            } catch (fulErr) {
+              console.error('respondToLocationPing error:', fulErr.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: fulErr.message }));
+            }
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, message: 'Location ping fulfilled' }));
+        }
+
+        // 6. Staff: Get Pending Location Pings
+        if (payload.action === 'getPendingStaffPings' || payload.action === 'checkStaffLocationPing') {
+          const staffSess = await resolveStaffSession(token);
+          const adminSess = await resolveAdminSession(token);
+          const staffIdentifier = (staffSess && (staffSess.staffId || staffSess.staffCode)) || payload.staffId;
+
+          if (!staffIdentifier) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'staffId is required' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const pendingPings = await repos.staffTracking.getPendingPings(staffIdentifier);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, pings: pendingPings }));
+            } catch (pErr) {
+              console.error('getPendingStaffPings error:', pErr.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: pErr.message }));
+            }
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, pings: [] }));
+        }
+
+        // 7. Get Map Configuration (Zero-Overbilling Safeguard: Google Maps key for client-side lazy load)
+        if (payload.action === 'getMapsConfig') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || ''
+          }));
         }
 
         // =====================================================================

@@ -33,6 +33,7 @@
   <link rel="stylesheet" href="/css/style.css?v=3.2.6">
   <link rel="stylesheet" href="/css/m3-tokens.css?v=3.2.3">
   <link rel="stylesheet" href="/css/staff-m3.css?v=3.2.3">
+  <link rel="stylesheet" href="/css/cwp-neural-login.css?v=1.0.0">
   <style>
   .is-hidden, [hidden], .header-dropdown-wrap.is-hidden, .header-account-trigger.is-hidden { display: none !important; }
   </style>
@@ -508,59 +509,115 @@
   </nav>
   </div>
   <div id="adminView" class="admin-container">
-    <div id="adminAuthGate" class="auth-gate-box is-hidden" style="display: none;" hidden>
-      <div class="admin-auth-card">
-        <div class="auth-accent-bar admin-accent"></div>
-        <div class="auth-card-content">
-          <div class="auth-top-actions">
-            <button type="button" class="btn-gate-toggle" id="btnAdminGateLangToggle" onclick="toggleLanguage()" title="भाषा बदलें / Change Language">
-              <span class="gate-toggle-icon">🌐</span>
-              <span id="adminGateLangText">English</span>
-            </button>
-            <button type="button" class="btn-gate-toggle" id="btnAdminGateThemeToggle" onclick="toggleTheme()" title="थीम बदलें / Toggle Dark/Light Mode">
-              <span id="adminGateThemeIcon">🌙</span>
-            </button>
-          </div>
-          <div class="auth-brand-emblem" title="CWP Detailers">
-            <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo" style="height: 48px; width: auto; max-width: 200px; object-fit: contain;">
-          </div>
-          <div class="auth-role-pill admin-pill">
-            <span>🛡️</span> Admin Security Verification
-          </div>
-          <h2 class="admin-auth-title">Admin Dashboard</h2>
-          <p class="admin-auth-desc">Enter password to access customer database, staff management, and route sequences.</p>
-          <form id="adminAuthForm" onsubmit="handleAdminAuth(event)">
-            <div class="auth-input-group">
-              <div class="auth-input-icon">
-                <span>🔒</span>
+    <div id="adminAuthGate" class="cwp-neural-login-root auth-gate-box is-hidden" style="display: none;" hidden>
+      <!-- Ambient Floating Mesh Background -->
+      <div class="cwp-login-mesh-bg" aria-hidden="true">
+        <div class="cwp-mesh-base"></div>
+        <div class="cwp-mesh-orb cwp-mesh-a"></div>
+        <div class="cwp-mesh-orb cwp-mesh-b"></div>
+        <div class="cwp-mesh-orb cwp-mesh-c"></div>
+        <div class="cwp-core-backlight"></div>
+      </div>
+
+      <!-- Content Layer -->
+      <div class="cwp-login-content-layer">
+        <!-- Brand Emblem Header -->
+        <div class="cwp-login-brand-header">
+          <img src="/cwp_logo.jpg" alt="CWP Detailers & Motors" class="cwp-login-logo-img">
+          <span class="cwp-login-brand-title">CWP Detailers & Motors</span>
+        </div>
+
+        <!-- 3D Neural Core Hero Button -->
+        <div class="cwp-core-wrapper">
+          <div class="cwp-core-ring" aria-hidden="true"></div>
+          <div class="cwp-core-ring cwp-core-ring-delay" aria-hidden="true"></div>
+
+          <button
+            type="button"
+            id="cwpCoreBtn"
+            class="cwp-core-btn"
+            aria-label="Activate Super Admin authentication"
+            title="Tap core to authenticate"
+          >
+            <span class="cwp-core-hover-sheen" aria-hidden="true"></span>
+            <span class="cwp-core-glass-sheen" aria-hidden="true"></span>
+            <canvas id="cwpNeuralCoreCanvas" width="320" height="320"></canvas>
+          </button>
+        </div>
+
+        <!-- Stage 1: Intro CTA -->
+        <div id="cwpCoreIntroCta" class="cwp-core-cta-box">
+          <button
+            type="button"
+            id="cwpCoreIntroBtn"
+            class="cwp-core-cta-btn"
+            aria-label="Tap core to authenticate"
+          >
+            <span class="cwp-pulse-dot" aria-hidden="true"></span>
+            <span>TAP CORE TO AUTHENTICATE</span>
+          </button>
+        </div>
+
+        <!-- Stage 2: Glassmorphic Password Form -->
+        <div id="cwpCorePasswordBox" class="cwp-password-prompt-box" style="display: none;" hidden>
+          <form id="adminAuthForm" class="cwp-password-form" onsubmit="handleAdminAuth(event)">
+            <div class="cwp-password-input-group">
+              <input
+                type="password"
+                id="adminPasswordInput"
+                class="cwp-password-input auth-field-input"
+                placeholder="Enter admin password..."
+                autocomplete="current-password"
+                required
+              >
+              <div class="cwp-password-actions">
+                <button
+                  type="button"
+                  class="cwp-btn-pw-action btn-toggle-eye"
+                  onclick="togglePasswordVisibility('adminPasswordInput', this)"
+                  title="Show / hide password"
+                  aria-label="Toggle password visibility"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 19px;">visibility</span>
+                </button>
+                <button
+                  type="submit"
+                  id="btnAdminLogin"
+                  class="cwp-btn-pw-action cwp-btn-pw-submit auth-submit-btn admin-submit-btn"
+                  title="Unlock Admin Dashboard"
+                  aria-label="Sign in"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 19px;">arrow_forward</span>
+                </button>
               </div>
-              <input type="password" id="adminPasswordInput" class="auth-field-input" placeholder="Enter admin password..." autocomplete="current-password" required>
-              <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('adminPasswordInput')" title="Show / hide password">👁️</button>
             </div>
-            <div id="adminAuthError" class="admin-auth-error-msg" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 14px; text-align: left;">
-              ❌ Incorrect password! Please enter the correct password.
-            </div>
-            <div class="admin-remember-row">
-              <label class="remember-label">
-                <input type="checkbox" id="rememberAdminDevice" checked>
+
+            <div class="cwp-remember-row">
+              <label class="cwp-remember-label remember-label">
+                <input type="checkbox" id="rememberAdminDevice" class="cwp-remember-checkbox" checked>
                 <span>Remember on this device</span>
               </label>
             </div>
-            <button type="submit" id="btnAdminLogin" class="auth-submit-btn admin-submit-btn">
-              <span class="btn-icon">🔓</span>
-              <span class="btn-label">Unlock Admin Dashboard</span>
-            </button>
           </form>
-          <div class="auth-switch-box">
-            <button type="button" class="btn-switch-portal" onclick="applyViewMode('staff')">
-              <span>🚗</span> Switch to Staff Portal
-            </button>
+
+          <!-- Authenticating Loader Indicator -->
+          <div id="cwpAuthenticatingIndicator" class="cwp-authenticating-text" style="display: none;">
+            Authenticating…
           </div>
-          <div class="auth-trust-strip">
-            <span class="trust-item">🔒 256-Bit SSL Encrypted</span>
-            <span class="trust-divider">•</span>
-            <span class="trust-item">Super Admin Security</span>
+
+          <!-- Error Banner -->
+          <div id="adminAuthError" class="cwp-login-error-banner admin-auth-error-msg" style="display: none;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">shield_lock</span>
+            <span id="adminAuthErrorText">Incorrect password! Please try again.</span>
           </div>
+        </div>
+
+        <!-- Footer Utility Strip -->
+        <div class="cwp-login-footer-bar">
+          <button type="button" class="cwp-btn-switch-staff" onclick="toggleTheme()" title="Toggle Dark / Light Mode">
+            <span class="material-symbols-outlined" style="font-size: 16px;">dark_mode</span>
+            <span id="adminLoginThemeLabel">Theme</span>
+          </button>
         </div>
       </div>
     </div>
@@ -3213,6 +3270,7 @@
   var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
   </script>
   <script src="/js/cropper.min.js"></script>
+  <script src="/js/cwp-neural-core.js?v=1.0.0"></script>
   <script src="/js/app.js?v=3.3.1" defer></script>
   <script>
   // Failsafe listener for staff photo selection
