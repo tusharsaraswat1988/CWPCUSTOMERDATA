@@ -418,6 +418,97 @@ async function runStaffTrackingTestSuite() {
       assert.strictEqual(mapsConfigRes.data.success, true, 'getMapsConfig should succeed');
       pass('HTTP API: getMapsConfig returned 200 OK');
 
+      // 7h. Security: Assert 401 Unauthorized when unauthenticated
+      const unauthHbRes = await makePostRequest(testPort, {
+        action: 'recordStaffHeartbeat',
+        staffId: testStaff.id,
+        latitude: 25.3185,
+        longitude: 82.9745
+      }, null);
+      assert.strictEqual(unauthHbRes.statusCode, 401, 'Unauthenticated recordStaffHeartbeat should return 401');
+      pass('Security: recordStaffHeartbeat rejected with 401 Unauthorized without session token');
+
+      const unauthSummaryRes = await makePostRequest(testPort, {
+        action: 'getStaffTrackingSummary'
+      }, null);
+      assert.strictEqual(unauthSummaryRes.statusCode, 401, 'Unauthenticated getStaffTrackingSummary should return 401');
+      pass('Security: getStaffTrackingSummary rejected with 401 Unauthorized without session token');
+
+      const unauthHistoryRes = await makePostRequest(testPort, {
+        action: 'getStaffMovementHistory',
+        staffId: testStaff.id
+      }, null);
+      assert.strictEqual(unauthHistoryRes.statusCode, 401, 'Unauthenticated getStaffMovementHistory should return 401');
+      pass('Security: getStaffMovementHistory rejected with 401 Unauthorized without session token');
+
+      const unauthPingRes = await makePostRequest(testPort, {
+        action: 'pingStaffLocation',
+        staffId: testStaff.id
+      }, null);
+      assert.strictEqual(unauthPingRes.statusCode, 401, 'Unauthenticated pingStaffLocation should return 401');
+      pass('Security: pingStaffLocation rejected with 401 Unauthorized without session token');
+
+      const unauthRespondRes = await makePostRequest(testPort, {
+        action: 'respondToLocationPing',
+        pingId: crypto.randomUUID(),
+        staffId: testStaff.id
+      }, null);
+      assert.strictEqual(unauthRespondRes.statusCode, 401, 'Unauthenticated respondToLocationPing should return 401');
+      pass('Security: respondToLocationPing rejected with 401 Unauthorized without session token');
+
+      const unauthCheckPingRes = await makePostRequest(testPort, {
+        action: 'getPendingStaffPings',
+        staffId: testStaff.id
+      }, null);
+      assert.strictEqual(unauthCheckPingRes.statusCode, 401, 'Unauthenticated getPendingStaffPings should return 401');
+      pass('Security: getPendingStaffPings rejected with 401 Unauthorized without session token');
+
+      // 7i. Security: SSE stream rejects unauthenticated clients
+      const sseNoTokenRes = await new Promise(resolve => {
+        const req = http.request({
+          hostname: 'localhost',
+          port: testPort,
+          path: `/api/staff-ping-stream?staffId=${testStaff.id}`,
+          method: 'GET'
+        }, res => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => resolve({ statusCode: res.statusCode, data }));
+        });
+        req.end();
+      });
+      assert.strictEqual(sseNoTokenRes.statusCode, 401, 'SSE stream without token should return 401');
+      pass('Security: GET /api/staff-ping-stream rejected with 401 Unauthorized when unauthenticated');
+
+      // 7j. Security: Staff session cannot spoof another staffId (403 Forbidden)
+      const spoofHbRes = await makePostRequest(testPort, {
+        action: 'recordStaffHeartbeat',
+        staffId: '00000000-0000-0000-0000-000000000000',
+        latitude: 25.3185,
+        longitude: 82.9745
+      }, rawStaffToken);
+      assert.strictEqual(spoofHbRes.statusCode, 403, 'Cross-staff heartbeat should return 403 Forbidden');
+      pass('Security: Cross-staff heartbeat spoofing rejected with 403 Forbidden');
+
+      // 7k. Stoppage Filtering: Brief pauses (< 5 min dwell) are excluded from summary
+      const shortStopRes = await db.query(
+        `INSERT INTO public.staff_stoppages (
+           staff_id, latitude, longitude, address_text, arrived_at, departed_at,
+           dwell_minutes, is_active, stoppage_date
+         ) VALUES ($1, 25.32, 82.98, 'Brief Traffic Light Stop', NOW() - INTERVAL '10 minutes', NOW() - INTERVAL '8 minutes', 2.0, FALSE, CURRENT_DATE)
+         RETURNING id`,
+        [testStaff.id]
+      );
+      const shortStopId = shortStopRes.rows[0].id;
+
+      const summaryWithFilter = await repos.staffTracking.getCurrentTrackingSummary();
+      const leakedStop = summaryWithFilter.stoppages.find(s => s.id === shortStopId);
+      assert.strictEqual(Boolean(leakedStop), false, 'Stoppage with < 5 min dwell must NOT appear in tracking summary');
+      pass('Stoppage Filtering: Brief stop (< 5 min dwell) is excluded from summary and average dwell KPIs');
+
+      // Clean up dummy stoppage
+      await db.query('DELETE FROM public.staff_stoppages WHERE id = $1', [shortStopId]);
+
     } finally {
       testServer.close();
       await db.query('DELETE FROM public.auth_sessions WHERE token_hash IN ($1, $2)', [adminTokenHash, staffTokenHash]);

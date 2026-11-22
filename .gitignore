@@ -8,3 +8,5 @@ uploads/
 scratch/
 /screenshots/
 .chrome_qa_profile/
+local_data.json
+.edge_profile/

@@ -51,7 +51,7 @@ async function runMigration() {
 
   const client = new Client({
     connectionString,
-    ssl: { rejectUnauthorized: false },
+    ssl: { rejectUnauthorized: process.env.ALLOW_INSECURE_DB_SSL === 'true' ? false : true },
     connectionTimeoutMillis: 10000
   });
 

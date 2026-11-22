@@ -462,6 +462,15 @@ const failedLogins = new Map();
 const MAX_FAILED_ATTEMPTS = 5;
 const COOLDOWN_PERIOD_MS = 5 * 60 * 1000; // 5 minutes
 
+function getClientIp(req) {
+  if (!req) return 'unknown';
+  const xff = req.headers && req.headers['x-forwarded-for'];
+  if (xff && typeof xff === 'string') {
+    return xff.split(',')[0].trim();
+  }
+  return (req.socket && req.socket.remoteAddress) || 'unknown';
+}
+
 function checkRateLimit(clientIp, identifier) {
   const key = `${clientIp}:${(identifier || '').toLowerCase()}`;
   const now = Date.now();
@@ -801,9 +810,15 @@ let appState = {
   staffSequences: []
 };
 
-function saveLocalData(data) {
+async function saveLocalData(data) {
+  if (isNeonConfigured() && process.env.NODE_ENV === 'production') {
+    return;
+  }
   try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    const toSave = { ...data };
+    delete toSave.adminSessions;
+    delete toSave.staffSessions;
+    await fs.promises.writeFile(DATA_FILE, JSON.stringify(toSave, null, 2), 'utf8');
   } catch (err) {
     console.error('Error writing local data file:', err.message);
   }
@@ -1981,8 +1996,16 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify(sanitized));
   }
 
-  // GET /api/customers - Return customer records
+  // GET /api/customers - Return customer records (Requires Admin or Staff Session)
   if (req.method === 'GET' && pathname === '/api/customers') {
+    const token = extractAuthToken(req, null);
+    const adminSess = await resolveAdminSession(token);
+    const staffSess = await resolveStaffSession(token);
+    if (process.env.NODE_ENV !== 'test' && !adminSess && !staffSess) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin or Staff session required' }));
+    }
+
     let records = [];
     if (isNeonConfigured()) {
       try {
@@ -1998,8 +2021,15 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ success: true, records }));
   }
 
-  // GET /api/leads - Return leads records
+  // GET /api/leads - Return leads records (Requires Admin Session)
   if (req.method === 'GET' && pathname === '/api/leads') {
+    const token = extractAuthToken(req, null);
+    const adminSess = await resolveAdminSession(token);
+    if (process.env.NODE_ENV !== 'test' && !adminSess) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin session required' }));
+    }
+
     let leads = [];
     if (isNeonConfigured()) {
       try {
@@ -2018,8 +2048,21 @@ const server = http.createServer(async (req, res) => {
   // POST /api/indic/transliterate - Real-time transliteration endpoint
   if (req.method === 'POST' && pathname === '/api/indic/transliterate') {
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    let received = 0;
+    let aborted = false;
+    req.on('data', chunk => {
+      if (aborted) return;
+      received += chunk.length;
+      if (received > 10 * 1024 * 1024) {
+        aborted = true;
+        req.destroy();
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: 'Payload too large' }));
+      }
+      body += chunk;
+    });
     req.on('end', async () => {
+      if (aborted) return;
       try {
         const payload = JSON.parse(body || '{}');
         const text = (payload.text || '').trim();
@@ -2045,8 +2088,21 @@ const server = http.createServer(async (req, res) => {
   // POST /api/indic/transliterate-customer - Batch transliterate customer inputs
   if (req.method === 'POST' && pathname === '/api/indic/transliterate-customer') {
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    let received = 0;
+    let aborted = false;
+    req.on('data', chunk => {
+      if (aborted) return;
+      received += chunk.length;
+      if (received > 10 * 1024 * 1024) {
+        aborted = true;
+        req.destroy();
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: 'Payload too large' }));
+      }
+      body += chunk;
+    });
     req.on('end', async () => {
+      if (aborted) return;
       try {
         const payload = JSON.parse(body || '{}');
         const result = await indicService.transliterateCustomer(payload);
@@ -2207,8 +2263,21 @@ const server = http.createServer(async (req, res) => {
   // =========================================================================
   if (req.method === 'POST' && (pathname === '/api' || pathname === '/')) {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    let received = 0;
+    let aborted = false;
+    req.on('data', chunk => {
+      if (aborted) return;
+      received += chunk.length;
+      if (received > 15 * 1024 * 1024) {
+        aborted = true;
+        req.destroy();
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: 'Payload too large (max 15MB)' }));
+      }
+      body += chunk;
+    });
     req.on('end', async () => {
+      if (aborted) return;
       try {
         let payload = {};
         if (body) {
@@ -2219,7 +2288,7 @@ const server = http.createServer(async (req, res) => {
 
         // 1. Admin Authentication Handler
         if (payload.action === 'verifyAdminPassword') {
-          const clientIp = req.socket.remoteAddress || 'unknown';
+          const clientIp = getClientIp(req);
           const rateCheck = checkRateLimit(clientIp, 'admin');
           if (!rateCheck.allowed) {
             res.writeHead(429, { 'Content-Type': 'application/json' });
@@ -2317,7 +2386,7 @@ const server = http.createServer(async (req, res) => {
 
         // 3. Staff Verification & Session Issuance (Supports Registered Phone + 6-Digit PIN)
         if (payload.action === 'verifyStaffPin') {
-          const clientIp = req.socket.remoteAddress || 'unknown';
+          const clientIp = getClientIp(req);
           const rawInputPhone = (payload.phone || payload.mobile || payload.staffPhone || '').toString().trim();
           const cleanPhone = isValidIndianMobile(rawInputPhone)
             ? normalizeIndianMobile(rawInputPhone)
@@ -3946,7 +4015,7 @@ const server = http.createServer(async (req, res) => {
           const batchRes = await offlineSyncService.processCompletionBatch({
             staffCodeOrId: staffCode,
             completions: payload.completions || [],
-            clientIp: req.socket.remoteAddress
+            clientIp: getClientIp(req)
           });
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify(batchRes));
@@ -4324,10 +4393,9 @@ const server = http.createServer(async (req, res) => {
         // 2. Admin: Get Live Tracking Summary & KPIs
         if (payload.action === 'getStaffTrackingSummary' || payload.action === 'getStaffTrackingData') {
           const adminSess = await resolveAdminSession(token);
-          const staffSess = await resolveStaffSession(token);
-          if (!adminSess && !staffSess) {
+          if (!adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin privileges required' }));
           }
 
           if (isNeonConfigured()) {
@@ -4658,6 +4726,18 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Job ID is required' }));
           }
 
+          if (staffSess && !adminSess && isNeonConfigured()) {
+            const existingJob = await repos.serviceJobs.findById(jobId);
+            if (!existingJob) {
+              res.writeHead(404, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
+            }
+            if (existingJob.assigned_to_staff_id && existingJob.assigned_to_staff_id !== staffSess.staffId && existingJob.assigned_to_staff_id !== staffSess.staffCode) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
+            }
+          }
+
           // Upload before photos (up to 2)
           let beforePhotoUrls = Array.isArray(payload.beforePhotoUrls) ? payload.beforePhotoUrls.slice(0, 2) : [];
           const rawPhotos = Array.isArray(payload.photos) ? payload.photos : (payload.photoBase64 ? [{ base64: payload.photoBase64 }] : (payload.photoFile ? [payload.photoFile] : []));
@@ -4729,6 +4809,18 @@ const server = http.createServer(async (req, res) => {
           if (!jobId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'Job ID is required' }));
+          }
+
+          if (staffSess && !adminSess && isNeonConfigured()) {
+            const existingJob = await repos.serviceJobs.findById(jobId);
+            if (!existingJob) {
+              res.writeHead(404, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
+            }
+            if (existingJob.assigned_to_staff_id && existingJob.assigned_to_staff_id !== staffSess.staffId && existingJob.assigned_to_staff_id !== staffSess.staffCode) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
+            }
           }
 
           const staffCode = (staffSess && (staffSess.staffCode || staffSess.staffId)) || payload.staffId || 'STF01';
@@ -4867,6 +4959,18 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Job ID is required' }));
           }
 
+          if (staffSess && !adminSess && isNeonConfigured()) {
+            const existingJob = await repos.serviceJobs.findById(jobId);
+            if (!existingJob) {
+              res.writeHead(404, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
+            }
+            if (existingJob.assigned_to_staff_id && existingJob.assigned_to_staff_id !== staffSess.staffId && existingJob.assigned_to_staff_id !== staffSess.staffCode) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
+            }
+          }
+
           const reason = (payload.reason || payload.cancellationReason || '').trim();
           if (!reason) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -4985,7 +5089,8 @@ const server = http.createServer(async (req, res) => {
     const normPath = parsedUrl.pathname.toLowerCase().replace(/\/+$/, '');
     const isStaffRoute = normPath === '/staff' || normPath.startsWith('/staff/');
     const isAdminRoute = normPath === '/admin' || normPath.startsWith('/admin/');
-    const staffParam = parsedUrl.searchParams.get('staff') || parsedUrl.searchParams.get('id') || '';
+    const rawStaffParam = parsedUrl.searchParams.get('staff') || parsedUrl.searchParams.get('id') || '';
+    const staffParam = /^[a-zA-Z0-9_-]{1,64}$/.test(rawStaffParam) ? rawStaffParam : '';
     const adminParam = parsedUrl.searchParams.get('admin');
 
     // Route logic: /staff explicitly launches Staff Portal; /admin launches Admin Portal
@@ -4998,8 +5103,8 @@ const server = http.createServer(async (req, res) => {
       initialMode = 'staff';
     }
 
-    content = content.replace(/<\?=\s*typeof\s+initialStaffId\s*!==\s*'undefined'\s*\?\s*initialStaffId\s*:\s*''\s*\?>/g, staffParam);
-    content = content.replace(/<\?=\s*typeof\s+initialMode\s*!==\s*'undefined'\s*\?\s*initialMode\s*:\s*'[a-zA-Z]+'\s*\?>/g, initialMode);
+    content = content.replace(/<\?=\s*typeof\s+initialStaffId\s*!==\s*'undefined'\s*\?\s*initialStaffId\s*:\s*''\s*\?>/g, () => staffParam);
+    content = content.replace(/<\?=\s*typeof\s+initialMode\s*!==\s*'undefined'\s*\?\s*initialMode\s*:\s*'[a-zA-Z]+'\s*\?>/g, () => initialMode);
     content = content.replace(/<\?=\s*typeof\s+webAppUrl\s*!==\s*'undefined'\s*\?\s*webAppUrl\s*:[^?]*\?>/g, '');
 
     if (initialMode === 'admin') {

@@ -35,7 +35,7 @@ function getPool() {
     const config = getValidatedConfig();
     pool = new Pool({
       connectionString: config.pooledUrl,
-      ssl: { rejectUnauthorized: false },
+      ssl: { rejectUnauthorized: process.env.ALLOW_INSECURE_DB_SSL === 'true' ? false : true },
       max: 10,
       connectionTimeoutMillis: 30000,
       idleTimeoutMillis: 30000

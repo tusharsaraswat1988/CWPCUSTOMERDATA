@@ -4638,23 +4638,23 @@ function loadStaffCustomerData(staffId) {
             var compData = getCustomerCompletionData(custId);
             var isCarNotPresent = compData && (compData.carNotPresent === true || compData.tag === 'car_not_present' || compData.status === 'car_not_present');
             if (isCarNotPresent) {
-              html += '    <button type="button" class="btn-clean-done done-active card-status-not-present" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')" title="' + (isHi ? 'कार मौजूद नहीं थी (फोटो देखने या रीटेक करने के लिए क्लिक करें)' : 'Car not present (Click to view or retake photo)') + '">';
+              html += '    <button type="button" class="btn-clean-done done-active card-status-not-present" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleDailyCleanClick(this.dataset.custId, Number(this.dataset.index))" title="' + (isHi ? 'कार मौजूद नहीं थी (फोटो देखने या रीटेक करने के लिए क्लिक करें)' : 'Car not present (Click to view or retake photo)') + '">';
               html += '      <span class="material-symbols-outlined status-completed-icon" style="font-size: 18px;" aria-hidden="true">cancel</span>';
               html += '      <span>' + (isHi ? 'कार नहीं थी (Not Present)' : 'Car Not Present') + '</span>';
               html += '    </button>';
             } else {
-              html += '    <button type="button" class="btn-clean-done done-active card-status-completed" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')" title="' + (isHi ? 'सफाई पूर्ण हो चुकी है (फोटो देखने या रीटेक करने के लिए क्लिक करें)' : 'Cleaning completed (Click to view or retake photo)') + '">';
+              html += '    <button type="button" class="btn-clean-done done-active card-status-completed" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleDailyCleanClick(this.dataset.custId, Number(this.dataset.index))" title="' + (isHi ? 'सफाई पूर्ण हो चुकी है (फोटो देखने या रीटेक करने के लिए क्लिक करें)' : 'Cleaning completed (Click to view or retake photo)') + '">';
               html += '      <span class="material-symbols-outlined status-completed-icon" style="font-size: 18px;" aria-hidden="true">check_circle</span>';
               html += '      <span>' + (isHi ? 'साफ हो गई (Done)' : 'Cleaned (Done)') + '</span>';
               html += '    </button>';
             }
           } else {
-            html += '    <button type="button" class="btn-clean-done" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')">';
+            html += '    <button type="button" class="btn-clean-done" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleDailyCleanClick(this.dataset.custId, Number(this.dataset.index))">';
             html += '      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">photo_camera</span>';
             html += '      <span>' + (isHi ? 'आज साफ करें (Mark Cleaned)' : 'Mark Cleaned') + '</span>';
             html += '    </button>';
           }
-          html += '    <button type="button" class="btn-clean-wa ' + (isDone ? 'wa-ready' : 'wa-idle') + '" onclick="handleCustomerWhatsAppShare(\'' + escapeHtml(custId) + '\', ' + index + ')" title="' + (isHi ? 'व्हाट्सएप पर शेयर करें' : 'Share to WhatsApp') + '">';
+          html += '    <button type="button" class="btn-clean-wa ' + (isDone ? 'wa-ready' : 'wa-idle') + '" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleCustomerWhatsAppShare(this.dataset.custId, Number(this.dataset.index))" title="' + (isHi ? 'व्हाट्सएप पर शेयर करें' : 'Share to WhatsApp') + '">';
           html += '      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.68 12.04 3.68C14.25 3.68 16.31 4.54 17.87 6.1C19.42 7.66 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.05 20.15Z"/></svg>';
           html += '      <span>' + (isHi ? 'व्हाट्सएप' : 'WhatsApp') + '</span>';
           html += '    </button>';
@@ -11005,103 +11005,139 @@ function loadStaffCustomerData(staffId) {
           punchMetadata: (typeof latestStaffGpsFix !== 'undefined' && latestStaffGpsFix) ? { source: 'pwa_gps', capturedAt: latestStaffGpsFix.capturedAt } : null
         };
 
-        // If GPS is active and fresh position available, fire a rapid non-blocking background probe
+        function dispatchUpload(gpsFix) {
+          if (gpsFix) {
+            cleanPayload.punchLatitude = gpsFix.latitude;
+            cleanPayload.punchLongitude = gpsFix.longitude;
+            cleanPayload.punchAccuracyMeters = gpsFix.accuracy;
+            cleanPayload.punchMetadata = { source: 'pwa_gps', capturedAt: gpsFix.capturedAt };
+          }
+
+          // 2. Upload to Server
+          apiCall('recordDailyCleanWithPhoto', cleanPayload, function(res) {
+            var uploadedUrl = res.photoUrl || '';
+            
+            // 3. Update Local Storage & Completion Store
+            var dateKey = getTodayDateKey();
+            var store = getDailyCleanStore();
+            if (!store[staffCode]) store[staffCode] = {};
+            if (!store[staffCode][dateKey]) store[staffCode][dateKey] = {};
+
+            store[staffCode][dateKey][custId] = {
+              done: true,
+              carNotPresent: isCarNotPresent,
+              tag: isCarNotPresent ? 'car_not_present' : null,
+              status: isCarNotPresent ? 'car_not_present' : 'completed',
+              photoUrl: uploadedUrl,
+              completedAt: completedAtDevice,
+              vehicle: item.vehicle || item.vehicleNumbers,
+              customerName: item.customerName || item.name
+            };
+
+            saveDailyCleanStore(store);
+
+            // Update legacy list mirror
+            try {
+              var legacyKey = 'cwp_clean_done_' + dateKey + '_' + staffCode;
+              var list = Object.keys(store[staffCode][dateKey]).filter(function(k) {
+                var v = store[staffCode][dateKey][k];
+                return v === true || (v && v.done === true);
+              });
+              localStorage.setItem(legacyKey, JSON.stringify(list));
+            } catch (e) {}
+
+            // 4. Update UI
+            closeCleaningCameraModal();
+            updateRouteProgressBar();
+            if (state.currentStaffFilteredList) {
+              renderCustomerCards(state.currentStaffFilteredList);
+            }
+
+            var successMsg = isCarNotPresent ? 'गाड़ी मौजूद नहीं थी - रिकॉर्ड दर्ज हो गया! 🚫' : 'कार की सफाई सफलतापूर्वक दर्ज हो गई! ✓';
+            showToast(successMsg, 'success');
+
+            // 5. Trigger Instant WhatsApp Dispatch
+            setTimeout(function() {
+              triggerCleaningWhatsAppShare(item, uploadedUrl, completedAtDevice);
+            }, 400);
+
+          }, function(err) {
+            console.error('Failed to save cleaning photo:', err);
+            // Offline Fallback: Still mark completed locally and store photo locally
+            var dateKey = getTodayDateKey();
+            var store = getDailyCleanStore();
+            if (!store[staffCode]) store[staffCode] = {};
+            if (!store[staffCode][dateKey]) store[staffCode][dateKey] = {};
+
+            store[staffCode][dateKey][custId] = {
+              done: true,
+              carNotPresent: isCarNotPresent,
+              tag: isCarNotPresent ? 'car_not_present' : null,
+              status: isCarNotPresent ? 'car_not_present' : 'completed',
+              photoUrl: compressedBase64, // local data url
+              completedAt: completedAtDevice,
+              vehicle: item.vehicle || item.vehicleNumbers,
+              customerName: item.customerName || item.name,
+              pendingSync: true
+            };
+            saveDailyCleanStore(store);
+
+            closeCleaningCameraModal();
+            updateRouteProgressBar();
+            if (state.currentStaffFilteredList) {
+              renderCustomerCards(state.currentStaffFilteredList);
+            }
+            showToast('ऑफलाइन सुरक्षित: नेटवर्क आते ही सर्वर पर सिंक होगा!', 'warning');
+
+            setTimeout(function() {
+              triggerCleaningWhatsAppShare(item, '', completedAtDevice);
+            }, 400);
+          });
+        }
+
+        // If GPS is active and fresh position not yet cached, await a short probe (up to 1500ms) before uploading
         if (navigator.geolocation && (!cleanPayload.punchLatitude || !cleanPayload.punchLongitude)) {
+          var probeDone = false;
+          var probeTimer = setTimeout(function() {
+            if (!probeDone) {
+              probeDone = true;
+              dispatchUpload(null);
+            }
+          }, 1500);
+
           try {
             navigator.geolocation.getCurrentPosition(function(quickFix) {
+              if (probeDone) return;
+              probeDone = true;
+              clearTimeout(probeTimer);
+              var fix = null;
               if (quickFix && quickFix.coords) {
-                latestStaffGpsFix = {
+                fix = {
                   latitude: quickFix.coords.latitude,
                   longitude: quickFix.coords.longitude,
                   accuracy: quickFix.coords.accuracy,
                   speed: quickFix.coords.speed,
                   capturedAt: new Date().toISOString()
                 };
+                latestStaffGpsFix = fix;
               }
-            }, function() {}, { enableHighAccuracy: true, timeout: 1500, maximumAge: 60000 });
-          } catch (e) {}
+              dispatchUpload(fix);
+            }, function(err) {
+              if (probeDone) return;
+              probeDone = true;
+              clearTimeout(probeTimer);
+              dispatchUpload(null);
+            }, { enableHighAccuracy: true, timeout: 1500, maximumAge: 60000 });
+          } catch (e) {
+            if (!probeDone) {
+              probeDone = true;
+              clearTimeout(probeTimer);
+              dispatchUpload(null);
+            }
+          }
+        } else {
+          dispatchUpload(null);
         }
-
-        // 2. Upload to Server
-        apiCall('recordDailyCleanWithPhoto', cleanPayload, function(res) {
-          var uploadedUrl = res.photoUrl || '';
-          
-          // 3. Update Local Storage & Completion Store
-          var dateKey = getTodayDateKey();
-          var store = getDailyCleanStore();
-          if (!store[staffCode]) store[staffCode] = {};
-          if (!store[staffCode][dateKey]) store[staffCode][dateKey] = {};
-
-          store[staffCode][dateKey][custId] = {
-            done: true,
-            carNotPresent: isCarNotPresent,
-            tag: isCarNotPresent ? 'car_not_present' : null,
-            status: isCarNotPresent ? 'car_not_present' : 'completed',
-            photoUrl: uploadedUrl,
-            completedAt: completedAtDevice,
-            vehicle: item.vehicle || item.vehicleNumbers,
-            customerName: item.customerName || item.name
-          };
-
-          saveDailyCleanStore(store);
-
-          // Update legacy list mirror
-          try {
-            var legacyKey = 'cwp_clean_done_' + dateKey + '_' + staffCode;
-            var list = Object.keys(store[staffCode][dateKey]).filter(function(k) {
-              var v = store[staffCode][dateKey][k];
-              return v === true || (v && v.done === true);
-            });
-            localStorage.setItem(legacyKey, JSON.stringify(list));
-          } catch (e) {}
-
-          // 4. Update UI
-          closeCleaningCameraModal();
-          updateRouteProgressBar();
-          if (state.currentStaffFilteredList) {
-            renderCustomerCards(state.currentStaffFilteredList);
-          }
-
-          var successMsg = isCarNotPresent ? 'गाड़ी मौजूद नहीं थी - रिकॉर्ड दर्ज हो गया! 🚫' : 'कार की सफाई सफलतापूर्वक दर्ज हो गई! ✓';
-          showToast(successMsg, 'success');
-
-          // 5. Trigger Instant WhatsApp Dispatch
-          setTimeout(function() {
-            triggerCleaningWhatsAppShare(item, uploadedUrl, completedAtDevice);
-          }, 400);
-
-        }, function(err) {
-          console.error('Failed to save cleaning photo:', err);
-          // Offline Fallback: Still mark completed locally and store photo locally
-          var dateKey = getTodayDateKey();
-          var store = getDailyCleanStore();
-          if (!store[staffCode]) store[staffCode] = {};
-          if (!store[staffCode][dateKey]) store[staffCode][dateKey] = {};
-
-          store[staffCode][dateKey][custId] = {
-            done: true,
-            carNotPresent: isCarNotPresent,
-            tag: isCarNotPresent ? 'car_not_present' : null,
-            status: isCarNotPresent ? 'car_not_present' : 'completed',
-            photoUrl: compressedBase64, // local data url
-            completedAt: completedAtDevice,
-            vehicle: item.vehicle || item.vehicleNumbers,
-            customerName: item.customerName || item.name,
-            pendingSync: true
-          };
-          saveDailyCleanStore(store);
-
-          closeCleaningCameraModal();
-          updateRouteProgressBar();
-          if (state.currentStaffFilteredList) {
-            renderCustomerCards(state.currentStaffFilteredList);
-          }
-          showToast('ऑफलाइन सुरक्षित: नेटवर्क आते ही सर्वर पर सिंक होगा!', 'warning');
-
-          setTimeout(function() {
-            triggerCleaningWhatsAppShare(item, '', completedAtDevice);
-          }, 400);
-        });
       });
     }
 
@@ -14051,18 +14087,58 @@ function loadStaffCustomerData(staffId) {
       } catch (e) {}
     }
 
+    var isFlushingPendingHeartbeats = false;
+
     function flushPendingHeartbeats() {
+      if (isFlushingPendingHeartbeats) return;
       try {
         var raw = localStorage.getItem('cwp_pending_heartbeats');
         if (!raw) return;
         var queue = JSON.parse(raw);
         if (!Array.isArray(queue) || queue.length === 0) return;
 
-        localStorage.removeItem('cwp_pending_heartbeats');
-        queue.forEach(function(item) {
-          apiCall('recordStaffHeartbeat', item, function() {}, function() {});
+        isFlushingPendingHeartbeats = true;
+
+        // Sort chronologically to preserve movement trajectory
+        queue.sort(function(a, b) {
+          var ta = a.capturedAt ? new Date(a.capturedAt).getTime() : 0;
+          var tb = b.capturedAt ? new Date(b.capturedAt).getTime() : 0;
+          return ta - tb;
         });
-      } catch (e) {}
+
+        // Drain sequentially to eliminate concurrency race conditions
+        function processNext(idx) {
+          if (idx >= queue.length) {
+            try { localStorage.removeItem('cwp_pending_heartbeats'); } catch (e) {}
+            isFlushingPendingHeartbeats = false;
+            return;
+          }
+          var item = queue[idx];
+          apiCall('recordStaffHeartbeat', item, function() {
+            // Update remaining queue in localStorage in case of mid-flight drop
+            try {
+              var remaining = queue.slice(idx + 1);
+              if (remaining.length > 0) {
+                localStorage.setItem('cwp_pending_heartbeats', JSON.stringify(remaining));
+              } else {
+                localStorage.removeItem('cwp_pending_heartbeats');
+              }
+            } catch (e) {}
+            processNext(idx + 1);
+          }, function() {
+            // On network failure, preserve remaining items from this index onwards
+            try {
+              var remaining = queue.slice(idx);
+              localStorage.setItem('cwp_pending_heartbeats', JSON.stringify(remaining));
+            } catch (e) {}
+            isFlushingPendingHeartbeats = false;
+          });
+        }
+
+        processNext(0);
+      } catch (e) {
+        isFlushingPendingHeartbeats = false;
+      }
     }
 
     function respondToOnDemandLocationPing(pingId, staffId) {
@@ -14141,7 +14217,9 @@ function loadStaffCustomerData(staffId) {
       }
 
       try {
-        staffPingEventSource = new EventSource('/api/staff-ping-stream?staffId=' + encodeURIComponent(staffId));
+        var token = getStaffToken(staffId) || getAdminToken() || '';
+        var sseUrl = '/api/staff-ping-stream?staffId=' + encodeURIComponent(staffId) + (token ? '&token=' + encodeURIComponent(token) : '');
+        staffPingEventSource = new EventSource(sseUrl);
         staffPingEventSource.onmessage = function(event) {
           try {
             var data = JSON.parse(event.data);

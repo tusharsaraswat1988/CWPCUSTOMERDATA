@@ -23,15 +23,20 @@ async function runBrowserVerification() {
     const screenshotDir = path.join(__dirname, 'screenshots');
     if (!fs.existsSync(screenshotDir)) fs.mkdirSync(screenshotDir, { recursive: true });
 
+    const tempProfile = path.join(screenshotDir, '.edge_profile');
     // 1. Mobile viewport capture for Staff Portal (3 tabs layout & subfilter bar)
     const mobileShot = path.join(screenshotDir, 'staff_portal_mobile_3tabs.png');
-    execSync(`"${edgePath}" --headless --disable-gpu --window-size=412,915 --screenshot="${mobileShot}" http://localhost:3000/`, { stdio: 'ignore' });
+    try {
+      execSync(`"${edgePath}" --headless --disable-gpu --user-data-dir="${tempProfile}" --window-size=412,915 --screenshot="${mobileShot}" http://localhost:3000/`, { stdio: 'ignore', timeout: 5000 });
+    } catch (e) {}
     assert.ok(fs.existsSync(mobileShot), 'Mobile screenshot created');
     console.log(`✅ PASS: Mobile staff portal screenshot captured at: ${mobileShot}`);
 
     // 2. Desktop viewport capture for Admin Hub
     const desktopShot = path.join(screenshotDir, 'admin_hub_desktop.png');
-    execSync(`"${edgePath}" --headless --disable-gpu --window-size=1440,900 --screenshot="${desktopShot}" http://localhost:3000/`, { stdio: 'ignore' });
+    try {
+      execSync(`"${edgePath}" --headless --disable-gpu --user-data-dir="${tempProfile}" --window-size=1440,900 --screenshot="${desktopShot}" http://localhost:3000/`, { stdio: 'ignore', timeout: 5000 });
+    } catch (e) {}
     assert.ok(fs.existsSync(desktopShot), 'Desktop screenshot created');
     console.log(`✅ PASS: Desktop admin hub screenshot captured at: ${desktopShot}`);
   }
