@@ -1812,7 +1812,7 @@ var state = {
         var bottomNav = document.getElementById('staffBottomNav');
         if (bottomNav) {
           bottomNav.style.removeProperty('display');
-          bottomNav.style.display = 'grid';
+          bottomNav.style.display = 'flex';
           bottomNav.classList.remove('is-keyboard-hidden');
         }
         document.body.classList.remove('keyboard-open');
@@ -2226,8 +2226,8 @@ var state = {
       return sessionStorage.getItem('cwp_admin_token') || localStorage.getItem('cwp_admin_token') || '';
     }
 
-    /* Standard Valid Admin Tabs Constant (M3 Redesign: Dedicated Dashboard & Job Assignment) */
-    var ADMIN_VALID_TABS = ['dashboard', 'records', 'leads', 'washSolar', 'specialJobs', 'sequence', 'staff', 'cleanReports', 'jobAssignment', 'addCust'];
+    /* Standard Valid Admin Tabs Constant (M3 Redesign: Dedicated Dashboard & Job Assignment & Staff Live Tracking) */
+    var ADMIN_VALID_TABS = ['dashboard', 'records', 'leads', 'washSolar', 'specialJobs', 'sequence', 'staff', 'cleanReports', 'jobAssignment', 'staffTracking', 'addCust'];
 
     function clearAdminTokens() {
       sessionStorage.removeItem('cwp_admin_token');
@@ -2504,7 +2504,8 @@ var state = {
           staff: 'Staff Management',
           cleanReports: 'Operations: Daily Cleans',
           specialJobs: 'Operations: Wash & Solar',
-          jobAssignment: 'Job Assignment & Dispatch'
+          jobAssignment: 'Job Assignment & Dispatch',
+          staffTracking: 'Staff Live Tracking'
         };
         mobileActivePane.textContent = titles[tabName] || 'Admin Portal';
       }
@@ -2534,6 +2535,23 @@ var state = {
         if (jobBtn) jobBtn.classList.add('active');
         if (typeof loadJobAssignmentView === 'function') {
           loadJobAssignmentView();
+        }
+      }
+
+      if (tabName === 'staffTracking') {
+        var trackingPane = document.getElementById('adminTabStaffTracking');
+        if (trackingPane) trackingPane.style.display = 'block';
+        var trackingBtn = document.getElementById('tabBtnStaffTracking');
+        if (trackingBtn) trackingBtn.classList.add('active');
+        if (typeof loadStaffTrackingTab === 'function') {
+          loadStaffTrackingTab();
+        }
+        if (typeof startStaffTrackingAutoSync === 'function') {
+          startStaffTrackingAutoSync();
+        }
+      } else {
+        if (typeof stopStaffTrackingAutoSync === 'function') {
+          stopStaffTrackingAutoSync();
         }
       }
 
@@ -3633,6 +3651,11 @@ var state = {
           pollStaffData(staffId, false);
         }
       }, STAFF_SYNC_INTERVAL_MS);
+
+      // Start 15-minute background location heartbeat and on-demand ping listener
+      if (typeof startStaffLocationTracking === 'function') {
+        startStaffLocationTracking(staffId);
+      }
     }
 
     function stopStaffAutoSync() {
@@ -3641,6 +3664,10 @@ var state = {
         staffSyncTimer = null;
       }
       isStaffSyncInProgress = false;
+
+      if (typeof stopStaffLocationTracking === 'function') {
+        stopStaffLocationTracking();
+      }
     }
 
     function triggerManualStaffSync() {
@@ -10971,8 +10998,29 @@ function loadStaffCustomerData(staffId) {
           staffId: staffCode,
           carNotPresent: isCarNotPresent,
           tag: isCarNotPresent ? 'car_not_present' : null,
-          status: isCarNotPresent ? 'car_not_present' : 'completed'
+          status: isCarNotPresent ? 'car_not_present' : 'completed',
+          punchLatitude: (typeof latestStaffGpsFix !== 'undefined' && latestStaffGpsFix) ? latestStaffGpsFix.latitude : null,
+          punchLongitude: (typeof latestStaffGpsFix !== 'undefined' && latestStaffGpsFix) ? latestStaffGpsFix.longitude : null,
+          punchAccuracyMeters: (typeof latestStaffGpsFix !== 'undefined' && latestStaffGpsFix) ? latestStaffGpsFix.accuracy : null,
+          punchMetadata: (typeof latestStaffGpsFix !== 'undefined' && latestStaffGpsFix) ? { source: 'pwa_gps', capturedAt: latestStaffGpsFix.capturedAt } : null
         };
+
+        // If GPS is active and fresh position available, fire a rapid non-blocking background probe
+        if (navigator.geolocation && (!cleanPayload.punchLatitude || !cleanPayload.punchLongitude)) {
+          try {
+            navigator.geolocation.getCurrentPosition(function(quickFix) {
+              if (quickFix && quickFix.coords) {
+                latestStaffGpsFix = {
+                  latitude: quickFix.coords.latitude,
+                  longitude: quickFix.coords.longitude,
+                  accuracy: quickFix.coords.accuracy,
+                  speed: quickFix.coords.speed,
+                  capturedAt: new Date().toISOString()
+                };
+              }
+            }, function() {}, { enableHighAccuracy: true, timeout: 1500, maximumAge: 60000 });
+          } catch (e) {}
+        }
 
         // 2. Upload to Server
         apiCall('recordDailyCleanWithPhoto', cleanPayload, function(res) {
@@ -13899,6 +13947,994 @@ function loadStaffCustomerData(staffId) {
       window.setAppThemeMode = setAppThemeMode;
       window.updateSettingsPrefButtons = updateSettingsPrefButtons;
       window.renderCustomerCards = renderCustomerCards;
-      window.setStaffFilter = setStaffFilter;
+      /* =========================================================================
+       STAFF PWA REALTIME LOCATION TRACKING & ON-DEMAND PING CLIENT
+       ========================================================================= */
+    var STAFF_LOCATION_HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000; // 15 Minutes
+    var latestStaffGpsFix = null;
+    var lastStaffHeartbeatTimestamp = 0;
+    var staffHeartbeatTimer = null;
+    var staffPingEventSource = null;
+    var isPwaHeartbeatTransmitting = false;
+
+    function getBatteryInfo(callback) {
+      if (typeof navigator !== 'undefined' && navigator.getBattery) {
+        navigator.getBattery().then(function(battery) {
+          callback({
+            level: Math.round(battery.level * 100),
+            charging: battery.charging
+          });
+        }).catch(function() {
+          callback({ level: null, charging: null });
+        });
+      } else {
+        callback({ level: null, charging: null });
+      }
+    }
+
+    function triggerStaffLocationHeartbeat(staffId, triggerReason, callback) {
+      if (!staffId || !navigator.geolocation) {
+        if (callback) callback(null);
+        return;
+      }
+      isPwaHeartbeatTransmitting = true;
+
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        getBatteryInfo(function(battery) {
+          var capturedAt = new Date().toISOString();
+          latestStaffGpsFix = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            speed: pos.coords.speed,
+            heading: pos.coords.heading,
+            altitude: pos.coords.altitude,
+            batteryLevel: battery.level,
+            isCharging: battery.charging,
+            capturedAt: capturedAt
+          };
+
+          var heartbeatPayload = {
+            action: 'recordStaffHeartbeat',
+            staffId: staffId,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            speed: pos.coords.speed,
+            heading: pos.coords.heading,
+            altitude: pos.coords.altitude,
+            batteryLevel: battery.level,
+            isCharging: battery.charging,
+            triggerType: triggerReason || 'heartbeat',
+            capturedAt: capturedAt
+          };
+
+          lastStaffHeartbeatTimestamp = Date.now();
+
+          // Check if offline
+          if (navigator.onLine === false) {
+            queuePendingHeartbeat(heartbeatPayload);
+            isPwaHeartbeatTransmitting = false;
+            if (callback) callback({ offline: true, payload: heartbeatPayload });
+            return;
+          }
+
+          apiCall('recordStaffHeartbeat', heartbeatPayload, function(res) {
+            isPwaHeartbeatTransmitting = false;
+            if (res && res.hasPendingPing && res.pendingPingId) {
+              respondToOnDemandLocationPing(res.pendingPingId, staffId);
+            }
+            if (callback) callback(res);
+          }, function(err) {
+            isPwaHeartbeatTransmitting = false;
+            queuePendingHeartbeat(heartbeatPayload);
+            if (callback) callback({ error: err.message });
+          });
+        });
+      }, function(geoErr) {
+        isPwaHeartbeatTransmitting = false;
+        console.warn('[PWA Geolocation] Heartbeat position failed:', geoErr.message);
+        if (callback) callback({ error: geoErr.message });
+      }, {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0
+      });
+    }
+
+    function queuePendingHeartbeat(payload) {
+      try {
+        var queue = JSON.parse(localStorage.getItem('cwp_pending_heartbeats') || '[]');
+        queue.push(payload);
+        if (queue.length > 50) queue.shift();
+        localStorage.setItem('cwp_pending_heartbeats', JSON.stringify(queue));
+      } catch (e) {}
+    }
+
+    function flushPendingHeartbeats() {
+      try {
+        var raw = localStorage.getItem('cwp_pending_heartbeats');
+        if (!raw) return;
+        var queue = JSON.parse(raw);
+        if (!Array.isArray(queue) || queue.length === 0) return;
+
+        localStorage.removeItem('cwp_pending_heartbeats');
+        queue.forEach(function(item) {
+          apiCall('recordStaffHeartbeat', item, function() {}, function() {});
+        });
+      } catch (e) {}
+    }
+
+    function respondToOnDemandLocationPing(pingId, staffId) {
+      if (!pingId || !staffId || !navigator.geolocation) return;
+
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        getBatteryInfo(function(battery) {
+          var payload = {
+            action: 'respondToLocationPing',
+            pingId: pingId,
+            staffId: staffId,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            speed: pos.coords.speed,
+            heading: pos.coords.heading,
+            batteryLevel: battery.level,
+            isCharging: battery.charging
+          };
+
+          apiCall('respondToLocationPing', payload, function(res) {
+            if (state.currentView === 'staff') {
+              showToast('📍 लोकेशन पिंग प्राप्त — निर्देशांक भेजे गए (Location ping answered)', '✓');
+            }
+          }, function() {});
+        });
+      }, function(err) {
+        console.warn('[PWA Ping] Could not acquire position for ping:', err.message);
+      }, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    }
+
+    function startStaffLocationTracking(staffId) {
+      stopStaffLocationTracking();
+      if (!staffId) return;
+
+      // Initial heartbeat
+      triggerStaffLocationHeartbeat(staffId, 'initial_login');
+
+      // 15-Minute periodic interval
+      staffHeartbeatTimer = setInterval(function() {
+        if (state.currentView === 'staff') {
+          triggerStaffLocationHeartbeat(staffId, '15min_interval');
+        }
+      }, STAFF_LOCATION_HEARTBEAT_INTERVAL_MS);
+
+      // Wakeup listener on visibilitychange
+      window.addEventListener('visibilitychange', handleStaffTrackingVisibilityChange);
+      window.addEventListener('online', flushPendingHeartbeats);
+
+      // SSE on-demand ping stream listener
+      listenToStaffLocationPingStream(staffId);
+    }
+
+    function handleStaffTrackingVisibilityChange() {
+      if (document.visibilityState === 'visible' && state.activeStaffId && state.currentView === 'staff') {
+        var elapsed = Date.now() - lastStaffHeartbeatTimestamp;
+        if (elapsed >= STAFF_LOCATION_HEARTBEAT_INTERVAL_MS) {
+          triggerStaffLocationHeartbeat(state.activeStaffId, 'visibility_catchup');
+        }
+        apiCall('getPendingStaffPings', { staffId: state.activeStaffId }, function(res) {
+          if (res && res.pings && res.pings.length > 0) {
+            respondToOnDemandLocationPing(res.pings[0].id, state.activeStaffId);
+          }
+        }, function() {});
+      }
+    }
+
+    function listenToStaffLocationPingStream(staffId) {
+      if (typeof EventSource === 'undefined') return;
+      if (staffPingEventSource) {
+        try { staffPingEventSource.close(); } catch(e) {}
+      }
+
+      try {
+        staffPingEventSource = new EventSource('/api/staff-ping-stream?staffId=' + encodeURIComponent(staffId));
+        staffPingEventSource.onmessage = function(event) {
+          try {
+            var data = JSON.parse(event.data);
+            if (data && data.type === 'LOCATION_PING' && data.pings && data.pings.length > 0) {
+              respondToOnDemandLocationPing(data.pings[0].id, staffId);
+            }
+          } catch(e) {}
+        };
+      } catch (err) {
+        console.warn('[PWA Ping SSE] EventSource unavailable:', err.message);
+      }
+    }
+
+    function stopStaffLocationTracking() {
+      if (staffHeartbeatTimer) {
+        clearInterval(staffHeartbeatTimer);
+        staffHeartbeatTimer = null;
+      }
+      if (staffPingEventSource) {
+        try { staffPingEventSource.close(); } catch(e) {}
+        staffPingEventSource = null;
+      }
+      window.removeEventListener('visibilitychange', handleStaffTrackingVisibilityChange);
+    }
+
+    /* =========================================================================
+       TRACKING MAP ADAPTER (ZERO-OVERBILLING SINGLETON WITH LEAFLET/SVG FALLBACK)
+       ========================================================================= */
+    var TrackingMapAdapter = (function() {
+      var _engine = 'osm'; // 'google' | 'osm' | 'svg'
+      var _containerId = 'staffTrackingMapCanvas';
+      var _container = null;
+      var _googleMap = null;
+      var _leafletMap = null;
+      var _markers = {};
+      var _breadcrumbsPolyline = null;
+      var _googleScriptLoaded = false;
+      var _googleMapsApiKey = '';
+      var _currentStaffData = [];
+
+      function getStatusColor(status) {
+        if (status === 'moving') return '#16a34a'; // Green
+        if (status === 'stopped') return '#f59e0b'; // Amber
+        return '#64748b'; // Gray/Idle
+      }
+
+      function init(containerId, callback) {
+        _containerId = containerId || _containerId;
+        _container = document.getElementById(_containerId);
+        if (!_container) return;
+
+        apiCall('getMapsConfig', {}, function(cfg) {
+          _googleMapsApiKey = (cfg && cfg.googleMapsApiKey) ? cfg.googleMapsApiKey.trim() : '';
+
+          if (_googleMapsApiKey && typeof window.google === 'undefined' && !_googleScriptLoaded) {
+            loadGoogleMapsScript(_googleMapsApiKey, function(success) {
+              if (success && window.google && window.google.maps) {
+                _engine = 'google';
+                initGoogleEngine();
+              } else {
+                _engine = 'osm';
+                initOsmEngine();
+              }
+              if (callback) callback(_engine);
+            });
+          } else if (window.google && window.google.maps) {
+            _engine = 'google';
+            initGoogleEngine();
+            if (callback) callback(_engine);
+          } else {
+            _engine = 'osm';
+            initOsmEngine();
+            if (callback) callback(_engine);
+          }
+        }, function() {
+          _engine = 'osm';
+          initOsmEngine();
+          if (callback) callback(_engine);
+        });
+      }
+
+      function loadGoogleMapsScript(apiKey, cb) {
+        _googleScriptLoaded = true;
+        var script = document.createElement('script');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey) + '&callback=__onGoogleMapsApiLoaded';
+        script.async = true;
+        script.defer = true;
+        window.__onGoogleMapsApiLoaded = function() {
+          delete window.__onGoogleMapsApiLoaded;
+          cb(true);
+        };
+        script.onerror = function() {
+          console.warn('[MapAdapter] Google Maps script failed to load. Falling back to OpenStreetMap.');
+          cb(false);
+        };
+        document.head.appendChild(script);
+      }
+
+      function initGoogleEngine() {
+        if (!_container) return;
+        var hideOverlay = document.getElementById('mapLoadingOverlay');
+        if (hideOverlay) hideOverlay.style.display = 'none';
+
+        if (!_googleMap && window.google && window.google.maps) {
+          _googleMap = new google.maps.Map(_container, {
+            center: { lat: 25.3176, lng: 82.9739 },
+            zoom: 13,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false
+          });
+        }
+      }
+
+      function initOsmEngine() {
+        if (!_container) return;
+        var hideOverlay = document.getElementById('mapLoadingOverlay');
+        if (hideOverlay) hideOverlay.style.display = 'none';
+
+        if (typeof window.L === 'undefined') {
+          loadLeafletAssets(function(success) {
+            if (success && window.L) {
+              createLeafletMap();
+            } else {
+              initSvgFallback();
+            }
+          });
+        } else {
+          createLeafletMap();
+        }
+      }
+
+      function loadLeafletAssets(cb) {
+        if (document.getElementById('leafletCssTag')) {
+          return cb(typeof window.L !== 'undefined');
+        }
+        var link = document.createElement('link');
+        link.id = 'leafletCssTag';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+
+        var script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = function() { cb(true); };
+        script.onerror = function() { cb(false); };
+        document.head.appendChild(script);
+      }
+
+      function createLeafletMap() {
+        if (_leafletMap) return;
+        try {
+          _leafletMap = L.map(_containerId, {
+            center: [25.3176, 82.9739],
+            zoom: 13,
+            zoomControl: true
+          });
+          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+          }).addTo(_leafletMap);
+        } catch (e) {
+          console.warn('[MapAdapter] Leaflet init error:', e.message);
+          initSvgFallback();
+        }
+      }
+
+      function initSvgFallback() {
+        _engine = 'svg';
+        renderSvgMapCanvas();
+      }
+
+      function renderSvgMapCanvas() {
+        if (!_container) return;
+        var hideOverlay = document.getElementById('mapLoadingOverlay');
+        if (hideOverlay) hideOverlay.style.display = 'none';
+
+        _container.innerHTML = 
+          '<div class="svg-map-radar" style="width:100%;height:100%;min-height:550px;background:#0f172a;position:relative;overflow:hidden;border-radius:12px;display:flex;align-items:center;justify-content:center;">' +
+            '<div style="position:absolute;inset:0;background-image:radial-gradient(rgba(2,132,199,0.15) 1px, transparent 1px);background-size:24px 24px;"></div>' +
+            '<div style="position:absolute;top:12px;left:14px;background:rgba(15,23,42,0.85);padding:6px 12px;border-radius:8px;border:1px solid rgba(2,132,199,0.3);color:#e2e8f0;font-size:11px;font-weight:700;">' +
+              '📡 GPS Telemetry Radar (Varanasi Field Grid)' +
+            '</div>' +
+            '<svg id="svgRadarCanvas" viewBox="0 0 800 600" style="width:100%;height:100%;max-width:800px;max-height:600px;"></svg>' +
+          '</div>';
+      }
+
+      function updateMarkers(staffList) {
+        _currentStaffData = staffList || [];
+        var activePoints = [];
+
+        if (_engine === 'google' && _googleMap && window.google) {
+          _currentStaffData.forEach(function(s) {
+            if (!s.latitude || !s.longitude) return;
+            var lat = parseFloat(s.latitude);
+            var lng = parseFloat(s.longitude);
+            activePoints.push({ lat: lat, lng: lng });
+
+            var color = getStatusColor(s.status);
+            if (!_markers[s.staffId]) {
+              var marker = new google.maps.Marker({
+                position: { lat: lat, lng: lng },
+                map: _googleMap,
+                title: s.name + ' (' + s.staffCode + ')',
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 8,
+                  fillColor: color,
+                  fillOpacity: 1,
+                  strokeWeight: 2,
+                  strokeColor: '#ffffff'
+                }
+              });
+
+              var infoWindow = new google.maps.InfoWindow({
+                content: buildInfoWindowHtml(s)
+              });
+
+              marker.addListener('click', function() {
+                infoWindow.open(_googleMap, marker);
+                highlightStaffCard(s.staffId);
+              });
+
+              _markers[s.staffId] = { marker: marker, infoWindow: infoWindow };
+            } else {
+              _markers[s.staffId].marker.setPosition({ lat: lat, lng: lng });
+              _markers[s.staffId].marker.setIcon({
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: color,
+                fillOpacity: 1,
+                strokeWeight: 2,
+                strokeColor: '#ffffff'
+              });
+              _markers[s.staffId].infoWindow.setContent(buildInfoWindowHtml(s));
+            }
+          });
+        } else if (_engine === 'osm' && _leafletMap && window.L) {
+          _currentStaffData.forEach(function(s) {
+            if (!s.latitude || !s.longitude) return;
+            var lat = parseFloat(s.latitude);
+            var lng = parseFloat(s.longitude);
+            activePoints.push([lat, lng]);
+
+            var color = getStatusColor(s.status);
+            var customIcon = L.divIcon({
+              className: 'custom-leaflet-marker',
+              html: '<div style="background:' + color + ';width:14px;height:14px;border-radius:50%;border:2px solid #ffffff;box-shadow:0 0 6px rgba(0,0,0,0.4);"></div>',
+              iconSize: [14, 14],
+              iconAnchor: [7, 7]
+            });
+
+            if (!_markers[s.staffId]) {
+              var lMarker = L.marker([lat, lng], { icon: customIcon }).addTo(_leafletMap);
+              lMarker.bindPopup(buildInfoWindowHtml(s));
+              lMarker.on('click', function() { highlightStaffCard(s.staffId); });
+              _markers[s.staffId] = { marker: lMarker };
+            } else {
+              _markers[s.staffId].marker.setLatLng([lat, lng]);
+              _markers[s.staffId].marker.setIcon(customIcon);
+              _markers[s.staffId].marker.setPopupContent(buildInfoWindowHtml(s));
+            }
+          });
+        } else {
+          renderSvgRadarPoints(_currentStaffData);
+        }
+      }
+
+      function renderSvgRadarPoints(staffList) {
+        var svg = document.getElementById('svgRadarCanvas');
+        if (!svg) return;
+
+        var points = staffList.filter(function(s) { return s.latitude && s.longitude; });
+        if (points.length === 0) {
+          svg.innerHTML = '<text x="400" y="300" text-anchor="middle" fill="#94a3b8" font-size="14">No active staff coordinates reported today</text>';
+          return;
+        }
+
+        var minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+        points.forEach(function(p) {
+          var lat = parseFloat(p.latitude);
+          var lng = parseFloat(p.longitude);
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+        });
+
+        var padLat = (maxLat - minLat) * 0.2 || 0.01;
+        var padLng = (maxLng - minLng) * 0.2 || 0.01;
+        minLat -= padLat; maxLat += padLat;
+        minLng -= padLng; maxLng += padLng;
+
+        var svgContent = '';
+        points.forEach(function(p) {
+          var lat = parseFloat(p.latitude);
+          var lng = parseFloat(p.longitude);
+          var x = ((lng - minLng) / (maxLng - minLng)) * 720 + 40;
+          var y = 560 - (((lat - minLat) / (maxLat - minLat)) * 520 + 20);
+          var color = getStatusColor(p.status);
+
+          svgContent += 
+            '<g style="cursor:pointer;" onclick="centerStaffOnMap(\'' + p.staffId + '\')">' +
+              '<circle cx="' + x + '" cy="' + y + '" r="16" fill="' + color + '" opacity="0.25">' +
+                '<animate attributeName="r" values="12;22;12" dur="2s" repeatCount="indefinite"/>' +
+              '</circle>' +
+              '<circle cx="' + x + '" cy="' + y + '" r="7" fill="' + color + '" stroke="#ffffff" stroke-width="2"/>' +
+              '<text x="' + x + '" y="' + (y - 12) + '" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">' +
+                escapeHtml(p.name || p.staffCode) +
+              '</text>' +
+            '</g>';
+        });
+        svg.innerHTML = svgContent;
+      }
+
+      function buildInfoWindowHtml(s) {
+        var statusLabel = (s.status === 'moving' ? 'Moving 🟢' : (s.status === 'stopped' ? 'Stopped 🛑' : 'Idle ⏳'));
+        var timeAgo = s.lastSeenAt ? formatTimeAgo(new Date(s.lastSeenAt)) : 'Never';
+        return '<div style="padding:4px 6px;min-width:180px;font-family:sans-serif;">' +
+                 '<div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:2px;">' + escapeHtml(s.name || s.staffCode) + ' (' + escapeHtml(s.staffCode) + ')</div>' +
+                 '<div style="font-size:11px;color:#64748b;margin-bottom:6px;">📞 ' + escapeHtml(s.phone || 'N/A') + ' • ' + statusLabel + '</div>' +
+                 '<div style="font-size:11.5px;color:#1e293b;background:#f1f5f9;padding:4px 6px;border-radius:4px;margin-bottom:6px;">' +
+                   '<b>Distance:</b> ' + (s.todayDistanceKm || 0) + ' km • <b>Stops:</b> ' + (s.stoppageCount || 0) + '<br>' +
+                   '<b>Battery:</b> ' + (s.batteryLevel !== null ? s.batteryLevel + '%' : 'N/A') + ' • <b>Last Seen:</b> ' + timeAgo +
+                 '</div>' +
+                 '<button type="button" style="width:100%;padding:4px 8px;font-size:11px;font-weight:700;background:#0284c7;color:#ffffff;border:none;border-radius:4px;cursor:pointer;" onclick="viewStaffStoppages(\'' + s.staffId + '\', \'' + escapeHtml(s.name || s.staffCode) + '\')">' +
+                   'View Stoppage Journey 📜' +
+                 '</button>' +
+               '</div>';
+      }
+
+      function centerOnStaff(staffId) {
+        var target = _currentStaffData.find(function(s) { return s.staffId === staffId; });
+        if (!target || !target.latitude || !target.longitude) {
+          showToast('No active coordinates for this staff member', 'ℹ️');
+          return;
+        }
+        var lat = parseFloat(target.latitude);
+        var lng = parseFloat(target.longitude);
+
+        if (_engine === 'google' && _googleMap) {
+          _googleMap.panTo({ lat: lat, lng: lng });
+          _googleMap.setZoom(16);
+          if (_markers[staffId] && _markers[staffId].infoWindow) {
+            _markers[staffId].infoWindow.open(_googleMap, _markers[staffId].marker);
+          }
+        } else if (_engine === 'osm' && _leafletMap) {
+          _leafletMap.setView([lat, lng], 16);
+          if (_markers[staffId] && _markers[staffId].marker) {
+            _markers[staffId].marker.openPopup();
+          }
+        }
+      }
+
+      function fitAllMarkers() {
+        var points = _currentStaffData.filter(function(s) { return s.latitude && s.longitude; });
+        if (points.length === 0) return;
+
+        if (_engine === 'google' && _googleMap && window.google) {
+          var bounds = new google.maps.LatLngBounds();
+          points.forEach(function(p) {
+            bounds.extend({ lat: parseFloat(p.latitude), lng: parseFloat(p.longitude) });
+          });
+          _googleMap.fitBounds(bounds);
+        } else if (_engine === 'osm' && _leafletMap && window.L) {
+          var lBounds = L.latLngBounds(points.map(function(p) {
+            return [parseFloat(p.latitude), parseFloat(p.longitude)];
+          }));
+          _leafletMap.fitBounds(lBounds, { padding: [30, 30] });
+        }
+      }
+
+      function drawBreadcrumbs(breadcrumbs) {
+        clearBreadcrumbs();
+        if (!breadcrumbs || breadcrumbs.length < 2) return;
+
+        if (_engine === 'google' && _googleMap && window.google) {
+          var path = breadcrumbs.map(function(b) {
+            return { lat: parseFloat(b.lat), lng: parseFloat(b.lng) };
+          });
+          _breadcrumbsPolyline = new google.maps.Polyline({
+            path: path,
+            geodesic: true,
+            strokeColor: '#0284c7',
+            strokeOpacity: 0.85,
+            strokeWeight: 4,
+            map: _googleMap
+          });
+          var bounds = new google.maps.LatLngBounds();
+          path.forEach(function(pt) { bounds.extend(pt); });
+          _googleMap.fitBounds(bounds);
+        } else if (_engine === 'osm' && _leafletMap && window.L) {
+          var latLngs = breadcrumbs.map(function(b) {
+            return [parseFloat(b.lat), parseFloat(b.lng)];
+          });
+          _breadcrumbsPolyline = L.polyline(latLngs, {
+            color: '#0284c7',
+            weight: 4,
+            opacity: 0.85
+          }).addTo(_leafletMap);
+          _leafletMap.fitBounds(_breadcrumbsPolyline.getBounds(), { padding: [30, 30] });
+        }
+      }
+
+      function clearBreadcrumbs() {
+        if (_breadcrumbsPolyline) {
+          if (_breadcrumbsPolyline.setMap) {
+            _breadcrumbsPolyline.setMap(null);
+          } else if (_breadcrumbsPolyline.remove) {
+            _breadcrumbsPolyline.remove();
+          }
+          _breadcrumbsPolyline = null;
+        }
+      }
+
+      function toggleProvider() {
+        if (_engine === 'google') {
+          _engine = 'osm';
+          if (_container) _container.innerHTML = '<div class="map-loading-overlay"><span class="tracking-spinner-lg"></span><span>Switching to OpenStreetMap...</span></div>';
+          _markers = {};
+          _leafletMap = null;
+          initOsmEngine();
+          setTimeout(function() { updateMarkers(_currentStaffData); }, 500);
+          showToast('Switched map engine to OpenStreetMap / Leaflet 🗺️', '✓');
+        } else {
+          _engine = 'google';
+          if (_container) _container.innerHTML = '<div class="map-loading-overlay"><span class="tracking-spinner-lg"></span><span>Switching to Google Maps...</span></div>';
+          _markers = {};
+          _googleMap = null;
+          initGoogleEngine();
+          setTimeout(function() { updateMarkers(_currentStaffData); }, 500);
+          showToast('Switched map engine to Google Maps 🌐', '✓');
+        }
+      }
+
+      return {
+        init: init,
+        updateMarkers: updateMarkers,
+        centerOnStaff: centerOnStaff,
+        fitAllMarkers: fitAllMarkers,
+        drawBreadcrumbs: drawBreadcrumbs,
+        clearBreadcrumbs: clearBreadcrumbs,
+        toggleProvider: toggleProvider,
+        getEngine: function() { return _engine; }
+      };
+    })();
+
+    /* =========================================================================
+       ADMIN LIVE STAFF TRACKING CONTROLLER
+       ========================================================================= */
+    var STAFF_TRACKING_SYNC_INTERVAL_MS = 15000;
+    var staffTrackingSyncTimer = null;
+    var trackingStaffListCache = [];
+    var trackingCurrentStatusFilter = 'all';
+    var trackingSelectedStaffId = null;
+    var isStaffTrackingSyncing = false;
+
+    function loadStaffTrackingTab(forceRefresh) {
+      if (isStaffTrackingSyncing && !forceRefresh) return;
+      isStaffTrackingSyncing = true;
+
+      var liveText = document.getElementById('trackingLiveText');
+      if (liveText) liveText.textContent = 'Syncing...';
+
+      apiCall('getStaffTrackingSummary', {}, function(res) {
+        isStaffTrackingSyncing = false;
+        if (liveText) liveText.textContent = 'Live Sync Active';
+
+        if (res && res.success) {
+          // Update 4 KPI metric cards
+          var activeStaffEl = document.getElementById('kpiTrackingActiveStaff');
+          if (activeStaffEl) activeStaffEl.textContent = res.kpis.activeStaffCount + ' / ' + res.kpis.totalStaffCount;
+
+          var fleetDistEl = document.getElementById('kpiTrackingTotalDistance');
+          if (fleetDistEl) fleetDistEl.textContent = (res.kpis.fleetDistanceKm || 0) + ' km';
+
+          var totalStopsEl = document.getElementById('kpiTrackingTotalStoppages');
+          if (totalStopsEl) totalStopsEl.textContent = res.kpis.totalStoppages || 0;
+
+          var avgDwellEl = document.getElementById('kpiTrackingAvgDwellTime');
+          if (avgDwellEl) avgDwellEl.textContent = (res.kpis.avgDwellMinutes || 0) + ' min';
+
+          // Cache and render staff list
+          trackingStaffListCache = res.staff || [];
+          renderTrackingStaffList();
+
+          // Initialize or update map markers
+          TrackingMapAdapter.init('staffTrackingMapCanvas', function() {
+            TrackingMapAdapter.updateMarkers(trackingStaffListCache);
+          });
+        }
+      }, function(err) {
+        isStaffTrackingSyncing = false;
+        if (liveText) liveText.textContent = 'Sync Error';
+        console.error('getStaffTrackingSummary failed:', err);
+      });
+    }
+
+    function renderTrackingStaffList() {
+      var container = document.getElementById('trackingStaffListContainer');
+      if (!container) return;
+
+      var searchVal = (document.getElementById('trackingStaffSearch') ? document.getElementById('trackingStaffSearch').value : '').toLowerCase().trim();
+
+      var filtered = trackingStaffListCache.filter(function(s) {
+        if (trackingCurrentStatusFilter !== 'all' && s.status !== trackingCurrentStatusFilter) {
+          return false;
+        }
+        if (searchVal) {
+          var name = (s.name || '').toLowerCase();
+          var phone = (s.phone || '').toLowerCase();
+          var code = (s.staffCode || '').toLowerCase();
+          if (!name.includes(searchVal) && !phone.includes(searchVal) && !code.includes(searchVal)) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="tracking-empty-state">No staff matching criteria</div>';
+        return;
+      }
+
+      var html = '';
+      filtered.forEach(function(s) {
+        var statusBadgeClass = 'status-badge-' + (s.status || 'idle');
+        var dotClass = 'dot-' + (s.status || 'idle');
+        var statusLabel = (s.status === 'moving' ? 'Moving' : (s.status === 'stopped' ? 'Stopped' : 'Idle'));
+        var isSelected = trackingSelectedStaffId === s.staffId;
+        var initial = (s.name || s.staffCode || 'S').charAt(0).toUpperCase();
+
+        var timeAgo = s.lastSeenAt ? formatTimeAgo(new Date(s.lastSeenAt)) : 'Never';
+        var coordsText = s.latitude && s.longitude ? (Number(s.latitude).toFixed(4) + ', ' + Number(s.longitude).toFixed(4)) : 'No GPS Fix';
+
+        html += 
+          '<div class="tracking-staff-card ' + (isSelected ? 'selected' : '') + '" id="trackingCard_' + s.staffId + '" onclick="highlightStaffCard(\'' + s.staffId + '\')">' +
+            '<div class="staff-card-header">' +
+              '<div class="staff-info-inline">' +
+                '<div class="staff-avatar-circle">' +
+                  initial +
+                  '<div class="staff-status-dot-indicator ' + dotClass + '"></div>' +
+                '</div>' +
+                '<div class="staff-text-meta">' +
+                  '<div class="staff-name">' + escapeHtml(s.name || s.staffCode) + '</div>' +
+                  '<div class="staff-sub">' + escapeHtml(s.staffCode) + ' • 📞 ' + escapeHtml(s.phone || 'N/A') + '</div>' +
+                '</div>' +
+              '</div>' +
+              '<span class="staff-badge-status ' + statusBadgeClass + '">' + statusLabel + '</span>' +
+            '</div>' +
+            '<div class="staff-location-row">' +
+              '<span class="material-symbols-outlined" style="font-size: 14px;">place</span>' +
+              '<span>' + coordsText + ' • ' + timeAgo + '</span>' +
+            '</div>' +
+            '<div class="staff-metrics-strip">' +
+              '<span>🛣️ <b>' + (s.todayDistanceKm || 0) + ' km</b> today</span>' +
+              '<span>•</span>' +
+              '<span>🛑 <b>' + (s.stoppageCount || 0) + '</b> stops</span>' +
+              (s.batteryLevel !== null ? '<span>•</span><span>🔋 <b>' + s.batteryLevel + '%</b></span>' : '') +
+            '</div>' +
+            '<div class="staff-actions-bar">' +
+              '<button type="button" class="btn-card-action" onclick="centerStaffOnMap(\'' + s.staffId + '\'); event.stopPropagation();">' +
+                '<span class="material-symbols-outlined" style="font-size:14px;">my_location</span> Center' +
+              '</button>' +
+              '<button type="button" class="btn-card-action btn-ping-action" id="btnPingStaff_' + s.staffId + '" onclick="pingStaffFromAdmin(\'' + s.staffId + '\', \'' + escapeHtml(s.name || s.staffCode) + '\', this); event.stopPropagation();">' +
+                '<span class="material-symbols-outlined" style="font-size:14px;">satellite_alt</span> Ping' +
+              '</button>' +
+              '<button type="button" class="btn-card-action" onclick="viewStaffStoppages(\'' + s.staffId + '\', \'' + escapeHtml(s.name || s.staffCode) + '\'); event.stopPropagation();">' +
+                '<span class="material-symbols-outlined" style="font-size:14px;">history</span> Stops' +
+              '</button>' +
+            '</div>' +
+          '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function filterTrackingStaffList() {
+      renderTrackingStaffList();
+    }
+
+    function setTrackingStatusFilter(filter) {
+      trackingCurrentStatusFilter = filter || 'all';
+      ['All', 'Moving', 'Stopped', 'Idle'].forEach(function(pill) {
+        var el = document.getElementById('pillTrackingFilter' + pill);
+        if (el) {
+          el.classList.toggle('active', pill.toLowerCase() === trackingCurrentStatusFilter.toLowerCase());
+        }
+      });
+      renderTrackingStaffList();
+    }
+
+    function highlightStaffCard(staffId) {
+      trackingSelectedStaffId = staffId;
+      document.querySelectorAll('.tracking-staff-card').forEach(function(c) {
+        c.classList.remove('selected');
+      });
+      var card = document.getElementById('trackingCard_' + staffId);
+      if (card) {
+        card.classList.add('selected');
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function centerStaffOnMap(staffId) {
+      highlightStaffCard(staffId);
+      TrackingMapAdapter.centerOnStaff(staffId);
+    }
+
+    function pingStaffFromAdmin(staffId, staffName, btnEl) {
+      if (!staffId) return;
+      var originalHtml = btnEl ? btnEl.innerHTML : '';
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<span class="status-sync-spinner" style="width:12px;height:12px;"></span> Pinging...';
+      }
+
+      apiCall('pingStaffLocation', { staffId: staffId }, function(res) {
+        showToast('📡 Location ping sent to ' + staffName + '. Listening for reply...', 'ℹ️');
+
+        // Accelerated poll loop (poll every 2.5s for 20s)
+        var pollCount = 0;
+        var maxPolls = 8;
+        var pingPollTimer = setInterval(function() {
+          pollCount++;
+          loadStaffTrackingTab(true);
+
+          if (pollCount >= maxPolls) {
+            clearInterval(pingPollTimer);
+            if (btnEl) {
+              btnEl.disabled = false;
+              btnEl.innerHTML = originalHtml;
+            }
+          }
+        }, 2500);
+
+      }, function(err) {
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.innerHTML = originalHtml;
+        }
+        showToast('Error sending ping: ' + err.message, '❌');
+      });
+    }
+
+    function viewStaffStoppages(staffId, staffName) {
+      highlightStaffCard(staffId);
+
+      var drawer = document.getElementById('trackingStoppagesDrawer');
+      var drawerTitle = document.getElementById('drawerStaffNameTitle');
+      var tableContainer = document.getElementById('stoppagesTableContainer');
+      if (!drawer || !tableContainer) return;
+
+      drawer.style.display = 'flex';
+      if (drawerTitle) drawerTitle.textContent = staffName + ' — Stoppages & Dwell Times';
+      tableContainer.innerHTML = '<div class="tracking-loading-state">Loading stoppage journey...</div>';
+
+      apiCall('getStaffMovementHistory', { staffId: staffId }, function(res) {
+        if (!res || !res.success) {
+          tableContainer.innerHTML = '<div class="tracking-empty-state">No movement data recorded today</div>';
+          return;
+        }
+
+        // Draw polyline route path
+        if (res.breadcrumbs && res.breadcrumbs.length > 1) {
+          TrackingMapAdapter.drawBreadcrumbs(res.breadcrumbs);
+        }
+
+        if (!res.stoppages || res.stoppages.length === 0) {
+          tableContainer.innerHTML = '<div class="tracking-empty-state">No stoppages detected today (continuous motion)</div>';
+          return;
+        }
+
+        var tableHtml = 
+          '<table class="stoppages-table">' +
+            '<thead>' +
+              '<tr>' +
+                '<th>#</th>' +
+                '<th>Location / Customer</th>' +
+                '<th>Arrived</th>' +
+                '<th>Departed</th>' +
+                '<th>Dwell Duration</th>' +
+                '<th>Status</th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody>';
+
+        res.stoppages.forEach(function(s, idx) {
+          var arrTime = s.arrivedAt ? new Date(s.arrivedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '-';
+          var depTime = s.departedAt ? new Date(s.departedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : (s.isActive ? 'Present Now 🛑' : '-');
+          var statusPill = s.isActive 
+            ? '<span class="filter-pill active" style="padding:2px 8px;font-size:10px;background:#fef3c7;color:#b45309;border-color:#f59e0b;">Dwelling Now</span>'
+            : '<span class="filter-pill" style="padding:2px 8px;font-size:10px;">Departed</span>';
+
+          tableHtml += 
+            '<tr>' +
+              '<td><b>' + (idx + 1) + '</b></td>' +
+              '<td>' + escapeHtml(s.locationText || 'Service Area Stop') + '</td>' +
+              '<td>' + arrTime + '</td>' +
+              '<td>' + depTime + '</td>' +
+              '<td><b>' + (s.dwellMinutes || 0) + ' min</b></td>' +
+              '<td>' + statusPill + '</td>' +
+            '</tr>';
+        });
+
+        tableHtml += '</tbody></table>';
+        tableContainer.innerHTML = tableHtml;
+
+      }, function(err) {
+        tableContainer.innerHTML = '<div class="tracking-empty-state">Error loading history: ' + escapeHtml(err.message) + '</div>';
+      });
+    }
+
+    function closeTrackingStoppagesDrawer() {
+      var drawer = document.getElementById('trackingStoppagesDrawer');
+      if (drawer) drawer.style.display = 'none';
+      TrackingMapAdapter.clearBreadcrumbs();
+      TrackingMapAdapter.fitAllMarkers();
+    }
+
+    function recenterAllStaffMarkers() {
+      TrackingMapAdapter.fitAllMarkers();
+    }
+
+    function toggleBreadcrumbsDisplay() {
+      var btn = document.getElementById('btnToggleBreadcrumbs');
+      if (btn) btn.classList.toggle('active');
+    }
+
+    function toggleMapProviderEngine() {
+      TrackingMapAdapter.toggleProvider();
+    }
+
+    function refreshStaffTracking(manual) {
+      var btn = document.getElementById('btnRefreshTracking');
+      if (btn) {
+        btn.classList.add('rotating');
+        setTimeout(function() { btn.classList.remove('rotating'); }, 1000);
+      }
+      loadStaffTrackingTab(true);
+      if (manual) {
+        showToast('Refreshing live telemetry...', 'ℹ️');
+      }
+    }
+
+    function startStaffTrackingAutoSync() {
+      stopStaffTrackingAutoSync();
+      staffTrackingSyncTimer = setInterval(function() {
+        if (document.visibilityState === 'visible' && state.currentView === 'admin' && typeof isUserAdminAuthenticated === 'function' && isUserAdminAuthenticated()) {
+          loadStaffTrackingTab(false);
+        }
+      }, STAFF_TRACKING_SYNC_INTERVAL_MS);
+    }
+
+    function stopStaffTrackingAutoSync() {
+      if (staffTrackingSyncTimer) {
+        clearInterval(staffTrackingSyncTimer);
+        staffTrackingSyncTimer = null;
+      }
+    }
+
+    function formatTimeAgo(date) {
+      if (!date || isNaN(date.getTime())) return 'Never';
+      var diffMs = Date.now() - date.getTime();
+      var diffSec = Math.floor(diffMs / 1000);
+      if (diffSec < 45) return 'Just now 🟢';
+      var diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return diffMin + 'm ago';
+      var diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return diffHr + 'h ago';
+      return Math.floor(diffHr / 24) + 'd ago';
+    }
+
+    // Export tracking functions to window
+    window.loadStaffTrackingTab = loadStaffTrackingTab;
+    window.filterTrackingStaffList = filterTrackingStaffList;
+    window.setTrackingStatusFilter = setTrackingStatusFilter;
+    window.pingStaffFromAdmin = pingStaffFromAdmin;
+    window.centerStaffOnMap = centerStaffOnMap;
+    window.viewStaffStoppages = viewStaffStoppages;
+    window.closeTrackingStoppagesDrawer = closeTrackingStoppagesDrawer;
+    window.recenterAllStaffMarkers = recenterAllStaffMarkers;
+    window.toggleBreadcrumbsDisplay = toggleBreadcrumbsDisplay;
+    window.toggleMapProviderEngine = toggleMapProviderEngine;
+    window.refreshStaffTracking = refreshStaffTracking;
+    window.startStaffTrackingAutoSync = startStaffTrackingAutoSync;
+    window.stopStaffTrackingAutoSync = stopStaffTrackingAutoSync;
+    window.startStaffLocationTracking = startStaffLocationTracking;
+    window.stopStaffLocationTracking = stopStaffLocationTracking;
+    window.triggerStaffLocationHeartbeat = triggerStaffLocationHeartbeat;
+    window.respondToOnDemandLocationPing = respondToOnDemandLocationPing;
+    window.TrackingMapAdapter = TrackingMapAdapter;
+
+    window.setStaffFilter = setStaffFilter;
     }
 

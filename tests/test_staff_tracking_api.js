@@ -317,6 +317,27 @@ async function runStaffTrackingTestSuite() {
     // TEST 7: HTTP API Endpoints via live server test
     // -------------------------------------------------------------------------
     console.log('\n[Phase 7]: HTTP API Endpoints in server.js');
+    const adminUserRes = await db.query('SELECT id FROM public.admin_users WHERE is_active = TRUE LIMIT 1');
+    const adminId = adminUserRes.rows.length > 0 ? adminUserRes.rows[0].id : null;
+
+    const rawAdminToken = 'adm_test_' + crypto.randomBytes(16).toString('hex');
+    const adminTokenHash = crypto.createHash('sha256').update(rawAdminToken).digest('hex');
+    await repos.authSessions.createSession({
+      tokenHash: adminTokenHash,
+      userType: 'admin',
+      adminId,
+      expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000)
+    });
+
+    const rawStaffToken = 'stf_test_' + crypto.randomBytes(16).toString('hex');
+    const staffTokenHash = crypto.createHash('sha256').update(rawStaffToken).digest('hex');
+    await repos.authSessions.createSession({
+      tokenHash: staffTokenHash,
+      userType: 'staff',
+      staffId: testStaff.id,
+      expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000)
+    });
+
     const serverModule = require('../server');
     const testPort = 3899;
     const testServer = serverModule.server.listen(testPort);
@@ -333,7 +354,7 @@ async function runStaffTrackingTestSuite() {
         batteryLevel: 92,
         isCharging: false,
         capturedAt: new Date().toISOString()
-      });
+      }, rawStaffToken);
       assert.strictEqual(hbHttpRes.statusCode, 200, 'recordStaffHeartbeat HTTP status should be 200');
       assert.strictEqual(hbHttpRes.data.success, true, 'recordStaffHeartbeat HTTP should succeed');
       pass('HTTP API: recordStaffHeartbeat returned 200 OK with success=true');
@@ -341,7 +362,7 @@ async function runStaffTrackingTestSuite() {
       // 7b. getStaffTrackingSummary HTTP endpoint
       const summaryHttpRes = await makePostRequest(testPort, {
         action: 'getStaffTrackingSummary'
-      }, 'test_admin_token'); // Mock or pass token
+      }, rawAdminToken);
       assert.strictEqual(summaryHttpRes.statusCode, 200, 'getStaffTrackingSummary HTTP status should be 200');
       assert.strictEqual(summaryHttpRes.data.success, true, 'getStaffTrackingSummary HTTP should succeed');
       assert.strictEqual(Array.isArray(summaryHttpRes.data.staff), true, 'staff array should be returned');
@@ -351,7 +372,7 @@ async function runStaffTrackingTestSuite() {
       const historyHttpRes = await makePostRequest(testPort, {
         action: 'getStaffMovementHistory',
         staffId: testStaff.id
-      }, 'test_admin_token');
+      }, rawAdminToken);
       assert.strictEqual(historyHttpRes.statusCode, 200, 'getStaffMovementHistory HTTP status should be 200');
       assert.strictEqual(historyHttpRes.data.success, true, 'getStaffMovementHistory HTTP should succeed');
       pass(`HTTP API: getStaffMovementHistory returned 200 OK (${historyHttpRes.data.breadcrumbs.length} breadcrumbs)`);
@@ -360,7 +381,7 @@ async function runStaffTrackingTestSuite() {
       const pingHttpRes = await makePostRequest(testPort, {
         action: 'pingStaffLocation',
         staffId: testStaff.id
-      }, 'adm_test_token');
+      }, rawAdminToken);
       assert.strictEqual(pingHttpRes.statusCode, 200, 'pingStaffLocation HTTP status should be 200');
       assert.strictEqual(pingHttpRes.data.success, true, 'pingStaffLocation HTTP should succeed');
       const httpPingId = pingHttpRes.data.pingId;
@@ -370,7 +391,7 @@ async function runStaffTrackingTestSuite() {
       const checkPingHttpRes = await makePostRequest(testPort, {
         action: 'getPendingStaffPings',
         staffId: testStaff.id
-      });
+      }, rawStaffToken);
       assert.strictEqual(checkPingHttpRes.statusCode, 200, 'getPendingStaffPings HTTP status should be 200');
       assert.strictEqual(checkPingHttpRes.data.success, true, 'getPendingStaffPings HTTP should succeed');
       pass('HTTP API: getPendingStaffPings returned 200 OK');
@@ -384,7 +405,7 @@ async function runStaffTrackingTestSuite() {
         longitude: 82.9770,
         accuracy: 4.5,
         batteryLevel: 90
-      });
+      }, rawStaffToken);
       assert.strictEqual(respondHttpRes.statusCode, 200, 'respondToLocationPing HTTP status should be 200');
       assert.strictEqual(respondHttpRes.data.success, true, 'respondToLocationPing HTTP should succeed');
       pass('HTTP API: respondToLocationPing fulfilled ping successfully');
@@ -392,13 +413,14 @@ async function runStaffTrackingTestSuite() {
       // 7g. getMapsConfig HTTP endpoint
       const mapsConfigRes = await makePostRequest(testPort, {
         action: 'getMapsConfig'
-      });
+      }, rawAdminToken);
       assert.strictEqual(mapsConfigRes.statusCode, 200, 'getMapsConfig HTTP status should be 200');
       assert.strictEqual(mapsConfigRes.data.success, true, 'getMapsConfig should succeed');
       pass('HTTP API: getMapsConfig returned 200 OK');
 
     } finally {
       testServer.close();
+      await db.query('DELETE FROM public.auth_sessions WHERE token_hash IN ($1, $2)', [adminTokenHash, staffTokenHash]);
     }
 
     console.log('\n===============================================================');

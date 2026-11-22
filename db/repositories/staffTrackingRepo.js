@@ -188,12 +188,21 @@ async function processStoppageState({ staffId, latitude, longitude, capturedAt, 
       const arrivedTime = new Date(activeStoppage.arrived_at).getTime();
       const dwellMinutes = Math.max(0, Math.round(((fixTime - arrivedTime) / 60000) * 10) / 10);
 
-      await runner.query(
-        `UPDATE public.staff_stoppages 
-         SET is_active = FALSE, departed_at = $1, dwell_minutes = $2, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = $3`,
-        [new Date(capturedAt), dwellMinutes, activeStoppage.id]
-      );
+      if (dwellMinutes < MIN_STOPPAGE_DWELL_MINUTES) {
+        // Departed before reaching minimum dwell duration (e.g. traffic light / brief stop)
+        // Clean up this non-formal stoppage so it does not distort stoppage count or dwell metrics
+        await runner.query(
+          `DELETE FROM public.staff_stoppages WHERE id = $1`,
+          [activeStoppage.id]
+        );
+      } else {
+        await runner.query(
+          `UPDATE public.staff_stoppages 
+           SET is_active = FALSE, departed_at = $1, dwell_minutes = $2, updated_at = CURRENT_TIMESTAMP 
+           WHERE id = $3`,
+          [new Date(capturedAt), dwellMinutes, activeStoppage.id]
+        );
+      }
 
       return {
         stoppageId: null,
@@ -205,21 +214,28 @@ async function processStoppageState({ staffId, latitude, longitude, capturedAt, 
 
   // If no active stoppage, check if the fix is stationary
   if (isStationary) {
-    // Try to find a nearby customer service location (within 100m) for descriptive stoppage name
+    // Try to find a nearby customer service location (within 120m) for descriptive stoppage name
     let matchedCustomerId = null;
     let addressText = `Location (${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)})`;
 
     try {
+      const lat = Number(latitude);
+      const lng = Number(longitude);
       const nearCust = await runner.query(
         `SELECT sl.customer_id, sl.address_text, sl.latitude, sl.longitude, c.name AS customer_name
          FROM public.service_locations sl
          JOIN public.customers c ON sl.customer_id = c.id
-         WHERE sl.latitude IS NOT NULL AND sl.longitude IS NOT NULL AND sl.deleted_at IS NULL
-         LIMIT 20`
+         WHERE sl.deleted_at IS NULL
+           AND sl.latitude IS NOT NULL AND sl.longitude IS NOT NULL
+           AND sl.latitude BETWEEN $1 - 0.002 AND $1 + 0.002
+           AND sl.longitude BETWEEN $2 - 0.002 AND $2 + 0.002
+         ORDER BY (POWER(sl.latitude - $1, 2) + POWER(sl.longitude - $2, 2)) ASC
+         LIMIT 5`,
+        [lat, lng]
       );
 
       for (const loc of nearCust.rows) {
-        const d = calculateHaversineDistanceMeters(latitude, longitude, loc.latitude, loc.longitude);
+        const d = calculateHaversineDistanceMeters(lat, lng, loc.latitude, loc.longitude);
         if (d <= 120) {
           matchedCustomerId = loc.customer_id;
           addressText = `${loc.customer_name} - ${loc.address_text || 'Varanasi'}`;
@@ -452,9 +468,10 @@ async function getCurrentTrackingSummary(date = null, client = null) {
     JOIN public.staff s ON st.staff_id = s.id
     LEFT JOIN public.customers c ON st.matched_customer_id = c.id
     WHERE st.stoppage_date = $1
+      AND (st.dwell_minutes >= $2 OR st.is_active = TRUE)
     ORDER BY st.arrived_at DESC
   `;
-  const stoppagesRes = await runner.query(stoppagesQuery, [targetDate]);
+  const stoppagesRes = await runner.query(stoppagesQuery, [targetDate, MIN_STOPPAGE_DWELL_MINUTES]);
 
   // Map stoppages by staff_id for quick count lookup
   const stoppagesByStaff = {};
@@ -587,8 +604,9 @@ async function getMovementHistory(staffIdentifier, date = null, client = null) {
     `SELECT id, latitude, longitude, address_text, arrived_at, departed_at, dwell_minutes, is_active
      FROM public.staff_stoppages
      WHERE staff_id = $1 AND stoppage_date = $2
+       AND (dwell_minutes >= $3 OR is_active = TRUE)
      ORDER BY arrived_at ASC`,
-    [staffId, targetDate]
+    [staffId, targetDate, MIN_STOPPAGE_DWELL_MINUTES]
   );
 
   const stoppages = stopRes.rows.map(s => ({

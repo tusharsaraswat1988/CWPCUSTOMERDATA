@@ -30,9 +30,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-  <link rel="stylesheet" href="/css/style.css?v=3.2.6">
-  <link rel="stylesheet" href="/css/m3-tokens.css?v=3.2.3">
-  <link rel="stylesheet" href="/css/staff-m3.css?v=3.2.3">
+  <link rel="stylesheet" href="/css/style.css?v=3.3.2">
+  <link rel="stylesheet" href="/css/m3-tokens.css?v=3.3.2">
+  <link rel="stylesheet" href="/css/staff-m3.css?v=3.3.2">
   <link rel="stylesheet" href="/css/cwp-neural-login.css?v=1.0.0">
   <style>
   .is-hidden, [hidden], .header-dropdown-wrap.is-hidden, .header-account-trigger.is-hidden { display: none !important; }
@@ -500,13 +500,13 @@
       <span class="material-symbols-outlined" aria-hidden="true">settings</span>
       <span class="bottom-tab-label pill-text">सेटिंग्स</span>
     </button>
-    <div style="display: none !important;" aria-hidden="true">
-      <button type="button" id="pillCarWash" tabindex="-1"></button>
-      <button type="button" id="pillSolarClean" tabindex="-1"></button>
-      <span id="countCarWash" style="display: none;">0</span>
-      <span id="countSolarClean" style="display: none;">0</span>
-    </div>
   </nav>
+  <div style="display: none !important;" aria-hidden="true">
+    <button type="button" id="pillCarWash" tabindex="-1"></button>
+    <button type="button" id="pillSolarClean" tabindex="-1"></button>
+    <span id="countCarWash" style="display: none;">0</span>
+    <span id="countSolarClean" style="display: none;">0</span>
+  </div>
   </div>
   <div id="adminView" class="admin-container">
     <div id="adminAuthGate" class="cwp-neural-login-root auth-gate-box is-hidden" style="display: none;" hidden>
@@ -670,6 +670,13 @@
                   <span class="tab-text">Job Assignment</span>
                 </div>
                 <span class="admin-tab-badge badge-sky" id="tabJobAssignmentBadge">Dispatch</span>
+              </button>
+              <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnStaffTracking" role="tab" onclick="switchAdminTab('staffTracking')" title="Realtime Field Staff Location & Movement Tracking">
+                <div class="nav-btn-left">
+                  <span class="material-symbols-outlined nav-symbol">near_me</span>
+                  <span class="tab-text">Staff Live Tracking</span>
+                </div>
+                <span class="hub-live-badge"><span class="hub-live-dot"></span>LIVE</span>
               </button>
               <button type="button" id="sideNavDashboard" onclick="switchAdminTab('dashboard')" style="display: none !important;" hidden></button>
               <div class="sidebar-section-label"><span>MANAGEMENT</span></div>
@@ -1407,6 +1414,116 @@
             <thead><tr><th class="col-sno">#</th><th class="col-date">Date & Schedule</th><th class="col-cust">Customer</th><th class="col-serv">Service Type</th><th class="col-staff">Assigned Cleaner</th><th class="col-stat">Status</th><th class="col-act">Actions</th></tr></thead>
             <tbody id="jobAssignmentsTableBody"><tr><td colspan="7" class="table-loading-cell">No active assignments found</td></tr></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+    <div id="adminTabStaffTracking" class="admin-tab-pane" style="display: none;">
+      <div class="admin-card-section tracking-executive-section">
+        <!-- Top Action & Realtime Control Bar -->
+        <div class="tracking-top-bar">
+          <div class="tracking-title-wrap">
+            <div class="tracking-badge-icon"><span class="material-symbols-outlined">near_me</span></div>
+            <div>
+              <h2 class="admin-card-title">Staff Live Tracking</h2>
+              <div class="tracking-subtitle">Realtime Field Coordinates, Movement History & Dwell Stoppages</div>
+            </div>
+          </div>
+          <div class="tracking-top-controls">
+            <div class="tracking-live-pill" id="trackingLivePill">
+              <span class="tracking-live-dot"></span>
+              <span id="trackingLiveText">Live Sync Active</span>
+            </div>
+            <button type="button" class="btn-tracking-refresh" id="btnRefreshTracking" onclick="refreshStaffTracking(false)" title="Refresh Coordinates">
+              <span class="material-symbols-outlined">sync</span> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Summary Grid -->
+        <div class="tracking-kpi-grid">
+          <div class="tracking-kpi-card">
+            <div class="kpi-icon-box kpi-blue"><span class="material-symbols-outlined">group</span></div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="kpiTrackingActiveStaff">0</span>
+              <span class="kpi-label">Active Field Staff</span>
+            </div>
+          </div>
+          <div class="tracking-kpi-card">
+            <div class="kpi-icon-box kpi-emerald"><span class="material-symbols-outlined">route</span></div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="kpiTrackingTotalDistance">0.0 km</span>
+              <span class="kpi-label">Fleet Distance Today</span>
+            </div>
+          </div>
+          <div class="tracking-kpi-card">
+            <div class="kpi-icon-box kpi-amber"><span class="material-symbols-outlined">pause_circle</span></div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="kpiTrackingTotalStoppages">0</span>
+              <span class="kpi-label">Total Stoppages</span>
+            </div>
+          </div>
+          <div class="tracking-kpi-card">
+            <div class="kpi-icon-box kpi-indigo"><span class="material-symbols-outlined">timer</span></div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="kpiTrackingAvgDwellTime">0 min</span>
+              <span class="kpi-label">Avg Dwell Time</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Workspace Split Grid -->
+        <div class="tracking-workspace-grid">
+          <!-- Left Column: Staff Directory & Actions -->
+          <div class="tracking-staff-pane">
+            <div class="tracking-staff-search-box">
+              <span class="material-symbols-outlined search-icon">search</span>
+              <input type="text" id="trackingStaffSearch" class="form-input tracking-search-input" placeholder="Search staff name or phone..." oninput="filterTrackingStaffList()">
+            </div>
+            <div class="tracking-status-filter-pills" role="tablist">
+              <button type="button" class="filter-pill active" id="pillTrackingFilterAll" onclick="setTrackingStatusFilter('all')">All</button>
+              <button type="button" class="filter-pill" id="pillTrackingFilterMoving" onclick="setTrackingStatusFilter('moving')">Moving 🟢</button>
+              <button type="button" class="filter-pill" id="pillTrackingFilterStopped" onclick="setTrackingStatusFilter('stopped')">Stopped 🛑</button>
+              <button type="button" class="filter-pill" id="pillTrackingFilterIdle" onclick="setTrackingStatusFilter('idle')">Idle ⏳</button>
+            </div>
+            <div id="trackingStaffListContainer" class="tracking-staff-list-container">
+              <div class="tracking-loading-state">Loading field staff live telemetry...</div>
+            </div>
+          </div>
+
+          <!-- Right Column: Interactive Fleet Map & Journey Drawer -->
+          <div class="tracking-map-pane">
+            <div class="map-controls-floating">
+              <button type="button" class="btn-map-control" onclick="recenterAllStaffMarkers()" title="Center All Staff">
+                <span class="material-symbols-outlined">crop_free</span>
+              </button>
+              <button type="button" class="btn-map-control active" id="btnToggleBreadcrumbs" onclick="toggleBreadcrumbsDisplay()" title="Toggle Breadcrumb Paths">
+                <span class="material-symbols-outlined">timeline</span>
+              </button>
+              <button type="button" class="btn-map-control" id="btnToggleMapProvider" onclick="toggleMapProviderEngine()" title="Switch Map Provider (Google Maps / OpenStreetMap)">
+                <span class="material-symbols-outlined">layers</span>
+              </button>
+            </div>
+            <div id="staffTrackingMapCanvas" class="staff-tracking-map-canvas">
+              <div class="map-loading-overlay" id="mapLoadingOverlay">
+                <span class="tracking-spinner-lg"></span>
+                <span>Initializing Realtime Fleet Map...</span>
+              </div>
+            </div>
+
+            <!-- Collapsible Stoppages & Dwell Times Drawer -->
+            <div id="trackingStoppagesDrawer" class="tracking-stoppages-drawer" style="display: none;">
+              <div class="drawer-header">
+                <div class="drawer-title-wrap">
+                  <span class="material-symbols-outlined" style="color: var(--color-brand-blue, #0284c7);">signpost</span>
+                  <span id="drawerStaffNameTitle" class="drawer-title">Staff Journey & Stoppages</span>
+                </div>
+                <button type="button" class="drawer-close-btn" onclick="closeTrackingStoppagesDrawer()" aria-label="Close drawer">✕</button>
+              </div>
+              <div class="drawer-body">
+                <div id="stoppagesTableContainer" class="stoppages-table-wrap"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -3271,7 +3388,7 @@
   </script>
   <script src="/js/cropper.min.js"></script>
   <script src="/js/cwp-neural-core.js?v=1.0.0"></script>
-  <script src="/js/app.js?v=3.3.1" defer></script>
+  <script src="/js/app.js?v=3.3.2" defer></script>
   <script>
   // Failsafe listener for staff photo selection
   document.addEventListener('change', function(e) {

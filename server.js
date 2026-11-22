@@ -1915,7 +1915,26 @@ const server = http.createServer(async (req, res) => {
   // GET /api/staff-ping-stream - SSE stream for realtime on-demand location pings
   if (req.method === 'GET' && pathname === '/api/staff-ping-stream') {
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    const staffId = parsedUrl.searchParams.get('staffId');
+    const token = parsedUrl.searchParams.get('token') || (req.headers.authorization && req.headers.authorization.replace(/^Bearer\s+/i, '').trim());
+    const staffSess = await resolveStaffSession(token);
+    const adminSess = await resolveAdminSession(token);
+    if (!staffSess && !adminSess) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff or Admin session required' }));
+    }
+
+    const reqStaffId = parsedUrl.searchParams.get('staffId');
+    if (staffSess && !adminSess && reqStaffId && reqStaffId !== staffSess.staffId && reqStaffId !== staffSess.staffCode) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'Forbidden: Cannot listen to pings for another staff member' }));
+    }
+
+    const staffId = adminSess ? (reqStaffId || (staffSess && staffSess.staffId)) : (staffSess && staffSess.staffId);
+    if (!staffId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'staffId is required' }));
+    }
+
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
@@ -4240,12 +4259,22 @@ const server = http.createServer(async (req, res) => {
         if (payload.action === 'recordStaffHeartbeat' || payload.action === 'recordStaffLocationHeartbeat') {
           const staffSess = await resolveStaffSession(token);
           const adminSess = await resolveAdminSession(token);
-          if (!staffSess && !adminSess && !payload.staffId) {
+          if (!staffSess && !adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff or Admin session required' }));
           }
 
-          const staffIdentifier = (staffSess && (staffSess.staffId || staffSess.staffCode)) || payload.staffId || payload.staffCode;
+          let staffIdentifier;
+          if (adminSess) {
+            staffIdentifier = payload.staffId || payload.staffCode;
+          } else {
+            staffIdentifier = staffSess.staffId || staffSess.staffCode;
+            if (payload.staffId && payload.staffId !== staffSess.staffId && payload.staffId !== staffSess.staffCode) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Forbidden: Cannot submit tracking for another staff member' }));
+            }
+          }
+
           if (!staffIdentifier) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'staffId is required' }));
@@ -4331,7 +4360,17 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
           }
 
-          const staffIdentifier = payload.staffId || (staffSess && staffSess.staffId);
+          let staffIdentifier;
+          if (adminSess) {
+            staffIdentifier = payload.staffId || (staffSess && (staffSess.staffId || staffSess.staffCode));
+          } else {
+            staffIdentifier = staffSess.staffId || staffSess.staffCode;
+            if (payload.staffId && payload.staffId !== staffSess.staffId && payload.staffId !== staffSess.staffCode) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Forbidden: Cannot view movement history of another staff member' }));
+            }
+          }
+
           if (!staffIdentifier) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'staffId is required' }));
@@ -4389,14 +4428,19 @@ const server = http.createServer(async (req, res) => {
         if (payload.action === 'respondToLocationPing' || payload.action === 'respondStaffLocationPing') {
           const staffSess = await resolveStaffSession(token);
           const adminSess = await resolveAdminSession(token);
-          if (!staffSess && !adminSess && !payload.staffId) {
+          if (!staffSess && !adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff or Admin session required' }));
           }
 
           if (!payload.pingId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: 'pingId is required' }));
+          }
+
+          if (staffSess && !adminSess && payload.staffId && payload.staffId !== staffSess.staffId && payload.staffId !== staffSess.staffCode) {
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Forbidden: Cannot respond to ping for another staff member' }));
           }
 
           if (isNeonConfigured()) {
@@ -4428,7 +4472,21 @@ const server = http.createServer(async (req, res) => {
         if (payload.action === 'getPendingStaffPings' || payload.action === 'checkStaffLocationPing') {
           const staffSess = await resolveStaffSession(token);
           const adminSess = await resolveAdminSession(token);
-          const staffIdentifier = (staffSess && (staffSess.staffId || staffSess.staffCode)) || payload.staffId;
+          if (!staffSess && !adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff or Admin session required' }));
+          }
+
+          let staffIdentifier;
+          if (adminSess) {
+            staffIdentifier = payload.staffId || (staffSess && (staffSess.staffId || staffSess.staffCode));
+          } else {
+            staffIdentifier = staffSess.staffId || staffSess.staffCode;
+            if (payload.staffId && payload.staffId !== staffSess.staffId && payload.staffId !== staffSess.staffCode) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Forbidden: Cannot query pings for another staff member' }));
+            }
+          }
 
           if (!staffIdentifier) {
             res.writeHead(400, { 'Content-Type': 'application/json' });

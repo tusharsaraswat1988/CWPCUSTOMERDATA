@@ -9,7 +9,7 @@
  *  - Immediate update activation with skipWaiting & clientsClaim
  */
 
-const CACHE_NAME = 'cwp-staff-pwa-v1.0.22';
+const CACHE_NAME = 'cwp-staff-pwa-v1.0.23';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -125,10 +125,16 @@ self.addEventListener('fetch', (event) => {
   if (
     url.pathname === '/js/app.js' ||
     url.pathname === '/css/style.css' ||
+    url.pathname === '/css/staff-m3.css' ||
+    url.pathname === '/css/m3-tokens.css' ||
+    url.pathname.includes('/staff-m3.css') ||
+    url.pathname.includes('/m3-tokens.css') ||
     url.pathname.endsWith('/app.js') ||
     url.pathname.endsWith('/style.css') ||
     url.pathname.startsWith('/js/app.js') ||
-    url.pathname.startsWith('/css/style.css')
+    url.pathname.startsWith('/css/style.css') ||
+    url.pathname.startsWith('/css/staff-m3.css') ||
+    url.pathname.startsWith('/css/m3-tokens.css')
   ) {
     event.respondWith(
       fetch(req)

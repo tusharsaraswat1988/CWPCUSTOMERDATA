@@ -33,9 +33,11 @@ assert.ok(!navHtml.includes('🚗') && !navHtml.includes('🧼') && !navHtml.inc
   '1.3 Tab emoji icons must be completely removed from bottom tabs');
 
 assert.ok(navHtml.includes('id="pillDailyClean"'), '1.4 pillDailyClean tab exists');
-assert.ok(navHtml.includes('id="pillCarWash"'), '1.5 pillCarWash tab exists');
-assert.ok(navHtml.includes('id="pillSolarClean"'), '1.6 pillSolarClean tab exists');
-assert.ok(navHtml.includes('id="pillStaffSettings"'), '1.7 pillStaffSettings tab exists');
+assert.ok(navHtml.includes('id="pillOtherJobs"'), '1.5 pillOtherJobs tab exists');
+assert.ok(navHtml.includes('id="pillStaffSettings"'), '1.6 pillStaffSettings tab exists');
+// Legacy hidden tabs must be outside nav
+assert.ok(!navHtml.includes('id="pillCarWash"'), '1.7 pillCarWash is cleanly outside #staffBottomNav');
+assert.ok(!navHtml.includes('id="pillSolarClean"'), '1.8 pillSolarClean is cleanly outside #staffBottomNav');
 
 console.log('✅ PASS 1: All icons removed from tabs, clean text tabs verified.');
 
@@ -47,10 +49,12 @@ console.log('\n--- TEST 2: Notification Badge Zero-Count Hiding ---');
 // In HTML initial state:
 assert.ok(navHtml.includes('id="countDailyClean" style="display: none;"'),
   '2.1 countDailyClean badge is initially hidden with display: none');
-assert.ok(navHtml.includes('id="countCarWash" style="display: none;"'),
-  '2.2 countCarWash badge is initially hidden with display: none');
-assert.ok(navHtml.includes('id="countSolarClean" style="display: none;"'),
-  '2.3 countSolarClean badge is initially hidden with display: none');
+assert.ok(navHtml.includes('id="countOtherJobs" style="display: none;"'),
+  '2.2 countOtherJobs badge is initially hidden with display: none');
+assert.ok(indexHtml.includes('id="countCarWash" style="display: none;"'),
+  '2.3 legacy countCarWash badge exists for compatibility with display: none');
+assert.ok(indexHtml.includes('id="countSolarClean" style="display: none;"'),
+  '2.4 legacy countSolarClean badge exists for compatibility with display: none');
 
 // In JavaScript logic:
 assert.ok(appJs.includes('function updateFilterCounts()'), '2.4 updateFilterCounts is defined');
