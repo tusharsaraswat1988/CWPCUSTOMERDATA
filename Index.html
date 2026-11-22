@@ -51,24 +51,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-  <link rel="stylesheet" href="/css/style.css?v=3.2.4">
+  <link rel="stylesheet" href="/css/style.css?v=3.2.5">
   <link rel="stylesheet" href="/css/m3-tokens.css?v=3.2.3">
   <link rel="stylesheet" href="/css/staff-m3.css?v=3.2.3">
   <style>
-    /* Critical FOUC Prevention & Immediate Logo/Header Constraints */
-    :root {
-      --brand-navy: #0f2942;
-      --brand-blue: #2563eb;
-      --bg-page: #f8fafc;
-      --bg-surface: #ffffff;
-      --text-primary: #0f172a;
-      --border-color: #e2e8f0;
-      --radius-sm: 8px;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; }
-    img { max-width: 100%; height: auto; }
-    .brand-logo-wrap { display: inline-flex; align-items: center; flex-shrink: 0; }
+    :root { --brand-navy: #0f2942; --brand-blue: #2563eb; --bg-page: #f8fafc; --bg-surface: #ffffff; --text-primary: #0f172a; --border-color: #e2e8f0; --radius-sm: 8px; }
+    * { box-sizing: border-box; } body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; }
+    img { max-width: 100%; height: auto; } .brand-logo-wrap { display: inline-flex; align-items: center; flex-shrink: 0; }
     .brand-logo-img { height: 36px !important; width: auto !important; max-width: 180px !important; object-fit: contain !important; border-radius: 6px; }
     .auth-card-logo { height: 48px !important; width: auto !important; max-width: 200px !important; object-fit: contain !important; }
     .logout-card-logo { height: 44px !important; width: auto !important; max-width: 180px !important; object-fit: contain !important; }
@@ -86,23 +75,10 @@
     .header-status-wrapper, #staffLiveBadge { display: none !important; }
     .header-status-pill { height: 34px !important; min-height: 34px !important; padding: 0 12px !important; border-radius: 20px !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; font-size: 12px !important; font-weight: 600 !important; cursor: pointer !important; border: 1px solid rgba(16, 185, 129, 0.28) !important; background: rgba(16, 185, 129, 0.12) !important; color: #34d399 !important; white-space: nowrap !important; box-sizing: border-box !important; }
     .header-dropdown-wrap { position: relative !important; display: inline-flex; }
-
-    /* STRICT DEDICATED HEADER ISOLATION (ZERO CROSS-PORTAL OR LOGIN LEAKAGE) */
-    #staffHeader { display: block !important; }
-    #adminHeader { display: none !important; }
-    body.admin-mode-active #staffHeader { display: none !important; }
-    body.admin-mode-active #adminHeader { display: block !important; }
-    body.staff-mode-active #adminHeader { display: none !important; }
-    body.staff-mode-active #staffHeader { display: block !important; }
-
-    /* Strict visibility guard for account dropdown & menus */
-    .is-hidden,
-    [hidden],
-    .header-dropdown-wrap.is-hidden,
-    .header-account-trigger.is-hidden {
-      display: none !important;
-    }
-
+    #staffHeader { display: block !important; } #adminHeader { display: none !important; }
+    body.admin-mode-active #staffHeader { display: none !important; } body.admin-mode-active #adminHeader { display: block !important; }
+    body.staff-mode-active #adminHeader { display: none !important; } body.staff-mode-active #staffHeader { display: block !important; }
+    .is-hidden, [hidden], .header-dropdown-wrap.is-hidden, .header-account-trigger.is-hidden { display: none !important; }
     .records-kpi-grid { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important; gap: 10px !important; margin-bottom: 16px !important; }
     .records-kpi-tile { background: #ffffff !important; border: 1.5px solid #e2e8f0 !important; border-radius: 12px !important; padding: 11px 14px !important; display: flex !important; align-items: center !important; gap: 12px !important; cursor: pointer !important; }
   </style>
@@ -120,7 +96,7 @@
         </a>
         <div class="brand-separator" aria-hidden="true"></div>
         <div class="header-context">
-          <h1 class="header-app-title" id="pageMainTitle">पोर्टल</h1>
+          <h1 class="header-app-title" id="pageMainTitle">स्टाफ पोर्टल</h1>
         </div>
       </div>
       <div class="header-utility-group staff-header-utility">
@@ -242,10 +218,7 @@
             </div>
             <div class="menu-separator"></div>
             <div class="account-panel-actions">
-              <button type="button" id="adminLogoutBtn" class="header-menu-item item-destructive" onclick="handleAdminLogout()" title="Logout from Admin Portal">
-                <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" class="menu-item-icon">
-                  <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
-                </svg>
+              <button type="button" id="adminLogoutBtn" class="header-menu-item item-destructive is-hidden" onclick="handleAdminLogout()" style="display: none !important;" title="Logout from Admin Portal" hidden>
                 <span class="logout-text">Logout from Admin</span>
               </button>
             </div>
@@ -631,76 +604,79 @@
             <!-- Sidebar Header & Portal Identity -->
             <div class="sidebar-header-box">
               <div class="sidebar-brand-badge">
-                <div class="sidebar-brand-icon-wrap">🛡️</div>
+                <div class="sidebar-brand-icon-wrap"><span class="material-symbols-outlined">admin_panel_settings</span></div>
                 <div class="sidebar-brand-meta">
                   <div class="sidebar-brand-title">Admin Console</div>
                   <div class="sidebar-brand-sub">Operations & Audit Hub</div>
                 </div>
               </div>
+              <button type="button" class="sidebar-desktop-collapse-btn" id="adminSidebarCollapseBtn" onclick="toggleDesktopSidebarCollapse()" title="Toggle Sidebar (Rail Mode)" aria-label="Toggle Sidebar">
+                <span class="material-symbols-outlined" id="sidebarCollapseIcon">menu_open</span>
+              </button>
               <button type="button" class="sidebar-mobile-close-btn" onclick="closeAdminSidebar()" aria-label="Close sidebar" title="Close Menu">✕</button>
             </div>
 
             <!-- Sidebar Navigation Links Container -->
             <div class="admin-tab-container sidebar-nav-container">
               <div class="admin-tab-nav sidebar-nav-list" role="tablist">
-                
-                <!-- Category 1: Operations Dashboard (Clubbed Daily Cleans & Special Jobs) -->
-                <div class="sidebar-section-label">
-                  <span>OPERATIONS DASHBOARD</span>
-                </div>
+                <!-- Group 1: OPERATIONS -->
+                <div class="sidebar-section-label"><span>OPERATIONS</span></div>
 
-                <div class="sidebar-hub-group" id="sidebarOpsHubGroup">
-                  <button type="button" class="sidebar-hub-header-btn" id="sideNavDashboard" onclick="switchAdminTab('cleanReports')" title="Unified Operations Dashboard (Daily Cleans & Special Jobs)">
-                    <div class="hub-header-left">
-                      <span class="hub-header-icon">📊</span>
-                      <span class="hub-header-title">Operations Hub</span>
-                    </div>
-                    <span class="hub-live-badge"><span class="hub-live-dot"></span>LIVE</span>
-                  </button>
-                  <div class="sidebar-hub-sublinks">
-                    <button type="button" class="admin-tab-btn sidebar-sub-btn" id="tabBtnCleanReports" role="tab" onclick="switchAdminTab('cleanReports')" title="Daily Car Cleaning Reports & Proof of Work">
-                      <span class="sub-btn-icon">🚗</span>
-                      <span class="tab-text">Daily Clean Reports</span>
-                      <span class="admin-tab-badge" id="tabCleanReportsCount">0</span>
-                    </button>
-                    <button type="button" class="admin-tab-btn sidebar-sub-btn" id="tabBtnSpecialJobs" role="tab" onclick="switchAdminTab('specialJobs')" title="On-Demand / Special Jobs (Solar Panel Cleaning, Car Washing)">
-                      <span class="sub-btn-icon">⚡</span>
-                      <span class="tab-text">Special Jobs</span>
-                      <span class="admin-tab-badge badge-amber" id="tabSpecialJobsCount" style="background: rgba(217, 119, 6, 0.16); color: #78350f; border: 1px solid rgba(180, 83, 9, 0.45); font-weight: 700;">0</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Category 2: Records & Route Sequencing -->
-                <div class="sidebar-section-label">
-                  <span>DATA & DIRECTORY</span>
-                </div>
-
-                <button type="button" class="admin-tab-btn sidebar-nav-btn active" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')" title="View customer records">
+                <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnDashboard" role="tab" onclick="switchAdminTab('dashboard')" title="Unified Analytics Dashboard">
                   <div class="nav-btn-left">
-                    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                      <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="tab-text">Customer Records</span>
+                    <span class="material-symbols-outlined nav-symbol">dashboard</span>
+                    <span class="tab-text">Dashboard</span>
+                  </div>
+                  <span class="hub-live-badge"><span class="hub-live-dot"></span>LIVE</span>
+                </button>
+
+                <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnCleanReports" role="tab" onclick="switchAdminTab('cleanReports')" title="Daily Car Cleaning Reports & Proof of Work">
+                  <div class="nav-btn-left">
+                    <span class="material-symbols-outlined nav-symbol">directions_car</span>
+                    <span class="tab-text">Daily Reports</span>
+                  </div>
+                  <span class="admin-tab-badge" id="tabCleanReportsCount">0</span>
+                </button>
+
+                <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnSpecialJobs" role="tab" onclick="switchAdminTab('specialJobs')" title="Wash & Solar Hub (Solar Panel Cleaning, Car Washing)">
+                  <div class="nav-btn-left">
+                    <span class="material-symbols-outlined nav-symbol">solar_power</span>
+                    <span class="tab-text">Wash & Solar</span>
+                  </div>
+                  <span class="admin-tab-badge badge-amber" id="tabSpecialJobsCount" style="background: rgba(217, 119, 6, 0.16); color: #78350f; border: 1px solid rgba(180, 83, 9, 0.45); font-weight: 700;">0</span>
+                </button>
+
+                <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnJobAssignment" role="tab" onclick="switchAdminTab('jobAssignment')" title="Job Assignment & Cleaner Dispatch">
+                  <div class="nav-btn-left">
+                    <span class="material-symbols-outlined nav-symbol">assignment_add</span>
+                    <span class="tab-text">Job Assignment</span>
+                  </div>
+                  <span class="admin-tab-badge badge-sky" id="tabJobAssignmentBadge">Dispatch</span>
+                </button>
+                <button type="button" id="sideNavDashboard" onclick="switchAdminTab('dashboard')" style="display: none !important;" hidden></button>
+
+                <!-- Group 2: MANAGEMENT -->
+                <div class="sidebar-section-label"><span>MANAGEMENT</span></div>
+
+                <button type="button" class="admin-tab-btn sidebar-nav-btn active" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')" title="Customer Profiles & Directory">
+                  <div class="nav-btn-left">
+                    <span class="material-symbols-outlined nav-symbol">folder_shared</span>
+                    <span class="tab-text">Customer Profiles</span>
                   </div>
                   <span class="admin-tab-badge" id="tabRecordsCount">0</span>
                 </button>
 
                 <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnLeads" role="tab" onclick="switchAdminTab('leads')" title="Manage prospective customer inquiries and leads">
                   <div class="nav-btn-left">
-                    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="tab-text">🎯 Leads Pipeline</span>
+                    <span class="material-symbols-outlined nav-symbol">contact_mail</span>
+                    <span class="tab-text">Leads Pipeline</span>
                   </div>
                   <span class="admin-tab-badge badge-amber" id="tabLeadsCount" style="background: rgba(245, 158, 11, 0.16); color: #78350f; border: 1px solid rgba(180, 83, 9, 0.45); font-weight: 700;">0</span>
                 </button>
 
                 <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnSequence" role="tab" onclick="switchAdminTab('sequence')" title="Daily car cleaning route sequence management">
                   <div class="nav-btn-left">
-                    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                      <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                    </svg>
+                    <span class="material-symbols-outlined nav-symbol">route</span>
                     <span class="tab-text">Route Sequence</span>
                   </div>
                   <span class="admin-tab-badge badge-sky" id="tabSequenceBadge">Route</span>
@@ -708,9 +684,7 @@
 
                 <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')" title="Staff management and login links">
                   <div class="nav-btn-left">
-                    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
-                    </svg>
+                    <span class="material-symbols-outlined nav-symbol">badge</span>
                     <span class="tab-text">Staff Management</span>
                   </div>
                   <span class="admin-tab-badge" id="tabStaffCount">0</span>
@@ -720,15 +694,13 @@
 
             <!-- Quick Creation Actions -->
             <div class="sidebar-quick-actions-box">
-              <div class="sidebar-section-label">
-                <span>QUICK ACTIONS</span>
-              </div>
+              <div class="sidebar-section-label"><span>QUICK ACTIONS</span></div>
               <div class="sidebar-quick-actions-grid">
                 <button type="button" class="sidebar-quick-action-btn" onclick="openAddCustomerModal()" title="Add New Customer">
-                  <span>➕</span> <span>New Client</span>
+                  <span class="material-symbols-outlined action-icon">person_add</span> <span class="action-btn-text">New Client</span>
                 </button>
                 <button type="button" class="sidebar-quick-action-btn" onclick="openAddLeadModal()" title="Add New Lead">
-                  <span>✨</span> <span>New Lead</span>
+                  <span class="material-symbols-outlined action-icon">post_add</span> <span class="action-btn-text">New Lead</span>
                 </button>
               </div>
             </div>
@@ -744,14 +716,12 @@
               </div>
               <div class="sidebar-footer-actions">
                 <button type="button" class="sidebar-switch-btn" onclick="applyViewMode('staff')" title="Switch to Staff Portal">
-                  <span>🚗</span> <span>Switch to Staff Portal</span>
+                  <span class="material-symbols-outlined" style="font-size: 16px;">swap_horiz</span> <span class="switch-btn-text">Switch to Staff Portal</span>
                 </button>
-                <!-- LOGOUT BUTTON AT THE VERY BOTTOM OF SIDE MENU -->
+                <!-- EXCLUSIVE LOGOUT IN SIDEBAR MENU FOOTER -->
                 <button type="button" class="sidebar-logout-btn item-destructive" id="sidebarAdminLogoutBtn" onclick="handleAdminLogout()" title="Logout from Admin Portal">
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" class="logout-icon-svg">
-                    <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
-                  </svg>
-                  <span>Logout from Admin</span>
+                  <span class="material-symbols-outlined" style="font-size: 16px;">logout</span>
+                  <span class="logout-label">Logout from Admin</span>
                 </button>
               </div>
             </div>
@@ -770,7 +740,6 @@
                 <span class="hamburger-label">Menu</span>
               </button>
               <div class="admin-mobile-active-pane" id="adminMobileActivePane">Customer Records</div>
-              <button type="button" class="btn-mobile-logout" onclick="handleAdminLogout()" title="Logout">🚪</button>
             </div>
       <div id="adminTabAddCust" class="admin-tab-pane" style="display: none;"></div>
       <div id="adminTabLeads" class="admin-tab-pane" style="display: none;">
@@ -3001,7 +2970,7 @@
     var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
   </script>
   <script src="/js/cropper.min.js"></script>
-  <script src="/js/app.js?v=3.2.4" defer></script>
+  <script src="/js/app.js?v=3.2.5" defer></script>
   <script>
     // Failsafe listener for staff photo selection
     document.addEventListener('change', function(e) {

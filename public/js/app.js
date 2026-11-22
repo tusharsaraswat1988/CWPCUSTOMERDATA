@@ -738,7 +738,7 @@ var state = {
       var adminTitleEl = document.getElementById('adminHeaderTitle');
       var chipEl = document.getElementById('headerContextChip');
       if (state.currentView === 'staff') {
-        if (titleEl) titleEl.textContent = isHi ? 'पोर्टल' : 'Portal';
+        if (titleEl) titleEl.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
         if (chipEl) {
           chipEl.style.setProperty('display', 'none', 'important');
           chipEl.textContent = '';
@@ -1030,7 +1030,7 @@ var state = {
           contextChip.style.setProperty('display', 'none', 'important');
           contextChip.textContent = '';
         }
-        if (mainTitle) mainTitle.textContent = isHi ? 'पोर्टल' : 'Portal';
+        if (mainTitle) mainTitle.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
         if (liveBadge) liveBadge.style.setProperty('display', 'none', 'important');
 
         // Strictly hide Admin Account Trigger / Menu in Staff Mode
@@ -1640,7 +1640,7 @@ var state = {
           chipEl.style.setProperty('display', 'none', 'important');
           chipEl.textContent = '';
         }
-        if (titleEl) titleEl.textContent = state.lang === 'en' ? 'Portal' : 'पोर्टल';
+        if (titleEl) titleEl.textContent = state.lang === 'en' ? 'Staff Portal' : 'स्टाफ पोर्टल';
         checkStaffAuthStatus(state.activeStaffId);
         syncBrandLogos();
         if (typeof updatePwaInstallState === 'function') updatePwaInstallState();

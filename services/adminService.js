@@ -2089,6 +2089,58 @@ async function getSpecialJobsAdmin({ status = null, serviceCategoryId = null, st
   return { success: true, jobs };
 }
 
+function calculateConsecutiveTimes(logs) {
+  if (!Array.isArray(logs) || logs.length === 0) return [];
+  const sorted = [...logs].sort((a, b) => new Date(a.completed_at_device || a.created_at || 0) - new Date(b.completed_at_device || b.created_at || 0));
+  const staffMap = {};
+  sorted.forEach(l => {
+    const sId = l.staff_id || l.staff_code || 'all';
+    if (!staffMap[sId]) staffMap[sId] = [];
+    staffMap[sId].push(l);
+  });
+
+  const output = [];
+  Object.values(staffMap).forEach(list => {
+    list.forEach((curr, idx) => {
+      const cleanDuration = (curr.device_metadata && curr.device_metadata.durationMinutes) ? curr.device_metadata.durationMinutes : 15;
+      curr.cleaningDurationMinutes = cleanDuration;
+      if (idx === 0) {
+        curr.transitDurationMinutes = 0;
+        curr.prevLocation = null;
+      } else {
+        const prev = list[idx - 1];
+        const diffMs = new Date(curr.completed_at_device || curr.created_at || 0).getTime() - new Date(prev.completed_at_device || prev.created_at || 0).getTime();
+        const totalMinutes = Math.max(0, Math.round(diffMs / 60000));
+        curr.transitDurationMinutes = Math.max(1, totalMinutes - cleanDuration);
+        curr.prevLocation = prev.address_text || prev.parking_details || null;
+      }
+      output.push(curr);
+    });
+  });
+  return output;
+}
+
+function computeWashSolarElapsed(job, nowTime) {
+  if (!job) return 0;
+  const now = nowTime ? (typeof nowTime === 'number' ? nowTime : new Date(nowTime).getTime()) : Date.now();
+  if (job.status === 'in_progress') {
+    const start = job.started_at ? new Date(job.started_at).getTime() : now;
+    return Math.max(1, Math.round((now - start) / 60000));
+  } else if (job.status === 'completed') {
+    const start = job.started_at ? new Date(job.started_at).getTime() : (job.assigned_at ? new Date(job.assigned_at).getTime() : now);
+    const end = job.completed_at ? new Date(job.completed_at).getTime() : now;
+    return Math.max(1, Math.round((end - start) / 60000));
+  } else if (job.status === 'assigned') {
+    const assigned = job.assigned_at ? new Date(job.assigned_at).getTime() : now;
+    return Math.max(0, Math.round((now - assigned) / 60000));
+  }
+  return 0;
+}
+
+async function getDailyOperationsSummary(date = null) {
+  return await getDailyCleanReports({ startDate: date, endDate: date });
+}
+
 module.exports = {
   normalizeIndianMobile,
   isValidIndianMobile,
@@ -2106,6 +2158,9 @@ module.exports = {
   saveStaffSequence,
   resetStaffSequence,
   getDailyCleanReports,
+  calculateConsecutiveTimes,
+  computeWashSolarElapsed,
+  getDailyOperationsSummary,
   backfillHindiCustomerData,
   getLeads,
   convertLeadToCustomer,

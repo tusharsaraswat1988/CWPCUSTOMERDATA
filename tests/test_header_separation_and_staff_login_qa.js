@@ -128,7 +128,7 @@ console.log('--- Test 6: Server Routing & Default Template Alignment ---');
 
 assert.ok(indexHtml.includes('<body class="staff-mode-active">'), '6.1 Default body class is staff-mode-active');
 assert.ok(serverJs.includes('class="staff-mode-active"'), '6.2 Server.js references staff-mode-active');
-assert.ok(serverJs.includes('APP_ASSET_VERSION = \'3.2.4\''), '6.3 Server.js APP_ASSET_VERSION is 3.2.4');
+assert.ok(serverJs.includes('APP_ASSET_VERSION = \'3.2.5\''), '6.3 Server.js APP_ASSET_VERSION is 3.2.5');
 
 console.log('✅ PASS 6: Server routing and template defaults verified.\n');
 
