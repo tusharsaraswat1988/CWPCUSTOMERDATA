@@ -33,12 +33,14 @@ const styleCss = fs.readFileSync(cssPath, 'utf8');
 const appJs = fs.readFileSync(jsPath, 'utf8');
 
 // -----------------------------------------------------------------------------
-// TEST 1: Unified Shared Header Architecture & Design Tokens
+// TEST 1: Dedicated Separated Header Architecture & Design Tokens
 // -----------------------------------------------------------------------------
-console.log('--- Test 1: Shared Header Architecture & Design Tokens ---');
+console.log('--- Test 1: Separated Header Architecture & Design Tokens ---');
 
-assert.ok(indexHtml.includes('<header class="top-header" role="banner">'), '1.1 Top header with role="banner" exists');
-assert.ok(indexHtml.includes('<div class="header-inner">'), '1.2 Unified header-inner container exists');
+assert.ok(indexHtml.includes('id="staffHeader"') && indexHtml.includes('id="adminHeader"'), '1.1 Dedicated staffHeader and adminHeader exist');
+assert.ok(indexHtml.includes('<header id="staffHeader" class="top-header staff-header" role="banner">'), '1.1b Staff header with role="banner" exists');
+assert.ok(indexHtml.includes('<header id="adminHeader" class="top-header admin-header" role="banner"'), '1.1c Admin header with role="banner" exists');
+assert.ok(indexHtml.includes('<div class="header-inner">'), '1.2 Header-inner container exists');
 assert.ok(styleCss.includes('--cwp-header-bg: #0b192c;'), '1.3 Brand navy header background token defined');
 assert.ok(styleCss.includes('--cwp-header-height: 56px;'), '1.4 Consistent 56px header height token defined');
 assert.ok(styleCss.includes('--cwp-control-height: 34px;'), '1.5 Standardized 34px control height token defined');
@@ -46,7 +48,7 @@ assert.ok(styleCss.includes('--cwp-control-radius: 7px;'), '1.6 Standardized 7px
 assert.ok(styleCss.includes('--cwp-status-live-bg'), '1.7 Status live token defined');
 assert.ok(styleCss.includes('--cwp-status-offline-bg'), '1.8 Status offline token defined');
 
-console.log('✅ PASS 1: Unified shared architecture and design tokens verified.\n');
+console.log('✅ PASS 1: Dedicated separated architecture and design tokens verified.\n');
 
 // -----------------------------------------------------------------------------
 // TEST 2: Natural Left-Aligned Brand Group (No Center Grid Stranding)
@@ -72,7 +74,7 @@ console.log('✅ PASS 2: Natural left-aligned brand hierarchy verified.\n');
 // -----------------------------------------------------------------------------
 console.log('--- Test 3: Compact Coherent Utility Group ---');
 
-assert.ok(indexHtml.includes('class="header-utility-group"'), '3.1 header-utility-group container exists');
+assert.ok(indexHtml.includes('header-utility-group'), '3.1 header-utility-group container exists');
 assert.ok(styleCss.includes('.header-utility-group'), '3.2 header-utility-group CSS defined');
 assert.ok(styleCss.includes('.header-util-btn'), '3.3 header-util-btn base control CSS defined');
 assert.ok(styleCss.includes('.header-icon-btn'), '3.4 header-icon-btn standardized square button CSS defined');

@@ -1158,11 +1158,161 @@ async function resetStaffSequence(staffCode, adminUser = 'admin') {
   };
 }
 
+function computeConsecutiveTimes(records) {
+  if (!Array.isArray(records) || records.length === 0) return records;
+  const staffMap = {};
+  records.forEach(r => {
+    const sKey = r.staff_id || r.staff_code || 'unknown';
+    if (!staffMap[sKey]) staffMap[sKey] = [];
+    staffMap[sKey].push(r);
+  });
+
+  Object.values(staffMap).forEach(list => {
+    list.sort((a, b) => new Date(a.completed_at_device || 0) - new Date(b.completed_at_device || 0));
+    list.forEach((curr, idx) => {
+      const cleanDuration = (curr.device_metadata && curr.device_metadata.durationMinutes) ? curr.device_metadata.durationMinutes : 10;
+      curr.cleaningDurationMinutes = cleanDuration;
+      if (idx === 0) {
+        curr.transitDurationMinutes = null;
+        curr.prevLocation = null;
+      } else {
+        const prev = list[idx - 1];
+        const diffMs = new Date(curr.completed_at_device || 0).getTime() - new Date(prev.completed_at_device || 0).getTime();
+        const totalCycle = Math.max(1, Math.round(diffMs / 60000));
+        curr.transitDurationMinutes = Math.max(1, totalCycle - cleanDuration);
+        curr.prevLocation = prev.address_text || prev.parking_details || null;
+      }
+    });
+  });
+
+  return records;
+}
+
 async function getDailyCleanReports(filters = {}, adminUser = 'admin') {
   const result = await repos.serviceLogs.queryDailyCleanReports(filters);
+  const records = computeConsecutiveTimes(result.records || []);
+
+  let pendingRecords = [];
+  const staffMatrixMap = {};
+
+  try {
+    const todayIst = filters.startDate || repos.serviceLogs.computeIstServiceDate(new Date().toISOString());
+    const allStaff = await repos.staff.findAll({ includeInactive: false });
+    
+    allStaff.forEach(s => {
+      staffMatrixMap[s.id] = {
+        staffId: s.id,
+        staffCode: s.staff_code,
+        staffName: s.name,
+        photoUrl: s.photo_url || null,
+        phone: s.phone,
+        cleanedCount: 0,
+        pendingCount: 0,
+        totalAssigned: 0,
+        lastPunchTime: null,
+        lastLocation: null,
+        status: 'Shift Starting ⏳'
+      };
+    });
+
+    records.forEach(r => {
+      const sId = r.staff_id;
+      if (staffMatrixMap[sId]) {
+        staffMatrixMap[sId].cleanedCount++;
+        if (!staffMatrixMap[sId].lastPunchTime || new Date(r.completed_at_device) > new Date(staffMatrixMap[sId].lastPunchTime)) {
+          staffMatrixMap[sId].lastPunchTime = r.completed_at_device;
+          staffMatrixMap[sId].lastLocation = r.address_text || r.parking_details || 'Field';
+        }
+      }
+    });
+
+    const pendingSql = `
+      SELECT 
+        sv.subscription_id, sv.vehicle_id, sv.sequence_order,
+        s.id AS staff_id, s.name AS staff_name, s.staff_code,
+        c.id AS customer_id, c.customer_code, c.name AS customer_name, c.phone AS customer_phone,
+        v.registration_no, v.brand_or_model, v.car_make, v.car_color,
+        loc.address_text, loc.parking_details, loc.google_maps_url
+      FROM public.subscription_vehicles sv
+      JOIN public.subscriptions sub ON sv.subscription_id = sub.id AND sub.is_active = TRUE
+      JOIN public.customers c ON sub.customer_id = c.id AND c.is_active = TRUE
+      JOIN public.vehicles v ON sv.vehicle_id = v.id
+      LEFT JOIN public.service_locations loc ON sv.location_id = loc.id
+      LEFT JOIN public.staff_assignments sa ON sa.subscription_id = sub.id AND sa.is_active = TRUE
+      LEFT JOIN public.staff s ON sa.staff_id = s.id
+      WHERE NOT EXISTS (
+        SELECT 1 FROM public.service_logs sl
+        WHERE sl.subscription_id = sv.subscription_id
+          AND sl.vehicle_id = sv.vehicle_id
+          AND sl.service_date = $1
+      )
+      ORDER BY sv.sequence_order ASC NULLS LAST, sv.created_at ASC
+    `;
+
+    const pendingRes = await db.query(pendingSql, [todayIst]);
+    if (pendingRes && pendingRes.rows) {
+      pendingRecords = pendingRes.rows.map((row, idx) => {
+        if (row.staff_id && staffMatrixMap[row.staff_id]) {
+          staffMatrixMap[row.staff_id].pendingCount++;
+        }
+        return {
+          id: 'pending_' + (row.subscription_id || '') + '_' + (row.vehicle_id || '') + '_' + idx,
+          isPending: true,
+          status: 'pending',
+          service_date: todayIst,
+          sequence_order: row.sequence_order || (idx + 1),
+          staff_id: row.staff_id,
+          staff_name: row.staff_name || 'Unassigned',
+          staff_code: row.staff_code || '',
+          customer_id: row.customer_id,
+          customer_code: row.customer_code,
+          customer_name: row.customer_name,
+          customer_phone: row.customer_phone,
+          registration_no: row.registration_no,
+          brand_or_model: row.brand_or_model,
+          car_make: row.car_make,
+          car_color: row.car_color,
+          address_text: row.address_text,
+          parking_details: row.parking_details,
+          google_maps_url: row.google_maps_url,
+          photo_url: null,
+          cleaningDurationMinutes: null,
+          transitDurationMinutes: null
+        };
+      });
+    }
+
+    const now = Date.now();
+    Object.values(staffMatrixMap).forEach(s => {
+      s.totalAssigned = s.cleanedCount + s.pendingCount;
+      if (s.cleanedCount > 0 && s.pendingCount === 0) {
+        s.status = 'Route Finished 🏁';
+      } else if (s.lastPunchTime) {
+        const minsSince = Math.round((now - new Date(s.lastPunchTime).getTime()) / 60000);
+        if (minsSince <= 20) s.status = 'Active on Route 🟢';
+        else if (minsSince <= 45) s.status = 'In Transit 🟡';
+        else s.status = 'Idle / Break 🟠';
+      }
+    });
+  } catch (err) {}
+
+  const staffMatrix = Object.values(staffMatrixMap);
+  const totalPending = pendingRecords.length;
+  const totalCleaned = result.summary ? result.summary.totalCleaned : records.length;
+  const totalScheduled = totalCleaned + totalPending;
+
   return {
     success: true,
-    ...result,
+    records,
+    pendingRecords,
+    summary: {
+      ...(result.summary || {}),
+      totalCleaned,
+      totalPending,
+      totalScheduled,
+      staffMatrix
+    },
+    filterApplied: result.filterApplied,
     fetchedAt: new Date().toISOString()
   };
 }
@@ -1854,7 +2004,7 @@ async function getSpecialJobsAdmin({ status = null, serviceCategoryId = null, st
            c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
            v.registration_no, v.brand_or_model, v.photo_url AS vehicle_photo_url,
            loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
-           sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code
+           sa.staff_id, sa.assigned_at, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code
     FROM public.service_jobs j
     JOIN public.customers c ON j.customer_id = c.id
     LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
@@ -1882,9 +2032,17 @@ async function getSpecialJobsAdmin({ status = null, serviceCategoryId = null, st
     }
 
     let durationMinutes = null;
+    let elapsedMinutes = null;
     if (row.started_at && row.completed_at) {
       const diffMs = new Date(row.completed_at).getTime() - new Date(row.started_at).getTime();
       durationMinutes = Math.max(1, Math.round(diffMs / 60000));
+      elapsedMinutes = durationMinutes;
+    } else if (row.started_at) {
+      const diffMs = Date.now() - new Date(row.started_at).getTime();
+      elapsedMinutes = Math.max(1, Math.round(diffMs / 60000));
+    } else if (row.assigned_at) {
+      const diffMs = Date.now() - new Date(row.assigned_at).getTime();
+      elapsedMinutes = Math.max(0, Math.round(diffMs / 60000));
     }
 
     const catMeta = serviceCatalog.getCategory(row.service_category_id);
@@ -1916,10 +2074,12 @@ async function getSpecialJobsAdmin({ status = null, serviceCategoryId = null, st
       specialInstructions: row.special_instructions,
       beforePhotos,
       afterPhotos,
+      assignedAt: row.assigned_at,
       startedAt: row.started_at,
       completedAt: row.completed_at,
       completionNotes: row.completion_notes,
       durationMinutes,
+      elapsedMinutes,
       staffId: row.assigned_staff_code || (row.assigned_staff_name ? row.assigned_staff_name : ''),
       staffName: row.assigned_staff_name || 'Unassigned',
       createdAt: row.created_at

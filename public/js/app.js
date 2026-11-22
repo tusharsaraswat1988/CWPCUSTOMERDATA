@@ -733,20 +733,22 @@ var state = {
       var btnLang = document.getElementById('btnLangToggle');
       if (btnLang) btnLang.title = isHi ? 'भाषा: हिन्दी (बदलने के लिए क्लिक करें)' : 'Language: English (Click to change)';
 
-      // Header Title & Context Chip (Staff word removed from both Hindi & English)
+      // Header Title & Context Chip
       var titleEl = document.getElementById('pageMainTitle');
+      var adminTitleEl = document.getElementById('adminHeaderTitle');
       var chipEl = document.getElementById('headerContextChip');
       if (state.currentView === 'staff') {
         if (titleEl) titleEl.textContent = isHi ? 'पोर्टल' : 'Portal';
         if (chipEl) {
-          chipEl.style.display = 'none';
+          chipEl.style.setProperty('display', 'none', 'important');
           chipEl.textContent = '';
         }
       } else {
         if (chipEl) {
-          chipEl.style.display = 'inline-flex';
+          chipEl.style.setProperty('display', 'inline-flex', 'important');
           chipEl.textContent = 'ADMIN';
         }
+        if (adminTitleEl) adminTitleEl.textContent = 'Admin Portal';
         if (titleEl) titleEl.textContent = 'Admin Portal';
       }
 
@@ -1000,89 +1002,90 @@ var state = {
     }
 
     function updateHeaderAccountStatus() {
+      var staffHeader = document.getElementById('staffHeader');
+      var adminHeader = document.getElementById('adminHeader');
       var accountTrigger = document.getElementById('headerAccountTrigger');
+      var accountWrap = document.getElementById('accountDropdownWrap');
       var avatarInitial = document.getElementById('headerAccountInitial');
       var accountName = document.getElementById('headerAccountName');
       var accountRole = document.getElementById('headerAccountRole');
       var panelAvatar = document.getElementById('menuPanelAvatar');
       var panelName = document.getElementById('menuPanelName');
       var panelSub = document.getElementById('menuPanelSub');
-      var staffLogout = document.getElementById('staffLogoutBtn');
+      var staffLogout = document.getElementById('staffLogoutBtn') || document.getElementById('btnStaffSettingsLogout');
       var adminLogout = document.getElementById('adminLogoutBtn');
       var contextChip = document.getElementById('headerContextChip');
       var mainTitle = document.getElementById('pageMainTitle');
+      var adminTitle = document.getElementById('adminHeaderTitle');
       var liveBadge = document.getElementById('staffLiveBadge');
 
       var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
       var mode = (typeof state !== 'undefined' && state.currentView) || 'staff';
 
       if (mode === 'staff') {
-        var isAuth = isUserStaffAuthenticated(state.activeStaffId);
+        // Enforce Staff Header Active, Admin Header strictly Hidden
+        if (staffHeader) staffHeader.style.setProperty('display', 'block', 'important');
+        if (adminHeader) adminHeader.style.setProperty('display', 'none', 'important');
         if (contextChip) {
-          contextChip.style.display = 'none';
+          contextChip.style.setProperty('display', 'none', 'important');
           contextChip.textContent = '';
         }
         if (mainTitle) mainTitle.textContent = isHi ? 'पोर्टल' : 'Portal';
-        
-        if (liveBadge) liveBadge.style.display = 'none';
+        if (liveBadge) liveBadge.style.setProperty('display', 'none', 'important');
 
+        // Strictly hide Admin Account Trigger / Menu in Staff Mode
+        if (accountWrap) {
+          accountWrap.style.setProperty('display', 'none', 'important');
+          accountWrap.classList.add('is-hidden');
+        }
+        if (accountTrigger) {
+          accountTrigger.style.setProperty('display', 'none', 'important');
+          accountTrigger.classList.add('is-hidden');
+        }
+        if (adminLogout) {
+          adminLogout.style.setProperty('display', 'none', 'important');
+          adminLogout.classList.add('is-hidden');
+        }
+
+        var isAuth = isUserStaffAuthenticated(state.activeStaffId);
         if (isAuth) {
-          if (accountTrigger) accountTrigger.style.display = 'none'; // Keep header uncluttered; logout is located inside Settings
           if (staffLogout) {
             staffLogout.style.setProperty('display', 'flex', 'important');
             staffLogout.classList.remove('is-hidden');
           }
-          if (adminLogout) {
-            adminLogout.style.setProperty('display', 'none', 'important');
-            adminLogout.classList.add('is-hidden');
-          }
-
-          var sId = state.activeStaffId || getActiveStaffId() || 'STAFF';
-          var sName = 'Staff Member';
-          var nameHeader = document.getElementById('staffNameHeader');
-          if (nameHeader && nameHeader.textContent && nameHeader.textContent !== 'लोड हो रहा है...') {
-            sName = nameHeader.textContent;
-          } else if (typeof appState !== 'undefined' && appState.staffList) {
-            var found = appState.staffList.find(function(s) { return (s.id || '').toUpperCase() === sId.toUpperCase(); });
-            if (found && found.name) sName = found.name;
-          }
-
-          var initial = (sName && sName.trim()) ? sName.trim().charAt(0).toUpperCase() : 'S';
-          if (avatarInitial) avatarInitial.textContent = initial;
-          if (accountName) accountName.textContent = sName;
-          if (accountRole) accountRole.textContent = sId;
-
-          if (panelAvatar) panelAvatar.textContent = initial;
-          if (panelName) panelName.textContent = sName;
-          if (panelSub) panelSub.textContent = sId + ' • ' + (isHi ? 'फील्ड स्टाफ पोर्टल' : 'Field Staff Portal');
         } else {
-          if (accountTrigger) accountTrigger.style.display = 'none';
           if (staffLogout) {
             staffLogout.style.setProperty('display', 'none', 'important');
             staffLogout.classList.add('is-hidden');
-          }
-          if (adminLogout) {
-            adminLogout.style.setProperty('display', 'none', 'important');
-            adminLogout.classList.add('is-hidden');
           }
         }
       } else {
-        // Admin Mode
+        // Admin Mode: Enforce Admin Header Active, Staff Header strictly Hidden
+        if (adminHeader) adminHeader.style.setProperty('display', 'block', 'important');
+        if (staffHeader) staffHeader.style.setProperty('display', 'none', 'important');
+        if (contextChip) {
+          contextChip.style.setProperty('display', 'inline-flex', 'important');
+          contextChip.textContent = 'ADMIN';
+        }
+        if (adminTitle) adminTitle.textContent = 'Admin Portal';
+        if (liveBadge) liveBadge.style.setProperty('display', 'inline-flex', 'important');
+
         var isAuth = isUserAdminAuthenticated();
-        if (contextChip) contextChip.textContent = 'ADMIN';
-        if (mainTitle) mainTitle.textContent = 'Admin Portal';
-
-        if (liveBadge) liveBadge.style.display = 'inline-flex';
-
         if (isAuth) {
-          if (accountTrigger) accountTrigger.style.display = 'inline-flex';
+          // Admin is authenticated: show Admin Profile & Logout options
+          if (accountWrap) {
+            accountWrap.style.removeProperty('display');
+            accountWrap.style.setProperty('display', 'inline-flex', 'important');
+            accountWrap.classList.remove('is-hidden');
+          }
+          if (accountTrigger) {
+            accountTrigger.style.removeProperty('display');
+            accountTrigger.style.setProperty('display', 'inline-flex', 'important');
+            accountTrigger.classList.remove('is-hidden');
+          }
           if (adminLogout) {
             adminLogout.style.setProperty('display', 'flex', 'important');
             adminLogout.classList.remove('is-hidden');
-          }
-          if (staffLogout) {
-            staffLogout.style.setProperty('display', 'none', 'important');
-            staffLogout.classList.add('is-hidden');
           }
 
           if (avatarInitial) avatarInitial.textContent = 'A';
@@ -1093,14 +1096,18 @@ var state = {
           if (panelName) panelName.textContent = 'Super Administrator';
           if (panelSub) panelSub.textContent = 'Full Access • Enterprise Management';
         } else {
-          if (accountTrigger) accountTrigger.style.display = 'none';
+          // Admin Gate / Sign in page: STRICTLY HIDE account menu!
+          if (accountWrap) {
+            accountWrap.style.setProperty('display', 'none', 'important');
+            accountWrap.classList.add('is-hidden');
+          }
+          if (accountTrigger) {
+            accountTrigger.style.setProperty('display', 'none', 'important');
+            accountTrigger.classList.add('is-hidden');
+          }
           if (adminLogout) {
             adminLogout.style.setProperty('display', 'none', 'important');
             adminLogout.classList.add('is-hidden');
-          }
-          if (staffLogout) {
-            staffLogout.style.setProperty('display', 'none', 'important');
-            staffLogout.classList.add('is-hidden');
           }
         }
       }
@@ -1607,25 +1614,30 @@ var state = {
         }
       }
 
+      var staffHeader = document.getElementById('staffHeader');
+      var adminHeader = document.getElementById('adminHeader');
+
       if (mode === 'staff') {
         document.body.classList.remove('admin-mode-active');
         document.body.classList.add('staff-mode-active');
         if (mainContainer) mainContainer.classList.remove('admin-mode-active');
         if (headerInner) headerInner.classList.remove('admin-mode-active');
+        if (staffHeader) staffHeader.style.setProperty('display', 'block', 'important');
+        if (adminHeader) adminHeader.style.setProperty('display', 'none', 'important');
         if (staffEl) staffEl.style.display = 'block';
         if (adminEl) adminEl.style.display = 'none';
         if (staffControls) staffControls.style.display = 'flex';
         if (liveBadge) liveBadge.style.display = 'none';
         if (adminControls) adminControls.style.display = 'none';
         var langWrap = document.getElementById('langDropdownWrap');
-        if (langWrap) langWrap.style.display = 'none';
+        if (langWrap) langWrap.style.setProperty('display', 'none', 'important');
         var themeBtn = document.getElementById('btnThemeToggle');
-        if (themeBtn) themeBtn.style.display = 'none';
+        if (themeBtn) themeBtn.style.setProperty('display', 'none', 'important');
         var accWrap = document.getElementById('accountDropdownWrap');
-        if (accWrap) accWrap.style.display = 'none';
+        if (accWrap) accWrap.style.setProperty('display', 'none', 'important');
         var chipEl = document.getElementById('headerContextChip');
         if (chipEl) {
-          chipEl.style.display = 'none';
+          chipEl.style.setProperty('display', 'none', 'important');
           chipEl.textContent = '';
         }
         if (titleEl) titleEl.textContent = state.lang === 'en' ? 'Portal' : 'पोर्टल';
@@ -1638,6 +1650,8 @@ var state = {
         document.body.classList.remove('staff-mode-active');
         if (mainContainer) mainContainer.classList.add('admin-mode-active');
         if (headerInner) headerInner.classList.add('admin-mode-active');
+        if (adminHeader) adminHeader.style.setProperty('display', 'block', 'important');
+        if (staffHeader) staffHeader.style.setProperty('display', 'none', 'important');
         if (staffEl) staffEl.style.display = 'none';
         if (adminEl) adminEl.style.display = 'block';
         if (staffControls) staffControls.style.display = 'none';
@@ -1650,7 +1664,7 @@ var state = {
         if (accWrap) accWrap.style.removeProperty('display');
         var chipEl = document.getElementById('headerContextChip');
         if (chipEl) {
-          chipEl.style.display = 'inline-flex';
+          chipEl.style.setProperty('display', 'inline-flex', 'important');
           chipEl.textContent = 'ADMIN';
         }
         if (titleEl) titleEl.textContent = 'Admin Portal';

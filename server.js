@@ -3622,18 +3622,62 @@ const server = http.createServer(async (req, res) => {
             return true;
           });
 
+          // Calculate consecutive times on filtered logs
+          const staffLogMap = {};
+          filtered.forEach(l => {
+            const sc = l.staff_code || l.staff_id || 'unknown';
+            if (!staffLogMap[sc]) staffLogMap[sc] = [];
+            staffLogMap[sc].push(l);
+          });
+          Object.values(staffLogMap).forEach(list => {
+            list.sort((a, b) => new Date(a.completed_at_device || 0) - new Date(b.completed_at_device || 0));
+            list.forEach((curr, idx) => {
+              const cleanDuration = (curr.device_metadata && curr.device_metadata.durationMinutes) ? curr.device_metadata.durationMinutes : 10;
+              curr.cleaningDurationMinutes = cleanDuration;
+              if (idx === 0) {
+                curr.transitDurationMinutes = null;
+                curr.prevLocation = null;
+              } else {
+                const prev = list[idx - 1];
+                const diffMs = new Date(curr.completed_at_device || 0).getTime() - new Date(prev.completed_at_device || 0).getTime();
+                const totalCycle = Math.max(1, Math.round(diffMs / 60000));
+                curr.transitDurationMinutes = Math.max(1, totalCycle - cleanDuration);
+                curr.prevLocation = prev.address_text || prev.parking_details || null;
+              }
+            });
+          });
+
           const withPhotoCount = filtered.filter(l => l.photo_url && l.photo_url.trim()).length;
+          const staffMatrix = (appState.staffList || []).map(s => {
+            const staffCleaned = filtered.filter(l => l.staff_code === s.id || l.staff_id === s.id);
+            return {
+              staffId: s.id,
+              staffCode: s.id,
+              staffName: s.name,
+              cleanedCount: staffCleaned.length,
+              pendingCount: 0,
+              totalAssigned: staffCleaned.length,
+              lastPunchTime: staffCleaned.length > 0 ? staffCleaned[0].completed_at_device : null,
+              lastLocation: staffCleaned.length > 0 ? (staffCleaned[0].address_text || 'Field') : null,
+              status: staffCleaned.length > 0 ? 'Active on Route 🟢' : 'Shift Starting ⏳'
+            };
+          });
+
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: true,
             records: filtered,
+            pendingRecords: [],
             summary: {
               totalCleaned: filtered.length,
+              totalPending: 0,
+              totalScheduled: filtered.length,
               withPhotoCount,
               withoutPhotoCount: filtered.length - withPhotoCount,
               activeStaffCount: new Set(filtered.map(l => l.staff_code)).size,
               photoRate: filtered.length > 0 ? Math.round((withPhotoCount / filtered.length) * 100) : 0,
-              latestPunchTime: filtered.length > 0 ? filtered[0].completed_at_device : null
+              latestPunchTime: filtered.length > 0 ? filtered[0].completed_at_device : null,
+              staffMatrix
             }
           }));
         }
@@ -3709,8 +3753,20 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(result));
             }
+            const localJobs = (appState.serviceJobs || []).map(j => {
+              const assignedAt = j.assigned_at || j.assignedAt || j.createdAt || j.created_at || null;
+              let elapsedMinutes = null;
+              if (j.started_at && j.completed_at) {
+                elapsedMinutes = Math.max(1, Math.round((new Date(j.completed_at) - new Date(j.started_at)) / 60000));
+              } else if (j.started_at) {
+                elapsedMinutes = Math.max(1, Math.round((Date.now() - new Date(j.started_at).getTime()) / 60000));
+              } else if (assignedAt) {
+                elapsedMinutes = Math.max(0, Math.round((Date.now() - new Date(assignedAt).getTime()) / 60000));
+              }
+              return { ...j, assignedAt, elapsedMinutes };
+            });
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: true, jobs: appState.serviceJobs || [] }));
+            return res.end(JSON.stringify({ success: true, jobs: localJobs }));
           } catch (err) {
             console.error('getSpecialJobs error:', err.message);
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -4011,14 +4067,12 @@ const server = http.createServer(async (req, res) => {
     content = content.replace(/<\?=\s*typeof\s+webAppUrl\s*!==\s*'undefined'\s*\?\s*webAppUrl\s*:[^?]*\?>/g, '');
 
     if (initialMode === 'admin') {
-      content = content.replace('id="headerContextChip" style="display: none;">STAFF</span>', 'id="headerContextChip">ADMIN</span>');
-      content = content.replace('id="headerContextChip">STAFF</span>', 'id="headerContextChip">ADMIN</span>');
-      content = content.replace('id="pageMainTitle">Portal</h1>', 'id="pageMainTitle">Admin Portal</h1>');
-      content = content.replace('id="pageMainTitle">Staff Portal</h1>', 'id="pageMainTitle">Admin Portal</h1>');
+      content = content.replace('class="staff-mode-active"', 'class="admin-mode-active"');
+      content = content.replace('class="main-container"', 'class="main-container admin-mode-active"');
     }
 
     // Force latest asset version cache-buster across ALL routes
-    const APP_ASSET_VERSION = '3.2.1';
+    const APP_ASSET_VERSION = '3.2.4';
     content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, `/js/app.js?v=${APP_ASSET_VERSION}`);
     content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, `/css/style.css?v=${APP_ASSET_VERSION}`);
 

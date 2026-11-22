@@ -51,7 +51,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-  <link rel="stylesheet" href="/css/style.css?v=3.2.2">
+  <link rel="stylesheet" href="/css/style.css?v=3.2.4">
   <link rel="stylesheet" href="/css/m3-tokens.css?v=3.2.3">
   <link rel="stylesheet" href="/css/staff-m3.css?v=3.2.3">
   <style>
@@ -85,27 +85,78 @@
     .header-icon-btn { width: 34px !important; min-width: 34px !important; padding: 0 !important; }
     .header-status-wrapper, #staffLiveBadge { display: none !important; }
     .header-status-pill { height: 34px !important; min-height: 34px !important; padding: 0 12px !important; border-radius: 20px !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; font-size: 12px !important; font-weight: 600 !important; cursor: pointer !important; border: 1px solid rgba(16, 185, 129, 0.28) !important; background: rgba(16, 185, 129, 0.12) !important; color: #34d399 !important; white-space: nowrap !important; box-sizing: border-box !important; }
-    .header-dropdown-wrap { position: relative !important; display: inline-flex !important; align-items: center !important; }
+    .header-dropdown-wrap { position: relative !important; display: inline-flex; }
+
+    /* STRICT DEDICATED HEADER ISOLATION (ZERO CROSS-PORTAL OR LOGIN LEAKAGE) */
+    #staffHeader { display: block !important; }
+    #adminHeader { display: none !important; }
+    body.admin-mode-active #staffHeader { display: none !important; }
+    body.admin-mode-active #adminHeader { display: block !important; }
+    body.staff-mode-active #adminHeader { display: none !important; }
+    body.staff-mode-active #staffHeader { display: block !important; }
+
+    /* Strict visibility guard for account dropdown & menus */
+    .is-hidden,
+    [hidden],
+    .header-dropdown-wrap.is-hidden,
+    .header-account-trigger.is-hidden {
+      display: none !important;
+    }
+
     .records-kpi-grid { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important; gap: 10px !important; margin-bottom: 16px !important; }
     .records-kpi-tile { background: #ffffff !important; border: 1.5px solid #e2e8f0 !important; border-radius: 12px !important; padding: 11px 14px !important; display: flex !important; align-items: center !important; gap: 12px !important; cursor: pointer !important; }
   </style>
 </head>
-<body class="admin-mode-active">
-  <header class="top-header" role="banner">
+<body class="staff-mode-active">
+  <!-- =========================================================================
+       STAFF HEADER - Dedicated mobile-first header for Staff Portal
+       (Theme & Language toggles are located inside Staff Settings, not here)
+       ========================================================================= -->
+  <header id="staffHeader" class="top-header staff-header" role="banner">
     <div class="header-inner">
       <div class="header-brand-group">
-        <a href="javascript:void(0)" class="brand-logo-wrap" title="CWP Detailers & Motors" onclick="handleBrandLogoClick()">
+        <a href="javascript:void(0)" class="brand-logo-wrap" title="CWP Detailers" onclick="handleBrandLogoClick()">
           <img src="/cwp_logo.jpg" alt="CWP Detailers" class="brand-logo-img">
         </a>
         <div class="brand-separator" aria-hidden="true"></div>
         <div class="header-context">
-          <span class="header-context-chip" id="headerContextChip" style="display: none;">STAFF</span>
-          <h1 class="header-app-title" id="pageMainTitle">Portal</h1>
+          <h1 class="header-app-title" id="pageMainTitle">पोर्टल</h1>
         </div>
       </div>
-      <div class="header-utility-group">
-        <div class="header-status-wrapper" style="display: none !important;">
-          <button type="button" class="header-status-pill staff-live-badge status-live" id="staffLiveBadge" onclick="toggleSyncDetailsPopover(event)" aria-haspopup="true" aria-expanded="false" style="display: none !important;" title="Auto-Sync Active (30s) • Live data connected (Click for details)">
+      <div class="header-utility-group staff-header-utility">
+        <button type="button" id="staffPwaInstallBtn" class="header-util-btn pwa-install-header-btn" onclick="triggerPwaInstallPrompt()" style="display: none;" title="Install CWP Staff App on your device">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" class="util-btn-icon">
+            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+          <span class="pwa-btn-text">Install App</span>
+        </button>
+        <div id="staffOfflineBadge" class="staff-offline-badge" style="display: none;" title="ऑफ़लाइन मोड • डेटा सुरक्षित">
+          <span class="offline-dot">●</span>
+          <span>ऑफ़लाइन</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       ADMIN HEADER - Dedicated management console header for Admin Portal
+       (Sync status, Admin Language, Admin Theme, & Authenticated Admin Profile)
+       ========================================================================= -->
+  <header id="adminHeader" class="top-header admin-header" role="banner" style="display: none;">
+    <div class="header-inner">
+      <div class="header-brand-group">
+        <a href="javascript:void(0)" class="brand-logo-wrap" title="CWP Detailers Admin" onclick="handleBrandLogoClick()">
+          <img src="/cwp_logo.jpg" alt="CWP Detailers" class="brand-logo-img">
+        </a>
+        <div class="brand-separator" aria-hidden="true"></div>
+        <div class="header-context">
+          <span class="header-context-chip" id="headerContextChip" style="display: inline-flex;">ADMIN</span>
+          <h1 class="header-app-title" id="adminHeaderTitle">Admin Portal</h1>
+        </div>
+      </div>
+      <div class="header-utility-group admin-header-utility">
+        <div class="header-status-wrapper" id="adminSyncStatusWrapper">
+          <button type="button" class="header-status-pill status-live" id="staffLiveBadge" onclick="toggleSyncDetailsPopover(event)" aria-haspopup="true" aria-expanded="false" title="Auto-Sync Active (30s) • Live data connected (Click for details)">
             <span class="status-indicator-dot dot-live" id="staffSyncDot">●</span>
             <span class="status-indicator-text" id="staffSyncText">Live</span>
           </button>
@@ -141,14 +192,8 @@
             </div>
           </div>
         </div>
-        <button type="button" id="staffPwaInstallBtn" class="header-util-btn pwa-install-header-btn" onclick="triggerPwaInstallPrompt()" style="display: none;" title="Install CWP Staff App on your device">
-          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" class="util-btn-icon">
-            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
-          </svg>
-          <span class="pwa-btn-text">Install App</span>
-        </button>
         <div class="header-dropdown-wrap" id="langDropdownWrap">
-          <button type="button" id="btnLangToggle" class="header-util-btn header-lang-trigger" onclick="toggleLangDropdown(event)" title="भाषा बदलें / Select Language" aria-haspopup="true" aria-expanded="false">
+          <button type="button" id="btnLangToggle" class="header-util-btn header-lang-trigger" onclick="toggleLangDropdown(event)" title="Select Language" aria-haspopup="true" aria-expanded="false">
             <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" class="util-btn-icon">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v.183a2 2 0 00.285 1.018l.05.088A5.972 5.972 0 0110 16a5.978 5.978 0 01-4.733-2.316l.044-.025a1.5 1.5 0 00.689-1.284V11a2 2 0 00-2-2H4.332z" clip-rule="evenodd"/>
             </svg>
@@ -170,11 +215,12 @@
             </button>
           </div>
         </div>
-        <button type="button" id="btnThemeToggle" class="header-util-btn header-icon-btn" onclick="toggleTheme()" title="थीम बदलें / Toggle Dark/Light Mode" aria-label="Toggle Theme">
+        <button type="button" id="btnThemeToggle" class="header-util-btn header-icon-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
           <span id="themeToggleIcon" class="util-btn-icon">🌙</span>
         </button>
-        <div class="header-dropdown-wrap" id="accountDropdownWrap">
-          <button type="button" id="headerAccountTrigger" class="header-account-trigger" onclick="toggleAccountMenu(event)" title="Account profile & session options" aria-haspopup="true" aria-expanded="false" style="display: none;">
+        <!-- Admin Account Menu: Stays strictly hidden unless admin is authenticated -->
+        <div class="header-dropdown-wrap is-hidden" id="accountDropdownWrap" style="display: none !important;">
+          <button type="button" id="headerAccountTrigger" class="header-account-trigger is-hidden" onclick="toggleAccountMenu(event)" title="Administrator Account" aria-haspopup="true" aria-expanded="false" style="display: none !important;">
             <div class="account-avatar" id="headerAccountAvatar">
               <span id="headerAccountInitial">A</span>
             </div>
@@ -188,7 +234,7 @@
           </button>
           <div class="header-menu-panel account-menu-panel" id="accountMenuPanel" style="display: none;" onclick="event.stopPropagation()">
             <div class="account-panel-header">
-              <div class="account-panel-avatar" id="menuPanelAvatar">👤</div>
+              <div class="account-panel-avatar" id="menuPanelAvatar">🛡️</div>
               <div class="account-panel-info">
                 <div class="account-panel-title" id="menuPanelName">Administrator</div>
                 <div class="account-panel-sub" id="menuPanelSub">Super Admin Access</div>
@@ -196,13 +242,7 @@
             </div>
             <div class="menu-separator"></div>
             <div class="account-panel-actions">
-              <button type="button" id="staffLogoutBtn" class="header-menu-item item-destructive" onclick="handleStaffLogout()" style="display: none;" title="स्टाफ पोर्टल से लॉगआउट करें">
-                <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" class="menu-item-icon">
-                  <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
-                </svg>
-                <span class="logout-text">लॉगआउट (Shift Sign Out)</span>
-              </button>
-              <button type="button" id="adminLogoutBtn" class="header-menu-item item-destructive" onclick="handleAdminLogout()" style="display: none;" title="Logout from Admin Portal">
+              <button type="button" id="adminLogoutBtn" class="header-menu-item item-destructive" onclick="handleAdminLogout()" title="Logout from Admin Portal">
                 <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" class="menu-item-icon">
                   <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
                 </svg>
@@ -211,12 +251,10 @@
             </div>
           </div>
         </div>
-        <div id="staffHeaderControls" style="display: none;"></div>
-        <div id="adminHeaderControls" style="display: none;"></div>
       </div>
     </div>
   </header>
-  <div class="main-container admin-mode-active">
+  <div class="main-container">
     <div id="staffView" style="display: block;">
       <div id="staffPwaInstallBanner" class="pwa-install-banner" style="display: none;">
         <div class="pwa-banner-content">
@@ -496,6 +534,7 @@
             <span class="material-symbols-outlined logout-icon" style="font-size: 18px;" aria-hidden="true">logout</span>
             <span class="logout-label">लॉगआउट करें (Shift Sign Out)</span>
           </button>
+          <button type="button" id="staffLogoutBtn" style="display: none !important;" hidden aria-hidden="true" onclick="handleStaffLogout()"></button>
           <div class="logout-subtext">सुरक्षित रूप से अपनी आज की शिफ्ट समाप्त करें</div>
         </div>
       </div>
@@ -2962,7 +3001,7 @@
     var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
   </script>
   <script src="/js/cropper.min.js"></script>
-  <script src="/js/app.js?v=3.2.2" defer></script>
+  <script src="/js/app.js?v=3.2.4" defer></script>
   <script>
     // Failsafe listener for staff photo selection
     document.addEventListener('change', function(e) {
