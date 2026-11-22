@@ -621,7 +621,8 @@ async function updateCustomer(custData, adminUser = 'admin') {
       secondaryAddressHi: secAddressHi,
       carMake: carMakeUpdate,
       carColor: carColorUpdate,
-      panelCount: custData.panelCount !== undefined ? custData.panelCount : custData.panel_count
+      panelCount: custData.panelCount !== undefined ? custData.panelCount : custData.panel_count,
+      leadStatus: custData.leadStatus !== undefined ? custData.leadStatus : (custData.lead_status !== undefined ? custData.lead_status : customer.lead_status)
     }, client);
 
     // 2. Update / Upsert Primary Location

@@ -691,9 +691,7 @@
         <div class="admin-card-section leads-executive-section">
           <div class="records-hero-strip">
             <div class="records-hero-left">
-              <div class="records-brand-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-size: 15px; font-weight: 700;">
-                🎯
-              </div>
+              <div class="records-brand-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-size: 15px; font-weight: 700;">🎯</div>
               <div>
                 <div class="records-title-row">
                   <h2 class="records-hero-title">Leads & Inquiries Directory</h2>
@@ -703,33 +701,39 @@
               </div>
             </div>
             <div class="records-hero-actions">
-              <button type="button" class="btn-admin-primary" onclick="openAddLeadModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #d97706;" title="Capture a new customer lead">
-                <span>✨</span>
-                <span>New Lead</span>
-              </button>
-              <button type="button" class="btn-admin-icon-only" onclick="loadAdminLeads(true)" title="Refresh leads list">
-                <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-                  <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
-                </svg>
-              </button>
+              <button type="button" class="btn-admin-primary" onclick="openAddLeadModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #d97706;" title="Capture a new customer lead"><span>✨ New Lead</span></button>
+              <button type="button" class="btn-admin-icon-only" onclick="loadAdminLeads(true)" title="Refresh leads list"><svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg></button>
             </div>
           </div>
-          <div class="leads-filter-toolbar" style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <div class="records-search-group" style="flex: 1; min-width: 260px; max-width: 480px;">
+          <!-- Lead Lifecycle Funnel Deck -->
+          <div class="leads-funnel-deck">
+            <div class="leads-funnel-card active" id="cardFunnelAll" onclick="setLeadStageFilter('all')"><div class="funnel-icon">🎯</div><div class="funnel-body"><div class="funnel-num" id="leadsKpiTotal">0</div><div class="funnel-label">Total Leads</div></div></div>
+            <div class="leads-funnel-card" id="cardFunnelNew" onclick="setLeadStageFilter('open')"><div class="funnel-icon">📥</div><div class="funnel-body"><div class="funnel-num" id="leadsKpiNew">0</div><div class="funnel-label">New Inquiries</div></div></div>
+            <div class="leads-funnel-card" id="cardFunnelFollowUp" onclick="setLeadStageFilter('follow_up')"><div class="funnel-icon">📞</div><div class="funnel-body"><div class="funnel-num" id="leadsKpiFollowUp">0</div><div class="funnel-label">In Follow-Up</div></div></div>
+            <div class="leads-funnel-card" id="cardFunnelReady" onclick="setLeadStageFilter('ready')"><div class="funnel-icon">🌟</div><div class="funnel-body"><div class="funnel-num" id="leadsKpiReady">0</div><div class="funnel-label">Ready to Convert</div></div></div>
+          </div>
+          <!-- M3 Filter & Dual-View Toolbar -->
+          <div class="leads-filter-toolbar">
+            <div class="records-search-group" style="flex: 1; min-width: 240px; max-width: 400px;">
               <span class="records-search-icon">🔍</span>
               <input type="text" id="leadsSearchInput" class="records-search-input" placeholder="Search leads by name, phone, car number, or address..." oninput="handleLeadsSearch(this.value)">
               <button type="button" id="btnLeadsSearchClear" class="search-clear-btn" onclick="clearLeadsSearch()" style="display: none;" title="Clear search">✕</button>
             </div>
-            <div class="leads-quick-stats" style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
-              <span class="leads-status-pill" style="font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 12px; background: rgba(245, 158, 11, 0.12); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.25);">
-                Pending Inquiries: <strong id="leadsPendingBadge">0</strong>
-              </span>
+            <div class="leads-category-chips">
+              <button type="button" class="btn-quick-chip active" id="chipLeadCatAll" onclick="setLeadCategoryFilter('all')">All Services</button>
+              <button type="button" class="btn-quick-chip" id="chipLeadCatDC" onclick="setLeadCategoryFilter('Daily Car Cleaning')">🚗 Daily Clean</button>
+              <button type="button" class="btn-quick-chip" id="chipLeadCatSolar" onclick="setLeadCategoryFilter('Solar Panel Cleaning')">☀️ Solar Clean</button>
+              <button type="button" class="btn-quick-chip" id="chipLeadCatWash" onclick="setLeadCategoryFilter('Car Washing')">🧼 Car Wash</button>
+            </div>
+            <div class="leads-view-switcher">
+              <button type="button" class="btn-view-toggle active" id="btnLeadsViewTable" onclick="switchLeadsViewMode('table')" title="High-Density Table View"><span class="material-symbols-outlined" style="font-size: 16px;">table_rows</span><span>Table</span></button>
+              <button type="button" class="btn-view-toggle" id="btnLeadsViewKanban" onclick="switchLeadsViewMode('kanban')" title="Visual Pipeline Kanban Board"><span class="material-symbols-outlined" style="font-size: 16px;">view_kanban</span><span>Pipeline</span></button>
             </div>
           </div>
-          <div id="leadsListContainer" class="leads-grid-container">
-            <div class="skeleton-feed" style="padding: 24px; text-align: center; color: var(--text-muted);">
-              Loading leads...
-            </div>
+          <span style="display: none;" id="leadsPendingBadge">0</span>
+          <!-- Dynamic Dual-Mode Container -->
+          <div id="leadsListContainer" class="leads-content-wrapper">
+            <div class="skeleton-feed" style="padding: 24px; text-align: center; color: var(--text-muted);"><span class="cwp-spinner"></span> Loading leads...</div>
           </div>
         </div>
       </div>
