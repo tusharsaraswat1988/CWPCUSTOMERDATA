@@ -157,12 +157,16 @@
     }
 
     // Car care packages
-    const rates = (homepageConfig && homepageConfig.rates && homepageConfig.rates[activeVehicleTab]) || {
-      dailyClean: 1999,
-      interiorExteriorDetail: 1499,
-      ceramicCoating: 8999,
-      examples: 'Swift, i20, Baleno, Tiago, Altroz'
+    const defaultVehicleRates = {
+      hatchback: { dailyClean: 1999, interiorExteriorDetail: 1499, ceramicCoating: 8999, examples: 'Swift, i20, Baleno, Tiago, Altroz' },
+      sedan: { dailyClean: 2199, interiorExteriorDetail: 1699, ceramicCoating: 9999, examples: 'City, Verna, Ciaz, Slavia, Virtus, Dzire' },
+      compactSuv: { dailyClean: 2299, interiorExteriorDetail: 1799, ceramicCoating: 10999, examples: 'Creta, Seltos, Brezza, Nexon, Venue' },
+      fullSuvLuxury: { dailyClean: 2699, interiorExteriorDetail: 2199, ceramicCoating: 13999, examples: 'Fortuner, Safari, XUV700, Scorpio-N, BMW, Mercedes' }
     };
+    const baseRates = defaultVehicleRates[activeVehicleTab] || defaultVehicleRates.hatchback;
+    const serverRates = (homepageConfig && homepageConfig.rates && homepageConfig.rates[activeVehicleTab]) || {};
+    const rates = { ...baseRates, ...serverRates };
+    const firstExample = ((rates.examples || 'Vehicle').split(',')[0] || 'Vehicle').trim();
 
     pricingCardsContainer.innerHTML = `
       <div class="pricing-card featured">
@@ -183,7 +187,7 @@
           <li class="feature-item"><span class="check">✓</span> Dedicated morning slot (6:30 AM – 9:00 AM)</li>
           <li class="feature-item"><span class="check">✓</span> Daily photo proof sent to your WhatsApp</li>
         </ul>
-        <button class="btn-primary" onclick="window.openBookingModal('Daily Clean Plan (${rates.examples.split(',')[0].trim()})', 'Daily Car Cleaning')">Book Daily Clean</button>
+        <button class="btn-primary" onclick="window.openBookingModal('Daily Clean Plan (' + firstExample + ')', 'Daily Car Cleaning')">Book Daily Clean</button>
       </div>
 
       <div class="pricing-card">
