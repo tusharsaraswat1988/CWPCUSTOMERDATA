@@ -227,7 +227,7 @@ async function runEndToEndTests() {
       await db.query('DELETE FROM public.vehicles');
       await db.query('DELETE FROM public.service_locations');
       await db.query('DELETE FROM public.customers');
-      await db.query('DELETE FROM public.auth_sessions');
+      await db.query("DELETE FROM public.auth_sessions WHERE staff_id IN (SELECT id FROM public.staff WHERE staff_code LIKE 'STFE2E%' OR staff_code LIKE 'TEST%') OR admin_id IN (SELECT id FROM public.admin_users WHERE username LIKE 'test%')");
       await db.query('DELETE FROM public.staff_auth');
       await db.query('DELETE FROM public.staff');
       // audit_logs is append-only and immutable by database trigger

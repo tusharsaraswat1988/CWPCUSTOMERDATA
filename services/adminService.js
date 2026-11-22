@@ -1396,6 +1396,135 @@ async function getLeads({ search = '', limit = 500, offset = 0 } = {}) {
 }
 
 /**
+ * Update Lead Details Workflow
+ */
+async function updateLead(leadData, adminUser = 'admin') {
+  const leadId = leadData.id || leadData.customerId || leadData.leadId;
+  if (!leadId) {
+    return { success: false, error: 'Lead ID is required for update.' };
+  }
+
+  let customer = null;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(leadId)) {
+    customer = await repos.customers.findById(leadId);
+  } else {
+    customer = await repos.customers.findByCode(leadId);
+  }
+
+  if (!customer) {
+    return { success: false, error: 'Lead not found.' };
+  }
+
+  return db.withTransaction(async (client) => {
+    const rawName = (leadData.customerName || leadData.name || customer.name).toString().trim();
+    const rawPhone = (leadData.customerNumber || leadData.phone || '').toString().trim();
+    let normPhone = customer.phone;
+    if (rawPhone) {
+      normPhone = normalizeIndianMobile(rawPhone);
+    } else if (leadData.customerNumber === '' || leadData.phone === '') {
+      normPhone = null;
+    }
+
+    let nameHi = leadData.nameHi !== undefined ? leadData.nameHi : leadData.name_hi;
+    if (nameHi === undefined && rawName) {
+      if (customer.name_hi && rawName === customer.name) {
+        nameHi = customer.name_hi;
+      } else {
+        try { nameHi = await indicService.transliterateName(rawName); } catch (e) { nameHi = rawName; }
+      }
+    }
+
+    let addressHi = leadData.addressHi !== undefined ? leadData.addressHi : leadData.address_hi;
+    const addr = (leadData.address || leadData.location || '').toString().trim();
+    if (addressHi === undefined && addr) {
+      try { addressHi = await indicService.transliterateAddress(addr); } catch (e) { addressHi = addr; }
+    }
+
+    const finalNotes = leadData.leadNotes !== undefined ? leadData.leadNotes : (leadData.notes !== undefined ? leadData.notes : customer.lead_notes || customer.notes);
+    const carMakeVal = leadData.carMake !== undefined ? leadData.carMake : leadData.car_make;
+    const carColorVal = leadData.carColor !== undefined ? leadData.carColor : leadData.car_color;
+    const interestedService = leadData.serviceCategory || leadData.interestedService || leadData.serviceType || customer.interested_service || 'Daily Car Cleaning';
+    const leadStage = (leadData.leadStatus || leadData.stage || customer.lead_status || 'open').toString().trim().toLowerCase();
+
+    // 1. Update customer record
+    await repos.customers.updateCustomer(customer.id, {
+      name: rawName,
+      nameHi,
+      phone: normPhone,
+      addressHi,
+      notes: finalNotes,
+      leadNotes: finalNotes,
+      interestedService,
+      leadStatus: leadStage,
+      carMake: carMakeVal,
+      carColor: carColorVal
+    }, client);
+
+    // 2. Update / Upsert Primary Location
+    const rawMapsUrl = (leadData.googleMapsUrl || leadData.mapsUrl || '').toString().trim();
+    let primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
+    if (addr || rawMapsUrl) {
+      if (primaryLoc) {
+        await repos.serviceLocations.updateLocation(primaryLoc.id, {
+          addressText: addr || primaryLoc.address_text,
+          addressTextHi: addressHi || primaryLoc.address_text_hi,
+          googleMapsUrl: rawMapsUrl || primaryLoc.google_maps_url
+        }, client);
+      } else {
+        primaryLoc = await repos.serviceLocations.createLocation({
+          customerId: customer.id,
+          addressType: 'primary',
+          addressText: addr,
+          addressTextHi: addressHi || null,
+          googleMapsUrl: rawMapsUrl || null,
+          isPrimary: true
+        }, client);
+      }
+    }
+
+    // 3. Update / Upsert Vehicle
+    const rawVeh = (leadData.vehicle || leadData.vehicleDetails || '').toString().trim();
+    if (rawVeh || carMakeVal || carColorVal) {
+      const parsed = parseVehicleString(rawVeh);
+      const existingVehs = await repos.vehicles.findByCustomerId(customer.id, { client });
+      if (existingVehs.length > 0) {
+        await repos.vehicles.updateVehicle(existingVehs[0].id, {
+          registrationNo: parsed.reg || existingVehs[0].registration_no || rawVeh,
+          brandOrModel: parsed.model || existingVehs[0].brand_or_model,
+          carMake: carMakeVal || existingVehs[0].car_make,
+          carColor: carColorVal || existingVehs[0].car_color
+        }, client);
+      } else if (rawVeh || carMakeVal || carColorVal) {
+        await repos.vehicles.createVehicle({
+          customerId: customer.id,
+          defaultLocationId: primaryLoc ? primaryLoc.id : null,
+          registrationNo: parsed.reg || rawVeh || 'LEAD_VEH',
+          brandOrModel: parsed.model || null,
+          carMake: carMakeVal || null,
+          carColor: carColorVal || null
+        }, client);
+      }
+    }
+
+    // 4. Audit Log
+    try {
+      await repos.auditLogs.logChange({
+        entityType: 'customers',
+        entityId: customer.id,
+        action: 'update_lead',
+        changedBy: adminUser,
+        beforeState: { name: customer.name, phone: customer.phone, lead_status: customer.lead_status },
+        afterState: { name: rawName, phone: normPhone, lead_status: leadStage }
+      }, client);
+    } catch (auditErr) {
+      console.warn('[Audit] lead update log skipped:', auditErr.message);
+    }
+
+    return { success: true, customerId: customer.id, message: 'Lead updated successfully' };
+  });
+}
+
+/**
  * Convert a Lead into an active customer (DCC or other service)
  */
 async function convertLeadToCustomer(leadId, convertData = {}, adminUser = 'admin') {
@@ -2183,6 +2312,7 @@ module.exports = {
   getDailyOperationsSummary,
   backfillHindiCustomerData,
   getLeads,
+  updateLead,
   convertLeadToCustomer,
   addLeadNote,
   assignSpecialJob,

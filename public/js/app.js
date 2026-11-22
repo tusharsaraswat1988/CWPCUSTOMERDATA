@@ -31,6 +31,21 @@ function isValidIndianMobile(value) {
   return /^[6-9]\d{9}$/.test(digits);
 }
 
+function parseVehicleString(s) {
+  if (!s) return { model: '', reg: '', display: '' };
+  var raw = String(s).trim();
+  var regMatch = raw.match(/([A-Z]{2}[-\s]?\d{1,2}[-\s]?[A-Z]{1,3}[-\s]?\d{1,4})/i);
+  if (regMatch) {
+    var reg = regMatch[1].toUpperCase().replace(/\s+/g, ' ');
+    var model = raw.replace(regMatch[0], '').replace(/^[\s\-–—:,|]+|[\s\-–—:,|]+$/g, '').trim();
+    return { reg: reg, model: model, display: raw };
+  }
+  return { reg: raw, model: '', display: raw };
+}
+if (typeof window !== 'undefined') {
+  window.parseVehicleString = parseVehicleString;
+}
+
 function formatIndianMobile(value, includePrefix) {
   if (includePrefix === undefined) includePrefix = true;
   var digits = normalizeIndianMobile(value);
@@ -1447,6 +1462,8 @@ var state = {
       window.handleCustIsLeadToggle = handleCustIsLeadToggle;
       window.openAddLeadModal = openAddLeadModal;
       window.closeAddLeadModal = closeAddLeadModal;
+      window.openEditLeadModal = openEditLeadModal;
+      window.closeEditLeadModal = closeEditLeadModal;
       window.triggerLeadPhotoSelect = triggerLeadPhotoSelect;
       window.handleLeadPhotoSelect = handleLeadPhotoSelect;
       window.removeLeadPhoto = removeLeadPhoto;
@@ -2612,6 +2629,58 @@ var state = {
 
       var subSpec = document.querySelectorAll('#dashSubSpecialCount, .dashSubSpecialCount');
       subSpec.forEach(function(el) { el.textContent = specTotal || '0'; });
+
+      // Intelligent Operations Intelligence Deck (Combined & Separate Metrics)
+      var numCleans = parseInt(dailyCount, 10) || 0;
+      var numSpecTotal = parseInt(specTotal, 10) || 0;
+      var numSpecDone = parseInt(specDone, 10) || 0;
+      var numSpecActive = specActive || 0;
+
+      var combTotal = numCleans + numSpecTotal;
+      var combDone = numCleans + numSpecDone;
+      var combRate = combTotal > 0 ? Math.round((combDone / combTotal) * 100) : 0;
+
+      var elCombDone = document.getElementById('dashCombinedDone');
+      if (elCombDone) elCombDone.textContent = combDone;
+
+      var elCombTotal = document.getElementById('dashCombinedTotal');
+      if (elCombTotal) elCombTotal.textContent = combTotal;
+
+      var elCombBadge = document.getElementById('dashCombinedRateBadge');
+      if (elCombBadge) elCombBadge.textContent = combRate + '% Fulfilled';
+
+      var elCombCleans = document.getElementById('dashCombCleansDone');
+      if (elCombCleans) elCombCleans.textContent = numCleans;
+
+      var elCombSpec = document.getElementById('dashCombSpecDone');
+      if (elCombSpec) elCombSpec.textContent = numSpecDone + ' of ' + numSpecTotal;
+
+      var elCombPend = document.getElementById('dashCombPending');
+      if (elCombPend) elCombPend.textContent = numSpecActive;
+
+      var barCleans = document.getElementById('dashBarCleans');
+      var barSpec = document.getElementById('dashBarSpecial');
+      if (combTotal > 0) {
+        if (barCleans) barCleans.style.width = Math.min(100, Math.round((numCleans / combTotal) * 100)) + '%';
+        if (barSpec) barSpec.style.width = Math.min(100, Math.round((numSpecDone / combTotal) * 100)) + '%';
+      }
+
+      // Card 2: Quality & Proof-of-Work Audit
+      var elAuditRate = document.getElementById('dashAuditRate');
+      if (elAuditRate) elAuditRate.textContent = dailyRate || '100%';
+
+      var elAuditPhotos = document.getElementById('dashAuditPhotoCount');
+      if (elAuditPhotos) elAuditPhotos.textContent = numCleans;
+
+      var elAuditBar = document.getElementById('dashAuditProgressBar');
+      if (elAuditBar) elAuditBar.style.width = dailyRate || '100%';
+
+      // Card 3: Route Velocity & Active Crew
+      var elCrewActive = document.getElementById('dashCrewActiveCount');
+      if (elCrewActive) elCrewActive.textContent = activeStaff || '1';
+
+      var elLastPunch = document.getElementById('dashLastPunchTime');
+      if (elLastPunch) elLastPunch.textContent = latestPunch || '--:--';
     }
     window.updateOperationsDashboardKPIs = updateOperationsDashboardKPIs;
 
@@ -2649,10 +2718,6 @@ var state = {
       if (collapseBtn) {
         collapseBtn.setAttribute('title', isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar');
         collapseBtn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-      }
-      var headerToggle = document.getElementById('adminHeaderSidebarToggle');
-      if (headerToggle) {
-        headerToggle.setAttribute('title', isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar');
       }
     }
     window.toggleDesktopSidebarCollapse = toggleDesktopSidebarCollapse;
@@ -6830,6 +6895,16 @@ function loadStaffCustomerData(staffId) {
       if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl);
       var form = document.getElementById('addLeadForm');
       if (form) form.reset();
+      var idEl = document.getElementById('leadEditId');
+      if (idEl) idEl.value = '';
+      var titleEl = document.getElementById('addLeadModalTitle');
+      if (titleEl) titleEl.textContent = 'Add New Lead';
+      var subEl = document.getElementById('addLeadModalSubtitle');
+      if (subEl) subEl.textContent = 'Capture prospect inquiry, vehicle info & initial remarks';
+      var btn = document.getElementById('btnSaveLead');
+      if (btn) btn.innerHTML = '<span>💾</span> Save Lead';
+      var stageEl = document.getElementById('leadStage');
+      if (stageEl) stageEl.value = 'open';
       removeLeadPhoto();
       var modal = document.getElementById('addLeadModal');
       if (modal) modal.style.display = 'flex';
@@ -6840,10 +6915,106 @@ function loadStaffCustomerData(staffId) {
       }, 100);
     }
 
+    function openEditLeadModal(leadId, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
+      var lead = (state.leads || []).find(function(l) {
+        return (l.id && l.id === leadId) || (l.customerCode && l.customerCode === leadId);
+      });
+      if (!lead) {
+        showToast('Lead record not found.', '⚠️');
+        return;
+      }
+
+      var form = document.getElementById('addLeadForm');
+      if (form) form.reset();
+
+      var idEl = document.getElementById('leadEditId');
+      if (idEl) idEl.value = lead.id || lead.customerCode || '';
+
+      var titleEl = document.getElementById('addLeadModalTitle');
+      if (titleEl) titleEl.textContent = 'Edit Lead Details';
+      var subEl = document.getElementById('addLeadModalSubtitle');
+      if (subEl) subEl.textContent = 'Update prospect contact, vehicle info & inquiry details';
+      var btn = document.getElementById('btnSaveLead');
+      if (btn) btn.innerHTML = '<span>💾</span> Update Lead';
+
+      var nameEl = document.getElementById('leadName');
+      if (nameEl) nameEl.value = lead.customerName || lead.name || '';
+      var nameHiEl = document.getElementById('leadNameHi');
+      if (nameHiEl) nameHiEl.value = lead.nameHi || lead.name_hi || '';
+
+      var rawPhone = lead.customerNumber || lead.phone || '';
+      var phoneInput = document.getElementById('leadPhone');
+      if (phoneInput) {
+        if (typeof setPhoneInputValue === 'function') {
+          setPhoneInputValue(phoneInput, rawPhone);
+        } else {
+          phoneInput.value = rawPhone;
+        }
+      }
+
+      var addrEl = document.getElementById('leadAddress');
+      if (addrEl) addrEl.value = lead.address || '';
+      var addrHiEl = document.getElementById('leadAddressHi');
+      if (addrHiEl) addrHiEl.value = lead.addressHi || lead.address_hi || '';
+      var mapsEl = document.getElementById('leadMapsUrl');
+      if (mapsEl) mapsEl.value = lead.googleMapsUrl || lead.mapsUrl || '';
+
+      var catSelect = document.getElementById('leadCategory');
+      if (catSelect) {
+        var cat = lead.interestedService || lead.serviceCategory || 'Daily Car Cleaning';
+        if (['Daily Car Cleaning', 'Car Washing', 'Solar Panel Cleaning', 'Other'].indexOf(cat) !== -1) {
+          catSelect.value = cat;
+        } else {
+          catSelect.value = 'Daily Car Cleaning';
+        }
+      }
+
+      var vehEl = document.getElementById('leadVehicle');
+      if (vehEl) vehEl.value = lead.vehicle || lead.vehicleDetails || '';
+      var makeEl = document.getElementById('leadCarMake');
+      if (makeEl) makeEl.value = lead.carMake || lead.car_make || '';
+      var colorEl = document.getElementById('leadCarColor');
+      if (colorEl) colorEl.value = lead.carColor || lead.car_color || '';
+
+      var stageEl = document.getElementById('leadStage');
+      if (stageEl) stageEl.value = (lead.leadStatus || 'open').toLowerCase();
+
+      var notesEl = document.getElementById('leadNotes');
+      if (notesEl) notesEl.value = lead.leadNotes || lead.notes || '';
+
+      var photoUrl = lead.photoUrl || '';
+      if (photoUrl) {
+        state.selectedLeadPhotoBase64 = photoUrl;
+        var prev = document.getElementById('leadPhotoPreview');
+        if (prev) {
+          prev.src = photoUrl;
+          prev.style.display = 'block';
+        }
+        var ph = document.getElementById('leadPhotoPlaceholder');
+        if (ph) ph.style.display = 'none';
+        var act = document.getElementById('leadPhotoActionsWrap');
+        if (act) act.style.display = 'inline-flex';
+      } else {
+        removeLeadPhoto();
+      }
+
+      var modal = document.getElementById('addLeadModal');
+      if (modal) modal.style.display = 'flex';
+      setTimeout(function() {
+        if (nameEl) nameEl.focus();
+        else if (typeof trapFocus === 'function') trapFocus(modal);
+      }, 100);
+    }
+
     function closeAddLeadModal() {
       var modal = document.getElementById('addLeadModal');
       if (modal) modal.style.display = 'none';
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
+    }
+
+    function closeEditLeadModal() {
+      closeAddLeadModal();
     }
 
     function triggerLeadPhotoSelect() {
@@ -6935,6 +7106,8 @@ function loadStaffCustomerData(staffId) {
     function handleLeadSubmit(e) {
       e.preventDefault();
       var btn = document.getElementById('btnSaveLead');
+      var editIdEl = document.getElementById('leadEditId');
+      var leadEditId = editIdEl ? editIdEl.value.trim() : '';
 
       var nameVal = (document.getElementById('leadName').value || '').trim();
       if (!nameVal) {
@@ -6959,7 +7132,7 @@ function loadStaffCustomerData(staffId) {
       if (btn) {
         if (btn.disabled) return;
         btn.disabled = true;
-        btn.innerHTML = '<span class="cwp-spinner"></span> Saving lead...';
+        btn.innerHTML = '<span class="cwp-spinner"></span> ' + (leadEditId ? 'Updating lead...' : 'Saving lead...');
       }
 
       var nameHiVal = document.getElementById('leadNameHi') ? document.getElementById('leadNameHi').value.trim() : '';
@@ -6971,6 +7144,8 @@ function loadStaffCustomerData(staffId) {
       var leadCarColorVal = (document.getElementById('leadCarColor') ? document.getElementById('leadCarColor').value : '').trim();
       var catVal = (document.getElementById('leadCategory').value || 'Daily Car Cleaning').trim();
       var notesVal = (document.getElementById('leadNotes').value || '').trim();
+      var stageEl = document.getElementById('leadStage');
+      var stageVal = stageEl ? stageEl.value : 'open';
 
       var photoPayload = state.selectedLeadPhotoBase64 ? {
         base64: state.selectedLeadPhotoBase64,
@@ -6979,12 +7154,18 @@ function loadStaffCustomerData(staffId) {
       } : null;
 
       var leadData = {
+        id: leadEditId || undefined,
         customerName: nameVal,
+        name: nameVal,
         nameHi: nameHiVal,
+        name_hi: nameHiVal,
         customerNumber: normPhone,
+        phone: normPhone,
         address: addrVal,
         addressHi: addrHiVal,
+        address_hi: addrHiVal,
         googleMapsUrl: mapsVal,
+        mapsUrl: mapsVal,
         vehicle: vehVal,
         vehicleDetails: vehVal,
         carMake: leadCarMakeVal,
@@ -6996,12 +7177,70 @@ function loadStaffCustomerData(staffId) {
         interestedService: catVal,
         isLead: true,
         tag: 'lead',
-        leadStatus: 'open',
+        leadStatus: stageVal,
+        stage: stageVal,
         notes: notesVal,
         leadNotes: notesVal,
         photoFile: photoPayload,
         photoData: photoPayload
       };
+
+      if (leadEditId) {
+        apiCall('updateLead', { leadId: leadEditId, leadData: leadData }, function(res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>💾</span> Update Lead';
+          }
+          if (res && res.error) {
+            showToast('Error: ' + res.error, '❌');
+          } else {
+            showToast('Lead updated successfully!', '✅');
+            var existingLead = (state.leads || []).find(function(l) {
+              return (l.id && l.id === leadEditId) || (l.customerCode && l.customerCode === leadEditId);
+            });
+            if (existingLead) {
+              existingLead.customerName = nameVal;
+              existingLead.name = nameVal;
+              existingLead.nameHi = nameHiVal;
+              existingLead.name_hi = nameHiVal;
+              existingLead.customerNumber = normPhone;
+              existingLead.phone = normPhone;
+              existingLead.address = addrVal;
+              existingLead.addressHi = addrHiVal;
+              existingLead.address_hi = addrHiVal;
+              existingLead.googleMapsUrl = mapsVal;
+              existingLead.mapsUrl = mapsVal;
+              existingLead.vehicle = vehVal;
+              existingLead.vehicleDetails = vehVal;
+              existingLead.carMake = leadCarMakeVal;
+              existingLead.car_make = leadCarMakeVal;
+              existingLead.carColor = leadCarColorVal;
+              existingLead.car_color = leadCarColorVal;
+              existingLead.serviceCategory = catVal;
+              existingLead.interestedService = catVal;
+              existingLead.leadStatus = stageVal;
+              existingLead.notes = notesVal;
+              existingLead.leadNotes = notesVal;
+              if (res && res.photoUrl) existingLead.photoUrl = res.photoUrl;
+            }
+            document.getElementById('addLeadForm').reset();
+            if (editIdEl) editIdEl.value = '';
+            removeLeadPhoto();
+            closeAddLeadModal();
+
+            updateLeadsKpi();
+            var filtered = applyLeadsFilters();
+            renderAdminLeadsList(filtered);
+          }
+        }, function(err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>💾</span> Update Lead';
+          }
+          showToast('Error: ' + (err.message || err), '❌');
+        });
+        return;
+      }
 
       apiCall('saveLead', { customerData: leadData }, function(res) {
         if (btn) {
@@ -7319,6 +7558,18 @@ function loadStaffCustomerData(staffId) {
       }
     }
 
+    function parseVehicleString(s) {
+      if (!s) return { model: '', reg: '' };
+      var raw = String(s).trim();
+      var regMatch = raw.match(/([A-Z]{2}[-\s]?\d{1,2}[-\s]?[A-Z]{1,3}[-\s]?\d{1,4})/i);
+      if (regMatch) {
+        var reg = regMatch[1].toUpperCase().replace(/\s+/g, ' ');
+        var model = raw.replace(regMatch[0], '').replace(/^[\s\-–—:,|]+|[\s\-–—:,|]+$/g, '').trim();
+        return { reg: reg, model: model, display: raw };
+      }
+      return { reg: raw, model: '', display: raw };
+    }
+
     function renderAdminLeadsTable(leads) {
       var container = document.getElementById('leadsListContainer');
       if (!container) return;
@@ -7351,7 +7602,7 @@ function loadStaffCustomerData(staffId) {
         var sCategory = l.interestedService || l.serviceCategory || 'Daily Car Cleaning';
         var stage = (l.leadStatus || 'open').toLowerCase();
 
-        var parsedVeh = rawVeh ? parseVehicleString(rawVeh) : null;
+        var parsedVeh = rawVeh ? (typeof parseVehicleDetails === 'function' ? parseVehicleDetails(rawVeh) : parseVehicleString(rawVeh)) : null;
         var regBadge = (parsedVeh && parsedVeh.reg) ? parsedVeh.reg : (rawVeh || 'No vehicle');
         var modelText = (parsedVeh && parsedVeh.model) ? parsedVeh.model : '';
 
@@ -7453,6 +7704,9 @@ function loadStaffCustomerData(staffId) {
         html += '      <button type="button" class="btn-convert-hero btn-table-convert" onclick="openConvertLeadModal(\'' + escapeHtml(id) + '\')" title="Confirm customer & assign package/staff" style="padding: 6px 12px; font-size: 12px; border-radius: 8px;">';
         html += '        <span>🌟</span> Convert';
         html += '      </button>';
+        html += '      <button type="button" class="btn-cell-action btn-edit-lead" onclick="openEditLeadModal(\'' + escapeHtml(id) + '\')" title="Edit lead details" style="padding: 6px 10px; font-size: 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;">';
+        html += '        <span>✏️</span> Edit';
+        html += '      </button>';
         html += '      <button type="button" class="btn-lead-note-action" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')" title="Add note" style="padding: 6px 9px; font-size: 12px; border-radius: 8px;">📝</button>';
         html += '      <button type="button" class="btn-lead-icon-danger" onclick="deleteLead(\'' + escapeHtml(id) + '\')" title="Delete or drop lead" style="padding: 6px 8px; font-size: 12px; border-radius: 8px;">🗑️</button>';
         html += '    </div>';
@@ -7512,7 +7766,7 @@ function loadStaffCustomerData(staffId) {
             var notes = l.leadNotes || l.notes || '';
             var sCategory = l.interestedService || l.serviceCategory || 'Daily Car Cleaning';
 
-            var parsedVeh = rawVeh ? parseVehicleString(rawVeh) : null;
+            var parsedVeh = rawVeh ? (typeof parseVehicleDetails === 'function' ? parseVehicleDetails(rawVeh) : parseVehicleString(rawVeh)) : null;
             var regBadge = (parsedVeh && parsedVeh.reg) ? parsedVeh.reg : (rawVeh || '');
 
             // Short category badge & styling
@@ -7582,6 +7836,7 @@ function loadStaffCustomerData(staffId) {
             html += '      <button type="button" class="btn-convert-hero btn-compact-convert" onclick="openConvertLeadModal(\'' + escapeHtml(id) + '\')" title="Confirm & Convert Lead">';
             html += '        <span>🌟</span> Convert';
             html += '      </button>';
+            html += '      <button type="button" class="btn-lead-edit-action btn-compact-edit" onclick="openEditLeadModal(\'' + escapeHtml(id) + '\')" title="Edit Lead Details">✏️</button>';
             html += '      <button type="button" class="btn-lead-note-action btn-compact-note" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')" title="' + (notes ? escapeHtml(notes) : 'Add Note') + '">📝</button>';
             html += '      <button type="button" class="btn-lead-icon-danger btn-compact-del" onclick="deleteLead(\'' + escapeHtml(id) + '\')" title="Delete Lead">🗑️</button>';
             html += '    </div>';
@@ -12331,10 +12586,147 @@ function loadStaffCustomerData(staffId) {
     /* Admin: Special Jobs Management & Table View */
     var adminSpecialJobsCache = [];
 
+    function formatJobScheduledDate(dateVal) {
+      if (!dateVal) return '<span class="schedule-pill pill-today"><span class="material-symbols-outlined">event</span> Today</span>';
+      if (typeof dateVal === 'string' && (dateVal.toLowerCase() === 'today' || dateVal.toLowerCase() === 'कल' || dateVal.toLowerCase() === 'आज')) {
+        return '<span class="schedule-pill pill-today"><span class="material-symbols-outlined">event</span> Today</span>';
+      }
+      try {
+        var d = new Date(dateVal);
+        if (isNaN(d.getTime())) {
+          return '<span class="schedule-pill pill-date"><span class="material-symbols-outlined">event</span> ' + escapeHtml(String(dateVal)) + '</span>';
+        }
+        
+        var now = new Date();
+        var isToday = (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate());
+        
+        var yest = new Date(now);
+        yest.setDate(now.getDate() - 1);
+        var isYesterday = (d.getFullYear() === yest.getFullYear() && d.getMonth() === yest.getMonth() && d.getDate() === yest.getDate());
+        
+        var tom = new Date(now);
+        tom.setDate(now.getDate() + 1);
+        var isTomorrow = (d.getFullYear() === tom.getFullYear() && d.getMonth() === tom.getMonth() && d.getDate() === tom.getDate());
+        
+        var dateFormatted = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        
+        var hours = d.getHours();
+        var minutes = d.getMinutes();
+        var timeFormatted = '';
+        if (typeof dateVal === 'string' && dateVal.includes('T') && (hours !== 0 || minutes !== 0) && !(hours === 5 && minutes === 30)) {
+          var ampm = hours >= 12 ? 'PM' : 'AM';
+          var h12 = hours % 12 || 12;
+          var minStr = minutes < 10 ? '0' + minutes : minutes;
+          timeFormatted = ' • ' + h12 + ':' + minStr + ' ' + ampm;
+        }
+
+        if (isToday) {
+          return '<span class="schedule-pill pill-today" title="' + dateFormatted + '"><span class="material-symbols-outlined">event</span> Today' + timeFormatted + '</span>';
+        } else if (isTomorrow) {
+          return '<span class="schedule-pill pill-tomorrow" title="' + dateFormatted + '"><span class="material-symbols-outlined">event_upcoming</span> Tomorrow' + timeFormatted + '</span>';
+        } else if (isYesterday) {
+          return '<span class="schedule-pill pill-yesterday" title="' + dateFormatted + '"><span class="material-symbols-outlined">history</span> Yesterday' + timeFormatted + '</span>';
+        } else {
+          return '<span class="schedule-pill pill-date"><span class="material-symbols-outlined">calendar_today</span> ' + dateFormatted + timeFormatted + '</span>';
+        }
+      } catch (e) {
+        return '<span class="schedule-pill pill-date"><span class="material-symbols-outlined">event</span> ' + escapeHtml(String(dateVal)) + '</span>';
+      }
+    }
+
+    function selectAdminSpecialCategoryChip(cat) {
+      var sel = document.getElementById('adminSpecialCategoryFilter');
+      if (sel) sel.value = cat;
+      syncAdminSpecialCategoryChips(cat);
+      filterAdminSpecialJobs();
+    }
+
+    function handleAdminSpecialCategorySelect(cat) {
+      syncAdminSpecialCategoryChips(cat);
+      filterAdminSpecialJobs();
+    }
+
+    function syncAdminSpecialCategoryChips(cat) {
+      var chips = document.querySelectorAll('.special-category-chips-bar .category-chip');
+      chips.forEach(function(btn) {
+        var c = btn.getAttribute('data-cat');
+        btn.classList.toggle('active', c === cat);
+      });
+    }
+
+    function filterAdminSpecialByStatus(status) {
+      var sel = document.getElementById('adminSpecialStatusFilter');
+      if (sel) sel.value = status;
+      syncAdminSpecialKpiCards(status);
+      filterAdminSpecialJobs();
+    }
+
+    function handleAdminSpecialStatusSelect(status) {
+      syncAdminSpecialKpiCards(status);
+      filterAdminSpecialJobs();
+    }
+
+    function syncAdminSpecialKpiCards(status) {
+      var totalCard = document.querySelector('.special-kpi-card.kpi-card-total');
+      var assignedCard = document.querySelector('.special-kpi-card.kpi-card-assigned');
+      var progCard = document.querySelector('.special-kpi-card.kpi-card-progress');
+      var compCard = document.querySelector('.special-kpi-card.kpi-card-completed');
+
+      if (totalCard) totalCard.classList.toggle('active', status === 'all' || !status);
+      if (assignedCard) assignedCard.classList.toggle('active', status === 'assigned');
+      if (progCard) progCard.classList.toggle('active', status === 'in_progress');
+      if (compCard) compCard.classList.toggle('active', status === 'completed');
+    }
+
+    function clearAdminSpecialSearch() {
+      var s = document.getElementById('adminSpecialSearch');
+      if (s) s.value = '';
+      var clr = document.getElementById('btnAdminSpecialSearchClear');
+      if (clr) clr.style.display = 'none';
+      filterAdminSpecialJobs();
+    }
+
+    function copyJobAddress(text, btnEl) {
+      if (!text) return;
+      var feedback = function() {
+        if (btnEl) {
+          var oldHtml = btnEl.innerHTML;
+          btnEl.innerHTML = '<span class="material-symbols-outlined" style="font-size: 13px; color: #059669;">check</span> <span style="color: #059669;">Copied</span>';
+          setTimeout(function() { btnEl.innerHTML = oldHtml; }, 2000);
+        }
+        if (typeof showToast === 'function') showToast('Location address copied to clipboard', 'info');
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(feedback).catch(function() {
+          fallbackCopyText(text, btnEl);
+        });
+      } else {
+        fallbackCopyText(text, btnEl);
+      }
+    }
+
+    function fallbackCopyText(text, btnEl) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        if (btnEl) {
+          var oldHtml = btnEl.innerHTML;
+          btnEl.innerHTML = '<span class="material-symbols-outlined" style="font-size: 13px; color: #059669;">check</span> <span style="color: #059669;">Copied</span>';
+          setTimeout(function() { btnEl.innerHTML = oldHtml; }, 2000);
+        }
+        if (typeof showToast === 'function') showToast('Location address copied to clipboard', 'info');
+      } catch (err) {}
+      document.body.removeChild(ta);
+    }
+
     function loadAdminSpecialJobs() {
       var tbody = document.getElementById('adminSpecialJobsTableBody');
       if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 36px; color: var(--text-muted);"><span class="status-sync-spinner" style="display:inline-block; margin-right:8px;"></span> Loading special jobs...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="table-loading-cell"><span class="status-sync-spinner" style="display:inline-block; margin-right:8px;"></span> Loading Wash & Solar jobs...</td></tr>';
       }
 
       // Populate Staff Filter
@@ -12378,6 +12770,22 @@ function loadStaffCustomerData(staffId) {
       if (kProg) kProg.textContent = inProgress;
       if (kComp) kComp.textContent = completed;
       if (badgeTab) badgeTab.textContent = total;
+
+      // Update category chip counts
+      var chipAll = document.getElementById('chipCatCountAll');
+      var chipSolar = document.getElementById('chipCatCountSolar');
+      var chipInterior = document.getElementById('chipCatCountInterior');
+      var chipExterior = document.getElementById('chipCatCountExterior');
+      var chipCarWash = document.getElementById('chipCatCountCarWash');
+      var chipDaily = document.getElementById('chipCatCountDaily');
+
+      if (chipAll) chipAll.textContent = total;
+      if (chipSolar) chipSolar.textContent = jobs.filter(function(j) { return j.serviceCategoryId === 'solar_cleaning'; }).length;
+      if (chipInterior) chipInterior.textContent = jobs.filter(function(j) { return j.serviceCategoryId === 'interior_detailing'; }).length;
+      if (chipExterior) chipExterior.textContent = jobs.filter(function(j) { return j.serviceCategoryId === 'exterior_detailing'; }).length;
+      if (chipCarWash) chipCarWash.textContent = jobs.filter(function(j) { return j.serviceCategoryId === 'car_washing'; }).length;
+      if (chipDaily) chipDaily.textContent = jobs.filter(function(j) { return j.serviceCategoryId === 'daily_car_cleaning'; }).length;
+
       if (typeof updateOperationsDashboardKPIs === 'function') {
         updateOperationsDashboardKPIs();
       }
@@ -12387,7 +12795,13 @@ function loadStaffCustomerData(staffId) {
       var catFilter = document.getElementById('adminSpecialCategoryFilter')?.value || 'all';
       var statusFilter = document.getElementById('adminSpecialStatusFilter')?.value || 'all';
       var staffFilter = document.getElementById('adminSpecialStaffFilter')?.value || 'all';
-      var searchVal = (document.getElementById('adminSpecialSearch')?.value || '').trim().toLowerCase();
+      var searchInput = document.getElementById('adminSpecialSearch');
+      var searchVal = (searchInput?.value || '').trim().toLowerCase();
+
+      var clrBtn = document.getElementById('btnAdminSpecialSearchClear');
+      if (clrBtn) {
+        clrBtn.style.display = searchVal ? 'flex' : 'none';
+      }
 
       var filtered = adminSpecialJobsCache.filter(function(j) {
         if (catFilter !== 'all' && j.serviceCategoryId !== catFilter) return false;
@@ -12404,7 +12818,10 @@ function loadStaffCustomerData(staffId) {
           var match = (j.customerName && j.customerName.toLowerCase().includes(searchVal)) ||
                       (j.customerPhone && j.customerPhone.includes(searchVal)) ||
                       (j.address && j.address.toLowerCase().includes(searchVal)) ||
-                      (j.serviceType && j.serviceType.toLowerCase().includes(searchVal));
+                      (j.serviceType && j.serviceType.toLowerCase().includes(searchVal)) ||
+                      (j.serviceCategoryId && j.serviceCategoryId.toLowerCase().includes(searchVal)) ||
+                      (j.panelCount && String(j.panelCount).includes(searchVal)) ||
+                      (j.seaterType && j.seaterType.toLowerCase().includes(searchVal));
           if (!match) return false;
         }
         return true;
@@ -12423,10 +12840,16 @@ function loadStaffCustomerData(staffId) {
       var c = document.getElementById('adminSpecialCategoryFilter');
       var st = document.getElementById('adminSpecialStatusFilter');
       var sf = document.getElementById('adminSpecialStaffFilter');
+      var clr = document.getElementById('btnAdminSpecialSearchClear');
+
       if (s) s.value = '';
+      if (clr) clr.style.display = 'none';
       if (c) c.value = 'all';
       if (st) st.value = 'all';
       if (sf) sf.value = 'all';
+
+      syncAdminSpecialCategoryChips('all');
+      syncAdminSpecialKpiCards('all');
       filterAdminSpecialJobs();
     }
 
@@ -12440,9 +12863,9 @@ function loadStaffCustomerData(staffId) {
 
       if (!jobs || jobs.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 48px; color: var(--text-muted);">' +
-          '<div style="font-size: 28px; margin-bottom: 8px;">📋</div>' +
-          '<div style="font-weight: 600; font-size: 14px;">No on-demand jobs found matching filters</div>' +
-          '<div style="font-size: 12px; margin-top: 4px;">Assign a new job using "+ Assign Job" button above.</div>' +
+          '<div style="font-size: 32px; margin-bottom: 10px;">☀️</div>' +
+          '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary);">No on-demand jobs found matching filters</div>' +
+          '<div style="font-size: 12.5px; margin-top: 6px; color: var(--text-secondary);">Assign a new job using "+ Assign Wash & Solar" button above.</div>' +
         '</td></tr>';
         return;
       }
@@ -12450,89 +12873,159 @@ function loadStaffCustomerData(staffId) {
       var html = '';
       jobs.forEach(function(j, idx) {
         var catBadge = '';
+        var catIcon = '';
         if (j.serviceCategoryId === 'solar_cleaning') {
-          catBadge = '<span class="badge-cat-solar" style="background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.35); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">☀️ Solar Clean</span>';
+          catIcon = '<span class="material-symbols-outlined cat-m3-icon" aria-hidden="true">solar_power</span>';
+          catBadge = '<span class="m3-service-chip chip-solar badge-cat-solar">' + catIcon + '<span>☀️ Solar Clean</span></span>';
         } else if (j.serviceCategoryId === 'car_washing') {
-          catBadge = '<span class="badge-cat-carwash" style="background: rgba(37, 99, 235, 0.12); color: #1d4ed8; border: 1px solid rgba(37, 99, 235, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">🧼 Car Wash</span>';
+          catIcon = '<span class="material-symbols-outlined cat-m3-icon" aria-hidden="true">local_car_wash</span>';
+          catBadge = '<span class="m3-service-chip chip-carwash badge-cat-carwash">' + catIcon + '<span>🧼 Car Wash</span></span>';
         } else if (j.serviceCategoryId === 'interior_detailing') {
-          catBadge = '<span class="badge-cat-interior" style="background: rgba(147, 51, 234, 0.12); color: #7e22ce; border: 1px solid rgba(147, 51, 234, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">✨ Interior Detail</span>';
+          catIcon = '<span class="material-symbols-outlined cat-m3-icon" aria-hidden="true">auto_awesome</span>';
+          catBadge = '<span class="m3-service-chip chip-interior badge-cat-interior">' + catIcon + '<span>✨ Interior Detail</span></span>';
         } else if (j.serviceCategoryId === 'exterior_detailing') {
-          catBadge = '<span class="badge-cat-exterior" style="background: rgba(13, 148, 136, 0.12); color: #0f766e; border: 1px solid rgba(13, 148, 136, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">🛡️ Exterior Detail</span>';
+          catIcon = '<span class="material-symbols-outlined cat-m3-icon" aria-hidden="true">shield</span>';
+          catBadge = '<span class="m3-service-chip chip-exterior badge-cat-exterior">' + catIcon + '<span>🛡️ Exterior Detail</span></span>';
         } else {
-          catBadge = '<span class="badge-cat-daily" style="background: rgba(16, 185, 129, 0.12); color: #047857; border: 1px solid rgba(16, 185, 129, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">🚗 Daily Clean</span>';
+          catIcon = '<span class="material-symbols-outlined cat-m3-icon" aria-hidden="true">directions_car</span>';
+          catBadge = '<span class="m3-service-chip chip-daily badge-cat-daily">' + catIcon + '<span>🚗 Daily Clean</span></span>';
         }
 
-        var statusBadge = '';
-        if (j.status === 'in_progress') {
-          statusBadge = '<span class="status-badge" style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a;">⏳ In Progress</span>';
-        } else if (j.status === 'completed') {
-          statusBadge = '<span class="status-badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">✅ Done</span>';
-        } else {
-          statusBadge = '<span class="status-badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">📋 Assigned</span>';
-        }
-
-        var photosHtml = '<div style="display: flex; gap: 6px; justify-content: center; align-items: center;">';
-        var bList = Array.isArray(j.beforePhotos) ? j.beforePhotos : [];
-        var aList = Array.isArray(j.afterPhotos) ? j.afterPhotos : [];
-
-        if (bList.length > 0) {
-          photosHtml += '<button type="button" onclick="openImageModal(\'' + escapeHtml(bList[0]) + '\', \'' + escapeHtml(j.customerName) + '\', \'Before Photo\')" style="background: none; border: none; padding: 0; cursor: pointer;" title="View Before Photo">' +
-            '<img src="' + escapeHtml(bList[0]) + '" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px; border: 1.5px solid #2563eb;">' +
-          '</button>';
-        }
-        if (aList.length > 0) {
-          photosHtml += '<button type="button" onclick="openImageModal(\'' + escapeHtml(aList[0]) + '\', \'' + escapeHtml(j.customerName) + '\', \'After Photo\')" style="background: none; border: none; padding: 0; cursor: pointer;" title="View After Photo">' +
-            '<img src="' + escapeHtml(aList[0]) + '" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px; border: 1.5px solid #059669;">' +
-          '</button>';
-        }
-        if (bList.length === 0 && aList.length === 0) {
-          photosHtml += '<span style="font-size: 11px; color: var(--text-muted);">No photos yet</span>';
-        }
-        photosHtml += '</div>';
-
-        var mapsBtn = j.googleMapsUrl 
-          ? '<a href="' + escapeHtml(j.googleMapsUrl) + '" target="_blank" rel="noopener noreferrer" style="font-size: 11px; color: #2563eb; text-decoration: underline;">Map ↗</a>'
-          : '';
-
-        var scopeHtml = '';
+        var scopePills = '';
         if (j.panelCount) {
-          scopeHtml += '<div style="font-size: 11.5px; color: #b45309; font-weight: 700; margin-top: 2px;">☀️ ' + escapeHtml(String(j.panelCount)) + ' Panels</div>';
+          scopePills += '<span class="scope-pill scope-solar"><span class="material-symbols-outlined">solar_power</span> ☀️ ' + escapeHtml(String(j.panelCount)) + ' Panels</span>';
         }
         if (j.seaterType) {
-          scopeHtml += '<div style="font-size: 11.5px; color: #1d4ed8; font-weight: 600; margin-top: 2px;">' + (j.seaterType === '5_plus_seater' ? '🚙 5+ Seater' : '🚗 5 Seater') + '</div>';
+          var is5Plus = (j.seaterType === '5_plus_seater');
+          scopePills += '<span class="scope-pill scope-vehicle"><span class="material-symbols-outlined">' + (is5Plus ? 'airport_shuttle' : 'directions_car') + '</span> ' + (is5Plus ? '🚙 5+ Seater' : '🚗 5 Seater') + '</span>';
         }
         if (j.packageDetails) {
-          scopeHtml += '<div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">' + escapeHtml(j.packageDetails) + '</div>';
+          scopePills += '<span class="scope-pill">' + escapeHtml(j.packageDetails) + '</span>';
+        }
+
+        var scheduleHtml = formatJobScheduledDate(j.scheduledDate);
+
+        var serviceColHtml = '<div class="service-cell-block">' +
+          catBadge +
+          (scopePills ? '<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:2px;">' + scopePills + '</div>' : '') +
+          '<div style="margin-top:2px;">' + scheduleHtml + '</div>' +
+        '</div>';
+
+        var cleanPhone = (j.customerPhone || '').replace(/\D/g, '');
+        if (cleanPhone.length > 10) cleanPhone = cleanPhone.slice(-10);
+        var waUrl = cleanPhone.length === 10 ? 'https://wa.me/91' + cleanPhone : '';
+
+        var custColHtml = '<div class="table-cust-block">' +
+          '<div class="table-cust-name">' + escapeHtml(j.customerName || 'Customer') + '</div>' +
+          (j.customerPhone ?
+            '<div class="table-cust-phone-row">' +
+              '<a href="tel:' + escapeHtml(j.customerPhone) + '" class="table-cust-call-link" title="Call ' + escapeHtml(j.customerName || '') + '">' +
+                '<span class="material-symbols-outlined phone-icon">call</span>' +
+                '<span>' + escapeHtml(j.customerPhone) + '</span>' +
+              '</a>' +
+              (waUrl ? '<a href="' + waUrl + '" target="_blank" rel="noopener noreferrer" class="table-cust-wa-btn" title="Chat on WhatsApp with ' + escapeHtml(j.customerName || '') + '"><span class="material-symbols-outlined wa-icon">chat</span></a>' : '') +
+            '</div>' : '') +
+        '</div>';
+
+        var rawAddress = (j.address || '').trim();
+        var hasAddress = rawAddress.length > 0;
+        var mapsUrl = j.googleMapsUrl || (hasAddress ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(rawAddress) : '');
+
+        var locColHtml = '<div class="table-loc-block">' +
+          (hasAddress ?
+            '<div class="table-loc-text" title="' + escapeHtml(rawAddress) + '">' +
+              '<span class="material-symbols-outlined loc-pin-icon">location_on</span>' +
+              '<span>' + escapeHtml(rawAddress) + '</span>' +
+            '</div>' : '<span class="loc-unspecified">Location provided</span>') +
+          '<div class="table-loc-actions">' +
+            (mapsUrl ? '<a href="' + escapeHtml(mapsUrl) + '" target="_blank" rel="noopener noreferrer" class="loc-action-btn loc-maps-btn" title="Open Google Maps"><span class="material-symbols-outlined">explore</span> <span>Map ↗</span></a>' : '') +
+            (hasAddress ? '<button type="button" class="loc-action-btn loc-copy-btn" onclick="copyJobAddress(\'' + escapeHtml(rawAddress).replace(/'/g, "\\'") + '\', this)" title="Copy Address to clipboard"><span class="material-symbols-outlined">content_copy</span> <span>Copy</span></button>' : '') +
+          '</div>' +
+        '</div>';
+
+        var staffName = (j.staffName || '').trim();
+        var hasStaff = staffName.length > 0 && staffName.toLowerCase() !== 'unassigned';
+        var staffInitial = hasStaff ? staffName.charAt(0).toUpperCase() : '?';
+
+        var staffColHtml = '';
+        if (hasStaff) {
+          staffColHtml = '<div class="m3-staff-card staff-chip-pill" title="Assigned cleaner: ' + escapeHtml(staffName) + '">' +
+            '<div class="m3-staff-avatar staff-chip-avatar">' + staffInitial + '</div>' +
+            '<div class="m3-staff-name staff-chip-name">' + escapeHtml(staffName) + '</div>' +
+          '</div>';
+        } else {
+          staffColHtml = '<button type="button" class="m3-unassigned-chip staff-chip-pill" onclick="openReassignJobModal(\'' + escapeHtml(j.id || j.jobId) + '\', this)" title="Assign cleaner now">' +
+            '<span class="material-symbols-outlined warn-icon">person_add</span>' +
+            '<span class="staff-chip-name">Unassigned</span>' +
+          '</button>';
+        }
+
+        var statusColHtml = '';
+        var durationHtml = j.durationMinutes ? '<div class="table-duration-chip"><span class="material-symbols-outlined">timer</span> ⏱️ ' + j.durationMinutes + ' min</div>' : '';
+
+        if (j.status === 'in_progress') {
+          statusColHtml = '<div class="status-cell-wrap">' +
+            '<span class="m3-status-chip status-badge status-in-progress"><span class="status-pulse-dot"></span><span>⏳ In Progress</span></span>' +
+            durationHtml +
+          '</div>';
+        } else if (j.status === 'completed') {
+          statusColHtml = '<div class="status-cell-wrap">' +
+            '<span class="m3-status-chip status-badge status-completed"><span class="material-symbols-outlined status-icon">check_circle</span><span>✅ Done</span></span>' +
+            durationHtml +
+          '</div>';
+        } else {
+          statusColHtml = '<div class="status-cell-wrap">' +
+            '<span class="m3-status-chip status-badge status-assigned"><span class="material-symbols-outlined status-icon">schedule</span><span>📋 Assigned</span></span>' +
+          '</div>';
+        }
+
+        var bList = Array.isArray(j.beforePhotos) ? j.beforePhotos : [];
+        var aList = Array.isArray(j.afterPhotos) ? j.afterPhotos : [];
+        var photosCount = bList.length + aList.length;
+
+        var photosColHtml = '';
+        if (photosCount > 0) {
+          photosColHtml = '<div class="m3-photos-cluster" style="display: flex; gap: 6px; justify-content: center; align-items: center;">';
+          if (bList.length > 0) {
+            photosColHtml += '<button type="button" class="m3-thumb-btn thumb-before" onclick="openImageModal(\'' + escapeHtml(bList[0]) + '\', \'' + escapeHtml(j.customerName) + '\', \'Before Photo\')" title="View Before Photo">' +
+              '<img src="' + escapeHtml(bList[0]) + '" alt="Before Photo" loading="lazy">' +
+              '<span class="thumb-tag">Before</span>' +
+            '</button>';
+          }
+          if (aList.length > 0) {
+            photosColHtml += '<button type="button" class="m3-thumb-btn thumb-after" onclick="openImageModal(\'' + escapeHtml(aList[0]) + '\', \'' + escapeHtml(j.customerName) + '\', \'After Photo\')" title="View After Photo">' +
+              '<img src="' + escapeHtml(aList[0]) + '" alt="After Photo" loading="lazy">' +
+              '<span class="thumb-tag">After</span>' +
+            '</button>';
+          }
+          photosColHtml += '</div>';
+        } else {
+          photosColHtml = '<div class="m3-photos-empty" title="Staff has not uploaded before/after photos yet">' +
+            '<span class="material-symbols-outlined empty-cam-icon">no_photography</span>' +
+            '<span>No photos yet</span>' +
+          '</div>';
         }
 
         var isCompleted = (j.status === 'completed');
-        var reassignActionBtn = isCompleted
-          ? '<span class="badge-reassign-locked" title="Completed tasks cannot be reassigned" style="font-size: 11px; color: var(--text-muted); background: rgba(0,0,0,0.04); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px;"><span>🔒</span> Done</span>'
-          : '<button type="button" class="btn-cell-action btn-reassign-record" onclick="openReassignJobModal(\'' + escapeHtml(j.id || j.jobId) + '\', this)" title="काम दूसरे स्टाफ को सौंपें (Reassign)">🔁 Reassign</button>';
+        var reassignBtn = isCompleted
+          ? '<span class="badge-reassign-locked m3-action-locked" title="Completed tasks cannot be reassigned"><span class="material-symbols-outlined">lock</span> <span>Done</span></span>'
+          : '<button type="button" class="btn-cell-action btn-reassign-record m3-row-action-btn action-reassign" onclick="openReassignJobModal(\'' + escapeHtml(j.id || j.jobId) + '\', this)" title="काम दूसरे स्टाफ को सौंपें (Reassign)"><span class="material-symbols-outlined">sync_alt</span> <span>Reassign</span></button>';
+
+        var deleteBtn = '<button type="button" class="btn-cell-action btn-delete-record m3-row-action-btn action-delete" onclick="deleteAdminSpecialJob(\'' + escapeHtml(j.id || j.jobId) + '\')" title="Cancel job">' +
+          '<svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>' +
+        '</button>';
+
+        var actionsColHtml = '<div class="table-actions-cluster">' + reassignBtn + deleteBtn + '</div>';
 
         html += '<tr>' +
           '<td style="text-align: center;"><span class="sno-badge">' + (idx + 1) + '</span></td>' +
-          '<td>' + catBadge + '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">' + (j.scheduledDate || 'Today') + '</div></td>' +
-          '<td>' +
-            '<div style="font-weight: 700; color: var(--text-primary); font-size: 13.5px;">' + escapeHtml(j.customerName || 'Customer') + '</div>' +
-            (j.customerPhone ? '<div style="font-size: 12px; color: var(--text-secondary);"><a href="tel:' + escapeHtml(j.customerPhone) + '" style="color:inherit;">📞 ' + escapeHtml(j.customerPhone) + '</a></div>' : '') +
-            scopeHtml +
-          '</td>' +
-          '<td>' +
-            '<div style="font-size: 12px; color: var(--text-primary); max-width: 240px;">' + escapeHtml(j.address || 'Location provided') + '</div>' +
-            (mapsBtn ? '<div style="margin-top: 2px;">' + mapsBtn + '</div>' : '') +
-          '</td>' +
-          '<td>' +
-            '<span class="staff-chip-pill"><span class="staff-chip-avatar">👨‍🔧</span><span class="staff-chip-name">' + escapeHtml(j.staffName || 'Unassigned') + '</span></span>' +
-          '</td>' +
-          '<td style="text-align: center;">' + statusBadge + (j.durationMinutes ? '<div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 2px;">⏱️ ' + j.durationMinutes + ' min</div>' : '') + '</td>' +
-          '<td style="text-align: center;">' + photosHtml + '</td>' +
-          '<td style="text-align: center; white-space: nowrap;">' +
-            reassignActionBtn +
-            '<button type="button" class="btn-cell-action btn-delete-record" onclick="deleteAdminSpecialJob(\'' + escapeHtml(j.id || j.jobId) + '\')" title="Cancel job">' +
-              '<svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>' +
-            '</button>' +
-          '</td>' +
+          '<td>' + serviceColHtml + '</td>' +
+          '<td>' + custColHtml + '</td>' +
+          '<td>' + locColHtml + '</td>' +
+          '<td>' + staffColHtml + '</td>' +
+          '<td style="text-align: center;">' + statusColHtml + '</td>' +
+          '<td style="text-align: center;">' + photosColHtml + '</td>' +
+          '<td style="text-align: center; white-space: nowrap;">' + actionsColHtml + '</td>' +
         '</tr>';
       });
 
@@ -12649,6 +13142,13 @@ function loadStaffCustomerData(staffId) {
       window.handleAdminSpecialSearch = handleAdminSpecialSearch;
       window.renderAdminSpecialJobsTable = renderAdminSpecialJobsTable;
       window.deleteAdminSpecialJob = deleteAdminSpecialJob;
+      window.selectAdminSpecialCategoryChip = selectAdminSpecialCategoryChip;
+      window.handleAdminSpecialCategorySelect = handleAdminSpecialCategorySelect;
+      window.filterAdminSpecialByStatus = filterAdminSpecialByStatus;
+      window.handleAdminSpecialStatusSelect = handleAdminSpecialStatusSelect;
+      window.clearAdminSpecialSearch = clearAdminSpecialSearch;
+      window.copyJobAddress = copyJobAddress;
+      window.formatJobScheduledDate = formatJobScheduledDate;
       window.playNewTaskChime = playNewTaskChime;
       window.playTaskCompletedChime = playTaskCompletedChime;
       window.showLogoutModal = showLogoutModal;
@@ -12659,5 +13159,7 @@ function loadStaffCustomerData(staffId) {
       window.jumpToSpecialJob = jumpToSpecialJob;
       window.setAppThemeMode = setAppThemeMode;
       window.updateSettingsPrefButtons = updateSettingsPrefButtons;
+      window.renderCustomerCards = renderCustomerCards;
+      window.setStaffFilter = setStaffFilter;
     }
 

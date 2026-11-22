@@ -510,13 +510,44 @@ function clearRateLimit(clientIp, identifier) {
  * Tokens have 12-hour expiry, explicit revocation, and in-memory TTL store.
  * =========================================================================
  */
-const adminSessions = new Map(); // token -> { createdAt, expiresAt }
-const staffSessions = new Map(); // token -> { staffId, staffName, createdAt, expiresAt }
+const adminSessions = new Map(); // token -> { createdAt, expiresAt, username, role }
+const staffSessions = new Map(); // token -> { staffId, staffCode, staffName, staffPhone, createdAt, expiresAt }
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours (Documented Consistent TTL)
+
+function recordAdminSession(token, sessObj) {
+  if (!token) return;
+  const fullObj = {
+    username: (sessObj && sessObj.username) || 'admin',
+    role: (sessObj && sessObj.role) || 'superadmin',
+    createdAt: (sessObj && sessObj.createdAt) || Date.now(),
+    expiresAt: (sessObj && sessObj.expiresAt) || (Date.now() + SESSION_TTL_MS)
+  };
+  adminSessions.set(token, fullObj);
+  if (!appState.adminSessions) appState.adminSessions = {};
+  appState.adminSessions[token] = fullObj;
+  saveLocalData(appState);
+}
+
+function recordStaffSession(token, sessObj) {
+  if (!token) return;
+  const sCode = (sessObj && (sessObj.staffCode || sessObj.staffId)) || '';
+  const fullObj = {
+    staffId: (sessObj && sessObj.staffId) || sCode,
+    staffCode: sCode,
+    staffName: (sessObj && sessObj.staffName) || '',
+    staffPhone: (sessObj && sessObj.staffPhone) || '',
+    createdAt: (sessObj && sessObj.createdAt) || Date.now(),
+    expiresAt: (sessObj && sessObj.expiresAt) || (Date.now() + SESSION_TTL_MS)
+  };
+  staffSessions.set(token, fullObj);
+  if (!appState.staffSessions) appState.staffSessions = {};
+  appState.staffSessions[token] = fullObj;
+  saveLocalData(appState);
+}
 
 function createAdminSession() {
   const token = 'adm_' + crypto.randomBytes(32).toString('hex');
-  adminSessions.set(token, {
+  recordAdminSession(token, {
     createdAt: Date.now(),
     expiresAt: Date.now() + SESSION_TTL_MS
   });
@@ -525,17 +556,38 @@ function createAdminSession() {
 
 function isValidAdminSession(token) {
   if (!token) return false;
-  const sess = adminSessions.get(token);
+  let sess = adminSessions.get(token);
+  // Restore from persisted local state if server recently restarted
+  if (!sess && appState && appState.adminSessions && appState.adminSessions[token]) {
+    sess = appState.adminSessions[token];
+    if (Date.now() <= sess.expiresAt) {
+      adminSessions.set(token, sess);
+    } else {
+      delete appState.adminSessions[token];
+      saveLocalData(appState);
+      return false;
+    }
+  }
   if (!sess) return false;
   if (Date.now() > sess.expiresAt) {
     adminSessions.delete(token);
+    if (appState && appState.adminSessions) {
+      delete appState.adminSessions[token];
+      saveLocalData(appState);
+    }
     return false;
   }
   return true;
 }
 
 function revokeAdminSession(token) {
-  if (token) adminSessions.delete(token);
+  if (token) {
+    adminSessions.delete(token);
+    if (appState && appState.adminSessions && appState.adminSessions[token]) {
+      delete appState.adminSessions[token];
+      saveLocalData(appState);
+    }
+  }
 }
 
 function createStaffSession(staffId, staffName, phone) {
@@ -547,15 +599,13 @@ function createStaffSession(staffId, staffName, phone) {
   }
   const sessObj = {
     staffId: staffId,
+    staffCode: staffId,
     staffName: staffName,
     staffPhone: staffPhone,
     createdAt: Date.now(),
     expiresAt: Date.now() + SESSION_TTL_MS
   };
-  staffSessions.set(token, sessObj);
-  if (!appState.staffSessions) appState.staffSessions = {};
-  appState.staffSessions[token] = sessObj;
-  saveLocalData(appState);
+  recordStaffSession(token, sessObj);
   return token;
 }
 
@@ -569,29 +619,40 @@ function getValidStaffSession(token) {
       staffSessions.set(token, sess);
     } else {
       delete appState.staffSessions[token];
+      saveLocalData(appState);
       return null;
     }
   }
   if (!sess) return null;
   if (Date.now() > sess.expiresAt) {
     staffSessions.delete(token);
-    if (appState.staffSessions) delete appState.staffSessions[token];
+    if (appState && appState.staffSessions) {
+      delete appState.staffSessions[token];
+      saveLocalData(appState);
+    }
     return null;
   }
   if (appState && appState.staffList && sess.staffId) {
-    const currentStaff = appState.staffList.find(s => (s.id || '').toUpperCase() === sess.staffId.toUpperCase());
+    const sIdentifier = (sess.staffCode || sess.staffId || '').toUpperCase();
+    const currentStaff = appState.staffList.find(s => (s.id || '').toUpperCase() === sIdentifier);
     if (currentStaff) {
       const isActive = currentStaff.active !== undefined ? (currentStaff.active === true || currentStaff.active === 'Yes' || currentStaff.active === 'yes' || currentStaff.active === 'Active') : true;
       if (!isActive) {
         staffSessions.delete(token);
-        if (appState.staffSessions) delete appState.staffSessions[token];
+        if (appState.staffSessions) {
+          delete appState.staffSessions[token];
+          saveLocalData(appState);
+        }
         return null;
       }
       const sessP = (sess.staffPhone || '').replace(/\D/g, '').slice(-10);
       const currP = (currentStaff.phone || '').replace(/\D/g, '').slice(-10);
       if (sessP && currP && sessP !== currP && !isNeonPrimaryActive()) {
         staffSessions.delete(token);
-        if (appState.staffSessions) delete appState.staffSessions[token];
+        if (appState.staffSessions) {
+          delete appState.staffSessions[token];
+          saveLocalData(appState);
+        }
         return null;
       }
     }
@@ -612,13 +673,13 @@ function revokeStaffSession(token) {
 function revokeAllStaffSessionsForId(staffId) {
   const sId = (staffId || '').toUpperCase();
   for (const [token, sess] of staffSessions.entries()) {
-    if ((sess.staffId || '').toUpperCase() === sId) {
+    if ((sess.staffCode || sess.staffId || '').toUpperCase() === sId) {
       staffSessions.delete(token);
     }
   }
   if (appState && appState.staffSessions) {
     for (const token of Object.keys(appState.staffSessions)) {
-      if ((appState.staffSessions[token].staffId || '').toUpperCase() === sId) {
+      if ((appState.staffSessions[token].staffCode || appState.staffSessions[token].staffId || '').toUpperCase() === sId) {
         delete appState.staffSessions[token];
       }
     }
@@ -631,15 +692,20 @@ async function getSessionInfo(token) {
   // 1. Check in-memory session (fast cache & test mocks)
   if (adminSessions.has(token)) {
     const s = adminSessions.get(token);
-    if (Date.now() <= s.expiresAt) return { userType: 'admin', token };
+    if (Date.now() <= s.expiresAt) return { userType: 'admin', token, ...s };
     adminSessions.delete(token);
   }
+  if (isValidAdminSession(token)) {
+    const s = adminSessions.get(token) || (appState.adminSessions && appState.adminSessions[token]) || {};
+    return { userType: 'admin', token, ...s };
+  }
+
   let staffMem = getValidStaffSession(token);
   if (staffMem) {
     return {
       userType: 'staff',
       staffId: staffMem.staffId,
-      staffCode: staffMem.staffId,
+      staffCode: staffMem.staffCode || staffMem.staffId,
       staffName: staffMem.staffName,
       staffPhone: staffMem.staffPhone,
       token
@@ -652,10 +718,16 @@ async function getSessionInfo(token) {
       const sess = await authService.validateSession(token);
       if (sess && sess.valid) {
         if (sess.userType === 'admin') {
-          adminSessions.set(token, { createdAt: Date.now(), expiresAt: Date.now() + SESSION_TTL_MS });
+          recordAdminSession(token, {
+            createdAt: Date.now(),
+            expiresAt: Date.now() + SESSION_TTL_MS,
+            username: sess.adminUsername || 'admin',
+            role: sess.adminRole || 'superadmin'
+          });
         } else if (sess.userType === 'staff') {
-          staffSessions.set(token, {
-            staffId: sess.staffCode,
+          recordStaffSession(token, {
+            staffId: sess.staffId,
+            staffCode: sess.staffCode || sess.staffId,
             staffName: sess.staffName,
             staffPhone: sess.staffPhone,
             createdAt: Date.now(),
@@ -664,9 +736,32 @@ async function getSessionInfo(token) {
         }
         return sess;
       }
-    } catch (e) { }
+    } catch (e) {
+      console.warn('[Session] Neon session validation warning:', e.message);
+    }
   }
 
+  return null;
+}
+
+async function resolveAdminSession(token) {
+  if (!token) return null;
+  const sess = await getSessionInfo(token);
+  if (sess && sess.userType === 'admin') return sess;
+  if (isValidAdminSession(token)) {
+    return { userType: 'admin', token };
+  }
+  return null;
+}
+
+async function resolveStaffSession(token) {
+  if (!token) return null;
+  const sess = await getSessionInfo(token);
+  if (sess && sess.userType === 'staff') return sess;
+  const staffMem = getValidStaffSession(token);
+  if (staffMem) {
+    return { userType: 'staff', ...staffMem, token };
+  }
   return null;
 }
 
@@ -739,6 +834,26 @@ function loadLocalData() {
         appState.serviceLogs = loaded.serviceLogs;
       } else {
         appState.serviceLogs = appState.serviceLogs || [];
+      }
+      if (loaded && loaded.staffSessions && typeof loaded.staffSessions === 'object') {
+        appState.staffSessions = loaded.staffSessions;
+        for (const [token, sess] of Object.entries(loaded.staffSessions)) {
+          if (sess && sess.expiresAt && Date.now() <= sess.expiresAt) {
+            staffSessions.set(token, sess);
+          }
+        }
+      } else {
+        appState.staffSessions = appState.staffSessions || {};
+      }
+      if (loaded && loaded.adminSessions && typeof loaded.adminSessions === 'object') {
+        appState.adminSessions = loaded.adminSessions;
+        for (const [token, sess] of Object.entries(loaded.adminSessions)) {
+          if (sess && sess.expiresAt && Date.now() <= sess.expiresAt) {
+            adminSessions.set(token, sess);
+          }
+        }
+      } else {
+        appState.adminSessions = appState.adminSessions || {};
       }
       // Upgrade any legacy plaintext adminPassword to scrypt hash immediately
       if (loaded && loaded.adminPassword) {
@@ -1774,8 +1889,8 @@ const server = http.createServer(async (req, res) => {
   // GET /api/staff - Sanitized (Public list has NO PIN and NO PHONE numbers)
   if (req.method === 'GET' && pathname === '/api/staff') {
     const token = extractAuthToken(req, null);
-    const sessInfo = await getSessionInfo(token);
-    const isAdmin = (sessInfo && sessInfo.userType === 'admin') || isValidAdminSession(token);
+    const adminSess = await resolveAdminSession(token);
+    const isAdmin = !!adminSess;
     if (isNeonConfigured()) {
       try {
         const staffList = await adminService.getStaffList({ isAdmin });
@@ -1877,9 +1992,8 @@ const server = http.createServer(async (req, res) => {
   // GET /api/staff-sequence - Requires valid Admin Session
   if (req.method === 'GET' && pathname === '/api/staff-sequence') {
     const token = extractAuthToken(req, null);
-    const sessInfo = await getSessionInfo(token);
-    const isAdmin = (sessInfo && sessInfo.userType === 'admin') || isValidAdminSession(token);
-    if (!isAdmin) {
+    const adminSess = await resolveAdminSession(token);
+    if (!adminSess) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin session required to view sequence management.' }));
     }
@@ -1915,9 +2029,8 @@ const server = http.createServer(async (req, res) => {
   // GET /api/staff-data - Requires valid Staff Session or Admin Session (Query token rejected!)
   if (req.method === 'GET' && pathname === '/api/staff-data') {
     const token = extractAuthToken(req, null);
-    const sessInfo = await getSessionInfo(token);
-    const staffSess = (sessInfo && sessInfo.userType === 'staff') ? sessInfo : getValidStaffSession(token);
-    const adminSess = (sessInfo && sessInfo.userType === 'admin') ? sessInfo : isValidAdminSession(token);
+    const staffSess = await resolveStaffSession(token);
+    const adminSess = await resolveAdminSession(token);
 
     if (!staffSess && !adminSess) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -1928,13 +2041,14 @@ const server = http.createServer(async (req, res) => {
       }));
     }
 
-    const requestedStaffId = parsedUrl.searchParams.get('staffId') || '';
+    const requestedStaffId = (parsedUrl.searchParams.get('staffId') || '').toUpperCase();
     let targetStaffId = '';
 
-    if (staffSess) {
+    if (staffSess && !adminSess) {
       // Discard browser-supplied staffId, use verified session identity to prevent cross-staff access
-      targetStaffId = staffSess.staffCode || staffSess.staffId;
-      if (requestedStaffId && requestedStaffId.toUpperCase() !== targetStaffId.toUpperCase()) {
+      const staffCode = (staffSess.staffCode || staffSess.staffId || '').toUpperCase();
+      const staffUuid = (staffSess.staffId || '').toUpperCase();
+      if (requestedStaffId && requestedStaffId !== staffCode && requestedStaffId !== staffUuid) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({
           success: false,
@@ -1942,6 +2056,7 @@ const server = http.createServer(async (req, res) => {
           forbidden: true
         }));
       }
+      targetStaffId = staffSess.staffCode || staffSess.staffId;
     } else if (adminSess) {
       // Admin previewing staff data
       targetStaffId = requestedStaffId || 'STF01';
@@ -2063,9 +2178,9 @@ const server = http.createServer(async (req, res) => {
               });
               if (authRes && authRes.success) {
                 clearRateLimit(clientIp, 'admin');
-                adminSessions.set(authRes.token, {
-                  username: (authRes.admin && authRes.admin.username) || 'admin',
-                  role: (authRes.admin && authRes.admin.role) || 'superadmin',
+                recordAdminSession(authRes.token, {
+                  username: (authRes.admin && authRes.admin.username) || authRes.username || 'admin',
+                  role: (authRes.admin && authRes.admin.role) || authRes.role || 'superadmin',
                   createdAt: Date.now(),
                   expiresAt: Date.now() + SESSION_TTL_MS
                 });
@@ -2171,8 +2286,9 @@ const server = http.createServer(async (req, res) => {
                 const sCode = authRes.staffId || (authRes.staff && authRes.staff.staff_code) || staffId;
                 const sName = authRes.staffName || (authRes.staff && authRes.staff.name) || '';
                 const sPhone = authRes.phone || (authRes.staff && authRes.staff.phone) || '';
-                staffSessions.set(authRes.token, {
-                  staffId: sCode,
+                recordStaffSession(authRes.token, {
+                  staffId: (authRes.staff && authRes.staff.id) || sCode,
+                  staffCode: sCode,
                   staffName: sName,
                   staffPhone: sPhone,
                   createdAt: Date.now(),
@@ -2277,9 +2393,8 @@ const server = http.createServer(async (req, res) => {
 
         // 5. Staff Customer Data Retrieval (Requires valid Staff Session or Admin Session)
         if (payload.action === 'getStaffData') {
-          const sessInfo = await getSessionInfo(token);
-          const staffSess = (sessInfo && sessInfo.userType === 'staff') ? sessInfo : getValidStaffSession(token);
-          const adminSess = (sessInfo && sessInfo.userType === 'admin') ? sessInfo : isValidAdminSession(token);
+          const staffSess = await resolveStaffSession(token);
+          const adminSess = await resolveAdminSession(token);
 
           if (!staffSess && !adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -2291,10 +2406,11 @@ const server = http.createServer(async (req, res) => {
           }
 
           let targetStaffId = '';
-          if (staffSess) {
-            const sCode = (staffSess.staffId || staffSess.staffCode || '').toUpperCase();
-            targetStaffId = staffSess.staffId || staffSess.staffCode;
-            if (payload.staffId && payload.staffId.toUpperCase() !== sCode) {
+          if (staffSess && !adminSess) {
+            const staffCode = (staffSess.staffCode || staffSess.staffId || '').toUpperCase();
+            const staffUuid = (staffSess.staffId || '').toUpperCase();
+            const reqStaff = (payload.staffId || '').toUpperCase();
+            if (reqStaff && reqStaff !== staffCode && reqStaff !== staffUuid) {
               res.writeHead(403, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: false,
@@ -2302,6 +2418,7 @@ const server = http.createServer(async (req, res) => {
                 forbidden: true
               }));
             }
+            targetStaffId = staffSess.staffCode || staffSess.staffId;
           } else if (adminSess) {
             targetStaffId = payload.staffId || 'STF01';
           }
@@ -2375,8 +2492,8 @@ const server = http.createServer(async (req, res) => {
 
         // 6. Staff List Handler (Public list has no PIN or Phone; Admin gets sanitized list with hasPin)
         if (payload.action === 'getStaffList') {
-          const sess = await getSessionInfo(token);
-          const isAdmin = (sess && sess.userType === 'admin') || isValidAdminSession(token);
+          const adminSess = await resolveAdminSession(token);
+          const isAdmin = !!adminSess;
           if (isNeonConfigured()) {
             try {
               const staffList = await adminService.getStaffList({ isAdmin });
@@ -2407,6 +2524,7 @@ const server = http.createServer(async (req, res) => {
           'saveLead',
           'deleteLead',
           'updateLeadStage',
+          'updateLead',
           'saveCustomer',
           'updateCustomer',
           'deleteCustomer',
@@ -2420,13 +2538,18 @@ const server = http.createServer(async (req, res) => {
           'getStaffSequence',
           'saveStaffSequence',
           'resetStaffSequence',
-          'revealStaffPin'
+          'revealStaffPin',
+          'getDailyCleanReports',
+          'getSpecialJobs',
+          'assignSpecialJob',
+          'reassignSpecialJob',
+          'deleteSpecialJob',
+          'getAuditLogs'
         ];
 
         if (adminProtectedActions.includes(payload.action)) {
-          const sess = await getSessionInfo(token);
-          const isAdmin = (sess && sess.userType === 'admin') || isValidAdminSession(token);
-          if (!isAdmin) {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -2673,6 +2796,118 @@ const server = http.createServer(async (req, res) => {
           invalidateLiveCustomersCache();
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, customerId: cust.id, leadStatus: stage }));
+        }
+
+        // Admin: Update Lead Details
+        if (payload.action === 'updateLead') {
+          const leadData = payload.leadData || payload.customerData || {};
+          const leadId = (payload.leadId || payload.id || leadData.id || leadData.customerId || '').toString().trim();
+          if (!leadId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Lead ID is required for update.' }));
+          }
+
+          const rawName = (leadData.customerName || leadData.name || '').toString().trim();
+          if (!rawName) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Lead name is required.' }));
+          }
+
+          const rawPhone = (leadData.customerNumber || leadData.phone || '').toString().trim();
+          let normPhone = '';
+          if (rawPhone) {
+            if (!isValidIndianMobile(rawPhone)) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: 'Please enter a valid 10-digit Indian mobile number (starting with 6, 7, 8, or 9).'
+              }));
+            }
+            normPhone = normalizeIndianMobile(rawPhone);
+          }
+
+          const photoObj = leadData.photoFile || leadData.photoData;
+          if (photoObj && photoObj.base64) {
+            try {
+              const uploadedUrl = await uploadToCloudinary(photoObj);
+              if (uploadedUrl) leadData.photoUrl = uploadedUrl;
+            } catch (uErr) {
+              console.error('Lead photo upload process failed:', uErr);
+            }
+            delete leadData.photoFile;
+            delete leadData.photoData;
+          }
+
+          leadData.id = leadId;
+          leadData.customerNumber = normPhone;
+          leadData.phone = normPhone;
+
+          if (isNeonConfigured()) {
+            try {
+              const adminUser = 'admin';
+              const neonUpdateRes = await adminService.updateLead(leadData, adminUser);
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(neonUpdateRes));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
+          // Local mode fallback
+          if (!appState.customers) appState.customers = [];
+          const cust = appState.customers.find(c => c.id === leadId || c.customerCode === leadId || (c.customerNumber && c.customerNumber === leadId));
+          if (!cust) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Lead not found in local records.' }));
+          }
+
+          let nameHi = leadData.nameHi || leadData.name_hi;
+          if (!nameHi && rawName) {
+            try { nameHi = await indicService.transliterateName(rawName); } catch (e) { nameHi = rawName; }
+          }
+
+          let addressHi = leadData.addressHi || leadData.address_hi;
+          const rawAddr = (leadData.address || '').toString().trim();
+          if (!addressHi && rawAddr) {
+            try { addressHi = await indicService.transliterateAddress(rawAddr); } catch (e) { addressHi = rawAddr; }
+          }
+
+          const carMakeVal = (leadData.carMake || leadData.car_make || '').toString().trim();
+          const carColorVal = (leadData.carColor || leadData.car_color || '').toString().trim();
+          const interestedService = (leadData.serviceCategory || leadData.interestedService || leadData.serviceType || cust.serviceCategory || 'Daily Car Cleaning').toString().trim();
+          const leadStage = (leadData.leadStatus || leadData.stage || cust.leadStatus || 'open').toString().trim().toLowerCase();
+          const rawVehicle = (leadData.vehicle || leadData.vehicleDetails || '').toString().trim();
+          const rawNotes = (leadData.notes !== undefined ? leadData.notes : (leadData.leadNotes !== undefined ? leadData.leadNotes : cust.leadNotes || cust.notes || '')).toString().trim();
+          const rawMapsUrl = (leadData.googleMapsUrl || leadData.mapsUrl || '').toString().trim();
+
+          cust.customerName = rawName;
+          cust.name = rawName;
+          cust.nameHi = nameHi || rawName;
+          cust.customerNumber = normPhone;
+          cust.phone = normPhone;
+          cust.address = rawAddr;
+          cust.addressHi = addressHi || rawAddr;
+          cust.googleMapsUrl = rawMapsUrl;
+          cust.vehicle = rawVehicle;
+          cust.vehicleDetails = rawVehicle;
+          cust.carMake = carMakeVal;
+          cust.car_make = carMakeVal;
+          cust.carColor = carColorVal;
+          cust.car_color = carColorVal;
+          cust.serviceCategory = interestedService;
+          cust.interestedService = interestedService;
+          cust.leadStatus = leadStage;
+          cust.notes = rawNotes;
+          cust.leadNotes = rawNotes;
+          if (leadData.photoUrl) cust.photoUrl = leadData.photoUrl;
+
+          saveLocalData(appState);
+          invalidateLiveCustomersCache();
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, customerId: cust.id, message: 'Lead updated successfully', photoUrl: cust.photoUrl }));
         }
 
         // Admin: Reset Staff PIN (Requires valid 6-digit numeric PIN, revokes existing sessions)
@@ -3497,7 +3732,8 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Query Audit Logs
         if (payload.action === 'getAuditLogs') {
-          if (!isValidAdminSession(token)) {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -3516,9 +3752,8 @@ const server = http.createServer(async (req, res) => {
 
         // Staff: Record Single Daily Clean with Photo Proof
         if (payload.action === 'recordDailyCleanWithPhoto') {
-          const sess = await getSessionInfo(token);
-          const staffSess = (sess && sess.userType === 'staff') ? sess : getValidStaffSession(token);
-          const adminSess = isValidAdminSession(token);
+          const staffSess = await resolveStaffSession(token);
+          const adminSess = await resolveAdminSession(token);
 
           if (!staffSess && !adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -3617,7 +3852,8 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Query Daily Clean Reports with Rich Filtering
         if (payload.action === 'getDailyCleanReports') {
-          if (!isValidAdminSession(token)) {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -3740,7 +3976,8 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Assign Special Job to Staff
         if (payload.action === 'assignSpecialJob') {
-          if (!isValidAdminSession(token)) {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -3779,7 +4016,8 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Query Special Jobs with Filters
         if (payload.action === 'getSpecialJobs') {
-          if (!isValidAdminSession(token)) {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -3817,7 +4055,8 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Reassign Special Job to another Staff Member
         if (payload.action === 'reassignSpecialJob') {
-          if (!isValidAdminSession(token)) {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -3857,9 +4096,8 @@ const server = http.createServer(async (req, res) => {
 
         // Staff: Start Special Job with 1 or max 2 Before Photos
         if (payload.action === 'startSpecialJob') {
-          const sess = await getSessionInfo(token);
-          const staffSess = (sess && sess.userType === 'staff') ? sess : getValidStaffSession(token);
-          const adminSess = isValidAdminSession(token);
+          const staffSess = await resolveStaffSession(token);
+          const adminSess = await resolveAdminSession(token);
 
           if (!staffSess && !adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -3931,9 +4169,8 @@ const server = http.createServer(async (req, res) => {
 
         // Staff: Complete Special Job with 1 or max 2 After Photos & Notes
         if (payload.action === 'completeSpecialJob') {
-          const sess = await getSessionInfo(token);
-          const staffSess = (sess && sess.userType === 'staff') ? sess : getValidStaffSession(token);
-          const adminSess = isValidAdminSession(token);
+          const staffSess = await resolveStaffSession(token);
+          const adminSess = await resolveAdminSession(token);
 
           if (!staffSess && !adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -4035,7 +4272,8 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Cancel / Soft-Delete Special Job
         if (payload.action === 'deleteSpecialJob') {
-          if (!isValidAdminSession(token)) {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -4113,9 +4351,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Force latest asset version cache-buster across ALL routes
-    const APP_ASSET_VERSION = '3.2.5';
-    content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, `/js/app.js?v=${APP_ASSET_VERSION}`);
-    content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, `/css/style.css?v=${APP_ASSET_VERSION}`);
+    const APP_ASSET_VERSION = '3.2.9';
+    const ACTIVE_ASSET_REV = '3.2.9';
+    content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, `/js/app.js?v=${ACTIVE_ASSET_REV}`);
+    content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, `/css/style.css?v=${ACTIVE_ASSET_REV}`);
 
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
@@ -4224,10 +4463,14 @@ module.exports = {
   verifyAdminPasswordNode,
   hasAdminPasswordConfigured,
   createAdminSession,
+  recordAdminSession,
   isValidAdminSession,
+  resolveAdminSession,
   revokeAdminSession,
   createStaffSession,
+  recordStaffSession,
   getValidStaffSession,
+  resolveStaffSession,
   revokeStaffSession,
   revokeAllStaffSessionsForId,
   sanitizeStaffForPublic,

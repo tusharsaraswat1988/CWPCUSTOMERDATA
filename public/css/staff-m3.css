@@ -488,9 +488,9 @@ body.staff-mode-active #adminLogoutBtn,
   display: flex !important;
   align-items: center !important;
   height: 44px !important;
-  background: var(--md-sys-color-surface-container-high, #f1f5f9) !important;
+  background: var(--md-sys-color-surface-container-lowest, #ffffff) !important;
   border-radius: 12px !important;
-  border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0) !important;
+  border: 1.5px solid var(--md-sys-color-outline-variant, #cbd5e1) !important;
   padding: 0 10px !important;
   box-sizing: border-box !important;
   transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
@@ -506,7 +506,7 @@ body.staff-mode-active #adminLogoutBtn,
   position: static !important;
   transform: none !important;
   font-size: 20px !important;
-  color: var(--md-sys-color-outline, #64748b) !important;
+  color: var(--md-sys-color-outline, #475569) !important;
   margin-right: 8px !important;
   flex-shrink: 0 !important;
   display: inline-flex !important;
@@ -532,7 +532,7 @@ body.staff-mode-active #adminLogoutBtn,
 }
 
 .staff-search-row .search-input::placeholder {
-  color: var(--md-sys-color-outline, #94a3b8) !important;
+  color: var(--md-sys-color-outline, #475569) !important;
   font-size: 13px !important;
   text-overflow: ellipsis !important;
   overflow: hidden !important;
@@ -571,7 +571,7 @@ body.staff-mode-active #adminLogoutBtn,
   height: 44px !important;
   padding: 4px 10px !important;
   background: var(--md-sys-color-surface-container-low, #f8fafc) !important;
-  border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0) !important;
+  border: 1.5px solid var(--md-sys-color-outline-variant, #cbd5e1) !important;
   border-radius: 12px !important;
   cursor: pointer !important;
   min-width: 80px !important;
@@ -730,16 +730,23 @@ body.staff-mode-active #adminLogoutBtn,
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 30px !important;
-  height: 30px !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
   border-radius: 50% !important;
-  background: var(--md-sys-color-surface-container-high, #f1f5f9) !important;
-  border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0) !important;
-  font-size: 15px !important;
-  color: var(--md-sys-color-outline, #64748b) !important;
+  background: var(--md-sys-color-primary-container, #eff6ff) !important;
+  border: 1.5px solid #bfdbfe !important;
+  font-size: 16px !important;
+  color: var(--md-sys-color-primary, #1d4ed8) !important;
   cursor: pointer !important;
   flex-shrink: 0 !important;
   transition: transform 0.15s ease, background 0.15s ease !important;
+}
+
+#staffView .btn-card-audio .material-symbols-outlined {
+  font-size: 20px !important;
+  color: var(--md-sys-color-primary, #1d4ed8) !important;
 }
 
 #staffView .btn-card-audio:active {
@@ -750,7 +757,7 @@ body.staff-mode-active #adminLogoutBtn,
 #staffView .card-action-buttons {
   display: flex !important;
   align-items: center !important;
-  gap: 5px !important;
+  gap: 6px !important;
   flex-shrink: 0 !important;
 }
 
@@ -759,9 +766,11 @@ body.staff-mode-active #adminLogoutBtn,
   align-items: center !important;
   justify-content: center !important;
   gap: 4px !important;
-  height: 32px !important;
-  padding: 0 8px !important;
-  border-radius: 7px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 10px !important;
+  border-radius: 9px !important;
   font-size: 12px !important;
   font-weight: 700 !important;
   cursor: pointer !important;
@@ -774,10 +783,12 @@ body.staff-mode-active #adminLogoutBtn,
 
 @media (max-width: 480px) {
   #staffView .btn-card-action {
-    width: 32px !important;
-    padding: 0 !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 6px !important;
     justify-content: center !important;
-    border-radius: 8px !important;
+    border-radius: 9px !important;
   }
   #staffView .btn-card-action span:not(.material-symbols-outlined) {
     display: none !important;
@@ -922,43 +933,63 @@ body.staff-mode-active #adminLogoutBtn,
   object-fit: cover !important;
 }
 
-/* Row 3: Address & Location Rows */
+/* Row 3: Address & Location Rows - Multi-line Responsive Wrap */
 #staffView .card-address-row {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 6px !important;
-  padding: 6px 10px !important;
-  border-radius: 8px !important;
+  gap: 8px !important;
+  padding: 8px 10px !important;
+  border-radius: 10px !important;
   background: var(--md-sys-color-surface-container-low, #f8fafc) !important;
   border: 1px solid var(--md-sys-color-outline-variant, #f1f5f9) !important;
-  margin-bottom: 6px !important;
+  margin-bottom: 8px !important;
   font-size: 13px !important;
   color: var(--md-sys-color-on-surface, #0f172a) !important;
 }
 
 #staffView .card-address-content {
   display: flex !important;
-  align-items: center !important;
+  align-items: flex-start !important;
   gap: 6px !important;
   min-width: 0 !important;
   flex: 1 !important;
   cursor: pointer !important;
 }
 
+#staffView .addr-icon {
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+  margin-top: 1px !important;
+  flex-shrink: 0 !important;
+}
+
+#staffView .addr-text-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+  white-space: normal !important;
+}
+
 #staffView .addr-primary {
   font-size: 13px !important;
-  color: var(--md-sys-color-on-surface-variant, #475569) !important;
-  line-height: 1.4 !important;
+  color: var(--md-sys-color-on-surface-variant, #334155) !important;
+  line-height: 1.35 !important;
+  white-space: normal !important;
   word-break: break-word !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
 }
 
 #staffView .btn-card-map-direct {
   display: inline-flex !important;
   align-items: center !important;
   gap: 3px !important;
-  padding: 3px 8px !important;
-  border-radius: 5px !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
   background: var(--md-sys-color-primary, #1d4ed8) !important;
   color: var(--md-sys-color-on-primary, #ffffff) !important;
   font-size: 11.5px !important;
@@ -966,6 +997,7 @@ body.staff-mode-active #adminLogoutBtn,
   text-decoration: none !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
+  height: 28px !important;
 }
 
 #staffView .card-notes-row {
@@ -982,23 +1014,24 @@ body.staff-mode-active #adminLogoutBtn,
   margin-bottom: 6px !important;
 }
 
-/* Row 4: Clean Action Bar with Clear Visual Hierarchy */
+/* Row 4: Clean Action Bar with Balanced Sizing & Equal Heights */
 #staffView .card-status-actions-bar-split {
   display: flex !important;
+  align-items: stretch !important;
   gap: 8px !important;
   margin-top: 10px !important;
 }
 
 /* Primary Dominant Action: Mark Cleaned */
 #staffView .btn-clean-done {
-  flex: 1 !important;
-  min-height: 44px !important;
-  height: auto !important;
-  padding: 6px 10px !important;
+  flex: 1.4 !important;
+  min-height: 46px !important;
+  height: 46px !important;
+  padding: 4px 10px !important;
   border-radius: 10px !important;
   background: var(--md-sys-color-primary, #1d4ed8) !important;
   color: var(--md-sys-color-on-primary, #ffffff) !important;
-  font-size: 13.5px !important;
+  font-size: 13px !important;
   font-weight: 700 !important;
   line-height: 1.25 !important;
   border: none !important;
@@ -1031,11 +1064,12 @@ body.staff-mode-active #adminLogoutBtn,
   opacity: 1;
 }
 
-/* Secondary Action: WhatsApp (Tonal/Outlined so it does not compete) */
+/* Secondary Action: WhatsApp (Balanced 46px Height) */
 #staffView .btn-clean-wa {
-  min-height: 44px !important;
-  height: auto !important;
-  padding: 6px 12px !important;
+  flex: 1 !important;
+  min-height: 46px !important;
+  height: 46px !important;
+  padding: 4px 10px !important;
   border-radius: 10px !important;
   background: #f0fdf4 !important;
   color: #15803d !important;
@@ -1054,9 +1088,13 @@ body.staff-mode-active #adminLogoutBtn,
 @media (max-width: 360px) {
   #staffView .btn-clean-done {
     font-size: 12px !important;
-    padding: 6px 6px !important;
+    padding: 4px 6px !important;
   }
   #staffView .btn-clean-wa {
+    padding: 4px 6px !important;
+    font-size: 12px !important;
+  }
+}
     padding: 6px 8px !important;
     font-size: 12px !important;
   }
@@ -1780,7 +1818,7 @@ body.staff-mode-active #adminLogoutBtn,
 }
 
 /* ==========================================================================
-   9. FIXED BOTTOM NAVIGATION BAR
+   9. FIXED BOTTOM NAVIGATION BAR - EQUALLY DISTRIBUTED & RESPONSIVE
    ========================================================================== */
 .staff-bottom-nav {
   position: fixed !important;
@@ -1788,27 +1826,31 @@ body.staff-mode-active #adminLogoutBtn,
   left: 0 !important;
   right: 0 !important;
   width: 100% !important;
-  height: 64px !important;
+  min-height: 64px !important;
+  height: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
   background: var(--md-sys-color-surface-container-low, #f8fafc) !important;
   border-top: 1px solid var(--md-sys-color-outline-variant, #e2e8f0) !important;
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  align-items: center !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: space-evenly !important;
   z-index: 1000 !important;
-  box-shadow: 0 -2px 8px rgba(15, 23, 42, 0.05) !important;
-  padding: 0 4px max(4px, env(safe-area-inset-bottom, 0px)) !important;
+  box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.06) !important;
+  padding: 4px 6px max(8px, env(safe-area-inset-bottom, 8px)) !important;
   box-sizing: border-box !important;
+  user-select: none !important;
 }
 
-@media (min-width: 680px) {
+@media (min-width: 600px) {
   .staff-bottom-nav {
-    max-width: 680px !important;
+    max-width: 580px !important;
     left: 0 !important;
     right: 0 !important;
     margin: 0 auto !important;
     border-left: 1px solid var(--md-sys-color-outline-variant, #e2e8f0) !important;
     border-right: 1px solid var(--md-sys-color-outline-variant, #e2e8f0) !important;
     border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08) !important;
   }
 }
 
@@ -1828,35 +1870,49 @@ body.keyboard-open .staff-bottom-nav,
 }
 
 .staff-bottom-tab {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
   position: relative !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 2px !important;
+  gap: 3px !important;
   height: 100% !important;
+  min-height: 48px !important;
   background: transparent !important;
   border: none !important;
   cursor: pointer !important;
   color: var(--md-sys-color-on-surface-variant, #475569) !important;
-  padding: 4px !important;
+  padding: 4px 6px !important;
   text-decoration: none !important;
-  transition: color 0.15s ease !important;
+  transition: color 0.15s ease, background 0.15s ease !important;
   user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.staff-bottom-tab:hover {
+  background: rgba(241, 245, 249, 0.7) !important;
 }
 
 .staff-bottom-tab .material-symbols-outlined {
+  position: relative !important;
+  z-index: 1 !important;
   font-size: 22px !important;
   color: var(--md-sys-color-on-surface-variant, #475569) !important;
   transition: transform 0.15s ease, color 0.15s ease !important;
 }
 
 .staff-bottom-tab .bottom-tab-label {
-  font-size: 11px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  font-size: 11.5px !important;
   font-weight: 600 !important;
   line-height: 1.2 !important;
   color: var(--md-sys-color-on-surface-variant, #475569) !important;
   white-space: nowrap !important;
+  letter-spacing: -0.1px !important;
 }
 
 /* Active State with Refined M3 Indicator Pill */
@@ -1876,34 +1932,35 @@ body.keyboard-open .staff-bottom-nav,
 .staff-bottom-tab.active::before {
   content: '' !important;
   position: absolute !important;
-  top: 5px !important;
-  width: 44px !important;
+  top: 4px !important;
+  width: 48px !important;
   height: 26px !important;
   border-radius: 13px !important;
   background: var(--md-sys-color-primary-container, #dbeafe) !important;
-  z-index: -1 !important;
+  z-index: 0 !important;
 }
 
-/* Notification Badge in Bottom Tabs (Never Obscures Icon) */
+/* Notification Badge in Bottom Tabs (Separated with clean 2px white ring) */
 .staff-bottom-tab .bottom-tab-badge {
   display: none; /* Logic: Hidden when count is 0 */
   position: absolute !important;
-  top: 3px !important;
-  left: calc(50% + 5px) !important;
+  top: 2px !important;
+  left: calc(50% + 8px) !important;
   right: auto !important;
-  min-width: 16px !important;
-  height: 16px !important;
+  min-width: 17px !important;
+  height: 17px !important;
   padding: 0 4px !important;
-  border-radius: 8px !important;
+  border-radius: 9px !important;
   background: var(--md-sys-color-error, #dc2626) !important;
   color: #ffffff !important;
-  font-size: 10px !important;
+  font-size: 9.5px !important;
   font-weight: 800 !important;
-  line-height: 16px !important;
+  line-height: 15px !important;
   text-align: center !important;
-  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.3) !important;
-  border: 1.5px solid var(--md-sys-color-surface, #ffffff) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+  border: 2px solid var(--md-sys-color-surface, #ffffff) !important;
   box-sizing: border-box !important;
+  z-index: 5 !important;
 }
 
 /* ==========================================================================

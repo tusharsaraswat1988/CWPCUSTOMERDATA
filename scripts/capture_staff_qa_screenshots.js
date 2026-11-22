@@ -225,13 +225,29 @@ async function run() {
     state.customers = state.currentStaffFilteredList;
     state.currentCategory = 'daily_clean';
 
+    localStorage.setItem('cwp_app_installed', 'true');
+    if (typeof applyViewMode === 'function') applyViewMode('staff');
+    if (typeof setAppMode === 'function') setAppMode('staff');
+    var pwaBanner = document.getElementById('staffPwaInstallBanner');
+    if (pwaBanner) pwaBanner.style.setProperty('display', 'none', 'important');
+    var adminGate = document.getElementById('adminAuthGate');
     var gate = document.getElementById('staffAuthGate');
+    var staffView = document.getElementById('staffView');
     var content = document.getElementById('staffContent');
-    if (gate) gate.style.display = 'none';
-    if (content) content.style.display = 'block';
-
+    var bottomNav = document.getElementById('staffBottomNav');
+    var jobsPanel = document.getElementById('staffJobsPanel');
+    if (adminGate) adminGate.style.setProperty('display', 'none', 'important');
+    if (gate) gate.style.setProperty('display', 'none', 'important');
+    if (staffView) staffView.style.setProperty('display', 'block', 'important');
+    if (content) content.style.setProperty('display', 'block', 'important');
+    if (jobsPanel) jobsPanel.style.setProperty('display', 'block', 'important');
+    if (bottomNav) bottomNav.style.setProperty('display', 'flex', 'important');
     if (typeof renderCustomerCards === 'function') {
-      renderCustomerCards(state.currentStaffFilteredList);
+      renderCustomerCards(state.customers);
+    }
+    if (typeof updateTabBadge === 'function') {
+      var b = document.getElementById('countDailyClean');
+      if (b) { b.textContent = '1'; b.style.display = 'inline-flex'; }
     }
     if (typeof updateInlineRouteProgress === 'function') {
       updateInlineRouteProgress(1, 2);

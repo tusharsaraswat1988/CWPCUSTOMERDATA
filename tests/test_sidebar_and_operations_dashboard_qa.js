@@ -65,12 +65,18 @@ assert.ok(indexHtml.includes('id="dashSpecialPending"'), '2.7 #dashSpecialPendin
 assert.ok(indexHtml.includes('id="dashActiveCrew"'), '2.8 #dashActiveCrew must exist in dashboard');
 assert.ok(indexHtml.includes('id="dashLatestActivity"'), '2.9 #dashLatestActivity must exist in dashboard');
 
-// 2.3 Intelligent Segmented View Switcher
+// 2.3 Intelligent Segmented View Switcher & Smart Operations Intelligence Deck
 assert.ok(indexHtml.includes('class="ops-club-switcher"'), '2.10 .ops-club-switcher must exist');
 assert.ok(indexHtml.includes('id="dashBtnSubCleanReports"'), '2.11 #dashBtnSubCleanReports switcher button must exist');
 assert.ok(indexHtml.includes('id="dashBtnSubSpecialJobs"'), '2.12 #dashBtnSubSpecialJobs switcher button must exist');
 
-console.log('✅ PASS 2: Unified Operations Dashboard, combined KPIs, and segmented view switcher verified.');
+// 2.4 Intelligent Operations Deck Cards
+assert.ok(indexHtml.includes('class="ops-intelligence-deck"'), '2.13 .ops-intelligence-deck must exist');
+assert.ok(indexHtml.includes('id="dashCombinedDone"'), '2.14 #dashCombinedDone must exist in intelligent workload card');
+assert.ok(indexHtml.includes('id="dashAuditRate"'), '2.15 #dashAuditRate must exist in proof-of-work quality card');
+assert.ok(indexHtml.includes('id="dashCrewActiveCount"'), '2.16 #dashCrewActiveCount must exist in route velocity card');
+
+console.log('✅ PASS 2: Unified Operations Dashboard, combined KPIs, and intelligent cards verified.');
 
 // ---------------------------------------------------------------------------
 // TEST 3: JAVASCRIPT CONTROLLER LOGIC (app.js)

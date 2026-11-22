@@ -179,11 +179,11 @@ async function updateCustomer(id, {
   const params = [id];
 
   if (name !== undefined) {
-    params.push(name.trim());
+    params.push(name ? name.trim() : '');
     updates.push(`name = $${params.length}`);
   }
   if (phone !== undefined) {
-    params.push(phone.trim());
+    params.push(phone ? phone.trim() : null);
     updates.push(`phone = $${params.length}`);
   }
   if (altPhone !== undefined) {

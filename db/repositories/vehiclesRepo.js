@@ -61,7 +61,7 @@ async function createVehicle({
     [
       customerId,
       defaultLocationId,
-      registrationNo.trim().toUpperCase().slice(0, 20),
+      (registrationNo ? String(registrationNo).trim() : 'NO_REG').toUpperCase().slice(0, 20),
       brandOrModel ? brandOrModel.trim() : null,
       vehicleType || 'Car',
       photoUrl,
@@ -99,7 +99,7 @@ async function updateVehicle(id, {
     updates.push(`default_location_id = $${params.length}`);
   }
   if (registrationNo !== undefined) {
-    params.push(registrationNo.trim().toUpperCase());
+    params.push(registrationNo ? String(registrationNo).trim().toUpperCase() : 'NO_REG');
     updates.push(`registration_no = $${params.length}`);
   }
   if (brandOrModel !== undefined) {
