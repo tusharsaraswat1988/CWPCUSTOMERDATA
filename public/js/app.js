@@ -12920,12 +12920,39 @@ function loadStaffCustomerData(staffId) {
       filterAdminSpecialJobs();
     }
 
+    function formatJobTimeStr(isoStr) {
+      if (!isoStr) return '';
+      try {
+        var d = new Date(isoStr);
+        if (isNaN(d.getTime())) return '';
+        var hours = d.getHours();
+        var minutes = d.getMinutes();
+        var ampm = hours >= 12 ? 'PM' : 'AM';
+        var h12 = hours % 12 || 12;
+        var minStr = minutes < 10 ? '0' + minutes : minutes;
+        return h12 + ':' + minStr + ' ' + ampm;
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function formatJobDateShort(isoStr) {
+      if (!isoStr) return '';
+      try {
+        var d = new Date(isoStr);
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      } catch (e) {
+        return '';
+      }
+    }
+
     function renderAdminSpecialJobsTable(jobs) {
       var tbody = document.getElementById('adminSpecialJobsTableBody');
       if (!tbody) return;
 
       if (!jobs || jobs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 48px; color: var(--text-muted);">' +
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 48px; color: var(--text-muted);">' +
           '<div style="font-size: 32px; margin-bottom: 10px;">☀️</div>' +
           '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary);">No on-demand jobs found matching filters</div>' +
           '<div style="font-size: 12.5px; margin-top: 6px; color: var(--text-secondary);">Assign a new job using "+ Assign Wash & Solar" button above.</div>' +
@@ -12954,6 +12981,8 @@ function loadStaffCustomerData(staffId) {
           catBadge = '<span class="m3-service-chip chip-daily badge-cat-daily">' + catIcon + '<span>🚗 Daily Clean</span></span>';
         }
 
+        var workTypeColHtml = '<div class="service-cell-block">' + catBadge + '</div>';
+
         var scopePills = '';
         if (j.panelCount) {
           scopePills += '<span class="scope-pill scope-solar"><span class="material-symbols-outlined">solar_power</span> ☀️ ' + escapeHtml(String(j.panelCount)) + ' Panels</span>';
@@ -12962,16 +12991,15 @@ function loadStaffCustomerData(staffId) {
           var is5Plus = (j.seaterType === '5_plus_seater');
           scopePills += '<span class="scope-pill scope-vehicle"><span class="material-symbols-outlined">' + (is5Plus ? 'airport_shuttle' : 'directions_car') + '</span> ' + (is5Plus ? '🚙 5+ Seater' : '🚗 5 Seater') + '</span>';
         }
-        if (j.packageDetails) {
-          scopePills += '<span class="scope-pill">' + escapeHtml(j.packageDetails) + '</span>';
+        if (j.registrationNo) {
+          scopePills += '<span class="scope-pill" style="font-family:monospace; font-weight:700;">' + escapeHtml(j.registrationNo) + '</span>';
         }
 
         var scheduleHtml = formatJobScheduledDate(j.scheduledDate);
 
-        var serviceColHtml = '<div class="service-cell-block">' +
-          catBadge +
-          (scopePills ? '<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:2px;">' + scopePills + '</div>' : '') +
-          '<div style="margin-top:2px;">' + scheduleHtml + '</div>' +
+        var scopeColHtml = '<div class="scope-cell-block">' +
+          (scopePills ? '<div style="display:flex; gap:4px; flex-wrap:wrap;">' + scopePills + '</div>' : '<span style="color:var(--text-muted); font-size:12px;">Standard</span>') +
+          '<div class="scope-sched-sub"><span class="material-symbols-outlined sched-icon">event</span> ' + scheduleHtml + '</div>' +
         '</div>';
 
         var cleanPhone = (j.customerPhone || '').replace(/\D/g, '');
@@ -13000,21 +13028,19 @@ function loadStaffCustomerData(staffId) {
               '<span class="material-symbols-outlined loc-pin-icon">location_on</span>' +
               '<span>' + escapeHtml(rawAddress) + '</span>' +
             '</div>' : '<span class="loc-unspecified">Location provided</span>') +
-          '<div class="table-loc-actions">' +
-            (mapsUrl ? '<a href="' + escapeHtml(mapsUrl) + '" target="_blank" rel="noopener noreferrer" class="loc-action-btn loc-maps-btn" title="Open Google Maps"><span class="material-symbols-outlined">explore</span> <span>Map ↗</span></a>' : '') +
-            (hasAddress ? '<button type="button" class="loc-action-btn loc-copy-btn" onclick="copyJobAddress(\'' + escapeHtml(rawAddress).replace(/'/g, "\\'") + '\', this)" title="Copy Address to clipboard"><span class="material-symbols-outlined">content_copy</span> <span>Copy</span></button>' : '') +
-          '</div>' +
+          (mapsUrl ? '<a href="' + escapeHtml(mapsUrl) + '" target="_blank" rel="noopener noreferrer" class="loc-maps-link" title="Open Google Maps"><span class="material-symbols-outlined">explore</span> <span>Map ↗</span></a>' : '') +
         '</div>';
 
         var staffName = (j.staffName || '').trim();
         var hasStaff = staffName.length > 0 && staffName.toLowerCase() !== 'unassigned';
-        var staffInitial = hasStaff ? staffName.charAt(0).toUpperCase() : '?';
+        var staffFirstName = hasStaff ? staffName.split(' ')[0] : 'Unassigned';
+        var staffInitial = hasStaff ? staffFirstName.charAt(0).toUpperCase() : '?';
 
         var staffColHtml = '';
         if (hasStaff) {
           staffColHtml = '<div class="m3-staff-card staff-chip-pill" title="Assigned cleaner: ' + escapeHtml(staffName) + '">' +
             '<div class="m3-staff-avatar staff-chip-avatar">' + staffInitial + '</div>' +
-            '<div class="m3-staff-name staff-chip-name">' + escapeHtml(staffName) + '</div>' +
+            '<div class="m3-staff-name staff-chip-name">' + escapeHtml(staffFirstName) + '</div>' +
           '</div>';
         } else {
           staffColHtml = '<button type="button" class="m3-unassigned-chip staff-chip-pill" onclick="openReassignJobModal(\'' + escapeHtml(j.id || j.jobId) + '\', this)" title="Assign cleaner now">' +
@@ -13023,23 +13049,88 @@ function loadStaffCustomerData(staffId) {
           '</button>';
         }
 
-        var statusColHtml = '';
-        var durationHtml = j.durationMinutes ? '<div class="table-duration-chip"><span class="material-symbols-outlined">timer</span> ⏱️ ' + j.durationMinutes + ' min</div>' : '';
+        // Timeline & Timing calculation
+        var assignIso = j.assignedAt || j.createdAt;
+        var assignTime = formatJobTimeStr(assignIso);
+        var assignDate = formatJobDateShort(assignIso);
+        var assignText = assignTime ? assignTime : '—';
 
+        var startIso = j.startedAt;
+        var startTime = formatJobTimeStr(startIso);
+        var startText = '—';
+        var acceptLagHtml = '';
+        var startedStepClass = 'step-pending';
+
+        if (startIso && startTime) {
+          startText = startTime;
+          startedStepClass = 'step-done';
+          if (assignIso) {
+            var lagMin = Math.round((new Date(startIso).getTime() - new Date(assignIso).getTime()) / 60000);
+            if (lagMin >= 1) {
+              acceptLagHtml = '<span class="step-lag" title="Accepted ' + lagMin + ' mins after assignment">+' + lagMin + 'm</span>';
+            }
+          }
+        } else if (j.status === 'assigned') {
+          if (assignIso) {
+            var waitMin = Math.max(0, Math.round((Date.now() - new Date(assignIso).getTime()) / 60000));
+            startText = '<span class="step-wait">⏳ Waiting (' + waitMin + 'm)</span>';
+          } else {
+            startText = '<span class="step-wait">⏳ Pending</span>';
+          }
+        }
+
+        var completedIso = j.completedAt;
+        var completedTime = formatJobTimeStr(completedIso);
+        var endText = '—';
+        var durHtml = '';
+        var endStepClass = 'step-pending';
+
+        if (j.status === 'completed') {
+          endStepClass = 'step-done';
+          endText = completedTime || 'Done';
+          var durMins = j.durationMinutes;
+          if (!durMins && startIso && completedIso) {
+            durMins = Math.max(1, Math.round((new Date(completedIso).getTime() - new Date(startIso).getTime()) / 60000));
+          }
+          if (durMins) {
+            durHtml = '<span class="step-dur" title="Cleaning duration: ' + durMins + ' minutes"><span class="material-symbols-outlined" style="font-size:11px;">timer</span>' + durMins + 'm</span>';
+          }
+        } else if (j.status === 'in_progress') {
+          endStepClass = 'step-active';
+          var elapsedMins = j.elapsedMinutes;
+          if (!elapsedMins && startIso) {
+            elapsedMins = Math.max(1, Math.round((Date.now() - new Date(startIso).getTime()) / 60000));
+          }
+          endText = '<span class="step-running" title="Currently running"><span class="material-symbols-outlined" style="font-size:11px;">bolt</span>' + (elapsedMins ? elapsedMins + 'm' : 'Running') + '</span>';
+        }
+
+        var timelineColHtml = '<div class="job-timeline-card">' +
+          '<div class="timeline-step step-assigned" title="Assigned at ' + escapeHtml(assignText) + (assignDate ? ' (' + assignDate + ')' : '') + '">' +
+            '<span class="step-dot"></span>' +
+            '<span class="step-lbl">Assign:</span>' +
+            '<span class="step-time">' + escapeHtml(assignText) + '</span>' +
+          '</div>' +
+          '<div class="timeline-step ' + startedStepClass + '" title="Cleaner accepted / started">' +
+            '<span class="step-dot"></span>' +
+            '<span class="step-lbl">Start:</span>' +
+            '<span class="step-time">' + startText + '</span>' +
+            acceptLagHtml +
+          '</div>' +
+          '<div class="timeline-step ' + endStepClass + '" title="Completion timing">' +
+            '<span class="step-dot"></span>' +
+            '<span class="step-lbl">' + (j.status === 'completed' ? 'Done:' : (j.status === 'in_progress' ? 'Active:' : 'End:')) + '</span>' +
+            '<span class="step-time">' + endText + '</span>' +
+            durHtml +
+          '</div>' +
+        '</div>';
+
+        var statusColHtml = '';
         if (j.status === 'in_progress') {
-          statusColHtml = '<div class="status-cell-wrap">' +
-            '<span class="m3-status-chip status-badge status-in-progress"><span class="status-pulse-dot"></span><span>⏳ In Progress</span></span>' +
-            durationHtml +
-          '</div>';
+          statusColHtml = '<span class="m3-status-chip status-badge status-in-progress" title="Cleaner is actively working"><span class="status-pulse-dot"></span><span>⏳ Active</span></span>';
         } else if (j.status === 'completed') {
-          statusColHtml = '<div class="status-cell-wrap">' +
-            '<span class="m3-status-chip status-badge status-completed"><span class="material-symbols-outlined status-icon">check_circle</span><span>✅ Done</span></span>' +
-            durationHtml +
-          '</div>';
+          statusColHtml = '<span class="m3-status-chip status-badge status-completed" title="Job verified completed"><span class="material-symbols-outlined status-icon">check_circle</span><span>✅ Done</span></span>';
         } else {
-          statusColHtml = '<div class="status-cell-wrap">' +
-            '<span class="m3-status-chip status-badge status-assigned"><span class="material-symbols-outlined status-icon">schedule</span><span>📋 Assigned</span></span>' +
-          '</div>';
+          statusColHtml = '<span class="m3-status-chip status-badge status-assigned" title="Dispatched and assigned to staff"><span class="material-symbols-outlined status-icon">schedule</span><span>📋 Assigned</span></span>';
         }
 
         var bList = Array.isArray(j.beforePhotos) ? j.beforePhotos : [];
@@ -13081,14 +13172,16 @@ function loadStaffCustomerData(staffId) {
         var actionsColHtml = '<div class="table-actions-cluster">' + reassignBtn + deleteBtn + '</div>';
 
         html += '<tr>' +
-          '<td style="text-align: center;"><span class="sno-badge">' + (idx + 1) + '</span></td>' +
-          '<td>' + serviceColHtml + '</td>' +
-          '<td>' + custColHtml + '</td>' +
-          '<td>' + locColHtml + '</td>' +
-          '<td>' + staffColHtml + '</td>' +
-          '<td style="text-align: center;">' + statusColHtml + '</td>' +
-          '<td style="text-align: center;">' + photosColHtml + '</td>' +
-          '<td style="text-align: center; white-space: nowrap;">' + actionsColHtml + '</td>' +
+          '<td class="col-sno"><span class="sno-badge">' + (idx + 1) + '</span></td>' +
+          '<td class="col-worktype">' + workTypeColHtml + '</td>' +
+          '<td class="col-scope">' + scopeColHtml + '</td>' +
+          '<td class="col-customer">' + custColHtml + '</td>' +
+          '<td class="col-location">' + locColHtml + '</td>' +
+          '<td class="col-staff">' + staffColHtml + '</td>' +
+          '<td class="col-timeline">' + timelineColHtml + '</td>' +
+          '<td class="col-status">' + statusColHtml + '</td>' +
+          '<td class="col-photos">' + photosColHtml + '</td>' +
+          '<td class="col-actions">' + actionsColHtml + '</td>' +
         '</tr>';
       });
 
