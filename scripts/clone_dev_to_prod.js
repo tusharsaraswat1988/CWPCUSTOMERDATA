@@ -176,29 +176,31 @@ async function cloneDatabase() {
     // STEP 4: RESET SEQUENCES TO MAX(id)
     // -------------------------------------------------------------
     console.log('\n--- STEP 4: Synchronizing Sequences ---');
-    const seqsRes = await prodClient.query(`
-      SELECT sequence_schema, sequence_name 
-      FROM information_schema.sequences 
-      WHERE sequence_schema = 'public';
+    await prodClient.query(`
+      DO $$
+      DECLARE
+          rec RECORD;
+          v_max BIGINT;
+          v_sql TEXT;
+      BEGIN
+          FOR rec IN 
+              SELECT 
+                  t.relname AS table_name,
+                  a.attname AS col_name,
+                  s.relname AS seq_name
+              FROM pg_class s
+              JOIN pg_depend d ON d.objid = s.oid AND d.classid = 'pg_class'::regclass
+              JOIN pg_class t ON t.oid = d.refobjid
+              JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+              WHERE s.relkind = 'S' AND t.relnamespace = 'public'::regnamespace
+          LOOP
+              v_sql := format('SELECT COALESCE(MAX(%I), 1) FROM public.%I', rec.col_name, rec.table_name);
+              EXECUTE v_sql INTO v_max;
+              PERFORM setval(format('public.%I', rec.seq_name), GREATEST(v_max, 1), true);
+          END LOOP;
+      END $$;
     `);
-
-    for (const seq of seqsRes.rows) {
-      const seqName = seq.sequence_name;
-      // Find matching table and column if possible (standard Postgres naming convention)
-      const parts = seqName.split('_');
-      // e.g. customers_id_seq -> table customers, column id
-      const possibleTable = parts[0];
-      if (tables.includes(possibleTable)) {
-        try {
-          await prodClient.query(`
-            SELECT setval('public."${seqName}"', COALESCE((SELECT MAX(id) FROM public."${possibleTable}"), 1));
-          `);
-          console.log(`  Reset sequence ${seqName} for table ${possibleTable}`);
-        } catch (e) {
-          // Fallback if column is not 'id'
-        }
-      }
-    }
+    console.log('  Synchronized all public table sequences to current MAX value.');
 
     // -------------------------------------------------------------
     // STEP 5: VERIFY COUNTS BETWEEN DEV AND PROD
