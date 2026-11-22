@@ -7540,12 +7540,14 @@ function loadStaffCustomerData(staffId) {
                     'ondragend="handleLeadDragEnd(event)" ' +
                     'data-lead-id="' + escapeHtml(id) + '">';
 
-            // 1. Header Row: Name + Category Pill
+            // 1. Header Row: Name + Category Pill (Full name visible, no truncation)
             html += '  <div class="compact-lead-header">';
             html += '    <div class="compact-lead-name-wrap">';
-            html += '      <span class="compact-lead-drag-handle" title="Drag across pipeline stages">⋮⋮</span>';
-            html += '      <strong class="compact-lead-name">' + escapeHtml(name) + '</strong>';
-            if (nameHi) html += '      <span class="compact-lead-name-hi">' + escapeHtml(nameHi) + '</span>';
+            html += '      <div style="display: flex; align-items: center; gap: 5px;">';
+            html += '        <span class="compact-lead-drag-handle" title="Drag across pipeline stages">⋮⋮</span>';
+            html += '        <strong class="compact-lead-name">' + escapeHtml(name) + '</strong>';
+            html += '      </div>';
+            if (nameHi) html += '      <div class="compact-lead-name-hi">' + escapeHtml(nameHi) + '</div>';
             html += '    </div>';
             html += '    <span class="compact-lead-cat-pill ' + catClass + '" title="Interested: ' + escapeHtml(sCategory) + '">' + catIcon + ' ' + shortCat + '</span>';
             html += '  </div>';
