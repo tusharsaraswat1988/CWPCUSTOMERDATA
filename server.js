@@ -2634,6 +2634,46 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ success: true, customerId: cust.id, leadNotes: cust.leadNotes, notes: cust.notes }));
         }
 
+        // Admin: Update Lead Stage / Lifecycle Status
+        if (payload.action === 'updateLeadStage') {
+          const leadId = (payload.leadId || payload.id || '').toString().trim();
+          const stage = (payload.stage || payload.leadStatus || 'open').toString().trim().toLowerCase();
+          if (!leadId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Lead ID is required.' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              let targetId = leadId;
+              if (!/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(leadId)) {
+                const found = await repos.customers.findByCode(leadId);
+                if (found) targetId = found.id;
+              }
+              const updated = await repos.customers.updateCustomer(targetId, { leadStatus: stage });
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, customerId: targetId, leadStatus: stage }));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
+          // Local mode fallback
+          if (!appState.customers) appState.customers = [];
+          const cust = appState.customers.find(c => c.id === leadId || c.customerCode === leadId || c.customerNumber === leadId);
+          if (!cust) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Lead not found in local data.' }));
+          }
+          cust.leadStatus = stage;
+          saveLocalData(appState);
+          invalidateLiveCustomersCache();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, customerId: cust.id, leadStatus: stage }));
+        }
+
         // Admin: Reset Staff PIN (Requires valid 6-digit numeric PIN, revokes existing sessions)
         if (payload.action === 'resetStaffPin') {
           const staffId = (payload.staffId || '').trim();

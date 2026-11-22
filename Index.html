@@ -75,6 +75,9 @@
   <header id="adminHeader" class="top-header admin-header" role="banner" style="display: none;">
     <div class="header-inner">
       <div class="header-brand-group">
+        <button type="button" class="header-sidebar-toggle-btn" id="adminHeaderSidebarToggle" onclick="toggleSidebarUnified()" aria-label="Toggle Navigation Menu" title="Toggle Navigation Menu">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
         <a href="javascript:void(0)" class="brand-logo-wrap" title="CWP Detailers Admin" onclick="handleBrandLogoClick()">
           <img src="/cwp_logo.jpg" alt="CWP Detailers" class="brand-logo-img">
         </a>
@@ -557,14 +560,14 @@
           <aside class="admin-sidebar" id="adminSidebar" role="navigation" aria-label="Admin Navigation">
             <!-- Sidebar Header & Portal Identity -->
             <div class="sidebar-header-box">
-              <div class="sidebar-brand-badge">
+              <div class="sidebar-brand-badge" id="sidebarBrandBadge">
                 <div class="sidebar-brand-icon-wrap"><span class="material-symbols-outlined">admin_panel_settings</span></div>
                 <div class="sidebar-brand-meta">
                   <div class="sidebar-brand-title">Admin Console</div>
                   <div class="sidebar-brand-sub">Operations & Audit Hub</div>
                 </div>
               </div>
-              <button type="button" class="sidebar-desktop-collapse-btn" id="adminSidebarCollapseBtn" onclick="toggleDesktopSidebarCollapse()" title="Toggle Sidebar (Rail Mode)" aria-label="Toggle Sidebar">
+              <button type="button" class="sidebar-desktop-collapse-btn" id="adminSidebarCollapseBtn" onclick="toggleDesktopSidebarCollapse()" title="Collapse Sidebar" aria-label="Toggle Sidebar">
                 <span class="material-symbols-outlined" id="sidebarCollapseIcon">menu_open</span>
               </button>
               <button type="button" class="sidebar-mobile-close-btn" onclick="closeAdminSidebar()" aria-label="Close sidebar" title="Close Menu">✕</button>
@@ -637,22 +640,9 @@
               </div>
             </div>
 
-            <!-- Quick Creation Actions -->
-            <div class="sidebar-quick-actions-box">
-              <div class="sidebar-section-label"><span>QUICK ACTIONS</span></div>
-              <div class="sidebar-quick-actions-grid">
-                <button type="button" class="sidebar-quick-action-btn" onclick="openAddCustomerModal()" title="Add New Customer">
-                  <span class="material-symbols-outlined action-icon">person_add</span> <span class="action-btn-text">New Client</span>
-                </button>
-                <button type="button" class="sidebar-quick-action-btn" onclick="openAddLeadModal()" title="Add New Lead">
-                  <span class="material-symbols-outlined action-icon">post_add</span> <span class="action-btn-text">New Lead</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Sidebar Footer: Profile, Portal Switcher & Logout at bottom -->
+            <!-- Sidebar Footer: Profile & Logout at bottom -->
             <div class="sidebar-footer-box">
-              <div class="sidebar-user-card">
+              <div class="sidebar-user-card" title="Administrator (SUPER ADMIN)">
                 <div class="sidebar-user-avatar">A</div>
                 <div class="sidebar-user-meta">
                   <span class="sidebar-user-name">Administrator</span>
@@ -660,12 +650,9 @@
                 </div>
               </div>
               <div class="sidebar-footer-actions">
-                <button type="button" class="sidebar-switch-btn" onclick="applyViewMode('staff')" title="Switch to Staff Portal">
-                  <span class="material-symbols-outlined" style="font-size: 16px;">swap_horiz</span> <span class="switch-btn-text">Switch to Staff Portal</span>
-                </button>
                 <!-- EXCLUSIVE LOGOUT IN SIDEBAR MENU FOOTER -->
-                <button type="button" class="sidebar-logout-btn item-destructive" id="sidebarAdminLogoutBtn" onclick="handleAdminLogout()" title="Logout from Admin Portal">
-                  <span class="material-symbols-outlined" style="font-size: 16px;">logout</span>
+                <button type="button" class="sidebar-logout-btn item-destructive" id="sidebarAdminLogoutBtn" onclick="handleAdminLogout()" title="Logout from Admin Portal" aria-label="Logout from Admin Portal">
+                  <span class="material-symbols-outlined" style="font-size: 18px;">logout</span>
                   <span class="logout-label">Logout from Admin</span>
                 </button>
               </div>

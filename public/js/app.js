@@ -521,6 +521,9 @@ var state = {
       leads: [],
       lastFilteredLeads: [],
       leadsSearchQuery: '',
+      leadsViewMode: (typeof localStorage !== 'undefined' && localStorage.getItem('cwp_leads_view_mode')) || 'table',
+      leadsCategoryFilter: 'all',
+      leadsStageFilter: 'all',
       selectedLeadPhotoBase64: '',
       selectedLeadPhotoType: '',
       selectedLeadPhotoName: '',
@@ -1454,6 +1457,12 @@ var state = {
       window.handleLeadSubmit = handleLeadSubmit;
       window.loadAdminLeads = loadAdminLeads;
       window.renderAdminLeadsList = renderAdminLeadsList;
+      window.switchLeadsViewMode = switchLeadsViewMode;
+      window.setLeadCategoryFilter = setLeadCategoryFilter;
+      window.setLeadStageFilter = setLeadStageFilter;
+      window.updateLeadStage = updateLeadStage;
+      window.renderAdminLeadsTable = renderAdminLeadsTable;
+      window.renderAdminLeadsKanban = renderAdminLeadsKanban;
       window.openConvertLeadModal = openConvertLeadModal;
       window.closeConvertLeadModal = closeConvertLeadModal;
       window.handleConvertCategoryChange = handleConvertCategoryChange;
@@ -2624,7 +2633,16 @@ var state = {
       } catch (e) {}
       var collapseIcon = document.getElementById('sidebarCollapseIcon');
       if (collapseIcon) {
-        collapseIcon.textContent = isCollapsed ? 'chevron_right' : 'chevron_left';
+        collapseIcon.textContent = isCollapsed ? 'chevron_right' : 'menu_open';
+      }
+      var collapseBtn = document.getElementById('adminSidebarCollapseBtn');
+      if (collapseBtn) {
+        collapseBtn.setAttribute('title', isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar');
+        collapseBtn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+      }
+      var headerToggle = document.getElementById('adminHeaderSidebarToggle');
+      if (headerToggle) {
+        headerToggle.setAttribute('title', isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar');
       }
     }
     window.toggleDesktopSidebarCollapse = toggleDesktopSidebarCollapse;
@@ -2633,16 +2651,56 @@ var state = {
       try {
         var isCollapsed = localStorage.getItem('cwp_admin_sidebar_collapsed') === 'true';
         var sidebar = document.getElementById('adminSidebar');
-        if (sidebar && isCollapsed) {
+        if (sidebar && isCollapsed && window.innerWidth > 1024) {
           sidebar.classList.add('rail-mode', 'collapsed');
           var collapseIcon = document.getElementById('sidebarCollapseIcon');
           if (collapseIcon) {
             collapseIcon.textContent = 'chevron_right';
           }
+          var collapseBtn = document.getElementById('adminSidebarCollapseBtn');
+          if (collapseBtn) {
+            collapseBtn.setAttribute('title', 'Expand Sidebar');
+            collapseBtn.setAttribute('aria-expanded', 'false');
+          }
         }
       } catch (e) {}
     }
     window.initDesktopSidebarState = initDesktopSidebarState;
+
+    function toggleSidebarUnified() {
+      if (window.innerWidth <= 1024) {
+        toggleAdminSidebar();
+      } else {
+        toggleDesktopSidebarCollapse();
+      }
+    }
+    window.toggleSidebarUnified = toggleSidebarUnified;
+
+    // Responsive window resize and escape listener for adaptive sidebar
+    window.addEventListener('resize', function() {
+      var sidebar = document.getElementById('adminSidebar');
+      var backdrop = document.getElementById('adminSidebarBackdrop');
+      if (!sidebar) return;
+      if (window.innerWidth <= 1024) {
+        sidebar.classList.remove('collapsed', 'rail-mode');
+      } else {
+        sidebar.classList.remove('sidebar-open');
+        if (backdrop) backdrop.classList.remove('active');
+        document.body.style.overflow = '';
+        if (typeof initDesktopSidebarState === 'function') {
+          initDesktopSidebarState();
+        }
+      }
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var sidebar = document.getElementById('adminSidebar');
+        if (sidebar && sidebar.classList.contains('sidebar-open')) {
+          closeAdminSidebar();
+        }
+      }
+    });
 
     /* =========================================================================
        UNIFIED DASHBOARD SVG CHARTS & VISUAL ANALYTICS CONTROLLER (R2)
@@ -6960,25 +7018,153 @@ function loadStaffCustomerData(staffId) {
       });
     }
 
+    function switchLeadsViewMode(mode) {
+      if (mode !== 'table' && mode !== 'kanban') mode = 'table';
+      state.leadsViewMode = mode;
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('cwp_leads_view_mode', mode);
+        }
+      } catch (e) {}
+
+      var btnTable = document.getElementById('btnLeadsViewTable');
+      var btnKanban = document.getElementById('btnLeadsViewKanban');
+      if (btnTable) {
+        if (mode === 'table') btnTable.classList.add('active');
+        else btnTable.classList.remove('active');
+      }
+      if (btnKanban) {
+        if (mode === 'kanban') btnKanban.classList.add('active');
+        else btnKanban.classList.remove('active');
+      }
+
+      var filtered = applyLeadsFilters();
+      renderAdminLeadsList(filtered);
+    }
+
+    function setLeadCategoryFilter(cat) {
+      state.leadsCategoryFilter = cat || 'all';
+      var chips = [
+        { id: 'chipLeadCatAll', val: 'all' },
+        { id: 'chipLeadCatDC', val: 'Daily Car Cleaning' },
+        { id: 'chipLeadCatSolar', val: 'Solar Panel Cleaning' },
+        { id: 'chipLeadCatWash', val: 'Car Washing' }
+      ];
+      chips.forEach(function(c) {
+        var el = document.getElementById(c.id);
+        if (el) {
+          if (c.val === state.leadsCategoryFilter) el.classList.add('active');
+          else el.classList.remove('active');
+        }
+      });
+      var filtered = applyLeadsFilters();
+      updateLeadsKpi();
+      renderAdminLeadsList(filtered);
+    }
+
+    function setLeadStageFilter(stage) {
+      state.leadsStageFilter = stage || 'all';
+      var cards = [
+        { id: 'cardFunnelAll', val: 'all' },
+        { id: 'cardFunnelNew', val: 'open' },
+        { id: 'cardFunnelFollowUp', val: 'follow_up' },
+        { id: 'cardFunnelReady', val: 'ready' }
+      ];
+      cards.forEach(function(c) {
+        var el = document.getElementById(c.id);
+        if (el) {
+          if (c.val === state.leadsStageFilter) el.classList.add('active');
+          else el.classList.remove('active');
+        }
+      });
+      var filtered = applyLeadsFilters();
+      updateLeadsKpi();
+      renderAdminLeadsList(filtered);
+    }
+
+    function applyLeadsFilters() {
+      var all = state.leads || [];
+      var q = (state.leadsSearchQuery || '').trim().toLowerCase();
+      var cat = state.leadsCategoryFilter || 'all';
+      var stage = state.leadsStageFilter || 'all';
+
+      var filtered = all.filter(function(l) {
+        if (q && !recordMatchesBilingualSearch(l, q)) {
+          return false;
+        }
+        if (cat !== 'all') {
+          var lCat = l.interestedService || l.serviceCategory || '';
+          if (lCat !== cat) return false;
+        }
+        if (stage !== 'all') {
+          var lStage = (l.leadStatus || 'open').toLowerCase();
+          if (lStage !== stage) return false;
+        }
+        return true;
+      });
+
+      state.lastFilteredLeads = filtered;
+      return filtered;
+    }
+
+    function updateLeadStage(leadId, newStage) {
+      if (!leadId || !newStage) return;
+      var lead = (state.leads || []).find(function(l) {
+        return (l.id && l.id === leadId) || (l.customerCode && l.customerCode === leadId);
+      });
+      var oldStage = lead ? (lead.leadStatus || 'open') : 'open';
+      if (lead) lead.leadStatus = newStage;
+
+      updateLeadsKpi();
+      var filtered = applyLeadsFilters();
+      renderAdminLeadsList(filtered);
+
+      apiCall('updateLeadStage', { leadId: leadId, stage: newStage }, function(res) {
+        if (res && res.error) {
+          showToast('Failed to update stage: ' + res.error, '❌');
+          if (lead) lead.leadStatus = oldStage;
+          updateLeadsKpi();
+          renderAdminLeadsList(applyLeadsFilters());
+        } else {
+          var stageLabels = {
+            open: 'New Inquiry',
+            follow_up: 'In Follow-Up',
+            quoted: 'Discussion / Quoted',
+            ready: 'Ready to Convert'
+          };
+          showToast('Stage updated to ' + (stageLabels[newStage] || newStage), '✓');
+        }
+      }, function(err) {
+        showToast('Error: ' + (err.message || err), '❌');
+        if (lead) lead.leadStatus = oldStage;
+        updateLeadsKpi();
+        renderAdminLeadsList(applyLeadsFilters());
+      });
+    }
+
     function loadAdminLeads(forceRefresh) {
       var container = document.getElementById('leadsListContainer');
       if (container) {
         container.innerHTML = '<div class="skeleton-feed" style="padding: 24px; text-align: center; color: var(--text-muted);"><span class="cwp-spinner"></span> Loading leads...</div>';
       }
 
+      var currentMode = state.leadsViewMode || 'table';
+      var btnTable = document.getElementById('btnLeadsViewTable');
+      var btnKanban = document.getElementById('btnLeadsViewKanban');
+      if (btnTable) {
+        if (currentMode === 'table') btnTable.classList.add('active');
+        else btnTable.classList.remove('active');
+      }
+      if (btnKanban) {
+        if (currentMode === 'kanban') btnKanban.classList.add('active');
+        else btnKanban.classList.remove('active');
+      }
+
       apiCall('getLeads', { forceRefresh: !!forceRefresh }, function(res) {
         var leads = Array.isArray(res) ? res : (res && res.leads ? res.leads : []);
         state.leads = leads || [];
+        var filtered = applyLeadsFilters();
         updateLeadsKpi();
-
-        var q = (state.leadsSearchQuery || '').trim().toLowerCase();
-        var filtered = state.leads;
-        if (q) {
-          filtered = state.leads.filter(function(l) {
-            return recordMatchesBilingualSearch(l, q);
-          });
-        }
-        state.lastFilteredLeads = filtered;
         renderAdminLeadsList(filtered);
       }, function(err) {
         if (container) {
@@ -6988,8 +7174,21 @@ function loadStaffCustomerData(staffId) {
     }
 
     function updateLeadsKpi() {
-      var total = state.leads ? state.leads.length : 0;
+      var all = state.leads || [];
+      var total = all.length;
+      var newCount = 0;
+      var followUpCount = 0;
+      var readyCount = 0;
+
+      all.forEach(function(l) {
+        var st = (l.leadStatus || 'open').toLowerCase();
+        if (st === 'open') newCount++;
+        else if (st === 'follow_up') followUpCount++;
+        else if (st === 'ready') readyCount++;
+      });
+
       var filtered = state.lastFilteredLeads ? state.lastFilteredLeads.length : total;
+
       var tabBadge = document.getElementById('tabLeadsCount');
       if (tabBadge) tabBadge.textContent = total;
       var totBadge = document.getElementById('leadsTotalCount');
@@ -6998,6 +7197,15 @@ function loadStaffCustomerData(staffId) {
       if (filtBadge) filtBadge.textContent = filtered;
       var pendBadge = document.getElementById('leadsPendingBadge');
       if (pendBadge) pendBadge.textContent = total;
+
+      var kpiTotal = document.getElementById('leadsKpiTotal');
+      if (kpiTotal) kpiTotal.textContent = total;
+      var kpiNew = document.getElementById('leadsKpiNew');
+      if (kpiNew) kpiNew.textContent = newCount;
+      var kpiFollowUp = document.getElementById('leadsKpiFollowUp');
+      if (kpiFollowUp) kpiFollowUp.textContent = followUpCount;
+      var kpiReady = document.getElementById('leadsKpiReady');
+      if (kpiReady) kpiReady.textContent = readyCount;
     }
 
     function renderAdminLeadsList(leads) {
@@ -7005,17 +7213,41 @@ function loadStaffCustomerData(staffId) {
       if (!container) return;
 
       if (!leads || leads.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1 / -1; padding: 48px 16px; text-align: center; color: var(--text-muted); background: var(--bg-surface); border-radius: 12px; border: 1px dashed var(--border-color);">' +
-          '<div style="font-size: 36px; margin-bottom: 8px;">🎯</div>' +
-          '<h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">No active leads found</h3>' +
-          '<p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">All inquiries have been confirmed or no new leads have been captured yet.</p>' +
-          '<button type="button" class="btn-admin-primary" onclick="openAddLeadModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #d97706; margin: 0 auto; display: inline-flex;">+ Capture New Lead</button>' +
+        container.innerHTML = '<div style="grid-column: 1 / -1; width: 100%; padding: 48px 16px; text-align: center; color: var(--text-muted); background: var(--color-surface-card, #ffffff); border-radius: 16px; border: 1px dashed var(--color-border-subtle, #e2e8f0);">' +
+          '<div style="font-size: 40px; margin-bottom: 10px;">🎯</div>' +
+          '<h3 style="font-size: 16px; font-weight: 700; color: var(--color-text-primary, #0f172a); margin-bottom: 6px;">No active leads match criteria</h3>' +
+          '<p style="font-size: 13.5px; color: var(--color-text-secondary, #64748b); margin-bottom: 16px;">Try clearing filters or search keywords, or capture a new lead.</p>' +
+          '<button type="button" class="btn-admin-primary" onclick="openAddLeadModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #d97706; margin: 0 auto; display: inline-flex;"><span>✨ Capture New Lead</span></button>' +
           '</div>';
         return;
       }
 
-      var html = '';
-      leads.forEach(function(l) {
+      if (state.leadsViewMode === 'kanban') {
+        renderAdminLeadsKanban(leads);
+      } else {
+        renderAdminLeadsTable(leads);
+      }
+    }
+
+    function renderAdminLeadsTable(leads) {
+      var container = document.getElementById('leadsListContainer');
+      if (!container) return;
+
+      var html = '<div class="table-responsive leads-table-scroll" style="width: 100%; overflow-x: auto; background: var(--color-surface-card, #ffffff); border-radius: 16px; border: 1px solid var(--color-border-subtle, #e2e8f0); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">';
+      html += '<table class="m3-table leads-m3-table" style="width: 100%; border-collapse: separate; border-spacing: 0; min-width: 960px;">';
+      html += '<thead><tr style="background: var(--bg-surface-secondary, #f8fafc); border-bottom: 1px solid var(--color-border-subtle, #e2e8f0); text-align: left;">';
+      html += '  <th style="padding: 14px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary, #64748b); width: 44px; text-align: center;">#</th>';
+      html += '  <th style="padding: 14px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary, #64748b); min-width: 180px;">Lead & Contact</th>';
+      html += '  <th style="padding: 14px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary, #64748b); min-width: 150px;">Vehicle & Model</th>';
+      html += '  <th style="padding: 14px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary, #64748b); min-width: 140px;">Interested Service</th>';
+      html += '  <th style="padding: 14px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary, #64748b); min-width: 160px;">Location</th>';
+      html += '  <th style="padding: 14px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary, #64748b); min-width: 130px;">Stage</th>';
+      html += '  <th style="padding: 14px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary, #64748b); min-width: 170px;">Remarks / Notes</th>';
+      html += '  <th style="padding: 14px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary, #64748b); min-width: 150px; text-align: center;">Actions</th>';
+      html += '</tr></thead>';
+      html += '<tbody>';
+
+      leads.forEach(function(l, idx) {
         var id = l.id || l.customerCode;
         var name = l.customerName || 'Prospect Lead';
         var nameHi = l.nameHi ? ' (' + l.nameHi + ')' : '';
@@ -7027,92 +7259,252 @@ function loadStaffCustomerData(staffId) {
         var photo = l.photoUrl || '';
         var notes = l.leadNotes || l.notes || '';
         var sCategory = l.interestedService || l.serviceCategory || 'Daily Car Cleaning';
+        var stage = (l.leadStatus || 'open').toLowerCase();
 
         var parsedVeh = rawVeh ? parseVehicleString(rawVeh) : null;
-        var regBadge = (parsedVeh && parsedVeh.reg) ? parsedVeh.reg : (rawVeh || 'Vehicle not provided');
-        var modelText = (parsedVeh && parsedVeh.model) ? ' ' + parsedVeh.model : '';
+        var regBadge = (parsedVeh && parsedVeh.reg) ? parsedVeh.reg : (rawVeh || 'No vehicle');
+        var modelText = (parsedVeh && parsedVeh.model) ? parsedVeh.model : '';
 
-        html += '<div class="cwp-lead-card" id="leadCard_' + escapeHtml(id) + '">';
+        var catIcon = '🚗';
+        var catBg = 'rgba(37, 99, 235, 0.1)';
+        var catColor = '#2563eb';
+        if (sCategory.indexOf('Solar') !== -1) {
+          catIcon = '☀️';
+          catBg = 'rgba(217, 119, 6, 0.12)';
+          catColor = '#d97706';
+        } else if (sCategory.indexOf('Wash') !== -1) {
+          catIcon = '🧼';
+          catBg = 'rgba(13, 148, 136, 0.12)';
+          catColor = '#0d9488';
+        } else if (sCategory.indexOf('Detailing') !== -1) {
+          catIcon = '✨';
+          catBg = 'rgba(124, 58, 237, 0.12)';
+          catColor = '#7c3aed';
+        }
+
+        html += '<tr class="leads-table-row" id="leadRow_' + escapeHtml(id) + '" style="border-bottom: 1px solid var(--color-border-subtle, #f1f5f9); transition: background-color 0.15s ease;">';
         
-        // Header
-        html += '  <div class="cwp-lead-header">';
-        html += '    <div class="cwp-lead-title-wrap">';
-        html += '      <div class="cwp-lead-name">';
-        html += '        <span>' + escapeHtml(name) + '</span>';
-        if (nameHi) html += '        <span class="cwp-lead-name-hi">' + escapeHtml(nameHi) + '</span>';
-        html += '      </div>';
-        html += '      <div class="cwp-lead-phone-row">';
+        // Row index
+        html += '  <td style="padding: 12px; text-align: center; font-weight: 600; color: var(--color-text-secondary, #64748b); font-size: 13px;">' + (idx + 1) + '</td>';
+
+        // Lead & Contact
+        html += '  <td style="padding: 12px 16px;">';
+        html += '    <div style="font-weight: 700; color: var(--color-text-primary, #0f172a); font-size: 14px; line-height: 1.3;">' + escapeHtml(name) + '</div>';
+        if (nameHi) {
+          html += '    <div style="font-size: 12px; color: var(--color-text-secondary, #64748b); margin-top: 1px;">' + escapeHtml(nameHi) + '</div>';
+        }
         if (phone) {
-          html += '        <span class="cwp-lead-phone-num">📞 +91 ' + escapeHtml(phone) + '</span>';
-          html += '        <a href="tel:+91' + escapeHtml(phone) + '" class="cwp-lead-quick-call" title="Call lead">📞 Call</a>';
-          html += '        <a href="https://wa.me/91' + escapeHtml(phone) + '?text=Namaste%20' + encodeURIComponent(name) + '%2C%20CWP%20Detailers%20ki%20taraf%20se%20sampark%20kar%20rahe%20hain." target="_blank" rel="noopener" class="cwp-lead-quick-wa" title="WhatsApp Message">💬 WhatsApp</a>';
+          html += '    <div style="margin-top: 5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">';
+          html += '      <span style="font-size: 12.5px; font-weight: 600; color: var(--color-text-primary, #1e293b); font-family: monospace;">+91 ' + escapeHtml(phone) + '</span>';
+          html += '      <a href="tel:+91' + escapeHtml(phone) + '" class="leads-pill-action pill-call" title="Call Lead">📞 Call</a>';
+          html += '      <a href="https://wa.me/91' + escapeHtml(phone) + '?text=Namaste%20' + encodeURIComponent(name) + '%2C%20CWP%20Detailers%20ki%20taraf%20se%20sampark%20kar%20rahe%20hain." target="_blank" rel="noopener" class="leads-pill-action pill-wa" title="WhatsApp Message">💬 WA</a>';
+          html += '    </div>';
         } else {
-          html += '        <span class="cwp-lead-phone-num" style="opacity: 0.6; font-style: italic;">📞 No phone added</span>';
+          html += '    <div style="margin-top: 4px; font-size: 12px; color: var(--color-text-muted, #94a3b8); font-style: italic;">No phone added</div>';
         }
-        html += '      </div>';
-        html += '    </div>';
-        html += '    <span class="cwp-lead-tag-badge">🎯 Lead</span>';
-        html += '  </div>';
+        html += '  </td>';
 
-        // Vehicle Box
-        html += '  <div class="cwp-lead-car-box">';
-        html += '    <div class="cwp-lead-plate-wrap">';
+        // Vehicle & Model
+        html += '  <td style="padding: 12px 14px;">';
         if (rawVeh) {
+          html += '    <div style="display: flex; align-items: center; gap: 8px;">';
           html += '      <span class="cwp-lead-plate-badge">' + escapeHtml(regBadge) + '</span>';
-          if (modelText) html += '      <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">' + escapeHtml(modelText) + '</span>';
+          if (photo) {
+            html += '      <img src="' + escapeHtml(photo) + '" class="cwp-lead-photo-thumb" alt="Vehicle photo" onclick="openPhotoLightbox(\'' + escapeHtml(photo) + '\')" title="Click to view photo" style="width: 28px; height: 28px; border-radius: 6px; object-fit: cover; cursor: pointer; border: 1px solid var(--color-border-subtle, #e2e8f0);">';
+          }
+          html += '    </div>';
+          if (modelText) {
+            html += '    <div style="font-size: 12.5px; font-weight: 500; color: var(--color-text-secondary, #475569); margin-top: 3px;">' + escapeHtml(modelText) + '</div>';
+          }
         } else {
-          html += '      <span class="cwp-lead-plate-badge" style="opacity: 0.7; background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); border-style: dashed;">No vehicle info</span>';
+          html += '    <span style="font-size: 12px; color: var(--color-text-muted, #94a3b8); font-style: italic;">No vehicle info</span>';
         }
-        html += '    </div>';
-        if (photo) {
-          html += '    <img src="' + escapeHtml(photo) + '" class="cwp-lead-photo-thumb" alt="Car photo" onclick="openPhotoLightbox(\'' + escapeHtml(photo) + '\')" title="Click to view photo">';
-        } else {
-          html += '    <span style="font-size: 20px; opacity: 0.6;" title="No car photo uploaded">🚗</span>';
-        }
-        html += '  </div>';
-
-        // Location Box
-        html += '  <div class="cwp-lead-loc-box">';
-        html += '    <span>📍</span>';
-        html += '    <div style="flex: 1;">';
-        if (rawAddr) {
-          html += '      <span>' + escapeHtml(rawAddr) + escapeHtml(addrHi) + '</span>';
-        } else {
-          html += '      <span style="opacity: 0.6; font-style: italic;">No address added</span>';
-        }
-        if (maps) {
-          html += '      <div style="margin-top: 3px;"><a href="' + escapeHtml(maps) + '" target="_blank" rel="noopener" style="font-size: 11.5px; font-weight: 600; color: var(--brand-blue); text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">🗺️ Open in Google Maps ↗</a></div>';
-        }
-        html += '    </div>';
-        html += '  </div>';
+        html += '  </td>';
 
         // Interested Service
-        html += '  <div style="font-size: 11.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">';
-        html += '    <span>Inquiry:</span> <strong style="color: #d97706; background: rgba(245, 158, 11, 0.1); padding: 2px 7px; border-radius: 6px;">' + escapeHtml(sCategory) + '</strong>';
-        html += '  </div>';
+        html += '  <td style="padding: 12px 14px;">';
+        html += '    <span class="leads-service-pill" style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: ' + catBg + '; color: ' + catColor + ';">';
+        html += '      <span>' + catIcon + '</span><span>' + escapeHtml(sCategory) + '</span>';
+        html += '    </span>';
+        html += '  </td>';
 
-        // Notes Box
-        html += '  <div class="cwp-lead-notes-box">';
-        html += '    <div class="cwp-lead-notes-head">';
-        html += '      <span>📝 Remarks:</span>';
-        html += '      <button type="button" class="btn-lead-note-action" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')">+ Add Note</button>';
+        // Location
+        html += '  <td style="padding: 12px 14px;">';
+        if (rawAddr) {
+          html += '    <div style="font-size: 12.5px; color: var(--color-text-primary, #1e293b); max-width: 200px; line-height: 1.35;" title="' + escapeHtml(rawAddr + addrHi) + '">' + escapeHtml(rawAddr) + '</div>';
+        } else {
+          html += '    <div style="font-size: 12px; color: var(--color-text-muted, #94a3b8); font-style: italic;">No address added</div>';
+        }
+        if (maps) {
+          html += '    <div style="margin-top: 3px;"><a href="' + escapeHtml(maps) + '" target="_blank" rel="noopener" style="font-size: 11.5px; font-weight: 600; color: var(--brand-blue, #2563eb); text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">🗺️ Maps ↗</a></div>';
+        }
+        html += '  </td>';
+
+        // Stage Dropdown
+        html += '  <td style="padding: 12px 14px;">';
+        html += '    <select class="leads-stage-select" onchange="updateLeadStage(\'' + escapeHtml(id) + '\', this.value)" style="padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 600; border: 1px solid var(--color-border-subtle, #cbd5e1); background: var(--bg-surface, #ffffff); color: var(--color-text-primary, #0f172a); cursor: pointer;">';
+        html += '      <option value="open"' + (stage === 'open' ? ' selected' : '') + '>📥 New</option>';
+        html += '      <option value="follow_up"' + (stage === 'follow_up' ? ' selected' : '') + '>📞 Follow-Up</option>';
+        html += '      <option value="quoted"' + (stage === 'quoted' ? ' selected' : '') + '>💬 Quoted</option>';
+        html += '      <option value="ready"' + (stage === 'ready' ? ' selected' : '') + '>🌟 Ready</option>';
+        html += '    </select>';
+        html += '  </td>';
+
+        // Remarks / Notes
+        html += '  <td style="padding: 12px 14px;">';
+        html += '    <div class="cwp-lead-notes-box" style="margin: 0; padding: 6px 10px; font-size: 12px; line-height: 1.35; max-width: 220px; max-height: 60px; overflow-y: auto;">';
+        html += '      <div style="color: var(--color-text-secondary, #475569);">' + (notes ? escapeHtml(notes) : '<em style="color: var(--color-text-muted, #94a3b8);">No notes yet.</em>') + '</div>';
         html += '    </div>';
-        html += '    <div class="cwp-lead-notes-content">' + (notes ? escapeHtml(notes) : '<em style="opacity: 0.7;">No remarks yet. Click + Add Note to log call discussion.</em>') + '</div>';
-        html += '  </div>';
+        html += '  </td>';
 
-        // Actions Row
-        html += '  <div class="cwp-lead-actions-row">';
-        html += '    <button type="button" class="btn-convert-hero" onclick="openConvertLeadModal(\'' + escapeHtml(id) + '\')" title="Confirm customer & assign package/staff">';
-        html += '      <span>🌟</span> Confirm & Assign';
-        html += '    </button>';
-        html += '    <div style="display: flex; gap: 6px;">';
-        html += '      <button type="button" class="btn-lead-note-action" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')" title="Add note">📝 Note</button>';
-        html += '      <button type="button" class="btn-lead-icon-danger" onclick="deleteLead(\'' + escapeHtml(id) + '\')" title="Delete or drop lead">🗑️</button>';
+        // Actions
+        html += '  <td style="padding: 12px 16px; text-align: center;">';
+        html += '    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">';
+        html += '      <button type="button" class="btn-convert-hero btn-table-convert" onclick="openConvertLeadModal(\'' + escapeHtml(id) + '\')" title="Confirm customer & assign package/staff" style="padding: 6px 12px; font-size: 12px; border-radius: 8px;">';
+        html += '        <span>🌟</span> Convert';
+        html += '      </button>';
+        html += '      <button type="button" class="btn-lead-note-action" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')" title="Add note" style="padding: 6px 9px; font-size: 12px; border-radius: 8px;">📝</button>';
+        html += '      <button type="button" class="btn-lead-icon-danger" onclick="deleteLead(\'' + escapeHtml(id) + '\')" title="Delete or drop lead" style="padding: 6px 8px; font-size: 12px; border-radius: 8px;">🗑️</button>';
         html += '    </div>';
-        html += '  </div>';
+        html += '  </td>';
 
+        html += '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+      container.innerHTML = html;
+    }
+
+    function renderAdminLeadsKanban(leads) {
+      var container = document.getElementById('leadsListContainer');
+      if (!container) return;
+
+      var stages = [
+        { key: 'open', title: 'New Inquiries', icon: '📥', color: '#3b82f6' },
+        { key: 'follow_up', title: 'In Follow-Up', icon: '📞', color: '#f59e0b' },
+        { key: 'quoted', title: 'Discussion / Quoted', icon: '💬', color: '#8b5cf6' },
+        { key: 'ready', title: 'Ready to Convert', icon: '🌟', color: '#10b981' }
+      ];
+
+      var grouped = { open: [], follow_up: [], quoted: [], ready: [] };
+      leads.forEach(function(l) {
+        var st = (l.leadStatus || 'open').toLowerCase();
+        if (!grouped[st]) grouped.open.push(l);
+        else grouped[st].push(l);
+      });
+
+      var html = '<div class="leads-kanban-board">';
+      stages.forEach(function(s) {
+        var stageLeads = grouped[s.key] || [];
+        html += '<div class="leads-kanban-col" data-stage="' + s.key + '">';
+        html += '  <div class="leads-kanban-header">';
+        html += '    <div class="leads-kanban-title"><span style="font-size: 16px;">' + s.icon + '</span><span>' + s.title + '</span></div>';
+        html += '    <span class="leads-kanban-count" style="background: ' + s.color + '20; color: ' + s.color + ';">' + stageLeads.length + '</span>';
+        html += '  </div>';
+        html += '  <div class="leads-kanban-cards">';
+
+        if (stageLeads.length === 0) {
+          html += '    <div class="leads-kanban-empty">No leads in this stage</div>';
+        } else {
+          stageLeads.forEach(function(l) {
+            var id = l.id || l.customerCode;
+            var name = l.customerName || 'Prospect Lead';
+            var nameHi = l.nameHi ? ' (' + l.nameHi + ')' : '';
+            var phone = l.customerNumber || l.phone || '';
+            var rawVeh = l.vehicle || '';
+            var rawAddr = l.address || '';
+            var addrHi = l.addressHi ? ' • ' + l.addressHi : '';
+            var maps = l.googleMapsUrl || '';
+            var photo = l.photoUrl || '';
+            var notes = l.leadNotes || l.notes || '';
+            var sCategory = l.interestedService || l.serviceCategory || 'Daily Car Cleaning';
+
+            var parsedVeh = rawVeh ? parseVehicleString(rawVeh) : null;
+            var regBadge = (parsedVeh && parsedVeh.reg) ? parsedVeh.reg : (rawVeh || 'No vehicle');
+            var modelText = (parsedVeh && parsedVeh.model) ? (' ' + parsedVeh.model) : '';
+
+            html += '<div class="cwp-lead-card leads-kanban-card" id="leadCard_' + escapeHtml(id) + '">';
+            
+            // Header
+            html += '  <div class="cwp-lead-header">';
+            html += '    <div class="cwp-lead-title-wrap">';
+            html += '      <div class="cwp-lead-name"><span>' + escapeHtml(name) + '</span>' + (nameHi ? ' <span class="cwp-lead-name-hi">' + escapeHtml(nameHi) + '</span>' : '') + '</div>';
+            if (phone) {
+              html += '      <div class="cwp-lead-phone-row">';
+              html += '        <span class="cwp-lead-phone-num">📞 +91 ' + escapeHtml(phone) + '</span>';
+              html += '        <a href="tel:+91' + escapeHtml(phone) + '" class="cwp-lead-quick-call" title="Call lead">📞</a>';
+              html += '        <a href="https://wa.me/91' + escapeHtml(phone) + '?text=Namaste%20' + encodeURIComponent(name) + '%2C%20CWP%20Detailers%20ki%20taraf%20se%20sampark%20kar%20rahe%20hain." target="_blank" rel="noopener" class="cwp-lead-quick-wa" title="WhatsApp Message">💬</a>';
+              html += '      </div>';
+            } else {
+              html += '      <div class="cwp-lead-phone-row"><span class="cwp-lead-phone-num" style="opacity: 0.6; font-style: italic;">No phone</span></div>';
+            }
+            html += '    </div>';
+            html += '    <select class="leads-kanban-stage-changer" onchange="updateLeadStage(\'' + escapeHtml(id) + '\', this.value)" title="Move lead to another stage">';
+            stages.forEach(function(stOpt) {
+              html += '      <option value="' + stOpt.key + '"' + (stOpt.key === s.key ? ' selected' : '') + '>' + stOpt.icon + ' ' + stOpt.title + '</option>';
+            });
+            html += '    </select>';
+            html += '  </div>';
+
+            // Vehicle Box
+            html += '  <div class="cwp-lead-car-box">';
+            html += '    <div class="cwp-lead-plate-wrap">';
+            if (rawVeh) {
+              html += '      <span class="cwp-lead-plate-badge">' + escapeHtml(regBadge) + '</span>';
+              if (modelText) html += '      <span style="font-size: 12px; font-weight: 600; color: var(--text-primary);">' + escapeHtml(modelText) + '</span>';
+            } else {
+              html += '      <span class="cwp-lead-plate-badge" style="opacity: 0.7; background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); border-style: dashed;">No vehicle info</span>';
+            }
+            html += '    </div>';
+            if (photo) {
+              html += '    <img src="' + escapeHtml(photo) + '" class="cwp-lead-photo-thumb" alt="Car photo" onclick="openPhotoLightbox(\'' + escapeHtml(photo) + '\')" title="Click to view photo">';
+            }
+            html += '  </div>';
+
+            // Location Box
+            if (rawAddr || maps) {
+              html += '  <div class="cwp-lead-loc-box">';
+              html += '    <span>📍</span>';
+              html += '    <div style="flex: 1;">';
+              if (rawAddr) html += '<span>' + escapeHtml(rawAddr) + escapeHtml(addrHi) + '</span>';
+              if (maps) html += '<div style="margin-top: 2px;"><a href="' + escapeHtml(maps) + '" target="_blank" rel="noopener" style="font-size: 11px; font-weight: 600; color: var(--brand-blue); text-decoration: none;">🗺️ Open Maps ↗</a></div>';
+              html += '    </div>';
+              html += '  </div>';
+            }
+
+            // Inquiry tag
+            html += '  <div style="font-size: 11.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin: 4px 0;">';
+            html += '    <span>Inquiry:</span> <strong style="color: #d97706; background: rgba(245, 158, 11, 0.1); padding: 1px 6px; border-radius: 4px;">' + escapeHtml(sCategory) + '</strong>';
+            html += '  </div>';
+
+            // Notes Box
+            html += '  <div class="cwp-lead-notes-box">';
+            html += '    <div class="cwp-lead-notes-head">';
+            html += '      <span>📝 Remarks:</span>';
+            html += '      <button type="button" class="btn-lead-note-action" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')">+ Note</button>';
+            html += '    </div>';
+            html += '    <div class="cwp-lead-notes-content">' + (notes ? escapeHtml(notes) : '<em style="opacity: 0.7;">No remarks yet.</em>') + '</div>';
+            html += '  </div>';
+
+            // Actions Row
+            html += '  <div class="cwp-lead-actions-row">';
+            html += '    <button type="button" class="btn-convert-hero" onclick="openConvertLeadModal(\'' + escapeHtml(id) + '\')" title="Confirm customer & assign package/staff">';
+            html += '      <span>🌟</span> Convert';
+            html += '    </button>';
+            html += '    <div style="display: flex; gap: 4px;">';
+            html += '      <button type="button" class="btn-lead-note-action" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')" title="Add note">📝</button>';
+            html += '      <button type="button" class="btn-lead-icon-danger" onclick="deleteLead(\'' + escapeHtml(id) + '\')" title="Delete or drop lead">🗑️</button>';
+            html += '    </div>';
+            html += '  </div>';
+
+            html += '</div>';
+          });
+        }
+
+        html += '  </div>';
         html += '</div>';
       });
+      html += '</div>';
 
       container.innerHTML = html;
     }
@@ -7397,14 +7789,7 @@ function loadStaffCustomerData(staffId) {
       var btn = document.getElementById('btnLeadsSearchClear');
       if (btn) btn.style.display = val ? 'inline-flex' : 'none';
 
-      var q = val.trim().toLowerCase();
-      var filtered = state.leads || [];
-      if (q) {
-        filtered = filtered.filter(function(l) {
-          return recordMatchesBilingualSearch(l, q);
-        });
-      }
-      state.lastFilteredLeads = filtered;
+      var filtered = applyLeadsFilters();
       updateLeadsKpi();
       renderAdminLeadsList(filtered);
     }
