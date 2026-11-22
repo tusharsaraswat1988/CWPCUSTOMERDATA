@@ -64,7 +64,7 @@ function makeRequest(payload, token = '') {
       headers['Authorization'] = 'Bearer ' + token;
     }
     const req = http.request({
-      hostname: 'localhost',
+      hostname: '127.0.0.1',
       port: 3000,
       path: '/api',
       method: 'POST',
