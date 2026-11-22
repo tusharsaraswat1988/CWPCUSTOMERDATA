@@ -9,4 +9,5 @@ scratch/
 /screenshots/
 .chrome_qa_profile/
 local_data.json
+data/job_applications.json
 .edge_profile/

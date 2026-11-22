@@ -9,10 +9,9 @@
  *  - Immediate update activation with skipWaiting & clientsClaim
  */
 
-const CACHE_NAME = 'cwp-staff-pwa-v1.0.23';
+const CACHE_NAME = 'cwp-staff-pwa-v1.0.25';
 
 const PRECACHE_ASSETS = [
-  '/',
   '/staff',
   '/manifest.json',
   '/offline.html',
@@ -86,6 +85,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Public customer pages (Homepage & Careers) must ALWAYS bypass Service Worker
+  if (
+    url.pathname === '/' ||
+    url.pathname === '/home' ||
+    url.pathname === '/careers' ||
+    url.pathname === '/career' ||
+    url.pathname === '/jobs' ||
+    url.pathname === '/job'
+  ) {
+    return;
+  }
+
   // 1. Navigation requests (Opening the PWA or navigating pages)
   if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
@@ -108,10 +119,6 @@ self.addEventListener('fetch', (event) => {
           // Try cached /staff
           const cachedStaff = await caches.match('/staff');
           if (cachedStaff) return cachedStaff;
-
-          // Try cached root /
-          const cachedRoot = await caches.match('/');
-          if (cachedRoot) return cachedRoot;
 
           // Fallback to offline page
           const offlinePage = await caches.match('/offline.html');

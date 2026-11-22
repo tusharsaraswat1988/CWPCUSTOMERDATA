@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Dynamic SEO Meta Tags & Schema.org JSON-LD will be injected by server.js -->
+  <!-- SEO_HEAD_PLACEHOLDER -->
+  
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>
+    // Invalidate any old staff PWA service worker cache for public homepage
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var r of regs) { r.update(); }
+      });
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          names.forEach(function(name) {
+            caches.open(name).then(function(cache) {
+              cache.delete('/');
+              cache.delete('/home');
+            });
+          });
+        });
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/home.css?v=1.0.0">
+</head>
+<body>
+
+  <!-- =========================================================================
+       STICKY TOP NAVBAR (STRICTLY NO STAFF/ADMIN PORTAL LINKS)
+       ========================================================================= -->
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="/" class="brand-logo" aria-label="CWP Detailers Homepage">
+        <img src="/cwp_logo.jpg" alt="CWP Detailers Logo" class="brand-img" width="44" height="44">
+        <div class="brand-info">
+          <h1>CWP Detailers</h1>
+          <span class="brand-tag">Varanasi, India</span>
+        </div>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="#services" class="nav-link">Services</a></li>
+          <li><a href="#packages" class="nav-link">Plans & Pricing</a></li>
+          <li><a href="#offers" class="nav-link">Offers</a></li>
+          <li><a href="#work" class="nav-link">Videos & Proof</a></li>
+          <li><a href="#founder" class="nav-link">Founder</a></li>
+          <li><a href="#reviews" class="nav-link">Reviews</a></li>
+          <li><a href="/careers" class="nav-link" style="color: var(--md-sys-color-primary);">Jobs & Careers</a></li>
+          <li><a href="#contact" class="nav-link">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="tel:7054007733" class="btn-phone" title="Call directly 7 AM to 10 PM">
+          <span>📞</span> 7054007733
+        </a>
+        <button class="btn-primary" onclick="window.openBookingModal('Quick Booking', 'General Doorstep Care')">
+          Book Service
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- =======================================================================
+         HERO SECTION (CAR CARE ↔ SOLAR CARE SWITCHER)
+         ======================================================================= -->
+    <section class="hero-section" id="hero">
+      <div class="container hero-wrap">
+        
+        <!-- Service Switcher -->
+        <div class="service-toggle-wrap">
+          <button class="toggle-btn active" id="toggleCarBtn" aria-label="Switch to Car Care">
+            <span>🚗</span> Car Care
+          </button>
+          <button class="toggle-btn solar-active" id="toggleSolarBtn" aria-label="Switch to Solar Care">
+            <span>☀️</span> Solar Care
+          </button>
+        </div>
+
+        <span class="eyebrow" id="heroEyebrow">📍 VARANASI'S #1 DOORSTEP AUTO SPECIALISTS</span>
+
+        <h2 class="hero-title" id="heroTitle">
+          Ab gaadiyaan hongi <span class="highlight">roj saaf.</span>
+        </h2>
+
+        <p class="hero-desc" id="heroDesc">
+          Regular doorstep cleaning, professional detailing and recurring care plans — trained CWP specialists at your gate, every week. No colony-cleaner swirls, 100% Zero-TDS RO water.
+        </p>
+
+        <!-- Google Rating Badge -->
+        <a href="https://share.google/1sg9sRwZpnyFeYQty" target="_blank" rel="noopener noreferrer" class="google-rating-badge" title="View genuine reviews on Google Maps">
+          <span class="stars">★★★★★</span>
+          <strong>4.9 / 5.0 Google Rating</strong>
+          <span>· 100+ Verified Reviews in Varanasi</span>
+          <span>↗</span>
+        </a>
+
+        <!-- CTA Buttons -->
+        <div class="hero-cta-group">
+          <button class="btn-primary" onclick="window.openBookingModal('Hero Booking', 'Daily Car Cleaning')">
+            Book Doorstep Service →
+          </button>
+          <a href="#packages" class="btn-secondary">
+            View Plans & Pricing
+          </a>
+        </div>
+
+        <!-- Trust Chips -->
+        <div class="trust-chips-grid">
+          <div class="trust-chip"><span>💧</span> 100% Zero-TDS RO Water</div>
+          <div class="trust-chip"><span>🧤</span> 2-Bucket Microfiber Technique</div>
+          <div class="trust-chip"><span>📸</span> Daily WhatsApp Photo Proof</div>
+          <div class="trust-chip"><span>🛡️</span> 24h Re-Do Guarantee</div>
+          <div class="trust-chip"><span>📍</span> Sigra, Cantt & All Varanasi</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         CLIENT LOGOS & TRUSTED SOCIETIES MARQUEE
+         ======================================================================= -->
+    <section class="clients-section">
+      <div class="container">
+        <div class="clients-label">Trusted by Vehicle Owners & Leading Societies across Varanasi</div>
+        <div class="clients-badges-wrap">
+          <span class="client-badge">⭐ Mercedes-Benz</span>
+          <span class="client-badge">⭐ BMW</span>
+          <span class="client-badge">⭐ Audi</span>
+          <span class="client-badge">⭐ Toyota Fortuner & Innova</span>
+          <span class="client-badge">⭐ Hyundai Creta & Verna</span>
+          <span class="client-badge">⭐ Tata Safari & Nexon</span>
+          <span class="client-badge">🏢 Sigra Greens</span>
+          <span class="client-badge">🏢 Mahmoorganj Enclave</span>
+          <span class="client-badge">🏢 Cantt Officers Enclave</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         THE CWP MORNING — LIFESTYLE TIMELINE
+         ======================================================================= -->
+    <section class="section" id="how-it-works">
+      <div class="container">
+        <div class="section-header">
+          <span class="eyebrow">Signature Routine</span>
+          <h2 class="section-title">Subah ki pehli chai ke saath,<br>showroom jaisi chamak aapke gate par.</h2>
+          <p class="section-subtitle">No daily reminders, no colony-cleaner drama, no wasted Sundays. Here is how CWP delivers peace of mind every single morning.</p>
+        </div>
+
+        <div class="timeline-card-wrap">
+          <div class="timeline-header">
+            <div>
+              <strong style="font-size: 1.125rem;">A Typical CWP Morning in Varanasi</strong>
+              <div style="font-size: 0.875rem; color: var(--md-sys-color-on-surface-variant);">Tuesday · Bhelupur / Sigra · Recurring Morning Plan</div>
+            </div>
+            <span class="eyebrow">Zero Owner Effort</span>
+          </div>
+
+          <div class="timeline-step-list">
+            <div class="timeline-step">
+              <span class="timeline-time">6:42 AM</span>
+              <h3 class="timeline-title">Dispatched from Hub</h3>
+              <p class="timeline-desc">Specialist dispatched from our Sigra hub with pre-filled Zero-TDS RO water and battery pressure gear.</p>
+            </div>
+            <div class="timeline-step">
+              <span class="timeline-time">6:58 AM</span>
+              <h3 class="timeline-title">Arrived Silently</h3>
+              <p class="timeline-desc">Uniformed, ID-badged specialist arrives at your gate. Silent setup, your household remains completely undisturbed.</p>
+            </div>
+            <div class="timeline-step">
+              <span class="timeline-time">7:12 AM</span>
+              <h3 class="timeline-title">Cleaned & Inspected</h3>
+              <p class="timeline-desc">2-bucket scratch-free wash, glass polish & tire dressing completed. Digital photos uploaded to WhatsApp.</p>
+            </div>
+            <div class="timeline-step">
+              <span class="timeline-time">8:30 AM</span>
+              <h3 class="timeline-title">You Drive Away</h3>
+              <p class="timeline-desc">You open the front door for your commute. Clean, gleaming car waiting. Unlock, sit down, and drive.</p>
+            </div>
+          </div>
+
+          <div class="timeline-footer">
+            <span style="font-size: 0.9375rem; font-weight: 600;">Total customer time spent today:</span>
+            <span class="effort-metric">0 Minutes (Effortless)</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         SERVICES & DYNAMIC PRICING MATRIX (GST EXTRA NOTED)
+         ======================================================================= -->
+    <section class="section section-alt" id="packages">
+      <div class="container">
+        <div class="section-header">
+          <span class="eyebrow" id="pricingEyebrow">Transparent Pricing</span>
+          <h2 class="section-title">Simple, Honest Plans for Varanasi</h2>
+          <p class="section-subtitle">Managed dynamically by our team. Zero hidden charges. Pick your vehicle category below to see exact rates.</p>
+        </div>
+
+        <!-- Vehicle Type Tabs -->
+        <div class="pricing-tabs-wrap" id="vehicleTabsWrap">
+          <div class="vehicle-tabs" role="tablist">
+            <button class="v-tab-btn active" data-tab="hatchback" role="tab">Hatchback</button>
+            <button class="v-tab-btn" data-tab="sedan" role="tab">Sedan</button>
+            <button class="v-tab-btn" data-tab="compactSuv" role="tab">Compact SUV</button>
+            <button class="v-tab-btn" data-tab="fullSuvLuxury" role="tab">5+ Seater / Luxury</button>
+          </div>
+        </div>
+
+        <div class="gst-notice-bar">
+          ℹ️ All displayed rates are exclusive of 18% GST (GST Extra)
+        </div>
+
+        <!-- Dynamic Cards Container -->
+        <div class="pricing-cards-grid" id="pricingCardsContainer">
+          <!-- Populated dynamically by public/js/home.js -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         SPECIAL OFFERS & PROMO COUPONS
+         ======================================================================= -->
+    <section class="section" id="offers">
+      <div class="container">
+        <div class="section-header">
+          <span class="eyebrow">Exclusive Savings</span>
+          <h2 class="section-title">Active Offers & Discount Coupons</h2>
+          <p class="section-subtitle">Claim these limited-time promotional offers directly on WhatsApp with our team.</p>
+        </div>
+
+        <div class="offers-grid" id="offersContainer">
+          <!-- Populated dynamically by public/js/home.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         VIDEO PROOF & DRAGGABLE BEFORE/AFTER SLIDER
+         ======================================================================= -->
+    <section class="section section-alt" id="work">
+      <div class="container">
+        <div class="section-header">
+          <span class="eyebrow">Real Varanasi Work</span>
+          <h2 class="section-title">Watch Our Specialists in Action</h2>
+          <p class="section-subtitle">Real doorstep foam wash, steam sanitization, and rooftop solar cleaning footage from homes across Varanasi.</p>
+        </div>
+
+        <!-- 4 Fast Video Showcase Cards -->
+        <div class="video-grid">
+          <div class="video-card" onclick="window.openVideoModal('High-Pressure Snow Foam Bath', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')">
+            <div class="video-thumb-wrap">
+              <img src="/cwp_logo.jpg" alt="Snow Foam Wash" class="video-thumb-img">
+              <div class="play-btn-overlay">▶</div>
+            </div>
+            <div class="video-info">
+              <h3 class="video-title">Snow Foam Bath & Underbody Clean</h3>
+              <span style="font-size: 0.75rem; color: var(--md-sys-color-primary); font-weight: 700;">Doorstep · Sigra</span>
+            </div>
+          </div>
+
+          <div class="video-card" onclick="window.openVideoModal('Interior Cabin Steam Extraction', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')">
+            <div class="video-thumb-wrap">
+              <img src="/cwp_logo.jpg" alt="Interior Steam Extraction" class="video-thumb-img">
+              <div class="play-btn-overlay">▶</div>
+            </div>
+            <div class="video-info">
+              <h3 class="video-title">Monsoon Stain & Roof Steam Cleaning</h3>
+              <span style="font-size: 0.75rem; color: var(--md-sys-color-primary); font-weight: 700;">Interior Detail · Cantt</span>
+            </div>
+          </div>
+
+          <div class="video-card" onclick="window.openVideoModal('9H Ceramic Coating Beading Test', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')">
+            <div class="video-thumb-wrap">
+              <img src="/cwp_logo.jpg" alt="9H Ceramic Beading" class="video-thumb-img">
+              <div class="play-btn-overlay">▶</div>
+            </div>
+            <div class="video-info">
+              <h3 class="video-title">Extreme Water Beading on Creta SX</h3>
+              <span style="font-size: 0.75rem; color: var(--md-sys-color-primary); font-weight: 700;">Ceramic Shield · Ravindrapuri</span>
+            </div>
+          </div>
+
+          <div class="video-card" onclick="window.openVideoModal('Solar Rooftop Demineralized RO Wash', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')">
+            <div class="video-thumb-wrap">
+              <img src="/cwp_logo.jpg" alt="Solar Rooftop Wash" class="video-thumb-img">
+              <div class="play-btn-overlay">▶</div>
+            </div>
+            <div class="video-info">
+              <h3 class="video-title">Rooftop Solar Demineralized RO Wash</h3>
+              <span style="font-size: 0.75rem; color: var(--md-sys-color-primary); font-weight: 700;">Solar Care · Mahmoorganj</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Draggable Before/After Comparison Slider -->
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;">Interactive Before & After Result</h3>
+          <p style="font-size: 0.9375rem; color: var(--md-sys-color-on-surface-variant);">Drag the slider handle to inspect paint scratch removal and mirror finish gloss.</p>
+        </div>
+
+        <div class="ba-container" id="baContainer">
+          <div class="ba-img-wrap">
+            <img src="/cwp_logo.jpg" alt="Car before cleaning" style="filter: contrast(0.8) brightness(0.85);">
+            <div class="ba-img-after" id="baImgAfter">
+              <img src="/cwp_logo.jpg" alt="Car after cleaning" style="filter: contrast(1.2) brightness(1.1) saturate(1.2);">
+            </div>
+            <div class="ba-slider-handle" id="baHandle">↔</div>
+            <span class="ba-tag after">Cleaned & Polished</span>
+            <span class="ba-tag before">Before Wash</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         FOUNDER'S SECTION ("SANSTHAPAK KI BAAT")
+         ======================================================================= -->
+    <section class="section" id="founder">
+      <div class="container">
+        <div class="founder-card">
+          <div class="founder-photo-wrap">
+            <img src="/cwp_logo.jpg" alt="CWP Detailers Founder" class="founder-img" width="240" height="240">
+            <h4 class="founder-name">Founder, CWP Detailers</h4>
+            <span class="founder-role">CWP Detailers & Motors, Varanasi</span>
+          </div>
+
+          <div class="founder-content">
+            <span class="eyebrow">Sansthapak ki Baat</span>
+            <h3>Building Varanasi's Most Trusted Doorstep Auto & Solar Care</h3>
+            <p class="founder-message">
+              "Namaste Varanasi! For years, car owners in our holy city had only two frustrating choices: hand their keys to local colony cleaners who scratch the clear coat with dirty cloths and hard water, or spend half of Sunday waiting in long queues at crowded wash centers.<br><br>
+              We founded CWP Detailers with a single uncompromising mission: to bring scientific, Zero-TDS demineralized RO water, scratch-free 2-bucket microfiber washing, and professional ceramic protection right to your home gate.<br><br>
+              Today, over 1,200 Varanasi families wake up to a gleaming car every morning without lifting a finger. If you ever have any question or feedback, my team and I are just one WhatsApp tap away."
+            </p>
+            <a href="https://wa.me/917054007733?text=Hi%20Founder%20CWP%2C%20I%20have%20a%20question%20about%20your%20doorstep%20services" target="_blank" rel="noopener noreferrer" class="btn-whatsapp">
+              Chat Directly with Founder on WhatsApp 💬
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         GENUINE GOOGLE REVIEWS & TESTIMONIALS
+         ======================================================================= -->
+    <section class="section section-alt" id="reviews">
+      <div class="container">
+        <div class="section-header">
+          <span class="eyebrow">Verified Feedbacks</span>
+          <h2 class="section-title">Loved by Varanasi Car & Solar Owners</h2>
+          <p class="section-subtitle">Real Google reviews from residents in Sigra, Cantt, Mahmoorganj, and Ravindrapuri.</p>
+        </div>
+
+        <div class="reviews-grid">
+          <div class="review-card">
+            <div class="review-top">
+              <div class="author-avatar">AM</div>
+              <div>
+                <div class="author-name">Ananya Mishra</div>
+                <div class="author-location">Sigra, Varanasi · Hyundai Creta SX</div>
+              </div>
+            </div>
+            <div class="review-stars">★★★★★</div>
+            <p class="review-quote">
+              "With an Abyss Black Creta in Varanasi dust, colony washes left endless swirl circles. CWP's zero-TDS RO water and 2-bucket microfiber technique completely ended swirl marks. My morning school run starts with a spotless, glossy car."
+            </p>
+          </div>
+
+          <div class="review-card">
+            <div class="review-top">
+              <div class="author-avatar">RS</div>
+              <div>
+                <div class="author-name">Rohit Singhal</div>
+                <div class="author-location">Cantt, Varanasi · Honda City ZX</div>
+              </div>
+            </div>
+            <div class="review-stars">★★★★★</div>
+            <p class="review-quote">
+              "I got their 9H nano-ceramic coating done last year. What keeps me renewing is their morning consistency — they log every single visit with high-res photos and tire dressing logs on WhatsApp before I leave for court."
+            </p>
+          </div>
+
+          <div class="review-card">
+            <div class="review-top">
+              <div class="author-avatar">VP</div>
+              <div>
+                <div class="author-name">Vikramaditya Pandey</div>
+                <div class="author-location">Ravindrapuri, Varanasi · Toyota Fortuner</div>
+              </div>
+            </div>
+            <div class="review-stars">★★★★★</div>
+            <p class="review-quote">
+              "Cleaning a full-size SUV properly used to eat up half my Sunday at wash stations. Their self-powered mobile rig pulls right into my driveway with pure RO water and power. Steam cleaning removed monsoon grime effortlessly."
+            </p>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 36px;">
+          <a href="https://share.google/1sg9sRwZpnyFeYQty" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+            Read All 100+ Reviews on Google Maps ↗
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         HIGH-INTENT SEO FAQS ACCORDION
+         ======================================================================= -->
+    <section class="section" id="faqs">
+      <div class="container">
+        <div class="section-header">
+          <span class="eyebrow">Common Questions</span>
+          <h2 class="section-title">Frequently Asked Questions</h2>
+          <p class="section-subtitle">Everything you need to know about doorstep car cleaning and solar maintenance in Varanasi.</p>
+        </div>
+
+        <div class="faq-accordion">
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Kya mujhe subah gaadi ke paas rehna hoga?</span>
+              <span class="faq-icon">▼</span>
+            </button>
+            <div class="faq-answer">
+              Nahi! Hamare trained aur verified technicians gate par silent wash karte hain. Aap ghar ke andar aaram se chai enjoy karein — kaam complete hone ke baad before & after photo report aapke WhatsApp par aa jaati hai.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>CWP ke Zero-TDS RO water aur ordinary paani mein kya farq hai?</span>
+              <span class="faq-icon">▼</span>
+            </button>
+            <div class="faq-answer">
+              Varanasi ke ground water mein high TDS aur calcium hota hai, jisse car ke clear coat par safed daag (water spots) aur scaling jam jaati hai. CWP 100% demineralized Zero-TDS RO water carry karta hai, jisse paint par zero spot banta hai.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Kya vacation ya travel par jane par plan pause ho sakta hai?</span>
+              <span class="faq-icon">▼</span>
+            </button>
+            <div class="faq-answer">
+              Haan, bilkul! Aap WhatsApp par 7054007733 par message bhejkar apni dates pause kar sakte hain. Aapke un-used days agle cycle mein add ho jaate hain — koi extra charge nahi.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Rooftop solar panel cleaning se kitna fayda hota hai?</span>
+              <span class="faq-icon">▼</span>
+            </button>
+            <div class="faq-answer">
+              Dhool aur pollution ki layer solar cells par aane se power generation 20% se 30% tak gir jaata hai. CWP ke soft brush aur RO water treatment se panel pristine ho jaate hain aur aapko maximum units bijli milti hai.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         OFFICE LOCATION & CONTACT SECTION
+         ======================================================================= -->
+    <section class="section section-alt" id="contact">
+      <div class="container">
+        <div class="section-header">
+          <span class="eyebrow">Connect With Us</span>
+          <h2 class="section-title">Visit Our Office or Call Directly</h2>
+          <p class="section-subtitle">We are proudly headquartered in Varanasi, serving vehicle and solar owners across the city.</p>
+        </div>
+
+        <div class="contact-grid">
+          <div class="office-card">
+            <h3 class="office-title">Corporate Office — Varanasi</h3>
+            
+            <div class="info-row">
+              <span class="info-icon">📍</span>
+              <div>
+                <div class="info-label">Address</div>
+                <div class="info-val">FIRST FLOOR, 32/14-4A, Annapurna Nagar Colony, Vidya Vihar Colony, Shivpurwa, Varanasi, Uttar Pradesh 221002</div>
+                <div style="font-size: 0.8125rem; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">Near Mahmoorganj / Kashi Vidyapeeth Road</div>
+              </div>
+            </div>
+
+            <div class="info-row">
+              <span class="info-icon">📞</span>
+              <div>
+                <div class="info-label">Direct Phone</div>
+                <div class="info-val"><a href="tel:7054007733" style="color: var(--md-sys-color-primary);">+91 7054007733</a> (7 AM – 10 PM)</div>
+              </div>
+            </div>
+
+            <div class="info-row">
+              <span class="info-icon">✉️</span>
+              <div>
+                <div class="info-label">Official Email</div>
+                <div class="info-val"><a href="mailto:cwpdetailers@gmail.com">cwpdetailers@gmail.com</a></div>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px;">
+              <a href="https://share.google/1sg9sRwZpnyFeYQty" target="_blank" rel="noopener noreferrer" class="btn-primary" style="width: 100%;">
+                Open Location in Google Maps 🗺️
+              </a>
+            </div>
+          </div>
+
+          <div class="office-card" style="background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%);">
+            <h3 class="office-title">Quick Booking & Inquiries</h3>
+            <p style="font-size: 0.9375rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 24px;">
+              Ready to start your first week of effortless clean? Send a quick query or claim any active offer in seconds.
+            </p>
+
+            <button class="btn-primary" onclick="window.openBookingModal('General Booking', 'Daily Car Cleaning')" style="width: 100%; margin-bottom: 14px;">
+              Book Doorstep Visit Now
+            </button>
+
+            <a href="https://wa.me/917054007733?text=Hi%20CWP%2C%20I%20want%20to%20know%20more%20about%20your%20services%20in%20Varanasi" target="_blank" rel="noopener noreferrer" class="btn-whatsapp" style="width: 100%; justify-content: center;">
+              Chat on WhatsApp (7054007733) 💬
+            </a>
+
+            <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--md-sys-color-outline); text-align: center;">
+              <span style="font-size: 0.875rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Looking for a job in Varanasi?</span><br>
+              <a href="/careers" style="font-size: 0.9375rem; font-weight: 700; color: var(--md-sys-color-primary);">Join our growing team — Apply on Careers Page →</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================================
+       FOOTER (STRICTLY NO STAFF/ADMIN PORTAL LINKS)
+       ========================================================================= -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="brand-logo">
+          <img src="/cwp_logo.jpg" alt="CWP Logo" width="38" height="38" style="border-radius: var(--radius-sm);">
+          <div>
+            <strong style="font-size: 1rem;">CWP Detailers & Motors</strong>
+            <div style="font-size: 0.75rem; color: var(--md-sys-color-on-surface-variant);">Varanasi, Uttar Pradesh, India</div>
+          </div>
+        </div>
+
+        <div class="social-links">
+          <a href="https://instagram.com/cwpdetailers" target="_blank" rel="noopener noreferrer" class="social-pill" title="Follow CWP on Instagram">
+            📸 Instagram (@cwpdetailers)
+          </a>
+          <a href="https://facebook.com/cwpdetailers" target="_blank" rel="noopener noreferrer" class="social-pill" title="Follow CWP on Facebook">
+            📘 Facebook
+          </a>
+          <a href="/careers" class="social-pill" style="background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
+            💼 We're Hiring!
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          © 2026 CWP Detailers & Motors. All rights reserved. · GST Verified · Built for Varanasi
+        </div>
+        <div style="display: flex; gap: 16px;">
+          <a href="javascript:void(0)" onclick="window.openLegalModal('terms')">Terms & Conditions</a>
+          <a href="javascript:void(0)" onclick="window.openLegalModal('privacy')">Privacy Policy</a>
+          <a href="javascript:void(0)" onclick="window.openLegalModal('refund')">Refund Policy</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================================
+       FLOATING WHATSAPP FAB
+       ========================================================================= -->
+  <a href="https://wa.me/917054007733?text=Hi%20CWP%2C%20I%20want%20to%20book%20a%20doorstep%20service%20in%20Varanasi" target="_blank" rel="noopener noreferrer" class="fab-whatsapp" title="Chat with us on WhatsApp" aria-label="Chat on WhatsApp">
+    💬
+  </a>
+
+  <!-- =========================================================================
+       MODALS: QUICK-BOOK, VIDEO PLAYER, LEGAL
+       ========================================================================= -->
+  <!-- Quick-Book Modal -->
+  <div class="modal-backdrop" id="bookingModal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="window.closeBookingModal()" aria-label="Close modal">✕</button>
+      <h3 style="font-size: 1.375rem; font-weight: 700; margin-bottom: 6px;">Book Doorstep Service</h3>
+      <p style="font-size: 0.875rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 20px;">
+        Fill in your details. We will save your booking and connect you directly with our team on WhatsApp.
+      </p>
+
+      <form id="bookingForm">
+        <input type="hidden" id="modalServiceInput" value="Daily Car Cleaning">
+        <input type="hidden" id="modalPlanInput" value="Standard Plan">
+
+        <div class="form-group">
+          <label class="form-label" for="modalName">Full Name *</label>
+          <input type="text" id="modalName" class="form-input" placeholder="e.g. Rahul Sharma" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="modalPhone">Mobile Number (10 digits) *</label>
+          <input type="tel" id="modalPhone" class="form-input" placeholder="e.g. 9876543210" pattern="[0-9]{10}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="modalVehicle">Vehicle Model / Solar Panels</label>
+          <input type="text" id="modalVehicle" class="form-input" placeholder="e.g. Creta SX / 15 Panels">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="modalLocality">Locality in Varanasi</label>
+          <input type="text" id="modalLocality" class="form-input" placeholder="e.g. Sigra, Cantt, Mahmoorganj, Bhelupur">
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">
+          Confirm & Chat on WhatsApp →
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Video Lightbox Modal -->
+  <div class="modal-backdrop" id="videoModal">
+    <div class="modal-box" style="max-width: 720px; padding: 24px;">
+      <button class="modal-close" onclick="window.closeVideoModal()" aria-label="Close modal">✕</button>
+      <h3 id="videoModalTitle" style="font-size: 1.125rem; font-weight: 700; margin-bottom: 16px;">Video Demonstration</h3>
+      <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: var(--radius-md); background: #000;">
+        <iframe id="videoFrame" src="" style="position: absolute; top:0; left: 0; width: 100%; height: 100%; border:0;" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legal Slide-Over Modal -->
+  <div class="modal-backdrop" id="legalModal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="window.closeLegalModal()" aria-label="Close modal">✕</button>
+      <h3 id="legalModalTitle" style="font-size: 1.25rem; font-weight: 700; margin-bottom: 16px;">Legal Policy</h3>
+      <div id="legalModalBody" style="font-size: 0.9375rem; color: var(--md-sys-color-on-surface-variant); line-height: 1.6;"></div>
+    </div>
+  </div>
+
+  <script src="/js/home.js?v=1.0.0"></script>
+</body>
+</html>

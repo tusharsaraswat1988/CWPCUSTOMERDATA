@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Dynamic SEO Meta Tags & JobPosting JSON-LD will be injected by server.js -->
+  <!-- CAREERS_SEO_HEAD_PLACEHOLDER -->
+
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var r of regs) { r.update(); }
+      });
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          names.forEach(function(name) {
+            caches.open(name).then(function(cache) {
+              cache.delete('/careers');
+              cache.delete('/jobs');
+            });
+          });
+        });
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/careers.css?v=1.0.0">
+</head>
+<body>
+
+  <!-- =========================================================================
+       STICKY TOP NAVBAR (NO STAFF/ADMIN LINKS)
+       ========================================================================= -->
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="/" class="brand-logo" aria-label="CWP Detailers Homepage">
+        <img src="/cwp_logo.jpg" alt="CWP Detailers Logo" class="brand-img" width="44" height="44">
+        <div class="brand-info">
+          <h1>CWP Detailers</h1>
+          <span class="brand-tag">Varanasi, India</span>
+        </div>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link">Home</a></li>
+          <li><a href="/#services" class="nav-link">Services</a></li>
+          <li><a href="/#packages" class="nav-link">Plans</a></li>
+          <li><a href="#why-cwp" class="nav-link">Why Join Us</a></li>
+          <li><a href="#apply" class="nav-link">Apply Now</a></li>
+          <li><a href="/#contact" class="nav-link">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="tel:7054007733" class="btn-phone" title="Call directly 7 AM to 10 PM">
+          <span>📞</span> 7054007733
+        </a>
+        <a href="#apply" class="btn-primary">
+          Join CWP Team
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- =======================================================================
+         CAREERS HERO
+         ======================================================================= -->
+    <section class="careers-hero">
+      <div class="container">
+        <span class="eyebrow">💼 WE ARE HIRING IN VARANASI</span>
+        <h2 class="careers-hero-title">
+          CWP Parivaar Ka <span class="highlight">Hissa Baniye.</span>
+        </h2>
+        <p class="careers-hero-desc">
+          Varanasi ke sabse modern aur fast-growing doorstep vehicle care & solar cleaning network mein kaam karein. Samman, modern training, aur timely payouts ke saath apne career ko nayi udaan dein.
+        </p>
+        <div style="display: flex; gap: 16px; justify-content: center;">
+          <a href="#apply" class="btn-primary">
+            Quick Job Application (2 Min) →
+          </a>
+          <a href="https://wa.me/917054007733?text=Namaste%20CWP%2C%20mujhe%20job%20ke%20baare%20mein%20jaankari%20chahiye" target="_blank" rel="noopener noreferrer" class="btn-whatsapp">
+            Direct WhatsApp HR 💬
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         WHY JOIN CWP - 4 PRIDE PILLARS
+         ======================================================================= -->
+    <section class="section" id="why-cwp">
+      <div class="container">
+        <div class="section-header">
+          <span class="eyebrow">Our Culture & Values</span>
+          <h2 class="section-title">Kyun CWP Hai Ek Alag Aur Behtar Jagah?</h2>
+          <p class="section-subtitle">Hamara har technician hamari shaan hai. Yahan aap sirf ek cleaner nahi, certified specialist bante hain.</p>
+        </div>
+
+        <div class="pride-grid">
+          <div class="pride-card">
+            <span class="pride-icon">👔</span>
+            <h3 class="pride-title">Samman & Pehchan</h3>
+            <p class="pride-desc">Smart branded uniform, company ID card, aur poora aadar. Roadside cleaner ki tarah nahi — aap ek certified CWP technician hain.</p>
+          </div>
+
+          <div class="pride-card">
+            <span class="pride-icon">⚡</span>
+            <h3 class="pride-title">Modern Tools & Tech</h3>
+            <p class="pride-desc">Battery pressure kits, zero-TDS RO demineralized water, steam machines, aur digital app. Koi purani baalti-kapda ki majboori nahi.</p>
+          </div>
+
+          <div class="pride-card">
+            <span class="pride-icon">🤝</span>
+            <h3 class="pride-title">Supportive Environment</h3>
+            <p class="pride-desc">On-time payments, supportive hub managers, aur respectful colony morning shifts. Sabhi technicians ke saath parivaar jaisa vyavhaar.</p>
+          </div>
+
+          <div class="pride-card">
+            <span class="pride-icon">📈</span>
+            <h3 class="pride-title">Career Growth Path</h3>
+            <p class="pride-desc">Junior cleaner se Detailer, Team Leader, aur Varanasi Hub Supervisor banne ka clear rasta. Sikhiye luxury car ceramic coating aur PPF.</p>
+          </div>
+        </div>
+
+        <!-- Team Culture Visuals -->
+        <div class="culture-strip">
+          <div class="culture-card">
+            <img src="/cwp_logo.jpg" alt="Certified Training" class="culture-img">
+            <div class="culture-caption">Hands-on Machine & Detailing Training</div>
+          </div>
+          <div class="culture-card">
+            <img src="/cwp_logo.jpg" alt="Sigra Hub Morning Briefing" class="culture-img">
+            <div class="culture-caption">Sigra Hub Morning Rhythm & Team Spirit</div>
+          </div>
+          <div class="culture-card">
+            <img src="/cwp_logo.jpg" alt="Solar & Vehicle Care" class="culture-img">
+            <div class="culture-caption">Doorstep Precision on Premium Vehicles</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         STREAMLINED APPLICATION FORM
+         ======================================================================= -->
+    <section class="section section-alt" id="apply">
+      <div class="container">
+        
+        <div class="apply-box">
+          <div class="apply-header">
+            <span class="eyebrow">Job Application</span>
+            <h2 class="apply-title">Apna Aavedan (Application) Bhejein</h2>
+            <p class="apply-subtitle">Sirf apna Naam aur Mobile Number daalein. Baaki sabhi fields optional hain. Hamari HR team aapse 24 ghante ke andar baat karegi.</p>
+          </div>
+
+          <form id="jobAppForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="appName">Full Name (Poora Naam) *</label>
+                <input type="text" id="appName" class="form-input" placeholder="e.g. Ramesh Kumar" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="appMobile">Mobile Number *</label>
+                <input type="tel" id="appMobile" class="form-input" placeholder="e.g. 9876543210 (10 Digits)" pattern="[0-9]{10}" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="appAge">Age (Umar) — Optional</label>
+                <input type="number" id="appAge" class="form-input" placeholder="e.g. 24" min="18" max="65">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="appGender">Gender (Ling) — Optional</label>
+                <select id="appGender" class="form-input">
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male (Purush)</option>
+                  <option value="Female">Female (Mahila)</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="appCity">Current City / Locality in Varanasi — Optional</label>
+                <input type="text" id="appCity" class="form-input" placeholder="e.g. Shivpurwa, Sigra, Cantt, Lanka">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="appEmail">Email Address — Optional</label>
+                <input type="email" id="appEmail" class="form-input" placeholder="e.g. yourname@gmail.com">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Upload Resume / Biodata / Photo (Optional)</label>
+              <label class="file-upload-wrap" for="appResume">
+                <span id="fileUploadLabel">📄 Click to select document or photo (PDF, JPG, PNG up to 10MB)</span>
+                <input type="file" id="appResume" style="display: none;" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="appRemark">Remark / Past Experience — Optional</label>
+              <textarea id="appRemark" class="form-input" rows="3" placeholder="Pehle kisi car wash, driving, ya detailing mein kaam kiya hai? Koi khaas baat batana chahein toh yahan likhein..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; font-size: 1.0625rem; margin-top: 12px;">
+              Submit Application →
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         OFFICE CONTACT & HR SUPPORT
+         ======================================================================= -->
+    <section class="section" style="padding-top: 32px;">
+      <div class="container" style="text-align: center; max-width: 680px;">
+        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">Direct HR Helpline — Varanasi</h3>
+        <p style="font-size: 0.9375rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 20px;">
+          Agar aap aavedan karne ke baad direct interview slot ke baare mein poochna chahte hain, toh hamare recruitment desk par call ya WhatsApp karein.
+        </p>
+        <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+          <a href="tel:7054007733" class="btn-phone">📞 Call HR: 7054007733</a>
+          <a href="https://wa.me/917054007733?text=Namaste%20HR%2C%20maine%20job%20ke%20liye%20apply%20kiya%20hai" target="_blank" rel="noopener noreferrer" class="btn-whatsapp">
+            WhatsApp HR 💬
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================================
+       FOOTER (NO STAFF/ADMIN LINKS)
+       ========================================================================= -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="brand-logo">
+          <img src="/cwp_logo.jpg" alt="CWP Logo" width="38" height="38" style="border-radius: var(--radius-sm);">
+          <div>
+            <strong style="font-size: 1rem;">CWP Detailers & Motors</strong>
+            <div style="font-size: 0.75rem; color: var(--md-sys-color-on-surface-variant);">Careers & Recruitment Desk · Varanasi</div>
+          </div>
+        </div>
+
+        <div class="social-links">
+          <a href="/" class="social-pill">
+            🏠 Back to Customer Homepage
+          </a>
+          <a href="https://instagram.com/cwpdetailers" target="_blank" rel="noopener noreferrer" class="social-pill">
+            📸 Instagram
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>© 2026 CWP Detailers & Motors. Equal Opportunity Employer.</div>
+        <div>Office: Shivpurwa, Annapurna Nagar Colony, Varanasi - 221002</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================================
+       APPLICATION SUCCESS MODAL
+       ========================================================================= -->
+  <div class="modal-backdrop" id="careerSuccessModal">
+    <div class="modal-box" style="text-align: center;">
+      <button class="modal-close" onclick="window.closeCareerSuccess()" aria-label="Close modal">✕</button>
+      <div style="font-size: 3rem; margin-bottom: 12px;">🎉</div>
+      <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 8px;">Aavedan Jama Ho Gaya!</h3>
+      <p style="font-size: 0.9375rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 24px;">
+        Dhanyawaad <strong id="applicantDisplayName"></strong> ji! Aapka job application CWP recruitment team ke paas pahunch gaya hai. Fast interview schedule karne ke liye abhi WhatsApp par HR se connect karein.
+      </p>
+      <button class="btn-whatsapp" onclick="window.chatHRWhatsApp()" style="width: 100%; justify-content: center; padding: 14px;">
+        Connect with HR on WhatsApp (7054007733) 💬
+      </button>
+    </div>
+  </div>
+
+  <script src="/js/careers.js?v=1.0.0"></script>
+</body>
+</html>

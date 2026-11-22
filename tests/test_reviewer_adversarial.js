@@ -86,23 +86,23 @@ async function runAdversarialAudit() {
     const auditStaffId = auditStaffRes.rows[0].id;
 
     try {
-      // Scenario A: Brief pause (3 minutes dwell) then departure
+      // Scenario A: Brief pause (2 minutes dwell, e.g. traffic signal) then departure
       const t0 = new Date('2026-11-22T08:00:00Z');
-      const tStop1 = new Date('2026-11-22T08:05:00Z');
-      const tStop2 = new Date('2026-11-22T08:08:00Z'); // 3 minutes later
-      const tDepart = new Date('2026-11-22T08:15:00Z'); // Moved away
+      const tStop1 = new Date('2026-11-22T08:02:00Z');
+      const tStop2 = new Date('2026-11-22T08:03:00Z'); // 1 minute later
+      const tDepart = new Date('2026-11-22T08:04:30Z'); // Departed at 2.5 min elapsed
 
       // Initial fix
       await repos.staffTracking.recordLocation(auditStaffId, {
         latitude: 25.3100, longitude: 82.9700, capturedAt: t0.toISOString()
       });
 
-      // Stationary fix at 08:05 (<15m jitter) -> starts stoppage
+      // Stationary fix at 08:02 (<15m jitter) -> starts stoppage
       await repos.staffTracking.recordLocation(auditStaffId, {
         latitude: 25.31001, longitude: 82.97001, capturedAt: tStop1.toISOString()
       });
 
-      // Stationary fix at 08:08 (dwell = 3.0 min)
+      // Stationary fix at 08:03 (dwell = 1.0 min)
       await repos.staffTracking.recordLocation(auditStaffId, {
         latitude: 25.31002, longitude: 82.97001, capturedAt: tStop2.toISOString()
       });
@@ -114,12 +114,12 @@ async function runAdversarialAudit() {
       );
       assert.strictEqual(activeStopCheck.rows.length, 1, 'Should have 1 active stoppage while dwelling');
 
-      // Now staff departs: moves 500 meters away at 08:15
+      // Now staff departs: moves 500 meters away at 08:04:30 (dwell was 2.5 minutes < 5 min)
       await repos.staffTracking.recordLocation(auditStaffId, {
         latitude: 25.3150, longitude: 82.9750, capturedAt: tDepart.toISOString()
       });
 
-      // Since dwell was 3 minutes (< 5 minutes threshold), the stoppage record should be purged
+      // Since dwell was 2.5 minutes (< 5 minutes threshold), the stoppage record should be purged
       const briefStopCheck = await db.query(
         'SELECT * FROM public.staff_stoppages WHERE staff_id = $1',
         [auditStaffId]
@@ -130,8 +130,8 @@ async function runAdversarialAudit() {
       // Scenario B: Genuine stoppage (12 minutes dwell) then departure
       const tG0 = new Date('2026-11-22T08:20:00Z');
       const tGArrive = new Date('2026-11-22T08:25:00Z');
-      const tGDwell = new Date('2026-11-22T08:37:00Z'); // 12 minutes later
-      const tGDepart = new Date('2026-11-22T08:45:00Z');
+      const tGDwell = new Date('2026-11-22T08:35:00Z'); // 10 minutes later
+      const tGDepart = new Date('2026-11-22T08:37:00Z'); // 12 minutes total
 
       await repos.staffTracking.recordLocation(auditStaffId, {
         latitude: 25.3200, longitude: 82.9800, capturedAt: tG0.toISOString()
@@ -164,7 +164,7 @@ async function runAdversarialAudit() {
 
       // Create a test customer with service location at (25.3500, 82.9500)
       const custRes = await db.query(
-        `INSERT INTO public.customers (name, phone) VALUES ('Audit Spatial Geocode Customer', '9999900002') RETURNING id`
+        `INSERT INTO public.customers (name, phone, customer_code, source_sheet_name, source_row_index) VALUES ('Audit Spatial Geocode Customer', '9999900002', 'CUST_AUDIT_99', 'TEST_SHEET', 99999) RETURNING id`
       );
       const auditCustId = custRes.rows[0].id;
       await db.query(

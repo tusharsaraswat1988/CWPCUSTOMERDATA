@@ -12,6 +12,8 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 
+process.env.NODE_ENV = 'test';
+
 console.log('===============================================================');
 console.log('🚀 RUNNING SEPARATED ADDRESS & MAP COLUMNS QA SUITE');
 console.log('===============================================================');

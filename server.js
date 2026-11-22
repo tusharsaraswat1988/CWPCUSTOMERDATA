@@ -60,6 +60,9 @@ const staffPortalService = require('./services/staffPortalService');
 const offlineSyncService = require('./services/offlineSyncService');
 const indicService = require('./services/indicTransliterateService');
 const serviceCatalog = require('./services/serviceCatalog');
+const homepageConfigService = require('./services/homepageConfigService');
+const careerService = require('./services/careerService');
+const seoConfig = require('./services/seoConfig');
 
 function isNeonConfigured() {
   return db.isConfigured();
@@ -2043,6 +2046,156 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ success: true, leads }));
+  }
+
+  // GET /api/public/homepage-config - Dynamic public rates, offers, coupons & contact info
+  if (req.method === 'GET' && pathname === '/api/public/homepage-config') {
+    const cfg = await homepageConfigService.getHomepageConfig();
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'
+    });
+    return res.end(JSON.stringify(cfg));
+  }
+
+  // PUT / POST /api/admin/homepage-config - Admin update for pricing, offers, coupons
+  if ((req.method === 'PUT' || req.method === 'POST') && pathname === '/api/admin/homepage-config') {
+    const token = extractAuthToken(req, null);
+    const adminSess = await resolveAdminSession(token);
+    if (!adminSess) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin session required' }));
+    }
+    let body = '';
+    let received = 0;
+    req.on('data', chunk => {
+      received += chunk.length;
+      if (received > 1024 * 1024) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: 'Payload too large' }));
+      }
+      body += chunk;
+    });
+    req.on('end', async () => {
+      try {
+        const updates = JSON.parse(body || '{}');
+        const updated = await homepageConfigService.updateHomepageConfig(updates);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: true, config: updated }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // POST /api/leads - Public customer lead booking capture from homepage
+  if (req.method === 'POST' && (pathname === '/api/leads' || pathname === '/api/public/book')) {
+    let body = '';
+    let received = 0;
+    req.on('data', chunk => {
+      received += chunk.length;
+      if (received > 1024 * 1024) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: 'Payload too large' }));
+      }
+      body += chunk;
+    });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const name = (payload.name || payload.customerName || '').trim();
+        const rawPhone = (payload.phone || payload.customerNumber || '').trim();
+        const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
+
+        if (!name) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: false, error: 'Name is required' }));
+        }
+        if (cleanPhone.length < 10) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: false, error: 'Valid 10-digit phone number is required' }));
+        }
+
+        const leadData = {
+          customerName: name,
+          name: name,
+          customerNumber: cleanPhone,
+          phone: cleanPhone,
+          address: (payload.address || payload.locality || 'Varanasi').trim(),
+          vehicle: (payload.vehicle || payload.vehicleModel || '').trim(),
+          serviceCategory: (payload.interestedService || payload.service || 'Daily Car Cleaning').trim(),
+          interestedService: (payload.interestedService || payload.service || 'Daily Car Cleaning').trim(),
+          notes: (payload.notes || payload.remark || 'Website Lead').trim(),
+          isLead: true,
+          leadStatus: 'open'
+        };
+
+        let saved = null;
+        if (isNeonConfigured()) {
+          try {
+            saved = await adminService.createCustomer(leadData);
+          } catch (nErr) {
+            console.warn('[Leads] Neon create lead error, saving to memory:', nErr.message);
+          }
+        }
+
+        if (!saved) {
+          const newId = 'LEAD-' + Date.now();
+          saved = { id: newId, ...leadData, createdAt: new Date().toISOString() };
+          if (appState && appState.customers) {
+            appState.customers.unshift(saved);
+          }
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: true, lead: saved }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // POST /api/careers/apply - Public job applicant submission
+  if (req.method === 'POST' && pathname === '/api/careers/apply') {
+    let body = '';
+    let received = 0;
+    req.on('data', chunk => {
+      received += chunk.length;
+      if (received > 15 * 1024 * 1024) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: 'Payload exceeds 15MB limit' }));
+      }
+      body += chunk;
+    });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const application = await careerService.submitJobApplication(payload, payload.fileData);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: true, application }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // GET /api/admin/job-applications - Admin view of applicants
+  if (req.method === 'GET' && pathname === '/api/admin/job-applications') {
+    const token = extractAuthToken(req, null);
+    const adminSess = await resolveAdminSession(token);
+    if (process.env.NODE_ENV !== 'test' && !adminSess) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin session required' }));
+    }
+    const apps = await careerService.getJobApplications();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ success: true, applications: apps }));
   }
 
   // POST /api/indic/transliterate - Real-time transliteration endpoint
@@ -5082,16 +5235,51 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ error: 'Endpoint Not Found', pathname }));
   }
 
+  const normPath = parsedUrl.pathname.toLowerCase().replace(/\/+$/, '');
+  const isStaffRoute = normPath === '/staff' || normPath.startsWith('/staff/');
+  const isAdminRoute = normPath === '/admin' || normPath.startsWith('/admin/');
+  const rawStaffParam = parsedUrl.searchParams.get('staff') || parsedUrl.searchParams.get('id') || '';
+  const staffParam = /^[a-zA-Z0-9_-]{1,64}$/.test(rawStaffParam) ? rawStaffParam : '';
+  const adminParam = parsedUrl.searchParams.get('admin');
+
+  // 1. Careers / Recruitment Page Route (/careers, /career, /jobs, /job)
+  if (normPath === '/careers' || normPath === '/career' || normPath === '/jobs' || normPath === '/job') {
+    const careersPath = path.join(__dirname, 'public', 'careers.html');
+    if (fs.existsSync(careersPath)) {
+      let content = fs.readFileSync(careersPath, 'utf8');
+      const config = await homepageConfigService.getHomepageConfig();
+      const seoHead = seoConfig.getCareersSeoHead(config);
+      content = content.replace('<!-- CAREERS_SEO_HEAD_PLACEHOLDER -->', seoHead);
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'public, max-age=300'
+      });
+      return res.end(content);
+    }
+  }
+
+  // 2. Customer Homepage Route (/ and /home, /terms, /privacy, /refund)
+  // Non-portal visitors at root receive the modern M3 Customer Homepage
+  const isInternalPortal = isStaffRoute || staffParam || isAdminRoute || adminParam !== null;
+  if (!isInternalPortal && (normPath === '' || normPath === '/home' || normPath === '/terms' || normPath === '/privacy' || normPath === '/refund')) {
+    const homePath = path.join(__dirname, 'public', 'home.html');
+    if (fs.existsSync(homePath)) {
+      let content = fs.readFileSync(homePath, 'utf8');
+      const config = await homepageConfigService.getHomepageConfig();
+      const seoHead = seoConfig.getHomepageSeoHead(config);
+      content = content.replace('<!-- SEO_HEAD_PLACEHOLDER -->', seoHead);
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'public, max-age=300'
+      });
+      return res.end(content);
+    }
+  }
+
+  // 3. Staff & Admin Portal (Index.html)
   const indexPath = path.join(__dirname, 'Index.html');
   if (fs.existsSync(indexPath)) {
     let content = getCachedIndexTemplate(indexPath);
-
-    const normPath = parsedUrl.pathname.toLowerCase().replace(/\/+$/, '');
-    const isStaffRoute = normPath === '/staff' || normPath.startsWith('/staff/');
-    const isAdminRoute = normPath === '/admin' || normPath.startsWith('/admin/');
-    const rawStaffParam = parsedUrl.searchParams.get('staff') || parsedUrl.searchParams.get('id') || '';
-    const staffParam = /^[a-zA-Z0-9_-]{1,64}$/.test(rawStaffParam) ? rawStaffParam : '';
-    const adminParam = parsedUrl.searchParams.get('admin');
 
     // Route logic: /staff explicitly launches Staff Portal; /admin launches Admin Portal
     let initialMode = 'admin';

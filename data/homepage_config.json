@@ -1,0 +1,107 @@
+{
+  "contact": {
+    "phone": "7054007733",
+    "phoneDisplay": "+91 7054007733",
+    "email": "cwpdetailers@gmail.com",
+    "address": "FIRST FLOOR, 32/14-4A, Annapurna Nagar Colony, Vidya Vihar Colony, Shivpurwa, Varanasi, Uttar Pradesh 221002",
+    "landmark": "Near Mahmoorganj / Kashi Vidyapeeth Road, Varanasi",
+    "googleMapsUrl": "https://share.google/1sg9sRwZpnyFeYQty",
+    "whatsappUrl": "https://wa.me/917054007733",
+    "instagramUrl": "https://instagram.com/cwpdetailers",
+    "facebookUrl": "https://facebook.com/cwpdetailers"
+  },
+  "gst": {
+    "percent": 18,
+    "label": "(GST Extra)",
+    "notice": "All rates are exclusive of 18% GST (GST Extra)"
+  },
+  "rates": {
+    "hatchback": {
+      "dailyClean": 2099
+    },
+    "sedan": {
+      "dailyClean": 2199,
+      "interiorExteriorDetail": 1699,
+      "ceramicCoating": 9999,
+      "examples": "City, Verna, Ciaz, Slavia, Virtus, Dzire, Amaze"
+    },
+    "compactSuv": {
+      "dailyClean": 2299,
+      "interiorExteriorDetail": 1799,
+      "ceramicCoating": 10999,
+      "examples": "Creta, Seltos, Brezza, Nexon, Venue, Grand Vitara"
+    },
+    "fullSuvLuxury": {
+      "dailyClean": 2699,
+      "interiorExteriorDetail": 2199,
+      "ceramicCoating": 13999,
+      "examples": "Fortuner, Safari, XUV700, Scorpio-N, BMW, Mercedes"
+    },
+    "solarCare": {
+      "perPanelSingle": 40,
+      "perPanelSubscription6Mo": 30,
+      "perPanelSubscription12Mo": 25,
+      "minimumPanels": 10
+    }
+  },
+  "offers": [
+    {
+      "id": "offer_1",
+      "code": "CWPFIRST300",
+      "title": "Pehla Mahina Welcome Offer",
+      "titleHi": "पहला महीना वेलकम ऑफर",
+      "discountText": "Flat ₹300 OFF",
+      "description": "Flat ₹300 discount on your first month Daily Car Clean subscription.",
+      "badge": "New Customer Special",
+      "active": true
+    },
+    {
+      "id": "offer_2",
+      "code": "MULTICAR15",
+      "title": "Society & Multi-Car Discount",
+      "titleHi": "सोसायटी व मल्टी-कार छूट",
+      "discountText": "Flat 15% OFF",
+      "description": "Register 2 or more cars at the same gate or apartment society and get 15% OFF.",
+      "badge": "Society Favorite",
+      "active": true
+    },
+    {
+      "id": "offer_3",
+      "code": "SOLARDETAIL50",
+      "title": "Solar + Detailing Duo Saver",
+      "titleHi": "सोलर + डिटेलिंग डुओ सेवर",
+      "discountText": "50% OFF Solar Clean",
+      "description": "Book any Interior + Exterior Deep Detailing session and get 50% OFF rooftop solar panel cleaning.",
+      "badge": "Best Value Combo",
+      "active": true
+    }
+  ],
+  "coupons": [
+    {
+      "code": "CWPFIRST300",
+      "discount": 300,
+      "type": "flat",
+      "active": true
+    },
+    {
+      "code": "MULTICAR15",
+      "discount": 15,
+      "type": "percentage",
+      "active": true
+    },
+    {
+      "code": "SOLARDETAIL50",
+      "discount": 50,
+      "type": "solar_combo",
+      "active": true
+    }
+  ],
+  "stats": {
+    "googleRating": "4.9",
+    "ratingMax": "5.0",
+    "totalReviews": "100+",
+    "activeMembers": "450+",
+    "waterTds": "0 TDS (Pure RO)",
+    "onTimeRate": "98.4%"
+  }
+}

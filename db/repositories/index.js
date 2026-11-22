@@ -17,5 +17,6 @@ module.exports = {
   serviceJobs: require('./serviceJobsRepo'),
   serviceLogs: require('./serviceLogsRepo'),
   auditLogs: require('./auditLogsRepo'),
-  staffTracking: require('./staffTrackingRepo')
+  staffTracking: require('./staffTrackingRepo'),
+  jobApplications: require('./jobApplicationsRepo')
 };

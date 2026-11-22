@@ -207,9 +207,9 @@ async function runServerTests() {
     const js304 = await httpGet('/js/app.js', { 'If-None-Match': jsEtag });
     assert.strictEqual(js304.statusCode, 304, 'Revalidating JS with matching ETag must return HTTP 304 Not Modified');
 
-    // 5. Fetch / (Root Index HTML)
-    const rootRes = await httpGet('/');
-    assert.strictEqual(rootRes.statusCode, 200, 'GET / must return HTTP 200');
+    // 5. Fetch /admin (Portal Index HTML)
+    const rootRes = await httpGet('/admin');
+    assert.strictEqual(rootRes.statusCode, 200, 'GET /admin must return HTTP 200');
     assert.ok(rootRes.headers['content-type'].includes('text/html'), 'Root Content-Type must be text/html');
     assert.ok(/<link[^>]+href=["']\/css\/style\.css(\?v=[^"']+)?["']/.test(rootRes.body), 'HTML must link external style.css');
     assert.ok(/<script[^>]+src=["']\/js\/app\.js(\?v=[^"']+)?["'][^>]*defer/.test(rootRes.body), 'HTML must defer-load app.js');
