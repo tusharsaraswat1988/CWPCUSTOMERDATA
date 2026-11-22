@@ -1461,6 +1461,13 @@ var state = {
       window.setLeadCategoryFilter = setLeadCategoryFilter;
       window.setLeadStageFilter = setLeadStageFilter;
       window.updateLeadStage = updateLeadStage;
+      window.shiftLeadStage = shiftLeadStage;
+      window.handleLeadDragStart = handleLeadDragStart;
+      window.handleLeadDragEnd = handleLeadDragEnd;
+      window.handleLeadDragOver = handleLeadDragOver;
+      window.handleLeadDragEnter = handleLeadDragEnter;
+      window.handleLeadDragLeave = handleLeadDragLeave;
+      window.handleLeadDrop = handleLeadDrop;
       window.renderAdminLeadsTable = renderAdminLeadsTable;
       window.renderAdminLeadsKanban = renderAdminLeadsKanban;
       window.openConvertLeadModal = openConvertLeadModal;
@@ -2531,6 +2538,9 @@ var state = {
       var isOpen = sidebar.classList.contains('sidebar-open');
       var nextState = (typeof forceState === 'boolean') ? forceState : !isOpen;
       if (nextState) {
+        if (window.innerWidth <= 1024) {
+          sidebar.classList.remove('collapsed', 'rail-mode');
+        }
         sidebar.classList.add('sidebar-open');
         if (backdrop) backdrop.classList.add('active');
         if (window.innerWidth <= 1024) document.body.style.overflow = 'hidden';
@@ -7107,6 +7117,85 @@ function loadStaffCustomerData(staffId) {
       return filtered;
     }
 
+    function shiftLeadStage(leadId, direction) {
+      var stages = ['open', 'follow_up', 'quoted', 'ready'];
+      var lead = (state.leads || []).find(function(l) {
+        return (l.id && l.id === leadId) || (l.customerCode && l.customerCode === leadId);
+      });
+      if (!lead) return;
+      var curStage = (lead.leadStatus || 'open').toLowerCase();
+      var idx = stages.indexOf(curStage);
+      if (idx === -1) idx = 0;
+
+      var nextIdx = direction === 'next' ? idx + 1 : idx - 1;
+      if (nextIdx >= 0 && nextIdx < stages.length) {
+        updateLeadStage(leadId, stages[nextIdx]);
+      }
+    }
+
+    function handleLeadDragStart(e, leadId) {
+      if (!e) return;
+      state.draggedLeadId = leadId;
+      if (e.dataTransfer) {
+        e.dataTransfer.setData('text/plain', leadId);
+        e.dataTransfer.effectAllowed = 'move';
+      }
+      var card = document.getElementById('leadCard_' + leadId);
+      if (card) {
+        setTimeout(function() {
+          card.classList.add('dragging');
+        }, 10);
+      }
+    }
+
+    function handleLeadDragEnd(e) {
+      state.draggedLeadId = null;
+      var cards = document.querySelectorAll('.compact-lead-card.dragging');
+      cards.forEach(function(c) { c.classList.remove('dragging'); });
+      var cols = document.querySelectorAll('.leads-kanban-col.kanban-col-dragover');
+      cols.forEach(function(col) { col.classList.remove('kanban-col-dragover'); });
+    }
+
+    function handleLeadDragOver(e) {
+      if (e) {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      }
+    }
+
+    function handleLeadDragEnter(e, targetStage) {
+      if (e) e.preventDefault();
+      var col = document.querySelector('.leads-kanban-col[data-stage="' + targetStage + '"]');
+      if (col) col.classList.add('kanban-col-dragover');
+    }
+
+    function handleLeadDragLeave(e) {
+      if (!e) return;
+      var col = e.currentTarget;
+      if (col && !col.contains(e.relatedTarget)) {
+        col.classList.remove('kanban-col-dragover');
+      }
+    }
+
+    function handleLeadDrop(e, targetStage) {
+      if (e) e.preventDefault();
+      var cols = document.querySelectorAll('.leads-kanban-col.kanban-col-dragover');
+      cols.forEach(function(col) { col.classList.remove('kanban-col-dragover'); });
+
+      var leadId = (e && e.dataTransfer && e.dataTransfer.getData('text/plain')) || state.draggedLeadId;
+      if (!leadId || !targetStage) return;
+
+      var lead = (state.leads || []).find(function(l) {
+        return (l.id && l.id === leadId) || (l.customerCode && l.customerCode === leadId);
+      });
+      if (!lead) return;
+
+      var curStage = (lead.leadStatus || 'open').toLowerCase();
+      if (curStage !== targetStage) {
+        updateLeadStage(leadId, targetStage);
+      }
+    }
+
     function updateLeadStage(leadId, newStage) {
       if (!leadId || !newStage) return;
       var lead = (state.leads || []).find(function(l) {
@@ -7119,7 +7208,8 @@ function loadStaffCustomerData(staffId) {
       var filtered = applyLeadsFilters();
       renderAdminLeadsList(filtered);
 
-      apiCall('updateLeadStage', { leadId: leadId, stage: newStage }, function(res) {
+      var adminToken = (typeof getAdminToken === 'function') ? getAdminToken() : '';
+      apiCall('updateLeadStage', { leadId: leadId, stage: newStage, adminToken: adminToken }, function(res) {
         if (res && res.error) {
           showToast('Failed to update stage: ' + res.error, '❌');
           if (lead) lead.leadStatus = oldStage;
@@ -7127,12 +7217,12 @@ function loadStaffCustomerData(staffId) {
           renderAdminLeadsList(applyLeadsFilters());
         } else {
           var stageLabels = {
-            open: 'New Inquiry',
+            open: 'New Inquiries',
             follow_up: 'In Follow-Up',
             quoted: 'Discussion / Quoted',
             ready: 'Ready to Convert'
           };
-          showToast('Stage updated to ' + (stageLabels[newStage] || newStage), '✓');
+          showToast('Lead moved to ' + (stageLabels[newStage] || newStage), '✓');
         }
       }, function(err) {
         showToast('Error: ' + (err.message || err), '❌');
@@ -7394,17 +7484,24 @@ function loadStaffCustomerData(staffId) {
       });
 
       var html = '<div class="leads-kanban-board">';
-      stages.forEach(function(s) {
+      stages.forEach(function(s, colIdx) {
         var stageLeads = grouped[s.key] || [];
-        html += '<div class="leads-kanban-col" data-stage="' + s.key + '">';
+        var hasPrev = colIdx > 0;
+        var hasNext = colIdx < stages.length - 1;
+
+        html += '<div class="leads-kanban-col" data-stage="' + s.key + '" ' +
+                'ondragover="handleLeadDragOver(event)" ' +
+                'ondragenter="handleLeadDragEnter(event, \'' + s.key + '\')" ' +
+                'ondragleave="handleLeadDragLeave(event)" ' +
+                'ondrop="handleLeadDrop(event, \'' + s.key + '\')">';
         html += '  <div class="leads-kanban-header">';
-        html += '    <div class="leads-kanban-title"><span style="font-size: 16px;">' + s.icon + '</span><span>' + s.title + '</span></div>';
+        html += '    <div class="leads-kanban-title"><span style="font-size: 15px;">' + s.icon + '</span><span>' + s.title + '</span></div>';
         html += '    <span class="leads-kanban-count" style="background: ' + s.color + '20; color: ' + s.color + ';">' + stageLeads.length + '</span>';
         html += '  </div>';
         html += '  <div class="leads-kanban-cards">';
 
         if (stageLeads.length === 0) {
-          html += '    <div class="leads-kanban-empty">No leads in this stage</div>';
+          html += '    <div class="leads-kanban-empty">Drop leads here or click + New Lead</div>';
         } else {
           stageLeads.forEach(function(l) {
             var id = l.id || l.customerCode;
@@ -7412,88 +7509,79 @@ function loadStaffCustomerData(staffId) {
             var nameHi = l.nameHi ? ' (' + l.nameHi + ')' : '';
             var phone = l.customerNumber || l.phone || '';
             var rawVeh = l.vehicle || '';
-            var rawAddr = l.address || '';
-            var addrHi = l.addressHi ? ' • ' + l.addressHi : '';
-            var maps = l.googleMapsUrl || '';
-            var photo = l.photoUrl || '';
             var notes = l.leadNotes || l.notes || '';
             var sCategory = l.interestedService || l.serviceCategory || 'Daily Car Cleaning';
 
             var parsedVeh = rawVeh ? parseVehicleString(rawVeh) : null;
-            var regBadge = (parsedVeh && parsedVeh.reg) ? parsedVeh.reg : (rawVeh || 'No vehicle');
-            var modelText = (parsedVeh && parsedVeh.model) ? (' ' + parsedVeh.model) : '';
+            var regBadge = (parsedVeh && parsedVeh.reg) ? parsedVeh.reg : (rawVeh || '');
 
-            html += '<div class="cwp-lead-card leads-kanban-card" id="leadCard_' + escapeHtml(id) + '">';
-            
-            // Header
-            html += '  <div class="cwp-lead-header">';
-            html += '    <div class="cwp-lead-title-wrap">';
-            html += '      <div class="cwp-lead-name"><span>' + escapeHtml(name) + '</span>' + (nameHi ? ' <span class="cwp-lead-name-hi">' + escapeHtml(nameHi) + '</span>' : '') + '</div>';
+            // Short category badge & styling
+            var shortCat = 'Daily Clean';
+            var catClass = 'cat-daily';
+            var catIcon = '🚗';
+            if (sCategory.indexOf('Solar') !== -1) {
+              shortCat = 'Solar Clean';
+              catClass = 'cat-solar';
+              catIcon = '☀️';
+            } else if (sCategory.indexOf('Wash') !== -1) {
+              shortCat = 'Car Wash';
+              catClass = 'cat-wash';
+              catIcon = '🧼';
+            } else if (sCategory.indexOf('Detailing') !== -1) {
+              shortCat = 'Detailing';
+              catClass = 'cat-detail';
+              catIcon = '✨';
+            }
+
+            // High-Density Compact M3 Kanban Lead Card
+            html += '<div class="cwp-lead-card leads-kanban-card compact-lead-card" id="leadCard_' + escapeHtml(id) + '" ' +
+                    'draggable="true" ' +
+                    'ondragstart="handleLeadDragStart(event, \'' + escapeHtml(id) + '\')" ' +
+                    'ondragend="handleLeadDragEnd(event)" ' +
+                    'data-lead-id="' + escapeHtml(id) + '">';
+
+            // 1. Header Row: Name + Category Pill
+            html += '  <div class="compact-lead-header">';
+            html += '    <div class="compact-lead-name-wrap">';
+            html += '      <span class="compact-lead-drag-handle" title="Drag across pipeline stages">⋮⋮</span>';
+            html += '      <strong class="compact-lead-name">' + escapeHtml(name) + '</strong>';
+            if (nameHi) html += '      <span class="compact-lead-name-hi">' + escapeHtml(nameHi) + '</span>';
+            html += '    </div>';
+            html += '    <span class="compact-lead-cat-pill ' + catClass + '" title="Interested: ' + escapeHtml(sCategory) + '">' + catIcon + ' ' + shortCat + '</span>';
+            html += '  </div>';
+
+            // 2. Contact Row: Phone + 1-Tap Call/WA Actions + Vehicle Badge (if present)
+            html += '  <div class="compact-lead-phone-row">';
             if (phone) {
-              html += '      <div class="cwp-lead-phone-row">';
-              html += '        <span class="cwp-lead-phone-num">📞 +91 ' + escapeHtml(phone) + '</span>';
-              html += '        <a href="tel:+91' + escapeHtml(phone) + '" class="cwp-lead-quick-call" title="Call lead">📞</a>';
-              html += '        <a href="https://wa.me/91' + escapeHtml(phone) + '?text=Namaste%20' + encodeURIComponent(name) + '%2C%20CWP%20Detailers%20ki%20taraf%20se%20sampark%20kar%20rahe%20hain." target="_blank" rel="noopener" class="cwp-lead-quick-wa" title="WhatsApp Message">💬</a>';
-              html += '      </div>';
-            } else {
-              html += '      <div class="cwp-lead-phone-row"><span class="cwp-lead-phone-num" style="opacity: 0.6; font-style: italic;">No phone</span></div>';
-            }
-            html += '    </div>';
-            html += '    <select class="leads-kanban-stage-changer" onchange="updateLeadStage(\'' + escapeHtml(id) + '\', this.value)" title="Move lead to another stage">';
-            stages.forEach(function(stOpt) {
-              html += '      <option value="' + stOpt.key + '"' + (stOpt.key === s.key ? ' selected' : '') + '>' + stOpt.icon + ' ' + stOpt.title + '</option>';
-            });
-            html += '    </select>';
-            html += '  </div>';
-
-            // Vehicle Box
-            html += '  <div class="cwp-lead-car-box">';
-            html += '    <div class="cwp-lead-plate-wrap">';
-            if (rawVeh) {
-              html += '      <span class="cwp-lead-plate-badge">' + escapeHtml(regBadge) + '</span>';
-              if (modelText) html += '      <span style="font-size: 12px; font-weight: 600; color: var(--text-primary);">' + escapeHtml(modelText) + '</span>';
-            } else {
-              html += '      <span class="cwp-lead-plate-badge" style="opacity: 0.7; background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); border-style: dashed;">No vehicle info</span>';
-            }
-            html += '    </div>';
-            if (photo) {
-              html += '    <img src="' + escapeHtml(photo) + '" class="cwp-lead-photo-thumb" alt="Car photo" onclick="openPhotoLightbox(\'' + escapeHtml(photo) + '\')" title="Click to view photo">';
-            }
-            html += '  </div>';
-
-            // Location Box
-            if (rawAddr || maps) {
-              html += '  <div class="cwp-lead-loc-box">';
-              html += '    <span>📍</span>';
-              html += '    <div style="flex: 1;">';
-              if (rawAddr) html += '<span>' + escapeHtml(rawAddr) + escapeHtml(addrHi) + '</span>';
-              if (maps) html += '<div style="margin-top: 2px;"><a href="' + escapeHtml(maps) + '" target="_blank" rel="noopener" style="font-size: 11px; font-weight: 600; color: var(--brand-blue); text-decoration: none;">🗺️ Open Maps ↗</a></div>';
+              html += '    <div class="compact-lead-phone-left">';
+              html += '      <span class="compact-lead-phone-num">📞 +91 ' + escapeHtml(phone) + '</span>';
+              html += '      <a href="tel:+91' + escapeHtml(phone) + '" class="compact-phone-btn pill-call" title="Call ' + escapeHtml(name) + '">📞</a>';
+              html += '      <a href="https://wa.me/91' + escapeHtml(phone) + '?text=Namaste%20' + encodeURIComponent(name) + '%2C%20CWP%20Detailers%20ki%20taraf%20se%20sampark%20kar%20rahe%20hain." target="_blank" rel="noopener" class="compact-phone-btn pill-wa" title="WhatsApp ' + escapeHtml(name) + '">💬</a>';
               html += '    </div>';
-              html += '  </div>';
+            } else {
+              html += '    <span class="compact-lead-no-phone">📞 No phone</span>';
             }
-
-            // Inquiry tag
-            html += '  <div style="font-size: 11.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin: 4px 0;">';
-            html += '    <span>Inquiry:</span> <strong style="color: #d97706; background: rgba(245, 158, 11, 0.1); padding: 1px 6px; border-radius: 4px;">' + escapeHtml(sCategory) + '</strong>';
+            if (regBadge) {
+              html += '    <span class="compact-lead-veh-plate" title="Vehicle: ' + escapeHtml(rawVeh) + '">' + escapeHtml(regBadge) + '</span>';
+            }
             html += '  </div>';
 
-            // Notes Box
-            html += '  <div class="cwp-lead-notes-box">';
-            html += '    <div class="cwp-lead-notes-head">';
-            html += '      <span>📝 Remarks:</span>';
-            html += '      <button type="button" class="btn-lead-note-action" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')">+ Note</button>';
+            // 3. Compact Bottom Bar: Direct Stage Shifters (← / Next →) & Quick Convert/Note
+            html += '  <div class="compact-lead-footer">';
+            html += '    <div class="compact-lead-nav-btns">';
+            if (hasPrev) {
+              html += '      <button type="button" class="btn-stage-shift btn-stage-prev" onclick="shiftLeadStage(\'' + escapeHtml(id) + '\', \'prev\')" title="Move to previous stage">←</button>';
+            }
+            if (hasNext) {
+              html += '      <button type="button" class="btn-stage-shift btn-stage-next" onclick="shiftLeadStage(\'' + escapeHtml(id) + '\', \'next\')" title="Move to next stage">Next →</button>';
+            }
             html += '    </div>';
-            html += '    <div class="cwp-lead-notes-content">' + (notes ? escapeHtml(notes) : '<em style="opacity: 0.7;">No remarks yet.</em>') + '</div>';
-            html += '  </div>';
-
-            // Actions Row
-            html += '  <div class="cwp-lead-actions-row">';
-            html += '    <button type="button" class="btn-convert-hero" onclick="openConvertLeadModal(\'' + escapeHtml(id) + '\')" title="Confirm customer & assign package/staff">';
-            html += '      <span>🌟</span> Convert';
-            html += '    </button>';
-            html += '    <div style="display: flex; gap: 4px;">';
-            html += '      <button type="button" class="btn-lead-note-action" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')" title="Add note">📝</button>';
-            html += '      <button type="button" class="btn-lead-icon-danger" onclick="deleteLead(\'' + escapeHtml(id) + '\')" title="Delete or drop lead">🗑️</button>';
+            html += '    <div class="compact-lead-actions-right">';
+            html += '      <button type="button" class="btn-convert-hero btn-compact-convert" onclick="openConvertLeadModal(\'' + escapeHtml(id) + '\')" title="Confirm & Convert Lead">';
+            html += '        <span>🌟</span> Convert';
+            html += '      </button>';
+            html += '      <button type="button" class="btn-lead-note-action btn-compact-note" onclick="openLeadNoteModal(\'' + escapeHtml(id) + '\')" title="' + (notes ? escapeHtml(notes) : 'Add Note') + '">📝</button>';
+            html += '      <button type="button" class="btn-lead-icon-danger btn-compact-del" onclick="deleteLead(\'' + escapeHtml(id) + '\')" title="Delete Lead">🗑️</button>';
             html += '    </div>';
             html += '  </div>';
 

@@ -2406,6 +2406,7 @@ const server = http.createServer(async (req, res) => {
           'addLeadNote',
           'saveLead',
           'deleteLead',
+          'updateLeadStage',
           'saveCustomer',
           'updateCustomer',
           'deleteCustomer',
@@ -4173,6 +4174,24 @@ if (require.main === module) {
         console.warn('[Bootstrap] Warning: Auto-migration check:', migErr.message);
       }
     }
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`\n❌ [PORT CONFLICT] Port ${PORT} is already in use by another process!`);
+        console.error(`👉 An existing instance of the CWP server or another application is occupying port ${PORT}.`);
+        if (process.platform === 'win32') {
+          console.error(`👉 To free port ${PORT} in PowerShell, run:`);
+          console.error(`   Stop-Process -Id (Get-NetTCPConnection -LocalPort ${PORT}).OwningProcess -Force\n`);
+        } else {
+          console.error(`👉 To free port ${PORT} in terminal, run:`);
+          console.error(`   fuser -k ${PORT}/tcp  # or: npx kill-port ${PORT}\n`);
+        }
+        process.exit(1);
+      } else {
+        console.error('[Server] Fatal server error:', err);
+        process.exit(1);
+      }
+    });
 
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`=======================================================`);
