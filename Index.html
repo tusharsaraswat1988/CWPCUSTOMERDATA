@@ -388,6 +388,34 @@
           </div>
         </div>
       </div>
+      <div id="staffPortalProfileDetailsCard" class="staff-settings-info-card" style="display: none;">
+        <div class="settings-card-header">
+          <span class="material-symbols-outlined settings-card-icon" style="color: var(--brand-blue, #2563eb);" aria-hidden="true">badge</span>
+          <span class="settings-card-title">मेरी प्रोफ़ाइल जानकारी (My Staff Profile)</span>
+        </div>
+        <div class="settings-info-grid">
+          <div class="settings-info-item">
+            <span class="info-label">मोबाइल नंबर:</span>
+            <span class="info-value" id="staffPortalPhoneDisplay">-</span>
+          </div>
+          <div class="settings-info-item" id="staffPortalWeeklyOffWrap" style="display: none;">
+            <span class="info-label">साप्ताहिक अवकाश:</span>
+            <span class="info-value" id="staffPortalWeeklyOffDisplay" style="color: #2563eb; font-weight: 700;">-</span>
+          </div>
+          <div class="settings-info-item" id="staffPortalDojWrap" style="display: none;">
+            <span class="info-label">जॉइनिंग तिथि:</span>
+            <span class="info-value" id="staffPortalDojDisplay">-</span>
+          </div>
+          <div class="settings-info-item" id="staffPortalEmailWrap" style="display: none;">
+            <span class="info-label">ईमेल:</span>
+            <span class="info-value" id="staffPortalEmailDisplay">-</span>
+          </div>
+          <div class="settings-info-item" id="staffPortalSalaryWrap" style="display: none;">
+            <span class="info-label">वेतन (Salary):</span>
+            <span class="info-value text-emerald" id="staffPortalSalaryDisplay">-</span>
+          </div>
+        </div>
+      </div>
       <div class="staff-settings-info-card staff-settings-prefs-card">
         <div class="settings-card-header">
           <span class="material-symbols-outlined settings-card-icon" style="color: var(--md-sys-color-primary, #1d4ed8);" aria-hidden="true">tune</span>
@@ -1172,6 +1200,7 @@
                 <option value="all">📑 All Records (सभी रिकॉर्ड)</option>
                 <option value="yes">📷 With Photo Proof Only</option>
                 <option value="no">⚠️ Without Photo Proof</option>
+                <option value="not_present">🚫 Car Not Present (कार नहीं थी)</option>
               </select>
             </div>
             <div class="report-search-wrapper">
@@ -1374,6 +1403,15 @@
             <span id="reviewStaffTag" style="color: #94a3b8;">👨‍🔧 Staff</span>
           </div>
         </div>
+      </div>
+      <div class="camera-tag-selection-row" id="cameraCarNotPresentTagRow">
+        <label for="cameraCarNotPresentCheck" class="camera-tag-checkbox-label">
+          <input type="checkbox" id="cameraCarNotPresentCheck" onchange="window.handleCarNotPresentToggle(this)">
+          <div class="camera-tag-text-wrap">
+            <span class="camera-tag-title">🚫 कार मौजूद नहीं है (Car Not Present)</span>
+            <span class="camera-tag-desc">खाली पार्किंग/स्पॉट का फोटो सबमिट करें (Submit empty spot photo)</span>
+          </div>
+        </label>
       </div>
       <div class="camera-review-actions">
         <button type="button" class="btn-review-retake" onclick="retakeCleaningPhoto()">
@@ -2175,24 +2213,34 @@
   </div>
   </div>
   <div id="staffEditModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="staffEditModalTitle" onclick="handleStaticBackdropClick('staffEditModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
-  <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px;">
+  <div class="modal-card-box modal-card-box-lg" onclick="event.stopPropagation()" style="max-width: 640px; max-height: 92vh; display: flex; flex-direction: column;">
     <div class="modal-card-header">
-      <h3 class="modal-card-title" id="staffEditModalTitle">✏️ Edit Staff Profile</h3>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="material-symbols-outlined" style="color: var(--brand-blue, #2563eb); font-size: 20px;">badge</span>
+        <h3 class="modal-card-title" id="staffEditModalTitle">✏️ Edit Staff Profile & KYC</h3>
+      </div>
       <button type="button" class="modal-close-x" onclick="closeEditStaffModal()" aria-label="Close dialog">✕</button>
     </div>
-    <form id="editStaffForm" onsubmit="handleEditStaffSubmit(event)" style="padding: 16px;">
+    <form id="editStaffForm" onsubmit="handleEditStaffSubmit(event)" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px;">
       <input type="hidden" id="editStaffId">
-      <div style="background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Staff ID</span>
-        <span id="editStaffIdDisplay" style="font-size: 13px; font-weight: 700; color: var(--brand-blue); font-family: monospace;">STF01</span>
+      
+      <!-- Top Staff Header Strip -->
+      <div style="background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Staff ID:</span>
+          <span id="editStaffIdDisplay" style="font-size: 13px; font-weight: 700; color: var(--brand-blue); font-family: monospace;">STF01</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">CWP Automotive Staff Record</div>
       </div>
-      <div style="background: var(--bg-surface); padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 14px; display: flex; align-items: center; gap: 14px;">
+
+      <!-- Photo Picker -->
+      <div style="background: var(--bg-surface); padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 14px;">
         <div id="editStaffAvatarWrapper" onclick="var f=document.getElementById('editStaffPhotoFile'); if(f){f.value=''; f.click();}" title="Click to upload/change photo" style="position: relative; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: #e2e8f0; border: 2px solid var(--brand-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer;">
           <img id="editStaffPhotoPreview" src="" alt="Staff Photo" style="width: 100%; height: 100%; object-fit: cover; display: none;">
           <span id="editStaffPhotoInitial" style="font-size: 24px; font-weight: 700; color: #475569;">S</span>
         </div>
         <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-          <label class="form-label" style="margin: 0; font-size: 12px; font-weight: 700;">Staff Photo (स्टाफ फोटो)</label>
+          <label class="form-label" style="margin: 0; font-size: 12px; font-weight: 700;">Staff Profile Photo (प्रोफ़ाइल फोटो)</label>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
             <button type="button" class="btn-admin-action" id="btnEditStaffPhotoTrigger" onclick="var f=document.getElementById('editStaffPhotoFile'); if(f){f.value=''; f.click();}" style="padding: 6px 12px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 5px; font-weight: 600;">
               <span>📷</span> <span id="editStaffPhotoBtnText">Upload Photo</span>
@@ -2206,50 +2254,230 @@
           <input type="hidden" id="editStaffPhotoUrl" value="">
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Full Name *</label>
-        <input type="text" id="editStaffName" class="form-input" required placeholder="Enter staff full name">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="editStaffPhone">Mobile Number</label>
-        <div class="cwp-phone-group">
-          <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
-          <input type="tel" id="editStaffPhone" class="form-input cwp-phone-input" maxlength="14" placeholder="98765 43210" inputmode="numeric" autocomplete="tel">
+
+      <!-- SECTION 1: MANDATORY / CORE LOGIN CREDENTIALS -->
+      <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; background: var(--bg-card, #ffffff);">
+        <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 16px; color: #2563eb;">lock</span>
+          <span>Core Login & Identity (मुख्य पहचान व लॉगिन)</span>
         </div>
-      </div>
-      <div class="form-row-2">
-        <div class="form-group">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px;">
-            <label class="form-label" style="margin: 0;">Reset PIN (6 Digits)</label>
-            <span style="font-size: 11px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px;">
-              Current: <b id="editStaffCurrentPinDisplay" class="staff-pin-val masked">●●●●●●</b>
-              <button type="button" class="btn-toggle-pin" id="btnToggleModalPin" onclick="toggleModalCurrentPin()" title="Show / Hide Current PIN" style="padding: 1px 6px; font-size: 10px;">👁️ Show</button>
-            </span>
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label class="form-label">Full Name *</label>
+          <input type="text" id="editStaffName" class="form-input" required placeholder="Enter staff full name">
+        </div>
+        <div class="form-group" style="margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label class="form-label" for="editStaffPhone" style="margin: 0;">Mobile Number * (लॉगिन पहचान)</label>
+            <span style="font-size: 11px; color: #b45309; font-weight: 600;">⚠️ Proof of Identity • Unique</span>
           </div>
-          <input type="text" id="editStaffPin" class="form-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="New 6-digit PIN (leave blank to keep current)">
-          <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">Leave blank to keep existing PIN</div>
+          <div class="cwp-phone-group" style="margin-top: 4px;">
+            <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+            <input type="tel" id="editStaffPhone" class="form-input cwp-phone-input" maxlength="14" placeholder="98765 43210" inputmode="numeric" autocomplete="tel" required>
+          </div>
+          <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">मोबाइल नंबर पहचान प्रमाण है। यह किसी अन्य स्टाफ के साथ समान नहीं हो सकता।</div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Status *</label>
-          <select id="editStaffActive" class="form-select">
-            <option value="true">✅ Active (Login Enabled)</option>
-            <option value="false">🚫 Inactive (Login Disabled)</option>
-          </select>
-          <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">Staff login disabled when inactive</div>
+        <div class="form-row-2">
+          <div class="form-group" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px;">
+              <label class="form-label" style="margin: 0;">Reset PIN (6 Digits)</label>
+              <span style="font-size: 11px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px;">
+                Current: <b id="editStaffCurrentPinDisplay" class="staff-pin-val masked">●●●●●●</b>
+                <button type="button" class="btn-toggle-pin" id="btnToggleModalPin" onclick="toggleModalCurrentPin()" title="Show / Hide Current PIN" style="padding: 1px 6px; font-size: 10px;">👁️ Show</button>
+              </span>
+            </div>
+            <input type="text" id="editStaffPin" class="form-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="New 6-digit PIN (blank = keep)">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Status *</label>
+            <select id="editStaffActive" class="form-select">
+              <option value="true">✅ Active (Login Enabled)</option>
+              <option value="false">🚫 Inactive (Login Disabled)</option>
+            </select>
+          </div>
         </div>
       </div>
-      <div class="modal-card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+
+      <!-- SECTION 2: EMPLOYMENT & COMPENSATION (NON-MANDATORY) -->
+      <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; background: var(--bg-card, #ffffff);">
+        <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 16px; color: #059669;">payments</span>
+            <span>Employment & Salary (रोजगार व वेतन)</span>
+          </div>
+          <span style="font-size: 11px; color: var(--text-muted); background: var(--bg-surface); padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border-color);">Non-Mandatory / ऐच्छिक</span>
+        </div>
+        <div class="form-row-2" style="margin-bottom: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="editStaffJoiningDate">Date of Joining (जॉइनिंग तिथि)</label>
+            <input type="date" id="editStaffJoiningDate" class="form-input">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="editStaffSalary">Salary in Rs. (वेतन ₹ प्रतिमाह)</label>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--text-muted);">₹</span>
+              <input type="number" id="editStaffSalary" class="form-input" style="padding-left: 26px;" min="0" step="any" placeholder="e.g. 15000">
+            </div>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="editStaffWeeklyOff">Weekly Off Day (साप्ताहिक अवकाश)</label>
+            <select id="editStaffWeeklyOff" class="form-select">
+              <option value="">-- No Weekly Off Set --</option>
+              <option value="Monday">Monday (सोमवार)</option>
+              <option value="Tuesday">Tuesday (मंगलवार)</option>
+              <option value="Wednesday">Wednesday (बुधवार)</option>
+              <option value="Thursday">Thursday (गुरुवार)</option>
+              <option value="Friday">Friday (शुक्रवार)</option>
+              <option value="Saturday">Saturday (शनिवार)</option>
+              <option value="Sunday">Sunday (रविवार)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="editStaffEmail">Email ID (ईमेल)</label>
+            <input type="email" id="editStaffEmail" class="form-input" placeholder="staff@example.com">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: KYC & VERIFICATION DOCUMENTS (NON-MANDATORY) -->
+      <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; background: var(--bg-card, #ffffff);">
+        <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 16px; color: #d97706;">badge</span>
+            <span>KYC & Identity Documents (पहचान व दस्तावेज)</span>
+          </div>
+          <span style="font-size: 11px; color: var(--text-muted); background: var(--bg-surface); padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border-color);">Non-Mandatory / ऐच्छिक</span>
+        </div>
+
+        <!-- 1. Aadhar Card -->
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <span>🪪</span> <span>Aadhar Card (आधार कार्ड)</span>
+          </div>
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label class="form-label" style="font-size: 11px; margin-bottom: 3px;">Aadhar Card Number</label>
+            <input type="text" id="editStaffAadharNumber" class="form-input" maxlength="14" placeholder="12-digit Aadhar Number (e.g. 1234 5678 9012)">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <!-- Front -->
+            <div style="border: 1px dashed var(--border-color); border-radius: 6px; padding: 8px; background: var(--bg-card); display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">Aadhar Front (आगे का फोटो)</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <img id="previewAadharFront" src="" alt="Aadhar Front" style="width: 44px; height: 32px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); display: none;">
+                <div style="flex: 1; display: flex; gap: 4px; flex-wrap: wrap;">
+                  <button type="button" class="btn-admin-action" onclick="var f=document.getElementById('fileAadharFront'); if(f){f.value=''; f.click();}" style="font-size: 10.5px; padding: 4px 8px;">📷 Upload</button>
+                  <button type="button" id="btnViewAadharFront" class="btn-admin-action" onclick="viewStaffDoc('aadharFront')" style="font-size: 10.5px; padding: 4px 8px; display: none;">👁️ View</button>
+                  <button type="button" id="btnRemAadharFront" class="btn-admin-action btn-admin-danger" onclick="removeStaffDoc('aadharFront')" style="font-size: 10.5px; padding: 4px 6px; display: none;">✕</button>
+                </div>
+              </div>
+              <input type="file" id="fileAadharFront" accept="image/*" style="display: none;" onchange="handleStaffDocSelect(event, 'aadharFront')">
+              <input type="hidden" id="urlAadharFront" value="">
+            </div>
+            <!-- Back -->
+            <div style="border: 1px dashed var(--border-color); border-radius: 6px; padding: 8px; background: var(--bg-card); display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">Aadhar Back (पीछे का फोटो)</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <img id="previewAadharBack" src="" alt="Aadhar Back" style="width: 44px; height: 32px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); display: none;">
+                <div style="flex: 1; display: flex; gap: 4px; flex-wrap: wrap;">
+                  <button type="button" class="btn-admin-action" onclick="var f=document.getElementById('fileAadharBack'); if(f){f.value=''; f.click();}" style="font-size: 10.5px; padding: 4px 8px;">📷 Upload</button>
+                  <button type="button" id="btnViewAadharBack" class="btn-admin-action" onclick="viewStaffDoc('aadharBack')" style="font-size: 10.5px; padding: 4px 8px; display: none;">👁️ View</button>
+                  <button type="button" id="btnRemAadharBack" class="btn-admin-action btn-admin-danger" onclick="removeStaffDoc('aadharBack')" style="font-size: 10.5px; padding: 4px 6px; display: none;">✕</button>
+                </div>
+              </div>
+              <input type="file" id="fileAadharBack" accept="image/*" style="display: none;" onchange="handleStaffDocSelect(event, 'aadharBack')">
+              <input type="hidden" id="urlAadharBack" value="">
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. PAN Card -->
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <span>💳</span> <span>PAN Card (पैन कार्ड)</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 11px; margin-bottom: 3px;">PAN Card Number</label>
+              <input type="text" id="editStaffPanNumber" class="form-input" maxlength="10" placeholder="e.g. ABCDE1234F" style="text-transform: uppercase;">
+            </div>
+            <div style="border: 1px dashed var(--border-color); border-radius: 6px; padding: 8px; background: var(--bg-card); display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">PAN Photo</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <img id="previewPanCard" src="" alt="PAN Card" style="width: 44px; height: 32px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); display: none;">
+                <div style="flex: 1; display: flex; gap: 4px; flex-wrap: wrap;">
+                  <button type="button" class="btn-admin-action" onclick="var f=document.getElementById('filePanCard'); if(f){f.value=''; f.click();}" style="font-size: 10.5px; padding: 4px 8px;">📷 Upload</button>
+                  <button type="button" id="btnViewPanCard" class="btn-admin-action" onclick="viewStaffDoc('panCard')" style="font-size: 10.5px; padding: 4px 8px; display: none;">👁️ View</button>
+                  <button type="button" id="btnRemPanCard" class="btn-admin-action btn-admin-danger" onclick="removeStaffDoc('panCard')" style="font-size: 10.5px; padding: 4px 6px; display: none;">✕</button>
+                </div>
+              </div>
+              <input type="file" id="filePanCard" accept="image/*" style="display: none;" onchange="handleStaffDocSelect(event, 'panCard')">
+              <input type="hidden" id="urlPanCard" value="">
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Driving Licence -->
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <span>🚗</span> <span>Driving Licence (ड्राइविंग लाइसेंस)</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 11px; margin-bottom: 3px;">Driving Licence Number</label>
+              <input type="text" id="editStaffDlNumber" class="form-input" placeholder="e.g. DL-0420110012345">
+            </div>
+            <div style="border: 1px dashed var(--border-color); border-radius: 6px; padding: 8px; background: var(--bg-card); display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">DL Photo</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <img id="previewDrivingLicense" src="" alt="Driving License" style="width: 44px; height: 32px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); display: none;">
+                <div style="flex: 1; display: flex; gap: 4px; flex-wrap: wrap;">
+                  <button type="button" class="btn-admin-action" onclick="var f=document.getElementById('fileDrivingLicense'); if(f){f.value=''; f.click();}" style="font-size: 10.5px; padding: 4px 8px;">📷 Upload</button>
+                  <button type="button" id="btnViewDrivingLicense" class="btn-admin-action" onclick="viewStaffDoc('drivingLicense')" style="font-size: 10.5px; padding: 4px 8px; display: none;">👁️ View</button>
+                  <button type="button" id="btnRemDrivingLicense" class="btn-admin-action btn-admin-danger" onclick="removeStaffDoc('drivingLicense')" style="font-size: 10.5px; padding: 4px 6px; display: none;">✕</button>
+                </div>
+              </div>
+              <input type="file" id="fileDrivingLicense" accept="image/*" style="display: none;" onchange="handleStaffDocSelect(event, 'drivingLicense')">
+              <input type="hidden" id="urlDrivingLicense" value="">
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Bank Passbook -->
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <span>🏦</span> <span>Bank Passbook (बैंक पासबुक फोटो)</span>
+          </div>
+          <div style="border: 1px dashed var(--border-color); border-radius: 6px; padding: 8px; background: var(--bg-card); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img id="previewBankPassbook" src="" alt="Bank Passbook" style="width: 44px; height: 32px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); display: none;">
+              <span id="labelBankPassbook" style="font-size: 11.5px; color: var(--text-muted);">Passbook / Cheque Photo</span>
+            </div>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <button type="button" class="btn-admin-action" onclick="var f=document.getElementById('fileBankPassbook'); if(f){f.value=''; f.click();}" style="font-size: 10.5px; padding: 4px 8px;">📷 Upload</button>
+              <button type="button" id="btnViewBankPassbook" class="btn-admin-action" onclick="viewStaffDoc('bankPassbook')" style="font-size: 10.5px; padding: 4px 8px; display: none;">👁️ View</button>
+              <button type="button" id="btnRemBankPassbook" class="btn-admin-action btn-admin-danger" onclick="removeStaffDoc('bankPassbook')" style="font-size: 10.5px; padding: 4px 6px; display: none;">✕</button>
+            </div>
+            <input type="file" id="fileBankPassbook" accept="image/*" style="display: none;" onchange="handleStaffDocSelect(event, 'bankPassbook')">
+            <input type="hidden" id="urlBankPassbook" value="">
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-card-footer" style="display: flex; justify-content: space-between; align-items: center; padding-top: 14px; margin-top: 4px;">
         <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteStaffFromModal()" style="font-weight: 600;">
           <span>🗑️</span> Delete Staff
         </button>
         <div style="display: flex; gap: 8px;">
           <button type="button" class="btn-admin-action" onclick="closeEditStaffModal()">Cancel</button>
           <button type="submit" id="btnSaveEditStaff" class="btn-primary-smart" style="padding: 10px 18px;">
-            <span>💾</span> Save Staff
+            <span>💾</span> Save Staff Profile
           </button>
         </div>
       </div>
     </form>
+  </div>
   </div>
   </div>
   <div id="cwpPhotoCropperModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="cwpPhotoCropperModalTitle" style="display: none; align-items: center; justify-content: center; z-index: 1200;" onclick="cropperHandleOverlayClick(event)">
@@ -2916,6 +3144,49 @@
         <button type="button" onclick="closeCompleteSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">रद्द करें (Cancel)</button>
         <button type="button" id="btnSubmitCompleteJob" onclick="submitCompleteSpecialJob()" style="background: var(--md-sys-color-tertiary, #059669); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
           <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">check</span><span>काम पूर्ण और सबमिट करें</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div id="cancelSpecialJobModal" class="camera-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="cancelSpecialJobModalTitle" style="display: none;" onclick="handleStaticBackdropClick('cancelSpecialJobModal')">
+  <div class="camera-modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
+    <div class="camera-modal-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="material-symbols-outlined" style="font-size: 24px; color: var(--md-sys-color-error, #dc2626);" aria-hidden="true">cancel</span>
+        <div>
+          <h3 id="cancelSpecialJobModalTitle" style="margin: 0; font-size: 16px; font-weight: 700;">बुकिंग रद्द करें (Cancel Booking)</h3>
+          <span id="cancelJobSubTitle" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">कारण व टिप्पणी दर्ज करें (Reason & Remarks)</span>
+        </div>
+      </div>
+      <button type="button" class="modal-close-x" onclick="closeCancelSpecialJobModal()" aria-label="Close dialog" title="Close">✕</button>
+    </div>
+    <div class="camera-modal-body" style="padding: 18px;">
+      <div id="cancelJobCustomerSummary" style="background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: var(--md-sys-color-on-surface, #0f172a); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);"></div>
+      <div style="margin-bottom: 14px;">
+        <label for="cancelJobReasonSelect" style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">help_outline</span>रद्द करने का कारण (Cancellation Reason) <span style="color:#ef4444;">*</span>
+        </label>
+        <select id="cancelJobReasonSelect" class="form-select" style="width: 100%; border-radius: 8px; padding: 10px 12px; font-size: 13px; border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); background: var(--md-sys-color-surface, #ffffff);">
+          <option value="" disabled selected>-- कारण चुनें (Select Reason) --</option>
+          <option value="booking cancelled by customer">ग्राहक द्वारा रद्द (booking cancelled by customer)</option>
+          <option value="booking cancelled due to other reason">अन्य कारण से रद्द (booking cancelled due to other reason)</option>
+          <option value="Customer unavailable / phone unreachable">ग्राहक अनुपलब्ध / फोन बंद (Customer unavailable / phone unreachable)</option>
+          <option value="Bad weather / Rain / Power outage">खराब मौसम / बारिश / बिजली कटौती (Bad weather / Rain / Power outage)</option>
+          <option value="Vehicle / Location not accessible">गाड़ी / स्थान उपलब्ध नहीं (Vehicle / Location not accessible)</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 14px;">
+        <label for="cancelJobRemarksInput" style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">notes</span>टिप्पणी / विवरण (Remarks)
+        </label>
+        <textarea id="cancelJobRemarksInput" rows="3" class="form-textarea" placeholder="उदा. ग्राहक ने कहा आज शहर से बाहर हैं, कल कराएंगे..." style="width: 100%; border-radius: 8px; padding: 8px 12px; font-size: 13px; border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1);"></textarea>
+      </div>
+      <div id="cancelJobErrorMsg" style="display: none; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px;"></div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <button type="button" onclick="closeCancelSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">वापस जाएं (Back)</button>
+        <button type="button" id="btnSubmitCancelJob" onclick="submitCancelSpecialJob()" style="background: var(--md-sys-color-error, #dc2626); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">block</span><span>रद्द दर्ज करें (Confirm Cancellation)</span>
         </button>
       </div>
     </div>

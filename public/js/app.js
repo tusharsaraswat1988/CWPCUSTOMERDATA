@@ -3851,6 +3851,49 @@ function loadStaffCustomerData(staffId) {
         }
       }
 
+      // Populate Staff Portal Profile Details Card
+      var pCard = document.getElementById('staffPortalProfileDetailsCard');
+      if (pCard) {
+        pCard.style.display = 'block';
+        var phoneEl = document.getElementById('staffPortalPhoneDisplay');
+        if (phoneEl) {
+          var pVal = data.staffPhone || data.phone || '';
+          phoneEl.textContent = pVal ? (typeof formatIndianMobile === 'function' ? formatIndianMobile(pVal) : pVal) : '-';
+        }
+        var dojEl = document.getElementById('staffPortalDojDisplay');
+        var dojWrap = document.getElementById('staffPortalDojWrap');
+        if (data.dateOfJoining) {
+          if (dojEl) dojEl.textContent = String(data.dateOfJoining).split('T')[0];
+          if (dojWrap) dojWrap.style.display = 'flex';
+        } else if (dojWrap) {
+          dojWrap.style.display = 'none';
+        }
+        var wOffEl = document.getElementById('staffPortalWeeklyOffDisplay');
+        var wOffWrap = document.getElementById('staffPortalWeeklyOffWrap');
+        if (data.weeklyOff) {
+          if (wOffEl) wOffEl.textContent = data.weeklyOff;
+          if (wOffWrap) wOffWrap.style.display = 'flex';
+        } else if (wOffWrap) {
+          wOffWrap.style.display = 'none';
+        }
+        var emailEl = document.getElementById('staffPortalEmailDisplay');
+        var emailWrap = document.getElementById('staffPortalEmailWrap');
+        if (data.email) {
+          if (emailEl) emailEl.textContent = data.email;
+          if (emailWrap) emailWrap.style.display = 'flex';
+        } else if (emailWrap) {
+          emailWrap.style.display = 'none';
+        }
+        var salEl = document.getElementById('staffPortalSalaryDisplay');
+        var salWrap = document.getElementById('staffPortalSalaryWrap');
+        if (data.salary !== undefined && data.salary !== null && data.salary !== '') {
+          if (salEl) salEl.textContent = '₹' + Number(data.salary).toLocaleString('en-IN');
+          if (salWrap) salWrap.style.display = 'flex';
+        } else if (salWrap) {
+          salWrap.style.display = 'none';
+        }
+      }
+
       /* Data Source Reliability Feedback (Live badge removed - user requested: live hata do. not needed at all.) */
       var liveBadge = document.getElementById('staffLiveBadge');
       if (liveBadge) liveBadge.style.display = 'none';
@@ -3969,18 +4012,18 @@ function loadStaffCustomerData(staffId) {
       var otherCount = state.customers.filter(function(c) {
         if (c.category === 'daily_car_cleaning') return false;
         var status = c.status || (c.completedToday ? 'completed' : 'assigned');
-        return status !== 'completed' && !c.completedToday;
+        return status !== 'completed' && status !== 'cancelled' && !c.completedToday;
       }).length;
 
       var cwCount = state.customers.filter(function(c) {
         if (c.category !== 'car_washing') return false;
         var status = c.status || (c.completedToday ? 'completed' : 'assigned');
-        return status !== 'completed' && !c.completedToday;
+        return status !== 'completed' && status !== 'cancelled' && !c.completedToday;
       }).length;
       var spcCount = state.customers.filter(function(c) {
         if (c.category !== 'solar_cleaning') return false;
         var status = c.status || (c.completedToday ? 'completed' : 'assigned');
-        return status !== 'completed' && !c.completedToday;
+        return status !== 'completed' && status !== 'cancelled' && !c.completedToday;
       }).length;
 
       var elDcc = document.getElementById('countDailyClean');
@@ -4519,10 +4562,19 @@ function loadStaffCustomerData(staffId) {
         if (isDaily) {
           html += '  <div class="card-status-actions-bar-split">';
           if (isDone) {
-            html += '    <button type="button" class="btn-clean-done done-active card-status-completed" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')" title="' + (isHi ? 'सफाई पूर्ण हो चुकी है (फोटो देखने या रीटेक करने के लिए क्लिक करें)' : 'Cleaning completed (Click to view or retake photo)') + '">';
-            html += '      <span class="material-symbols-outlined status-completed-icon" style="font-size: 18px;" aria-hidden="true">check_circle</span>';
-            html += '      <span>' + (isHi ? 'साफ हो गई (Done)' : 'Cleaned (Done)') + '</span>';
-            html += '    </button>';
+            var compData = getCustomerCompletionData(custId);
+            var isCarNotPresent = compData && (compData.carNotPresent === true || compData.tag === 'car_not_present' || compData.status === 'car_not_present');
+            if (isCarNotPresent) {
+              html += '    <button type="button" class="btn-clean-done done-active card-status-not-present" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')" title="' + (isHi ? 'कार मौजूद नहीं थी (फोटो देखने या रीटेक करने के लिए क्लिक करें)' : 'Car not present (Click to view or retake photo)') + '">';
+              html += '      <span class="material-symbols-outlined status-completed-icon" style="font-size: 18px;" aria-hidden="true">cancel</span>';
+              html += '      <span>' + (isHi ? 'कार नहीं थी (Not Present)' : 'Car Not Present') + '</span>';
+              html += '    </button>';
+            } else {
+              html += '    <button type="button" class="btn-clean-done done-active card-status-completed" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')" title="' + (isHi ? 'सफाई पूर्ण हो चुकी है (फोटो देखने या रीटेक करने के लिए क्लिक करें)' : 'Cleaning completed (Click to view or retake photo)') + '">';
+              html += '      <span class="material-symbols-outlined status-completed-icon" style="font-size: 18px;" aria-hidden="true">check_circle</span>';
+              html += '      <span>' + (isHi ? 'साफ हो गई (Done)' : 'Cleaned (Done)') + '</span>';
+              html += '    </button>';
+            }
           } else {
             html += '    <button type="button" class="btn-clean-done" onclick="handleDailyCleanClick(\'' + escapeHtml(custId) + '\', ' + index + ')">';
             html += '      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">photo_camera</span>';
@@ -4548,9 +4600,14 @@ function loadStaffCustomerData(staffId) {
             html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">assignment</span>नया काम (Awaiting Start)</span>';
             html += '      <span class="job-time-chip">' + (item.scheduledDate ? 'तारीख: ' + escapeHtml(item.scheduledDate) : 'आज का काम') + '</span>';
             html += '    </div>';
-            html += '    <button type="button" class="btn-job-action btn-job-start" onclick="openStartSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
-            html += '      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>काम शुरू करें (1-2 फ़ोटो लें)</span>';
-            html += '    </button>';
+            html += '    <div style="display: flex; gap: 8px; margin-top: 6px;">';
+            html += '      <button type="button" class="btn-job-action btn-job-start" style="flex: 1;" onclick="openStartSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
+            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>काम शुरू करें (1-2 फ़ोटो लें)</span>';
+            html += '      </button>';
+            html += '      <button type="button" class="btn-job-action btn-job-cancel" onclick="openCancelSpecialJobModal(\'' + escapeHtml(jId) + '\')" title="बुकिंग रद्द करें (Cancel Booking)">';
+            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">cancel</span><span>रद्द करें</span>';
+            html += '      </button>';
+            html += '    </div>';
           } else if (jStatus === 'in_progress') {
             var stTime = item.startedAt ? formatTimeOnly(item.startedAt) : '';
             html += '    <div class="job-card-journey-bar job-status-in-progress">';
@@ -4570,9 +4627,14 @@ function loadStaffCustomerData(staffId) {
               html += '    </div>';
             }
 
-            html += '    <button type="button" class="btn-job-action btn-job-complete" onclick="openCompleteSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
-            html += '      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">task_alt</span><span>काम पूरा करें (1-2 फ़ोटो अपलोड करें)</span>';
-            html += '    </button>';
+            html += '    <div style="display: flex; gap: 8px; margin-top: 6px;">';
+            html += '      <button type="button" class="btn-job-action btn-job-complete" style="flex: 1;" onclick="openCompleteSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
+            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">task_alt</span><span>काम पूरा करें (1-2 फ़ोटो अपलोड करें)</span>';
+            html += '      </button>';
+            html += '      <button type="button" class="btn-job-action btn-job-cancel" onclick="openCancelSpecialJobModal(\'' + escapeHtml(jId) + '\')" title="बुकिंग रद्द करें (Cancel Booking)">';
+            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">cancel</span><span>रद्द करें</span>';
+            html += '      </button>';
+            html += '    </div>';
           } else if (jStatus === 'completed') {
             var compTime = item.completedAt ? formatTimeOnly(item.completedAt) : '';
             html += '    <div class="job-card-journey-bar job-status-completed">';
@@ -4608,6 +4670,20 @@ function loadStaffCustomerData(staffId) {
             html += '      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.68 12.04 3.68C14.25 3.68 16.31 4.54 17.87 6.1C19.42 7.66 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.05 20.15Z"/></svg>';
             html += '      <span>ग्राहक को व्हाट्सएप भेजें (Share Proof)</span>';
             html += '    </button>';
+          } else if (jStatus === 'cancelled') {
+            var cTime = item.cancelledAt ? formatTimeOnly(item.cancelledAt) : '';
+            var reason = item.cancellationReason || 'रद्द (Cancelled)';
+            var remarks = item.cancellationRemarks || '';
+            html += '    <div class="job-card-journey-bar job-status-cancelled">';
+            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">block</span>रद्द (Cancelled)</span>';
+            html += '      <span class="job-time-chip">' + (cTime ? 'रद्द: ' + cTime : 'रद्द') + '</span>';
+            html += '    </div>';
+            html += '    <div class="job-cancelled-details-box">';
+            html += '      <div><strong>कारण:</strong> ' + escapeHtml(reason) + '</div>';
+            if (remarks) {
+              html += '      <div style="margin-top: 4px; color: var(--md-sys-color-outline, #64748b);"><strong>टिप्पणी:</strong> ' + escapeHtml(remarks) + '</div>';
+            }
+            html += '    </div>';
           }
 
           html += '  </div>';
@@ -4847,11 +4923,128 @@ function loadStaffCustomerData(staffId) {
       showToast('Photo marked for removal', '🗑️');
     }
 
+    state.staffDocUploads = {};
+    state.staffDocRemoves = {};
+
+    var staffDocMeta = {
+      aadharFront: { fileId: 'fileAadharFront', urlId: 'urlAadharFront', previewId: 'previewAadharFront', viewId: 'btnViewAadharFront', remId: 'btnRemAadharFront', title: 'Aadhar Card (Front)' },
+      aadharBack: { fileId: 'fileAadharBack', urlId: 'urlAadharBack', previewId: 'previewAadharBack', viewId: 'btnViewAadharBack', remId: 'btnRemAadharBack', title: 'Aadhar Card (Back)' },
+      bankPassbook: { fileId: 'fileBankPassbook', urlId: 'urlBankPassbook', previewId: 'previewBankPassbook', viewId: 'btnViewBankPassbook', remId: 'btnRemBankPassbook', title: 'Bank Passbook Photo' },
+      panCard: { fileId: 'filePanCard', urlId: 'urlPanCard', previewId: 'previewPanCard', viewId: 'btnViewPanCard', remId: 'btnRemPanCard', title: 'PAN Card Photo' },
+      drivingLicense: { fileId: 'fileDrivingLicense', urlId: 'urlDrivingLicense', previewId: 'previewDrivingLicense', viewId: 'btnViewDrivingLicense', remId: 'btnRemDrivingLicense', title: 'Driving Licence Photo' }
+    };
+
+    function handleStaffDocSelect(e, docType) {
+      var file = e.target && e.target.files && e.target.files[0];
+      if (!file) return;
+
+      var isImg = (file.type && file.type.toLowerCase().startsWith('image/')) ||
+                  /\.(jpe?g|png|webp|gif|bmp|jfif|heic|svg)$/i.test(file.name || '');
+      if (!isImg) {
+        alert('Please choose a valid image file (JPG, PNG, WebP).');
+        return;
+      }
+
+      var meta = staffDocMeta[docType];
+      if (!meta) return;
+
+      var reader = new FileReader();
+      reader.onerror = function(err) {
+        console.error('File read error:', err);
+        alert('Could not read image file. Please try another image.');
+      };
+
+      reader.onload = function(evt) {
+        var rawDataUrl = evt.target.result;
+        if (!rawDataUrl) return;
+
+        var commaIdx = rawDataUrl.indexOf(',');
+        var rawB64 = commaIdx !== -1 ? rawDataUrl.slice(commaIdx + 1) : rawDataUrl;
+
+        if (!state.staffDocUploads) state.staffDocUploads = {};
+        if (!state.staffDocRemoves) state.staffDocRemoves = {};
+        state.staffDocUploads[docType] = { base64: rawB64, mimeType: file.type || 'image/jpeg', dataUrl: rawDataUrl };
+        state.staffDocRemoves[docType] = false;
+
+        var prevEl = document.getElementById(meta.previewId);
+        var viewEl = document.getElementById(meta.viewId);
+        var remEl = document.getElementById(meta.remId);
+
+        if (prevEl) { prevEl.src = rawDataUrl; prevEl.style.display = 'block'; }
+        if (viewEl) viewEl.style.display = 'inline-flex';
+        if (remEl) remEl.style.display = 'inline-flex';
+
+        compressStaffPhoto(rawDataUrl, function(compressedUrl) {
+          if (!compressedUrl) return;
+          var cIdx = compressedUrl.indexOf(',');
+          var compB64 = cIdx !== -1 ? compressedUrl.slice(cIdx + 1) : compressedUrl;
+          if (state.staffDocUploads && state.staffDocUploads[docType]) {
+            state.staffDocUploads[docType].base64 = compB64;
+            state.staffDocUploads[docType].mimeType = 'image/jpeg';
+            state.staffDocUploads[docType].dataUrl = compressedUrl;
+          }
+          if (prevEl) prevEl.src = compressedUrl;
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeStaffDoc(docType) {
+      var meta = staffDocMeta[docType];
+      if (!meta) return;
+
+      if (!state.staffDocUploads) state.staffDocUploads = {};
+      if (!state.staffDocRemoves) state.staffDocRemoves = {};
+      state.staffDocUploads[docType] = null;
+      state.staffDocRemoves[docType] = true;
+
+      var fileEl = document.getElementById(meta.fileId);
+      var urlEl = document.getElementById(meta.urlId);
+      var prevEl = document.getElementById(meta.previewId);
+      var viewEl = document.getElementById(meta.viewId);
+      var remEl = document.getElementById(meta.remId);
+
+      if (fileEl) fileEl.value = '';
+      if (urlEl) urlEl.value = '';
+      if (prevEl) { prevEl.src = ''; prevEl.style.display = 'none'; }
+      if (viewEl) viewEl.style.display = 'none';
+      if (remEl) remEl.style.display = 'none';
+
+      showToast(meta.title + ' marked for removal', '🗑️');
+    }
+
+    function viewStaffDoc(docType) {
+      var meta = staffDocMeta[docType];
+      if (!meta) return;
+
+      var uploadObj = state.staffDocUploads && state.staffDocUploads[docType];
+      var rawUrl = uploadObj ? (uploadObj.dataUrl || ('data:' + (uploadObj.mimeType || 'image/jpeg') + ';base64,' + uploadObj.base64)) : null;
+      if (!rawUrl) {
+        var urlEl = document.getElementById(meta.urlId);
+        rawUrl = urlEl ? urlEl.value.trim() : '';
+      }
+
+      if (!rawUrl) {
+        showToast('No ' + meta.title + ' uploaded yet', 'ℹ️');
+        return;
+      }
+
+      var sName = (document.getElementById('editStaffName') ? document.getElementById('editStaffName').value : '') || 'Staff';
+      if (typeof openImageModal === 'function') {
+        openImageModal(rawUrl, meta.title, sName);
+      } else {
+        window.open(rawUrl, '_blank');
+      }
+    }
+
     if (typeof window !== 'undefined') {
       window.compressStaffPhoto = compressStaffPhoto;
       window.handleStaffPhotoSelect = handleStaffPhotoSelect;
       window.clearNewStaffPhoto = clearNewStaffPhoto;
       window.removeEditStaffPhoto = removeEditStaffPhoto;
+      window.handleStaffDocSelect = handleStaffDocSelect;
+      window.removeStaffDoc = removeStaffDoc;
+      window.viewStaffDoc = viewStaffDoc;
     }
 
     function populateAdminStaffList(list) {
@@ -4929,6 +5122,29 @@ function loadStaffCustomerData(staffId) {
         }
         cardsHtml += '      </span>';
         cardsHtml += '    </div>';
+
+        var extraDetails = [];
+        var wOff = s.weeklyOff || s.weekly_off;
+        if (wOff) extraDetails.push('<span>🗓️ Off: <b style="color:var(--brand-blue);">' + escapeHtml(wOff) + '</b></span>');
+        var doj = s.dateOfJoining || s.date_of_joining;
+        if (doj) extraDetails.push('<span>📅 Joined: <b>' + escapeHtml(String(doj).split('T')[0]) + '</b></span>');
+        var sal = s.salary;
+        if (sal !== undefined && sal !== null && sal !== '') extraDetails.push('<span>💰 <b>₹' + escapeHtml(Number(sal).toLocaleString('en-IN')) + '</b></span>');
+
+        var docChips = [];
+        if (s.aadharNumber || s.aadharFrontUrl || s.aadhar_front_url || s.aadharBackUrl || s.aadhar_back_url) docChips.push('Aadhar');
+        if (s.panNumber || s.pan_number || s.panCardUrl || s.pan_card_url) docChips.push('PAN');
+        if (s.drivingLicenseNumber || s.driving_license_number || s.drivingLicenseUrl || s.driving_license_url) docChips.push('DL');
+        if (s.bankPassbookUrl || s.bank_passbook_url) docChips.push('Bank');
+        if (docChips.length > 0) {
+          extraDetails.push('<span style="color:#059669; font-weight:600;">🪪 KYC: ' + escapeHtml(docChips.join(', ')) + '</span>');
+        }
+
+        if (extraDetails.length > 0) {
+          cardsHtml += '    <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); align-items: center; margin-top: 3px;">';
+          cardsHtml += '      ' + extraDetails.join(' • ');
+          cardsHtml += '    </div>';
+        }
         cardsHtml += '  </div>';
         cardsHtml += '  <div class="staff-admin-actions">';
         cardsHtml += '    <button type="button" class="btn-admin-action" onclick="openEditStaffModal(\'' + escapeHtml(s.id) + '\')">✏️ Edit</button>';
@@ -5182,6 +5398,64 @@ function loadStaffCustomerData(staffId) {
       var isAct = staff.active !== undefined ? (staff.active === true || staff.active === 'Yes' || staff.active === 'yes' || staff.active === 'Active') : true;
       document.getElementById('editStaffActive').value = isAct ? 'true' : 'false';
 
+      // Extended non-mandatory profile fields
+      if (document.getElementById('editStaffJoiningDate')) {
+        var rawDoj = staff.dateOfJoining || staff.date_of_joining || '';
+        document.getElementById('editStaffJoiningDate').value = rawDoj ? (rawDoj.split ? rawDoj.split('T')[0] : rawDoj) : '';
+      }
+      if (document.getElementById('editStaffSalary')) {
+        document.getElementById('editStaffSalary').value = (staff.salary !== undefined && staff.salary !== null && staff.salary !== '') ? staff.salary : '';
+      }
+      if (document.getElementById('editStaffWeeklyOff')) {
+        document.getElementById('editStaffWeeklyOff').value = staff.weeklyOff || staff.weekly_off || '';
+      }
+      if (document.getElementById('editStaffEmail')) {
+        document.getElementById('editStaffEmail').value = staff.email || '';
+      }
+      if (document.getElementById('editStaffAadharNumber')) {
+        document.getElementById('editStaffAadharNumber').value = staff.aadharNumber || staff.aadhar_number || '';
+      }
+      if (document.getElementById('editStaffPanNumber')) {
+        document.getElementById('editStaffPanNumber').value = staff.panNumber || staff.pan_number || '';
+      }
+      if (document.getElementById('editStaffDlNumber')) {
+        document.getElementById('editStaffDlNumber').value = staff.drivingLicenseNumber || staff.driving_license_number || '';
+      }
+
+      // Reset document upload state
+      state.staffDocUploads = {};
+      state.staffDocRemoves = {};
+
+      var docsToInit = [
+        { type: 'aadharFront', url: staff.aadharFrontUrl || staff.aadhar_front_url || '' },
+        { type: 'aadharBack', url: staff.aadharBackUrl || staff.aadhar_back_url || '' },
+        { type: 'bankPassbook', url: staff.bankPassbookUrl || staff.bank_passbook_url || '' },
+        { type: 'panCard', url: staff.panCardUrl || staff.pan_card_url || '' },
+        { type: 'drivingLicense', url: staff.drivingLicenseUrl || staff.driving_license_url || '' }
+      ];
+
+      docsToInit.forEach(function(item) {
+        var meta = staffDocMeta[item.type];
+        if (!meta) return;
+        var fileEl = document.getElementById(meta.fileId);
+        var urlEl = document.getElementById(meta.urlId);
+        var prevEl = document.getElementById(meta.previewId);
+        var viewEl = document.getElementById(meta.viewId);
+        var remEl = document.getElementById(meta.remId);
+
+        if (fileEl) fileEl.value = '';
+        if (urlEl) urlEl.value = item.url;
+        if (item.url) {
+          if (prevEl) { prevEl.src = item.url; prevEl.style.display = 'block'; }
+          if (viewEl) viewEl.style.display = 'inline-flex';
+          if (remEl) remEl.style.display = 'inline-flex';
+        } else {
+          if (prevEl) { prevEl.src = ''; prevEl.style.display = 'none'; }
+          if (viewEl) viewEl.style.display = 'none';
+          if (remEl) remEl.style.display = 'none';
+        }
+      });
+
       var modal = document.getElementById('staffEditModal');
       if (modal) {
         modal.style.display = 'flex';
@@ -5213,6 +5487,20 @@ function loadStaffCustomerData(staffId) {
         document.getElementById('editStaffPhone').focus();
         return;
       }
+
+      // Check mobile number uniqueness among other staff (proof of identity)
+      if (phone) {
+        var duplicateStaff = (state.staffList || []).find(function(s) {
+          return (s.id || '').toUpperCase() !== id.toUpperCase() &&
+                 s.phone && normalizeIndianMobile(s.phone) === phone;
+        });
+        if (duplicateStaff) {
+          alert('Mobile number ' + formatIndianMobile(phone) + ' is already registered to another staff member "' + duplicateStaff.name + '" (ID: ' + duplicateStaff.id + ').\n\nStaff mobile number serves as proof of identity and must be unique.');
+          document.getElementById('editStaffPhone').focus();
+          return;
+        }
+      }
+
       var active = document.getElementById('editStaffActive').value === 'true';
       var btn = document.getElementById('btnSaveEditStaff');
 
@@ -5230,11 +5518,26 @@ function loadStaffCustomerData(staffId) {
         btn.innerHTML = '<span>⏳</span> Saving...';
       }
 
+      var email = (document.getElementById('editStaffEmail') ? document.getElementById('editStaffEmail').value : '').trim();
+      var dateOfJoining = (document.getElementById('editStaffJoiningDate') ? document.getElementById('editStaffJoiningDate').value : '').trim();
+      var salary = (document.getElementById('editStaffSalary') ? document.getElementById('editStaffSalary').value : '').trim();
+      var weeklyOff = (document.getElementById('editStaffWeeklyOff') ? document.getElementById('editStaffWeeklyOff').value : '').trim();
+      var aadharNumber = (document.getElementById('editStaffAadharNumber') ? document.getElementById('editStaffAadharNumber').value : '').trim();
+      var panNumber = (document.getElementById('editStaffPanNumber') ? document.getElementById('editStaffPanNumber').value : '').trim().toUpperCase();
+      var drivingLicenseNumber = (document.getElementById('editStaffDlNumber') ? document.getElementById('editStaffDlNumber').value : '').trim();
+
       var staffPayload = {
         id: id,
         name: name,
         phone: phone,
-        active: active
+        active: active,
+        email: email,
+        dateOfJoining: dateOfJoining,
+        salary: salary,
+        weeklyOff: weeklyOff,
+        aadharNumber: aadharNumber,
+        panNumber: panNumber,
+        drivingLicenseNumber: drivingLicenseNumber
       };
       if (pin) {
         staffPayload.pin = pin;
@@ -5248,6 +5551,29 @@ function loadStaffCustomerData(staffId) {
         var curPUrl = document.getElementById('editStaffPhotoUrl');
         if (curPUrl && curPUrl.value) staffPayload.photoUrl = curPUrl.value;
       }
+
+      if (!state.staffDocUploads) state.staffDocUploads = {};
+      if (!state.staffDocRemoves) state.staffDocRemoves = {};
+
+      if (state.staffDocUploads.aadharFront) staffPayload.aadharFrontObj = state.staffDocUploads.aadharFront;
+      else if (state.staffDocRemoves.aadharFront) staffPayload.removeAadharFront = true;
+      else if (document.getElementById('urlAadharFront')) staffPayload.aadharFrontUrl = document.getElementById('urlAadharFront').value;
+
+      if (state.staffDocUploads.aadharBack) staffPayload.aadharBackObj = state.staffDocUploads.aadharBack;
+      else if (state.staffDocRemoves.aadharBack) staffPayload.removeAadharBack = true;
+      else if (document.getElementById('urlAadharBack')) staffPayload.aadharBackUrl = document.getElementById('urlAadharBack').value;
+
+      if (state.staffDocUploads.bankPassbook) staffPayload.bankPassbookObj = state.staffDocUploads.bankPassbook;
+      else if (state.staffDocRemoves.bankPassbook) staffPayload.removeBankPassbook = true;
+      else if (document.getElementById('urlBankPassbook')) staffPayload.bankPassbookUrl = document.getElementById('urlBankPassbook').value;
+
+      if (state.staffDocUploads.panCard) staffPayload.panCardObj = state.staffDocUploads.panCard;
+      else if (state.staffDocRemoves.panCard) staffPayload.removePanCard = true;
+      else if (document.getElementById('urlPanCard')) staffPayload.panCardUrl = document.getElementById('urlPanCard').value;
+
+      if (state.staffDocUploads.drivingLicense) staffPayload.drivingLicenseObj = state.staffDocUploads.drivingLicense;
+      else if (state.staffDocRemoves.drivingLicense) staffPayload.removeDrivingLicense = true;
+      else if (document.getElementById('urlDrivingLicense')) staffPayload.drivingLicenseUrl = document.getElementById('urlDrivingLicense').value;
 
       apiCall('saveStaffMember', { staffData: staffPayload }, function(res) {
         if (btn) {
@@ -5326,6 +5652,16 @@ function loadStaffCustomerData(staffId) {
 
       if (!rawPhone || !isValidIndianMobile(phone)) {
         alert('Please enter a valid 10-digit Indian mobile number for staff starting with 6, 7, 8, or 9.');
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
+
+      // Check mobile number uniqueness among staff (proof of identity)
+      var duplicateStaff = (state.staffList || []).find(function(s) {
+        return s.phone && normalizeIndianMobile(s.phone) === phone;
+      });
+      if (duplicateStaff) {
+        alert('Mobile number ' + formatIndianMobile(phone) + ' is already registered to staff member "' + duplicateStaff.name + '" (ID: ' + duplicateStaff.id + ').\n\nStaff mobile number serves as proof of identity and must be unique.');
         if (phoneInput) phoneInput.focus();
         return;
       }
@@ -10334,6 +10670,15 @@ function loadStaffCustomerData(staffId) {
       if (custEl) custEl.textContent = item.customerName || item.name || 'Customer';
       if (vehEl) vehEl.textContent = item.vehicle || item.vehicleNumbers || 'Vehicle';
 
+      // Reset checkbox & button for Car Not Present tag
+      var notPresentCheck = document.getElementById('cameraCarNotPresentCheck');
+      if (notPresentCheck) notPresentCheck.checked = false;
+      var btnConfirm = document.getElementById('btnConfirmCleanPhoto');
+      if (btnConfirm) {
+        btnConfirm.classList.remove('btn-confirm-not-present');
+        btnConfirm.innerHTML = '<span>✓</span> ' + (state && state.lang === 'hi' ? 'पुष्टि करें (Confirm & Save)' : 'Confirm & Save');
+      }
+
       // Reset view visibility
       var capView = document.getElementById('cameraCaptureView');
       var revView = document.getElementById('cameraReviewView');
@@ -10448,6 +10793,28 @@ function loadStaffCustomerData(staffId) {
       reader.readAsDataURL(file);
     }
 
+    function handleCarNotPresentToggle(el) {
+      var isChecked = el && el.checked;
+      var btn = document.getElementById('btnConfirmCleanPhoto');
+      var carTag = document.getElementById('reviewCarTag');
+      var item = activeCameraTarget ? activeCameraTarget.item : {};
+      var vName = (item.vehicle || item.vehicleNumbers || 'Vehicle');
+      if (isChecked) {
+        if (btn) {
+          btn.classList.add('btn-confirm-not-present');
+          btn.innerHTML = '<span>🚫</span> ' + (state && state.lang === 'hi' ? 'दर्ज करें: कार मौजूद नहीं' : 'Save: Car Not Present');
+        }
+        if (carTag) carTag.textContent = '🚗❌ ' + vName + ' [कार नहीं थी]';
+      } else {
+        if (btn) {
+          btn.classList.remove('btn-confirm-not-present');
+          btn.innerHTML = '<span>✓</span> ' + (state && state.lang === 'hi' ? 'पुष्टि करें (Confirm & Save)' : 'Confirm & Save');
+        }
+        if (carTag) carTag.textContent = '🚗 ' + vName;
+      }
+    }
+    window.handleCarNotPresentToggle = handleCarNotPresentToggle;
+
     function showVisualCheckReview(imageDataUrl) {
       currentSnappedPhotoBase64 = imageDataUrl;
 
@@ -10498,6 +10865,9 @@ function loadStaffCustomerData(staffId) {
       var item = target.item;
       var custId = target.custId;
 
+      var notPresentCheck = document.getElementById('cameraCarNotPresentCheck');
+      var isCarNotPresent = Boolean(notPresentCheck && notPresentCheck.checked);
+
       var revView = document.getElementById('cameraReviewView');
       var upView = document.getElementById('cameraUploadingView');
       if (revView) revView.style.display = 'none';
@@ -10517,8 +10887,11 @@ function loadStaffCustomerData(staffId) {
           photoBase64: compressedBase64.replace(/^data:image\/[a-z]+;base64,/, ''),
           mimeType: 'image/jpeg',
           completedAtDevice: completedAtDevice,
-          notes: 'Daily car cleaning completed with photo proof',
-          staffId: staffCode
+          notes: isCarNotPresent ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)' : 'Daily car cleaning completed with photo proof',
+          staffId: staffCode,
+          carNotPresent: isCarNotPresent,
+          tag: isCarNotPresent ? 'car_not_present' : null,
+          status: isCarNotPresent ? 'car_not_present' : 'completed'
         };
 
         // 2. Upload to Server
@@ -10533,6 +10906,9 @@ function loadStaffCustomerData(staffId) {
 
           store[staffCode][dateKey][custId] = {
             done: true,
+            carNotPresent: isCarNotPresent,
+            tag: isCarNotPresent ? 'car_not_present' : null,
+            status: isCarNotPresent ? 'car_not_present' : 'completed',
             photoUrl: uploadedUrl,
             completedAt: completedAtDevice,
             vehicle: item.vehicle || item.vehicleNumbers,
@@ -10558,7 +10934,8 @@ function loadStaffCustomerData(staffId) {
             renderCustomerCards(state.currentStaffFilteredList);
           }
 
-          showToast('कार की सफाई सफलतापूर्वक दर्ज हो गई! ✓', 'success');
+          var successMsg = isCarNotPresent ? 'गाड़ी मौजूद नहीं थी - रिकॉर्ड दर्ज हो गया! 🚫' : 'कार की सफाई सफलतापूर्वक दर्ज हो गई! ✓';
+          showToast(successMsg, 'success');
 
           // 5. Trigger Instant WhatsApp Dispatch
           setTimeout(function() {
@@ -10575,6 +10952,9 @@ function loadStaffCustomerData(staffId) {
 
           store[staffCode][dateKey][custId] = {
             done: true,
+            carNotPresent: isCarNotPresent,
+            tag: isCarNotPresent ? 'car_not_present' : null,
+            status: isCarNotPresent ? 'car_not_present' : 'completed',
             photoUrl: compressedBase64, // local data url
             completedAt: completedAtDevice,
             vehicle: item.vehicle || item.vehicleNumbers,
@@ -10627,13 +11007,16 @@ function loadStaffCustomerData(staffId) {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
         ctx.fillRect(0, h - bannerHeight, w, bannerHeight);
 
-        ctx.fillStyle = '#38bdf8';
+        var notPresentCheck = document.getElementById('cameraCarNotPresentCheck');
+        var isNotPresent = Boolean(notPresentCheck && notPresentCheck.checked);
+
+        ctx.fillStyle = isNotPresent ? '#f59e0b' : '#38bdf8';
         var fontSize = Math.max(14, Math.round(bannerHeight * 0.32));
         ctx.font = 'bold ' + fontSize + 'px sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
 
-        var vText = '🚗 ' + (item.vehicle || item.vehicleNumbers || 'CWP Clean');
+        var vText = (isNotPresent ? '🚫 [NOT PRESENT] ' : '🚗 ') + (item.vehicle || item.vehicleNumbers || 'CWP Clean');
         var cText = ' • 👤 ' + (item.customerName || item.name || 'Customer');
         ctx.fillText(vText + cText, 16, h - (bannerHeight * 0.65));
 
@@ -11067,11 +11450,15 @@ function loadStaffCustomerData(staffId) {
       populateReportStaffDropdown();
       computeReportDatesFromPeriod();
 
+      var photoFilterVal = document.getElementById('reportPhotoFilter') ? document.getElementById('reportPhotoFilter').value : (adminCleanReportsState.hasPhoto || 'all');
+      adminCleanReportsState.hasPhoto = photoFilterVal;
+
       var payload = {
         startDate: adminCleanReportsState.startDate,
         endDate: adminCleanReportsState.endDate,
         staffId: adminCleanReportsState.staffId,
-        hasPhoto: adminCleanReportsState.hasPhoto,
+        hasPhoto: photoFilterVal === 'not_present' ? 'all' : photoFilterVal,
+        carNotPresent: photoFilterVal === 'not_present' ? 'yes' : undefined,
         search: adminCleanReportsState.search
       };
 
@@ -11432,9 +11819,14 @@ function loadStaffCustomerData(staffId) {
           transitStr = '<span class="cell-time-transit" style="font-size: 10.5px; color: #64748b; display: block; margin-top: 2px;">⏱️ ' + tMin + 'm transit</span>';
         }
 
+        var isCarNotPresent = r.car_not_present === true || r.tag === 'car_not_present' || r.status === 'car_not_present';
+        var statusBadge = isCarNotPresent
+          ? '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>🚫</span> Car Not Present</span>'
+          : '<span class="badge-status-pill badge-active" style="font-size:11px; padding:3px 8px;">✓ Cleaned</span>';
+
         html += '  <td style="text-align: center;">' +
                 '    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">' +
-                '      <span class="badge-status-pill badge-active" style="font-size:11px; padding:3px 8px;">✓ Cleaned</span>' +
+                statusBadge +
                 transitStr +
                 '      <!-- Admin share disabled -->' +
                 '    </div>' +
@@ -11532,6 +11924,9 @@ function loadStaffCustomerData(staffId) {
         var dStr = d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
         var tStr = d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
 
+        var isCarNotPresent = r.car_not_present === true || r.tag === 'car_not_present' || r.status === 'car_not_present';
+        var statusText = isCarNotPresent ? 'Car Not Present' : 'Completed';
+
         var row = [
           idx + 1,
           JSON.stringify(dStr),
@@ -11543,7 +11938,7 @@ function loadStaffCustomerData(staffId) {
           JSON.stringify(r.registration_no || ''),
           JSON.stringify(r.brand_or_model || ''),
           JSON.stringify(r.address_text || r.parking_details || ''),
-          JSON.stringify('Completed'),
+          JSON.stringify(statusText),
           JSON.stringify(r.photo_url || '')
         ];
         csvRows.push(row.join(','));
@@ -12182,6 +12577,111 @@ function loadStaffCustomerData(staffId) {
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.innerHTML = '<span>✅ काम पूर्ण और सबमिट करें</span>';
+        }
+        showToast('Error: ' + err.message, '❌');
+      });
+    }
+
+    /* Staff: Cancelling Special Job (Reason & Remarks) */
+    var currentCancelJobId = null;
+
+    function openCancelSpecialJobModal(jobId, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
+      currentCancelJobId = jobId;
+      var job = (state.customers || []).find(function(c) { return (c.jobId || c.id) === jobId; });
+      if (!job) {
+        showToast('काम की जानकारी नहीं मिली।', '⚠️');
+        return;
+      }
+      var summaryEl = document.getElementById('cancelJobCustomerSummary');
+      if (summaryEl) {
+        var isSolar = (job.category === 'solar_cleaning' || job.serviceCategoryId === 'solar_cleaning');
+        summaryEl.innerHTML = 
+          '<div style="font-weight: 700; font-size: 15px; color: var(--md-sys-color-on-surface, #1e293b); margin-bottom: 3px;">' + escapeHtml(job.customerName || job.name) + '</div>' +
+          '<div style="font-size: 13px; color: var(--md-sys-color-primary, #2563eb); font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 16px;">' + (isSolar ? 'solar_power' : 'local_car_wash') + '</span><span>' + escapeHtml(job.serviceType || job.serviceCategory) + '</span></div>' +
+          '<div style="font-size: 12.5px; color: var(--md-sys-color-on-surface-variant, #64748b); display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 15px;">location_on</span><span>' + escapeHtml(job.address || 'Location on map') + '</span></div>';
+      }
+      var reasonSelect = document.getElementById('cancelJobReasonSelect');
+      if (reasonSelect) reasonSelect.value = '';
+      var remarksInput = document.getElementById('cancelJobRemarksInput');
+      if (remarksInput) remarksInput.value = '';
+      var err = document.getElementById('cancelJobErrorMsg');
+      if (err) err.style.display = 'none';
+
+      var modal = document.getElementById('cancelSpecialJobModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeCancelSpecialJobModal() {
+      var modal = document.getElementById('cancelSpecialJobModal');
+      if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
+      currentCancelJobId = null;
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
+    }
+
+    function submitCancelSpecialJob() {
+      if (!currentCancelJobId) return;
+      var reasonSelect = document.getElementById('cancelJobReasonSelect');
+      var reason = reasonSelect ? reasonSelect.value.trim() : '';
+      if (!reason) {
+        var err = document.getElementById('cancelJobErrorMsg');
+        if (err) {
+          err.textContent = 'कृपया रद्द करने का कारण चुनें (Please select a cancellation reason)';
+          err.style.display = 'block';
+        }
+        return;
+      }
+
+      var remarksInput = document.getElementById('cancelJobRemarksInput');
+      var remarks = remarksInput ? remarksInput.value.trim() : '';
+
+      var submitBtn = document.getElementById('btnSubmitCancelJob');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳ रद्द दर्ज हो रहा है...</span>';
+      }
+
+      var payload = {
+        action: 'cancelSpecialJob',
+        jobId: currentCancelJobId,
+        reason: reason,
+        remarks: remarks,
+        staffId: state.activeStaffId,
+        staffToken: getStaffToken(state.activeStaffId),
+        cancelledAt: new Date().toISOString()
+      };
+
+      apiCall('cancelSpecialJob', payload, function(res) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">block</span><span>रद्द दर्ज करें (Confirm Cancellation)</span>';
+        }
+        if (res && res.success) {
+          showToast('🚫 बुकिंग सफलतापूर्वक रद्द दर्ज कर दी गई।', 'info');
+          // Update in-memory state
+          var found = (state.customers || []).find(function(c) { return (c.jobId || c.id) === currentCancelJobId; });
+          if (found) {
+            found.status = 'cancelled';
+            found.cancellationReason = reason;
+            found.cancellationRemarks = remarks;
+            found.cancelledAt = payload.cancelledAt;
+          }
+          closeCancelSpecialJobModal();
+          updateFilterCounts();
+          if (state.currentStaffFilteredList) {
+            renderCustomerCards(state.currentStaffFilteredList);
+          }
+          loadStaffCustomerData(state.activeStaffId);
+        } else {
+          showToast((res && res.error) || 'रद्द करने में त्रुटि', '❌');
+        }
+      }, function(err) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">block</span><span>रद्द दर्ज करें (Confirm Cancellation)</span>';
         }
         showToast('Error: ' + err.message, '❌');
       });
@@ -13277,6 +13777,9 @@ function loadStaffCustomerData(staffId) {
       window.handleCompleteJobPhotoSelect = handleCompleteJobPhotoSelect;
       window.removeCompleteJobPhoto = removeCompleteJobPhoto;
       window.submitCompleteSpecialJob = submitCompleteSpecialJob;
+      window.openCancelSpecialJobModal = openCancelSpecialJobModal;
+      window.closeCancelSpecialJobModal = closeCancelSpecialJobModal;
+      window.submitCancelSpecialJob = submitCancelSpecialJob;
       window.shareSpecialJobWhatsApp = shareSpecialJobWhatsApp;
       window.openAssignSpecialJobModal = openAssignSpecialJobModal;
       window.closeAssignSpecialJobModal = closeAssignSpecialJobModal;

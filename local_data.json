@@ -39,6 +39,22 @@
       "staffPhone": "8707488250",
       "createdAt": 1795335953682,
       "expiresAt": 1795379153682
+    },
+    "stf_f6801cf240a209113540eac5d9d3d338d6a7ceb44aa50b38bd8bb582dc88d2d7": {
+      "staffId": "3daa4df9-dd56-4c2a-b9fd-87bedfb6552b",
+      "staffCode": "STG-A",
+      "staffName": "Staff Alpha",
+      "staffPhone": "9900000010",
+      "createdAt": 1795340022403,
+      "expiresAt": 1795383222403
+    },
+    "stf_890757cf0a7ad7cbdfc9310fa1213540067c9645b35cce29f1aa68934797b8f3": {
+      "staffId": "b0a9ed2f-478b-44cf-9751-67c1d3055899",
+      "staffCode": "STG-B",
+      "staffName": "Staff Beta",
+      "staffPhone": "9900000011",
+      "createdAt": 1795340022884,
+      "expiresAt": 1795383222884
     }
   },
   "adminSessions": {
@@ -155,6 +171,48 @@
       "role": "superadmin",
       "createdAt": 1795339571809,
       "expiresAt": 1795382771809
+    },
+    "adm_d0a5541787cfcb0a8dc5bdb34e97ce67cd5564d8760548dca0dc8109fb34caaf": {
+      "username": "admin",
+      "role": "superadmin",
+      "createdAt": 1795339628350,
+      "expiresAt": 1795382828350
+    },
+    "adm_63a879c8922f992e8ba5c62552d667a5e6636c1967c6c986cb9b701d271fd713": {
+      "username": "admin",
+      "role": "superadmin",
+      "createdAt": 1795339632649,
+      "expiresAt": 1795382832649
+    },
+    "adm_7a876481ff7081c3bac1fb70d235519ebf1dd22cd68783ec408f16f38117e5d0": {
+      "username": "admin",
+      "role": "superadmin",
+      "createdAt": 1795339973185,
+      "expiresAt": 1795383173185
+    },
+    "adm_ea266e8c24fab4fb60bf3b79e31e6380ce1ec79af85f66ed944097ccc7924b67": {
+      "username": "admin",
+      "role": "superadmin",
+      "createdAt": 1795339981253,
+      "expiresAt": 1795383181253
+    },
+    "adm_8555a328bc2c76cb40b7ab3f5260b34b34bccbbc6ac89681bfdf0d3f57553f61": {
+      "username": "admin",
+      "role": "superadmin",
+      "createdAt": 1795340012028,
+      "expiresAt": 1795383212028
+    },
+    "adm_f8d9ddc43bbdf01a81f4bfb3245699296dd404bc41a1e9fb97ed8e1e590deda6": {
+      "username": "admin",
+      "role": "superadmin",
+      "createdAt": 1795340140198,
+      "expiresAt": 1795383340198
+    },
+    "adm_6e1c6102b1cdd78b2e1cce65ebaf6d6af2580aa074c54c8a5b7fb3354f846437": {
+      "username": "admin",
+      "role": "superadmin",
+      "createdAt": 1795340627357,
+      "expiresAt": 1795383827357
     }
   }
 }

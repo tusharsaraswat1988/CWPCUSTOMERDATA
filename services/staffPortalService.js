@@ -17,9 +17,9 @@ function computeStaffDataVersion(data) {
   const str = JSON.stringify({
     staffId: data.staffId,
     dc: (data.dailyCarCleaning || []).map(c => [c.customerName, c.vehicle, c.active, c.completedToday]),
-    cw: (data.carWashing || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt]),
-    sc: (data.solarCleaning || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt]),
-    oj: (data.otherJobs || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt, j.serviceCategoryId, j.seaterType, j.panelCount])
+    cw: (data.carWashing || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt, j.cancellationReason]),
+    sc: (data.solarCleaning || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt, j.cancellationReason]),
+    oj: (data.otherJobs || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt, j.serviceCategoryId, j.seaterType, j.panelCount, j.cancellationReason])
   });
   return crypto.createHash('md5').update(str).digest('hex').substring(0, 16);
 }
@@ -115,7 +115,7 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
   const todayLogs = await repos.serviceLogs.findByStaffAndDate(staff.id, currentDate);
   const completedSubVehKeys = new Set(
     todayLogs
-      .filter(l => l.status === 'completed' && l.subscription_id)
+      .filter(l => (l.status === 'completed' || l.status === 'car_not_present' || l.car_not_present === true) && l.subscription_id)
       .map(l => `${l.subscription_id}_${l.vehicle_id}`)
   );
   const completedJobIds = new Set(
@@ -267,6 +267,10 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       scheduledDate: j.scheduled_date,
       status: j.status,
       completedToday: isCompleted,
+      cancellationReason: j.cancellation_reason || null,
+      cancellationRemarks: j.cancellation_remarks || null,
+      cancelledAt: j.cancelled_at || null,
+      cancelledBy: j.cancelled_by || null,
       beforePhotos: beforePhotos,
       afterPhotos: afterPhotos,
       startedAt: j.started_at,
@@ -291,6 +295,13 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     staffPhone: staff.phone,
     staffPhotoUrl: staff.photo_url || '',
     photoUrl: staff.photo_url || '',
+    email: staff.email || '',
+    dateOfJoining: staff.date_of_joining ? (staff.date_of_joining.toISOString ? staff.date_of_joining.toISOString().split('T')[0] : String(staff.date_of_joining).split('T')[0]) : '',
+    weeklyOff: staff.weekly_off || '',
+    salary: (staff.salary !== null && staff.salary !== undefined) ? staff.salary : '',
+    aadharNumber: staff.aadhar_number || '',
+    panNumber: staff.pan_number || '',
+    drivingLicenseNumber: staff.driving_license_number || '',
     dailyCarCleaning,
     otherJobs,
     carWashing,

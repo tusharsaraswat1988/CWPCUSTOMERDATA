@@ -31,22 +31,25 @@ async function recordCompletion({
   notes = null,
   photoUrl = null,
   source = 'staff_portal',
-  deviceMetadata = null
+  deviceMetadata = null,
+  carNotPresent = false,
+  tag = null
 }, client = null) {
   const runner = client || db;
 
   // Calculate IST date if not provided or to ensure strict compliance
   const computedDate = computeIstServiceDate(completedAtDevice);
   const targetDate = serviceDate || computedDate;
+  const effectiveTag = tag || (carNotPresent ? 'car_not_present' : null);
 
   // Idempotent insert with client_mutation_id
   const res = await runner.query(
     `INSERT INTO public.service_logs (
        client_mutation_id, staff_id, subscription_id, vehicle_id, job_id,
        service_date, status, completed_at_device, synced_at_server,
-       notes, photo_url, source, device_metadata
+       notes, photo_url, source, device_metadata, car_not_present, tag
      ) VALUES (
-       $1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, $9, $10, $11, $12
+       $1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, $9, $10, $11, $12, $13, $14
      )
      ON CONFLICT (client_mutation_id) DO NOTHING
      RETURNING *`,
@@ -62,7 +65,9 @@ async function recordCompletion({
       notes ? notes.trim() : null,
       photoUrl,
       source || 'staff_portal',
-      deviceMetadata ? (typeof deviceMetadata === 'string' ? deviceMetadata : JSON.stringify(deviceMetadata)) : null
+      deviceMetadata ? (typeof deviceMetadata === 'string' ? deviceMetadata : JSON.stringify(deviceMetadata)) : null,
+      Boolean(carNotPresent),
+      effectiveTag
     ]
   );
 
@@ -140,6 +145,8 @@ async function queryDailyCleanReports({
   staffId = null,
   search = null,
   hasPhoto = null,
+  carNotPresent = null,
+  tag = null,
   limit = 200,
   offset = 0
 } = {}, client = null) {
@@ -187,6 +194,12 @@ async function queryDailyCleanReports({
     conditions.push(`(sl.photo_url IS NULL OR TRIM(sl.photo_url) = '')`);
   }
 
+  if (carNotPresent === 'yes' || carNotPresent === true || carNotPresent === 'true' || tag === 'car_not_present') {
+    conditions.push(`(sl.car_not_present = TRUE OR sl.tag = 'car_not_present')`);
+  } else if (carNotPresent === 'no' || carNotPresent === false || carNotPresent === 'false') {
+    conditions.push(`(sl.car_not_present = FALSE AND (sl.tag IS NULL OR sl.tag != 'car_not_present'))`);
+  }
+
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   // 1. Fetch Records
@@ -202,6 +215,8 @@ async function queryDailyCleanReports({
       sl.photo_url,
       sl.source,
       sl.device_metadata,
+      sl.car_not_present,
+      sl.tag,
       s.id AS staff_id,
       s.staff_code,
       s.name AS staff_name,
@@ -244,6 +259,7 @@ async function queryDailyCleanReports({
       COUNT(*)::int AS total_cleaned,
       COUNT(CASE WHEN sl.photo_url IS NOT NULL AND TRIM(sl.photo_url) != '' THEN 1 END)::int AS with_photo_count,
       COUNT(CASE WHEN sl.photo_url IS NULL OR TRIM(sl.photo_url) = '' THEN 1 END)::int AS without_photo_count,
+      COUNT(CASE WHEN sl.car_not_present = TRUE OR sl.tag = 'car_not_present' THEN 1 END)::int AS car_not_present_count,
       COUNT(DISTINCT sl.staff_id)::int AS active_staff_count,
       MAX(sl.completed_at_device) AS latest_punch_time
     FROM public.service_logs sl
@@ -262,6 +278,7 @@ async function queryDailyCleanReports({
     total_cleaned: 0,
     with_photo_count: 0,
     without_photo_count: 0,
+    car_not_present_count: 0,
     active_staff_count: 0,
     latest_punch_time: null
   };
@@ -272,6 +289,7 @@ async function queryDailyCleanReports({
       totalCleaned: summary.total_cleaned || 0,
       withPhotoCount: summary.with_photo_count || 0,
       withoutPhotoCount: summary.without_photo_count || 0,
+      carNotPresentCount: summary.car_not_present_count || 0,
       activeStaffCount: summary.active_staff_count || 0,
       photoRate: (summary.total_cleaned && summary.total_cleaned > 0)
         ? Math.round((summary.with_photo_count / summary.total_cleaned) * 100)
@@ -283,7 +301,9 @@ async function queryDailyCleanReports({
       endDate: effectiveEnd,
       staffId: staffId || 'all',
       search: search || '',
-      hasPhoto: hasPhoto || 'all'
+      hasPhoto: hasPhoto || 'all',
+      carNotPresent: carNotPresent || 'all',
+      tag: tag || null
     }
   };
 }

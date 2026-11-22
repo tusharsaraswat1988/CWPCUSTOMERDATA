@@ -113,6 +113,7 @@ async function processCompletionBatch({ staffCodeOrId, completions = [], clientI
         }
 
         // 2. Insert standard completion log with client_mutation_id idempotency guard
+        const isCarNotPresent = Boolean(item.carNotPresent || item.tag === 'car_not_present');
         const insertRes = await repos.serviceLogs.recordCompletion({
           clientMutationId: mutationId,
           staffId: staff.id,
@@ -120,12 +121,14 @@ async function processCompletionBatch({ staffCodeOrId, completions = [], clientI
           vehicleId: vehId,
           jobId: jobId,
           serviceDate: istServiceDate,
-          status: item.status || 'completed',
+          status: item.status || (isCarNotPresent ? 'car_not_present' : 'completed'),
           completedAtDevice: completedAtDevice,
           notes: item.notes || null,
           photoUrl: item.photoUrl || null,
           source: 'staff_portal',
-          deviceMetadata: item.deviceMetadata || null
+          deviceMetadata: item.deviceMetadata || null,
+          carNotPresent: isCarNotPresent,
+          tag: item.tag || (isCarNotPresent ? 'car_not_present' : null)
         }, client);
 
         // If job was dispatched, update service_jobs status to 'completed'

@@ -96,13 +96,14 @@ async function findDispatchedForStaff(staffId, client = null) {
      LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
      JOIN public.service_locations loc ON j.location_id = loc.id
      JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
-     WHERE sa.staff_id = $1 AND j.deleted_at IS NULL AND j.status != 'cancelled'
+     WHERE sa.staff_id = $1 AND j.deleted_at IS NULL AND (j.status != 'cancelled' OR (j.status = 'cancelled' AND (j.cancelled_at::date = CURRENT_DATE OR j.updated_at::date = CURRENT_DATE)))
      ORDER BY 
        CASE j.status 
          WHEN 'in_progress' THEN 1 
          WHEN 'assigned' THEN 2 
          WHEN 'completed' THEN 3 
-         ELSE 4 
+         WHEN 'cancelled' THEN 4
+         ELSE 5 
        END ASC,
        j.scheduled_date ASC NULLS LAST, 
        j.created_at DESC`,
@@ -217,6 +218,35 @@ async function updateJobStatus(id, status, client = null) {
   return res.rows[0] || null;
 }
 
+async function cancelJob(id, {
+  cancellationReason,
+  cancellationRemarks = null,
+  cancelledAt = null,
+  cancelledBy = null
+} = {}, client = null) {
+  const runner = client || db;
+  const cAt = cancelledAt || new Date().toISOString();
+  const res = await runner.query(
+    `UPDATE public.service_jobs
+     SET status = 'cancelled',
+         cancellation_reason = $2,
+         cancellation_remarks = $3,
+         cancelled_at = $4,
+         cancelled_by = $5,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND deleted_at IS NULL
+     RETURNING *`,
+    [
+      id,
+      cancellationReason ? String(cancellationReason).trim() : 'booking cancelled due to other reason',
+      cancellationRemarks ? String(cancellationRemarks).trim() : null,
+      cAt,
+      cancelledBy || null
+    ]
+  );
+  return res.rows[0] || null;
+}
+
 async function softDelete(id, client = null) {
   const actualClient = (client && typeof client.query === 'function') ? client : null;
   const runner = actualClient || db;
@@ -237,6 +267,7 @@ module.exports = {
   createJob,
   startJob,
   completeJob,
+  cancelJob,
   updateJobStatus,
   softDelete
 };

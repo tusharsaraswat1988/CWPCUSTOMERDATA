@@ -1150,7 +1150,19 @@ function sanitizeStaffForAdmin(staff) {
     active: staff.active !== undefined ? staff.active : true,
     hasPin: hasPinVal,
     pin: pinVal,
-    displayPin: pinVal
+    displayPin: pinVal,
+    email: staff.email || '',
+    dateOfJoining: staff.date_of_joining ? (staff.date_of_joining.toISOString ? staff.date_of_joining.toISOString().split('T')[0] : String(staff.date_of_joining).split('T')[0]) : (staff.dateOfJoining || ''),
+    aadharNumber: staff.aadhar_number || staff.aadharNumber || '',
+    aadharFrontUrl: staff.aadhar_front_url || staff.aadharFrontUrl || '',
+    aadharBackUrl: staff.aadhar_back_url || staff.aadharBackUrl || '',
+    bankPassbookUrl: staff.bank_passbook_url || staff.bankPassbookUrl || '',
+    panNumber: staff.pan_number || staff.panNumber || '',
+    panCardUrl: staff.pan_card_url || staff.panCardUrl || '',
+    drivingLicenseNumber: staff.driving_license_number || staff.drivingLicenseNumber || '',
+    drivingLicenseUrl: staff.driving_license_url || staff.drivingLicenseUrl || '',
+    salary: (staff.salary !== null && staff.salary !== undefined && staff.salary !== '') ? Number(staff.salary) : '',
+    weeklyOff: staff.weekly_off || staff.weeklyOff || ''
   };
 }
 
@@ -3066,6 +3078,31 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
+          // Mobile uniqueness check: staff mobile is proof of identity and must not be same for other staff
+          if (normalizedPhone) {
+            const duplicateStaff = (appState.staffList || []).find(s =>
+              (s.id || '').toUpperCase() !== id &&
+              s.phone && normalizeIndianMobile(s.phone) === normalizedPhone
+            );
+            if (duplicateStaff) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: `Mobile number ${normalizedPhone} is already registered to another staff member (${duplicateStaff.name}). Staff mobile number must be unique.`
+              }));
+            }
+          }
+
+          // Extended non-mandatory staff profile fields
+          const email = (sData.email || payload.email || '').trim();
+          const dateOfJoining = (sData.dateOfJoining || sData.date_of_joining || payload.dateOfJoining || payload.date_of_joining || '').trim();
+          const aadharNumber = (sData.aadharNumber || sData.aadhar_number || payload.aadharNumber || payload.aadhar_number || '').trim();
+          const panNumber = (sData.panNumber || sData.pan_number || payload.panNumber || payload.pan_number || '').trim().toUpperCase();
+          const drivingLicenseNumber = (sData.drivingLicenseNumber || sData.driving_license_number || payload.drivingLicenseNumber || payload.driving_license_number || '').trim();
+          const rawSalary = (sData.salary !== undefined && sData.salary !== null && sData.salary !== '') ? sData.salary : (payload.salary !== undefined && payload.salary !== null && payload.salary !== '' ? payload.salary : null);
+          const salary = (rawSalary !== null && rawSalary !== undefined && rawSalary !== '') ? Number(rawSalary) : null;
+          const weeklyOff = (sData.weeklyOff || sData.weekly_off || payload.weeklyOff || payload.weekly_off || '').trim();
+
           let existingHasPin = false;
           if (isNeonPrimaryActive() && id) {
             try {
@@ -3126,6 +3163,82 @@ const server = http.createServer(async (req, res) => {
             photoUrl = appState.staffList[idx].photoUrl || appState.staffList[idx].photo_url || '';
           }
 
+          // Document photo uploads
+          let aadharFrontUrl = (sData.aadharFrontUrl || sData.aadhar_front_url || payload.aadharFrontUrl || '').trim();
+          const aadharFrontObj = sData.aadharFrontObj || payload.aadharFrontObj;
+          if (aadharFrontObj && aadharFrontObj.base64) {
+            try {
+              const uploaded = await uploadToCloudinary(aadharFrontObj);
+              if (uploaded) aadharFrontUrl = uploaded;
+            } catch (uErr) {
+              console.error('Aadhar front upload error:', uErr.message);
+            }
+          } else if (sData.removeAadharFront || payload.removeAadharFront) {
+            aadharFrontUrl = '';
+          } else if (!aadharFrontUrl && idx >= 0 && (appState.staffList[idx].aadharFrontUrl || appState.staffList[idx].aadhar_front_url)) {
+            aadharFrontUrl = appState.staffList[idx].aadharFrontUrl || appState.staffList[idx].aadhar_front_url || '';
+          }
+
+          let aadharBackUrl = (sData.aadharBackUrl || sData.aadhar_back_url || payload.aadharBackUrl || '').trim();
+          const aadharBackObj = sData.aadharBackObj || payload.aadharBackObj;
+          if (aadharBackObj && aadharBackObj.base64) {
+            try {
+              const uploaded = await uploadToCloudinary(aadharBackObj);
+              if (uploaded) aadharBackUrl = uploaded;
+            } catch (uErr) {
+              console.error('Aadhar back upload error:', uErr.message);
+            }
+          } else if (sData.removeAadharBack || payload.removeAadharBack) {
+            aadharBackUrl = '';
+          } else if (!aadharBackUrl && idx >= 0 && (appState.staffList[idx].aadharBackUrl || appState.staffList[idx].aadhar_back_url)) {
+            aadharBackUrl = appState.staffList[idx].aadharBackUrl || appState.staffList[idx].aadhar_back_url || '';
+          }
+
+          let bankPassbookUrl = (sData.bankPassbookUrl || sData.bank_passbook_url || payload.bankPassbookUrl || '').trim();
+          const bankPassbookObj = sData.bankPassbookObj || payload.bankPassbookObj;
+          if (bankPassbookObj && bankPassbookObj.base64) {
+            try {
+              const uploaded = await uploadToCloudinary(bankPassbookObj);
+              if (uploaded) bankPassbookUrl = uploaded;
+            } catch (uErr) {
+              console.error('Bank passbook upload error:', uErr.message);
+            }
+          } else if (sData.removeBankPassbook || payload.removeBankPassbook) {
+            bankPassbookUrl = '';
+          } else if (!bankPassbookUrl && idx >= 0 && (appState.staffList[idx].bankPassbookUrl || appState.staffList[idx].bank_passbook_url)) {
+            bankPassbookUrl = appState.staffList[idx].bankPassbookUrl || appState.staffList[idx].bank_passbook_url || '';
+          }
+
+          let panCardUrl = (sData.panCardUrl || sData.pan_card_url || payload.panCardUrl || '').trim();
+          const panCardObj = sData.panCardObj || payload.panCardObj;
+          if (panCardObj && panCardObj.base64) {
+            try {
+              const uploaded = await uploadToCloudinary(panCardObj);
+              if (uploaded) panCardUrl = uploaded;
+            } catch (uErr) {
+              console.error('PAN card upload error:', uErr.message);
+            }
+          } else if (sData.removePanCard || payload.removePanCard) {
+            panCardUrl = '';
+          } else if (!panCardUrl && idx >= 0 && (appState.staffList[idx].panCardUrl || appState.staffList[idx].pan_card_url)) {
+            panCardUrl = appState.staffList[idx].panCardUrl || appState.staffList[idx].pan_card_url || '';
+          }
+
+          let drivingLicenseUrl = (sData.drivingLicenseUrl || sData.driving_license_url || payload.drivingLicenseUrl || '').trim();
+          const drivingLicenseObj = sData.drivingLicenseObj || payload.drivingLicenseObj;
+          if (drivingLicenseObj && drivingLicenseObj.base64) {
+            try {
+              const uploaded = await uploadToCloudinary(drivingLicenseObj);
+              if (uploaded) drivingLicenseUrl = uploaded;
+            } catch (uErr) {
+              console.error('Driving license upload error:', uErr.message);
+            }
+          } else if (sData.removeDrivingLicense || payload.removeDrivingLicense) {
+            drivingLicenseUrl = '';
+          } else if (!drivingLicenseUrl && idx >= 0 && (appState.staffList[idx].drivingLicenseUrl || appState.staffList[idx].driving_license_url)) {
+            drivingLicenseUrl = appState.staffList[idx].drivingLicenseUrl || appState.staffList[idx].driving_license_url || '';
+          }
+
           if (isNeonPrimaryActive()) {
             try {
               const adminUser = 'admin';
@@ -3135,7 +3248,19 @@ const server = http.createServer(async (req, res) => {
                 phone: normalizedPhone,
                 pin: rawPin,
                 photoUrl: photoUrl,
-                active: active
+                active: active,
+                email: email,
+                dateOfJoining: dateOfJoining || null,
+                aadharNumber: aadharNumber,
+                aadharFrontUrl: aadharFrontUrl,
+                aadharBackUrl: aadharBackUrl,
+                bankPassbookUrl: bankPassbookUrl,
+                panNumber: panNumber,
+                panCardUrl: panCardUrl,
+                drivingLicenseNumber: drivingLicenseNumber,
+                drivingLicenseUrl: drivingLicenseUrl,
+                salary: salary,
+                weeklyOff: weeklyOff
               }, adminUser);
 
               if (!neonStaffRes || !neonStaffRes.success) {
@@ -3143,7 +3268,27 @@ const server = http.createServer(async (req, res) => {
                 return res.end(JSON.stringify({ success: false, error: neonStaffRes ? neonStaffRes.error : 'Failed to save staff member.' }));
               }
 
-              const newObj = { id, name, phone: normalizedPhone, photoUrl: photoUrl, pin: pinToStore, displayPin: displayPinToStore, active };
+              const newObj = {
+                id,
+                name,
+                phone: normalizedPhone,
+                photoUrl: photoUrl,
+                pin: pinToStore,
+                displayPin: displayPinToStore,
+                active,
+                email,
+                dateOfJoining,
+                aadharNumber,
+                aadharFrontUrl,
+                aadharBackUrl,
+                bankPassbookUrl,
+                panNumber,
+                panCardUrl,
+                drivingLicenseNumber,
+                drivingLicenseUrl,
+                salary,
+                weeklyOff
+              };
               if (idx >= 0) {
                 appState.staffList[idx] = Object.assign({}, appState.staffList[idx], newObj);
               } else {
@@ -3173,7 +3318,27 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          const newObj = { id, name, phone: normalizedPhone, photoUrl: photoUrl, pin: pinToStore, displayPin: displayPinToStore, active };
+          const newObj = {
+            id,
+            name,
+            phone: normalizedPhone,
+            photoUrl: photoUrl,
+            pin: pinToStore,
+            displayPin: displayPinToStore,
+            active,
+            email,
+            dateOfJoining,
+            aadharNumber,
+            aadharFrontUrl,
+            aadharBackUrl,
+            bankPassbookUrl,
+            panNumber,
+            panCardUrl,
+            drivingLicenseNumber,
+            drivingLicenseUrl,
+            salary,
+            weeklyOff
+          };
 
           if (idx >= 0) {
             appState.staffList[idx] = Object.assign({}, appState.staffList[idx], newObj);
@@ -3791,18 +3956,25 @@ const server = http.createServer(async (req, res) => {
               }
 
               const istDate = repos.serviceLogs.computeIstServiceDate(completedAt);
+              const isCarNotPresent = Boolean(payload.carNotPresent || payload.tag === 'car_not_present');
+              const effectiveTag = payload.tag || (isCarNotPresent ? 'car_not_present' : null);
+              const effectiveStatus = payload.status || (isCarNotPresent ? 'car_not_present' : 'completed');
+              const effectiveNotes = payload.notes || (isCarNotPresent ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)' : 'Daily clean verified with photo proof');
+
               const outcome = await repos.serviceLogs.recordCompletion({
                 clientMutationId: mutationId,
                 staffId: staff.id,
                 subscriptionId: payload.subscriptionId || null,
                 vehicleId: payload.vehicleId || null,
                 serviceDate: istDate,
-                status: payload.status || 'completed',
+                status: effectiveStatus,
                 completedAtDevice: completedAt,
-                notes: payload.notes || 'Daily clean verified with photo proof',
+                notes: effectiveNotes,
                 photoUrl: uploadedPhotoUrl,
                 source: 'staff_portal',
-                deviceMetadata: payload.deviceMetadata || null
+                deviceMetadata: payload.deviceMetadata || null,
+                carNotPresent: isCarNotPresent,
+                tag: effectiveTag
               });
 
               res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -3822,6 +3994,11 @@ const server = http.createServer(async (req, res) => {
 
           // Local fallback mode
           if (!appState.serviceLogs) appState.serviceLogs = [];
+          const isCarNotPresent = Boolean(payload.carNotPresent || payload.tag === 'car_not_present');
+          const effectiveTag = payload.tag || (isCarNotPresent ? 'car_not_present' : null);
+          const effectiveStatus = payload.status || (isCarNotPresent ? 'car_not_present' : 'completed');
+          const effectiveNotes = payload.notes || (isCarNotPresent ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)' : 'Daily clean verified with photo proof');
+
           const localLog = {
             id: mutationId,
             client_mutation_id: mutationId,
@@ -3835,8 +4012,10 @@ const server = http.createServer(async (req, res) => {
             service_date: completedAt.split('T')[0],
             completed_at_device: completedAt,
             synced_at_server: new Date().toISOString(),
-            status: 'completed',
-            notes: payload.notes || 'Daily clean verified with photo proof'
+            status: effectiveStatus,
+            notes: effectiveNotes,
+            car_not_present: isCarNotPresent,
+            tag: effectiveTag
           };
           appState.serviceLogs.unshift(localLog);
           saveLocalData(appState);
@@ -3870,6 +4049,8 @@ const server = http.createServer(async (req, res) => {
                 staffId: payload.staffId || null,
                 search: payload.search || null,
                 hasPhoto: payload.hasPhoto || null,
+                carNotPresent: payload.carNotPresent || null,
+                tag: payload.tag || null,
                 limit: payload.limit ? parseInt(payload.limit, 10) : 200,
                 offset: payload.offset ? parseInt(payload.offset, 10) : 0
               });
@@ -3890,6 +4071,9 @@ const server = http.createServer(async (req, res) => {
             if (payload.staffId && payload.staffId !== 'all' && l.staff_code !== payload.staffId) return false;
             if (payload.hasPhoto === 'yes' && (!l.photo_url || !l.photo_url.trim())) return false;
             if (payload.hasPhoto === 'no' && l.photo_url && l.photo_url.trim()) return false;
+            if (payload.carNotPresent === 'yes' && (!l.car_not_present && l.tag !== 'car_not_present')) return false;
+            if (payload.carNotPresent === 'no' && (l.car_not_present || l.tag === 'car_not_present')) return false;
+            if (payload.tag && l.tag !== payload.tag) return false;
             if (payload.search && payload.search.trim()) {
               const s = payload.search.trim().toLowerCase();
               const match = (l.customer_name && l.customer_name.toLowerCase().includes(s)) ||
@@ -3951,6 +4135,7 @@ const server = http.createServer(async (req, res) => {
               totalScheduled: filtered.length,
               withPhotoCount,
               withoutPhotoCount: filtered.length - withPhotoCount,
+              carNotPresentCount: filtered.filter(l => l.car_not_present || l.tag === 'car_not_present').length,
               activeStaffCount: new Set(filtered.map(l => l.staff_code)).size,
               photoRate: filtered.length > 0 ? Math.round((withPhotoCount / filtered.length) * 100) : 0,
               latestPunchTime: filtered.length > 0 ? filtered[0].completed_at_device : null,
@@ -4298,6 +4483,115 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: true, message: 'Job cancelled' }));
           } catch (err) {
             console.error('deleteSpecialJob error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Staff or Admin: Cancel Special Job with Reason and Remarks
+        if (payload.action === 'cancelSpecialJob' || payload.action === 'cancelBooking') {
+          const staffSess = await resolveStaffSession(token);
+          const adminSess = await resolveAdminSession(token);
+
+          if (!staffSess && !adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff or Admin session required' }));
+          }
+
+          const jobId = payload.jobId || payload.id;
+          if (!jobId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Job ID is required' }));
+          }
+
+          const reason = (payload.reason || payload.cancellationReason || '').trim();
+          if (!reason) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Cancellation reason is required' }));
+          }
+
+          const remarks = (payload.remarks || payload.cancellationRemarks || '').trim();
+          const cancelledAt = payload.cancelledAt || new Date().toISOString();
+          const cancelledBy = (staffSess && (staffSess.staffCode || staffSess.name || staffSess.staffId)) || (adminSess && (adminSess.username || adminSess.id || 'admin')) || 'staff';
+
+          try {
+            if (isNeonConfigured()) {
+              // Verify job is not already completed
+              const existingJob = await repos.serviceJobs.findById(jobId);
+              if (!existingJob) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
+              }
+              if (existingJob.status === 'completed') {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'Cannot cancel an already completed job' }));
+              }
+
+              const updatedJob = await repos.serviceJobs.cancelJob(jobId, {
+                cancellationReason: reason,
+                cancellationRemarks: remarks,
+                cancelledAt: cancelledAt,
+                cancelledBy: cancelledBy
+              });
+
+              // Audit logging
+              if (repos.auditLogs && repos.auditLogs.logChange) {
+                try {
+                  await repos.auditLogs.logChange({
+                    tableName: 'service_jobs',
+                    recordId: jobId,
+                    action: 'CANCEL',
+                    oldData: { status: existingJob.status },
+                    newData: { status: 'cancelled', cancellation_reason: reason, cancellation_remarks: remarks },
+                    changedBy: cancelledBy
+                  });
+                } catch (aErr) {
+                  console.warn('Audit log write error:', aErr.message);
+                }
+              }
+
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: true,
+                jobId: jobId,
+                status: 'cancelled',
+                cancellationReason: reason,
+                cancellationRemarks: remarks,
+                cancelledAt: cancelledAt,
+                job: updatedJob,
+                message: 'Job cancelled successfully'
+              }));
+            }
+
+            // Local fallback
+            if (appState.serviceJobs) {
+              const j = appState.serviceJobs.find(x => x.id === jobId);
+              if (j) {
+                if (j.status === 'completed') {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({ success: false, error: 'Cannot cancel an already completed job' }));
+                }
+                j.status = 'cancelled';
+                j.cancellation_reason = reason;
+                j.cancellation_remarks = remarks;
+                j.cancelled_at = cancelledAt;
+                j.cancelled_by = cancelledBy;
+                saveLocalData(appState);
+              }
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: true,
+              jobId: jobId,
+              status: 'cancelled',
+              cancellationReason: reason,
+              cancellationRemarks: remarks,
+              cancelledAt: cancelledAt,
+              message: 'Job cancelled successfully'
+            }));
+          } catch (err) {
+            console.error('cancelSpecialJob error:', err.message);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: err.message }));
           }

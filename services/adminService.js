@@ -12,6 +12,7 @@ const staffPortalService = require('./staffPortalService');
 const indicService = require('./indicTransliterateService');
 const bilingualSearchService = require('./bilingualSearchService');
 const serviceCatalog = require('./serviceCatalog');
+const { resolveCanonicalCategory } = serviceCatalog;
 
 function normalizeIndianMobile(value) {
   if (value === null || value === undefined) return '';
@@ -871,6 +872,18 @@ async function getStaffList({ isAdmin = true } = {}) {
         pin: displayPin,
         displayPin: displayPin,
         hasPin: Boolean(auth && auth.pin_hash),
+        email: s.email || '',
+        dateOfJoining: s.date_of_joining ? (s.date_of_joining.toISOString ? s.date_of_joining.toISOString().split('T')[0] : String(s.date_of_joining).split('T')[0]) : '',
+        aadharNumber: s.aadhar_number || '',
+        aadharFrontUrl: s.aadhar_front_url || '',
+        aadharBackUrl: s.aadhar_back_url || '',
+        bankPassbookUrl: s.bank_passbook_url || '',
+        panNumber: s.pan_number || '',
+        panCardUrl: s.pan_card_url || '',
+        drivingLicenseNumber: s.driving_license_number || '',
+        drivingLicenseUrl: s.driving_license_url || '',
+        salary: s.salary !== null && s.salary !== undefined ? Number(s.salary) : '',
+        weeklyOff: s.weekly_off || '',
         createdAt: s.created_at
       });
     }
@@ -882,7 +895,27 @@ async function getStaffList({ isAdmin = true } = {}) {
 /**
  * Save / Create Staff Member
  */
-async function saveStaffMember({ staffId, staffCode, name, phone, pin, photoUrl, active = true }, adminUser = 'admin') {
+async function saveStaffMember({
+  staffId,
+  staffCode,
+  name,
+  phone,
+  pin,
+  photoUrl,
+  active = true,
+  email,
+  dateOfJoining,
+  aadharNumber,
+  aadharFrontUrl,
+  aadharBackUrl,
+  bankPassbookUrl,
+  panNumber,
+  panCardUrl,
+  drivingLicenseNumber,
+  drivingLicenseUrl,
+  salary,
+  weeklyOff
+}, adminUser = 'admin') {
   if (!name || !name.trim()) {
     return { success: false, error: 'Staff name is required.' };
   }
@@ -905,6 +938,15 @@ async function saveStaffMember({ staffId, staffCode, name, phone, pin, photoUrl,
       return { success: false, error: 'Please enter a valid 10-digit Indian mobile number.' };
     }
 
+    // Phone uniqueness check among all staff members
+    const existingPhoneStaff = await repos.staff.findByPhone(cleanPhone, client);
+    if (existingPhoneStaff && (!staff || existingPhoneStaff.id !== staff.id)) {
+      return {
+        success: false,
+        error: `Mobile number ${cleanPhone} is already registered to another staff member (${existingPhoneStaff.name}). Staff mobile number must be unique.`
+      };
+    }
+
     const isNowActive = active === true || active === 'Yes' || active === 'yes' || active === 'true';
 
     if (!staff) {
@@ -925,7 +967,19 @@ async function saveStaffMember({ staffId, staffCode, name, phone, pin, photoUrl,
         name: name.trim(),
         phone: cleanPhone,
         photoUrl: photoUrl !== undefined ? photoUrl : null,
-        isActive: isNowActive
+        isActive: isNowActive,
+        email: email !== undefined ? email : null,
+        dateOfJoining: dateOfJoining !== undefined ? dateOfJoining : null,
+        aadharNumber: aadharNumber !== undefined ? aadharNumber : null,
+        aadharFrontUrl: aadharFrontUrl !== undefined ? aadharFrontUrl : null,
+        aadharBackUrl: aadharBackUrl !== undefined ? aadharBackUrl : null,
+        bankPassbookUrl: bankPassbookUrl !== undefined ? bankPassbookUrl : null,
+        panNumber: panNumber !== undefined ? panNumber : null,
+        panCardUrl: panCardUrl !== undefined ? panCardUrl : null,
+        drivingLicenseNumber: drivingLicenseNumber !== undefined ? drivingLicenseNumber : null,
+        drivingLicenseUrl: drivingLicenseUrl !== undefined ? drivingLicenseUrl : null,
+        salary: salary !== undefined ? salary : null,
+        weeklyOff: weeklyOff !== undefined ? weeklyOff : null
       }, client);
     } else {
       // Update existing
@@ -934,9 +988,20 @@ async function saveStaffMember({ staffId, staffCode, name, phone, pin, photoUrl,
         phone: cleanPhone,
         isActive: isNowActive
       };
-      if (photoUrl !== undefined) {
-        updateData.photoUrl = photoUrl;
-      }
+      if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
+      if (email !== undefined) updateData.email = email;
+      if (dateOfJoining !== undefined) updateData.dateOfJoining = dateOfJoining;
+      if (aadharNumber !== undefined) updateData.aadharNumber = aadharNumber;
+      if (aadharFrontUrl !== undefined) updateData.aadharFrontUrl = aadharFrontUrl;
+      if (aadharBackUrl !== undefined) updateData.aadharBackUrl = aadharBackUrl;
+      if (bankPassbookUrl !== undefined) updateData.bankPassbookUrl = bankPassbookUrl;
+      if (panNumber !== undefined) updateData.panNumber = panNumber;
+      if (panCardUrl !== undefined) updateData.panCardUrl = panCardUrl;
+      if (drivingLicenseNumber !== undefined) updateData.drivingLicenseNumber = drivingLicenseNumber;
+      if (drivingLicenseUrl !== undefined) updateData.drivingLicenseUrl = drivingLicenseUrl;
+      if (salary !== undefined) updateData.salary = salary;
+      if (weeklyOff !== undefined) updateData.weeklyOff = weeklyOff;
+
       staff = await repos.staff.updateStaff(staff.id, updateData, client);
     }
 

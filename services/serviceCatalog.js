@@ -257,6 +257,31 @@ function formatSeaterDisplay(code) {
   return SEATER_TYPES[norm] ? SEATER_TYPES[norm].label : '5 Seater';
 }
 
+function resolveCanonicalCategory(input) {
+  if (!input) return 'daily_car_cleaning';
+  const raw = String(input).trim().toLowerCase();
+  if (raw === 'daily_car_cleaning' || raw === 'daily car cleaning' || raw === 'daily clean' || raw === 'dcc' || raw.includes('daily')) {
+    return 'daily_car_cleaning';
+  }
+  if (raw === 'car_washing' || raw === 'car wash' || raw === 'car washing' || raw.includes('wash')) {
+    return 'car_washing';
+  }
+  if (raw === 'solar_cleaning' || raw === 'solar cleaning' || raw === 'solar panel cleaning' || raw.includes('solar')) {
+    return 'solar_cleaning';
+  }
+  if (raw === 'interior_detailing' || raw === 'interior detailing' || raw.includes('interior')) {
+    return 'interior_detailing';
+  }
+  if (raw === 'exterior_detailing' || raw === 'exterior detailing' || raw.includes('exterior')) {
+    return 'exterior_detailing';
+  }
+  const normalizedKey = raw.replace(/[\s-]+/g, '_');
+  if (SERVICE_CATEGORIES[normalizedKey]) {
+    return normalizedKey;
+  }
+  return 'daily_car_cleaning';
+}
+
 module.exports = {
   SERVICE_CATEGORIES,
   SEATER_TYPES,
@@ -267,5 +292,6 @@ module.exports = {
   getPackage,
   normalizeSeaterType,
   isValidSeaterType,
-  formatSeaterDisplay
+  formatSeaterDisplay,
+  resolveCanonicalCategory
 };
