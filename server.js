@@ -4122,17 +4122,32 @@ if (require.main === module) {
 
   process.on('SIGTERM', () => handleShutdown('SIGTERM'));
   process.on('SIGINT', () => handleShutdown('SIGINT'));
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`=======================================================`);
-    console.log(`🚗 CWP Detailers & Motors - Staff Information Viewer`);
-    console.log(`=======================================================`);
-    console.log(`✔ Hardened Security & Functional Architecture Active`);
-    console.log(`✔ Server Running on PORT: ${PORT}`);
-    console.log(`✔ Production Domain: https://${DOMAIN}`);
-    console.log(`✔ Cloudinary Status: ${isCloudinaryConfigured() ? 'Connected' : 'Pending Environment Variables'}`);
-    console.log(`✔ Admin Password: ${hasAdminPasswordConfigured() ? 'Configured' : 'NOT CONFIGURED (Must set ADMIN_PASSWORD)'}`);
-    console.log(`=======================================================`);
-  });
+
+  const startServer = async () => {
+    if (isNeonConfigured() && process.env.AUTO_MIGRATE !== 'false') {
+      try {
+        const migrate = require('./migrations/migrate');
+        console.log('[Bootstrap] Verifying database schema & migrations...');
+        await migrate.runMigration();
+      } catch (migErr) {
+        console.warn('[Bootstrap] Warning: Auto-migration check:', migErr.message);
+      }
+    }
+
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`=======================================================`);
+      console.log(`🚗 CWP Detailers & Motors - Staff Information Viewer`);
+      console.log(`=======================================================`);
+      console.log(`✔ Hardened Security & Functional Architecture Active`);
+      console.log(`✔ Server Running on PORT: ${PORT}`);
+      console.log(`✔ Production Domain: https://${DOMAIN}`);
+      console.log(`✔ Cloudinary Status: ${isCloudinaryConfigured() ? 'Connected' : 'Pending Environment Variables'}`);
+      console.log(`✔ Admin Password: ${hasAdminPasswordConfigured() ? 'Configured' : 'NOT CONFIGURED (Must set ADMIN_PASSWORD)'}`);
+      console.log(`=======================================================`);
+    });
+  };
+
+  startServer();
 }
 
 module.exports = {

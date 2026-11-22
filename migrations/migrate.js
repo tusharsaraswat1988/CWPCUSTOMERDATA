@@ -126,7 +126,13 @@ async function runMigration() {
   }
 }
 
-runMigration().catch(err => {
-  console.error('Fatal Migration Error:', err);
-  process.exit(1);
-});
+module.exports = {
+  runMigration
+};
+
+if (require.main === module) {
+  runMigration().catch(err => {
+    console.error('Fatal Migration Error:', err);
+    process.exit(1);
+  });
+}
