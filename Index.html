@@ -1406,19 +1406,32 @@
       </div>
       <div class="camera-tag-selection-row" id="cameraCarNotPresentTagRow">
         <label for="cameraCarNotPresentCheck" class="camera-tag-checkbox-label">
-          <input type="checkbox" id="cameraCarNotPresentCheck" onchange="window.handleCarNotPresentToggle(this)">
+          <div class="camera-tag-icon-badge" aria-hidden="true">
+            <span class="material-symbols-outlined">no_crash</span>
+          </div>
           <div class="camera-tag-text-wrap">
-            <span class="camera-tag-title">🚫 कार मौजूद नहीं है (Car Not Present)</span>
+            <div class="camera-tag-title-row">
+              <span class="camera-tag-title">कार मौजूद नहीं है (Car Not Present)</span>
+              <span class="camera-tag-status-badge" id="cameraCarNotPresentBadge" style="display: none;">चिह्नित</span>
+            </div>
             <span class="camera-tag-desc">खाली पार्किंग/स्पॉट का फोटो सबमिट करें (Submit empty spot photo)</span>
+          </div>
+          <div class="m3-switch-wrapper">
+            <input type="checkbox" id="cameraCarNotPresentCheck" class="m3-switch-input" onchange="window.handleCarNotPresentToggle(this)">
+            <span class="m3-switch-track" aria-hidden="true">
+              <span class="m3-switch-thumb">
+                <span class="material-symbols-outlined m3-switch-thumb-icon">check</span>
+              </span>
+            </span>
           </div>
         </label>
       </div>
       <div class="camera-review-actions">
         <button type="button" class="btn-review-retake" onclick="retakeCleaningPhoto()">
-          <span>🔄</span> दोबारा लें (Retake)
+          <span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">refresh</span> <span>दोबारा लें (Retake)</span>
         </button>
         <button type="button" class="btn-review-confirm" id="btnConfirmCleanPhoto" onclick="confirmAndSaveCleaningPhoto()">
-          <span>✓</span> पुष्टि करें (Confirm & Save)
+          <span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">check_circle</span> <span>पुष्टि करें (Confirm & Save)</span>
         </button>
       </div>
     </div>

@@ -10808,20 +10808,29 @@ function loadStaffCustomerData(staffId) {
 
     function handleCarNotPresentToggle(el) {
       var isChecked = el && el.checked;
+      var row = document.getElementById('cameraCarNotPresentTagRow');
+      var badge = document.getElementById('cameraCarNotPresentBadge');
       var btn = document.getElementById('btnConfirmCleanPhoto');
       var carTag = document.getElementById('reviewCarTag');
       var item = activeCameraTarget ? activeCameraTarget.item : {};
       var vName = (item.vehicle || item.vehicleNumbers || 'Vehicle');
+      if (row) {
+        if (isChecked) row.classList.add('is-checked');
+        else row.classList.remove('is-checked');
+      }
+      if (badge) {
+        badge.style.display = isChecked ? 'inline-block' : 'none';
+      }
       if (isChecked) {
         if (btn) {
           btn.classList.add('btn-confirm-not-present');
-          btn.innerHTML = '<span>🚫</span> ' + (state && state.lang === 'hi' ? 'दर्ज करें: कार मौजूद नहीं' : 'Save: Car Not Present');
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">no_crash</span> <span>' + (state && state.lang === 'hi' ? 'दर्ज करें: कार मौजूद नहीं' : 'Save: Car Not Present') + '</span>';
         }
         if (carTag) carTag.textContent = '🚗❌ ' + vName + ' [कार नहीं थी]';
       } else {
         if (btn) {
           btn.classList.remove('btn-confirm-not-present');
-          btn.innerHTML = '<span>✓</span> ' + (state && state.lang === 'hi' ? 'पुष्टि करें (Confirm & Save)' : 'Confirm & Save');
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">check_circle</span> <span>' + (state && state.lang === 'hi' ? 'पुष्टि करें (Confirm & Save)' : 'Confirm & Save') + '</span>';
         }
         if (carTag) carTag.textContent = '🚗 ' + vName;
       }
@@ -10830,6 +10839,13 @@ function loadStaffCustomerData(staffId) {
 
     function showVisualCheckReview(imageDataUrl) {
       currentSnappedPhotoBase64 = imageDataUrl;
+
+      // Reset car not present toggle for each new capture
+      var cnpCheck = document.getElementById('cameraCarNotPresentCheck');
+      if (cnpCheck) {
+        cnpCheck.checked = false;
+        handleCarNotPresentToggle(cnpCheck);
+      }
 
       var capView = document.getElementById('cameraCaptureView');
       var revView = document.getElementById('cameraReviewView');
@@ -10864,9 +10880,14 @@ function loadStaffCustomerData(staffId) {
       if (capView) capView.style.display = 'block';
       if (revView) revView.style.display = 'none';
 
-      // Reset file input
+      // Reset file input and car not present toggle
       var fileIn = document.getElementById('cameraNativeFileInput');
       if (fileIn) fileIn.value = '';
+      var cnpCheck = document.getElementById('cameraCarNotPresentCheck');
+      if (cnpCheck) {
+        cnpCheck.checked = false;
+        handleCarNotPresentToggle(cnpCheck);
+      }
 
       startCleaningCameraFeed(currentCameraFacingMode);
     }
