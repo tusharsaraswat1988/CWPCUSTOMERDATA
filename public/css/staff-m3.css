@@ -1792,7 +1792,7 @@ body.staff-mode-active #adminLogoutBtn,
   background: var(--md-sys-color-surface-container-low, #f8fafc) !important;
   border-top: 1px solid var(--md-sys-color-outline-variant, #e2e8f0) !important;
   display: grid !important;
-  grid-template-columns: repeat(4, 1fr) !important;
+  grid-template-columns: repeat(3, 1fr) !important;
   align-items: center !important;
   z-index: 1000 !important;
   box-shadow: 0 -2px 8px rgba(15, 23, 42, 0.05) !important;

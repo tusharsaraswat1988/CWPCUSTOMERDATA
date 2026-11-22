@@ -108,20 +108,25 @@ async function createCustomer({
   carMake = null,
   carColor = null,
   car_make = null,
-  car_color = null
+  car_color = null,
+  panelCount = null,
+  panel_count = null
 }, client = null) {
   const runner = client || db;
   const code = (customerCode || ('CUST_' + Date.now())).trim();
   const makeVal = (carMake || car_make) ? String(carMake || car_make).trim() : null;
   const colorVal = (carColor || car_color) ? String(carColor || car_color).trim() : null;
+  const pCount = (panelCount !== undefined && panelCount !== null)
+    ? (parseInt(panelCount, 10) || null)
+    : ((panel_count !== undefined && panel_count !== null) ? (parseInt(panel_count, 10) || null) : null);
   const res = await runner.query(
     `INSERT INTO public.customers (
        customer_code, name, phone, alt_phone, email, notes, 
        source_sheet_name, source_row_index, is_active,
        name_hi, address_hi, secondary_address_hi,
        is_lead, lead_status, lead_notes, interested_service,
-       car_make, car_color
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+       car_make, car_color, panel_count
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
      RETURNING *`,
     [
       code,
@@ -141,7 +146,8 @@ async function createCustomer({
       leadNotes ? leadNotes.trim() : null,
       interestedService ? interestedService.trim() : 'Daily Car Cleaning',
       makeVal,
-      colorVal
+      colorVal,
+      pCount
     ]
   );
   return res.rows[0];
@@ -164,7 +170,9 @@ async function updateCustomer(id, {
   carMake,
   carColor,
   car_make,
-  car_color
+  car_color,
+  panelCount,
+  panel_count
 }, client = null) {
   const runner = client || db;
   const updates = [];
@@ -231,6 +239,11 @@ async function updateCustomer(id, {
   if (colorVal !== undefined) {
     params.push(colorVal ? String(colorVal).trim() : null);
     updates.push(`car_color = $${params.length}`);
+  }
+  const pCountVal = panelCount !== undefined ? panelCount : panel_count;
+  if (pCountVal !== undefined) {
+    params.push(pCountVal !== null && pCountVal !== '' ? (parseInt(pCountVal, 10) || null) : null);
+    updates.push(`panel_count = $${params.length}`);
   }
   updates.push('updated_at = CURRENT_TIMESTAMP');
 

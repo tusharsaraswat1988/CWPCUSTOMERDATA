@@ -43,7 +43,7 @@ function getPool() {
       connectionString: config.pooledUrl,
       ssl: { rejectUnauthorized: false },
       max: 10,
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 30000,
       idleTimeoutMillis: 30000
     });
 

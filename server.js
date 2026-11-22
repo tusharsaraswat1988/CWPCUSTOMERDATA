@@ -59,6 +59,7 @@ const adminService = require('./services/adminService');
 const staffPortalService = require('./services/staffPortalService');
 const offlineSyncService = require('./services/offlineSyncService');
 const indicService = require('./services/indicTransliterateService');
+const serviceCatalog = require('./services/serviceCatalog');
 
 function isNeonConfigured() {
   const url = process.env.DATABASE_URL || '';
@@ -3667,6 +3668,7 @@ const server = http.createServer(async (req, res) => {
             const adminUser = 'admin';
             if (isNeonConfigured()) {
               const result = await adminService.assignSpecialJob(payload.jobData || payload, adminUser);
+              invalidateLiveCustomersCache();
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(result));
             }
@@ -3716,6 +3718,46 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
+        // Admin: Reassign Special Job to another Staff Member
+        if (payload.action === 'reassignSpecialJob') {
+          if (!isValidAdminSession(token)) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to reassign jobs',
+              unauthorized: true
+            }));
+          }
+
+          try {
+            const adminUser = 'admin';
+            if (isNeonConfigured()) {
+              const result = await adminService.reassignSpecialJob(payload.jobData || payload, adminUser);
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(result));
+            }
+            // Local fallback
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, message: 'Reassigned successfully (local mode)' }));
+          } catch (err) {
+            console.error('reassignSpecialJob error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Public / Authenticated: Get Canonical Service Catalog
+        if (payload.action === 'getServiceCatalog') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            categories: serviceCatalog.SERVICE_CATEGORIES,
+            seaterTypes: serviceCatalog.SEATER_TYPES,
+            solarConfig: serviceCatalog.SOLAR_UNIT_CONFIG
+          }));
+        }
+
         // Staff: Start Special Job with 1 or max 2 Before Photos
         if (payload.action === 'startSpecialJob') {
           const sess = await getSessionInfo(token);
@@ -3760,6 +3802,7 @@ const server = http.createServer(async (req, res) => {
                 beforePhotos: beforePhotoUrls,
                 startedAt: startedAt
               });
+              invalidateLiveCustomersCache();
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: true,
@@ -3862,6 +3905,7 @@ const server = http.createServer(async (req, res) => {
                 });
               }
 
+              invalidateLiveCustomersCache();
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: true,
@@ -3907,6 +3951,7 @@ const server = http.createServer(async (req, res) => {
           try {
             if (isNeonConfigured()) {
               await repos.serviceJobs.softDelete(jobId);
+              invalidateLiveCustomersCache();
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: true, message: 'Job cancelled successfully' }));
             }

@@ -44,16 +44,19 @@ async function createVehicle({
   carMake = null,
   carColor = null,
   car_make = null,
-  car_color = null
+  car_color = null,
+  seaterType = null,
+  seater_type = null
 }, client = null) {
   const runner = client || db;
   const makeVal = (carMake || car_make) ? String(carMake || car_make).trim() : null;
   const colorVal = (carColor || car_color) ? String(carColor || car_color).trim() : null;
+  const seaterVal = (seaterType || seater_type) ? String(seaterType || seater_type).trim() : null;
   const res = await runner.query(
     `INSERT INTO public.vehicles (
        customer_id, default_location_id, registration_no, brand_or_model,
-       vehicle_type, photo_url, photo_storage_key, is_active, car_make, car_color
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       vehicle_type, photo_url, photo_storage_key, is_active, car_make, car_color, seater_type
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING *`,
     [
       customerId,
@@ -65,7 +68,8 @@ async function createVehicle({
       photoStorageKey,
       Boolean(isActive),
       makeVal,
-      colorVal
+      colorVal,
+      seaterVal
     ]
   );
   return res.rows[0];
@@ -82,7 +86,9 @@ async function updateVehicle(id, {
   carMake,
   carColor,
   car_make,
-  car_color
+  car_color,
+  seaterType,
+  seater_type
 }, client = null) {
   const runner = client || db;
   const updates = [];
@@ -103,6 +109,10 @@ async function updateVehicle(id, {
   if (vehicleType !== undefined) {
     params.push(vehicleType || 'Car');
     updates.push(`vehicle_type = $${params.length}`);
+  }
+  if (seaterType !== undefined || seater_type !== undefined) {
+    params.push(seaterType || seater_type || null);
+    updates.push(`seater_type = $${params.length}`);
   }
   if (photoUrl !== undefined) {
     params.push(photoUrl);

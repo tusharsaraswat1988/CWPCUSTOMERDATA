@@ -452,6 +452,63 @@ function expandEditSecLocation() {
   toggleEditSecLocation(true);
 }
 
+var CWP_SERVICE_CATALOG = {
+  daily_car_cleaning: {
+    id: 'daily_car_cleaning',
+    name: 'Daily Car Cleaning',
+    nameHi: 'दैनिक कार सफाई',
+    iconEmoji: '🚗',
+    packages: [
+      { code: 'DCC_EXT_30D', name: 'Exterior Chemical Cleaning (30 Days)', nameHi: 'एक्सटीरियर केमिकल सफाई (30 दिन)' },
+      { code: 'DCC_EXT_1WASH', name: 'Exterior Chemical Cleaning + 1 Carwash/mo', nameHi: 'एक्सटीरियर केमिकल सफाई + 1 कार वॉश/माह' },
+      { code: 'DCC_EXT_2WASH', name: 'Exterior Chemical Cleaning + 2 Carwash/mo', nameHi: 'एक्सटीरियर केमिकल सफाई + 2 कार वॉश/माह' }
+    ]
+  },
+  car_washing: {
+    id: 'car_washing',
+    name: 'Car Wash',
+    nameHi: 'कार वॉश',
+    iconEmoji: '🧼',
+    packages: [
+      { code: 'WASH_SINGLE', name: 'Single Wash (One Time Wash)', nameHi: 'सिंगल वॉश (एक बार)' },
+      { code: 'WASH_SUB_4', name: 'Wash Subscription (4 Washes / 6 Months)', nameHi: 'वॉश सब्सक्रिप्शन (4 वॉश / 6 माह)' }
+    ]
+  },
+  solar_cleaning: {
+    id: 'solar_cleaning',
+    name: 'Solar Panel Cleaning',
+    nameHi: 'सोलर पैनल सफाई',
+    iconEmoji: '☀️',
+    packages: [
+      { code: 'SOLAR_SINGLE', name: 'One Time Solar Cleaning', nameHi: 'एक बार सोलर सफाई' },
+      { code: 'SOLAR_SUB_6', name: '6 Month Subscription (1 cleaning/mo - 6 frequencies)', nameHi: '6 महीने सब्सक्रिप्शन (6 बार)' },
+      { code: 'SOLAR_SUB_12', name: '12 Month Subscription (1 cleaning/mo - 12 frequencies)', nameHi: '12 महीने सब्सक्रिप्शन (12 बार)' }
+    ]
+  },
+  interior_detailing: {
+    id: 'interior_detailing',
+    name: 'Interior Detailing',
+    nameHi: 'इंटीरियर डिटेलिंग',
+    iconEmoji: '✨',
+    packages: [
+      { code: 'INT_DEEP_CLEAN', name: 'Interior Deep Cleaning', nameHi: 'इंटीरियर डीप क्लीनिंग' },
+      { code: 'INT_ROOF_CLEAN', name: 'Roof Cleaning', nameHi: 'रूफ क्लीनिंग (छत की सफाई)' }
+    ]
+  },
+  exterior_detailing: {
+    id: 'exterior_detailing',
+    name: 'Exterior Detailing',
+    nameHi: 'एक्सटीरियर डिटेलिंग',
+    iconEmoji: '🛡️',
+    packages: [
+      { code: 'EXT_CERAMIC', name: 'Ceramic Coating', nameHi: 'सिरेमिक कोटिंग' },
+      { code: 'EXT_GRAPHENE', name: 'Graphene Coating', nameHi: 'ग्राफीन कोटिंग' },
+      { code: 'EXT_WAXING', name: 'Car Waxing', nameHi: 'कार वैक्सिंग (पॉलिश)' },
+      { code: 'EXT_GLASS', name: 'Glass Treatment', nameHi: 'ग्लास ट्रीटमेंट' }
+    ]
+  }
+};
+
 var state = {
       currentView: 'staff',
       activeStaffId: '',
@@ -1072,26 +1129,33 @@ var state = {
       });
 
       /* Centralized CWP Aura Modal Ergonomics & ARIA Focus Trapping */
-      var lastModalTriggerElement = null;
+      var modalTriggerStack = [];
 
       function recordModalTrigger(triggerEl) {
+        var elToRecord = null;
         if (triggerEl && typeof triggerEl.focus === 'function') {
-          lastModalTriggerElement = triggerEl;
+          elToRecord = triggerEl;
         } else if (typeof document !== 'undefined' && document.activeElement) {
-          lastModalTriggerElement = document.activeElement;
+          elToRecord = document.activeElement;
+        }
+        if (elToRecord) {
+          modalTriggerStack.push(elToRecord);
         }
       }
 
       function restoreModalTriggerFocus() {
-        if (lastModalTriggerElement && typeof lastModalTriggerElement.focus === 'function') {
-          try {
-            if (document && document.body && document.body.contains(lastModalTriggerElement)) {
-              lastModalTriggerElement.focus();
+        while (modalTriggerStack.length > 0) {
+          var targetEl = modalTriggerStack.pop();
+          if (targetEl && typeof targetEl.focus === 'function') {
+            try {
+              if (document && document.body && document.body.contains(targetEl)) {
+                targetEl.focus();
+                break;
+              }
+            } catch (err) {
+              // Graceful fallback
             }
-          } catch (err) {
-            // Graceful fallback
           }
-          lastModalTriggerElement = null;
         }
       }
 
@@ -1107,7 +1171,11 @@ var state = {
       function trapFocus(modalEl, e) {
         if (!modalEl) return;
         var focusable = getFocusableElements(modalEl);
-        if (focusable.length === 0) return;
+        if (focusable.length === 0) {
+          if (e) e.preventDefault();
+          if (modalEl && typeof modalEl.focus === 'function') modalEl.focus();
+          return;
+        }
         var firstEl = focusable[0];
         var lastEl = focusable[focusable.length - 1];
 
@@ -1142,9 +1210,9 @@ var state = {
           { id: 'logoutConfirmModal', closer: function() { if (typeof closeLogoutModal === 'function') closeLogoutModal(); }, zIndex: 2200 },
           { id: 'cwpPhotoCropperModal', closer: function() { if (typeof closeCropperModal === 'function') closeCropperModal(); }, zIndex: 1200 },
           { id: 'cleaningCameraModal', closer: function() { if (typeof closeCleaningCameraModal === 'function') closeCleaningCameraModal(); }, zIndex: 1100 },
-          { id: 'reportPhotoLightboxModal', closer: function() { if (typeof closeReportPhotoLightboxModal === 'function') closeReportPhotoLightboxModal(); }, zIndex: 1100 },
+          { id: 'reportPhotoLightboxModal', closer: function() { if (typeof closeReportPhotoLightbox === 'function') closeReportPhotoLightbox(); }, zIndex: 1100 },
           { id: 'staffWhatsAppGroupModal', closer: function() { if (typeof closeStaffWhatsAppGroupModal === 'function') closeStaffWhatsAppGroupModal(); }, zIndex: 1100 },
-          { id: 'whatsAppImageShareModal', closer: function() { if (typeof closeWhatsAppImageShareModal === 'function') closeWhatsAppImageShareModal(); }, zIndex: 1100 },
+          { id: 'whatsAppImageShareModal', closer: function() { if (typeof closeWhatsAppImageModal === 'function') closeWhatsAppImageModal(); }, zIndex: 1100 },
           { id: 'imageModal', closer: function() { if (typeof closeImageModal === 'function') closeImageModal(); }, zIndex: 1100 },
           { id: 'addressViewModal', closer: function() { if (typeof closeAddressModal === 'function') closeAddressModal(); }, zIndex: 1050 },
           { id: 'addCustomerModal', closer: function() { if (typeof closeAddCustomerModal === 'function') closeAddCustomerModal(); }, zIndex: 1000 },
@@ -1187,9 +1255,12 @@ var state = {
         if (topmost) {
           if (topmost.item && typeof topmost.item.closer === 'function') {
             topmost.item.closer();
-          } else if (topmost.el) {
+          }
+          if (topmost.el && topmost.el.style && topmost.el.style.display !== 'none') {
             topmost.el.style.display = 'none';
-            if (document && document.body) document.body.style.overflow = '';
+          }
+          if (getTopmostOpenModal() === null && typeof document !== 'undefined' && document.body) {
+            document.body.style.overflow = '';
           }
           restoreModalTriggerFocus();
           return true;
@@ -1902,6 +1973,8 @@ var state = {
     }
 
     function openLogoutModal(type) {
+      var triggerEl = arguments[1];
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       state.pendingLogoutType = type || 'staff';
       syncBrandLogos();
 
@@ -1973,11 +2046,17 @@ var state = {
       }
     }
 
+    function showLogoutModal(type, triggerEl) {
+      return openLogoutModal(type, triggerEl);
+    }
+
     function closeLogoutModal() {
       var modal = document.getElementById('logoutConfirmModal');
       if (modal) {
         modal.style.display = 'none';
-        document.body.style.overflow = '';
+        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+          document.body.style.overflow = '';
+        }
       }
       var promptView = document.getElementById('logoutPromptView');
       var progressView = document.getElementById('logoutProgressBox');
@@ -2687,11 +2766,16 @@ var state = {
     }
 
     function jumpToSpecialJob(category, jobId) {
-      setStaffFilter(category);
+      setStaffFilter('other_jobs');
+      if (category && category !== 'daily_car_cleaning') {
+        setOtherJobsSubFilter(category);
+      }
       var banner = document.getElementById('staffNewTaskAlertBanner');
       if (banner) banner.style.display = 'none';
-      var badge = (category === 'solar_cleaning') ? document.getElementById('countSolarClean') : document.getElementById('countCarWash');
-      if (badge) badge.classList.remove('pulse-badge');
+      var badgeOther = document.getElementById('countOtherJobs');
+      if (badgeOther) badgeOther.classList.remove('pulse-badge');
+      var legacyBadge = (category === 'solar_cleaning') ? document.getElementById('countSolarClean') : document.getElementById('countCarWash');
+      if (legacyBadge) legacyBadge.classList.remove('pulse-badge');
     }
 
     function formatSyncTime(ts) {
@@ -2966,7 +3050,7 @@ function loadStaffCustomerData(staffId) {
       if (sId) state.activeStaffId = sId;
 
       /* On-Demand / Special Jobs Real-Time Alerting (Audio, Vibration & PWA Notification) */
-      var allJobs = (data.carWashing || []).concat(data.solarCleaning || []);
+      var allJobs = (data.otherJobs && Array.isArray(data.otherJobs)) ? data.otherJobs : (data.carWashing || []).concat(data.solarCleaning || []);
       var newlyAssignedJobs = [];
 
       allJobs.forEach(function(j) {
@@ -2998,6 +3082,8 @@ function loadStaffCustomerData(staffId) {
             });
           } catch (ne) {}
         }
+        var badgeOther = document.getElementById('countOtherJobs');
+        if (badgeOther) badgeOther.classList.add('pulse-badge');
         var badgeToPulse = (firstNew.serviceCategoryId === 'solar_cleaning' || firstNew.category === 'solar_cleaning') ? document.getElementById('countSolarClean') : document.getElementById('countCarWash');
         if (badgeToPulse) {
           badgeToPulse.classList.add('pulse-badge');
@@ -3063,7 +3149,7 @@ function loadStaffCustomerData(staffId) {
 
       /* Populate customer list classified into 3 service categories */
       var list = [];
-      var hasModern = Boolean(data.dailyCarCleaning || data.carWashing || data.solarCleaning);
+      var hasModern = Boolean(data.dailyCarCleaning || data.otherJobs || data.carWashing || data.solarCleaning);
 
       if (hasModern) {
         if (data.dailyCarCleaning && Array.isArray(data.dailyCarCleaning)) {
@@ -3074,21 +3160,30 @@ function loadStaffCustomerData(staffId) {
             list.push(item);
           });
         }
-        if (data.carWashing && Array.isArray(data.carWashing)) {
-          data.carWashing.forEach(function(item, idx) {
-            item.category = 'car_washing';
-            item.serviceCategory = 'Car Washing';
+        if (data.otherJobs && Array.isArray(data.otherJobs)) {
+          data.otherJobs.forEach(function(item, idx) {
+            item.category = item.serviceCategoryId || item.category || 'other_jobs';
+            item.serviceCategory = item.categoryName || item.serviceType || 'Other Job';
             item._seq = idx + 1;
             list.push(item);
           });
-        }
-        if (data.solarCleaning && Array.isArray(data.solarCleaning)) {
-          data.solarCleaning.forEach(function(item, idx) {
-            item.category = 'solar_cleaning';
-            item.serviceCategory = 'Solar Panel Cleaning';
-            item._seq = idx + 1;
-            list.push(item);
-          });
+        } else {
+          if (data.carWashing && Array.isArray(data.carWashing)) {
+            data.carWashing.forEach(function(item, idx) {
+              item.category = 'car_washing';
+              item.serviceCategory = 'Car Washing';
+              item._seq = idx + 1;
+              list.push(item);
+            });
+          }
+          if (data.solarCleaning && Array.isArray(data.solarCleaning)) {
+            data.solarCleaning.forEach(function(item, idx) {
+              item.category = 'solar_cleaning';
+              item.serviceCategory = 'Solar Panel Cleaning';
+              item._seq = idx + 1;
+              list.push(item);
+            });
+          }
         }
       } else {
         /* Fallback if backend returned legacy format dailyClean / allOtherWork */
@@ -3132,6 +3227,13 @@ function loadStaffCustomerData(staffId) {
         var custId = c.customerId || c.id || getCustomerStableId(c);
         return !isCustomerDoneToday(custId);
       }).length;
+
+      var otherCount = state.customers.filter(function(c) {
+        if (c.category === 'daily_car_cleaning') return false;
+        var status = c.status || (c.completedToday ? 'completed' : 'assigned');
+        return status !== 'completed' && !c.completedToday;
+      }).length;
+
       var cwCount = state.customers.filter(function(c) {
         if (c.category !== 'car_washing') return false;
         var status = c.status || (c.completedToday ? 'completed' : 'assigned');
@@ -3144,6 +3246,7 @@ function loadStaffCustomerData(staffId) {
       }).length;
 
       var elDcc = document.getElementById('countDailyClean');
+      var elOther = document.getElementById('countOtherJobs');
       var elCw = document.getElementById('countCarWash');
       var elSpc = document.getElementById('countSolarClean');
 
@@ -3160,16 +3263,29 @@ function loadStaffCustomerData(staffId) {
       }
 
       updateTabBadge(elDcc, dccCount);
+      updateTabBadge(elOther, otherCount);
       updateTabBadge(elCw, cwCount);
       updateTabBadge(elSpc, spcCount);
 
       var totalDcc = state.customers.filter(function(c) { return c.category === 'daily_car_cleaning'; }).length;
+      var totalOther = state.customers.filter(function(c) { return c.category !== 'daily_car_cleaning'; }).length;
       var totalCw = state.customers.filter(function(c) { return c.category === 'car_washing'; }).length;
       var totalSpc = state.customers.filter(function(c) { return c.category === 'solar_cleaning'; }).length;
-      var currentTabTotal = (state.activeFilter === 'car_washing') ? totalCw : ((state.activeFilter === 'solar_cleaning') ? totalSpc : totalDcc);
+
+      var currentTabTotal = totalDcc;
+      if (state.activeFilter === 'other_jobs') {
+        currentTabTotal = totalOther;
+      } else if (state.activeFilter === 'car_washing') {
+        currentTabTotal = totalCw;
+      } else if (state.activeFilter === 'solar_cleaning') {
+        currentTabTotal = totalSpc;
+      }
+
       var badge = document.getElementById('staffCarCount');
       if (badge) {
-        if (state.activeFilter === 'solar_cleaning') {
+        if (state.activeFilter === 'other_jobs') {
+          badge.textContent = '⚡ ' + currentTabTotal + ' काम';
+        } else if (state.activeFilter === 'solar_cleaning') {
           badge.textContent = '☀️ ' + currentTabTotal + ' साइट्स';
         } else if (state.activeFilter === 'car_washing') {
           badge.textContent = '🧼 ' + currentTabTotal + ' गाड़ियां';
@@ -3182,6 +3298,7 @@ function loadStaffCustomerData(staffId) {
     function setStaffFilter(filter) {
       state.activeFilter = filter;
       var pillDcc = document.getElementById('pillDailyClean');
+      var pillOther = document.getElementById('pillOtherJobs');
       var pillCw = document.getElementById('pillCarWash');
       var pillSpc = document.getElementById('pillSolarClean');
       var pillSet = document.getElementById('pillStaffSettings');
@@ -3189,20 +3306,48 @@ function loadStaffCustomerData(staffId) {
       var settingsPanel = document.getElementById('staffSettingsPanel');
       var inlineChip = document.getElementById('staffInlineProgressChip');
 
-      if (pillDcc) pillDcc.classList.toggle('active', filter === 'daily_car_cleaning');
-      if (pillCw) pillCw.classList.toggle('active', filter === 'car_washing');
-      if (pillSpc) pillSpc.classList.toggle('active', filter === 'solar_cleaning');
-      if (pillSet) pillSet.classList.toggle('active', filter === 'settings');
+      var isDcc = (filter === 'daily_car_cleaning');
+      var isOther = (filter === 'other_jobs' || filter === 'car_washing' || filter === 'solar_cleaning' || filter === 'interior_detailing' || filter === 'exterior_detailing');
+      var isCw = (filter === 'car_washing');
+      var isSpc = (filter === 'solar_cleaning');
+      var isSet = (filter === 'settings');
+
+      if (pillDcc) {
+        pillDcc.classList.toggle('active', isDcc);
+        pillDcc.setAttribute('aria-selected', isDcc ? 'true' : 'false');
+      }
+      if (pillOther) {
+        pillOther.classList.toggle('active', isOther);
+        pillOther.setAttribute('aria-selected', isOther ? 'true' : 'false');
+      }
+      if (pillCw) {
+        pillCw.classList.toggle('active', isCw);
+        pillCw.setAttribute('aria-selected', isCw ? 'true' : 'false');
+      }
+      if (pillSpc) {
+        pillSpc.classList.toggle('active', isSpc);
+        pillSpc.setAttribute('aria-selected', isSpc ? 'true' : 'false');
+      }
+      if (pillSet) {
+        pillSet.classList.toggle('active', isSet);
+        pillSet.setAttribute('aria-selected', isSet ? 'true' : 'false');
+      }
 
       if (filter === 'settings') {
         if (jobsPanel) jobsPanel.style.display = 'none';
         if (settingsPanel) settingsPanel.style.display = 'block';
+        var otherJobsFilterBar = document.getElementById('otherJobsFilterBar');
+        if (otherJobsFilterBar) otherJobsFilterBar.style.display = 'none';
         updateRouteProgressBar();
         if (typeof updateSettingsPrefButtons === 'function') updateSettingsPrefButtons();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         if (jobsPanel) jobsPanel.style.display = 'block';
         if (settingsPanel) settingsPanel.style.display = 'none';
+        var otherJobsFilterBar = document.getElementById('otherJobsFilterBar');
+        if (otherJobsFilterBar) {
+          otherJobsFilterBar.style.display = (filter === 'other_jobs') ? 'flex' : 'none';
+        }
         if (inlineChip) {
           inlineChip.style.display = (filter === 'daily_car_cleaning' || !filter) ? 'flex' : 'none';
         }
@@ -3210,6 +3355,31 @@ function loadStaffCustomerData(staffId) {
         applyCustomerFilterAndSearch();
         updateRouteProgressBar();
       }
+    }
+
+    function setOtherJobsSubFilter(sub) {
+      state.otherJobsSubFilter = sub || 'all';
+      var chips = ['chipOtherAll', 'chipOtherWash', 'chipOtherSolar', 'chipOtherInterior', 'chipOtherExterior'];
+      var map = {
+        all: 'chipOtherAll',
+        car_washing: 'chipOtherWash',
+        solar_cleaning: 'chipOtherSolar',
+        interior_detailing: 'chipOtherInterior',
+        exterior_detailing: 'chipOtherExterior'
+      };
+      chips.forEach(function(cId) {
+        var el = document.getElementById(cId);
+        if (el) {
+          el.classList.remove('active');
+          el.setAttribute('aria-selected', 'false');
+        }
+      });
+      var activeEl = document.getElementById(map[state.otherJobsSubFilter] || 'chipOtherAll');
+      if (activeEl) {
+        activeEl.classList.add('active');
+        activeEl.setAttribute('aria-selected', 'true');
+      }
+      applyCustomerFilterAndSearch();
     }
 
     function handleStaffSearch(query) {
@@ -3230,12 +3400,29 @@ function loadStaffCustomerData(staffId) {
 
     function applyCustomerFilterAndSearch() {
       var tabTotal = state.customers.filter(function(c) {
-        return !state.activeFilter || c.category === state.activeFilter;
+        if (!state.activeFilter) return true;
+        if (state.activeFilter === 'other_jobs') {
+          if (c.category === 'daily_car_cleaning') return false;
+          if (state.otherJobsSubFilter && state.otherJobsSubFilter !== 'all') {
+            return (c.category === state.otherJobsSubFilter || c.serviceCategoryId === state.otherJobsSubFilter);
+          }
+          return true;
+        }
+        return c.category === state.activeFilter;
       }).length;
 
       var filtered = state.customers.filter(function(c) {
         /* Category filter - strictly match selected tab */
-        if (state.activeFilter && c.category !== state.activeFilter) return false;
+        if (state.activeFilter) {
+          if (state.activeFilter === 'other_jobs') {
+            if (c.category === 'daily_car_cleaning') return false;
+            if (state.otherJobsSubFilter && state.otherJobsSubFilter !== 'all') {
+              if (c.category !== state.otherJobsSubFilter && c.serviceCategoryId !== state.otherJobsSubFilter) return false;
+            }
+          } else if (c.category !== state.activeFilter) {
+            return false;
+          }
+        }
 
         /* Search query - Bilingual Phonetic Cross-Search */
         if (state.searchQuery) {
@@ -3247,8 +3434,18 @@ function loadStaffCustomerData(staffId) {
       /* Dynamic matching counter */
       var badge = document.getElementById('staffCarCount');
       if (badge) {
-        var icon = (state.activeFilter === 'solar_cleaning') ? '☀️ ' : ((state.activeFilter === 'car_washing') ? '🧼 ' : '🚗 ');
-        var label = (state.activeFilter === 'solar_cleaning') ? ' साइट्स' : ' गाड़ियां';
+        var icon = '🚗 ';
+        var label = ' गाड़ियां';
+        if (state.activeFilter === 'other_jobs') {
+          icon = '⚡ ';
+          label = ' काम';
+        } else if (state.activeFilter === 'solar_cleaning') {
+          icon = '☀️ ';
+          label = ' साइट्स';
+        } else if (state.activeFilter === 'car_washing') {
+          icon = '🧼 ';
+          label = ' गाड़ियां';
+        }
         if (state.searchQuery) {
           badge.textContent = icon + filtered.length + ' / ' + tabTotal + label;
         } else {
@@ -3320,8 +3517,8 @@ function loadStaffCustomerData(staffId) {
         var isHi = (state.lang !== 'en');
         var emptyMsg = isSearchActive 
           ? (isHi ? 'सर्च के अनुसार कोई रिकॉर्ड नहीं मिला। ("' + escapeHtml(state.searchQuery) + '")' : 'No records found matching search ("' + escapeHtml(state.searchQuery) + '")')
-          : (state.activeFilter === 'solar_cleaning' ? (isHi ? 'इस केटेगरी में कोई सोलर साइट असाइन नहीं है।' : 'No solar cleaning sites assigned in this category.') : (state.activeFilter === 'car_washing' ? (isHi ? 'इस केटेगरी में कोई कार वॉशिंग असाइन नहीं है।' : 'No car wash jobs assigned in this category.') : (isHi ? 'इस केटेगरी में कोई दैनिक कार सफाई असाइन नहीं है।' : 'No daily car cleaning assignments in this category.')));
-        var emptyIcon = isSearchActive ? '🔍' : (state.activeFilter === 'solar_cleaning' ? '☀️' : (state.activeFilter === 'car_washing' ? '🧼' : '🚗'));
+          : (state.activeFilter === 'other_jobs' ? (isHi ? 'इस केटेगरी में कोई अन्य काम (वॉश/सोलर/डिटेलिंग) असाइन नहीं है।' : 'No other jobs assigned in this category.') : (state.activeFilter === 'solar_cleaning' ? (isHi ? 'इस केटेगरी में कोई सोलर साइट असाइन नहीं है।' : 'No solar cleaning sites assigned in this category.') : (state.activeFilter === 'car_washing' ? (isHi ? 'इस केटेगरी में कोई कार वॉशिंग असाइन नहीं है।' : 'No car wash jobs assigned in this category.') : (isHi ? 'इस केटेगरी में कोई दैनिक कार सफाई असाइन नहीं है।' : 'No daily car cleaning assignments in this category.'))));
+        var emptyIcon = isSearchActive ? '🔍' : (state.activeFilter === 'other_jobs' ? '⚡' : (state.activeFilter === 'solar_cleaning' ? '☀️' : (state.activeFilter === 'car_washing' ? '🧼' : '🚗')));
         var actionBtnHtml = isSearchActive 
           ? '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="clearStaffSearch()">✕ ' + (isHi ? 'सर्च हटाएं (Clear search)' : 'Clear search') + '</button></div>'
           : '<div style="margin-top:12px;"><button type="button" class="btn-clear-search-empty" onclick="setStaffFilter(\'daily_car_cleaning\')">' + (isHi ? '🚗 मुख्य दैनिक सफाई पर जाएं' : '🚗 Go to Daily Cleaning') + '</button></div>';
@@ -3340,7 +3537,9 @@ function loadStaffCustomerData(staffId) {
         var isHi = (state.lang !== 'en');
         var isSolar = item.category === 'solar_cleaning';
         var isCarWash = item.category === 'car_washing';
-        var isDaily = item.category === 'daily_car_cleaning' || (!isSolar && !isCarWash);
+        var isInterior = item.category === 'interior_detailing';
+        var isExterior = item.category === 'exterior_detailing';
+        var isDaily = item.category === 'daily_car_cleaning' || (!isSolar && !isCarWash && !isInterior && !isExterior);
 
         // Smart Dual-Language Display (English + Google Indic Hindi)
         var rawName = item.customerName || 'Customer';
@@ -3370,8 +3569,8 @@ function loadStaffCustomerData(staffId) {
         var hasSecLoc = !!(secMapsUrl || secAddress);
         var locationCount = (hasPrimaryLoc ? 1 : 0) + (hasSecLoc ? 1 : 0);
         var photoUrl = (item.photoUrl != null ? String(item.photoUrl) : '').trim();
-        var pkgLabel = (item.packageType || item.serviceType || (isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : 'Daily Car Cleaning'))).toString().trim();
-        var vIcon = isSolar ? '☀️' : (isCarWash ? '🧼' : '🚘');
+        var pkgLabel = (item.packageType || item.serviceType || (isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : (isInterior ? 'Interior Detailing' : (isExterior ? 'Exterior Detailing' : 'Daily Car Cleaning'))))).toString().trim();
+        var vIcon = isSolar ? '☀️' : (isCarWash ? '🧼' : (isInterior ? '✨' : (isExterior ? '🛡️' : '🚘')));
 
         /* Route Sequence Number */
         var seqNumber = item._seq !== undefined ? item._seq : (index + 1);
@@ -3438,29 +3637,55 @@ function loadStaffCustomerData(staffId) {
         html += '  <div class="card-vehicle-row">';
         html += '    <div class="vehicle-details-wrap">';
         if (isSolar) {
+          var panelText = (item.panelCount || (item.siteDetails && item.siteDetails.panelCount)) ? (item.panelCount || item.siteDetails.panelCount) + ' Panels' : '';
           html += '      <div class="solar-site-badge" title="' + escapeHtml(vehicles) + '">';
           html += '        <span class="vehicle-plate-icon">☀️</span>';
           html += '        <span class="vehicle-plate-text">' + escapeHtml(vehicles) + '</span>';
           html += '      </div>';
+          if (panelText) {
+            html += '      <span class="badge-solar-panels" title="Total Solar Panels">☀️ ' + escapeHtml(panelText) + '</span>';
+          }
         } else if (isDaily) {
           var vehInfo = parseVehicleDetails(vehicles);
-          html += '      <div class="vehicle-plate-badge" title="' + escapeHtml(vehicles) + '">';
-          html += '        <span class="vehicle-plate-icon">🚘</span>';
-          if (vehInfo.reg) {
-            html += '        <span class="vehicle-plate-reg"><strong>' + escapeHtml(vehInfo.reg) + '</strong></span>';
-          }
-          if (vehInfo.model) {
-            html += '        <span class="vehicle-plate-model">' + (vehInfo.reg ? ' • ' : '') + escapeHtml(vehInfo.model) + '</span>';
-          }
-          if (!vehInfo.reg && !vehInfo.model) {
-            var rawVehDisplay = vehInfo.display || vehicles;
-            if (rawVehDisplay && !/^(गाड़ी|गाड़ी|vehicle|car)$/i.test(rawVehDisplay.trim())) {
-              html += '        <span class="vehicle-plate-model">' + escapeHtml(rawVehDisplay) + '</span>';
-            } else {
-              html += '        <span class="vehicle-plate-model">' + (isHi ? 'गाड़ी विवरण उपलब्ध नहीं' : 'Vehicle Not Provided') + '</span>';
+          if (vehInfo.isMulti && vehInfo.vehicles && vehInfo.vehicles.length > 1) {
+            html += '      <div class="multi-vehicle-rotation-cluster">';
+            html += '        <div class="rotation-type-pill" title="' + (isHi ? '1 दिन छोड़कर 1 गाड़ी की सफाई' : 'Alternate day vehicle rotation') + '">';
+            html += '          <span class="material-symbols-outlined" style="font-size: 13px;" aria-hidden="true">sync_alt</span>';
+            html += '          <span>' + (isHi ? '1 दिन 1 गाड़ी (अल्टरनेट प्लान)' : 'Alternate Day Rotation (2 Cars)') + '</span>';
+            html += '        </div>';
+            html += '        <div class="multi-plates-row">';
+            vehInfo.vehicles.forEach(function(vSub) {
+              html += '          <div class="vehicle-plate-badge sub-plate-badge" title="' + escapeHtml(vSub.display || vSub.reg) + '">';
+              html += '            <span class="vehicle-plate-icon">🚘</span>';
+              if (vSub.reg) {
+                html += '            <span class="vehicle-plate-reg"><strong>' + escapeHtml(vSub.reg) + '</strong></span>';
+              }
+              if (vSub.model) {
+                html += '            <span class="vehicle-plate-model">' + (vSub.reg ? ' • ' : '') + escapeHtml(vSub.model) + '</span>';
+              }
+              html += '          </div>';
+            });
+            html += '        </div>';
+            html += '      </div>';
+          } else {
+            html += '      <div class="vehicle-plate-badge" title="' + escapeHtml(vehicles) + '">';
+            html += '        <span class="vehicle-plate-icon">🚘</span>';
+            if (vehInfo.reg) {
+              html += '        <span class="vehicle-plate-reg"><strong>' + escapeHtml(vehInfo.reg) + '</strong></span>';
             }
+            if (vehInfo.model) {
+              html += '        <span class="vehicle-plate-model">' + (vehInfo.reg ? ' • ' : '') + escapeHtml(vehInfo.model) + '</span>';
+            }
+            if (!vehInfo.reg && !vehInfo.model) {
+              var rawVehDisplay = vehInfo.display || vehicles;
+              if (rawVehDisplay && !/^(गाड़ी|गाड़ी|vehicle|car)$/i.test(rawVehDisplay.trim())) {
+                html += '        <span class="vehicle-plate-model">' + escapeHtml(rawVehDisplay) + '</span>';
+              } else {
+                html += '        <span class="vehicle-plate-model">' + (isHi ? 'गाड़ी विवरण उपलब्ध नहीं' : 'Vehicle Not Provided') + '</span>';
+              }
+            }
+            html += '      </div>';
           }
-          html += '      </div>';
         } else {
           html += '      <div class="vehicle-plate-badge" title="' + escapeHtml(vehicles) + '">';
           html += '        <span class="vehicle-plate-icon">' + vIcon + '</span>';
@@ -3469,6 +3694,24 @@ function loadStaffCustomerData(staffId) {
         }
         if (pkgLabel) {
           html += '      <span class="package-pill-badge">' + escapeHtml(pkgLabel) + '</span>';
+        }
+        if (isSolar) {
+          var pCount = item.panelCount || (item.siteDetails && (item.siteDetails.panelCount || item.siteDetails.panel_count));
+          if (pCount) {
+            html += '      <span class="solar-panels-badge" title="No. of Panels: ' + escapeHtml(pCount) + '">☀️ ' + escapeHtml(pCount) + (isHi ? ' सोलर पैनल्स' : ' Panels') + '</span>';
+          }
+        }
+        if (!isSolar && item.seaterType) {
+          var seaterLabel = (item.seaterType === '5_plus_seater') ? '🚙 5+ Seater' : '🚗 5 Seater';
+          html += '      <span class="seater-badge" title="Vehicle Sizing">' + escapeHtml(seaterLabel) + '</span>';
+        }
+        if (!isDaily) {
+          var cBadge = '';
+          if (isInterior) cBadge = '<span class="badge-cat-interior">✨ इंटीरियर डिटेलिंग</span>';
+          else if (isExterior) cBadge = '<span class="badge-cat-exterior">🛡️ एक्सटीरियर डिटेलिंग</span>';
+          else if (isCarWash) cBadge = '<span class="badge-cat-carwash">🧼 कार वॉश</span>';
+          else if (isSolar) cBadge = '<span class="badge-cat-solar">☀️ सोलर सफाई</span>';
+          if (cBadge) html += '      ' + cBadge;
         }
         var cardMake = (item.carMake || item.car_make || '').trim();
         var cardColor = (item.carColor || item.car_color || '').trim();
@@ -4132,7 +4375,8 @@ function loadStaffCustomerData(staffId) {
       });
     }
 
-    function openEditStaffModal(staffId) {
+    function openEditStaffModal(staffId, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       var staff = (state.staffList || []).find(function(s) {
         return (s.id || '').toUpperCase() === (staffId || '').toUpperCase();
       });
@@ -4209,8 +4453,13 @@ function loadStaffCustomerData(staffId) {
 
     function closeEditStaffModal() {
       var modal = document.getElementById('staffEditModal');
-      if (modal) modal.style.display = 'none';
-      document.body.style.overflow = '';
+      if (modal) {
+        modal.style.display = 'none';
+        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+          document.body.style.overflow = '';
+        }
+      }
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function handleEditStaffSubmit(e) {
@@ -4422,9 +4671,11 @@ function loadStaffCustomerData(staffId) {
 
     /* Customer Form Handling */
     function toggleCategoryFields(cat) {
-      var isDaily = (cat === 'Daily Car Cleaning');
-      var isCarWash = (cat === 'Car Washing');
-      var isSolar = (cat === 'Solar Panel Cleaning');
+      var isDaily = (cat === 'Daily Car Cleaning' || cat === 'daily_car_cleaning');
+      var isCarWash = (cat === 'Car Washing' || cat === 'car_washing');
+      var isSolar = (cat === 'Solar Panel Cleaning' || cat === 'solar_cleaning');
+      var isInterior = (cat === 'Interior Detailing' || cat === 'interior_detailing');
+      var isExterior = (cat === 'Exterior Detailing' || cat === 'exterior_detailing');
 
       var vLabel = document.getElementById('custVehicleLabel');
       var vInput = document.getElementById('custVehicles');
@@ -4437,6 +4688,9 @@ function loadStaffCustomerData(staffId) {
         if (secGroup) secGroup.style.display = 'none';
         if (pkgSelect) {
           pkgSelect.innerHTML = 
+            '<option value="One Time Solar Cleaning">One Time Solar Cleaning</option>' +
+            '<option value="6 Month Subscription (6 frequencies)">6 Month Subscription (6 frequencies)</option>' +
+            '<option value="12 Month Subscription (12 frequencies)">12 Month Subscription (12 frequencies)</option>' +
             '<option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>' +
             '<option value="SOLAR SINGLE">SOLAR SINGLE</option>' +
             '<option value="OTHER">OTHER</option>';
@@ -4447,8 +4701,32 @@ function loadStaffCustomerData(staffId) {
         if (secGroup) secGroup.style.display = 'none';
         if (pkgSelect) {
           pkgSelect.innerHTML = 
+            '<option value="Single Wash (One Time Wash)">Single Wash (One Time Wash)</option>' +
+            '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
             '<option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>' +
             '<option value="CAR WASH SINGLE">CAR WASH SINGLE</option>' +
+            '<option value="OTHER">OTHER</option>';
+        }
+      } else if (isInterior) {
+        if (vLabel) vLabel.textContent = 'Vehicle Number & Model *';
+        if (vInput) vInput.placeholder = 'e.g. UP65 AB 1234 - Creta';
+        if (secGroup) secGroup.style.display = 'none';
+        if (pkgSelect) {
+          pkgSelect.innerHTML = 
+            '<option value="Interior Deep Cleaning">Interior Deep Cleaning</option>' +
+            '<option value="Roof Cleaning">Roof Cleaning</option>' +
+            '<option value="OTHER">OTHER</option>';
+        }
+      } else if (isExterior) {
+        if (vLabel) vLabel.textContent = 'Vehicle Number & Model *';
+        if (vInput) vInput.placeholder = 'e.g. UP65 AB 1234 - Creta';
+        if (secGroup) secGroup.style.display = 'none';
+        if (pkgSelect) {
+          pkgSelect.innerHTML = 
+            '<option value="Ceramic Coating">Ceramic Coating</option>' +
+            '<option value="Graphene Coating">Graphene Coating</option>' +
+            '<option value="Car Waxing">Car Waxing</option>' +
+            '<option value="Glass Treatment">Glass Treatment</option>' +
             '<option value="OTHER">OTHER</option>';
         }
       } else {
@@ -4458,7 +4736,10 @@ function loadStaffCustomerData(staffId) {
         if (secGroup) secGroup.style.display = 'block';
         if (pkgSelect) {
           pkgSelect.innerHTML = 
-            '<option value="DCC ONLY">DCC ONLY</option>' +
+            '<option value="DCC ONLY">DCC ONLY (Exterior Daily)</option>' +
+            '<option value="Exterior Chemical Cleaning (30 Days)">Exterior Chemical Cleaning (30 Days)</option>' +
+            '<option value="Exterior Chemical Cleaning + 1 Carwash/mo">Exterior Chemical Cleaning + 1 Carwash/mo</option>' +
+            '<option value="Exterior Chemical Cleaning + 2 Carwash/mo">Exterior Chemical Cleaning + 2 Carwash/mo</option>' +
             '<option value="DCC SILVER">DCC SILVER</option>' +
             '<option value="DCC GOLD">DCC GOLD</option>' +
             '<option value="OTHER">OTHER</option>';
@@ -4466,42 +4747,76 @@ function loadStaffCustomerData(staffId) {
       }
       var carMakeColorRow = document.getElementById('custCarMakeColorRow');
       if (carMakeColorRow) carMakeColorRow.style.display = isSolar ? 'none' : 'grid';
+      var custSolarPanelsRow = document.getElementById('custSolarPanelsRow');
+      var custSeaterRow = document.getElementById('custSeaterRow');
+      if (custSolarPanelsRow) custSolarPanelsRow.style.display = isSolar ? 'block' : 'none';
+      if (custSeaterRow) custSeaterRow.style.display = isSolar ? 'none' : 'block';
       handlePackageTypeChange(pkgSelect ? pkgSelect.value : '');
     }
 
     function handleEditCategoryChange(cat) {
+      var isSolar = (cat === 'Solar Panel Cleaning' || cat === 'solar_cleaning');
+      var isInterior = (cat === 'Interior Detailing' || cat === 'interior_detailing');
+      var isExterior = (cat === 'Exterior Detailing' || cat === 'exterior_detailing');
+      var isCarWash = (cat === 'Car Washing' || cat === 'car_washing');
+
       var vLabel = document.getElementById('editCustVehiclesLabel');
       if (vLabel) {
-        vLabel.textContent = (cat === 'Solar Panel Cleaning') ? 'Site Name / Location' : 'Vehicle Number & Model';
+        vLabel.textContent = isSolar ? 'Site Name / Location' : 'Vehicle Number & Model';
       }
       var vInput = document.getElementById('editCustVehicles');
       if (vInput) {
-        vInput.placeholder = (cat === 'Solar Panel Cleaning') ? 'e.g. Rooftop 5KW Site' : 'e.g. UP65 AB 1234 - Creta';
+        vInput.placeholder = isSolar ? 'e.g. Rooftop 5KW Site' : 'e.g. UP65 AB 1234 - Creta';
       }
 
       var secGroup = document.getElementById('editSecondaryAddressGroup');
       if (secGroup) {
-        secGroup.style.display = (cat === 'Daily Car Cleaning') ? 'block' : 'none';
+        secGroup.style.display = (cat === 'Daily Car Cleaning' || cat === 'daily_car_cleaning') ? 'block' : 'none';
       }
       var editCarMakeColorRow = document.getElementById('editCustCarMakeColorRow');
-      if (editCarMakeColorRow) editCarMakeColorRow.style.display = (cat === 'Solar Panel Cleaning') ? 'none' : 'grid';
+      if (editCarMakeColorRow) editCarMakeColorRow.style.display = isSolar ? 'none' : 'grid';
+      var editCustSolarPanelsRow = document.getElementById('editCustSolarPanelsRow');
+      var editCustSeaterRow = document.getElementById('editCustSeaterRow');
+      if (editCustSolarPanelsRow) editCustSolarPanelsRow.style.display = isSolar ? 'block' : 'none';
+      if (editCustSeaterRow) editCustSeaterRow.style.display = isSolar ? 'none' : 'block';
 
       var pkgSelect = document.getElementById('editCustPkgType');
       if (!pkgSelect) return;
       var curVal = pkgSelect.value;
-      if (cat === 'Solar Panel Cleaning') {
+
+      if (isSolar) {
         pkgSelect.innerHTML = 
+          '<option value="One Time Solar Cleaning">One Time Solar Cleaning</option>' +
+          '<option value="6 Month Subscription (6 frequencies)">6 Month Subscription (6 frequencies)</option>' +
+          '<option value="12 Month Subscription (12 frequencies)">12 Month Subscription (12 frequencies)</option>' +
           '<option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>' +
           '<option value="SOLAR SINGLE">SOLAR SINGLE</option>' +
           '<option value="OTHER">OTHER</option>';
-      } else if (cat === 'Car Washing') {
+      } else if (isCarWash) {
         pkgSelect.innerHTML = 
+          '<option value="Single Wash (One Time Wash)">Single Wash (One Time Wash)</option>' +
+          '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
           '<option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>' +
           '<option value="CAR WASH SINGLE">CAR WASH SINGLE</option>' +
           '<option value="OTHER">OTHER</option>';
+      } else if (isInterior) {
+        pkgSelect.innerHTML = 
+          '<option value="Interior Deep Cleaning">Interior Deep Cleaning</option>' +
+          '<option value="Roof Cleaning">Roof Cleaning</option>' +
+          '<option value="OTHER">OTHER</option>';
+      } else if (isExterior) {
+        pkgSelect.innerHTML = 
+          '<option value="Ceramic Coating">Ceramic Coating</option>' +
+          '<option value="Graphene Coating">Graphene Coating</option>' +
+          '<option value="Car Waxing">Car Waxing</option>' +
+          '<option value="Glass Treatment">Glass Treatment</option>' +
+          '<option value="OTHER">OTHER</option>';
       } else {
         pkgSelect.innerHTML = 
-          '<option value="DCC ONLY">DCC ONLY</option>' +
+          '<option value="DCC ONLY">DCC ONLY (Exterior Daily)</option>' +
+          '<option value="Exterior Chemical Cleaning (30 Days)">Exterior Chemical Cleaning (30 Days)</option>' +
+          '<option value="Exterior Chemical Cleaning + 1 Carwash/mo">Exterior Chemical Cleaning + 1 Carwash/mo</option>' +
+          '<option value="Exterior Chemical Cleaning + 2 Carwash/mo">Exterior Chemical Cleaning + 2 Carwash/mo</option>' +
           '<option value="DCC SILVER">DCC SILVER</option>' +
           '<option value="DCC GOLD">DCC GOLD</option>' +
           '<option value="OTHER">OTHER</option>';
@@ -4958,8 +5273,9 @@ function loadStaffCustomerData(staffId) {
       }
     }
 
-    function openCropperModal(imageSrc, context) {
+    function openCropperModal(imageSrc, context, triggerEl) {
       if (!imageSrc) return;
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       cropperTargetContext = context || 'add';
 
       var modal = document.getElementById('cwpPhotoCropperModal');
@@ -5027,7 +5343,9 @@ function loadStaffCustomerData(staffId) {
     function closeCropperModal() {
       var modal = document.getElementById('cwpPhotoCropperModal');
       if (modal) modal.style.display = 'none';
-      document.body.style.overflow = '';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
 
       if (cropperInstance) {
@@ -5401,13 +5719,22 @@ function loadStaffCustomerData(staffId) {
       var isLeadCheck = document.getElementById('custIsLeadCheck');
       var isLeadMarked = isLeadCheck && isLeadCheck.checked;
 
+      var panelInput = document.getElementById('custSolarPanelsCount') || document.getElementById('custPanelCount');
+      var panelCountVal = isSolar ? (parseInt(panelInput ? panelInput.value : '', 10) || null) : null;
+      var seaterTypeVal = isSolar ? null : (document.getElementById('custSeaterTypeHidden') ? document.getElementById('custSeaterTypeHidden').value : '5_seater');
+      var resolvedServiceType = isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : (category === 'Interior Detailing' ? 'Interior Detailing' : (category === 'Exterior Detailing' ? 'Exterior Detailing' : 'Daily Car Cleaning')));
+
       var customerData = {
         isLead: Boolean(isLeadMarked),
         tag: isLeadMarked ? 'lead' : 'customer',
         leadStatus: isLeadMarked ? 'open' : 'converted',
         sheetName: isLeadMarked ? 'Leads' : (isDaily ? 'Daily Clean' : 'All Other Work'),
         serviceCategory: category,
-        serviceType: isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : 'Daily Car Cleaning'),
+        serviceType: resolvedServiceType,
+        panelCount: panelCountVal,
+        panel_count: panelCountVal,
+        seaterType: seaterTypeVal,
+        seater_type: seaterTypeVal,
         staffId: staffId,
         staffName: staffName,
         customerName: document.getElementById('custName').value.trim(),
@@ -6251,28 +6578,57 @@ function loadStaffCustomerData(staffId) {
     function handleConvertCategoryChange(cat) {
       var pkgGroup = document.getElementById('convertPackageGroup');
       var pkgSelect = document.getElementById('convertPackageType');
-      if (!pkgSelect) return;
+      var isSolar = (cat === 'Solar Panel Cleaning' || cat === 'solar_cleaning');
+      var isCarWash = (cat === 'Car Washing' || cat === 'car_washing');
+      var isInterior = (cat === 'Interior Detailing' || cat === 'interior_detailing');
+      var isExterior = (cat === 'Exterior Detailing' || cat === 'exterior_detailing');
 
-      if (cat === 'Daily Car Cleaning') {
-        if (pkgGroup) pkgGroup.style.display = 'block';
+      var solarGroup = document.getElementById('convertSolarPanelsGroup');
+      var seaterGroup = document.getElementById('convertSeaterGroup');
+      if (solarGroup) solarGroup.style.display = isSolar ? 'block' : 'none';
+      if (seaterGroup) seaterGroup.style.display = isSolar ? 'none' : 'block';
+
+      if (!pkgSelect) return;
+      if (pkgGroup) pkgGroup.style.display = 'block';
+
+      if (cat === 'Daily Car Cleaning' || cat === 'daily_car_cleaning') {
         pkgSelect.innerHTML = '<option value="DCC ONLY" selected>DCC ONLY (Exterior Daily)</option>' +
+          '<option value="Exterior Chemical Cleaning (30 Days)">Exterior Chemical Cleaning (30 Days)</option>' +
+          '<option value="Exterior Chemical Cleaning + 1 Carwash/mo">Exterior Chemical Cleaning + 1 Carwash/mo</option>' +
+          '<option value="Exterior Chemical Cleaning + 2 Carwash/mo">Exterior Chemical Cleaning + 2 Carwash/mo</option>' +
           '<option value="DCC SILVER">DCC SILVER (Exterior Daily + Weekly Vacuum)</option>' +
           '<option value="DCC GOLD">DCC GOLD (Full Executive Detailing)</option>' +
           '<option value="OTHER">OTHER (Custom Subscription)</option>';
-      } else if (cat === 'Car Washing') {
-        if (pkgGroup) pkgGroup.style.display = 'block';
-        pkgSelect.innerHTML = '<option value="Foam Wash" selected>Foam Wash</option>' +
+      } else if (isCarWash) {
+        pkgSelect.innerHTML = '<option value="Single Wash (One Time Wash)" selected>Single Wash (One Time Wash)</option>' +
+          '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
+          '<option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>' +
+          '<option value="CAR WASH SINGLE">CAR WASH SINGLE</option>' +
+          '<option value="Foam Wash">Foam Wash</option>' +
           '<option value="Deep Interior & Exterior Wash">Deep Interior & Exterior Wash</option>' +
-          '<option value="Ceramic Wash">Ceramic Wash</option>' +
           '<option value="Other Wash">Other Wash</option>';
-      } else if (cat === 'Solar Panel Cleaning') {
-        if (pkgGroup) pkgGroup.style.display = 'block';
-        pkgSelect.innerHTML = '<option value="Solar Cleaning Standard" selected>Solar Cleaning Standard (Up to 10 Panels)</option>' +
-          '<option value="Solar Cleaning Commercial">Solar Cleaning Commercial (10+ Panels)</option>';
+      } else if (isSolar) {
+        pkgSelect.innerHTML = '<option value="One Time Solar Cleaning" selected>One Time Solar Cleaning</option>' +
+          '<option value="6 Month Subscription (6 frequencies)">6 Month Subscription (6 frequencies)</option>' +
+          '<option value="12 Month Subscription (12 frequencies)">12 Month Subscription (12 frequencies)</option>' +
+          '<option value="Solar Cleaning Standard">Solar Cleaning Standard (Up to 10 Panels)</option>' +
+          '<option value="Solar Cleaning Commercial">Solar Cleaning Commercial (10+ Panels)</option>' +
+          '<option value="OTHER">OTHER</option>';
+      } else if (isInterior) {
+        pkgSelect.innerHTML = '<option value="Interior Deep Cleaning" selected>Interior Deep Cleaning</option>' +
+          '<option value="Roof Cleaning">Roof Cleaning</option>' +
+          '<option value="OTHER">OTHER</option>';
+      } else if (isExterior) {
+        pkgSelect.innerHTML = '<option value="Ceramic Coating" selected>Ceramic Coating</option>' +
+          '<option value="Graphene Coating">Graphene Coating</option>' +
+          '<option value="Car Waxing">Car Waxing</option>' +
+          '<option value="Glass Treatment">Glass Treatment</option>' +
+          '<option value="OTHER">OTHER</option>';
       }
     }
 
-    function openConvertLeadModal(leadId) {
+    function openConvertLeadModal(leadId, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       var lead = (state.leads || []).find(function(l) {
         return (l.id && l.id === leadId) || (l.customerCode && l.customerCode === leadId);
       });
@@ -6303,12 +6659,19 @@ function loadStaffCustomerData(staffId) {
       var catSelect = document.getElementById('convertServiceCategory');
       if (catSelect) {
         var cat = lead.interestedService || lead.serviceCategory || 'Daily Car Cleaning';
-        if (['Daily Car Cleaning', 'Car Washing', 'Solar Panel Cleaning'].indexOf(cat) !== -1) {
+        if (['Daily Car Cleaning', 'Car Washing', 'Solar Panel Cleaning', 'Interior Detailing', 'Exterior Detailing'].indexOf(cat) !== -1) {
           catSelect.value = cat;
         } else {
           catSelect.value = 'Daily Car Cleaning';
         }
         handleConvertCategoryChange(catSelect.value);
+      }
+
+      var convPanelsInput = document.getElementById('convertSolarPanelsCount') || document.getElementById('convertPanelCount');
+      if (convPanelsInput) convPanelsInput.value = lead.panelCount || lead.panel_count || '';
+      var convSeaterVal = lead.seaterType || lead.seater_type || '5_seater';
+      if (typeof handleConvertSeaterChange === 'function') {
+        handleConvertSeaterChange(convSeaterVal);
       }
 
       var staffSelect = document.getElementById('convertStaffSelect');
@@ -6331,6 +6694,9 @@ function loadStaffCustomerData(staffId) {
     function closeConvertLeadModal() {
       var modal = document.getElementById('convertLeadModal');
       if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
@@ -6354,11 +6720,20 @@ function loadStaffCustomerData(staffId) {
       }
       var notes = (document.getElementById('convertNotes').value || '').trim();
 
+      var isSolarConv = (sCategory === 'Solar Panel Cleaning' || sCategory === 'solar_cleaning');
+      var convPanelsInput = document.getElementById('convertSolarPanelsCount') || document.getElementById('convertPanelCount');
+      var convPanels = isSolarConv ? (parseInt(convPanelsInput ? convPanelsInput.value : '', 10) || null) : null;
+      var convSeater = isSolarConv ? null : (document.getElementById('convertSeaterTypeHidden') ? document.getElementById('convertSeaterTypeHidden').value : '5_seater');
+
       var payload = {
         leadId: leadId,
         convertData: {
           serviceCategory: sCategory,
           packageType: pkgType,
+          panelCount: convPanels,
+          panel_count: convPanels,
+          seaterType: convSeater,
+          seater_type: convSeater,
           staffId: staffId,
           staffName: staffName,
           notes: notes
@@ -6392,7 +6767,8 @@ function loadStaffCustomerData(staffId) {
       });
     }
 
-    function openLeadNoteModal(leadId) {
+    function openLeadNoteModal(leadId, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       var lead = (state.leads || []).find(function(l) {
         return (l.id && l.id === leadId) || (l.customerCode && l.customerCode === leadId);
       });
@@ -6417,6 +6793,9 @@ function loadStaffCustomerData(staffId) {
     function closeLeadNoteModal() {
       var modal = document.getElementById('leadNoteModal');
       if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
@@ -6843,7 +7222,8 @@ function loadStaffCustomerData(staffId) {
     }
 
     /* Edit Customer Modal Handlers */
-    function openEditCustomerModal(index) {
+    function openEditCustomerModal(index, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       var r = state.adminRecords && state.adminRecords[index];
       if (!r) return;
 
@@ -6891,11 +7271,26 @@ function loadStaffCustomerData(staffId) {
         } else {
           catSelect.innerHTML = 
             '<option value="Car Washing">Car Washing</option>' +
-            '<option value="Solar Panel Cleaning">Solar Panel Cleaning</option>';
-          if (catVal !== 'Solar Panel Cleaning') catVal = 'Car Washing';
+            '<option value="Solar Panel Cleaning">Solar Panel Cleaning</option>' +
+            '<option value="Interior Detailing">Interior Detailing</option>' +
+            '<option value="Exterior Detailing">Exterior Detailing</option>';
+          if (['Car Washing', 'Solar Panel Cleaning', 'Interior Detailing', 'Exterior Detailing'].indexOf(catVal) === -1) {
+            catVal = 'Car Washing';
+          }
         }
         catSelect.value = catVal;
         handleEditCategoryChange(catVal);
+      }
+
+      /* Set solar panel count & vehicle seater size */
+      var editPanelInput = document.getElementById('editCustSolarPanelsCount') || document.getElementById('editCustPanelCount');
+      if (editPanelInput) editPanelInput.value = r.panelCount || r.panel_count || '';
+      var editSeaterVal = r.seaterType || r.seater_type || '5_seater';
+      if (typeof handleEditCustSeaterChange === 'function') {
+        handleEditCustSeaterChange(editSeaterVal);
+      } else {
+        var hiddenSeater = document.getElementById('editCustSeaterTypeHidden');
+        if (hiddenSeater) hiddenSeater.value = editSeaterVal;
       }
 
       /* Set package type with case-insensitive fallback matching */
@@ -6992,7 +7387,9 @@ function loadStaffCustomerData(staffId) {
     function closeAddCustomerModal() {
       var modal = document.getElementById('addCustomerModal');
       if (modal) modal.style.display = 'none';
-      document.body.style.overflow = '';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
@@ -7011,7 +7408,9 @@ function loadStaffCustomerData(staffId) {
     function closeEditCustomerModal() {
       var modal = document.getElementById('editCustomerModal');
       if (modal) modal.style.display = 'none';
-      document.body.style.overflow = '';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
       state.editPhotoBase64 = '';
       state.editPhotoName = '';
       state.editPhotoType = '';
@@ -7160,7 +7559,12 @@ function loadStaffCustomerData(staffId) {
       var photoUrl = document.getElementById('editPhotoUrl').value;
       var catSelect = document.getElementById('editCustCategory');
       var serviceCategory = catSelect ? catSelect.value : 'Daily Car Cleaning';
-      var serviceType = (serviceCategory === 'Car Washing') ? 'Car Wash' : (serviceCategory === 'Solar Panel Cleaning' ? 'Solar Cleaning' : 'Daily Clean');
+      var isSolarEdit = (serviceCategory === 'Solar Panel Cleaning' || serviceCategory === 'solar_cleaning');
+      var isCarWashEdit = (serviceCategory === 'Car Washing' || serviceCategory === 'car_washing');
+      var resolvedServiceType = isSolarEdit ? 'Solar Cleaning' : (isCarWashEdit ? 'Car Wash' : (serviceCategory === 'Interior Detailing' ? 'Interior Detailing' : (serviceCategory === 'Exterior Detailing' ? 'Exterior Detailing' : 'Daily Clean')));
+      var editPanelInput = document.getElementById('editCustSolarPanelsCount') || document.getElementById('editCustPanelCount');
+      var panelCountVal = isSolarEdit ? (parseInt(editPanelInput ? editPanelInput.value : '', 10) || null) : null;
+      var seaterTypeVal = isSolarEdit ? null : (document.getElementById('editCustSeaterTypeHidden') ? document.getElementById('editCustSeaterTypeHidden').value : '5_seater');
 
       var pkgVal = document.getElementById('editCustPkgType').value;
       if (pkgVal === 'OTHER') {
@@ -7209,7 +7613,11 @@ function loadStaffCustomerData(staffId) {
         staffName: editStaffName,
         staffId: editStaffId,
         serviceCategory: serviceCategory,
-        serviceType: serviceType,
+        serviceType: resolvedServiceType,
+        panelCount: panelCountVal,
+        panel_count: panelCountVal,
+        seaterType: seaterTypeVal,
+        seater_type: seaterTypeVal,
         packageType: pkgVal,
         packageDetails: pkgVal,
         packagesPurchased: '1',
@@ -7322,7 +7730,9 @@ function loadStaffCustomerData(staffId) {
         img.onerror = null;
         img.src = '';
       }
-      document.body.style.overflow = '';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
     }
 
     function openAdminPhotoModal(origIndex) {
@@ -7462,7 +7872,9 @@ function loadStaffCustomerData(staffId) {
     function closeAddressModal() {
       var modal = document.getElementById('addressViewModal');
       if (modal) modal.style.display = 'none';
-      document.body.style.overflow = '';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
       _activeModalRecord = null;
     }
 
@@ -7637,9 +8049,9 @@ function loadStaffCustomerData(staffId) {
       return 'CUST_' + (cleanName || 'REC') + '_' + (c.rowIndex || 'R0');
     }
 
-    function parseVehicleDetails(vehicleStr) {
-      if (!vehicleStr) return { model: '', reg: '', display: '' };
-      var raw = String(vehicleStr).trim();
+    function parseSingleVehicleDetails(rawItem) {
+      if (!rawItem) return { model: '', reg: '', display: '' };
+      var raw = String(rawItem).trim();
       if (!raw) return { model: '', reg: '', display: '' };
 
       var regRegex = /\b([A-Z]{2}[ -]?[0-9]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9]{4})\b/i;
@@ -7681,6 +8093,39 @@ function loadStaffCustomerData(staffId) {
         reg: reg,
         display: raw
       };
+    }
+
+    function parseVehicleDetails(vehicleStr) {
+      if (!vehicleStr) return { model: '', reg: '', display: '', isMulti: false, vehicles: [] };
+      var raw = String(vehicleStr).trim();
+      if (!raw) return { model: '', reg: '', display: '', isMulti: false, vehicles: [] };
+
+      // Multi-vehicle detection (supporting /, |, or comma between multiple vehicles)
+      if (raw.indexOf('/') !== -1 || raw.indexOf('|') !== -1 || (raw.indexOf(',') !== -1 && /[A-Z]{2}\s*\d+/i.test(raw))) {
+        var segments = raw.split(/[/|]|\s*,\s*(?=[A-Z0-9])/).map(function(s) { return s.trim(); }).filter(Boolean);
+        if (segments.length > 1) {
+          var parsedList = segments.map(function(seg) {
+            return parseSingleVehicleDetails(seg);
+          });
+          var hasAtLeastOneReg = parsedList.some(function(p) { return Boolean(p.reg); });
+          if (hasAtLeastOneReg) {
+            var first = parsedList[0];
+            return {
+              model: first.model,
+              reg: first.reg,
+              display: raw,
+              isMulti: true,
+              rotationType: 'alternate_days',
+              vehicles: parsedList
+            };
+          }
+        }
+      }
+
+      var single = parseSingleVehicleDetails(raw);
+      single.isMulti = false;
+      single.vehicles = [single];
+      return single;
     }
 
     state.seqManagement = {
@@ -8258,7 +8703,8 @@ function loadStaffCustomerData(staffId) {
       });
     }
 
-    function confirmResetSequence() {
+    function confirmResetSequence(triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       var modal = document.getElementById('seqResetModal');
       var nameEl = document.getElementById('seqResetStaffName');
       if (nameEl) nameEl.textContent = state.seqManagement.currentStaffName + ' (' + state.seqManagement.currentStaffId + ')';
@@ -8268,12 +8714,19 @@ function loadStaffCustomerData(staffId) {
       }
     }
 
+    function openSeqResetModal(triggerEl) {
+      return confirmResetSequence(triggerEl);
+    }
+
     function closeSeqResetModal() {
       var modal = document.getElementById('seqResetModal');
       if (modal) {
         modal.style.display = 'none';
-        document.body.style.overflow = '';
+        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+          document.body.style.overflow = '';
+        }
       }
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function executeResetSequence() {
@@ -8570,7 +9023,9 @@ function loadStaffCustomerData(staffId) {
       var modal = document.getElementById('cleaningCameraModal');
       if (modal) {
         modal.style.display = 'none';
-        document.body.style.overflow = '';
+        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+          document.body.style.overflow = '';
+        }
       }
       activeCameraTarget = null;
       currentSnappedPhotoBase64 = '';
@@ -9039,7 +9494,8 @@ function loadStaffCustomerData(staffId) {
       });
     }
 
-    function openDesktopWhatsAppImageHelper(blob, file, item, photoSrc) {
+    function openDesktopWhatsAppImageHelper(blob, file, item, photoSrc, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       currentWaModalBlob = blob;
       currentWaModalFile = file;
       currentWaModalItem = item;
@@ -9074,6 +9530,14 @@ function loadStaffCustomerData(staffId) {
     function closeWhatsAppImageModal() {
       var modal = document.getElementById('whatsAppImageShareModal');
       if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
+    }
+
+    function closeWhatsAppImageShareModal() {
+      closeWhatsAppImageModal();
     }
 
     function proceedToWhatsAppChat() {
@@ -9650,7 +10114,8 @@ function loadStaffCustomerData(staffId) {
     /* Lightbox Modal Functions */
     var currentLightboxPhotoUrl = '';
     var currentLightboxPhone = '';
-    function openReportPhotoLightbox(url, title, metaDetails, customerPhone) {
+    function openReportPhotoLightbox(url, title, metaDetails, customerPhone, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       currentLightboxPhotoUrl = url;
       currentLightboxPhone = customerPhone || '';
 
@@ -9675,10 +10140,17 @@ function loadStaffCustomerData(staffId) {
       var modal = document.getElementById('reportPhotoLightboxModal');
       if (modal) {
         modal.style.display = 'none';
-        document.body.style.overflow = '';
+        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+          document.body.style.overflow = '';
+        }
       }
       currentLightboxPhotoUrl = '';
       currentLightboxPhone = '';
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
+    }
+
+    function closeReportPhotoLightboxModal() {
+      closeReportPhotoLightbox();
     }
 
     function downloadCurrentReportPhoto() {
@@ -10093,7 +10565,8 @@ function loadStaffCustomerData(staffId) {
     var currentStartJobId = null;
     var startJobPhotos = [];
 
-    function openStartSpecialJobModal(jobId) {
+    function openStartSpecialJobModal(jobId, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       currentStartJobId = jobId;
       startJobPhotos = [];
       var job = (state.customers || []).find(function(c) { return (c.jobId || c.id) === jobId; });
@@ -10120,6 +10593,9 @@ function loadStaffCustomerData(staffId) {
     function closeStartSpecialJobModal() {
       var modal = document.getElementById('startSpecialJobModal');
       if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
       currentStartJobId = null;
       startJobPhotos = [];
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
@@ -10242,7 +10718,8 @@ function loadStaffCustomerData(staffId) {
     var currentCompleteJobId = null;
     var completeJobPhotos = [];
 
-    function openCompleteSpecialJobModal(jobId) {
+    function openCompleteSpecialJobModal(jobId, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       currentCompleteJobId = jobId;
       completeJobPhotos = [];
       var job = (state.customers || []).find(function(c) { return (c.jobId || c.id) === jobId; });
@@ -10271,6 +10748,9 @@ function loadStaffCustomerData(staffId) {
     function closeCompleteSpecialJobModal() {
       var modal = document.getElementById('completeSpecialJobModal');
       if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
       currentCompleteJobId = null;
       completeJobPhotos = [];
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
@@ -10389,7 +10869,8 @@ function loadStaffCustomerData(staffId) {
     /* Admin: Assign Special Job Workflow */
     var preselectedSpecialCustId = null;
 
-    function openAssignSpecialJobModal(preselectedCustomerId) {
+    function openAssignSpecialJobModal(preselectedCustomerId, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       preselectedSpecialCustId = preselectedCustomerId || null;
       var modal = document.getElementById('assignSpecialJobModal');
       if (!modal) return;
@@ -10425,6 +10906,12 @@ function loadStaffCustomerData(staffId) {
         dateInput.value = new Date().toISOString().split('T')[0];
       }
 
+      // Initialize category and seater sizing
+      var catSelect = document.getElementById('specialServiceCategory');
+      var initialCat = (catSelect && catSelect.value) ? catSelect.value : 'solar_cleaning';
+      handleSpecialCategoryChange(initialCat);
+      handleSpecialSeaterChange('5_seater');
+
       if (preselectedSpecialCustId) {
         toggleSpecialCustMode('existing');
         handleSpecialCustSelected(preselectedSpecialCustId);
@@ -10441,6 +10928,9 @@ function loadStaffCustomerData(staffId) {
     function closeAssignSpecialJobModal() {
       var modal = document.getElementById('assignSpecialJobModal');
       if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
       preselectedSpecialCustId = null;
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
@@ -10481,18 +10971,117 @@ function loadStaffCustomerData(staffId) {
         if (phoneInput) { phoneInput.value = found.customerNumber || ''; phoneInput.readOnly = true; }
         if (addrInput) { addrInput.value = found.address || ''; }
         if (carInput && found.vehicle) { carInput.value = found.vehicle; }
+
+        if (found.seaterType || found.preferredSeaterType) {
+          handleSpecialSeaterChange(found.seaterType || found.preferredSeaterType);
+        }
       }
     }
 
     function handleSpecialCategoryChange(cat) {
+      cat = cat || (document.getElementById('specialServiceCategory')?.value) || 'solar_cleaning';
       var solarBlock = document.getElementById('specialSolarDetailsBlock');
       var carBlock = document.getElementById('specialCarWashDetailsBlock');
+      var pkgSelect = document.getElementById('specialPackageType');
+
       if (cat === 'solar_cleaning') {
         if (solarBlock) solarBlock.style.display = 'block';
         if (carBlock) carBlock.style.display = 'none';
+        var panelsInput = document.getElementById('specialSolarPanelsCount');
+        if (panelsInput && !panelsInput.value) panelsInput.value = '10';
       } else {
         if (solarBlock) solarBlock.style.display = 'none';
         if (carBlock) carBlock.style.display = 'block';
+      }
+
+      // Populate packages from CWP_SERVICE_CATALOG dynamically
+      if (pkgSelect && typeof CWP_SERVICE_CATALOG !== 'undefined') {
+        var catDef = CWP_SERVICE_CATALOG[cat];
+        if (catDef && Array.isArray(catDef.packages) && catDef.packages.length > 0) {
+          pkgSelect.innerHTML = catDef.packages.map(function(p) {
+            return '<option value="' + escapeHtml(p.code) + '">' + escapeHtml(p.name + (p.nameHi ? ' (' + p.nameHi + ')' : '')) + '</option>';
+          }).join('');
+        } else {
+          pkgSelect.innerHTML = '<option value="standard">Standard Service</option>';
+        }
+      }
+    }
+
+    function handleSpecialSeaterChange(val) {
+      val = val || '5_seater';
+      var label5 = document.getElementById('labelSeater5');
+      var label5Plus = document.getElementById('labelSeater5Plus');
+      var radio5 = document.querySelector('input[name="specialSeaterType"][value="5_seater"]');
+      var radio5Plus = document.querySelector('input[name="specialSeaterType"][value="5_plus_seater"]');
+
+      if (val === '5_plus_seater') {
+        if (label5) label5.classList.remove('active');
+        if (label5Plus) label5Plus.classList.add('active');
+        if (radio5Plus) radio5Plus.checked = true;
+      } else {
+        if (label5) label5.classList.add('active');
+        if (label5Plus) label5Plus.classList.remove('active');
+        if (radio5) radio5.checked = true;
+      }
+    }
+
+    function handleCustSeaterChange(val) {
+      val = val || '5_seater';
+      var label5 = document.getElementById('labelCustSeater5');
+      var label5Plus = document.getElementById('labelCustSeater5Plus');
+      var radio5 = document.querySelector('input[name="custSeaterType"][value="5_seater"]');
+      var radio5Plus = document.querySelector('input[name="custSeaterType"][value="5_plus_seater"]');
+      var hidden = document.getElementById('custSeaterTypeHidden');
+      if (hidden) hidden.value = val;
+
+      if (val === '5_plus_seater') {
+        if (label5) label5.classList.remove('active');
+        if (label5Plus) label5Plus.classList.add('active');
+        if (radio5Plus) radio5Plus.checked = true;
+      } else {
+        if (label5) label5.classList.add('active');
+        if (label5Plus) label5Plus.classList.remove('active');
+        if (radio5) radio5.checked = true;
+      }
+    }
+
+    function handleEditCustSeaterChange(val) {
+      val = val || '5_seater';
+      var label5 = document.getElementById('labelEditCustSeater5');
+      var label5Plus = document.getElementById('labelEditCustSeater5Plus');
+      var radio5 = document.querySelector('input[name="editCustSeaterType"][value="5_seater"]');
+      var radio5Plus = document.querySelector('input[name="editCustSeaterType"][value="5_plus_seater"]');
+      var hidden = document.getElementById('editCustSeaterTypeHidden');
+      if (hidden) hidden.value = val;
+
+      if (val === '5_plus_seater') {
+        if (label5) label5.classList.remove('active');
+        if (label5Plus) label5Plus.classList.add('active');
+        if (radio5Plus) radio5Plus.checked = true;
+      } else {
+        if (label5) label5.classList.add('active');
+        if (label5Plus) label5Plus.classList.remove('active');
+        if (radio5) radio5.checked = true;
+      }
+    }
+
+    function handleConvertSeaterChange(val) {
+      val = val || '5_seater';
+      var label5 = document.getElementById('labelConvertSeater5');
+      var label5Plus = document.getElementById('labelConvertSeater5Plus');
+      var radio5 = document.querySelector('input[name="convertSeaterType"][value="5_seater"]');
+      var radio5Plus = document.querySelector('input[name="convertSeaterType"][value="5_plus_seater"]');
+      var hidden = document.getElementById('convertSeaterTypeHidden');
+      if (hidden) hidden.value = val;
+
+      if (val === '5_plus_seater') {
+        if (label5) label5.classList.remove('active');
+        if (label5Plus) label5Plus.classList.add('active');
+        if (radio5Plus) radio5Plus.checked = true;
+      } else {
+        if (label5) label5.classList.add('active');
+        if (label5Plus) label5Plus.classList.remove('active');
+        if (radio5) radio5.checked = true;
       }
     }
 
@@ -10509,9 +11098,17 @@ function loadStaffCustomerData(staffId) {
       var serviceCat = document.getElementById('specialServiceCategory')?.value || 'solar_cleaning';
       var scheduledDate = document.getElementById('specialScheduledDate')?.value || '';
       var staffId = document.getElementById('specialStaffSelect')?.value || '';
-      var solarPanels = document.getElementById('specialSolarPanels')?.value.trim() || '';
-      var carVeh = document.getElementById('specialCarVehicle')?.value.trim() || '';
       var instructions = document.getElementById('specialInstructions')?.value.trim() || '';
+
+      var pkgSelect = document.getElementById('specialPackageType');
+      var packageCode = pkgSelect ? pkgSelect.value : '';
+      var packageOptionText = pkgSelect && pkgSelect.selectedIndex >= 0 ? pkgSelect.options[pkgSelect.selectedIndex].text : '';
+
+      var isSolar = (serviceCat === 'solar_cleaning');
+      var solarPanels = document.getElementById('specialSolarPanels')?.value.trim() || '';
+      var solarPanelsCount = parseInt(document.getElementById('specialSolarPanelsCount')?.value, 10) || 10;
+      var carVeh = document.getElementById('specialCarVehicle')?.value.trim() || '';
+      var seaterType = document.querySelector('input[name="specialSeaterType"]:checked')?.value || '5_seater';
 
       if (!staffId) {
         if (err) { err.textContent = 'कृपया काम करने के लिए स्टाफ चुनें।'; err.style.display = 'block'; }
@@ -10528,16 +11125,26 @@ function loadStaffCustomerData(staffId) {
         submitBtn.innerHTML = '<span>⏳ असाइन हो रहा है...</span>';
       }
 
+      var serviceName = 'Special Job';
+      if (typeof CWP_SERVICE_CATALOG !== 'undefined' && CWP_SERVICE_CATALOG[serviceCat]) {
+        serviceName = CWP_SERVICE_CATALOG[serviceCat].name;
+      }
+
+      var packageDetails = packageOptionText || (isSolar ? ('Solar Cleaning (' + solarPanelsCount + ' panels)') : (carVeh || 'Car Service'));
+
       var payload = {
         customerId: custId,
         customerName: custName,
         phone: custPhone,
         address: custAddress,
         serviceCategoryId: serviceCat,
-        serviceType: serviceCat === 'solar_cleaning' ? 'Solar Panel Cleaning' : 'Car Washing',
-        packageDetails: serviceCat === 'solar_cleaning' ? (solarPanels || 'Solar Cleaning') : (carVeh || 'Car Washing'),
-        siteDetails: serviceCat === 'solar_cleaning' ? { panelScope: solarPanels } : null,
-        vehicleDetails: serviceCat === 'car_washing' ? carVeh : null,
+        serviceType: serviceName,
+        packageCode: packageCode,
+        packageDetails: packageDetails,
+        seaterType: isSolar ? null : seaterType,
+        panelCount: isSolar ? solarPanelsCount : null,
+        siteDetails: isSolar ? { panelCount: solarPanelsCount, panelScope: solarPanels } : null,
+        vehicleDetails: isSolar ? null : (carVeh ? { vehicle: carVeh, seaterType: seaterType } : { seaterType: seaterType }),
         scheduledDate: scheduledDate,
         staffId: staffId,
         specialInstructions: instructions
@@ -10561,6 +11168,136 @@ function loadStaffCustomerData(staffId) {
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.innerHTML = '<span>🚀 Assign & Dispatch Task</span>';
+        }
+        if (err) { err.textContent = 'Error: ' + netErr.message; err.style.display = 'block'; }
+      });
+    }
+
+    /* Admin: Reassign Special Job to Another Staff */
+    function openReassignJobModal(jobId, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
+      var modal = document.getElementById('reassignJobModal');
+      if (!modal) return;
+
+      var job = (adminSpecialJobsCache || []).find(function(j) {
+        return (j.id === jobId || j.jobId === jobId);
+      });
+
+      var targetInput = document.getElementById('reassignJobTargetId');
+      var nameEl = document.getElementById('reassignCustName');
+      var metaEl = document.getElementById('reassignServiceMeta');
+      var staffEl = document.getElementById('reassignCurrentStaff');
+      var select = document.getElementById('reassignStaffSelect') || document.getElementById('reassignNewStaffSelect');
+      var reasonInput = document.getElementById('reassignReason');
+      var err = document.getElementById('reassignJobError');
+
+      if (err) err.style.display = 'none';
+      if (reasonInput) reasonInput.value = '';
+
+      if (targetInput) targetInput.value = jobId;
+      if (nameEl) nameEl.textContent = job ? (job.customerName || 'Customer') : 'Job #' + jobId;
+
+      var meta = '';
+      if (job) {
+        var catName = job.serviceType || job.serviceCategoryId;
+        var scope = '';
+        if (job.panelCount) {
+          scope = ' • ☀️ ' + job.panelCount + ' Panels';
+        } else if (job.seaterType) {
+          scope = ' • ' + (job.seaterType === '5_plus_seater' ? '🚙 5+ Seater' : '🚗 5 Seater');
+        }
+        var pkg = job.packageDetails ? ' • ' + job.packageDetails : '';
+        meta = catName + scope + pkg;
+      }
+      if (metaEl) metaEl.textContent = meta || 'On-Demand Service Task';
+
+      var currentStaffCode = job ? (job.staffId || job.staffCode || '') : '';
+      if (staffEl) staffEl.textContent = job ? (job.staffName ? (job.staffName + (job.staffId ? ' (' + job.staffId + ')' : '')) : 'Unassigned') : '—';
+
+      var submitBtn = document.getElementById('btnSubmitReassignJob');
+      if (job && job.status === 'completed') {
+        if (err) {
+          err.textContent = 'यह काम पूरा हो चुका है (Completed), इसे री-असाइन नहीं किया जा सकता।';
+          err.style.display = 'block';
+        }
+        if (submitBtn) submitBtn.disabled = true;
+      } else {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+
+      function populateReassignStaffOptions(staffList) {
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Choose New Staff --</option>';
+        var currentCode = (job ? (job.staffId || job.staffCode || '') : '').toLowerCase();
+        var currentName = (job ? (job.staffName || '') : '').toLowerCase();
+        (staffList || []).filter(function(s) {
+          var code = (s.id || s.staffCode || s.staff_code || '').toLowerCase();
+          var name = (s.name || '').toLowerCase();
+          var isCurrent = (currentCode && code === currentCode) || (currentName && name === currentName);
+          return s.active !== false && s.isActive !== false && !isCurrent;
+        }).forEach(function(s) {
+          var code = s.id || s.staffCode || s.staff_code;
+          select.innerHTML += '<option value="' + escapeHtml(code) + '">' + escapeHtml(s.name) + ' (' + escapeHtml(code) + ')</option>';
+        });
+      }
+
+      if (!state.staffList || state.staffList.length === 0) {
+        apiCall('getStaffList', {}, function(list) {
+          state.staffList = list || [];
+          populateReassignStaffOptions(state.staffList);
+        });
+      } else {
+        populateReassignStaffOptions(state.staffList);
+      }
+
+      modal.style.display = 'flex';
+    }
+
+    function closeReassignJobModal() {
+      var modal = document.getElementById('reassignJobModal');
+      if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
+    }
+
+    function handleReassignJobSubmit(event) {
+      event.preventDefault();
+      var err = document.getElementById('reassignJobError');
+      if (err) err.style.display = 'none';
+
+      var jobId = document.getElementById('reassignJobTargetId')?.value;
+      var newStaffId = (document.getElementById('reassignStaffSelect') || document.getElementById('reassignNewStaffSelect'))?.value;
+      var reason = document.getElementById('reassignReason')?.value.trim();
+
+      if (!jobId || !newStaffId) {
+        if (err) { err.textContent = 'कृपया नया स्टाफ चुनें।'; err.style.display = 'block'; }
+        return;
+      }
+
+      var btn = document.getElementById('btnSubmitReassignJob');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ Reassigning...</span>';
+      }
+
+      apiCall('reassignSpecialJob', { jobId: jobId, newStaffId: newStaffId, reason: reason }, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>🔁</span> Confirm Reassign';
+        }
+        if (res && res.success) {
+          showToast('⚡ काम सफलतापूर्वक नए स्टाफ (' + escapeHtml(res.newStaffName || newStaffId) + ') को सौंप दिया गया!', '✅');
+          closeReassignJobModal();
+          loadAdminSpecialJobs();
+        } else {
+          if (err) { err.textContent = (res && res.error) || 'पुनर्निर्धारण में त्रुटि'; err.style.display = 'block'; }
+        }
+      }, function(netErr) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>🔁</span> Confirm Reassign';
         }
         if (err) { err.textContent = 'Error: ' + netErr.message; err.style.display = 'block'; }
       });
@@ -10685,10 +11422,18 @@ function loadStaffCustomerData(staffId) {
 
       var html = '';
       jobs.forEach(function(j, idx) {
-        var isSolar = j.serviceCategoryId === 'solar_cleaning';
-        var catBadge = isSolar
-          ? '<span style="background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.35); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">☀️ Solar Clean</span>'
-          : '<span style="background: rgba(37, 99, 235, 0.12); color: #1d4ed8; border: 1px solid rgba(37, 99, 235, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">🧼 Car Wash</span>';
+        var catBadge = '';
+        if (j.serviceCategoryId === 'solar_cleaning') {
+          catBadge = '<span class="badge-cat-solar" style="background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.35); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">☀️ Solar Clean</span>';
+        } else if (j.serviceCategoryId === 'car_washing') {
+          catBadge = '<span class="badge-cat-carwash" style="background: rgba(37, 99, 235, 0.12); color: #1d4ed8; border: 1px solid rgba(37, 99, 235, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">🧼 Car Wash</span>';
+        } else if (j.serviceCategoryId === 'interior_detailing') {
+          catBadge = '<span class="badge-cat-interior" style="background: rgba(147, 51, 234, 0.12); color: #7e22ce; border: 1px solid rgba(147, 51, 234, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">✨ Interior Detail</span>';
+        } else if (j.serviceCategoryId === 'exterior_detailing') {
+          catBadge = '<span class="badge-cat-exterior" style="background: rgba(13, 148, 136, 0.12); color: #0f766e; border: 1px solid rgba(13, 148, 136, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">🛡️ Exterior Detail</span>';
+        } else {
+          catBadge = '<span class="badge-cat-daily" style="background: rgba(16, 185, 129, 0.12); color: #047857; border: 1px solid rgba(16, 185, 129, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700;">🚗 Daily Clean</span>';
+        }
 
         var statusBadge = '';
         if (j.status === 'in_progress') {
@@ -10722,13 +11467,29 @@ function loadStaffCustomerData(staffId) {
           ? '<a href="' + escapeHtml(j.googleMapsUrl) + '" target="_blank" rel="noopener noreferrer" style="font-size: 11px; color: #2563eb; text-decoration: underline;">Map ↗</a>'
           : '';
 
+        var scopeHtml = '';
+        if (j.panelCount) {
+          scopeHtml += '<div style="font-size: 11.5px; color: #b45309; font-weight: 700; margin-top: 2px;">☀️ ' + escapeHtml(String(j.panelCount)) + ' Panels</div>';
+        }
+        if (j.seaterType) {
+          scopeHtml += '<div style="font-size: 11.5px; color: #1d4ed8; font-weight: 600; margin-top: 2px;">' + (j.seaterType === '5_plus_seater' ? '🚙 5+ Seater' : '🚗 5 Seater') + '</div>';
+        }
+        if (j.packageDetails) {
+          scopeHtml += '<div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">' + escapeHtml(j.packageDetails) + '</div>';
+        }
+
+        var isCompleted = (j.status === 'completed');
+        var reassignActionBtn = isCompleted
+          ? '<span class="badge-reassign-locked" title="Completed tasks cannot be reassigned" style="font-size: 11px; color: var(--text-muted); background: rgba(0,0,0,0.04); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px;"><span>🔒</span> Done</span>'
+          : '<button type="button" class="btn-cell-action btn-reassign-record" onclick="openReassignJobModal(\'' + escapeHtml(j.id || j.jobId) + '\', this)" title="काम दूसरे स्टाफ को सौंपें (Reassign)">🔁 Reassign</button>';
+
         html += '<tr>' +
           '<td style="text-align: center;"><span class="sno-badge">' + (idx + 1) + '</span></td>' +
           '<td>' + catBadge + '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">' + (j.scheduledDate || 'Today') + '</div></td>' +
           '<td>' +
             '<div style="font-weight: 700; color: var(--text-primary); font-size: 13.5px;">' + escapeHtml(j.customerName || 'Customer') + '</div>' +
             (j.customerPhone ? '<div style="font-size: 12px; color: var(--text-secondary);"><a href="tel:' + escapeHtml(j.customerPhone) + '" style="color:inherit;">📞 ' + escapeHtml(j.customerPhone) + '</a></div>' : '') +
-            (j.packageDetails ? '<div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">' + escapeHtml(j.packageDetails) + '</div>' : '') +
+            scopeHtml +
           '</td>' +
           '<td>' +
             '<div style="font-size: 12px; color: var(--text-primary); max-width: 240px;">' + escapeHtml(j.address || 'Location provided') + '</div>' +
@@ -10739,7 +11500,8 @@ function loadStaffCustomerData(staffId) {
           '</td>' +
           '<td style="text-align: center;">' + statusBadge + (j.durationMinutes ? '<div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 2px;">⏱️ ' + j.durationMinutes + ' min</div>' : '') + '</td>' +
           '<td style="text-align: center;">' + photosHtml + '</td>' +
-          '<td style="text-align: center;">' +
+          '<td style="text-align: center; white-space: nowrap;">' +
+            reassignActionBtn +
             '<button type="button" class="btn-cell-action btn-delete-record" onclick="deleteAdminSpecialJob(\'' + escapeHtml(j.id || j.jobId) + '\')" title="Cancel job">' +
               '<svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>' +
             '</button>' +
@@ -10845,7 +11607,15 @@ function loadStaffCustomerData(staffId) {
       window.toggleSpecialCustMode = toggleSpecialCustMode;
       window.handleSpecialCustSelected = handleSpecialCustSelected;
       window.handleSpecialCategoryChange = handleSpecialCategoryChange;
+      window.handleSpecialSeaterChange = handleSpecialSeaterChange;
+      window.handleCustSeaterChange = handleCustSeaterChange;
+      window.handleEditCustSeaterChange = handleEditCustSeaterChange;
+      window.handleConvertSeaterChange = handleConvertSeaterChange;
+      window.setOtherJobsSubFilter = setOtherJobsSubFilter;
       window.handleAssignSpecialJobSubmit = handleAssignSpecialJobSubmit;
+      window.openReassignJobModal = openReassignJobModal;
+      window.closeReassignJobModal = closeReassignJobModal;
+      window.handleReassignJobSubmit = handleReassignJobSubmit;
       window.loadAdminSpecialJobs = loadAdminSpecialJobs;
       window.filterAdminSpecialJobs = filterAdminSpecialJobs;
       window.resetAdminSpecialFilters = resetAdminSpecialFilters;
@@ -10854,6 +11624,10 @@ function loadStaffCustomerData(staffId) {
       window.deleteAdminSpecialJob = deleteAdminSpecialJob;
       window.playNewTaskChime = playNewTaskChime;
       window.playTaskCompletedChime = playTaskCompletedChime;
+      window.showLogoutModal = showLogoutModal;
+      window.openSeqResetModal = openSeqResetModal;
+      window.closeReportPhotoLightboxModal = closeReportPhotoLightboxModal;
+      window.closeWhatsAppImageShareModal = closeWhatsAppImageShareModal;
       window.showStaffNewTaskBanner = showStaffNewTaskBanner;
       window.jumpToSpecialJob = jumpToSpecialJob;
       window.setAppThemeMode = setAppThemeMode;

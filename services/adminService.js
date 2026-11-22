@@ -11,6 +11,7 @@ const authService = require('./authService');
 const staffPortalService = require('./staffPortalService');
 const indicService = require('./indicTransliterateService');
 const bilingualSearchService = require('./bilingualSearchService');
+const serviceCatalog = require('./serviceCatalog');
 
 function normalizeIndianMobile(value) {
   if (value === null || value === undefined) return '';
@@ -331,6 +332,9 @@ async function saveCustomer(custData, adminUser = 'admin') {
 
     const leadNotes = custData.leadNotes || custData.lead_notes || custData.notes || null;
     const interestedService = custData.serviceCategory || custData.serviceType || custData.interestedService || 'Daily Car Cleaning';
+    const isSolarCustomer = (interestedService === 'Solar Panel Cleaning' || interestedService === 'solar_cleaning');
+    const customerPanelCount = isSolarCustomer ? (parseInt(custData.panelCount || custData.panel_count, 10) || null) : null;
+    const customerSeaterType = isSolarCustomer ? null : (custData.seaterType || custData.seater_type || '5_seater');
     const carMake = (custData.carMake || custData.car_make || '').trim() || null;
     const carColor = (custData.carColor || custData.car_color || '').trim() || null;
 
@@ -353,7 +357,8 @@ async function saveCustomer(custData, adminUser = 'admin') {
       leadNotes: leadNotes,
       interestedService: interestedService,
       carMake,
-      carColor
+      carColor,
+      panelCount: customerPanelCount
     }, client);
 
     // 2. Create Service Locations
@@ -421,7 +426,8 @@ async function saveCustomer(custData, adminUser = 'admin') {
           photoUrl: vItem.photo || null,
           isActive: true,
           carMake,
-          carColor
+          carColor,
+          seaterType: customerSeaterType
         }, client);
         createdVehicles.push(veh);
       }
@@ -493,9 +499,11 @@ async function saveCustomer(custData, adminUser = 'admin') {
         }, client);
       }
     } else {
-      // On-Demand Car Wash or Solar Cleaning Job
+      // On-Demand Service Job (Car Wash, Solar, Interior, Exterior)
       const isSolar = cat === 'Solar Panel Cleaning' || cat === 'solar_cleaning';
-      const serviceCatId = isSolar ? 'solar_cleaning' : 'car_washing';
+      const serviceCatId = resolveCanonicalCategory(cat);
+      const parsedPanelCount = isSolar ? (parseInt(custData.panelCount || custData.panel_count, 10) || 10) : null;
+      const parsedSeaterType = isSolar ? null : (custData.seaterType || custData.seater_type || '5_seater');
 
       const job = await repos.serviceJobs.createJob({
         customerId: customer.id,
@@ -504,7 +512,9 @@ async function saveCustomer(custData, adminUser = 'admin') {
         serviceCategoryId: serviceCatId,
         serviceType: custData.serviceType || custData.packageType || (isSolar ? 'Solar Cleaning' : 'Car Wash'),
         packageDetails: custData.packageDetails || null,
-        siteDetails: isSolar ? { panelCount: custData.panelCount || 10, roofType: 'RCC' } : null,
+        seaterType: parsedSeaterType,
+        panelCount: parsedPanelCount,
+        siteDetails: isSolar ? { panelCount: parsedPanelCount, roofType: 'RCC' } : null,
         scheduledDate: custData.scheduledDate || null,
         status: 'assigned',
         specialInstructions: custData.notes || null,
@@ -610,7 +620,8 @@ async function updateCustomer(custData, adminUser = 'admin') {
       addressHi,
       secondaryAddressHi: secAddressHi,
       carMake: carMakeUpdate,
-      carColor: carColorUpdate
+      carColor: carColorUpdate,
+      panelCount: custData.panelCount !== undefined ? custData.panelCount : custData.panel_count
     }, client);
 
     // 2. Update / Upsert Primary Location
@@ -671,7 +682,8 @@ async function updateCustomer(custData, adminUser = 'admin') {
           brandOrModel: parsed.model || existingVehs[0].brand_or_model,
           photoUrl: custData.photoUrl || existingVehs[0].photo_url,
           carMake: carMakeUpdate !== undefined ? carMakeUpdate : existingVehs[0].car_make,
-          carColor: carColorUpdate !== undefined ? carColorUpdate : existingVehs[0].car_color
+          carColor: carColorUpdate !== undefined ? carColorUpdate : existingVehs[0].car_color,
+          seaterType: custData.seaterType || custData.seater_type || existingVehs[0].seater_type
         }, client);
       } else if (parsed.reg) {
         await repos.vehicles.createVehicle({
@@ -681,15 +693,17 @@ async function updateCustomer(custData, adminUser = 'admin') {
           brandOrModel: parsed.model || null,
           photoUrl: custData.photoUrl || null,
           carMake: carMakeUpdate || null,
-          carColor: carColorUpdate || null
+          carColor: carColorUpdate || null,
+          seaterType: custData.seaterType || custData.seater_type || '5_seater'
         }, client);
       }
-    } else if (carMakeUpdate !== undefined || carColorUpdate !== undefined) {
+    } else if (carMakeUpdate !== undefined || carColorUpdate !== undefined || custData.seaterType !== undefined || custData.seater_type !== undefined) {
       const existingVehs = await repos.vehicles.findByCustomerId(customer.id, { client });
       if (existingVehs.length > 0) {
         await repos.vehicles.updateVehicle(existingVehs[0].id, {
           carMake: carMakeUpdate,
-          carColor: carColorUpdate
+          carColor: carColorUpdate,
+          seaterType: custData.seaterType || custData.seater_type || existingVehs[0].seater_type
         }, client);
       }
     }
@@ -1252,21 +1266,35 @@ async function convertLeadToCustomer(leadId, convertData = {}, adminUser = 'admi
     const sCategory = convertData.serviceCategory || customer.interested_service || 'Daily Car Cleaning';
     const isDaily = sCategory === 'Daily Car Cleaning' || sCategory === 'Daily Clean' || sCategory === 'daily_car_cleaning';
     const pkgType = convertData.packageType || convertData.packageName || (isDaily ? 'DCC ONLY' : sCategory);
+    const isSolar = sCategory === 'Solar Panel Cleaning' || sCategory === 'solar_cleaning';
+    const serviceCatId = resolveCanonicalCategory(sCategory);
+    const parsedPanelCount = isSolar ? (parseInt(convertData.panelCount || convertData.panel_count, 10) || 10) : null;
+    const parsedSeaterType = isSolar ? null : (convertData.seaterType || convertData.seater_type || '5_seater');
 
-    // Notes
+    // Notes & attributes
     let updatedNotes = customer.notes || '';
     if (convertData.notes && convertData.notes.trim()) {
       const ts = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
       updatedNotes = updatedNotes ? `${updatedNotes}\n[Converted ${ts}] ${convertData.notes.trim()}` : `[Converted ${ts}] ${convertData.notes.trim()}`;
-      await repos.customers.updateCustomer(customer.id, { notes: updatedNotes, sourceSheetName: isDaily ? 'Daily Clean' : 'All Other Work' }, client);
+      await repos.customers.updateCustomer(customer.id, {
+        notes: updatedNotes,
+        sourceSheetName: isDaily ? 'Daily Clean' : 'All Other Work',
+        panelCount: parsedPanelCount
+      }, client);
     } else {
-      await repos.customers.updateCustomer(customer.id, { sourceSheetName: isDaily ? 'Daily Clean' : 'All Other Work' }, client);
+      await repos.customers.updateCustomer(customer.id, {
+        sourceSheetName: isDaily ? 'Daily Clean' : 'All Other Work',
+        panelCount: parsedPanelCount
+      }, client);
     }
 
     // 2. Resolve locations & vehicles
     const locations = await repos.serviceLocations.findByCustomerId(customer.id, { client });
     const primaryLocation = locations.find(l => l.is_primary) || locations[0] || null;
     const vehicles = await repos.vehicles.findByCustomerId(customer.id, { client });
+    if (!isSolar && parsedSeaterType && vehicles.length > 0) {
+      await repos.vehicles.updateVehicle(vehicles[0].id, { seaterType: parsedSeaterType }, client);
+    }
 
     // 3. Resolve Staff Member Assignment
     let assignedStaff = null;
@@ -1313,9 +1341,6 @@ async function convertLeadToCustomer(leadId, convertData = {}, adminUser = 'admi
         }, client);
       }
     } else {
-      const isSolar = sCategory === 'Solar Panel Cleaning' || sCategory === 'solar_cleaning';
-      const serviceCatId = isSolar ? 'solar_cleaning' : 'car_washing';
-
       const job = await repos.serviceJobs.createJob({
         customerId: customer.id,
         vehicleId: vehicles[0]?.id || null,
@@ -1323,7 +1348,9 @@ async function convertLeadToCustomer(leadId, convertData = {}, adminUser = 'admi
         serviceCategoryId: serviceCatId,
         serviceType: convertData.serviceType || pkgType,
         packageDetails: convertData.packageDetails || pkgType,
-        siteDetails: isSolar ? { panelCount: convertData.panelCount || 10, roofType: 'RCC' } : null,
+        seaterType: parsedSeaterType,
+        panelCount: parsedPanelCount,
+        siteDetails: isSolar ? { panelCount: parsedPanelCount, roofType: 'RCC' } : null,
         scheduledDate: convertData.scheduledDate || null,
         status: 'assigned',
         specialInstructions: convertData.notes || null
@@ -1411,7 +1438,10 @@ async function assignSpecialJob(params, adminUser = 'admin') {
     parkingDetails = null,
     serviceCategoryId,
     serviceType = null,
+    packageCode = null,
     packageDetails = null,
+    seaterType = null,
+    panelCount = null,
     siteDetails = null,
     scheduledDate = null,
     staffId,
@@ -1422,12 +1452,27 @@ async function assignSpecialJob(params, adminUser = 'admin') {
   } = params;
 
   if (!serviceCategoryId) {
-    return { success: false, error: 'Service category is required (solar_cleaning or car_washing).' };
+    return { success: false, error: 'Service category is required.' };
   }
 
-  const catId = (serviceCategoryId === 'Solar Panel Cleaning' || serviceCategoryId === 'solar_cleaning')
-    ? 'solar_cleaning'
-    : 'car_washing';
+  // Canonical category resolution
+  const normCat = String(serviceCategoryId).toLowerCase().trim().replace(/[\s-]+/g, '_');
+  let catId = 'car_washing';
+  if (normCat === 'solar_panel_cleaning' || normCat === 'solar_cleaning' || normCat === 'solar') {
+    catId = 'solar_cleaning';
+  } else if (normCat === 'interior_detailing' || normCat === 'interior') {
+    catId = 'interior_detailing';
+  } else if (normCat === 'exterior_detailing' || normCat === 'exterior') {
+    catId = 'exterior_detailing';
+  } else if (normCat === 'daily_car_cleaning' || normCat === 'daily_clean' || normCat === 'daily') {
+    catId = 'daily_car_cleaning';
+  } else {
+    catId = 'car_washing';
+  }
+
+  const categoryMeta = serviceCatalog.getCategory(catId);
+  const isSolar = catId === 'solar_cleaning';
+  const isVehicleBased = !isSolar;
 
   return db.withTransaction(async (client) => {
     // 1. Resolve Customer
@@ -1500,20 +1545,42 @@ async function assignSpecialJob(params, adminUser = 'admin') {
       }
     }
 
-    // 3. Resolve Vehicle if Car Washing
+    // 3. Resolve Vehicle if vehicle-based job
     let targetVehicleId = vehicleId;
-    if (!targetVehicleId && catId === 'car_washing') {
+    const normSeater = seaterType ? serviceCatalog.normalizeSeaterType(seaterType) : null;
+
+    if (!targetVehicleId && isVehicleBased) {
       const custVehs = await repos.vehicles.findByCustomerId(targetCustomer.id, { client });
-      if (custVehs && custVehs.length > 0) {
+      const rawVehStr = typeof vehicleDetails === 'string'
+        ? vehicleDetails
+        : (vehicleDetails && (vehicleDetails.vehicle || vehicleDetails.registrationNo || vehicleDetails.reg))
+          || params.vehicle
+          || '';
+      const parsed = parseVehicleString(rawVehStr);
+
+      if (parsed.reg && custVehs && custVehs.length > 0) {
+        const match = custVehs.find(v => v.registration_no && v.registration_no.replace(/\s+/g, '').toUpperCase() === parsed.reg.replace(/\s+/g, '').toUpperCase());
+        if (match) {
+          targetVehicleId = match.id;
+        }
+      }
+
+      if (!targetVehicleId && custVehs && custVehs.length > 0 && !parsed.reg) {
         targetVehicleId = custVehs[0].id;
-      } else if (vehicleDetails) {
-        const parsed = parseVehicleString(vehicleDetails);
+      }
+
+      if (targetVehicleId) {
+        if (normSeater) {
+          await repos.vehicles.updateVehicle(targetVehicleId, { seaterType: normSeater }, client);
+        }
+      } else if (rawVehStr || parsed.reg) {
         const newVeh = await repos.vehicles.createVehicle({
           customerId: targetCustomer.id,
           defaultLocationId: targetLocationId,
-          registrationNo: parsed.reg || vehicleDetails.trim(),
+          registrationNo: parsed.reg || (typeof rawVehStr === 'string' ? rawVehStr.trim() : '') || 'CAR',
           brandOrModel: parsed.model || null,
           vehicleType: 'Car',
+          seaterType: normSeater,
           isActive: true
         }, client);
         targetVehicleId = newVeh.id;
@@ -1542,28 +1609,44 @@ async function assignSpecialJob(params, adminUser = 'admin') {
     // 5. Determine IST Scheduled Date
     const istDate = scheduledDate || repos.serviceLogs.computeIstServiceDate(new Date().toISOString());
 
-    // 6. Create Service Job
+    // 6. Compute Final Service Name and Details
+    const defaultTypeName = categoryMeta ? categoryMeta.name : (isSolar ? 'Solar Panel Cleaning' : 'Car Washing');
+    const finalServiceType = serviceType || defaultTypeName;
+
+    let finalPanelCount = null;
+    let finalSiteDetails = siteDetails || null;
+
+    if (isSolar) {
+      finalPanelCount = panelCount ? parseInt(panelCount, 10) : (siteDetails && siteDetails.panelCount ? parseInt(siteDetails.panelCount, 10) : 10);
+      if (isNaN(finalPanelCount) || finalPanelCount <= 0) finalPanelCount = 10;
+      finalSiteDetails = Object.assign({}, siteDetails || {}, { panelCount: finalPanelCount, roofScope: packageDetails || 'Solar Cleaning' });
+    }
+
+    // 7. Create Service Job
     const job = await repos.serviceJobs.createJob({
       customerId: targetCustomer.id,
       vehicleId: targetVehicleId,
       locationId: targetLocationId,
       serviceCategoryId: catId,
-      serviceType: serviceType || (catId === 'solar_cleaning' ? 'Solar Panel Cleaning' : 'Car Washing'),
+      serviceType: finalServiceType,
+      packageCode: packageCode || null,
       packageDetails: packageDetails || null,
-      siteDetails: siteDetails || (catId === 'solar_cleaning' ? { panelCount: 10 } : null),
+      seaterType: normSeater,
+      panelCount: finalPanelCount,
+      siteDetails: finalSiteDetails,
       scheduledDate: istDate,
       status: 'assigned',
       specialInstructions: specialInstructions ? specialInstructions.trim() : null
     }, client);
 
-    // 7. Assign Staff to Job in staff_assignments ledger
+    // 8. Assign Staff to Job in staff_assignments ledger
     const assignment = await repos.staffAssignments.assignStaffToJob({
       staffId: targetStaff.id,
       jobId: job.id,
       assignedBy: adminUser
     }, client);
 
-    // 8. Operational Audit Log
+    // 9. Operational Audit Log
     await repos.auditLogs.logChange({
       entityType: 'service_job',
       entityId: job.id,
@@ -1574,6 +1657,9 @@ async function assignSpecialJob(params, adminUser = 'admin') {
         customerId: targetCustomer.id,
         customerName: targetCustomer.name,
         serviceCategoryId: catId,
+        packageCode: packageCode || null,
+        seaterType: normSeater,
+        panelCount: finalPanelCount,
         staffId: targetStaff.staff_code,
         staffName: targetStaff.name,
         scheduledDate: istDate
@@ -1590,6 +1676,14 @@ async function assignSpecialJob(params, adminUser = 'admin') {
         customerPhone: targetCustomer.phone,
         serviceCategoryId: catId,
         serviceType: job.service_type,
+        packageCode: job.package_code,
+        packageDetails: job.package_details,
+        vehicleId: job.vehicle_id,
+        vehicle_id: job.vehicle_id,
+        seaterType: job.seater_type,
+        seater_type: job.seater_type,
+        panelCount: job.panel_count,
+        panel_count: job.panel_count,
         scheduledDate: istDate,
         status: job.status,
         assignedStaffId: targetStaff.staff_code,
@@ -1597,6 +1691,119 @@ async function assignSpecialJob(params, adminUser = 'admin') {
       },
       assignmentId: assignment.id,
       message: `Job assigned to ${targetStaff.name} successfully.`
+    };
+  });
+}
+
+/**
+ * Reassign an existing special / on-demand job to another staff member
+ */
+async function reassignSpecialJob({ jobId, newStaffId, toStaffId, targetStaffId, reason = null, adminUser = 'admin' }) {
+  const staffTarget = newStaffId || toStaffId || targetStaffId;
+  if (!jobId) {
+    return { success: false, error: 'Job ID is required for reassignment.' };
+  }
+  if (!staffTarget) {
+    return { success: false, error: 'Target staff member is required for reassignment.' };
+  }
+
+  return db.withTransaction(async (client) => {
+    // 1. Find job
+    const job = await repos.serviceJobs.findById(jobId, client);
+    if (!job) {
+      return { success: false, error: `Job '${jobId}' not found.` };
+    }
+    if (job.status === 'completed') {
+      return { success: false, error: 'Cannot reassign a job that is already completed.' };
+    }
+
+    // 2. Resolve new staff
+    let targetStaff = null;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffTarget)) {
+      targetStaff = await repos.staff.findById(staffTarget, client);
+    }
+    if (!targetStaff) {
+      targetStaff = await repos.staff.findByStaffCode(staffTarget, client);
+    }
+    if (!targetStaff) {
+      const allStaff = await repos.staff.findAll({ client });
+      targetStaff = allStaff.find(s => s.name.toLowerCase() === staffTarget.toLowerCase() || s.staff_code.toLowerCase() === staffTarget.toLowerCase()) || null;
+    }
+    if (!targetStaff) {
+      return { success: false, error: `Staff member '${staffTarget}' not found.` };
+    }
+
+    // 3. Find current active assignment
+    const currentAssignment = await repos.staffAssignments.findActiveByJobId(jobId, client);
+    const oldStaffId = currentAssignment ? currentAssignment.staff_id : null;
+
+    if (oldStaffId && oldStaffId === targetStaff.id) {
+      return { success: false, error: `${targetStaff.name} is already assigned to this job.` };
+    }
+
+    // 4. Assign new staff (this automatically deactivates prior assignment with reason)
+    const assignment = await repos.staffAssignments.assignStaffToJob({
+      staffId: targetStaff.id,
+      jobId: job.id,
+      assignedBy: adminUser
+    }, client);
+
+    // 5. Update assignment reason if provided
+    if (reason && reason.trim()) {
+      if (oldStaffId) {
+        await client.query(
+          `UPDATE public.staff_assignments 
+           SET reassignment_reason = $1 
+           WHERE job_id = $2 AND staff_id = $3 AND is_active = FALSE AND unassigned_at IS NOT NULL`,
+          [reason.trim(), job.id, oldStaffId]
+        );
+      } else {
+        await client.query(
+          `UPDATE public.staff_assignments 
+           SET reassignment_reason = $1 
+           WHERE job_id = $2 AND is_active = FALSE AND unassigned_at IS NOT NULL`,
+          [reason.trim(), job.id]
+        );
+      }
+    }
+
+    // 6. Log audit change
+    await repos.auditLogs.logChange({
+      entityType: 'service_job',
+      entityId: job.id,
+      action: 'reassign_special_job',
+      changedBy: adminUser,
+      beforeState: { staffId: oldStaffId },
+      afterState: {
+        jobId: job.id,
+        customerId: job.customer_id,
+        newStaffId: targetStaff.staff_code,
+        newStaffName: targetStaff.name,
+        reason: reason || null
+      }
+    }, client);
+
+    return {
+      success: true,
+      jobId: job.id,
+      job: {
+        id: job.id,
+        jobId: job.id,
+        customerId: job.customer_id,
+        customerName: job.customer_name,
+        serviceCategoryId: job.service_category_id,
+        serviceType: job.service_type,
+        status: job.status,
+        assignedStaffId: targetStaff.staff_code,
+        assignedStaffName: targetStaff.name
+      },
+      assignedStaff: {
+        id: targetStaff.id,
+        staffCode: targetStaff.staff_code,
+        name: targetStaff.name
+      },
+      assignmentId: assignment.id,
+      message: `Job successfully reassigned to ${targetStaff.name}.`
     };
   });
 }
@@ -1614,7 +1821,9 @@ async function getSpecialJobsAdmin({ status = null, serviceCategoryId = null, st
   }
 
   if (serviceCategoryId && serviceCategoryId !== 'all') {
-    const cat = (serviceCategoryId === 'Solar Panel Cleaning' || serviceCategoryId === 'solar_cleaning') ? 'solar_cleaning' : 'car_washing';
+    const norm = String(serviceCategoryId).toLowerCase().trim().replace(/[\s-]+/g, '_');
+    let cat = norm;
+    if (norm === 'solar_panel_cleaning') cat = 'solar_cleaning';
     params.push(cat);
     conditions.push(`j.service_category_id = $${params.length}`);
   }
@@ -1678,6 +1887,9 @@ async function getSpecialJobsAdmin({ status = null, serviceCategoryId = null, st
       durationMinutes = Math.max(1, Math.round(diffMs / 60000));
     }
 
+    const catMeta = serviceCatalog.getCategory(row.service_category_id);
+    const categoryName = catMeta ? catMeta.name : (row.service_category_id === 'solar_cleaning' ? 'Solar Panel Cleaning' : 'Car Washing');
+
     return {
       id: row.id,
       jobId: row.id,
@@ -1692,9 +1904,12 @@ async function getSpecialJobsAdmin({ status = null, serviceCategoryId = null, st
       parkingDetails: row.parking_details,
       vehicle: row.registration_no ? (row.brand_or_model ? `${row.registration_no} (${row.brand_or_model})` : row.registration_no) : '',
       serviceCategoryId: row.service_category_id,
-      serviceCategory: row.service_category_id === 'solar_cleaning' ? 'Solar Panel Cleaning' : 'Car Washing',
+      serviceCategory: categoryName,
       serviceType: row.service_type,
+      packageCode: row.package_code,
       packageDetails: row.package_details,
+      seaterType: row.seater_type,
+      panelCount: row.panel_count,
       siteDetails: row.site_details,
       scheduledDate: row.scheduled_date,
       status: row.status,
@@ -1736,5 +1951,7 @@ module.exports = {
   convertLeadToCustomer,
   addLeadNote,
   assignSpecialJob,
-  getSpecialJobsAdmin
+  reassignSpecialJob,
+  getSpecialJobsAdmin,
+  getServiceCatalog: () => serviceCatalog
 };

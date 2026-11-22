@@ -118,6 +118,9 @@ async function createJob({
   serviceCategoryId,
   serviceType,
   packageDetails = null,
+  packageCode = null,
+  seaterType = null,
+  panelCount = null,
   siteDetails = null,
   scheduledDate = null,
   status = 'assigned',
@@ -131,10 +134,11 @@ async function createJob({
   const res = await runner.query(
     `INSERT INTO public.service_jobs (
        customer_id, vehicle_id, location_id, service_category_id,
-       service_type, package_details, site_details, scheduled_date,
+       service_type, package_details, package_code, seater_type, panel_count,
+       site_details, scheduled_date,
        status, special_instructions, photo_url, photo_storage_key,
        before_photos, after_photos
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
      RETURNING *`,
     [
       customerId,
@@ -143,6 +147,9 @@ async function createJob({
       serviceCategoryId,
       serviceType,
       packageDetails ? packageDetails.trim() : null,
+      packageCode ? packageCode.trim() : null,
+      seaterType || null,
+      panelCount != null && !isNaN(parseInt(panelCount, 10)) ? parseInt(panelCount, 10) : null,
       siteDetails ? (typeof siteDetails === 'string' ? siteDetails : JSON.stringify(siteDetails)) : null,
       scheduledDate,
       status || 'assigned',
@@ -211,7 +218,8 @@ async function updateJobStatus(id, status, client = null) {
 }
 
 async function softDelete(id, client = null) {
-  const runner = client || db;
+  const actualClient = (client && typeof client.query === 'function') ? client : null;
+  const runner = actualClient || db;
   const res = await runner.query(
     `UPDATE public.service_jobs
      SET deleted_at = CURRENT_TIMESTAMP, status = 'cancelled', updated_at = CURRENT_TIMESTAMP

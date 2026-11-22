@@ -8,6 +8,7 @@
 const crypto = require('crypto');
 const db = require('../db/index');
 const repos = require('../db/repositories/index');
+const serviceCatalog = require('./serviceCatalog');
 
 /**
  * Computes deterministic ETag / version hash from staff payload
@@ -17,7 +18,8 @@ function computeStaffDataVersion(data) {
     staffId: data.staffId,
     dc: (data.dailyCarCleaning || []).map(c => [c.customerName, c.vehicle, c.active, c.completedToday]),
     cw: (data.carWashing || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt]),
-    sc: (data.solarCleaning || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt])
+    sc: (data.solarCleaning || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt]),
+    oj: (data.otherJobs || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt, j.serviceCategoryId, j.seaterType, j.panelCount])
   });
   return crypto.createHash('md5').update(str).digest('hex').substring(0, 16);
 }
@@ -203,8 +205,9 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     });
   });
 
-  // 7. Fetch Dispatched On-Demand Jobs (Car Wash & Solar)
+  // 7. Fetch Dispatched On-Demand & Instance Jobs (Car Wash, Solar, Interior & Exterior Detailing)
   const dispatchedJobs = await repos.serviceJobs.findDispatchedForStaff(staff.id);
+  const otherJobs = [];
   const carWashing = [];
   const solarCleaning = [];
 
@@ -223,6 +226,12 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       try { afterPhotos = JSON.parse(j.after_photos); } catch (e) { afterPhotos = []; }
     }
 
+    const catMeta = serviceCatalog.getCategory(j.service_category_id);
+    const categoryName = catMeta ? catMeta.name : (j.service_category_id === 'solar_cleaning' ? 'Solar Panel Cleaning' : 'Car Washing');
+    const categoryNameHi = catMeta ? catMeta.nameHi : '';
+    const categoryIcon = catMeta ? catMeta.icon : (j.service_category_id === 'solar_cleaning' ? 'solar_power' : 'local_car_wash');
+    const categoryEmoji = catMeta ? catMeta.iconEmoji : '⚡';
+
     const jobItem = {
       jobId: j.id,
       id: j.id,
@@ -240,10 +249,19 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       vehicle: j.registration_no ? (j.brand_or_model ? `${j.registration_no} (${j.brand_or_model})` : j.registration_no) : '',
       carMake: j.car_make || '',
       carColor: j.car_color || '',
+      seaterType: j.seater_type || '',
+      panelCount: j.panel_count || (j.site_details && j.site_details.panelCount ? j.site_details.panelCount : null),
+      packageCode: j.package_code || '',
       vehiclePhotoUrl: j.vehicle_photo_url,
       siteDetails: j.site_details,
       serviceType: j.service_type,
       serviceCategoryId: j.service_category_id,
+      serviceCategory: j.service_category_id,
+      category: j.service_category_id,
+      categoryName: categoryName,
+      categoryNameHi: categoryNameHi,
+      categoryIcon: categoryIcon,
+      categoryEmoji: categoryEmoji,
       packageDetails: j.package_details,
       specialInstructions: j.special_instructions,
       scheduledDate: j.scheduled_date,
@@ -257,6 +275,8 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       staffId: staff.staff_code,
       staffName: staff.name
     };
+
+    otherJobs.push(jobItem);
 
     if (j.service_category_id === 'solar_cleaning') {
       solarCleaning.push(jobItem);
@@ -272,9 +292,12 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     staffPhotoUrl: staff.photo_url || '',
     photoUrl: staff.photo_url || '',
     dailyCarCleaning,
+    otherJobs,
     carWashing,
     solarCleaning,
-    totalCount: dailyCarCleaning.length + carWashing.length + solarCleaning.length,
+    carWashJobs: carWashing,
+    solarCleaningJobs: solarCleaning,
+    totalCount: dailyCarCleaning.length + otherJobs.length,
     serviceDate: currentDate,
     dataSource: 'neon_postgresql',
     isLive: true,
@@ -283,6 +306,7 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
 
   const currentVersion = computeStaffDataVersion(responsePayload);
   responsePayload.version = currentVersion;
+  responsePayload.versionHash = currentVersion;
 
   if (clientVersion && clientVersion === currentVersion) {
     return {
@@ -304,5 +328,6 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
 module.exports = {
   computeStaffDataVersion,
   getIstCurrentDate,
-  getStaffData
+  getStaffData,
+  getStaffPortalData: getStaffData
 };

@@ -3,11 +3,12 @@
  *
  * Verifies:
  * 1. Global modal focus trap: trapFocus(modalEl, event) wraps Tab and Shift+Tab.
- * 2. Focusable element discovery: getFocusableElements(container) filters interactive elements.
+ * 2. Zero-focusable element tab leak guard: trapFocus prevents default and focuses modalEl.
  * 3. Topmost modal detection: getTopmostOpenModal() orders open modals by z-index.
- * 4. Keyboard Escape dismissal: closeTopmostModal() closes the topmost modal first.
- * 5. Focus restoration: recordModalTrigger(el) & restoreModalTriggerFocus() restore focus on close.
- * 6. Verification of public/js/app.js exports and event listeners.
+ * 4. Keyboard Escape dismissal: closeTopmostModal() closes the topmost modal first with defensive fallback.
+ * 5. LIFO Focus restoration: modalTriggerStack tracks nested triggers (e.g. Cropper inside Customer modal).
+ * 6. Verification of real modalDefinitions closer identifiers in public/js/app.js.
+ * 7. Verification of all 19 modal dialog IDs in Index.html.
  */
 
 const fs = require('fs');
@@ -19,12 +20,16 @@ console.log('🎯 RUNNING CWP AURA MODAL ERGONOMICS & FOCUS TRAPPING QA SUITE');
 console.log('===============================================================\n');
 
 const appJsPath = path.join(__dirname, '../public/js/app.js');
+const indexPath = path.join(__dirname, '../Index.html');
 assert.ok(fs.existsSync(appJsPath), 'public/js/app.js must exist');
+assert.ok(fs.existsSync(indexPath), 'Index.html must exist');
+
 const appJsContent = fs.readFileSync(appJsPath, 'utf8');
+const indexHtmlContent = fs.readFileSync(indexPath, 'utf8');
 
 let passCount = 0;
 
-// TEST 1: Source Code Verification of Centralized Modal APIs
+// TEST 1: Source Code Verification of Centralized Modal APIs & Fixes
 console.log('--- TEST 1: Modal Ergonomics Source Code Verification ---');
 const requiredFunctionSignatures = [
   'function trapFocus(modalEl, e)',
@@ -42,30 +47,54 @@ requiredFunctionSignatures.forEach(sig => {
   );
 });
 
+// LIFO Modal Trigger Stack check
 assert.ok(
-  appJsContent.includes('window.trapFocus = trapFocus'),
-  'public/js/app.js must export trapFocus to window'
+  appJsContent.includes('var modalTriggerStack = [];'),
+  'public/js/app.js must define modalTriggerStack as an array'
 );
 assert.ok(
-  appJsContent.includes('window.closeTopmostModal = closeTopmostModal'),
-  'public/js/app.js must export closeTopmostModal to window'
+  appJsContent.includes('modalTriggerStack.push('),
+  'recordModalTrigger must push triggers onto modalTriggerStack'
 );
 assert.ok(
-  appJsContent.includes('window.recordModalTrigger = recordModalTrigger'),
-  'public/js/app.js must export recordModalTrigger to window'
-);
-assert.ok(
-  appJsContent.includes('window.restoreModalTriggerFocus = restoreModalTriggerFocus'),
-  'public/js/app.js must export restoreModalTriggerFocus to window'
+  appJsContent.includes('modalTriggerStack.pop('),
+  'restoreModalTriggerFocus must pop triggers from modalTriggerStack'
 );
 
-console.log('✅ PASS 1: All modal controller APIs and window exports present in app.js.');
+// Closer identifier fixes in modalDefinitions
+assert.ok(
+  appJsContent.includes("id: 'reportPhotoLightboxModal', closer: function() { if (typeof closeReportPhotoLightbox === 'function') closeReportPhotoLightbox();"),
+  'reportPhotoLightboxModal must reference closeReportPhotoLightbox'
+);
+assert.ok(
+  appJsContent.includes("id: 'whatsAppImageShareModal', closer: function() { if (typeof closeWhatsAppImageModal === 'function') closeWhatsAppImageModal();"),
+  'whatsAppImageShareModal must reference closeWhatsAppImageModal'
+);
+
+// Defensive fallback in closeTopmostModal
+assert.ok(
+  appJsContent.includes("topmost.el.style.display !== 'none'") && appJsContent.includes("topmost.el.style.display = 'none'"),
+  'closeTopmostModal must contain defensive fallback to force display: none'
+);
+
+// Body overflow guard
+assert.ok(
+  appJsContent.includes('getTopmostOpenModal() === null') || appJsContent.includes('!getTopmostOpenModal()'),
+  'Child modal closers must guard document.body.style.overflow reset with getTopmostOpenModal() check'
+);
+
+// Window exports
+assert.ok(appJsContent.includes('window.trapFocus = trapFocus'), 'Export trapFocus');
+assert.ok(appJsContent.includes('window.closeTopmostModal = closeTopmostModal'), 'Export closeTopmostModal');
+assert.ok(appJsContent.includes('window.recordModalTrigger = recordModalTrigger'), 'Export recordModalTrigger');
+assert.ok(appJsContent.includes('window.restoreModalTriggerFocus = restoreModalTriggerFocus'), 'Export restoreModalTriggerFocus');
+
+console.log('✅ PASS 1: All modal controller APIs, LIFO trigger stack, and closer identifiers verified.');
 passCount++;
 
-// TEST 2: Functional Logic Simulation (Focus Trap Unit Test)
-console.log('--- TEST 2: Focus Trapping Behavior Unit Simulation ---');
+// TEST 2: Functional Focus Trap Simulation (Standard & Zero-Focusable Elements)
+console.log('--- TEST 2: Focus Trapping Behavior & Zero-Element Tab Leak Guard ---');
 
-// Mock DOM elements
 function createMockElement(tagName, attributes = {}) {
   const el = {
     tagName: tagName.toUpperCase(),
@@ -112,16 +141,6 @@ const mockDoc = {
   body: createMockElement('body')
 };
 
-// Create a mock modal with 3 focusable elements: closeBtn, inputField, submitBtn
-const mockModal = createMockElement('div', { id: 'testModal', role: 'dialog' });
-const closeBtn = createMockElement('button', { id: 'testCloseBtn', 'aria-label': 'Close dialog' });
-const inputField = createMockElement('input', { id: 'testInput', type: 'text' });
-const submitBtn = createMockElement('button', { id: 'testSubmitBtn', type: 'submit' });
-
-mockModal.children = [closeBtn, inputField, submitBtn];
-mockDoc.body.children = [mockModal];
-
-// Extract trapFocus and getFocusableElements implementation
 function getFocusableElements(container) {
   if (!container || typeof container.querySelectorAll !== 'function') return [];
   const selector = 'a[href], area[href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex]:not([tabindex="-1"]), [contenteditable]';
@@ -134,7 +153,11 @@ function getFocusableElements(container) {
 function trapFocus(modalEl, e) {
   if (!modalEl) return;
   const focusable = getFocusableElements(modalEl);
-  if (focusable.length === 0) return;
+  if (focusable.length === 0) {
+    if (e) e.preventDefault();
+    if (modalEl && typeof modalEl.focus === 'function') modalEl.focus();
+    return;
+  }
   const firstEl = focusable[0];
   const lastEl = focusable[focusable.length - 1];
 
@@ -160,10 +183,16 @@ function trapFocus(modalEl, e) {
   }
 }
 
+// 2.1 Standard 3-element modal
+const mockModal = createMockElement('div', { id: 'testModal', role: 'dialog' });
+const closeBtn = createMockElement('button', { id: 'testCloseBtn', 'aria-label': 'Close dialog' });
+const inputField = createMockElement('input', { id: 'testInput', type: 'text' });
+const submitBtn = createMockElement('button', { id: 'testSubmitBtn', type: 'submit' });
+mockModal.children = [closeBtn, inputField, submitBtn];
+mockDoc.body.children = [mockModal];
+
 const focusableEls = getFocusableElements(mockModal);
 assert.strictEqual(focusableEls.length, 3, 'Must discover all 3 focusable elements');
-assert.strictEqual(focusableEls[0], closeBtn, 'First focusable element must be closeBtn');
-assert.strictEqual(focusableEls[2], submitBtn, 'Last focusable element must be submitBtn');
 
 // Initial focus
 trapFocus(mockModal);
@@ -179,7 +208,7 @@ const tabEvent = {
 };
 trapFocus(mockModal, tabEvent);
 assert.ok(tabPrevented, 'Tab on last element must call preventDefault()');
-assert.strictEqual(mockDoc.activeElement, closeBtn, 'Tab on last element must cycle focus to first element (closeBtn)');
+assert.strictEqual(mockDoc.activeElement, closeBtn, 'Tab on last element must cycle focus to first element');
 
 // Reverse Shift+Tab wrap on first element
 mockDoc.activeElement = closeBtn;
@@ -191,104 +220,215 @@ const shiftTabEvent = {
 };
 trapFocus(mockModal, shiftTabEvent);
 assert.ok(shiftTabPrevented, 'Shift+Tab on first element must call preventDefault()');
-assert.strictEqual(mockDoc.activeElement, submitBtn, 'Shift+Tab on first element must cycle focus to last element (submitBtn)');
+assert.strictEqual(mockDoc.activeElement, submitBtn, 'Shift+Tab on first element must cycle to last element');
 
-console.log('✅ PASS 2: Keyboard focus trap successfully constrains Tab and Shift+Tab cycling.');
+// 2.2 Zero-Focusable Elements Guard (Challenger Observation 3)
+const emptyModal = createMockElement('div', { id: 'emptyModal', role: 'dialog' });
+mockDoc.body.children.push(emptyModal);
+let emptyTabPrevented = false;
+const emptyTabEvent = {
+  key: 'Tab',
+  shiftKey: false,
+  preventDefault() { emptyTabPrevented = true; }
+};
+trapFocus(emptyModal, emptyTabEvent);
+assert.ok(emptyTabPrevented, 'Zero-focusable element modal must prevent Tab default to stop leak');
+assert.strictEqual(mockDoc.activeElement, emptyModal, 'Zero-focusable modal must receive focus on container');
+
+console.log('✅ PASS 2: Keyboard focus trap successfully constrains Tab cycling and prevents zero-element tab leaks.');
 passCount++;
 
-// TEST 3: Focus Recording and Restoration
-console.log('--- TEST 3: Focus Recording and Restoration ---');
+// TEST 3: LIFO Trigger Stack Focus Recording and Restoration
+console.log('--- TEST 3: LIFO Trigger Stack & Nested Modal Restoration ---');
 
-let lastModalTriggerElement = null;
+const modalTriggerStack = [];
 
 function recordModalTrigger(triggerEl) {
+  let elToRecord = null;
   if (triggerEl && typeof triggerEl.focus === 'function') {
-    lastModalTriggerElement = triggerEl;
+    elToRecord = triggerEl;
   } else if (mockDoc.activeElement) {
-    lastModalTriggerElement = mockDoc.activeElement;
+    elToRecord = mockDoc.activeElement;
+  }
+  if (elToRecord) {
+    modalTriggerStack.push(elToRecord);
   }
 }
 
 function restoreModalTriggerFocus() {
-  if (lastModalTriggerElement && typeof lastModalTriggerElement.focus === 'function') {
-    lastModalTriggerElement.focus();
-    lastModalTriggerElement = null;
+  while (modalTriggerStack.length > 0) {
+    const targetEl = modalTriggerStack.pop();
+    if (targetEl && typeof targetEl.focus === 'function') {
+      try {
+        if (mockDoc.body.contains(targetEl)) {
+          targetEl.focus();
+          break;
+        }
+      } catch (err) {}
+    }
   }
 }
 
-const openModalTriggerBtn = createMockElement('button', { id: 'btnOpenTestModal' });
-mockDoc.body.children.push(openModalTriggerBtn);
+const tableEditBtn = createMockElement('button', { id: 'btnTableEdit' });
+const modalCropBtn = createMockElement('button', { id: 'btnInsideCrop' });
+mockDoc.body.children.push(tableEditBtn, modalCropBtn);
 
-// Trigger button is focused before opening modal
-openModalTriggerBtn.focus();
-recordModalTrigger(openModalTriggerBtn);
-assert.strictEqual(lastModalTriggerElement, openModalTriggerBtn, 'Trigger button must be recorded');
+// Scenario: User clicks Edit button on table row -> opens Edit Customer Modal
+tableEditBtn.focus();
+recordModalTrigger(tableEditBtn);
+assert.strictEqual(modalTriggerStack.length, 1, 'Trigger stack has 1 element');
+assert.strictEqual(modalTriggerStack[0], tableEditBtn);
 
-// Inside modal, user interacts with input
-inputField.focus();
-assert.strictEqual(mockDoc.activeElement, inputField, 'Active element is inside modal');
+// Inside Edit Customer Modal, user clicks "Crop Photo" button -> opens Cropper Modal
+modalCropBtn.focus();
+recordModalTrigger(modalCropBtn);
+assert.strictEqual(modalTriggerStack.length, 2, 'Trigger stack has 2 elements');
+assert.strictEqual(modalTriggerStack[1], modalCropBtn);
 
-// Modal closes -> restores focus
-openModalTriggerBtn.focusCalled = false;
+// User closes Cropper Modal -> focus restores to Crop button inside parent modal
+tableEditBtn.focusCalled = false;
+modalCropBtn.focusCalled = false;
 restoreModalTriggerFocus();
-assert.strictEqual(mockDoc.activeElement, openModalTriggerBtn, 'Focus must return to triggering button');
-assert.ok(openModalTriggerBtn.focusCalled, 'Trigger button .focus() must have been called');
-assert.strictEqual(lastModalTriggerElement, null, 'Stored trigger reference must be cleared after restoration');
+assert.strictEqual(mockDoc.activeElement, modalCropBtn, 'Focus must return to Crop button in parent modal');
+assert.ok(modalCropBtn.focusCalled, 'Crop button focus() was called');
+assert.strictEqual(modalTriggerStack.length, 1, 'Top element popped, parent trigger remains on stack');
 
-console.log('✅ PASS 3: Trigger button recorded and focus restored on modal dismissal.');
+// User closes Edit Customer Modal -> focus restores to Table Edit button
+restoreModalTriggerFocus();
+assert.strictEqual(mockDoc.activeElement, tableEditBtn, 'Focus must return to Table Edit button');
+assert.ok(tableEditBtn.focusCalled, 'Table Edit button focus() was called');
+assert.strictEqual(modalTriggerStack.length, 0, 'Trigger stack is now empty');
+
+console.log('✅ PASS 3: LIFO trigger stack correctly restores focus through multi-level nested modal dismissals.');
 passCount++;
 
-// TEST 4: Topmost Modal Detection and Escape Key Dismissal
-console.log('--- TEST 4: Topmost Modal Hierarchy & Escape Dismissal ---');
+// TEST 4: Real Modal Definitions & All 19 Modals Escape Dismissal
+console.log('--- TEST 4: Real Modal Definitions & All 19 Modals Escape Dismissal ---');
 
-// Simulate two modals open at once (e.g. lightbox over customer modal)
-const modalA = createMockElement('div', { id: 'addCustomerModal', zIndex: '1000' });
-let modalAClosed = false;
-modalA.style.display = 'flex';
+// Extract all modal definition IDs from app.js using regex
+const modalDefRegex = /\{\s*id:\s*'([^']+)',\s*closer:\s*function\(\)\s*\{([^}]+)\},\s*zIndex:\s*(\d+)\s*\}/g;
+const realModalDefs = [];
+let match;
+while ((match = modalDefRegex.exec(appJsContent)) !== null) {
+  realModalDefs.push({
+    id: match[1],
+    closerBody: match[2].trim(),
+    zIndex: parseInt(match[3], 10)
+  });
+}
 
-const modalB = createMockElement('div', { id: 'cwpPhotoCropperModal', zIndex: '1200' });
-let modalBClosed = false;
-modalB.style.display = 'flex';
+assert.strictEqual(realModalDefs.length, 19, 'Must discover all 19 modal definitions from public/js/app.js');
 
-const mockModalDefs = [
-  { id: 'addCustomerModal', el: modalA, closer: () => { modalAClosed = true; modalA.style.display = 'none'; }, zIndex: 1000 },
-  { id: 'cwpPhotoCropperModal', el: modalB, closer: () => { modalBClosed = true; modalB.style.display = 'none'; }, zIndex: 1200 }
-];
+// Verify every modal ID exists in Index.html
+realModalDefs.forEach(m => {
+  assert.ok(
+    indexHtmlContent.includes(`id="${m.id}"`),
+    `Index.html must contain modal element id="${m.id}"`
+  );
+});
 
-function getMockTopmostModal() {
-  const open = mockModalDefs.filter(m => m.el.style.display !== 'none');
+// Verify specific closer identifiers
+const lightboxDef = realModalDefs.find(m => m.id === 'reportPhotoLightboxModal');
+assert.ok(lightboxDef, 'reportPhotoLightboxModal definition must exist');
+assert.ok(
+  lightboxDef.closerBody.includes('closeReportPhotoLightbox()'),
+  'reportPhotoLightboxModal closer must call closeReportPhotoLightbox()'
+);
+assert.ok(
+  !lightboxDef.closerBody.includes('closeReportPhotoLightboxModal()'),
+  'Must NOT reference non-existent closeReportPhotoLightboxModal'
+);
+
+const waDef = realModalDefs.find(m => m.id === 'whatsAppImageShareModal');
+assert.ok(waDef, 'whatsAppImageShareModal definition must exist');
+assert.ok(
+  waDef.closerBody.includes('closeWhatsAppImageModal()'),
+  'whatsAppImageShareModal closer must call closeWhatsAppImageModal()'
+);
+assert.ok(
+  !waDef.closerBody.includes('closeWhatsAppImageShareModal()'),
+  'Must NOT reference non-existent closeWhatsAppImageShareModal'
+);
+
+// Simulate runtime dismissal of all 19 modals
+const runtimeModals = {};
+realModalDefs.forEach(def => {
+  const el = createMockElement('div', { id: def.id, zIndex: String(def.zIndex) });
+  el.style.display = 'none';
+  runtimeModals[def.id] = {
+    el,
+    zIndex: def.zIndex,
+    closed: false,
+    closer: function() {
+      this.closed = true;
+      el.style.display = 'none';
+    }
+  };
+});
+
+function getSimulatedTopmostModal() {
+  const open = [];
+  realModalDefs.forEach(def => {
+    const item = runtimeModals[def.id];
+    if (item && item.el.style.display !== 'none') {
+      open.push(item);
+    }
+  });
   if (open.length === 0) return null;
   open.sort((a, b) => b.zIndex - a.zIndex);
   return open[0];
 }
 
-function closeMockTopmostModal() {
-  const topmost = getMockTopmostModal();
+function closeSimulatedTopmostModal() {
+  const topmost = getSimulatedTopmostModal();
   if (topmost) {
-    topmost.closer();
+    if (typeof topmost.closer === 'function') {
+      topmost.closer();
+    }
+    // Defensive fallback
+    if (topmost.el && topmost.el.style.display !== 'none') {
+      topmost.el.style.display = 'none';
+    }
     return true;
   }
   return false;
 }
 
-// First escape dismisses topmost modal (modalB with z-index 1200)
-assert.strictEqual(getMockTopmostModal().id, 'cwpPhotoCropperModal');
-const closedFirst = closeMockTopmostModal();
-assert.ok(closedFirst, 'First close must succeed');
-assert.ok(modalBClosed, 'modalB (cropper, z-index 1200) must be closed first');
-assert.ok(!modalAClosed, 'modalA (customer modal) must remain open');
+// Test every single modal opens and dismisses cleanly
+realModalDefs.forEach(def => {
+  const m = runtimeModals[def.id];
+  m.el.style.display = 'flex';
+  m.closed = false;
 
-// Second escape dismisses remaining modal (modalA with z-index 1000)
-assert.strictEqual(getMockTopmostModal().id, 'addCustomerModal');
-const closedSecond = closeMockTopmostModal();
-assert.ok(closedSecond, 'Second close must succeed');
-assert.ok(modalAClosed, 'modalA must now be closed');
+  const detected = getSimulatedTopmostModal();
+  assert.ok(detected, `Topmost modal must be detected for ${def.id}`);
+  assert.strictEqual(detected.el.attributes.id, def.id, `Detected topmost modal must be ${def.id}`);
 
-// Third escape with no modals open returns false
-const closedThird = closeMockTopmostModal();
-assert.strictEqual(closedThird, false, 'No modals open must return false');
+  const closed = closeSimulatedTopmostModal();
+  assert.ok(closed, `closeSimulatedTopmostModal must return true for ${def.id}`);
+  assert.ok(m.closed, `Closer must execute for ${def.id}`);
+  assert.strictEqual(m.el.style.display, 'none', `Modal ${def.id} display must be none after close`);
+});
 
-console.log('✅ PASS 4: Topmost modal z-index hierarchy and Escape dismissal verified.');
+// Test Defensive Fallback: If closer fails or is broken, fallback forces display: 'none'
+const brokenModal = createMockElement('div', { id: 'brokenCloserModal', zIndex: '2000' });
+brokenModal.style.display = 'flex';
+const mockBrokenItem = {
+  el: brokenModal,
+  zIndex: 2000,
+  closer: function() {
+    // Intentionally does NOT set display = 'none' to simulate broken closer
+  }
+};
+runtimeModals['brokenCloserModal'] = mockBrokenItem;
+realModalDefs.push({ id: 'brokenCloserModal', closerBody: '', zIndex: 2000 });
+
+const detectedBroken = getSimulatedTopmostModal();
+assert.strictEqual(detectedBroken, mockBrokenItem);
+closeSimulatedTopmostModal();
+assert.strictEqual(brokenModal.style.display, 'none', 'Defensive fallback must forcibly set display to none');
+
+console.log('✅ PASS 4: All 19 modal definitions verified in Index.html & app.js; Escape dismissal and defensive fallback validated.');
 passCount++;
 
 console.log('===============================================================');
