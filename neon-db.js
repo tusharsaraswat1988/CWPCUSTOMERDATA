@@ -10,6 +10,7 @@
  */
 
 const { Pool, Client } = require('pg');
+const { resolveDatabaseConfig } = require('./db/connectionResolver');
 
 let pool = null;
 
@@ -17,15 +18,18 @@ let pool = null;
  * Validates required Neon configuration variables from process.env
  */
 function getValidatedConfig() {
-  const pooledUrl = process.env.DATABASE_URL?.trim();
-  const directUrl = process.env.DATABASE_URL_UNPOOLED?.trim();
-  const provider = process.env.DB_PROVIDER?.trim() || 'neon';
+  const config = resolveDatabaseConfig(process.env.DATABASE_URL, process.env.DATABASE_URL_UNPOOLED);
+  const provider = process.env.DB_PROVIDER?.trim() || (config.isNeon ? 'neon' : 'postgresql');
 
   return {
-    isConfigured: Boolean(pooledUrl),
-    pooledUrl,
-    directUrl,
-    provider
+    isConfigured: config.isConfigured,
+    pooledUrl: config.pooledUrl,
+    directUrl: config.directUrl,
+    databaseName: config.databaseName,
+    isNeon: config.isNeon,
+    isPooled: config.isPooled,
+    provider,
+    error: config.error
   };
 }
 

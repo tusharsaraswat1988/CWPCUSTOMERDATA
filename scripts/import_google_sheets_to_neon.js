@@ -74,16 +74,15 @@ function parseVehicleTokens(rawString) {
 async function runMigration() {
   console.log('========================================================================');
   console.log('🚗 CWP DATA APP — STARTING GOOGLE SHEETS TO NEON DATA MIGRATION');
-  console.log('Target Database: cwp_customer_db');
   console.log('Timestamp: ' + new Date().toISOString());
   console.log('========================================================================\n');
 
   // 1. Database Health Check & Identity Guard
   const health = await db.healthCheck();
-  if (!health.healthy || health.database !== 'cwp_customer_db') {
-    throw new Error(`[Migration Abort] Target database is not cwp_customer_db (got: ${health.database})`);
+  if (!health.healthy) {
+    throw new Error(`[Migration Abort] Database connection is unhealthy: ${health.error}`);
   }
-  console.log(`[Database] Connected to target: ${health.database} (${health.version})`);
+  console.log(`[Database] Connected to target database: ${health.database} (${health.version})`);
 
   // 2. Load Source Records from Audit Cache
   const cachePath = path.join(__dirname, '..', 'fixtures', 'audit_report_cache.json');

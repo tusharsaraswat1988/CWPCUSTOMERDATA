@@ -56,7 +56,8 @@ console.log('\n--- Test 4: Backend Service & Lifecycle Logic ---');
 (async () => {
   try {
     const adminService = require('../services/adminService');
-    const isNeonConfigured = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.includes('cwp_customer_db'));
+    const db = require('../db/index');
+    const isNeonConfigured = db.isConfigured();
 
     if (isNeonConfigured) {
       console.log('[Mode]: Testing with live Neon PostgreSQL backend');

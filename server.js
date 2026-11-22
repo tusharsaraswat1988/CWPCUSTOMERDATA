@@ -62,8 +62,7 @@ const indicService = require('./services/indicTransliterateService');
 const serviceCatalog = require('./services/serviceCatalog');
 
 function isNeonConfigured() {
-  const url = process.env.DATABASE_URL || '';
-  return Boolean(url && url.includes('cwp_customer_db'));
+  return db.isConfigured();
 }
 
 function isNeonPrimaryActive() {
@@ -1523,9 +1522,10 @@ const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
 
-  // Health check endpoint (Reporting Neon PostgreSQL connectivity)
+  // Health check endpoint (Reporting PostgreSQL connectivity)
   if (pathname === '/health' || pathname === '/healthz' || pathname === '/ping') {
     let dbHealth = { healthy: false };
+    const dbConfig = db.resolveDatabaseConfig();
     if (isNeonConfigured()) {
       try {
         dbHealth = await db.healthCheck();
@@ -1538,8 +1538,8 @@ const server = http.createServer(async (req, res) => {
       status: 'ok',
       service: 'cwp-data-app',
       domain: DOMAIN,
-      database: isNeonConfigured() ? 'cwp_customer_db' : 'none',
-      provider: 'neon_postgresql',
+      database: isNeonConfigured() ? (dbHealth.database || dbConfig.databaseName || 'configured') : 'none',
+      provider: dbConfig.isNeon ? 'neon_postgresql' : 'postgresql',
       databaseHealthy: dbHealth.healthy || false,
       adminConfigured: hasAdminPasswordConfigured(),
       cloudinary: isCloudinaryConfigured(),

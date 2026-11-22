@@ -1084,8 +1084,9 @@ var state = {
             accountTrigger.classList.remove('is-hidden');
           }
           if (adminLogout) {
-            adminLogout.style.setProperty('display', 'flex', 'important');
-            adminLogout.classList.remove('is-hidden');
+            // Top header logout suppressed; logout is exclusively in the sidebar footer
+            adminLogout.style.setProperty('display', 'none', 'important');
+            adminLogout.classList.add('is-hidden');
           }
 
           if (avatarInitial) avatarInitial.textContent = 'A';
@@ -1537,6 +1538,7 @@ var state = {
       syncBrandLogos();
       setupIndicInputListeners();
       initStaffBottomNavKeyboardHandling();
+      if (typeof initDesktopSidebarState === 'function') initDesktopSidebarState();
       var editPhotoInp = document.getElementById('editStaffPhotoFile');
       if (editPhotoInp) {
         editPhotoInp.addEventListener('change', function(e) { handleStaffPhotoSelect(e, 'edit'); });
@@ -1773,7 +1775,11 @@ var state = {
           bottomNav.classList.remove('is-keyboard-hidden');
         }
         document.body.classList.remove('keyboard-open');
-        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        if (logoutBtn) {
+          logoutBtn.style.setProperty('display', 'none', 'important');
+          logoutBtn.classList.add('is-hidden');
+        }
+        if (typeof initDesktopSidebarState === 'function') initDesktopSidebarState();
         if (liveBadge) liveBadge.style.display = 'none';
         loadStaffCustomerData(activeId);
         if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
@@ -2179,8 +2185,8 @@ var state = {
       return sessionStorage.getItem('cwp_admin_token') || localStorage.getItem('cwp_admin_token') || '';
     }
 
-    /* Standard Valid Admin Tabs Constant */
-    var ADMIN_VALID_TABS = ['records', 'leads', 'specialJobs', 'sequence', 'staff', 'cleanReports', 'addCust'];
+    /* Standard Valid Admin Tabs Constant (M3 Redesign: Dedicated Dashboard & Job Assignment) */
+    var ADMIN_VALID_TABS = ['dashboard', 'records', 'leads', 'washSolar', 'specialJobs', 'sequence', 'staff', 'cleanReports', 'jobAssignment', 'addCust'];
 
     function clearAdminTokens() {
       sessionStorage.removeItem('cwp_admin_token');
@@ -2204,12 +2210,18 @@ var state = {
       try {
         var urlParams = new URLSearchParams(window.location.search);
         var urlTab = urlParams.get('tab');
-        if (urlTab === 'dashboard') return 'cleanReports';
+        var hash = window.location.hash || '';
+        if (!urlTab && hash.indexOf('#admin/') === 0) {
+          urlTab = hash.replace(/^#admin\/?/, '');
+        }
+        if (urlTab === 'dashboard') return 'dashboard';
+        if (urlTab === 'washSolar') urlTab = 'specialJobs';
         if (urlTab && ADMIN_VALID_TABS.indexOf(urlTab) !== -1) {
           return urlTab;
         }
         var localTab = localStorage.getItem('cwp_admin_active_tab');
-        if (localTab === 'dashboard') return 'cleanReports';
+        if (localTab === 'dashboard') return 'dashboard';
+        if (localTab === 'washSolar') localTab = 'specialJobs';
         if (localTab && ADMIN_VALID_TABS.indexOf(localTab) !== -1) {
           return localTab;
         }
@@ -2365,8 +2377,8 @@ var state = {
 
     /* Switch Admin Sub Tabs with URL & LocalStorage State Persistence */
     function switchAdminTab(tabName, updateUrl) {
-      if (tabName === 'dashboard') {
-        tabName = 'cleanReports';
+      if (tabName === 'washSolar') {
+        tabName = 'specialJobs';
       }
 
       if (ADMIN_VALID_TABS.indexOf(tabName) === -1) {
@@ -2386,7 +2398,7 @@ var state = {
       });
 
       // Synchronize Unified Operations Hub & Segmented Switchers
-      var isOpsTab = (tabName === 'cleanReports' || tabName === 'specialJobs');
+      var isOpsTab = (tabName === 'cleanReports' || tabName === 'specialJobs' || tabName === 'dashboard');
       var opsHub = document.getElementById('adminOpsDashboardHub');
       if (opsHub) {
         opsHub.style.display = isOpsTab ? 'block' : 'none';
@@ -2406,12 +2418,14 @@ var state = {
       var mobileActivePane = document.getElementById('adminMobileActivePane');
       if (mobileActivePane) {
         var titles = {
+          dashboard: 'Operations Dashboard',
           records: 'Customer Records',
           leads: 'Leads Pipeline',
           sequence: 'Route Sequence',
           staff: 'Staff Management',
           cleanReports: 'Operations: Daily Cleans',
-          specialJobs: 'Operations: Special Jobs'
+          specialJobs: 'Operations: Wash & Solar',
+          jobAssignment: 'Job Assignment & Dispatch'
         };
         mobileActivePane.textContent = titles[tabName] || 'Admin Portal';
       }
@@ -2419,6 +2433,29 @@ var state = {
       // Close mobile drawer on tab selection
       if (typeof closeAdminSidebar === 'function') {
         closeAdminSidebar();
+      }
+
+      if (tabName === 'dashboard') {
+        var dashPane = document.getElementById('adminTabDashboard');
+        if (dashPane) dashPane.style.display = 'block';
+        var dashBtn = document.getElementById('tabBtnDashboard');
+        if (dashBtn) dashBtn.classList.add('active');
+        if (typeof renderDashboardCharts === 'function') {
+          renderDashboardCharts();
+        }
+        if (typeof refreshOperationsDashboard === 'function') {
+          refreshOperationsDashboard();
+        }
+      }
+
+      if (tabName === 'jobAssignment') {
+        var jobPane = document.getElementById('adminTabJobAssignment');
+        if (jobPane) jobPane.style.display = 'block';
+        var jobBtn = document.getElementById('tabBtnJobAssignment');
+        if (jobBtn) jobBtn.classList.add('active');
+        if (typeof loadJobAssignmentView === 'function') {
+          loadJobAssignmentView();
+        }
       }
 
       if (tabName === 'leads') {
@@ -2450,12 +2487,19 @@ var state = {
         localStorage.setItem('cwp_admin_active_tab', tabName);
       } catch (e) {}
 
-      // Keep browser URL in sync without full reload
-      if (updateUrl !== false && window.history && window.history.replaceState) {
+      // Keep browser URL & location hash in sync without full reload
+      if (updateUrl !== false) {
         try {
-          var currentUrl = new URL(window.location.href);
-          currentUrl.searchParams.set('tab', tabName);
-          window.history.replaceState({ tab: tabName }, '', currentUrl.pathname + currentUrl.search);
+          var targetHash = '#admin/' + tabName;
+          if (window.history && window.history.replaceState) {
+            var currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('tab', tabName);
+            currentUrl.hash = targetHash;
+            window.history.replaceState({ tab: tabName }, '', currentUrl.pathname + currentUrl.search + currentUrl.hash);
+          }
+          if (window.location && window.location.hash !== targetHash) {
+            window.location.hash = targetHash;
+          }
         } catch (e) {}
       }
 
@@ -2561,8 +2605,482 @@ var state = {
         loadAdminSpecialJobs(false);
       }
       setTimeout(updateOperationsDashboardKPIs, 300);
+      if (typeof renderDashboardCharts === 'function') {
+        setTimeout(renderDashboardCharts, 350);
+      }
     }
     window.refreshOperationsDashboard = refreshOperationsDashboard;
+
+    /* =========================================================================
+       SIDEBAR RAIL COLLAPSE CONTROLLER (R1 / Material Design 3)
+       ========================================================================= */
+    function toggleDesktopSidebarCollapse() {
+      var sidebar = document.getElementById('adminSidebar');
+      if (!sidebar) return;
+      var isCollapsed = sidebar.classList.toggle('rail-mode');
+      sidebar.classList.toggle('collapsed', isCollapsed);
+      try {
+        localStorage.setItem('cwp_admin_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+      } catch (e) {}
+      var collapseIcon = document.getElementById('sidebarCollapseIcon');
+      if (collapseIcon) {
+        collapseIcon.textContent = isCollapsed ? 'chevron_right' : 'chevron_left';
+      }
+    }
+    window.toggleDesktopSidebarCollapse = toggleDesktopSidebarCollapse;
+
+    function initDesktopSidebarState() {
+      try {
+        var isCollapsed = localStorage.getItem('cwp_admin_sidebar_collapsed') === 'true';
+        var sidebar = document.getElementById('adminSidebar');
+        if (sidebar && isCollapsed) {
+          sidebar.classList.add('rail-mode', 'collapsed');
+          var collapseIcon = document.getElementById('sidebarCollapseIcon');
+          if (collapseIcon) {
+            collapseIcon.textContent = 'chevron_right';
+          }
+        }
+      } catch (e) {}
+    }
+    window.initDesktopSidebarState = initDesktopSidebarState;
+
+    /* =========================================================================
+       UNIFIED DASHBOARD SVG CHARTS & VISUAL ANALYTICS CONTROLLER (R2)
+       ========================================================================= */
+    function renderDashboardCharts() {
+      renderCleanProgressChart();
+      renderStaffWorkloadChart();
+      renderWashSolarTrendChart();
+      renderCrewPulseStrip();
+    }
+    window.renderDashboardCharts = renderDashboardCharts;
+
+    function renderCleanProgressChart() {
+      var records = (adminCleanReportsState && adminCleanReportsState.records) || [];
+      var completedCount = records.length;
+      var totalTarget = Math.max(completedCount, (state.customers ? state.customers.filter(function(c) { return c.status !== 'inactive'; }).length : 0) || 10);
+      var pendingCount = Math.max(0, totalTarget - completedCount);
+      var rate = totalTarget > 0 ? Math.round((completedCount / totalTarget) * 100) : 0;
+
+      var circle = document.getElementById('dashDonutProgressCircle');
+      var pctText = document.getElementById('dashDonutPercentText');
+      var ratioText = document.getElementById('dashDonutRatioText');
+      var badge = document.getElementById('dashProgressRateBadge');
+
+      if (circle) {
+        var circumfrence = 471.24;
+        var offset = circumfrence * (1 - (rate / 100));
+        circle.style.strokeDashoffset = offset;
+      }
+      if (pctText) pctText.textContent = rate + '%';
+      if (ratioText) ratioText.textContent = completedCount + ' / ' + totalTarget + ' Cars';
+      if (badge) badge.textContent = rate + '% Done';
+    }
+    window.renderCleanProgressChart = renderCleanProgressChart;
+
+    function renderStaffWorkloadChart() {
+      var staffGroup = document.getElementById('dashStaffBarsGroup');
+      if (!staffGroup) return;
+
+      var records = (adminCleanReportsState && adminCleanReportsState.records) || [];
+      var staffList = state.staffList || [];
+      if (staffList.length === 0) {
+        var staffIds = Array.from(new Set(records.map(function(r) { return r.staff_name || r.staff_code || 'Staff'; })));
+        staffList = staffIds.map(function(id) { return { id: id, name: id }; });
+      }
+
+      var counts = {};
+      staffList.forEach(function(s) {
+        var key = s.name || s.id;
+        counts[key] = { cleaned: 0, pending: 0 };
+      });
+
+      records.forEach(function(r) {
+        var sName = r.staff_name || r.staff_code || 'Staff';
+        if (!counts[sName]) counts[sName] = { cleaned: 0, pending: 0 };
+        counts[sName].cleaned++;
+      });
+
+      var staffKeys = Object.keys(counts).slice(0, 6);
+
+      var maxVal = 1;
+      staffKeys.forEach(function(k) {
+        var staffRec = counts[k];
+        var cleaned = (staffRec && staffRec.cleaned != null) ? staffRec.cleaned : 0;
+        var pending = (staffRec && staffRec.pending != null) ? staffRec.pending : 0;
+        var tot = cleaned + pending;
+        if (tot > maxVal) maxVal = tot;
+      });
+
+      if (staffKeys.length === 0) {
+        staffGroup.innerHTML = '<text x="150" y="80" text-anchor="middle" font-size="12" fill="#94a3b8">No staff activity data</text>';
+        return;
+      }
+
+      var svgWidth = 300;
+      var barWidth = Math.min(36, Math.floor((svgWidth - 40) / (staffKeys.length * 2 || 1)));
+      var gap = Math.floor((svgWidth - (barWidth * 2 * staffKeys.length)) / (staffKeys.length + 1));
+
+      var svgContent = '';
+      staffKeys.forEach(function(k, idx) {
+        var cData = counts[k] || { cleaned: 0, pending: 0 };
+        var cleaned = (cData && cData.cleaned != null) ? cData.cleaned : 0;
+        var pending = (cData && cData.pending != null) ? cData.pending : 0;
+        var xCleaned = gap + idx * (barWidth * 2 + gap);
+        var xPending = xCleaned + barWidth + 2;
+
+        var hCleaned = Math.round((cleaned / maxVal) * 120);
+        var yCleaned = 145 - hCleaned;
+
+        var hPending = Math.round((pending / maxVal) * 120);
+        var yPending = 145 - hPending;
+
+        svgContent += '<rect x="' + xCleaned + '" y="' + yCleaned + '" width="' + barWidth + '" height="' + Math.max(4, hCleaned) + '" rx="4" fill="#10b981"/>';
+        svgContent += '<text x="' + (xCleaned + barWidth / 2) + '" y="' + (yCleaned - 4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#0f172a">' + cleaned + '</text>';
+        svgContent += '<text x="' + (xCleaned + barWidth) + '" y="165" text-anchor="middle" font-size="10" font-weight="600" fill="#64748b">' + escapeHtml(k.split(' ')[0]) + '</text>';
+      });
+
+      staffGroup.innerHTML = svgContent;
+    }
+    window.renderStaffWorkloadChart = renderStaffWorkloadChart;
+
+    function renderWashSolarTrendChart() {
+      var trendGroup = document.getElementById('dashWashSolarBarsGroup');
+      if (!trendGroup) return;
+
+      var specialState = (typeof adminSpecialJobsState !== 'undefined' && adminSpecialJobsState)
+        ? adminSpecialJobsState
+        : ((typeof adminSpecialState !== 'undefined' && adminSpecialState) ? adminSpecialState : (window.adminSpecialState || null));
+      var jobs = (specialState && Array.isArray(specialState.allJobs))
+        ? specialState.allJobs
+        : ((typeof adminSpecialJobsCache !== 'undefined' && Array.isArray(adminSpecialJobsCache))
+            ? adminSpecialJobsCache
+            : ((typeof window !== 'undefined' && Array.isArray(window.adminSpecialJobsCache)) ? window.adminSpecialJobsCache : []));
+      var cats = {
+        'car_washing': { label: 'Car Wash', count: 0, color: '#0284c7' },
+        'solar_cleaning': { label: 'Solar Clean', count: 0, color: '#f59e0b' },
+        'detailing': { label: 'Detailing', count: 0, color: '#8b5cf6' }
+      };
+
+      jobs.forEach(function(j) {
+        var cat = j.service_category || 'car_washing';
+        if (cat.indexOf('solar') !== -1) cats.solar_cleaning.count++;
+        else if (cat.indexOf('detail') !== -1) cats.detailing.count++;
+        else cats.car_washing.count++;
+      });
+
+      var catKeys = Object.keys(cats);
+      var maxCount = Math.max(1, Math.max.apply(null, catKeys.map(function(k) { return cats[k].count; })));
+
+      var svgContent = '';
+      catKeys.forEach(function(k, idx) {
+        var item = cats[k];
+        var barW = 44;
+        var x = 35 + idx * 90;
+        var h = Math.round((item.count / maxCount) * 110);
+        var y = 145 - h;
+
+        svgContent += '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + Math.max(6, h) + '" rx="5" fill="' + item.color + '"/>';
+        svgContent += '<text x="' + (x + barW / 2) + '" y="' + (y - 5) + '" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">' + item.count + '</text>';
+        svgContent += '<text x="' + (x + barW / 2) + '" y="165" text-anchor="middle" font-size="10.5" font-weight="600" fill="#64748b">' + item.label + '</text>';
+      });
+
+      trendGroup.innerHTML = svgContent;
+    }
+    window.renderWashSolarTrendChart = renderWashSolarTrendChart;
+
+    function renderCrewPulseStrip() {
+      var strip = document.getElementById('dashboardCrewPulseStrip');
+      if (!strip) return;
+
+      var cleanReportsState = (typeof adminCleanReportsState !== 'undefined' && adminCleanReportsState)
+        ? adminCleanReportsState
+        : ((typeof window !== 'undefined' && window.adminCleanReportsState) ? window.adminCleanReportsState : null);
+      var records = (cleanReportsState && cleanReportsState.records) || [];
+      var staffMap = {};
+
+      records.forEach(function(r) {
+        var sId = r.staff_code || r.staff_id || r.staff_name || 'Staff';
+        var sName = r.staff_name || sId;
+        if (!staffMap[sId]) {
+          staffMap[sId] = {
+            id: sId,
+            name: sName,
+            cleansCount: 0,
+            latestRecord: r
+          };
+        }
+        staffMap[sId].cleansCount++;
+      });
+
+      var staffKeys = Object.keys(staffMap);
+      if (staffKeys.length === 0) {
+        strip.innerHTML = '<div style="padding: 16px; color: var(--text-muted); font-size: 13px; text-align: center; width: 100%;">No active field activity yet today. Staff punches will appear in real time.</div>';
+        return;
+      }
+
+      var html = '';
+      staffKeys.forEach(function(k) {
+        var item = staffMap[k];
+        var latest = item.latestRecord;
+        var timeStr = latest.completed_at_device ? new Date(latest.completed_at_device).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '--:--';
+        var vehNum = latest.registration_no || 'Car';
+
+        html += '<div class="crew-pulse-tile">';
+        html += '  <div class="pulse-tile-top">';
+        html += '    <div class="pulse-tile-avatar">' + escapeHtml(item.name.charAt(0).toUpperCase()) + '</div>';
+        html += '    <div class="pulse-tile-info">';
+        html += '      <div class="pulse-tile-name">' + escapeHtml(item.name) + '</div>';
+        html += '      <div class="pulse-tile-role">' + item.cleansCount + ' Cleans Completed Today</div>';
+        html += '    </div>';
+        html += '    <span class="pulse-tile-status status-active">🟢 Active</span>';
+        html += '  </div>';
+        html += '  <div class="pulse-tile-meta">';
+        html += '    <span class="meta-item">📍 Last: <strong>' + escapeHtml(vehNum) + '</strong></span>';
+        html += '    <span class="meta-item">⏱️ At: <strong>' + timeStr + '</strong></span>';
+        html += '  </div>';
+        html += '</div>';
+      });
+
+      strip.innerHTML = html;
+    }
+    window.renderCrewPulseStrip = renderCrewPulseStrip;
+
+    /* =========================================================================
+       DEDICATED JOB ASSIGNMENT CONTROLLER (R6)
+       ========================================================================= */
+    function loadJobAssignmentView() {
+      var custSelect = document.getElementById('jobAssignCustomerSelect');
+      if (custSelect) {
+        custSelect.innerHTML = '<option value="">-- Select Customer --</option>';
+        var customers = (state && state.customers) || [];
+        customers.forEach(function(c) {
+          if (c.status !== 'inactive') {
+            var opt = document.createElement('option');
+            opt.value = c.id || c.customerId || c.customerCode || '';
+            opt.textContent = (c.name || 'Customer') + ' (' + (c.vehicleNum || c.vehicle_num || c.registration_no || 'No Plate') + ')';
+            custSelect.appendChild(opt);
+          }
+        });
+      }
+
+      var staffSelect = document.getElementById('jobAssignStaff');
+      if (staffSelect) {
+        staffSelect.innerHTML = '<option value="">-- Select Staff Cleaner --</option>';
+        var staffList = (state && state.staffList) || [];
+        staffList.forEach(function(s) {
+          var opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Staff') + ')';
+          staffSelect.appendChild(opt);
+        });
+      }
+
+      var dateInput = document.getElementById('jobAssignDate');
+      if (dateInput && !dateInput.value) {
+        var today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+      }
+
+      renderJobAssignmentsLedger();
+    }
+    window.loadJobAssignmentView = loadJobAssignmentView;
+
+    function handleJobAssignCustomerChange() {}
+    window.handleJobAssignCustomerChange = handleJobAssignCustomerChange;
+
+    function handleJobAssignWorkTypeChange() {}
+    window.handleJobAssignWorkTypeChange = handleJobAssignWorkTypeChange;
+
+    function handleJobAssignmentSubmit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+
+      var custId = (document.getElementById('jobAssignCustomerSelect') || {}).value;
+      var workType = (document.getElementById('jobAssignWorkType') || {}).value;
+      var schedDate = (document.getElementById('jobAssignDate') || {}).value;
+      var staffId = (document.getElementById('jobAssignStaff') || {}).value;
+      var notes = (document.getElementById('jobAssignNotes') || {}).value || '';
+
+      if (!custId || !workType || !schedDate || !staffId) {
+        if (typeof showToast === 'function') {
+          showToast('Please fill all required fields (Customer, Work Type, Scheduled Date, and Staff Cleaner).', 'warning');
+        } else {
+          alert('Please fill all required fields (Customer, Work Type, Scheduled Date, and Staff Cleaner).');
+        }
+        return;
+      }
+
+      var customer = (state.customers || []).find(function(c) {
+        return (c.id === custId || c.customerId === custId || c.customerCode === custId);
+      });
+
+      var staff = (state.staffList || []).find(function(s) {
+        return s.id === staffId;
+      });
+
+      var payload = {
+        action: 'assignSpecialJob',
+        customerId: custId,
+        customerName: customer ? customer.name : 'Customer',
+        customerPhone: customer ? customer.phone : '',
+        customerAddress: customer ? (customer.address || customer.locality) : '',
+        vehicleNum: customer ? (customer.vehicleNum || customer.registration_no || '') : '',
+        serviceCategory: workType,
+        scheduledDate: schedDate,
+        staffId: staffId,
+        staffName: staff ? staff.name : staffId,
+        instructions: notes,
+        status: 'assigned'
+      };
+
+      apiCall('assignSpecialJob', payload, function(res) {
+        if (typeof showToast === 'function') {
+          showToast('Job assigned successfully to ' + (staff ? staff.name : staffId) + '!', 'success');
+        } else {
+          alert('Job assigned successfully to ' + (staff ? staff.name : staffId) + '!');
+        }
+        if (typeof loadAdminSpecialJobs === 'function') loadAdminSpecialJobs(true);
+        if (typeof renderJobAssignmentsLedger === 'function') renderJobAssignmentsLedger();
+        var form = document.getElementById('jobAssignForm');
+        if (form && form.reset) form.reset();
+      }, function(err) {
+        if (typeof showToast === 'function') {
+          showToast('Error assigning job: ' + ((err && err.message) || 'Unknown server error'), 'error');
+        } else {
+          alert('Error assigning job: ' + ((err && err.message) || 'Unknown server error'));
+        }
+      });
+    }
+    window.handleJobAssignmentSubmit = handleJobAssignmentSubmit;
+
+    function renderJobAssignmentsLedger() {
+      var tbody = document.getElementById('jobAssignmentsTableBody');
+      var countEl = document.getElementById('jobAssignmentActiveCount');
+      if (!tbody) return;
+
+      var specialState = (typeof adminSpecialJobsState !== 'undefined' && adminSpecialJobsState)
+        ? adminSpecialJobsState
+        : ((typeof adminSpecialState !== 'undefined' && adminSpecialState) ? adminSpecialState : (window.adminSpecialState || null));
+      var jobs = (specialState && Array.isArray(specialState.allJobs))
+        ? specialState.allJobs
+        : ((typeof adminSpecialJobsCache !== 'undefined' && Array.isArray(adminSpecialJobsCache))
+            ? adminSpecialJobsCache
+            : ((typeof window !== 'undefined' && Array.isArray(window.adminSpecialJobsCache)) ? window.adminSpecialJobsCache : []));
+      var activeJobs = jobs.filter(function(j) { return j.status !== 'completed' && j.status !== 'cancelled'; });
+
+      if (countEl) countEl.textContent = activeJobs.length;
+
+      if (activeJobs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 28px; color: var(--text-muted);"><div class="empty-radar-wrap" style="width: 48px; height: 48px; margin: 0 auto 10px auto;"><div class="empty-radar-icon" style="font-size: 22px;">📋</div></div>No active assignments in queue. Use the dispatch form above to assign work.</td></tr>';
+        return;
+      }
+
+      var html = '';
+      activeJobs.forEach(function(j, idx) {
+        var dateStr = j.scheduled_date || j.assigned_at ? new Date(j.scheduled_date || j.assigned_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'Today';
+        var catLabel = (j.service_category || 'Job').replace(/_/g, ' ');
+
+        html += '<tr>';
+        html += '  <td style="text-align: center;">' + (idx + 1) + '</td>';
+        html += '  <td><strong>' + dateStr + '</strong></td>';
+        html += '  <td><div style="font-weight: 600;">' + escapeHtml(j.customer_name || 'Customer') + '</div><div style="font-size: 11px; color: var(--text-muted);">' + escapeHtml(j.vehicle_details || j.vehicle_num || '') + '</div></td>';
+        html += '  <td><span class="m3-chip" style="font-size: 11px;">' + escapeHtml(catLabel) + '</span></td>';
+        html += '  <td><div class="staff-cell-pill"><span class="staff-avatar-dot">' + escapeHtml((j.staff_name || 'S').charAt(0).toUpperCase()) + '</span><span class="staff-cell-name">' + escapeHtml(j.staff_name || 'Staff') + '</span></div></td>';
+        html += '  <td style="text-align: center;"><span class="badge-status-pill badge-active">' + escapeHtml(j.status || 'assigned') + '</span></td>';
+        html += '  <td style="text-align: center;"><button type="button" class="btn-cell-action" onclick="openReassignJobModal(\'' + escapeHtml(j.id) + '\')" title="Reassign"><span class="material-symbols-outlined" style="font-size: 16px;">sync_alt</span></button></td>';
+        html += '</tr>';
+      });
+
+      tbody.innerHTML = html;
+    }
+    window.renderJobAssignmentsLedger = renderJobAssignmentsLedger;
+
+    /* Time tracking contract functions */
+    function calculateConsecutiveTimes(logs) {
+      if (!Array.isArray(logs) || logs.length === 0) return [];
+      function parseSafeTime(d) {
+        if (!d) return 0;
+        var t = new Date(d).getTime();
+        return isNaN(t) ? 0 : t;
+      }
+      var sorted = logs.slice().sort(function(a, b) {
+        return parseSafeTime(a.completed_at_device || a.created_at) - parseSafeTime(b.completed_at_device || b.created_at);
+      });
+      var staffMap = {};
+      sorted.forEach(function(l) {
+        var sId = l.staff_id || l.staff_code || 'all';
+        if (!staffMap[sId]) staffMap[sId] = [];
+        staffMap[sId].push(l);
+      });
+
+      var output = [];
+      Object.keys(staffMap).forEach(function(sId) {
+        var list = staffMap[sId];
+        list.forEach(function(curr, idx) {
+          var cleanDuration = (curr.device_metadata && curr.device_metadata.durationMinutes)
+            ? curr.device_metadata.durationMinutes
+            : (curr.cleaningDurationMinutes || 12);
+          if (isNaN(cleanDuration) || cleanDuration <= 0) cleanDuration = 12;
+
+          var transit = 0;
+          var prevVeh = null;
+          var prevLoc = null;
+
+          if (idx === 0) {
+            transit = 0;
+            prevVeh = null;
+            prevLoc = null;
+          } else {
+            var prev = list[idx - 1];
+            var prevTime = parseSafeTime(prev.completed_at_device || prev.created_at);
+            var currTime = parseSafeTime(curr.completed_at_device || curr.created_at);
+            if (prevTime > 0 && currTime >= prevTime) {
+              var diffMs = currTime - prevTime;
+              var totalMinutes = Math.max(0, Math.round(diffMs / 60000));
+              transit = Math.max(1, totalMinutes - cleanDuration);
+            } else {
+              transit = 0;
+            }
+            prevVeh = prev.vehicle_num || prev.registration_no || null;
+            prevLoc = prev.address_text || prev.parking_details || null;
+          }
+
+          var enriched = Object.assign({}, curr, {
+            transitDurationMinutes: isNaN(transit) ? 0 : transit,
+            cleaningDurationMinutes: cleanDuration,
+            previousVehicleNum: prevVeh,
+            prevLocation: prevLoc
+          });
+          output.push(enriched);
+        });
+      });
+      return output;
+    }
+    window.calculateConsecutiveTimes = calculateConsecutiveTimes;
+
+    function computeWashSolarElapsed(job, nowTime) {
+      if (!job) return 0;
+      function parseSafeTime(d, fallback) {
+        if (!d) return fallback;
+        var t = (typeof d === 'number') ? d : new Date(d).getTime();
+        return isNaN(t) ? fallback : t;
+      }
+      var now = parseSafeTime(nowTime, Date.now());
+      var status = job.status || 'assigned';
+      if (status === 'assigned') {
+        var assignedAt = parseSafeTime(job.assigned_at, now);
+        return Math.max(0, Math.round((now - assignedAt) / 60000));
+      } else if (status === 'in_progress') {
+        var startedAt = parseSafeTime(job.started_at, (job.assigned_at ? parseSafeTime(job.assigned_at, now) : now));
+        return Math.max(0, Math.round((now - startedAt) / 60000));
+      } else if (status === 'completed') {
+        var start = parseSafeTime(job.started_at, (job.assigned_at ? parseSafeTime(job.assigned_at, now) : now));
+        var end = parseSafeTime(job.completed_at, now);
+        return Math.max(0, Math.round((end - start) / 60000));
+      }
+      return 0;
+    }
+    window.computeWashSolarElapsed = computeWashSolarElapsed;
 
     // Listen to browser back/forward buttons to switch admin tab seamlessly
     window.addEventListener('popstate', function(e) {
@@ -2570,6 +3088,16 @@ var state = {
         var urlParams = new URLSearchParams(window.location.search);
         var t = urlParams.get('tab') || 'records';
         switchAdminTab(t, false);
+      }
+    });
+
+    // Deep Linking: Listen to URL hash change to switch admin tab
+    window.addEventListener('hashchange', function() {
+      if (window.location.hash && window.location.hash.indexOf('#admin/') === 0) {
+        var tabFromHash = window.location.hash.substring('#admin/'.length);
+        if (tabFromHash && typeof switchAdminTab === 'function') {
+          switchAdminTab(tabFromHash, false);
+        }
       }
     });
 
@@ -7200,11 +7728,8 @@ function loadStaffCustomerData(staffId) {
         }
         staffHtml += '</div>';
 
-        /* 8. Actions: Edit and Delete Buttons */
+        /* 8. Actions: Edit and Delete Buttons (CRM pure view - Assign button decoupled to Job Assignment tab) */
         var actionsHtml = '<div class="records-actions-cluster">' +
-          '<button type="button" class="btn-cell-action btn-cust-special-assign" onclick="openAssignSpecialJobModal(\'' + escapeHtml(r.id || r.customerId || r.customerCode || '') + '\')" title="Assign On-Demand Solar Cleaning or Car Wash">' +
-            '<span>⚡ Assign</span>' +
-          '</button>' +
           '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="Edit customer details">' +
             '<svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>' +
             '<span>Edit</span>' +
@@ -10108,12 +10633,17 @@ function loadStaffCustomerData(staffId) {
         }
         html += '  </td>';
 
+        var transitStr = '';
+        if (r.transitDurationMinutes !== undefined || r.transitMinutes !== undefined) {
+          var tMin = r.transitDurationMinutes !== undefined ? r.transitDurationMinutes : r.transitMinutes;
+          transitStr = '<span class="cell-time-transit" style="font-size: 10.5px; color: #64748b; display: block; margin-top: 2px;">⏱️ ' + tMin + 'm transit</span>';
+        }
+
         html += '  <td style="text-align: center;">' +
                 '    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">' +
                 '      <span class="badge-status-pill badge-active" style="font-size:11px; padding:3px 8px;">✓ Cleaned</span>' +
-                '      <button type="button" class="btn-table-wa-share" onclick="shareDailyCleanReportDirectly(\'' + escapeHtml(vReg) + '\', \'' + escapeHtml(cName) + '\', \'' + escapeHtml(cPhone) + '\', \'' + escapeHtml(photoUrl) + '\', \'' + timeFormatted + '\', \'' + escapeHtml(sName) + '\')" title="Share proof to customer on WhatsApp">' +
-                '        <span>💬</span> Share' +
-                '      </button>' +
+                transitStr +
+                '      <!-- Admin share disabled -->' +
                 '    </div>' +
                 '  </td>';
         html += '</tr>';
@@ -10124,6 +10654,12 @@ function loadStaffCustomerData(staffId) {
         updateOperationsDashboardKPIs();
       }
     }
+
+    function renderAdminCleanReportsTable(records, summary, newIds) {
+      /* Admin share disabled */
+      return renderDailyCleanReports(records, summary, newIds);
+    }
+    window.renderAdminCleanReportsTable = renderAdminCleanReportsTable;
 
     /* Lightbox Modal Functions */
     var currentLightboxPhotoUrl = '';
@@ -11338,6 +11874,8 @@ function loadStaffCustomerData(staffId) {
       apiCall('getSpecialJobs', {}, function(res) {
         if (res && res.success) {
           adminSpecialJobsCache = res.jobs || [];
+          if (typeof adminSpecialState !== 'undefined' && adminSpecialState) adminSpecialState.allJobs = adminSpecialJobsCache;
+          if (typeof window !== 'undefined' && window.adminSpecialState) window.adminSpecialState.allJobs = adminSpecialJobsCache;
           updateSpecialJobsKPIs(adminSpecialJobsCache);
           filterAdminSpecialJobs();
         } else {

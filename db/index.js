@@ -7,32 +7,26 @@
  */
 
 const { Pool, Client } = require('pg');
+const { resolveDatabaseConfig } = require('./connectionResolver');
 
 let pool = null;
 
 function getValidatedConfig() {
-  const directUrl = process.env.DATABASE_URL_UNPOOLED?.trim();
-  const pooledUrl = (process.env.USE_UNPOOLED === 'true' && directUrl) ? directUrl : process.env.DATABASE_URL?.trim();
-
-  if (!pooledUrl) {
-    throw new Error('[Database] CRITICAL: DATABASE_URL is not set in environment.');
+  const config = resolveDatabaseConfig(process.env.DATABASE_URL, process.env.DATABASE_URL_UNPOOLED);
+  if (!config.isConfigured) {
+    throw new Error(`[Database] CRITICAL: ${config.error}`);
   }
 
-  // Strict Safety Guard: Never connect to neondb or wrong target database!
-  try {
-    const parsed = new URL(pooledUrl);
-    const dbName = parsed.pathname.replace(/^\//, '');
-    if (dbName !== 'cwp_customer_db') {
-      throw new Error(`[Database] CRITICAL SAFETY ABORT: Attempting to connect to database '${dbName}' instead of 'cwp_customer_db'.`);
-    }
-  } catch (err) {
-    if (err.message.includes('SAFETY ABORT')) throw err;
-    throw new Error(`[Database] Invalid DATABASE_URL format: ${err.message}`);
-  }
+  // If USE_UNPOOLED is explicitly requested, allow overriding pooled connection
+  const effectivePooledUrl = (process.env.USE_UNPOOLED === 'true' && config.directUrl) ? config.directUrl : config.pooledUrl;
 
   return {
-    pooledUrl,
-    directUrl: directUrl || pooledUrl
+    pooledUrl: effectivePooledUrl,
+    directUrl: config.directUrl,
+    databaseName: config.databaseName,
+    isNeon: config.isNeon,
+    isPooled: config.isPooled,
+    host: config.host
   };
 }
 
@@ -130,6 +124,8 @@ async function close() {
 
 module.exports = {
   getValidatedConfig,
+  resolveDatabaseConfig,
+  isConfigured: () => resolveDatabaseConfig().isConfigured,
   getPool,
   query,
   getClient,

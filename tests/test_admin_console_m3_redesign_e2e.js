@@ -581,6 +581,12 @@ test('T1.10', 'Dedicated Job Assignment Tab, Form Controls & Active Ledger', 'R6
                     indexHtml.includes('activeAssignmentsLedger') ||
                     indexHtml.includes('jobAssignmentsTableBody');
   assert.ok(hasLedger, 'Active Assignments Ledger table must exist inside Job Assignment view');
+
+  // 4. Notification verification: toast notification instead of native browser alert
+  assert.ok(
+    appJs.includes("showToast('Job assigned successfully"),
+    'handleJobAssignmentSubmit must use showToast for notification instead of native alert'
+  );
 });
 
 // =============================================================================
@@ -847,6 +853,10 @@ test('T3.4', 'Cross-Feature: SPA Navigation Routing & URL Hash Synchronization',
   const hashForTab = (tab) => `#admin/${tab}`;
   assert.strictEqual(hashForTab('dashboard'), '#admin/dashboard');
   assert.strictEqual(hashForTab('jobAssignment'), '#admin/jobAssignment');
+
+  // Verify deep linking hashchange listener & window.location.hash sync in app.js
+  assert.ok(appJs.includes("addEventListener('hashchange'"), 'app.js must register hashchange listener for SPA deep linking');
+  assert.ok(appJs.includes("window.location.hash = targetHash"), 'switchAdminTab must synchronize window.location.hash');
 });
 
 // =============================================================================

@@ -2091,7 +2091,12 @@ async function getSpecialJobsAdmin({ status = null, serviceCategoryId = null, st
 
 function calculateConsecutiveTimes(logs) {
   if (!Array.isArray(logs) || logs.length === 0) return [];
-  const sorted = [...logs].sort((a, b) => new Date(a.completed_at_device || a.created_at || 0) - new Date(b.completed_at_device || b.created_at || 0));
+  const parseSafeTime = (d) => {
+    if (!d) return 0;
+    const t = new Date(d).getTime();
+    return isNaN(t) ? 0 : t;
+  };
+  const sorted = [...logs].sort((a, b) => parseSafeTime(a.completed_at_device || a.created_at) - parseSafeTime(b.completed_at_device || b.created_at));
   const staffMap = {};
   sorted.forEach(l => {
     const sId = l.staff_id || l.staff_code || 'all';
@@ -2102,17 +2107,25 @@ function calculateConsecutiveTimes(logs) {
   const output = [];
   Object.values(staffMap).forEach(list => {
     list.forEach((curr, idx) => {
-      const cleanDuration = (curr.device_metadata && curr.device_metadata.durationMinutes) ? curr.device_metadata.durationMinutes : 15;
+      const cleanDuration = (curr.device_metadata && curr.device_metadata.durationMinutes) ? curr.device_metadata.durationMinutes : (curr.cleaningDurationMinutes || 15);
       curr.cleaningDurationMinutes = cleanDuration;
       if (idx === 0) {
         curr.transitDurationMinutes = 0;
         curr.prevLocation = null;
+        curr.previousVehicleNum = null;
       } else {
         const prev = list[idx - 1];
-        const diffMs = new Date(curr.completed_at_device || curr.created_at || 0).getTime() - new Date(prev.completed_at_device || prev.created_at || 0).getTime();
-        const totalMinutes = Math.max(0, Math.round(diffMs / 60000));
-        curr.transitDurationMinutes = Math.max(1, totalMinutes - cleanDuration);
+        const prevTime = parseSafeTime(prev.completed_at_device || prev.created_at);
+        const currTime = parseSafeTime(curr.completed_at_device || curr.created_at);
+        if (prevTime > 0 && currTime >= prevTime) {
+          const diffMs = currTime - prevTime;
+          const totalMinutes = Math.max(0, Math.round(diffMs / 60000));
+          curr.transitDurationMinutes = Math.max(1, totalMinutes - cleanDuration);
+        } else {
+          curr.transitDurationMinutes = 0;
+        }
         curr.prevLocation = prev.address_text || prev.parking_details || null;
+        curr.previousVehicleNum = prev.vehicle_num || prev.registration_no || null;
       }
       output.push(curr);
     });
@@ -2122,16 +2135,22 @@ function calculateConsecutiveTimes(logs) {
 
 function computeWashSolarElapsed(job, nowTime) {
   if (!job) return 0;
-  const now = nowTime ? (typeof nowTime === 'number' ? nowTime : new Date(nowTime).getTime()) : Date.now();
-  if (job.status === 'in_progress') {
-    const start = job.started_at ? new Date(job.started_at).getTime() : now;
+  const parseSafeTime = (d, fallback) => {
+    if (!d) return fallback;
+    const t = (typeof d === 'number') ? d : new Date(d).getTime();
+    return isNaN(t) ? fallback : t;
+  };
+  const now = parseSafeTime(nowTime, Date.now());
+  const status = job.status || 'assigned';
+  if (status === 'in_progress') {
+    const start = parseSafeTime(job.started_at, (job.assigned_at ? parseSafeTime(job.assigned_at, now) : now));
     return Math.max(1, Math.round((now - start) / 60000));
-  } else if (job.status === 'completed') {
-    const start = job.started_at ? new Date(job.started_at).getTime() : (job.assigned_at ? new Date(job.assigned_at).getTime() : now);
-    const end = job.completed_at ? new Date(job.completed_at).getTime() : now;
+  } else if (status === 'completed') {
+    const start = parseSafeTime(job.started_at, (job.assigned_at ? parseSafeTime(job.assigned_at, now) : now));
+    const end = parseSafeTime(job.completed_at, now);
     return Math.max(1, Math.round((end - start) / 60000));
-  } else if (job.status === 'assigned') {
-    const assigned = job.assigned_at ? new Date(job.assigned_at).getTime() : now;
+  } else if (status === 'assigned') {
+    const assigned = parseSafeTime(job.assigned_at, now);
     return Math.max(0, Math.round((now - assigned) / 60000));
   }
   return 0;

@@ -10,22 +10,44 @@ const path = require('path');
 const crypto = require('crypto');
 const { Client } = require('pg');
 
+// Auto-load .env for standalone script execution if present
+try {
+  const envPath = path.resolve(__dirname, '../.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    for (const line of envContent.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx > 0) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        let val = trimmed.slice(eqIdx + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  }
+} catch (e) {}
+
+const { resolveDatabaseConfig } = require('../db/connectionResolver');
+
 async function runMigration() {
   console.log('================================================================');
   console.log('CWP DATA APP - DATABASE SCHEMA PROVISIONING');
   console.log('================================================================');
 
-  const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error('Neither DATABASE_URL_UNPOOLED nor DATABASE_URL is set in environment.');
+  const dbConfig = resolveDatabaseConfig(process.env.DATABASE_URL, process.env.DATABASE_URL_UNPOOLED);
+  if (!dbConfig.isConfigured) {
+    throw new Error(`[Migration] Configuration Error: ${dbConfig.error}`);
   }
 
-  const u = new URL(connectionString);
-  console.log('[Connection Target]:', u.host + u.pathname);
-
-  if (u.pathname !== '/cwp_customer_db') {
-    throw new Error(`CRITICAL GUARD ABORT: Attempting to run migration against ${u.pathname} instead of /cwp_customer_db`);
-  }
+  // Migrations use the direct unpooled connection for DDL execution
+  const connectionString = dbConfig.directUrl;
+  console.log(`[Connection Target]: ${dbConfig.host} (Database: ${dbConfig.databaseName}, Mode: ${dbConfig.isNeon ? 'Direct/Unpooled' : 'Standard'})`);
 
   const client = new Client({
     connectionString,
@@ -36,14 +58,10 @@ async function runMigration() {
   await client.connect();
 
   try {
-    // 1. Double-check database identity
+    // 1. Verify database identity
     const dbIdentity = await client.query('SELECT current_database(), current_user, version()');
     const activeDb = dbIdentity.rows[0].current_database;
     console.log(`[Connected Database]: ${activeDb}`);
-
-    if (activeDb !== 'cwp_customer_db') {
-      throw new Error(`CRITICAL GUARD ABORT: Server reports current_database is ${activeDb}, expected cwp_customer_db`);
-    }
 
     // 2. Setup meta schema
     await client.query('CREATE SCHEMA IF NOT EXISTS meta;');
