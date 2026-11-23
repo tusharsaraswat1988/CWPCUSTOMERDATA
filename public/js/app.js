@@ -5612,6 +5612,10 @@ function loadStaffCustomerData(staffId) {
 
     function populateAdminStaffList(list) {
       state.staffList = list || [];
+      state.adminStaffList = list || [];
+      if (typeof populateSeqStaffDropdown === 'function') {
+        populateSeqStaffDropdown(state.adminStaffList);
+      }
       var staffBadge = document.getElementById('tabStaffCount');
       if (staffBadge) staffBadge.textContent = state.staffList.length;
       var select = document.getElementById('custStaffSelect');
@@ -5657,7 +5661,7 @@ function loadStaffCustomerData(staffId) {
         var waHref = normPhone ? getIndianWhatsAppLink(normPhone, waMessage) : ('https:\x2F\x2Fwa.me/?text=' + encodeURIComponent(waMessage));
 
         var sPhoto = (s.photoUrl || s.photo_url || s.photo || '').trim();
-        cardsHtml += '<div class="staff-admin-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px;">';
+        cardsHtml += '<div class="staff-admin-card' + (isActive ? '' : ' staff-admin-card-inactive') + '" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px;' + (isActive ? '' : ' opacity: 0.92; background: var(--bg-surface, #f8fafc);') + '">';
         cardsHtml += '  <div class="staff-card-avatar">';
         if (sPhoto) {
           cardsHtml += '    <img src="' + escapeHtml(sPhoto) + '" alt="' + escapeHtml(s.name) + '" onerror="this.style.display=\'none\'; if(this.nextElementSibling) this.nextElementSibling.style.display=\'flex\';">';
@@ -5711,8 +5715,15 @@ function loadStaffCustomerData(staffId) {
         cardsHtml += '  </div>';
         cardsHtml += '  <div class="staff-admin-actions">';
         cardsHtml += '    <button type="button" class="btn-admin-action" onclick="openEditStaffModal(\'' + escapeHtml(s.id) + '\')">✏️ Edit</button>';
-        cardsHtml += '    <button type="button" class="btn-admin-action" onclick="copyStaffLink(\'' + escapeHtml(staffUrl) + '\')">📋 Copy Link</button>';
-        cardsHtml += '    <a href="' + waHref + '" target="_blank" class="btn-admin-action">💬 WhatsApp</a>';
+        if (isActive) {
+          cardsHtml += '    <button type="button" class="btn-admin-action btn-staff-status-toggle is-active" onclick="toggleStaffActiveStatus(\'' + escapeHtml(s.id) + '\', false)" title="Active • Click to make Inactive" aria-label="Mark ' + escapeHtml(s.name) + ' as Inactive">';
+          cardsHtml += '      <span class="staff-toggle-dot dot-active"></span> <span>Active</span>';
+          cardsHtml += '    </button>';
+        } else {
+          cardsHtml += '    <button type="button" class="btn-admin-action btn-staff-status-toggle is-inactive" onclick="toggleStaffActiveStatus(\'' + escapeHtml(s.id) + '\', true)" title="Inactive • Click to make Active" aria-label="Mark ' + escapeHtml(s.name) + ' as Active">';
+          cardsHtml += '      <span class="staff-toggle-dot dot-inactive"></span> <span>Inactive</span>';
+          cardsHtml += '    </button>';
+        }
         cardsHtml += '    <a href="' + escapeHtml(staffUrl) + '" target="_blank" class="btn-admin-action">👁️ Open</a>';
         cardsHtml += '    <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteStaff(\'' + escapeHtml(s.id) + '\')" title="Delete staff member">🗑️ Delete</button>';
         cardsHtml += '  </div>';
@@ -13868,6 +13879,10 @@ function loadStaffCustomerData(staffId) {
       if (!state.staffList || state.staffList.length === 0) {
         apiCall('getStaffList', {}, function(list) {
           state.staffList = list || [];
+      state.adminStaffList = list || [];
+      if (typeof populateSeqStaffDropdown === 'function') {
+        populateSeqStaffDropdown(state.adminStaffList);
+      }
           populateReassignStaffOptions(state.staffList);
         });
       } else {
