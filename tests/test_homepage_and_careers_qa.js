@@ -60,6 +60,9 @@ async function runTests() {
   assert.ok(homeRes.body.includes('cwpdetailers@gmail.com'), 'Homepage must contain cwpdetailers@gmail.com');
   assert.ok(homeRes.body.includes('Shivpurwa'), 'Homepage must contain office location Shivpurwa');
   assert.ok(homeRes.body.includes('4.9 / 5.0 Google Rating'), 'Homepage must contain Google Rating badge');
+  assert.ok(homeRes.body.includes('href="https://share.google/BptJhx2p3xlUiIC4d"'), 'Homepage car section must link to CWP Detailers Google review link');
+  assert.ok(homeRes.body.includes('id="heroGoogleRatingBadge"'), 'Homepage must contain heroGoogleRatingBadge ID');
+  assert.ok(homeRes.body.includes('id="btnReadAllReviews"'), 'Homepage must contain btnReadAllReviews ID');
   assert.ok(homeRes.body.includes('GST Extra'), 'Homepage must display GST Extra notice');
 
   // Strictly NO staff or admin portal links on public homepage
@@ -110,6 +113,9 @@ async function runTests() {
   assert.ok(cfgRes.json && cfgRes.json.contact);
   assert.strictEqual(cfgRes.json.contact.phone, '7054007733');
   assert.strictEqual(cfgRes.json.contact.email, 'cwpdetailers@gmail.com');
+  assert.strictEqual(cfgRes.json.contact.googleMapsUrl, 'https://share.google/BptJhx2p3xlUiIC4d');
+  assert.strictEqual(cfgRes.json.contact.googleReviewCarUrl, 'https://share.google/BptJhx2p3xlUiIC4d');
+  assert.strictEqual(cfgRes.json.contact.googleReviewSolarUrl, 'https://share.google/1sg9sRwZpnyFeYQty');
   assert.ok(cfgRes.json.contact.address.includes('Shivpurwa'));
   assert.ok(cfgRes.json.rates && cfgRes.json.rates.hatchback);
   assert.ok(cfgRes.json.offers && cfgRes.json.offers.length > 0);

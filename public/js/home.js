@@ -50,6 +50,15 @@
   const faqSubtitle = document.getElementById('faqSubtitle');
   const faqAccordion = document.getElementById('faqAccordion');
 
+  // Google Rating & Review Link Elements
+  const heroGoogleRatingBadge = document.getElementById('heroGoogleRatingBadge');
+  const heroRatingBadgeReviews = document.getElementById('heroRatingBadgeReviews');
+  const btnReadAllReviews = document.getElementById('btnReadAllReviews');
+  const officeMapBtn = document.getElementById('officeMapBtn');
+
+  const GOOGLE_REVIEW_URL_CAR = 'https://share.google/BptJhx2p3xlUiIC4d';
+  const GOOGLE_REVIEW_URL_SOLAR = 'https://share.google/1sg9sRwZpnyFeYQty';
+
   // Drawer Elements
   const menuToggleBtn = document.getElementById('menuToggleBtn');
   const drawerCloseBtn = document.getElementById('drawerCloseBtn');
@@ -115,9 +124,44 @@
         homepageConfig = await res.json();
         renderPricing();
         renderOffers();
+        if (officeMapBtn && homepageConfig.contact && homepageConfig.contact.googleMapsUrl) {
+          officeMapBtn.href = homepageConfig.contact.googleMapsUrl;
+        }
+        // Update Google Rating & Reviews links according to active mode
+        updateRatingAndReviewLinks(activeServiceMode);
       }
     } catch (e) {
       console.warn('Config fetch error, using built-in defaults:', e);
+    }
+  }
+
+  function updateRatingAndReviewLinks(mode) {
+    if (mode === 'solar') {
+      const solarReviewUrl = (homepageConfig && homepageConfig.contact && homepageConfig.contact.googleReviewSolarUrl) || GOOGLE_REVIEW_URL_SOLAR;
+      if (heroGoogleRatingBadge) {
+        heroGoogleRatingBadge.href = solarReviewUrl;
+        heroGoogleRatingBadge.title = 'View genuine KleanSolar verified reviews on Google Maps';
+      }
+      if (heroRatingBadgeReviews) {
+        heroRatingBadgeReviews.textContent = '· Verified Solar Reviews in Varanasi';
+      }
+      if (btnReadAllReviews) {
+        btnReadAllReviews.href = solarReviewUrl;
+        btnReadAllReviews.innerHTML = 'Read KleanSolar Reviews on Google Maps ↗';
+      }
+    } else {
+      const carReviewUrl = (homepageConfig && homepageConfig.contact && homepageConfig.contact.googleReviewCarUrl) || GOOGLE_REVIEW_URL_CAR;
+      if (heroGoogleRatingBadge) {
+        heroGoogleRatingBadge.href = carReviewUrl;
+        heroGoogleRatingBadge.title = 'View genuine verified CWP Detailers reviews on Google Maps';
+      }
+      if (heroRatingBadgeReviews) {
+        heroRatingBadgeReviews.textContent = '· 100+ Verified Reviews in Varanasi';
+      }
+      if (btnReadAllReviews) {
+        btnReadAllReviews.href = carReviewUrl;
+        btnReadAllReviews.innerHTML = 'Read All 100+ Reviews on Google Maps ↗';
+      }
     }
   }
 
@@ -187,6 +231,9 @@
       // FAQs
       renderFaqs('solar');
 
+      // Google Rating & Review Links (KleanSolar)
+      updateRatingAndReviewLinks('solar');
+
     } else {
       toggleCarBtn?.classList.add('active');
       toggleSolarBtn?.classList.remove('active', 'solar-active');
@@ -247,6 +294,9 @@
 
       // FAQs
       renderFaqs('car');
+
+      // Google Rating & Review Links (CWP Detailers)
+      updateRatingAndReviewLinks('car');
     }
 
     renderPricing();
@@ -441,8 +491,22 @@
   function renderReviews(mode) {
     if (!reviewsContainer || !reviewsSubtitle) return;
     if (mode === 'solar') {
-      reviewsSubtitle.textContent = 'Real Google reviews from rooftop solar owners in Mahmoorganj, Lanka, and Sigra.';
+      reviewsSubtitle.textContent = 'Verified client reviews from rooftop solar installations across Varanasi.';
       reviewsContainer.innerHTML = `
+        <div class="review-card">
+          <div class="review-top">
+            <div class="author-avatar amber">SS</div>
+            <div>
+              <div class="author-name">Mr. Salil Shah</div>
+              <div class="author-location">Sigra, Varanasi · Director, Lakshmishree Investment Pvt Ltd</div>
+            </div>
+          </div>
+          <div class="review-stars">★★★★★</div>
+          <p class="review-quote">
+            "We manage a 120-panel solar setup at our office rooftop in Varanasi. Dust accumulation and bird droppings were causing a 20–25% drop in generation, while normal tap water risked mineral scaling on the glass. CWP's annual AMC has been completely hassle-free — their technicians arrive on schedule with specialized RO soft-wash equipment and safety gear. Our power generation is consistently at its peak. Exceptional corporate reliability."
+          </p>
+        </div>
+
         <div class="review-card">
           <div class="review-top">
             <div class="author-avatar amber">AS</div>
@@ -453,21 +517,7 @@
           </div>
           <div class="review-stars">★★★★★</div>
           <p class="review-quote">
-            "Varanasi ki dhool se generation 14 units se 10 units pe aa gaya tha. CWP ke specialized soft wash ke baad turant 13.8 units daily generate hone laga. Inverter display pe live difference dikhta hai."
-          </p>
-        </div>
-
-        <div class="review-card">
-          <div class="review-top">
-            <div class="author-avatar amber">AM</div>
-            <div>
-              <div class="author-name">Arvind Mehrotra</div>
-              <div class="author-location">Lanka, Varanasi · 10 kW Commercial Setup</div>
-            </div>
-          </div>
-          <div class="review-stars">★★★★★</div>
-          <p class="review-quote">
-            "Boring ya tap water se panels pe calcium scale jam raha tha. CWP team specialized RO machine aur soft telescopic brushes se clean karti hai. Annual maintenance plan is totally hassle-free."
+            "Heavy roadside dust in Varanasi reduced our solar generation from 14 units down to 10 units daily. After CWP's specialized soft-wash cleaning, output immediately rebounded to 13.8 units. The difference is clearly visible on our inverter display every single day."
           </p>
         </div>
 
@@ -476,57 +526,57 @@
             <div class="author-avatar amber">RK</div>
             <div>
               <div class="author-name">Rajeshwar Keshari</div>
-              <div class="author-location">Sigra, Varanasi · 3 kW On-Grid Solar</div>
+              <div class="author-location">Ravindrapuri, Varanasi · 3 kW On-Grid Solar</div>
             </div>
           </div>
           <div class="review-stars">★★★★★</div>
           <p class="review-quote">
-            "Technicians harness pehenkar safe tareeqe se rooftop pe kaam karte hain. WhatsApp pe generation reading aur clean panel photo bhejte hain. Highly recommended in Varanasi."
+            "Their technicians follow proper rooftop safety protocols with safety harnesses and glass-safe telescopic brushes. We receive clean panel photos and generation readings on WhatsApp after every visit. Truly dependable solar maintenance in Varanasi."
           </p>
         </div>
       `;
     } else {
-      reviewsSubtitle.textContent = 'Real Google reviews from car owners in Sigra, Cantt, and Ravindrapuri.';
+      reviewsSubtitle.textContent = 'Verified reviews from car and bike owners across Varanasi.';
       reviewsContainer.innerHTML = `
         <div class="review-card">
           <div class="review-top">
             <div class="author-avatar">AM</div>
             <div>
-              <div class="author-name">Ananya Mishra</div>
-              <div class="author-location">Sigra, Varanasi · Hyundai Creta SX</div>
+              <div class="author-name">Mr. Apurv Mittal</div>
+              <div class="author-location">Sigra, Varanasi · Founder, Vyapari Network</div>
             </div>
           </div>
           <div class="review-stars">★★★★★</div>
           <p class="review-quote">
-            "With an Abyss Black Creta in Varanasi dust, colony washes left endless swirl circles. CWP's treated soft water and 2-bucket microfiber technique completely ended swirl marks. My morning school run starts with a spotless, glossy car."
+            "With Varanasi's dust and road conditions, keeping a car presentable every morning was always a headache. Most local cleaners use hard tap water and the same dusty cloth, which ruins the clear coat with swirl marks. CWP has set a genuinely professional benchmark — their team arrives punctually at 6:30 AM, uses treated soft water with clean microfibers, and ensures the car is spotless before my morning meetings. Absolute peace of mind for daily maintenance."
           </p>
         </div>
 
         <div class="review-card">
           <div class="review-top">
-            <div class="author-avatar">RS</div>
+            <div class="author-avatar">RP</div>
             <div>
-              <div class="author-name">Rohit Singhal</div>
-              <div class="author-location">Cantt, Varanasi · Honda City ZX</div>
+              <div class="author-name">Mr. Rajat Pathak</div>
+              <div class="author-location">Cantt, Varanasi · Founder, Synergy Group</div>
             </div>
           </div>
           <div class="review-stars">★★★★★</div>
           <p class="review-quote">
-            "I got their 9H nano-ceramic coating done last year. What keeps me renewing is their morning consistency — they log every single visit with high-res photos and tire dressing logs on WhatsApp before I leave for court."
+            "Spending half a Sunday waiting in line at washing centers in Varanasi was never practical. CWP completely solved that — their self-powered mobile rig comes straight to my driveway for deep pressure foam washes, and the interior detailing leaves the car in showroom condition. Paired with their reliable daily cleaning, it saves me valuable hours every week. Easily the most organized doorstep auto care in Varanasi."
           </p>
         </div>
 
         <div class="review-card">
           <div class="review-top">
-            <div class="author-avatar">VP</div>
+            <div class="author-avatar">JS</div>
             <div>
-              <div class="author-name">Vikramaditya Pandey</div>
-              <div class="author-location">Ravindrapuri, Varanasi · Toyota Fortuner</div>
+              <div class="author-name">Dr. Jyoti Singh</div>
+              <div class="author-location">Ravindrapuri, Varanasi · Healer</div>
             </div>
           </div>
           <div class="review-stars">★★★★★</div>
           <p class="review-quote">
-            "Cleaning a full-size SUV properly used to eat up half my Sunday at wash stations. Their self-powered mobile rig pulls right into my driveway with dedicated soft-water supply and equipment. Steam cleaning removed monsoon grime effortlessly."
+            "Riding across Varanasi with daily dust and monsoon slush makes two-wheeler upkeep tricky. I opted for CWP's ceramic coating for my bike, and the results have been remarkable. The paint depth and gloss look pristine, and the hydrophobic layer is so effective that mud and road grime wipe right off without scratching. The team is courteous, detail-oriented, and genuinely takes pride in their craft."
           </p>
         </div>
       `;

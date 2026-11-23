@@ -17,7 +17,9 @@ const DEFAULT_CONFIG = {
     email: 'cwpdetailers@gmail.com',
     address: 'FIRST FLOOR, 32/14-4A, Annapurna Nagar Colony, Vidya Vihar Colony, Shivpurwa, Varanasi, Uttar Pradesh 221002',
     landmark: 'Near Mahmoorganj / Kashi Vidyapeeth Road, Varanasi',
-    googleMapsUrl: 'https://share.google/1sg9sRwZpnyFeYQty',
+    googleMapsUrl: 'https://share.google/BptJhx2p3xlUiIC4d',
+    googleReviewCarUrl: 'https://share.google/BptJhx2p3xlUiIC4d',
+    googleReviewSolarUrl: 'https://share.google/1sg9sRwZpnyFeYQty',
     whatsappUrl: 'https://wa.me/917054007733',
     instagramUrl: 'https://instagram.com/cwpdetailers',
     facebookUrl: 'https://facebook.com/cwpdetailers'

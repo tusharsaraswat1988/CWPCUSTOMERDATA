@@ -10,7 +10,7 @@ function getHomepageSeoHead(config) {
   const phone = config.contact.phone || '7054007733';
   const email = config.contact.email || 'cwpdetailers@gmail.com';
   const address = config.contact.address || 'FIRST FLOOR, 32/14-4A, Annapurna Nagar Colony, Vidya Vihar Colony, Shivpurwa, Varanasi, Uttar Pradesh 221002';
-  const mapsUrl = config.contact.googleMapsUrl || 'https://share.google/1sg9sRwZpnyFeYQty';
+  const mapsUrl = config.contact.googleMapsUrl || 'https://share.google/BptJhx2p3xlUiIC4d';
 
   const title = "CWP Detailers & Motors — Doorstep Car Wash, Detailing & Solar Panel Cleaning in Varanasi";
   const description = "Ab gaadiyaan hongi roj saaf. Varanasi's #1 doorstep car cleaning, ceramic coating, PPF, foam wash & rooftop solar panel cleaning. Treated soft water & scratch-free 2-bucket care. Call 7054007733.";

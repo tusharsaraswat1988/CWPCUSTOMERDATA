@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.homepage_settings (
     contact_phone VARCHAR(20) NOT NULL DEFAULT '7054007733',
     contact_email VARCHAR(100) NOT NULL DEFAULT 'cwpdetailers@gmail.com',
     office_address TEXT NOT NULL DEFAULT 'FIRST FLOOR, 32/14-4A, Annapurna Nagar Colony, Vidya Vihar Colony, Shivpurwa, Varanasi, Uttar Pradesh 221002',
-    google_maps_url TEXT NOT NULL DEFAULT 'https://share.google/1sg9sRwZpnyFeYQty',
+    google_maps_url TEXT NOT NULL DEFAULT 'https://share.google/BptJhx2p3xlUiIC4d',
     gst_percent NUMERIC(5, 2) NOT NULL DEFAULT 18.00,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
