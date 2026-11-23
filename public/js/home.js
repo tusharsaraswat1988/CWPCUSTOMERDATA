@@ -966,6 +966,17 @@
     window.open(`https://wa.me/917054007733?text=${text}`, '_blank');
   };
 
+  // Handle Video Card Click via data attributes
+  window.handleVideoCardClick = function (elem) {
+    if (!elem) return;
+    const title = elem.getAttribute('data-video-title') || '';
+    const src = elem.getAttribute('data-video-src') || '';
+    const poster = elem.getAttribute('data-video-poster') || '';
+    if (src && window.openVideoModal) {
+      window.openVideoModal(title, src, poster);
+    }
+  };
+
   // Video Modal
   window.openVideoModal = function (title, videoSrc, posterSrc) {
     if (videoModal) {
@@ -1021,6 +1032,14 @@
     }
     videoModal?.classList.remove('open');
   };
+
+  // Delegated click listener for video cards
+  document.addEventListener('click', function (e) {
+    const card = e.target.closest('.video-card[data-video-src]');
+    if (card && window.handleVideoCardClick) {
+      window.handleVideoCardClick(card);
+    }
+  });
 
   // Legal Modal
   window.openLegalModal = function (type) {

@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/home.css?v=2.2.2">
+  <link rel="stylesheet" href="/css/home.css?v=2.2.4">
 </head>
 <body>
 
@@ -410,7 +410,7 @@
 
         <!-- 4 Fast Video Showcase Cards -->
         <div class="video-grid" id="videoGridContainer">
-          <div class="video-card" onclick="window.openVideoModal('What customers says for Daily Car Cleaning', 'https://res.cloudinary.com/dhfphz6nv/video/upload/q_auto,vc_h264/v1795419587/VID_20250208_055229_718.mp4', '/images/customer_review_dcc_thumb.jpg')">
+          <div class="video-card" data-video-title="What customers says for Daily Car Cleaning" data-video-src="https://res.cloudinary.com/dhfphz6nv/video/upload/q_auto,vc_h264/v1795419587/VID_20250208_055229_718.mp4" data-video-poster="/images/customer_review_dcc_thumb.jpg">
             <div class="video-thumb-wrap">
               <img src="/images/customer_review_dcc_thumb.jpg" alt="What customers says for Daily Car Cleaning" class="video-thumb-img">
               <div class="play-btn-overlay">▶</div>
@@ -421,18 +421,18 @@
             </div>
           </div>
 
-          <div class="video-card" onclick="window.openVideoModal('Interior Cabin Steam Extraction', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')">
+          <div class="video-card" data-video-title="A wash at a customer's Apartment" data-video-src="https://res.cloudinary.com/dhfphz6nv/video/upload/q_auto,vc_h264/v1795420355/Video-63679.mp4" data-video-poster="/images/apartment_wash_thumb.jpg">
             <div class="video-thumb-wrap">
-              <img src="/cwp_logo.jpg" alt="Interior Steam Extraction" class="video-thumb-img">
+              <img src="/images/apartment_wash_thumb.jpg" alt="A wash at a customer's Apartment" class="video-thumb-img">
               <div class="play-btn-overlay">▶</div>
             </div>
             <div class="video-info">
-              <h3 class="video-title">Monsoon Stain & Roof Steam Cleaning</h3>
-              <span class="video-tag">Deep Sanitization · Cantt</span>
+              <h3 class="video-title">A wash at a customer's Apartment</h3>
+              <span class="video-tag">Doorstep Car Care · Varanasi</span>
             </div>
           </div>
 
-          <div class="video-card" onclick="window.openVideoModal('9H Ceramic Coating Beading Test', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')">
+          <div class="video-card" data-video-title="Extreme Water Beading on Creta SX" data-video-src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" data-video-poster="/cwp_logo.jpg">
             <div class="video-thumb-wrap">
               <img src="/cwp_logo.jpg" alt="9H Ceramic Beading" class="video-thumb-img">
               <div class="play-btn-overlay">▶</div>
@@ -443,7 +443,7 @@
             </div>
           </div>
 
-          <div class="video-card" onclick="window.openVideoModal('Rooftop Solar Glass-Safe Soft Wash', '/videos/solar_panel_cleaning.mp4', '/images/solar_panel_thumb.jpg')">
+          <div class="video-card" data-video-title="Rooftop Solar Glass-Safe Soft Wash" data-video-src="/videos/solar_panel_cleaning.mp4" data-video-poster="/images/solar_panel_thumb.jpg">
             <div class="video-thumb-wrap">
               <img src="/images/solar_panel_thumb.jpg" alt="Rooftop Solar Glass-Safe Soft Wash" class="video-thumb-img">
               <div class="play-btn-overlay">▶</div>
@@ -745,6 +745,6 @@
     </div>
   </div>
 
-  <script src="/js/home.js?v=2.2.2"></script>
+  <script src="/js/home.js?v=2.2.4"></script>
 </body>
 </html>
