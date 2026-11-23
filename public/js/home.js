@@ -967,18 +967,48 @@
   };
 
   // Video Modal
+  const videoPlayer = document.getElementById('videoPlayer');
+
   window.openVideoModal = function (title, videoSrc) {
     if (videoModal) {
-      document.getElementById('videoModalTitle').textContent = title;
-      if (videoFrame) {
-        videoFrame.src = videoSrc || '';
+      const titleElem = document.getElementById('videoModalTitle');
+      if (titleElem) titleElem.textContent = title;
+      const isDirectVideo = videoSrc && (videoSrc.endsWith('.mp4') || videoSrc.endsWith('.webm') || videoSrc.includes('/videos/'));
+      if (isDirectVideo) {
+        if (videoFrame) {
+          videoFrame.src = '';
+          videoFrame.style.display = 'none';
+        }
+        if (videoPlayer) {
+          videoPlayer.style.display = 'block';
+          videoPlayer.src = videoSrc;
+          videoPlayer.play().catch(() => {});
+        }
+      } else {
+        if (videoPlayer) {
+          videoPlayer.pause();
+          videoPlayer.src = '';
+          videoPlayer.style.display = 'none';
+        }
+        if (videoFrame) {
+          videoFrame.style.display = 'block';
+          videoFrame.src = videoSrc || '';
+        }
       }
       videoModal.classList.add('open');
     }
   };
 
   window.closeVideoModal = function () {
-    if (videoFrame) videoFrame.src = '';
+    if (videoFrame) {
+      videoFrame.src = '';
+      videoFrame.style.display = 'none';
+    }
+    if (videoPlayer) {
+      videoPlayer.pause();
+      videoPlayer.src = '';
+      videoPlayer.style.display = 'none';
+    }
     videoModal?.classList.remove('open');
   };
 

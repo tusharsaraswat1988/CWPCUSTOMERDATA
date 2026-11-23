@@ -1849,6 +1849,7 @@ const server = http.createServer(async (req, res) => {
     pathname.startsWith('/fonts/') ||
     pathname.startsWith('/images/') ||
     pathname.startsWith('/public/') ||
+    pathname.startsWith('/videos/') ||
     pathname.startsWith('/staff/css/') ||
     pathname.startsWith('/staff/js/') ||
     pathname.startsWith('/admin/css/') ||
@@ -1859,6 +1860,8 @@ const server = http.createServer(async (req, res) => {
     pathname.endsWith('.png') ||
     pathname.endsWith('.jpg') ||
     pathname.endsWith('.webp') ||
+    pathname.endsWith('.mp4') ||
+    pathname.endsWith('.webm') ||
     pathname.endsWith('.woff2') ||
     pathname.endsWith('.woff') ||
     pathname.endsWith('.ttf')
@@ -1884,11 +1887,31 @@ const server = http.createServer(async (req, res) => {
         : (ext === '.png' ? 'image/png'
         : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
         : (ext === '.webp' ? 'image/webp'
+        : (ext === '.mp4' ? 'video/mp4'
+        : (ext === '.webm' ? 'video/webm'
         : (ext === '.woff2' ? 'font/woff2'
         : (ext === '.woff' ? 'font/woff'
-        : (ext === '.ttf' ? 'font/ttf' : 'application/octet-stream'))))))));
+        : (ext === '.ttf' ? 'font/ttf' : 'application/octet-stream'))))))))));
 
       const fileStat = fs.statSync(assetPath);
+
+      // Support byte ranges for video streaming
+      if ((ext === '.mp4' || ext === '.webm') && req.headers.range) {
+        const range = req.headers.range;
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileStat.size - 1;
+        const chunksize = (end - start) + 1;
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${fileStat.size}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunksize,
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=86400'
+        });
+        return fs.createReadStream(assetPath, { start, end }).pipe(res);
+      }
+
       const etag = `"${fileStat.size}-${fileStat.mtimeMs.toString(36)}"`;
 
       const cacheControl = (ext === '.html')
@@ -1906,6 +1929,8 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, {
         'Content-Type': contentType,
         'Cache-Control': cacheControl,
+        'Accept-Ranges': (ext === '.mp4' || ext === '.webm') ? 'bytes' : 'none',
+        'Content-Length': fileStat.size,
         'ETag': etag
       });
       return fs.createReadStream(assetPath).pipe(res);

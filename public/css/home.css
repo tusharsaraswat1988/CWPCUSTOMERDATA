@@ -1257,11 +1257,13 @@ svg {
   height: 180px;
   background-color: #0f172a;
 }
-.video-thumb-img {
+.video-thumb-img,
+.video-thumb-media {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.85;
+  opacity: 0.9;
+  display: block;
 }
 .play-btn-overlay {
   position: absolute;
