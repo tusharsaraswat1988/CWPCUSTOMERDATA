@@ -969,7 +969,7 @@
   // Video Modal
   const videoPlayer = document.getElementById('videoPlayer');
 
-  window.openVideoModal = function (title, videoSrc) {
+  window.openVideoModal = function (title, videoSrc, posterSrc) {
     if (videoModal) {
       const titleElem = document.getElementById('videoModalTitle');
       if (titleElem) titleElem.textContent = title;
@@ -981,7 +981,15 @@
         }
         if (videoPlayer) {
           videoPlayer.style.display = 'block';
+          videoPlayer.controls = true;
+          videoPlayer.controlsList = 'nodownload';
+          videoPlayer.setAttribute('controlsList', 'nodownload');
+          videoPlayer.oncontextmenu = () => false;
+          if (posterSrc) {
+            videoPlayer.poster = posterSrc;
+          }
           videoPlayer.src = videoSrc;
+          videoPlayer.load();
           videoPlayer.play().catch(() => {});
         }
       } else {

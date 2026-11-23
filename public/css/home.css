@@ -1262,8 +1262,14 @@ svg {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.9;
+  opacity: 0.95;
   display: block;
+}
+video::-internal-media-controls-download-button {
+  display: none !important;
+}
+video::-webkit-media-controls-enclosure {
+  overflow: hidden;
 }
 .play-btn-overlay {
   position: absolute;
