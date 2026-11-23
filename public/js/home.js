@@ -973,7 +973,7 @@
       if (titleElem) titleElem.textContent = title;
       const frame = document.getElementById('videoFrame');
       const player = document.getElementById('videoPlayer');
-      const isDirectVideo = videoSrc && (videoSrc.endsWith('.mp4') || videoSrc.endsWith('.webm') || videoSrc.includes('/videos/'));
+      const isDirectVideo = videoSrc && (videoSrc.endsWith('.mp4') || videoSrc.endsWith('.webm') || videoSrc.includes('/videos/') || videoSrc.includes('cloudinary.com'));
       if (isDirectVideo) {
         if (frame) {
           frame.src = '';
