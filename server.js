@@ -2910,6 +2910,8 @@ const server = http.createServer(async (req, res) => {
           'assignDailyCleanCustomer',
           'unassignDailyCleanCustomer',
           'getDailyCleanAssignments',
+          'assignCustomerService',
+          'stopCustomerService',
           'getAuditLogs'
         ];
 
@@ -5011,6 +5013,66 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: true, assignments: [] }));
           } catch (err) {
             console.error('getDailyCleanAssignments error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Assign Customer Service (Separated Service Assignment)
+        if (payload.action === 'assignCustomerService') {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to assign service',
+              unauthorized: true
+            }));
+          }
+
+          try {
+            const adminUser = 'admin';
+            if (isNeonConfigured()) {
+              const result = await adminService.assignCustomerService(payload.serviceData || payload.data || payload, adminUser);
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(result));
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, message: 'Service assigned successfully (local mode)' }));
+          } catch (err) {
+            console.error('assignCustomerService error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Stop Customer Service (Clean Deactivation of Service, Keeps Customer Active)
+        if (payload.action === 'stopCustomerService') {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to stop service',
+              unauthorized: true
+            }));
+          }
+
+          try {
+            const adminUser = 'admin';
+            if (isNeonConfigured()) {
+              const result = await adminService.stopCustomerService(payload.data || payload, adminUser);
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(result));
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, message: 'Service stopped successfully (local mode)' }));
+          } catch (err) {
+            console.error('stopCustomerService error:', err.message);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: err.message }));
           }

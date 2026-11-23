@@ -1524,6 +1524,56 @@ var state = {
       }
     }
 
+    /* Hindi Audio Warning for Stopped Customers (Speaking Customer Name) */
+    function speakHindiStoppedCustomerWarning(customerName, vehicle, event) {
+      if (event && event.stopPropagation) event.stopPropagation();
+      var cName = (customerName || 'ग्राहक').trim();
+      var vName = (vehicle || '').trim();
+      var text = 'सावधान! ' + cName + ' जी का काम रोका गया है। ' + (vName ? ('इनकी गाड़ी ' + vName + ' साफ नहीं करनी है।') : 'इनकी गाड़ी साफ नहीं करनी है।');
+      if (!('speechSynthesis' in window)) {
+        alert(text);
+        return;
+      }
+      try {
+        window.speechSynthesis.cancel();
+        var utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'hi-IN';
+        utterance.rate = 0.92;
+        utterance.pitch = 1.0;
+        var voices = window.speechSynthesis.getVoices() || [];
+        var hiVoice = voices.find(function(v) { return v.lang === 'hi-IN' || v.lang === 'hi' || /hindi/i.test(v.name); });
+        if (hiVoice) utterance.voice = hiVoice;
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.warn('Speech error:', e);
+        alert(text);
+      }
+    }
+
+    /* Hindi Audio Summary for Multiple Stopped Customers */
+    function speakHindiStoppedSummary(count, names, event) {
+      if (event && event.stopPropagation) event.stopPropagation();
+      var text = 'सावधान! ' + (count || 1) + ' गाड़ी का काम रोका गया है। ' + (names || '') + ' का काम नहीं करना है। गाड़ी साफ न करें!';
+      if (!('speechSynthesis' in window)) {
+        alert(text);
+        return;
+      }
+      try {
+        window.speechSynthesis.cancel();
+        var utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'hi-IN';
+        utterance.rate = 0.92;
+        utterance.pitch = 1.0;
+        var voices = window.speechSynthesis.getVoices() || [];
+        var hiVoice = voices.find(function(v) { return v.lang === 'hi-IN' || v.lang === 'hi' || /hindi/i.test(v.name); });
+        if (hiVoice) utterance.voice = hiVoice;
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.warn('Speech error:', e);
+        alert(text);
+      }
+    }
+
     function handleBackfillHindi() {
       var isHi = (state.lang !== 'en');
       var msg = isHi
@@ -4877,6 +4927,31 @@ function loadStaffCustomerData(staffId) {
       }
 
       var html = '';
+      var isHiGlobal = (state.lang !== 'en');
+      var stoppedItems = (items || []).filter(function(it) { return it && it.isStopped === true; });
+      if (stoppedItems.length > 0) {
+        var stoppedNames = stoppedItems.map(function(it) {
+          return (isHiGlobal && (it.nameHi || it.name_hi)) ? (it.nameHi || it.name_hi) : (it.customerName || 'Customer');
+        }).join(', ');
+
+        html += '<div class="staff-stopped-summary-strip" style="background:#fee2e2; border:2px solid #ef4444; border-radius:10px; padding:12px 14px; margin-bottom:14px; box-shadow:0 3px 10px rgba(239,68,68,0.15); display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">' +
+          '<div style="display:flex; align-items:center; gap:10px; flex:1; min-width:240px;">' +
+            '<span style="font-size:24px;">🚨</span>' +
+            '<div>' +
+              '<div style="font-weight:700; color:#991b1b; font-size:13.5px;">' +
+                (isHiGlobal ? 'सावधान! ' + stoppedItems.length + ' गाड़ी पर काम नहीं करना है:' : 'ATTENTION: ' + stoppedItems.length + ' Service(s) Stopped:') +
+              '</div>' +
+              '<div style="font-size:12.5px; color:#b91c1c; font-weight:600; margin-top:2px;">' +
+                escapeHtml(stoppedNames) + (isHiGlobal ? ' — इनकी गाड़ी साफ न करें!' : ' — Do not clean!') +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<button type="button" class="btn-audio-alert-pulse" onclick="speakHindiStoppedSummary(' + stoppedItems.length + ', \'' + escapeHtml(stoppedNames).replace(/'/g, "\\'") + '\', event)" style="background:#dc2626; color:#fff; border:none; border-radius:8px; padding:8px 12px; font-weight:700; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">' +
+            '<span class="material-symbols-outlined" style="font-size:18px;">volume_up</span> ' + (isHiGlobal ? 'चेतावनी सुनें' : 'Listen Warning') +
+          '</button>' +
+        '</div>';
+      }
+
       items.forEach(function(item, index) {
         var isHi = (state.lang !== 'en');
         var isSolar = item.category === 'solar_cleaning';
@@ -4928,8 +5003,25 @@ function loadStaffCustomerData(staffId) {
         var seqDisplay = item._seq || (index < 9 ? '0' + (index + 1) : String(index + 1));
         var custId = item.customerId || item.id || getCustomerStableId(item);
         var isDone = isDaily && isCustomerDoneToday(custId);
+        var isStopped = Boolean(item.isStopped);
 
-        html += '<div class="smart-card' + (isDone ? ' card-cleaned-done' : '') + '" id="staffCard-' + index + '" data-customer-id="' + escapeHtml(custId) + '">';
+        html += '<div class="smart-card' + (isStopped ? ' card-service-stopped' : (isDone ? ' card-cleaned-done' : '')) + '" id="staffCard-' + index + '" data-customer-id="' + escapeHtml(custId) + '"' + (isStopped ? ' style="border: 2px solid #ef4444; background: #fffbfb;"' : '') + '>';
+
+        /* High-Visibility Stopped Service Alert Banner */
+        if (isStopped) {
+          html += '<div class="staff-stopped-card-banner" style="background:#dc2626; color:#ffffff; padding:10px 14px; border-radius:8px; margin: 10px 10px 6px 10px; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 2px 8px rgba(220,38,38,0.25);">' +
+            '<div style="display:flex; align-items:center; gap:8px;">' +
+              '<span style="font-size:22px;">🛑</span>' +
+              '<div>' +
+                '<div style="font-weight:800; font-size:13.5px; letter-spacing:0.3px;">काम रोका गया है (DO NOT CLEAN)</div>' +
+                '<div style="font-size:12px; opacity:0.95;">' + (item.stoppedReason ? ('कारण: ' + escapeHtml(item.stoppedReason)) : 'एडमिन द्वारा सर्विस रोक दी गई है।') + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<button type="button" class="btn-card-audio-stopped" onclick="speakHindiStoppedCustomerWarning(\'' + escapeHtml(displayName).replace(/'/g, "\\'") + '\', \'' + escapeHtml(vehicles).replace(/'/g, "\\'") + '\', event)" style="background:#fff; color:#dc2626; border:none; border-radius:6px; padding:6px 10px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" title="बोलकर सुनें">' +
+              '<span class="material-symbols-outlined" style="font-size:16px;">volume_up</span> <span>बोलें</span>' +
+            '</button>' +
+          '</div>';
+        }
 
         /* Row 1: S.No + Customer Name (Left) & Call + Directions + Location Buttons (Right) */
         html += '  <div class="card-header-row">';
@@ -5122,7 +5214,14 @@ function loadStaffCustomerData(staffId) {
         }
 
         /* Row 5: Daily Clean Status Action & Persistent WhatsApp Share */
-        if (isDaily) {
+        if (isStopped) {
+          html += '  <div class="card-status-actions-bar-split" style="padding: 8px 10px;">' +
+            '    <div class="btn-clean-blocked" style="flex:1; background:#fee2e2; border:1.5px dashed #ef4444; color:#b91c1c; border-radius:8px; padding:11px; text-align:center; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:8px;" title="सर्विस रोकी गई है">' +
+              '      <span style="font-size:18px;">🚫</span>' +
+              '      <span>' + (isHi ? 'सर्विस रोकी गई है — गाड़ी साफ ना करें (Cleaning Blocked)' : 'Service Stopped — DO NOT CLEAN') + '</span>' +
+            '    </div>' +
+          '  </div>';
+        } else if (isDaily) {
           html += '  <div class="card-status-actions-bar-split">';
           if (isDone) {
             var compData = getCustomerCompletionData(custId);
@@ -7347,10 +7446,12 @@ function loadStaffCustomerData(staffId) {
         }
       }
 
-      var category = document.getElementById('custCategory').value;
-      var isDaily = (category === 'Daily Car Cleaning');
-      var isSolar = (category === 'Solar Panel Cleaning');
-      var isCarWash = (category === 'Car Washing');
+      var catEl = document.getElementById('custCategory');
+      var category = catEl ? catEl.value : 'none';
+      var hasService = Boolean(category && category.toLowerCase() !== 'none' && category !== 'No Service');
+      var isDaily = hasService && (category === 'Daily Car Cleaning');
+      var isSolar = hasService && (category === 'Solar Panel Cleaning');
+      var isCarWash = hasService && (category === 'Car Washing');
 
       var photoPayload = state.selectedPhotoBase64 ? {
         base64: state.selectedPhotoBase64,
@@ -7358,13 +7459,16 @@ function loadStaffCustomerData(staffId) {
         fileName: state.selectedPhotoName
       } : null;
 
-      var pkgVal = document.getElementById('custPkgType').value;
+      var pkgEl = document.getElementById('custPkgType');
+      var pkgVal = pkgEl ? pkgEl.value : '';
       if (pkgVal === 'OTHER') {
-        var custOther = (document.getElementById('custPkgTypeCustom').value || '').trim();
+        var custOtherEl = document.getElementById('custPkgTypeCustom');
+        var custOther = (custOtherEl ? custOtherEl.value : '').trim();
         if (custOther) pkgVal = 'OTHER (' + custOther + ')';
       }
 
-      var vehText = document.getElementById('custVehicles').value.trim();
+      var vehEl = document.getElementById('custVehicles');
+      var vehText = vehEl ? vehEl.value.trim() : '';
       var carMakeVal = (document.getElementById('custCarMake') ? document.getElementById('custCarMake').value : '').trim();
       var carColorVal = (document.getElementById('custCarColor') ? document.getElementById('custCarColor').value : '').trim();
 
@@ -7374,15 +7478,19 @@ function loadStaffCustomerData(staffId) {
       var panelInput = document.getElementById('custSolarPanelsCount') || document.getElementById('custPanelCount');
       var panelCountVal = isSolar ? (parseInt(panelInput ? panelInput.value : '', 10) || null) : null;
       var seaterTypeVal = isSolar ? null : (document.getElementById('custSeaterTypeHidden') ? document.getElementById('custSeaterTypeHidden').value : '5_seater');
-      var resolvedServiceType = isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : (category === 'Interior Detailing' ? 'Interior Detailing' : (category === 'Exterior Detailing' ? 'Exterior Detailing' : 'Daily Car Cleaning')));
+      var resolvedServiceType = hasService
+        ? (isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : (category === 'Interior Detailing' ? 'Interior Detailing' : (category === 'Exterior Detailing' ? 'Exterior Detailing' : 'Daily Car Cleaning'))))
+        : 'None';
 
       var customerData = {
         isLead: Boolean(isLeadMarked),
         tag: isLeadMarked ? 'lead' : 'customer',
         leadStatus: isLeadMarked ? 'open' : 'converted',
-        sheetName: isLeadMarked ? 'Leads' : (isDaily ? 'Daily Clean' : 'All Other Work'),
-        serviceCategory: category,
+        sheetName: isLeadMarked ? 'Leads' : (isDaily ? 'Daily Clean' : (hasService ? 'All Other Work' : 'None')),
+        serviceCategory: hasService ? category : 'None',
         serviceType: resolvedServiceType,
+        hasService: hasService,
+        noService: !hasService,
         panelCount: panelCountVal,
         panel_count: panelCountVal,
         seaterType: seaterTypeVal,
@@ -7397,8 +7505,8 @@ function loadStaffCustomerData(staffId) {
         googleMapsUrl: document.getElementById('custMapsUrl').value.trim(),
         staffNotes: document.getElementById('custNotes').value.trim(),
         active: 'Yes',
-        packageType: pkgVal,
-        packageDetails: pkgVal,
+        packageType: pkgVal || (hasService ? 'Standard' : 'None'),
+        packageDetails: pkgVal || (hasService ? 'Standard' : 'None'),
         packagesPurchased: '1',
         vehicleNumbers: vehText,
         vehicleOrSite: vehText,
@@ -7422,6 +7530,8 @@ function loadStaffCustomerData(staffId) {
         } else {
           if (isLeadMarked) {
             showToast('Lead saved successfully and stored in Leads section!', '🎯');
+          } else if (!hasService) {
+            showToast('Customer saved successfully! You can assign services anytime from Records.', '✓');
           } else {
             showToast('Customer saved successfully and added to Active Records!', '✓');
           }
@@ -7442,7 +7552,9 @@ function loadStaffCustomerData(staffId) {
           state.selectedPhotoType = '';
           state.rawSelectedPhotoDataUrl = '';
           discardCustomerDraft(true);
-          toggleCategoryFields(document.getElementById('custCategory').value);
+          if (document.getElementById('custCategory') && typeof toggleCategoryFields === 'function') {
+            toggleCategoryFields(document.getElementById('custCategory').value);
+          }
           closeAddCustomerModal();
 
           if (isLeadMarked) {
@@ -9316,20 +9428,36 @@ function loadStaffCustomerData(staffId) {
         }
 
         /* 2c. Service Category & Plan Cell (Dedicated column) */
-        var catName = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
-        var tagClass = 'tag-daily';
-        if (catName === 'Car Washing') tagClass = 'tag-wash';
-        else if (catName === 'Solar Panel Cleaning') tagClass = 'tag-solar';
-        else if (catName === 'Interior Detailing') tagClass = 'tag-interior';
-        else if (catName === 'Exterior Detailing') tagClass = 'tag-exterior';
-        var pkgLabel = (r.packageType || r.serviceType || '').trim();
+        var serviceHtml = '';
+        if (r.isStopped) {
+          serviceHtml = '<div class="table-service-cell">' +
+            '<span class="cust-sheet-tag" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;"><span class="tag-status-dot" style="background:#ef4444;"></span>🛑 Stopped (काम रुका)</span>';
+          if (r.stoppedReason) {
+            serviceHtml += '<div style="font-size:10.5px; color:#991b1b; margin-top:2px; font-weight:500;">' + escapeHtml(r.stoppedReason) + '</div>';
+          }
+          serviceHtml += '<div class="table-pkg-badge-wrap" style="margin-top:3px;"><button type="button" onclick="openAssignServiceModal(' + origIndex + ')" style="padding:2px 7px; font-size:11px; font-weight:600; border-radius:4px; background:#fff; border:1px solid #f87171; color:#b91c1c; cursor:pointer;">⚙️ Manage Service</button></div>' +
+          '</div>';
+        } else if (!r.hasService) {
+          serviceHtml = '<div class="table-service-cell">' +
+            '<span class="cust-sheet-tag" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"><span class="tag-status-dot" style="background:#94a3b8;"></span>⚪ No Service</span>' +
+            '<div class="table-pkg-badge-wrap" style="margin-top:4px;"><button type="button" onclick="openAssignServiceModal(' + origIndex + ')" style="padding:2px 8px; font-size:11px; font-weight:600; border-radius:4px; background:#eff6ff; border:1px solid #93c5fd; color:#1d4ed8; cursor:pointer;">+ Assign Service</button></div>' +
+          '</div>';
+        } else {
+          var catName = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
+          var tagClass = 'tag-daily';
+          if (catName === 'Car Washing') tagClass = 'tag-wash';
+          else if (catName === 'Solar Panel Cleaning') tagClass = 'tag-solar';
+          else if (catName === 'Interior Detailing') tagClass = 'tag-interior';
+          else if (catName === 'Exterior Detailing') tagClass = 'tag-exterior';
+          var pkgLabel = (r.packageType || r.serviceType || '').trim();
 
-        var serviceHtml = '<div class="table-service-cell">' +
-          '<span class="cust-sheet-tag ' + tagClass + '"><span class="tag-status-dot"></span>' + escapeHtml(catName) + '</span>';
-        if (pkgLabel) {
-          serviceHtml += '<div class="table-pkg-badge-wrap">' + renderModernPackageBadge(pkgLabel) + '</div>';
+          serviceHtml = '<div class="table-service-cell">' +
+            '<span class="cust-sheet-tag ' + tagClass + '"><span class="tag-status-dot"></span>' + escapeHtml(catName) + '</span>';
+          if (pkgLabel) {
+            serviceHtml += '<div class="table-pkg-badge-wrap">' + renderModernPackageBadge(pkgLabel) + '</div>';
+          }
+          serviceHtml += '</div>';
         }
-        serviceHtml += '</div>';
 
         /* 2d. Vehicle / Site Cell + Photo Micro-Thumb (Dedicated column) */
         var carText = (r.vehicle || r.vehicleNumbers || '').trim();
@@ -9429,8 +9557,11 @@ function loadStaffCustomerData(staffId) {
         }
         staffHtml += '</div>';
 
-        /* 8. Actions: Edit and Delete Buttons (CRM pure view - Assign button decoupled to Job Assignment tab) */
+        /* 8. Actions: Service, Edit and Delete Buttons */
         var actionsHtml = '<div class="records-actions-cluster">' +
+          '<button type="button" class="btn-cell-action btn-service-record" onclick="openAssignServiceModal(' + origIndex + ')" title="Manage / Assign Service">' +
+            '<span>🚗 Service</span>' +
+          '</button>' +
           '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="Edit customer details">' +
             '<svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>' +
             '<span>Edit</span>' +
@@ -9722,6 +9853,367 @@ function loadStaffCustomerData(staffId) {
       if (badge) badge.style.display = 'none';
       var banner = document.getElementById('editDraftRestoreBanner');
       if (banner) banner.style.display = 'none';
+    }
+
+    /* =========================================================================
+       ASSIGN & MANAGE CUSTOMER SERVICE WORKFLOW (Decoupled from Customer Form)
+       ========================================================================= */
+    function openAssignServiceModal(indexOrId, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
+      var r = null;
+      if (typeof indexOrId === 'number' && state.adminRecords && state.adminRecords[indexOrId]) {
+        r = state.adminRecords[indexOrId];
+      } else if (typeof indexOrId === 'string' && state.adminRecords) {
+        r = state.adminRecords.find(function(item) {
+          return item.id === indexOrId || item.customerId === indexOrId || item.customerCode === indexOrId;
+        });
+      }
+      if (!r) {
+        showToast('Customer record not found', '⚠️');
+        return;
+      }
+
+      state.currentAssignServiceRecord = r;
+
+      // 1. Customer Context Header Banner
+      var nameEl = document.getElementById('assignServiceCustName');
+      if (nameEl) nameEl.textContent = r.customerName || 'Customer';
+
+      var metaEl = document.getElementById('assignServiceCustMeta');
+      if (metaEl) {
+        var phoneStr = r.customerNumber ? ('+91 ' + formatIndianMobile(normalizeIndianMobile(r.customerNumber))) : 'No Phone';
+        var addrStr = r.address || '';
+        metaEl.textContent = [phoneStr, addrStr].filter(Boolean).join(' • ');
+      }
+
+      var badgeEl = document.getElementById('assignServiceBadgeText');
+      var stopBtn = document.getElementById('btnStopServiceAction');
+
+      if (r.isStopped) {
+        if (badgeEl) {
+          badgeEl.textContent = '🛑 Service Stopped (काम रुका हुआ है)';
+          badgeEl.style.background = '#fee2e2';
+          badgeEl.style.color = '#dc2626';
+        }
+        if (stopBtn) stopBtn.style.display = 'none';
+      } else if (r.hasService) {
+        if (badgeEl) {
+          badgeEl.textContent = 'Active: ' + (r.serviceCategory || 'Daily Car Cleaning');
+          badgeEl.style.background = '#dcfce7';
+          badgeEl.style.color = '#15803d';
+        }
+        if (stopBtn) stopBtn.style.display = 'inline-block';
+      } else {
+        if (badgeEl) {
+          badgeEl.textContent = '⚪ No Service Assigned';
+          badgeEl.style.background = '#f1f5f9';
+          badgeEl.style.color = '#475569';
+        }
+        if (stopBtn) stopBtn.style.display = 'none';
+      }
+
+      // 2. Hidden Customer ID
+      var idEl = document.getElementById('assignServiceCustomerId');
+      if (idEl) idEl.value = r.id || r.customerId || '';
+
+      // 3. Category & Packages
+      var catSelect = document.getElementById('assignServiceCategory');
+      var catVal = r.serviceCategory || 'Daily Car Cleaning';
+      if (catVal === 'None' || !catVal) catVal = 'Daily Car Cleaning';
+      if (catSelect) {
+        catSelect.value = catVal;
+        handleAssignCategoryChange(catVal);
+      }
+
+      var pkgSelect = document.getElementById('assignServicePkgType');
+      var customPkgInput = document.getElementById('assignServicePkgTypeCustom');
+      var currentPkg = (r.packageType || r.packageName || '').trim();
+      if (pkgSelect && currentPkg) {
+        var matched = false;
+        for (var i = 0; i < pkgSelect.options.length; i++) {
+          if (pkgSelect.options[i].value.toLowerCase() === currentPkg.toLowerCase()) {
+            pkgSelect.selectedIndex = i;
+            matched = true;
+            break;
+          }
+        }
+        if (!matched && pkgSelect.value === 'OTHER' && customPkgInput) {
+          customPkgInput.style.display = 'block';
+          customPkgInput.value = currentPkg;
+        }
+      }
+
+      // 4. Vehicle Details
+      var vehInput = document.getElementById('assignVehicleNumbers');
+      if (vehInput) vehInput.value = r.vehicle || r.vehicleNumbers || '';
+
+      var makeInput = document.getElementById('assignCarMake');
+      if (makeInput) makeInput.value = r.carMake || r.car_make || '';
+
+      var colorInput = document.getElementById('assignCarColor');
+      if (colorInput) colorInput.value = r.carColor || r.car_color || '';
+
+      var seaterVal = r.seaterType || r.seater_type || '5_seater';
+      var r5 = document.querySelector('input[name="assignSeaterType"][value="5_seater"]');
+      var r5Plus = document.querySelector('input[name="assignSeaterType"][value="5_plus_seater"]');
+      if (seaterVal === '5_plus_seater') {
+        if (r5Plus) r5Plus.checked = true;
+      } else {
+        if (r5) r5.checked = true;
+      }
+      handleAssignSeaterChange(seaterVal);
+
+      var panelInput = document.getElementById('assignSolarPanelsCount');
+      if (panelInput) panelInput.value = r.panelCount || r.panel_count || '10';
+
+      // 5. Staff Dropdown
+      var staffSelect = document.getElementById('assignStaffSelect');
+      var staffOptions = '<option value="">-- Unassigned --</option>';
+      (state.staffList || []).forEach(function(s) {
+        var isSel = (s.name && r.staffName && s.name.trim().toLowerCase() === r.staffName.trim().toLowerCase()) ||
+                    (s.id && r.staffId && s.id.toUpperCase() === r.staffId.toUpperCase());
+        staffOptions += '<option value="' + escapeHtml(s.id || s.name) + '" ' + (isSel ? 'selected' : '') + '>' + escapeHtml(s.name) + '</option>';
+      });
+      if (staffSelect) staffSelect.innerHTML = staffOptions;
+
+      var notesInput = document.getElementById('assignStaffNotes');
+      if (notesInput) notesInput.value = r.staffNotes || r.notes || '';
+
+      var modal = document.getElementById('assignServiceModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeAssignServiceModal() {
+      var modal = document.getElementById('assignServiceModal');
+      if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
+    }
+
+    function openAssignServiceFromEditModal() {
+      var editCustId = document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value : '';
+      closeEditCustomerModal();
+      if (editCustId) {
+        openAssignServiceModal(editCustId);
+      } else if (state.currentEditCustomerIndex != null) {
+        openAssignServiceModal(state.currentEditCustomerIndex);
+      }
+    }
+
+    function handleAssignCategoryChange(category) {
+      var pkgSelect = document.getElementById('assignServicePkgType');
+      var carWrap = document.getElementById('assignCarInputsWrap');
+      var solarWrap = document.getElementById('assignSolarInputsWrap');
+      var assetTitle = document.getElementById('assignAssetCardTitle');
+      var vehInput = document.getElementById('assignVehicleNumbers');
+      var solarInput = document.getElementById('assignSolarPanelsCount');
+
+      if (category === 'Solar Panel Cleaning') {
+        if (carWrap) carWrap.style.display = 'none';
+        if (solarWrap) solarWrap.style.display = 'block';
+        if (assetTitle) assetTitle.textContent = 'Solar Plant / Site Details';
+        if (vehInput) { vehInput.required = false; vehInput.value = vehInput.value || 'Rooftop Solar Plant'; }
+        if (solarInput) solarInput.required = true;
+
+        if (pkgSelect) {
+          pkgSelect.innerHTML =
+            '<option value="6 Month Subscription (6 frequencies)">6 Month Subscription (6 frequencies)</option>' +
+            '<option value="One Time Solar Cleaning">One Time Solar Cleaning</option>' +
+            '<option value="OTHER">OTHER (Custom Plan)</option>';
+        }
+      } else if (category === 'Car Washing') {
+        if (carWrap) carWrap.style.display = 'block';
+        if (solarWrap) solarWrap.style.display = 'none';
+        if (assetTitle) assetTitle.textContent = 'Vehicle & Car Details';
+        if (vehInput) { vehInput.required = true; if (vehInput.value === 'Rooftop Solar Plant') vehInput.value = ''; }
+        if (solarInput) solarInput.required = false;
+
+        if (pkgSelect) {
+          pkgSelect.innerHTML =
+            '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
+            '<option value="Single Wash (One Time Wash)">Single Wash (One Time Wash)</option>' +
+            '<option value="OTHER">OTHER (Custom Plan)</option>';
+        }
+      } else if (category === 'Interior Detailing') {
+        if (carWrap) carWrap.style.display = 'block';
+        if (solarWrap) solarWrap.style.display = 'none';
+        if (assetTitle) assetTitle.textContent = 'Vehicle & Car Details';
+        if (vehInput) { vehInput.required = true; if (vehInput.value === 'Rooftop Solar Plant') vehInput.value = ''; }
+        if (solarInput) solarInput.required = false;
+
+        if (pkgSelect) {
+          pkgSelect.innerHTML =
+            '<option value="Complete Deep Interior Spa">Complete Deep Interior Spa</option>' +
+            '<option value="Interior Sanitization & Upholstery">Interior Sanitization & Upholstery</option>' +
+            '<option value="OTHER">OTHER (Custom Plan)</option>';
+        }
+      } else if (category === 'Exterior Detailing') {
+        if (carWrap) carWrap.style.display = 'block';
+        if (solarWrap) solarWrap.style.display = 'none';
+        if (assetTitle) assetTitle.textContent = 'Vehicle & Car Details';
+        if (vehInput) { vehInput.required = true; if (vehInput.value === 'Rooftop Solar Plant') vehInput.value = ''; }
+        if (solarInput) solarInput.required = false;
+
+        if (pkgSelect) {
+          pkgSelect.innerHTML =
+            '<option value="Exterior Paint Correction & Polish">Exterior Paint Correction & Polish</option>' +
+            '<option value="Ceramic Coating Protection">Ceramic Coating Protection</option>' +
+            '<option value="OTHER">OTHER (Custom Plan)</option>';
+        }
+      } else {
+        // Daily Car Cleaning
+        if (carWrap) carWrap.style.display = 'block';
+        if (solarWrap) solarWrap.style.display = 'none';
+        if (assetTitle) assetTitle.textContent = 'Vehicle & Car Details';
+        if (vehInput) { vehInput.required = true; if (vehInput.value === 'Rooftop Solar Plant') vehInput.value = ''; }
+        if (solarInput) solarInput.required = false;
+
+        if (pkgSelect) {
+          pkgSelect.innerHTML =
+            '<option value="DCC ONLY">DCC ONLY (Exterior Daily)</option>' +
+            '<option value="Exterior Chemical Cleaning (30 Days)">Exterior Chemical Cleaning (30 Days)</option>' +
+            '<option value="Exterior Chemical Cleaning + 1 Carwash/mo">Exterior Chemical Cleaning + 1 Carwash/mo</option>' +
+            '<option value="Exterior Chemical Cleaning + 2 Carwash/mo">Exterior Chemical Cleaning + 2 Carwash/mo</option>' +
+            '<option value="OTHER">OTHER (Custom Plan)</option>';
+        }
+      }
+      handleAssignPackageTypeChange(pkgSelect ? pkgSelect.value : '');
+    }
+
+    function handleAssignPackageTypeChange(val) {
+      var customInput = document.getElementById('assignServicePkgTypeCustom');
+      if (customInput) {
+        if (val === 'OTHER') {
+          customInput.style.display = 'block';
+          customInput.required = true;
+        } else {
+          customInput.style.display = 'none';
+          customInput.required = false;
+        }
+      }
+    }
+
+    function handleAssignSeaterChange(val) {
+      var lbl5 = document.getElementById('labelAssignSeater5');
+      var lbl5Plus = document.getElementById('labelAssignSeater5Plus');
+      if (val === '5_plus_seater') {
+        if (lbl5) lbl5.classList.remove('active');
+        if (lbl5Plus) lbl5Plus.classList.add('active');
+      } else {
+        if (lbl5) lbl5.classList.add('active');
+        if (lbl5Plus) lbl5Plus.classList.remove('active');
+      }
+    }
+
+    function handleAssignServiceSubmit(e) {
+      e.preventDefault();
+      var custId = document.getElementById('assignServiceCustomerId') ? document.getElementById('assignServiceCustomerId').value : '';
+      if (!custId) {
+        showToast('Customer ID missing', '❌');
+        return;
+      }
+      var btn = document.getElementById('btnSaveAssignService');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="cwp-spinner"></span> Saving Service...';
+
+      var cat = document.getElementById('assignServiceCategory').value;
+      var pkgType = document.getElementById('assignServicePkgType').value;
+      if (pkgType === 'OTHER') {
+        var custom = (document.getElementById('assignServicePkgTypeCustom').value || '').trim();
+        if (custom) pkgType = 'OTHER (' + custom + ')';
+      }
+
+      var isSolar = (cat === 'Solar Panel Cleaning');
+      var vehNumbers = document.getElementById('assignVehicleNumbers').value.trim();
+      var carMake = document.getElementById('assignCarMake').value.trim();
+      var carColor = document.getElementById('assignCarColor').value.trim();
+      var seaterRadio = document.querySelector('input[name="assignSeaterType"]:checked');
+      var seaterType = isSolar ? null : (seaterRadio ? seaterRadio.value : '5_seater');
+      var panelCount = isSolar ? (parseInt(document.getElementById('assignSolarPanelsCount').value, 10) || null) : null;
+
+      var staffSelect = document.getElementById('assignStaffSelect');
+      var rawStaff = staffSelect ? staffSelect.value.trim() : '';
+      var staffId = '';
+      var staffName = '';
+      if (rawStaff) {
+        var foundStaff = (state.staffList || []).find(function(s) {
+          return (s.id && s.id.toLowerCase() === rawStaff.toLowerCase()) ||
+                 (s.name && s.name.toLowerCase() === rawStaff.toLowerCase());
+        });
+        if (foundStaff) {
+          staffId = foundStaff.id;
+          staffName = foundStaff.name;
+        } else {
+          staffName = rawStaff;
+        }
+      }
+
+      var payload = {
+        customerId: custId,
+        serviceCategory: cat,
+        packageType: pkgType,
+        vehicleNumbers: vehNumbers,
+        carMake: carMake,
+        carColor: carColor,
+        seaterType: seaterType,
+        panelCount: panelCount,
+        staffId: staffId,
+        staffName: staffName,
+        staffNotes: document.getElementById('assignStaffNotes').value.trim()
+      };
+
+      apiCall('assignCustomerService', { serviceData: payload }, function(res) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> Save & Activate Service';
+        if (res && res.error) {
+          showToast('Error: ' + res.error, '❌');
+        } else {
+          showToast(res.message || 'Service assigned successfully!', '✓');
+          closeAssignServiceModal();
+          loadAdminRecords(true);
+          if (typeof loadStaffSequenceData === 'function' && state.seqManagement && state.seqManagement.currentStaffId) {
+            loadStaffSequenceData(true);
+          }
+        }
+      }, function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> Save & Activate Service';
+        showToast('Failed to assign service: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleStopServiceClickFromModal() {
+      var custId = document.getElementById('assignServiceCustomerId') ? document.getElementById('assignServiceCustomerId').value : '';
+      var custName = document.getElementById('assignServiceCustName') ? document.getElementById('assignServiceCustName').textContent : 'Customer';
+      if (!custId) return;
+
+      var reason = prompt('काम रोकने का कारण दर्ज करें (Reason for stopping service):\n(उदाहरण: Customer out of station, Discontinued, Payment issue, etc.)', 'Customer requested to stop');
+      if (reason === null) return;
+
+      var btn = document.getElementById('btnStopServiceAction');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="cwp-spinner"></span> Stopping...';
+
+      apiCall('stopCustomerService', { customerId: custId, reason: reason }, function(res) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🛑</span> Stop Service (काम रोकें)';
+        if (res && res.error) {
+          showToast('Error: ' + res.error, '❌');
+        } else {
+          showToast('Service stopped for ' + custName + '. Staff app will alert NOT to clean.', '⚠️');
+          closeAssignServiceModal();
+          loadAdminRecords(true);
+        }
+      }, function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🛑</span> Stop Service (काम रोकें)';
+        showToast('Failed to stop service: ' + (err.message || err), '❌');
+      });
     }
 
     function handleDeleteCustomer(index) {
@@ -11269,6 +11761,13 @@ function loadStaffCustomerData(staffId) {
       var isHi = (state.lang !== 'en');
       var item = state.currentStaffFilteredList && state.currentStaffFilteredList[index];
       if (!item) return;
+
+      if (item.isStopped) {
+        var stopMsg = (isHi ? 'सावधान! ' : 'WARNING: ') + (item.customerName || 'ग्राहक') + (isHi ? ' जी का काम रोका गया है। इस गाड़ी को साफ ना करें!' : ' service is stopped. Do not clean this car!');
+        alert(stopMsg);
+        speakHindiStoppedCustomerWarning(item.customerName, item.vehicle || item.vehicleNumbers);
+        return;
+      }
 
       var isDone = isCustomerDoneToday(custId);
       if (isDone) {
@@ -15649,5 +16148,17 @@ function loadStaffCustomerData(staffId) {
     window.TrackingMapAdapter = TrackingMapAdapter;
 
     window.setStaffFilter = setStaffFilter;
+
+    // Service Decoupling & DO NOT CLEAN Audio Warning Exports
+    window.openAssignServiceModal = openAssignServiceModal;
+    window.closeAssignServiceModal = closeAssignServiceModal;
+    window.openAssignServiceFromEditModal = openAssignServiceFromEditModal;
+    window.handleAssignCategoryChange = handleAssignCategoryChange;
+    window.handleAssignPackageTypeChange = handleAssignPackageTypeChange;
+    window.handleAssignSeaterChange = handleAssignSeaterChange;
+    window.handleAssignServiceSubmit = handleAssignServiceSubmit;
+    window.handleStopServiceClickFromModal = handleStopServiceClickFromModal;
+    window.speakHindiStoppedCustomerWarning = speakHindiStoppedCustomerWarning;
+    window.speakHindiStoppedSummary = speakHindiStoppedSummary;
     }
 

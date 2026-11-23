@@ -16,7 +16,7 @@ const serviceCatalog = require('./serviceCatalog');
 function computeStaffDataVersion(data) {
   const str = JSON.stringify({
     staffId: data.staffId,
-    dc: (data.dailyCarCleaning || []).map(c => [c.customerName, c.vehicle, c.active, c.completedToday]),
+    dc: (data.dailyCarCleaning || []).map(c => [c.customerName, c.vehicle, c.active, c.isStopped, c.status, c.completedToday]),
     cw: (data.carWashing || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt, j.cancellationReason]),
     sc: (data.solarCleaning || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt, j.cancellationReason]),
     oj: (data.otherJobs || []).map(j => [j.jobId || j.id, j.status, j.startedAt, j.completedAt, j.serviceCategoryId, j.seaterType, j.panelCount, j.cancellationReason])
@@ -71,7 +71,7 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
      LEFT JOIN public.staff_route_sequences srs ON srs.staff_id = $1 AND srs.subscription_id = sub.id
      WHERE sa.staff_id = $1 
        AND sa.is_active = TRUE 
-       AND sub.status = 'active'
+       AND (sub.status = 'active' OR (sub.status = 'stopped' AND (sub.stopped_at IS NULL OR sub.stopped_at >= CURRENT_DATE - INTERVAL '14 days')))
        AND sub.deleted_at IS NULL
        AND c.deleted_at IS NULL
        AND c.is_active = TRUE
@@ -152,8 +152,10 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     }).join(', ');
     const mainPhoto = svList[0]?.vehicle_photo_url || '';
 
-    // Check completion today
-    const allVehiclesCompleted = svList.length > 0 && svList.every(sv => completedSubVehKeys.has(`${subRow.id}_${sv.vehicle_id}`));
+    // Check completion today & stopped state
+    const isStopped = (subRow.status === 'stopped');
+    const stoppedReason = isStopped ? (subRow.stopped_reason || 'ग्राहक ने सर्विस बंद कर दी है (Service Stopped)') : null;
+    const allVehiclesCompleted = !isStopped && svList.length > 0 && svList.every(sv => completedSubVehKeys.has(`${subRow.id}_${sv.vehicle_id}`));
 
     dailyCarCleaning.push({
       subscriptionId: subRow.id,
@@ -187,7 +189,7 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
         carColor: sv.car_color || '',
         photoUrl: sv.vehicle_photo_url,
         scheduleTag: sv.schedule_tag,
-        completedToday: completedSubVehKeys.has(`${subRow.id}_${sv.vehicle_id}`)
+        completedToday: !isStopped && completedSubVehKeys.has(`${subRow.id}_${sv.vehicle_id}`)
       })),
       photoUrl: mainPhoto,
       serviceCategory: 'Daily Car Cleaning',
@@ -201,7 +203,11 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       staffId: staff.staff_code,
       sequenceOrder: subRow.sequence_order !== null ? subRow.sequence_order : index + 1,
       completedToday: allVehiclesCompleted,
-      active: 'Yes'
+      isStopped: isStopped,
+      status: subRow.status,
+      serviceStatus: subRow.status,
+      stoppedReason: stoppedReason,
+      active: isStopped ? 'No' : 'Yes'
     });
   });
 

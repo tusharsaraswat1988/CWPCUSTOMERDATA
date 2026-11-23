@@ -143,47 +143,64 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
     const primaryLoc = locs.find(l => l.is_primary) || locs[0] || null;
     const secondaryLoc = locs.find(l => !l.is_primary) || (locs.length > 1 ? locs[1] : null);
 
-    // Active subscription (daily clean)
-    const activeSub = subs.find(s => s.status === 'active') || subs[0] || null;
+    // Active / stopped subscription (daily clean)
+    const activeSub = subs.find(s => s.status === 'active') || null;
+    const stoppedSub = subs.find(s => s.status === 'stopped') || null;
 
-    // Service category classification
+    // Service category & lifecycle classification
     let serviceCategory = 'Daily Car Cleaning';
+    let serviceStatus = 'active';
+    let isStopped = false;
+    let stoppedReason = '';
     let sheetName = 'Daily Clean';
     let staffName = '';
     let assignedStaffId = '';
 
     const rawCustCat = (c.interested_service || '').toString().trim();
-    if (rawCustCat) {
+    if (activeSub) {
+      serviceCategory = 'Daily Car Cleaning';
+      serviceStatus = 'active';
+      staffName = activeSub.staff_name || '';
+      assignedStaffId = activeSub.staff_code || (activeSub.staff_id ? 'STF01' : '');
+    } else if (stoppedSub) {
+      serviceCategory = 'Daily Car Cleaning';
+      serviceStatus = 'stopped';
+      isStopped = true;
+      stoppedReason = stoppedSub.stopped_reason || 'Service Stopped';
+      staffName = stoppedSub.staff_name || '';
+      assignedStaffId = stoppedSub.staff_code || (stoppedSub.staff_id ? 'STF01' : '');
+    } else if (jobs.length > 0) {
+      const activeJob = jobs.find(j => j.status === 'assigned' || j.status === 'pending' || j.status === 'in_progress') || jobs[0];
+      if (activeJob.service_category_id === 'solar_cleaning') {
+        serviceCategory = 'Solar Panel Cleaning';
+      } else if (activeJob.service_category_id === 'interior_detailing') {
+        serviceCategory = 'Interior Detailing';
+      } else if (activeJob.service_category_id === 'exterior_detailing') {
+        serviceCategory = 'Exterior Detailing';
+      } else {
+        serviceCategory = 'Car Washing';
+      }
+      serviceStatus = activeJob.status || 'assigned';
+      if (activeJob.status === 'cancelled') {
+        isStopped = true;
+        stoppedReason = activeJob.cancellation_reason || 'Cancelled';
+      }
+      staffName = activeJob.staff_name || '';
+      assignedStaffId = activeJob.staff_code || '';
+    } else if (rawCustCat && rawCustCat.toLowerCase() !== 'none' && rawCustCat.toLowerCase() !== 'no service') {
       if (/solar/i.test(rawCustCat)) serviceCategory = 'Solar Panel Cleaning';
       else if (/interior/i.test(rawCustCat)) serviceCategory = 'Interior Detailing';
       else if (/exterior/i.test(rawCustCat)) serviceCategory = 'Exterior Detailing';
       else if (/wash/i.test(rawCustCat)) serviceCategory = 'Car Washing';
       else if (/daily/i.test(rawCustCat) || /dcc/i.test(rawCustCat)) serviceCategory = 'Daily Car Cleaning';
-    } else if (jobs.length > 0) {
-      const latestJob = jobs[0];
-      if (latestJob.service_category_id === 'solar_cleaning') {
-        serviceCategory = 'Solar Panel Cleaning';
-      } else if (latestJob.service_category_id === 'interior_detailing') {
-        serviceCategory = 'Interior Detailing';
-      } else if (latestJob.service_category_id === 'exterior_detailing') {
-        serviceCategory = 'Exterior Detailing';
-      } else {
-        serviceCategory = 'Car Washing';
-      }
-    } else if (activeSub) {
-      serviceCategory = 'Daily Car Cleaning';
+      serviceStatus = 'none';
+    } else {
+      serviceCategory = 'None';
+      serviceStatus = 'none';
     }
 
+    const hasService = (serviceCategory !== 'None' && serviceStatus !== 'none');
     sheetName = (serviceCategory === 'Daily Car Cleaning') ? 'Daily Clean' : 'All Other Work';
-
-    if (activeSub) {
-      staffName = activeSub.staff_name || '';
-      assignedStaffId = activeSub.staff_code || (activeSub.staff_id ? 'STF01' : '');
-    } else if (jobs.length > 0) {
-      const latestJob = jobs[0];
-      staffName = latestJob.staff_name || '';
-      assignedStaffId = latestJob.staff_code || '';
-    }
 
     // Apply category / staff filter if requested
     if (category && serviceCategory.toLowerCase() !== category.toLowerCase()) {
@@ -231,6 +248,10 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
       locations: locs,
       photoUrl: mainPhoto,
       serviceCategory: serviceCategory,
+      serviceStatus: serviceStatus,
+      isStopped: isStopped,
+      stoppedReason: stoppedReason,
+      hasService: hasService,
       sheetName: sheetName,
       packageName: activeSub?.package_name || jobs[0]?.package_details || jobs[0]?.service_type || (serviceCategory === 'Daily Car Cleaning' ? 'Daily Clean' : serviceCategory),
       packageType: activeSub?.package_name || jobs[0]?.package_details || jobs[0]?.service_type || (serviceCategory === 'Daily Car Cleaning' ? 'DCC ONLY' : 'Standard'),
@@ -352,8 +373,10 @@ async function saveCustomer(custData, adminUser = 'admin') {
     }
 
     const leadNotes = custData.leadNotes || custData.lead_notes || custData.notes || null;
-    const interestedService = custData.serviceCategory || custData.serviceType || custData.interestedService || 'Daily Car Cleaning';
-    const isSolarCustomer = (interestedService === 'Solar Panel Cleaning' || interestedService === 'solar_cleaning');
+    const rawCat = (custData.serviceCategory || custData.serviceType || custData.interestedService || '').trim();
+    const hasService = Boolean(rawCat && rawCat.toLowerCase() !== 'none' && !custData.noService && rawCat !== 'No Service');
+    const interestedService = hasService ? rawCat : 'None';
+    const isSolarCustomer = hasService && (interestedService === 'Solar Panel Cleaning' || interestedService === 'solar_cleaning');
     const customerPanelCount = isSolarCustomer ? (parseInt(custData.panelCount || custData.panel_count, 10) || null) : null;
     const customerSeaterType = isSolarCustomer ? null : (custData.seaterType || custData.seater_type || '5_seater');
     const carMake = (custData.carMake || custData.car_make || '').trim() || null;
@@ -485,69 +508,70 @@ async function saveCustomer(custData, adminUser = 'admin') {
       assignedStaff = allStaff.find(s => s.name.toLowerCase() === sName.toLowerCase()) || null;
     }
 
-    // 5. Create Daily Cleaning Subscription or On-Demand Service Job
-    const cat = (custData.serviceCategory || custData.category || custData.sheetName || '').trim();
-    const isDaily = cat === 'Daily Car Cleaning' || cat === 'Daily Clean' || cat === 'daily_car_cleaning';
+    // 5. Create Daily Cleaning Subscription or On-Demand Service Job (if requested)
+    if (hasService) {
+      const isDaily = rawCat === 'Daily Car Cleaning' || rawCat === 'Daily Clean' || rawCat === 'daily_car_cleaning';
 
-    if (isDaily) {
-      const sub = await repos.subscriptions.createSubscription({
-        customerId: customer.id,
-        serviceCategoryId: 'daily_car_cleaning',
-        packageName: custData.packageType || custData.packageName || 'Daily Clean',
-        packagesPurchased: parseInt(custData.packagesPurchased, 10) || 1,
-        rotationType: custData.rotationType || (custData.aajKal ? 'aaj_kal' : 'none'),
-        rotationNotes: custData.rotationNotes || custData.notes || null,
-        status: 'active'
-      }, client);
-
-      // Attach vehicles to subscription
-      for (const cv of createdVehicles) {
-        await repos.subscriptionVehicles.addVehicleToSubscription({
-          subscriptionId: sub.id,
+      if (isDaily) {
+        const sub = await repos.subscriptions.createSubscription({
           customerId: customer.id,
-          vehicleId: cv.id,
-          locationId: primaryLocation?.id || null,
-          scheduleTag: custData.scheduleTag || 'daily'
+          serviceCategoryId: 'daily_car_cleaning',
+          packageName: custData.packageType || custData.packageName || 'Daily Clean',
+          packagesPurchased: parseInt(custData.packagesPurchased, 10) || 1,
+          rotationType: custData.rotationType || (custData.aajKal ? 'aaj_kal' : 'none'),
+          rotationNotes: custData.rotationNotes || custData.notes || null,
+          status: 'active'
         }, client);
-      }
 
-      // Assign staff to subscription
-      if (assignedStaff) {
-        await repos.staffAssignments.assignStaffToSubscription({
-          staffId: assignedStaff.id,
-          subscriptionId: sub.id,
-          assignedBy: adminUser
+        // Attach vehicles to subscription
+        for (const cv of createdVehicles) {
+          await repos.subscriptionVehicles.addVehicleToSubscription({
+            subscriptionId: sub.id,
+            customerId: customer.id,
+            vehicleId: cv.id,
+            locationId: primaryLocation?.id || null,
+            scheduleTag: custData.scheduleTag || 'daily'
+          }, client);
+        }
+
+        // Assign staff to subscription
+        if (assignedStaff) {
+          await repos.staffAssignments.assignStaffToSubscription({
+            staffId: assignedStaff.id,
+            subscriptionId: sub.id,
+            assignedBy: adminUser
+          }, client);
+        }
+      } else {
+        // On-Demand Service Job (Car Wash, Solar, Interior, Exterior)
+        const isSolar = rawCat === 'Solar Panel Cleaning' || rawCat === 'solar_cleaning';
+        const serviceCatId = resolveCanonicalCategory(rawCat);
+        const parsedPanelCount = isSolar ? (parseInt(custData.panelCount || custData.panel_count, 10) || 10) : null;
+        const parsedSeaterType = isSolar ? null : (custData.seaterType || custData.seater_type || '5_seater');
+
+        const job = await repos.serviceJobs.createJob({
+          customerId: customer.id,
+          vehicleId: createdVehicles[0]?.id || null,
+          locationId: primaryLocation?.id || (await repos.serviceLocations.findByCustomerId(customer.id, { client }))[0]?.id,
+          serviceCategoryId: serviceCatId,
+          serviceType: custData.serviceType || custData.packageType || (isSolar ? 'Solar Cleaning' : 'Car Wash'),
+          packageDetails: custData.packageDetails || null,
+          seaterType: parsedSeaterType,
+          panelCount: parsedPanelCount,
+          siteDetails: isSolar ? { panelCount: parsedPanelCount, roofType: 'RCC' } : null,
+          scheduledDate: custData.scheduledDate || null,
+          status: 'assigned',
+          specialInstructions: custData.notes || null,
+          photoUrl: custData.photoUrl || null
         }, client);
-      }
-    } else {
-      // On-Demand Service Job (Car Wash, Solar, Interior, Exterior)
-      const isSolar = cat === 'Solar Panel Cleaning' || cat === 'solar_cleaning';
-      const serviceCatId = resolveCanonicalCategory(cat);
-      const parsedPanelCount = isSolar ? (parseInt(custData.panelCount || custData.panel_count, 10) || 10) : null;
-      const parsedSeaterType = isSolar ? null : (custData.seaterType || custData.seater_type || '5_seater');
 
-      const job = await repos.serviceJobs.createJob({
-        customerId: customer.id,
-        vehicleId: createdVehicles[0]?.id || null,
-        locationId: primaryLocation?.id || (await repos.serviceLocations.findByCustomerId(customer.id, { client }))[0]?.id,
-        serviceCategoryId: serviceCatId,
-        serviceType: custData.serviceType || custData.packageType || (isSolar ? 'Solar Cleaning' : 'Car Wash'),
-        packageDetails: custData.packageDetails || null,
-        seaterType: parsedSeaterType,
-        panelCount: parsedPanelCount,
-        siteDetails: isSolar ? { panelCount: parsedPanelCount, roofType: 'RCC' } : null,
-        scheduledDate: custData.scheduledDate || null,
-        status: 'assigned',
-        specialInstructions: custData.notes || null,
-        photoUrl: custData.photoUrl || null
-      }, client);
-
-      if (assignedStaff) {
-        await repos.staffAssignments.assignStaffToJob({
-          staffId: assignedStaff.id,
-          jobId: job.id,
-          assignedBy: adminUser
-        }, client);
+        if (assignedStaff) {
+          await repos.staffAssignments.assignStaffToJob({
+            staffId: assignedStaff.id,
+            jobId: job.id,
+            assignedBy: adminUser
+          }, client);
+        }
       }
     }
 
@@ -564,7 +588,8 @@ async function saveCustomer(custData, adminUser = 'admin') {
       success: true,
       customerId: customer.id,
       customerCode: customer.customer_code,
-      message: 'Customer saved successfully to Neon PostgreSQL'
+      hasService: Boolean(hasService),
+      message: hasService ? 'Customer saved successfully' : 'Customer profile saved successfully (No Service Assigned)'
     };
   });
 }
@@ -2537,12 +2562,11 @@ async function assignDailyCleanCustomer({ customerId, staffId, adminUser = 'admi
           'SELECT COALESCE(MAX(sequence_order), 0) AS max_seq FROM public.staff_route_sequences WHERE staff_id = $1',
           [staff.id]
         );
-        const nextSeq = (maxSeqRes.rows[0]?.max_seq || 0) + 1;
+        const nextSeq = (parseInt(maxSeqRes.rows[0]?.max_seq, 10) || 0) + 1;
         await client.query(
-          `INSERT INTO public.staff_route_sequences (staff_id, subscription_id, sequence_order, updated_at)
-           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-           ON CONFLICT (staff_id, subscription_id) DO UPDATE SET sequence_order = $3, updated_at = CURRENT_TIMESTAMP`,
-          [staff.id, sub.id, nextSeq]
+          `INSERT INTO public.staff_route_sequences (staff_id, subscription_id, sequence_order, updated_by, updated_at)
+           VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+          [staff.id, sub.id, nextSeq, adminUser || 'admin']
         );
       }
     } catch (seqErr) {
@@ -2651,7 +2675,295 @@ async function getDailyCleanAssignments({ staffId = null, unassignedOnly = false
   return { success: true, assignments: rows };
 }
 
+/**
+ * Assign or update service and staff assignment for a customer
+ */
+async function assignCustomerService(serviceData, adminUser = 'admin') {
+  const custId = serviceData.customerId || serviceData.id;
+  if (!custId) return { success: false, error: 'Customer ID is required.' };
+
+  const target = String(custId).trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(target);
+  let customer = isUuid ? await repos.customers.findById(target) : null;
+  if (!customer) customer = await repos.customers.findByCode(target);
+  if (!customer) {
+    const all = await repos.customers.findAll();
+    customer = all.find(c => c.id === target || c.customer_code === target || c.phone === target) || null;
+  }
+  if (!customer) return { success: false, error: `Customer '${target}' not found.` };
+
+  return db.withTransaction(async (client) => {
+    const cat = (serviceData.serviceCategory || serviceData.serviceType || 'Daily Car Cleaning').trim();
+    const isDaily = cat === 'Daily Car Cleaning' || cat === 'Daily Clean' || cat === 'daily_car_cleaning';
+    const isSolar = cat === 'Solar Panel Cleaning' || cat === 'solar_cleaning';
+
+    const carMake = (serviceData.carMake || serviceData.car_make || '').trim() || null;
+    const carColor = (serviceData.carColor || serviceData.car_color || '').trim() || null;
+    const seaterType = isSolar ? null : (serviceData.seaterType || serviceData.seater_type || '5_seater');
+    const panelCount = isSolar ? (parseInt(serviceData.panelCount || serviceData.panel_count, 10) || 10) : null;
+    const pkgType = serviceData.packageType || serviceData.packageName || (isDaily ? 'DCC ONLY' : 'Standard');
+    const photoUrl = serviceData.photoUrl || null;
+
+    // 1. Upsert Customer Vehicle if provided
+    const rawVeh = (serviceData.vehicle || serviceData.vehicleNumbers || '').trim();
+    let targetVehicle = null;
+    if (rawVeh && !isSolar) {
+      const parsed = parseVehicleString(rawVeh);
+      const existingVehs = await repos.vehicles.findByCustomerId(customer.id, { client });
+      if (existingVehs.length > 0) {
+        await repos.vehicles.updateVehicle(existingVehs[0].id, {
+          registrationNo: parsed.reg || existingVehs[0].registration_no,
+          brandOrModel: parsed.model || existingVehs[0].brand_or_model,
+          photoUrl: photoUrl || existingVehs[0].photo_url,
+          carMake: carMake || existingVehs[0].car_make,
+          carColor: carColor || existingVehs[0].car_color,
+          seaterType: seaterType || existingVehs[0].seater_type
+        }, client);
+        targetVehicle = existingVehs[0];
+      } else if (parsed.reg) {
+        const primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
+        targetVehicle = await repos.vehicles.createVehicle({
+          customerId: customer.id,
+          defaultLocationId: primaryLoc?.id || null,
+          registrationNo: parsed.reg,
+          brandOrModel: parsed.model || null,
+          photoUrl: photoUrl,
+          carMake: carMake,
+          carColor: carColor,
+          seaterType: seaterType
+        }, client);
+      }
+    }
+
+    // 2. Resolve Staff Member Assignment
+    let targetStaff = null;
+    const sName = (serviceData.staffName || '').trim();
+    const sId = (serviceData.staffId || '').trim();
+    if (sId && sId.toLowerCase() !== 'unassigned' && sId.toLowerCase() !== 'none') {
+      targetStaff = await repos.staff.findByStaffCode(sId, client);
+      if (!targetStaff) targetStaff = await repos.staff.findById(sId, client);
+    } else if (sName && sName.toLowerCase() !== 'unassigned' && sName.toLowerCase() !== 'none') {
+      const allStaff = await repos.staff.findAll({ client });
+      targetStaff = allStaff.find(s => s.name.toLowerCase() === sName.toLowerCase() || s.staff_code?.toLowerCase() === sName.toLowerCase()) || null;
+    }
+
+    // 3. Update Customer interestedService
+    await repos.customers.updateCustomer(customer.id, {
+      interestedService: isDaily ? 'Daily Car Cleaning' : cat,
+      isActive: true,
+      carMake: carMake || customer.car_make,
+      carColor: carColor || customer.car_color,
+      panelCount: panelCount || customer.panel_count
+    }, client);
+
+    // 4. Handle Daily Car Cleaning vs On-Demand Job
+    let subId = null;
+    let jobId = null;
+
+    if (isDaily) {
+      let sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
+      if (!sub) {
+        const allSubs = await repos.subscriptions.findByCustomerId(customer.id, { client });
+        sub = allSubs.find(s => s.service_category_id === 'daily_car_cleaning') || null;
+      }
+
+      if (sub) {
+        await client.query(
+          `UPDATE public.subscriptions 
+           SET status = 'active', package_name = $1, stopped_at = NULL, stopped_reason = NULL, stopped_by = NULL, updated_at = CURRENT_TIMESTAMP 
+           WHERE id = $2`,
+          [pkgType, sub.id]
+        );
+      } else {
+        sub = await repos.subscriptions.createSubscription({
+          customerId: customer.id,
+          serviceCategoryId: 'daily_car_cleaning',
+          packageName: pkgType,
+          status: 'active'
+        }, client);
+      }
+      subId = sub.id;
+
+      // Link vehicle to subscription
+      if (targetVehicle) {
+        const primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
+        await repos.subscriptionVehicles.addVehicleToSubscription({
+          subscriptionId: sub.id,
+          customerId: customer.id,
+          vehicleId: targetVehicle.id,
+          locationId: primaryLoc?.id || null,
+          scheduleTag: 'daily'
+        }, client);
+      }
+
+      // Handle staff assignment
+      if (targetStaff) {
+        await repos.staffAssignments.assignStaffToSubscription({
+          staffId: targetStaff.id,
+          subscriptionId: sub.id,
+          assignedBy: adminUser
+        }, client);
+
+        // Append to route sequence
+        try {
+          const existingSeqs = await client.query(
+            'SELECT * FROM public.staff_route_sequences WHERE staff_id = $1 AND subscription_id = $2',
+            [targetStaff.id, sub.id]
+          );
+          if (existingSeqs.rows.length === 0) {
+            const maxSeqRes = await client.query(
+              'SELECT COALESCE(MAX(sequence_order), 0) AS max_seq FROM public.staff_route_sequences WHERE staff_id = $1',
+              [targetStaff.id]
+            );
+            const nextSeq = (parseInt(maxSeqRes.rows[0]?.max_seq, 10) || 0) + 1;
+            await client.query(
+              `INSERT INTO public.staff_route_sequences (staff_id, subscription_id, sequence_order, updated_by, updated_at)
+               VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+              [targetStaff.id, sub.id, nextSeq, adminUser || 'admin']
+            );
+          }
+        } catch (e) {}
+      } else if (sName.toLowerCase() === 'unassigned' || sId.toLowerCase() === 'unassigned') {
+        await repos.staffAssignments.unassignSubscription({
+          subscriptionId: sub.id,
+          unassignedBy: adminUser,
+          reason: 'Customer unassigned by admin'
+        }, client);
+      }
+    } else {
+      // On-Demand Job
+      const sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
+      if (sub) {
+        await client.query(
+          `UPDATE public.subscriptions SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+          [sub.id]
+        );
+        await repos.staffAssignments.unassignSubscription({
+          subscriptionId: sub.id,
+          unassignedBy: adminUser,
+          reason: `Switched to ${cat}`
+        }, client);
+      }
+
+      const sCatId = resolveCanonicalCategory(cat);
+      const existingJobs = await repos.serviceJobs.findByCustomerId(customer.id, { client });
+      const primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
+
+      let jobId = null;
+      if (existingJobs.length > 0) {
+        jobId = existingJobs[0].id;
+        await repos.serviceJobs.updateJob(jobId, {
+          serviceCategoryId: sCatId,
+          serviceType: cat,
+          packageDetails: pkgType,
+          seaterType: seaterType,
+          panelCount: panelCount,
+          siteDetails: isSolar ? { panelCount: panelCount, roofType: 'RCC' } : null,
+          status: targetStaff ? 'assigned' : 'pending'
+        }, client);
+      } else {
+        const newJob = await repos.serviceJobs.createJob({
+          customerId: customer.id,
+          vehicleId: targetVehicle?.id || null,
+          locationId: primaryLoc?.id || null,
+          serviceCategoryId: sCatId,
+          serviceType: cat,
+          packageDetails: pkgType,
+          seaterType: seaterType,
+          panelCount: panelCount,
+          siteDetails: isSolar ? { panelCount: panelCount, roofType: 'RCC' } : null,
+          status: targetStaff ? 'assigned' : 'pending'
+        }, client);
+        jobId = newJob.id;
+      }
+
+      if (targetStaff && jobId) {
+        await repos.staffAssignments.assignStaffToJob({
+          staffId: targetStaff.id,
+          jobId: jobId,
+          assignedBy: adminUser
+        }, client);
+      }
+    }
+
+    await repos.auditLogs.logChange({
+      entityType: 'customer_service',
+      entityId: customer.id,
+      action: 'assign_service',
+      changedBy: adminUser,
+      afterState: { customerId: customer.id, serviceCategory: cat, packageType: pkgType, staffId: targetStaff?.id }
+    }, client);
+
+    return {
+      success: true,
+      customerId: customer.id,
+      customerCode: customer.customer_code,
+      subscriptionId: subId,
+      jobId: jobId,
+      message: `Service '${cat}' assigned successfully to ${customer.name}`
+    };
+  });
+}
+
+/**
+ * Stop customer service cleanly without deactivating customer profile
+ */
+async function stopCustomerService({ customerId, reason = 'Customer requested service stop', adminUser = 'admin' } = {}) {
+  if (!customerId) return { success: false, error: 'Customer ID is required.' };
+
+  const target = String(customerId).trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(target);
+  let customer = isUuid ? await repos.customers.findById(target) : null;
+  if (!customer) customer = await repos.customers.findByCode(target);
+  if (!customer) {
+    const all = await repos.customers.findAll();
+    customer = all.find(c => c.id === target || c.customer_code === target || c.phone === target) || null;
+  }
+  if (!customer) return { success: false, error: `Customer '${target}' not found.` };
+
+  return db.withTransaction(async (client) => {
+    // 1. Mark active subscriptions stopped
+    const subRes = await client.query(
+      `UPDATE public.subscriptions 
+       SET status = 'stopped', stopped_at = CURRENT_TIMESTAMP, stopped_reason = $1, stopped_by = $2, updated_at = CURRENT_TIMESTAMP 
+       WHERE customer_id = $3 AND status = 'active'
+       RETURNING id`,
+      [reason, adminUser, customer.id]
+    );
+
+    // 2. Mark pending / assigned jobs cancelled
+    await client.query(
+      `UPDATE public.service_jobs 
+       SET status = 'cancelled', cancellation_reason = $1, cancelled_at = CURRENT_TIMESTAMP, cancelled_by = $2, updated_at = CURRENT_TIMESTAMP 
+       WHERE customer_id = $3 AND status IN ('pending', 'assigned')`,
+      [reason, adminUser, customer.id]
+    );
+
+    // 3. Keep customer profile Active
+    await repos.customers.updateCustomer(customer.id, {
+      isActive: true
+    }, client);
+
+    await repos.auditLogs.logChange({
+      entityType: 'subscription',
+      entityId: customer.id,
+      action: 'stop_service',
+      changedBy: adminUser,
+      afterState: { customerId: customer.id, customerName: customer.name, status: 'stopped', reason }
+    }, client);
+
+    return {
+      success: true,
+      customerId: customer.id,
+      stoppedSubscriptions: subRes.rowCount,
+      message: `Service stopped successfully for ${customer.name}. Customer profile remains active in CRM.`
+    };
+  });
+}
+
 module.exports = {
+  assignCustomerService,
+  stopCustomerService,
   normalizeIndianMobile,
   isValidIndianMobile,
   parseVehicleString,
