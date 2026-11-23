@@ -23,8 +23,10 @@
   const heroPrimaryCta = document.getElementById('heroPrimaryCta');
   const heroSecondaryCta = document.getElementById('heroSecondaryCta');
   const trustChipsContainer = document.getElementById('trustChipsContainer');
-  const clientsLabel = document.getElementById('clientsLabel');
-  const clientsBadgesContainer = document.getElementById('clientsBadgesContainer');
+  const clientsBrandsTitle = document.getElementById('clientsBrandsTitle');
+  const clientsBrandsContainer = document.getElementById('clientsBrandsContainer');
+  const clientsSocietiesTitle = document.getElementById('clientsSocietiesTitle');
+  const clientsSocietiesContainer = document.getElementById('clientsSocietiesContainer');
   const routineEyebrow = document.getElementById('routineEyebrow');
   const routineTitle = document.getElementById('routineTitle');
   const routineSubtitle = document.getElementById('routineSubtitle');
@@ -277,32 +279,42 @@
 
   // Render Clients / Supported Brands dynamically (Clean professional badges)
   function renderClients(mode) {
-    if (!clientsLabel || !clientsBadgesContainer) return;
+    if (!clientsBrandsContainer || !clientsSocietiesContainer) return;
     if (mode === 'solar') {
-      clientsLabel.textContent = 'Trusted Across Varanasi Solar Rooftops & Leading Inverter Brands';
-      clientsBadgesContainer.innerHTML = `
-        <span class="client-badge">Tata Power Solar Systems</span>
+      if (clientsBrandsTitle) clientsBrandsTitle.textContent = 'Supported Solar Systems & Inverters';
+      clientsBrandsContainer.innerHTML = `
+        <span class="client-badge">Tata Power Solar</span>
         <span class="client-badge">Luminous Solar</span>
-        <span class="client-badge">Microtek Inverters</span>
+        <span class="client-badge">Microtek</span>
         <span class="client-badge">Havells Solar</span>
         <span class="client-badge">Waaree Energies</span>
-        <span class="client-badge">Adani Solar Panels</span>
-        <span class="client-badge">Mahmoorganj Commercial Rooftops</span>
-        <span class="client-badge">Sigra Residential Societies</span>
-        <span class="client-badge">Lanka Educational Institutes</span>
+        <span class="client-badge">Adani Solar</span>
+      `;
+      if (clientsSocietiesTitle) clientsSocietiesTitle.textContent = 'Key Rooftop Sites in Varanasi';
+      clientsSocietiesContainer.innerHTML = `
+        <span class="client-badge">Mahmoorganj Commercial</span>
+        <span class="client-badge">Sigra Residential</span>
+        <span class="client-badge">Lanka Educational</span>
+        <span class="client-badge">Rohania Industrial</span>
+        <span class="client-badge">Cantt Enclaves</span>
       `;
     } else {
-      clientsLabel.textContent = 'Trusted by Vehicle Owners & Leading Societies across Varanasi';
-      clientsBadgesContainer.innerHTML = `
+      if (clientsBrandsTitle) clientsBrandsTitle.textContent = 'Supported Vehicle Brands';
+      clientsBrandsContainer.innerHTML = `
         <span class="client-badge">Mercedes-Benz</span>
         <span class="client-badge">BMW</span>
         <span class="client-badge">Audi</span>
         <span class="client-badge">Toyota Fortuner & Innova</span>
         <span class="client-badge">Hyundai Creta & Verna</span>
         <span class="client-badge">Tata Safari & Nexon</span>
+      `;
+      if (clientsSocietiesTitle) clientsSocietiesTitle.textContent = 'Varanasi Societies & Localities';
+      clientsSocietiesContainer.innerHTML = `
         <span class="client-badge">Sigra Greens</span>
         <span class="client-badge">Mahmoorganj Enclave</span>
         <span class="client-badge">Cantt Officers Enclave</span>
+        <span class="client-badge">Ravindrapuri</span>
+        <span class="client-badge">Bhelupur</span>
       `;
     }
   }
@@ -974,22 +986,106 @@
   window.openLegalModal = function (type) {
     if (!legalModal) return;
     if (type === 'terms') {
-      legalModalTitle.textContent = 'Terms & Conditions — CWP Detailers';
+      legalModalTitle.textContent = 'Terms & Conditions — CWP Detailers & Motors';
       legalModalBody.innerHTML = `
-        <p><strong>1. Doorstep Service Window:</strong> Daily car cleaning visits are conducted between 6:00 AM and 9:30 AM based on your assigned route sequence in Varanasi. Technicians require unobstructed gate access.</p>
-        <p><strong>2. Water & Power:</strong> CWP brings dedicated treated water equipment on-board. For deep detailing or steam extraction, standard domestic electrical connection may be requested.</p>
-        <p><strong>3. Pause Policy:</strong> Members may pause recurring subscriptions at zero penalty with 24 hours advance notice via WhatsApp (7054007733).</p>
-        <p><strong>4. Pricing & Taxes:</strong> All advertised rates are exclusive of 18% GST (GST Extra).</p>
+        <div style="display:flex;flex-direction:column;gap:14px;font-size:0.875rem;line-height:1.6;color:var(--md-sys-color-on-surface-variant);">
+          <p style="font-size:0.75rem;color:var(--md-sys-color-on-surface-variant);margin-bottom:4px;">Effective Date: January 1, 2026 | Varanasi, Uttar Pradesh</p>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">1. Acceptance of Terms</strong>
+            <p>By booking any doorstep car cleaning, detailing, or solar panel maintenance service with CWP Detailers & Motors ("CWP", "we", "us"), via website, WhatsApp (+91 7054007733), phone, or in person, you agree to these Terms and Conditions.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">2. Doorstep Car Cleaning Subscription (DCC)</strong>
+            <p>• DCC services operate on monthly subscription plans (Basic, Silver, Gold) covering 26 service visits per month.<br>
+            • Service Window: Delivered at customer's designated residence or parking gate in Varanasi between 6:30 AM and 9:00 AM.<br>
+            • Water & Power: CWP rigs carry treated soft water and battery-powered tools. For deep interior extraction or machine polishing, standard domestic power access may be requested.<br>
+            • Vehicle Access: Customer must ensure the vehicle is accessible during the morning route slot.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">3. Cancellation, Rescheduling & Vacation Pause</strong>
+            <p>• Vacation Pause: Subscribers may pause monthly service up to 2 times per billing cycle (max 10 calendar days total) with at least 24 hours advance notice via WhatsApp. Paused days are credited forward to extend your active subscription.<br>
+            • One-Time Bookings: Doorstep wash or detailing appointments can be rescheduled or cancelled without penalty up to 6 hours prior to the scheduled slot.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">4. Payments & Taxes</strong>
+            <p>• DCC plans operate on a recurring 30-day advance billing cycle.<br>
+            • All published prices are exclusive of Goods and Services Tax (GST). Applicable 18% GST is added at billing. Official GST invoices are provided.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">5. Liability & Vehicle Care</strong>
+            <p>• Pre-Existing Scratches: Specialists conduct a rapid visual check. CWP is not liable for prior swirls, chips, or oxidized paint caused by colony cleaners.<br>
+            • Valuables: Customers are requested to remove cash, electronics, and personal valuables before interior detailing.<br>
+            • Cosmetic Care: We perform cosmetic exterior and interior detailing only, not mechanical or electrical engine repairs.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">6. 24-Hour Re-Do Guarantee & Jurisdiction</strong>
+            <p>• If any clean does not meet published standards, notify customer support within 24 hours via WhatsApp (7054007733) with photos. A supervisor will inspect and re-clean the vehicle free of charge.<br>
+            • All disputes are subject to the exclusive jurisdiction of civil courts located in Varanasi, Uttar Pradesh, India.</p>
+          </div>
+        </div>
       `;
     } else if (type === 'privacy') {
-      legalModalTitle.textContent = 'Privacy Policy — CWP Detailers';
+      legalModalTitle.textContent = 'Privacy Policy — CWP Detailers & Motors';
       legalModalBody.innerHTML = `
-        <p><strong>Data Confidentiality:</strong> Your phone number, address, and vehicle registration are used strictly for service delivery, ETA tracking, and WhatsApp inspection reports. We never sell or share your data with third parties.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;font-size:0.875rem;line-height:1.6;color:var(--md-sys-color-on-surface-variant);">
+          <p style="font-size:0.75rem;color:var(--md-sys-color-on-surface-variant);margin-bottom:4px;">Effective Date: January 1, 2026 | Varanasi, Uttar Pradesh</p>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">1. Information We Collect</strong>
+            <p>• Contact Data: Name, mobile number, WhatsApp contact, billing address.<br>
+            • Service Delivery Details: Residence address, society/gate number, vehicle registration number and model, rooftop solar panel capacity.<br>
+            • Service Records: Time-stamped before-and-after photographs, technician attendance, customer ratings.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">2. How We Use Your Information</strong>
+            <p>• Dispatching morning cleaning specialists and coordinating Varanasi route slots.<br>
+            • Sending daily WhatsApp service completion updates and before-and-after proof photos.<br>
+            • Issuing GST-compliant invoices and handling recurring renewal notices.<br>
+            • Continuous route optimization for our mobile service fleet across Varanasi.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">3. Zero Third-Party Data Sharing</strong>
+            <p>CWP Detailers & Motors does NOT sell, rent, or trade your personal information. Data is shared solely with WhatsApp Business API (Meta) for dispatching visit reports and secure cloud database infrastructure.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">4. Routine Photo Retention & Data Deletion</strong>
+            <p>• Routine daily WhatsApp inspection photos are retained on secure cloud storage for 90 days, then permanently purged.<br>
+            • You may request complete erasure of your profile by emailing cwpdetailers@gmail.com with your registered mobile number.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">5. Business Contact & Grievance</strong>
+            <p>Data Protection Officer, CWP Detailers & Motors<br>
+            FIRST FLOOR, 32/14-4A, Annapurna Nagar Colony, Vidya Vihar Colony, Shivpurwa, Varanasi, Uttar Pradesh 221002<br>
+            Phone: +91 7054007733 | Email: cwpdetailers@gmail.com</p>
+          </div>
+        </div>
       `;
     } else if (type === 'refund') {
-      legalModalTitle.textContent = 'Satisfaction & Refund Policy';
+      legalModalTitle.textContent = 'Refund & Satisfaction Policy';
       legalModalBody.innerHTML = `
-        <p><strong>24-Hour Re-do Guarantee:</strong> If you are not satisfied with any morning clean, notify us on WhatsApp (7054007733) within 24 hours. A supervisor will inspect and re-clean your car free of charge.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;font-size:0.875rem;line-height:1.6;color:var(--md-sys-color-on-surface-variant);">
+          <p style="font-size:0.75rem;color:var(--md-sys-color-on-surface-variant);margin-bottom:4px;">Effective Date: January 1, 2026 | Varanasi, Uttar Pradesh</p>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">1. 24-Hour Re-Do Guarantee</strong>
+            <p>If you are not satisfied with any morning clean, notify us on WhatsApp (+91 7054007733) within 24 hours of service delivery. A supervisor will inspect and re-clean your car free of charge.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">2. Monthly Subscription Pro-Rata Refunds</strong>
+            <p>• Cancellation within First 7 Days: If you cancel your DCC subscription within the first 7 days of your initial billing cycle, remaining balance is refunded on a pro-rata basis (plan fee minus completed visits at ₹100/visit + GST).<br>
+            • Cancellation after 7 Days: Subscriptions remain active until the end of the 30-day cycle and do not renew.<br>
+            • Vacation Pause: If traveling outside Varanasi, pause your plan for up to 10 days per month. Unused days are credited forward to your next billing cycle.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">3. One-Time Detailing & Wash Bookings</strong>
+            <p>• Advance Notice (> 6 Hours): 100% refund or free slot rescheduling.<br>
+            • Late Cancellation (< 6 Hours): Subject to a ₹200 technician mobilization fee; balance refunded.<br>
+            • No-Show / Inaccessible Vehicle: If vehicle is unavailable within 20 minutes of arrival, ₹250 mobilization fee is deducted.</p>
+          </div>
+          <div>
+            <strong style="color:var(--md-sys-color-on-surface);display:block;margin-bottom:4px;">4. Processing Method & Timelines</strong>
+            <p>Approved refunds are credited to the original payment source (UPI, Debit/Credit Card, Net Banking) within 5 to 7 business days.<br>
+            Assistance: WhatsApp +91 7054007733 or email cwpdetailers@gmail.com.</p>
+          </div>
+        </div>
       `;
     }
     legalModal.classList.add('open');

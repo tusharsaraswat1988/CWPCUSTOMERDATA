@@ -51,7 +51,8 @@ console.log('✅ PASS 3: Complete rate card logic, DCC 5-seater vs 5+ seater, wa
 
 // 4. Live Server HTTP API Rate Card Config
 console.log('\n--- Test 4: Live Server /api/public/homepage-config ---');
-const req = http.get('http://127.0.0.1:3000/api/public/homepage-config', (res) => {
+const testPort = process.env.PORT || 3005;
+const req = http.get(`http://127.0.0.1:${testPort}/api/public/homepage-config`, (res) => {
   let body = '';
   res.on('data', chunk => { body += chunk; });
   res.on('end', () => {
