@@ -5527,8 +5527,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Force latest asset version cache-buster across ALL routes
-    const APP_ASSET_VERSION = '3.3.4';
-    const ACTIVE_ASSET_REV = '3.3.4';
+    const APP_ASSET_VERSION = '3.3.5';
+    const ACTIVE_ASSET_REV = '3.3.5';
     content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, `/js/app.js?v=${ACTIVE_ASSET_REV}`);
     content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, `/css/style.css?v=${ACTIVE_ASSET_REV}`);
 

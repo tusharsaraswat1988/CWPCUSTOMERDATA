@@ -3262,6 +3262,233 @@ var state = {
     var dccRosterCache = [];
     var dccActiveSubTab = 'daily';
 
+    /* Global Unified Staff Dropdown Synchronizer */
+    function syncAllStaffDropdowns(rawList) {
+      var list = Array.isArray(rawList) ? rawList : (rawList && (rawList.data || rawList.staff || rawList.staffList) ? (rawList.data || rawList.staff || rawList.staffList) : []);
+      if (!list || list.length === 0) {
+        list = (state && (state.staffList || state.adminStaffList)) || [];
+      }
+      if (!Array.isArray(list)) list = [];
+      if (list.length > 0) {
+        state.staffList = list;
+        state.adminStaffList = list;
+      }
+
+      // 1. Daily Clean Route Assign Select (#dccAssignStaffSelect)
+      var dccStaffSelect = document.getElementById('dccAssignStaffSelect');
+      if (dccStaffSelect) {
+        var prevVal = dccStaffSelect.value;
+        dccStaffSelect.innerHTML = '<option value="">-- Select Cleaner --</option>';
+        list.forEach(function(s) {
+          var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+          if (isAct) {
+            var opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Cleaner') + ')';
+            dccStaffSelect.appendChild(opt);
+          }
+        });
+        if (prevVal) dccStaffSelect.value = prevVal;
+      }
+
+      // 2. On-Demand Job Staff Select (#jobAssignStaff)
+      var jobStaffSelect = document.getElementById('jobAssignStaff');
+      if (jobStaffSelect) {
+        var prevJobStaffVal = jobStaffSelect.value;
+        jobStaffSelect.innerHTML = '<option value="">-- Select Staff Cleaner --</option>';
+        list.forEach(function(s) {
+          var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+          if (isAct) {
+            var opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Staff') + ')';
+            jobStaffSelect.appendChild(opt);
+          }
+        });
+        if (prevJobStaffVal) jobStaffSelect.value = prevJobStaffVal;
+      }
+
+      // 3. Daily Clean Roster Staff Filter (#dccRosterStaffFilter or #dccFilterStaff)
+      var filterStaffSelect = document.getElementById('dccRosterStaffFilter') || document.getElementById('dccFilterStaff');
+      if (filterStaffSelect) {
+        var prevFilterVal = filterStaffSelect.value;
+        filterStaffSelect.innerHTML = '<option value="all">All Field Staff</option><option value="unassigned">⚠️ Unassigned Only</option>';
+        list.forEach(function(s) {
+          var opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = '👤 ' + (s.name || s.id);
+          filterStaffSelect.appendChild(opt);
+        });
+        if (prevFilterVal) filterStaffSelect.value = prevFilterVal;
+      }
+
+      // 4. Wash & Solar Staff Select (#specialStaffSelect)
+      var specialStaffSelect = document.getElementById('specialStaffSelect');
+      if (specialStaffSelect) {
+        var prevSpecVal = specialStaffSelect.value;
+        specialStaffSelect.innerHTML = '<option value="">-- Choose Active Staff --</option>';
+        list.forEach(function(s) {
+          var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+          if (isAct) {
+            var opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Staff') + ')';
+            specialStaffSelect.appendChild(opt);
+          }
+        });
+        if (prevSpecVal) specialStaffSelect.value = prevSpecVal;
+      }
+
+      // 5. Wash & Solar Reassign Staff Select (#reassignNewStaffSelect)
+      var reassignSelect = document.getElementById('reassignNewStaffSelect');
+      if (reassignSelect) {
+        var prevReassignVal = reassignSelect.value;
+        reassignSelect.innerHTML = '<option value="">-- Choose New Staff --</option>';
+        list.forEach(function(s) {
+          var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+          if (isAct) {
+            var opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Staff') + ')';
+            reassignSelect.appendChild(opt);
+          }
+        });
+        if (prevReassignVal) reassignSelect.value = prevReassignVal;
+      }
+
+      // 6. Dedicated Service Assignment Staff Select (#assignStaffSelect)
+      var assignStaffSel = document.getElementById('assignStaffSelect');
+      if (assignStaffSel) {
+        var prevAssignStaffVal = assignStaffSel.value;
+        assignStaffSel.innerHTML = '<option value="">Unassigned (असाइन नहीं)</option>';
+        list.forEach(function(s) {
+          var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+          if (isAct) {
+            var opt = document.createElement('option');
+            opt.value = s.name || s.id;
+            opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Staff') + ')';
+            assignStaffSel.appendChild(opt);
+          }
+        });
+        if (prevAssignStaffVal) assignStaffSel.value = prevAssignStaffVal;
+      }
+
+      // 7. Route Sequence Staff Dropdown
+      if (typeof populateSeqStaffDropdown === 'function') {
+        populateSeqStaffDropdown(list);
+      }
+
+      // 8. Staff Filter Dropdown in Records Table
+      if (typeof populateStaffFilterDropdown === 'function') {
+        populateStaffFilterDropdown();
+      }
+
+      // 9. Staff Count Badges
+      var staffBadge = document.getElementById('tabStaffCount');
+      if (staffBadge) staffBadge.textContent = list.length;
+    }
+    window.syncAllStaffDropdowns = syncAllStaffDropdowns;
+
+    /* Global Unified Customer Dropdown Synchronizer */
+    function syncAllCustomerDropdowns(rawList) {
+      var list = Array.isArray(rawList) ? rawList : (rawList && (rawList.records || rawList.data || rawList.customers) ? (rawList.records || rawList.data || rawList.customers) : []);
+      if (!list || list.length === 0) {
+        list = (state && (state.adminRecords || state.customers)) || [];
+      }
+      if (!Array.isArray(list)) list = [];
+      if (list.length > 0) {
+        state.adminRecords = list;
+      }
+
+      // 1. On-Demand Job Customer Select (#jobAssignCustomerSelect)
+      var jobCustSelect = document.getElementById('jobAssignCustomerSelect');
+      if (jobCustSelect) {
+        var prevJobCustVal = jobCustSelect.value;
+        jobCustSelect.innerHTML = '<option value="">-- Select Customer --</option>';
+        list.forEach(function(c) {
+          if (c.status !== 'inactive' && c.active !== 'No') {
+            var opt = document.createElement('option');
+            opt.value = c.id || c.customerId || c.customerCode || '';
+            var vehStr = formatVehiclePlateOrSummary(c, 'No Plate');
+            opt.textContent = (c.customerName || c.name || 'Customer') + ' (' + vehStr + ')';
+            jobCustSelect.appendChild(opt);
+          }
+        });
+        if (prevJobCustVal) jobCustSelect.value = prevJobCustVal;
+      }
+
+      // 2. Wash & Solar Existing Customer Select (#specialExistingCustSelect)
+      var specCustSelect = document.getElementById('specialExistingCustSelect');
+      if (specCustSelect) {
+        var prevSpecCustVal = specCustSelect.value;
+        specCustSelect.innerHTML = '<option value="">-- Choose Existing Customer --</option>';
+        list.forEach(function(c) {
+          if (c.status !== 'inactive' && c.active !== 'No') {
+            var opt = document.createElement('option');
+            opt.value = c.id || c.customerId || c.customerCode || '';
+            var vehStr = formatVehiclePlateOrSummary(c, 'No Plate');
+            opt.textContent = (c.customerName || c.name || 'Customer') + ' (' + vehStr + ')';
+            specCustSelect.appendChild(opt);
+          }
+        });
+        if (prevSpecCustVal) specCustSelect.value = prevSpecCustVal;
+      }
+
+      // 3. Daily Clean Routes Customer Select (#dccAssignCustomerSelect)
+      var dccCustSelect = document.getElementById('dccAssignCustomerSelect');
+      if (dccCustSelect) {
+        var prevDccCustVal = dccCustSelect.value;
+        dccCustSelect.innerHTML = '<option value="">-- Select Customer --</option>';
+        var rosterData = Array.isArray(dccRosterCache) ? dccRosterCache : [];
+
+        var unassignedSubs = rosterData.filter(function(c) { return !c.isAssigned && !c.isStopped; });
+        var assignedSubs = rosterData.filter(function(c) { return c.isAssigned && !c.isStopped; });
+
+        if (unassignedSubs.length > 0) {
+          var unassignedGroup = document.createElement('optgroup');
+          unassignedGroup.label = '⚠️ UNASSIGNED SUBSCRIBERS (' + unassignedSubs.length + ')';
+          unassignedSubs.forEach(function(c) {
+            var opt = document.createElement('option');
+            opt.value = c.customerId;
+            opt.textContent = (c.customerName || 'Subscriber') + ' - ' + (c.vehicleNumber || 'No plate') + ' (' + (c.locality || c.address || 'No Area') + ')';
+            unassignedGroup.appendChild(opt);
+          });
+          dccCustSelect.appendChild(unassignedGroup);
+        }
+
+        if (assignedSubs.length > 0) {
+          var assignedGroup = document.createElement('optgroup');
+          assignedGroup.label = '✓ ALREADY ASSIGNED (' + assignedSubs.length + ')';
+          assignedSubs.forEach(function(c) {
+            var opt = document.createElement('option');
+            opt.value = c.customerId;
+            opt.textContent = (c.customerName || 'Subscriber') + ' - ' + (c.vehicleNumber || 'No plate') + ' [Current: ' + (c.staffName || 'Staff') + ']';
+            assignedGroup.appendChild(opt);
+          });
+          dccCustSelect.appendChild(assignedGroup);
+        }
+
+        var otherCusts = list.filter(function(r) {
+          return !rosterData.some(function(d) { return d.customerId === r.id; }) && (r.active !== 'No');
+        });
+        if (otherCusts.length > 0) {
+          var otherGroup = document.createElement('optgroup');
+          otherGroup.label = '👥 ALL OTHER CUSTOMERS (' + otherCusts.length + ')';
+          otherCusts.forEach(function(r) {
+            var opt = document.createElement('option');
+            opt.value = r.id;
+            var veh = formatVehiclePlateOrSummary(r, 'No vehicle');
+            opt.textContent = (r.customerName || 'Customer') + ' (' + veh + ')';
+            otherGroup.appendChild(opt);
+          });
+          dccCustSelect.appendChild(otherGroup);
+        }
+
+        if (prevDccCustVal) dccCustSelect.value = prevDccCustVal;
+      }
+    }
+    window.syncAllCustomerDropdowns = syncAllCustomerDropdowns;
+
     function switchJobAssignSubTab(subTab) {
       dccActiveSubTab = subTab || 'daily';
       var btnDaily = document.getElementById('btnSubTabDailyRoutes');
@@ -3281,6 +3508,8 @@ var state = {
         if (paneDaily) paneDaily.style.display = 'block';
         if (paneSpecial) paneSpecial.style.display = 'none';
         loadDailyCleanRouteAssignments();
+        syncAllStaffDropdowns();
+        syncAllCustomerDropdowns();
       } else {
         if (btnDaily) {
           btnDaily.classList.remove('active');
@@ -3293,6 +3522,8 @@ var state = {
         if (paneDaily) paneDaily.style.display = 'none';
         if (paneSpecial) paneSpecial.style.display = 'block';
         if (typeof renderJobAssignmentsLedger === 'function') renderJobAssignmentsLedger();
+        syncAllStaffDropdowns();
+        syncAllCustomerDropdowns();
       }
     }
     window.switchJobAssignSubTab = switchJobAssignSubTab;
@@ -3301,49 +3532,27 @@ var state = {
       var tbody = document.getElementById('dccRouteRosterTableBody');
       var banner = document.getElementById('dccUnassignedBanner');
       var badge = document.getElementById('dccUnassignedBadge');
-      var filterStaffSelect = document.getElementById('dccRosterStaffFilter') || document.getElementById('dccFilterStaff');
       var totalChip = document.getElementById('dccRosterTotalChip') || document.getElementById('dccRosterTotalCount');
-      var staffSelect = document.getElementById('dccAssignStaffSelect');
-      var custSelect = document.getElementById('dccAssignCustomerSelect');
 
       if (tbody && (!tbody.innerHTML || tbody.innerHTML.indexOf('Loading') === -1)) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748b;"><div class="spinner-circle" style="width: 24px; height: 24px; margin: 0 auto 8px auto;"></div>Loading daily clean routes...</td></tr>';
       }
 
-      function populateCleanerOptions(list) {
-        if (staffSelect) {
-          var prevStaffVal = staffSelect.value;
-          staffSelect.innerHTML = '<option value="">-- Select Cleaner --</option>';
-          (list || []).forEach(function(s) {
-            var opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Cleaner') + ')';
-            staffSelect.appendChild(opt);
-          });
-          if (prevStaffVal) staffSelect.value = prevStaffVal;
-        }
+      // Sync staff and customer dropdowns immediately from memory
+      syncAllStaffDropdowns();
+      syncAllCustomerDropdowns();
 
-        if (filterStaffSelect) {
-          var prevFilterVal = filterStaffSelect.value;
-          filterStaffSelect.innerHTML = '<option value="all">All Field Staff</option><option value="unassigned">⚠️ Unassigned Only</option>';
-          (list || []).forEach(function(s) {
-            var opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = '👤 ' + (s.name || s.id);
-            filterStaffSelect.appendChild(opt);
-          });
-          if (prevFilterVal) filterStaffSelect.value = prevFilterVal;
-        }
+      // If staff list is not yet loaded, fetch it in background
+      if (!state.staffList || state.staffList.length === 0) {
+        apiCall('getStaffList', {}, function(list) {
+          syncAllStaffDropdowns(list);
+        });
       }
 
-      // Populate Staff dropdowns
-      var staffList = (state && state.staffList) || [];
-      if (staffList.length > 0) {
-        populateCleanerOptions(staffList);
-      } else {
-        apiCall('getStaffList', {}, function(list) {
-          state.staffList = list || [];
-          populateCleanerOptions(state.staffList);
+      // If customer records are not yet loaded, fetch them in background
+      if (!state.adminRecords || state.adminRecords.length === 0) {
+        apiCall('getAllCustomers', {}, function(recs) {
+          syncAllCustomerDropdowns(recs);
         });
       }
 
@@ -3368,67 +3577,8 @@ var state = {
 
         if (totalChip) totalChip.textContent = data.length + ' Active Subscribers';
 
-        // Populate Customer Select in Allocation Card (unassigned prioritized at top, followed by other customers)
-        function renderCustOptions() {
-          if (!custSelect) return;
-          var prevCustVal = custSelect.value;
-          custSelect.innerHTML = '<option value="">-- Select Customer --</option>';
-
-          var unassignedSubs = data.filter(function(c) { return !c.isAssigned && !c.isStopped; });
-          var assignedSubs = data.filter(function(c) { return c.isAssigned && !c.isStopped; });
-
-          if (unassignedSubs.length > 0) {
-            var unassignedGroup = document.createElement('optgroup');
-            unassignedGroup.label = '⚠️ UNASSIGNED SUBSCRIBERS (' + unassignedSubs.length + ')';
-            unassignedSubs.forEach(function(c) {
-              var opt = document.createElement('option');
-              opt.value = c.customerId;
-              opt.textContent = (c.customerName || 'Subscriber') + ' - ' + (c.vehicleNumber || 'No plate') + ' (' + (c.locality || c.address || 'No Area') + ')';
-              unassignedGroup.appendChild(opt);
-            });
-            custSelect.appendChild(unassignedGroup);
-          }
-
-          if (assignedSubs.length > 0) {
-            var assignedGroup = document.createElement('optgroup');
-            assignedGroup.label = '✓ ALREADY ASSIGNED (' + assignedSubs.length + ')';
-            assignedSubs.forEach(function(c) {
-              var opt = document.createElement('option');
-              opt.value = c.customerId;
-              opt.textContent = (c.customerName || 'Subscriber') + ' - ' + (c.vehicleNumber || 'No plate') + ' [Current: ' + (c.staffName || 'Staff') + ']';
-              assignedGroup.appendChild(opt);
-            });
-            custSelect.appendChild(assignedGroup);
-          }
-
-          var allRecords = (state && (state.adminRecords || state.customers)) || [];
-          var otherCusts = allRecords.filter(function(r) {
-            return !data.some(function(d) { return d.customerId === r.id; }) && (r.active !== 'No');
-          });
-          if (otherCusts.length > 0) {
-            var otherGroup = document.createElement('optgroup');
-            otherGroup.label = '👥 ALL OTHER CUSTOMERS (' + otherCusts.length + ')';
-            otherCusts.forEach(function(r) {
-              var opt = document.createElement('option');
-              opt.value = r.id;
-              var veh = formatVehiclePlateOrSummary(r, 'No vehicle');
-              opt.textContent = (r.customerName || 'Customer') + ' (' + veh + ')';
-              otherGroup.appendChild(opt);
-            });
-            custSelect.appendChild(otherGroup);
-          }
-
-          if (prevCustVal) custSelect.value = prevCustVal;
-        }
-
-        if (!state.adminRecords || state.adminRecords.length === 0) {
-          apiCall('getAllCustomers', {}, function(recs) {
-            state.adminRecords = recs || [];
-            renderCustOptions();
-          });
-        } else {
-          renderCustOptions();
-        }
+        // Re-sync customer dropdown with fresh roster cache
+        syncAllCustomerDropdowns();
 
         renderDccRouteRosterTable();
       }, function(err) {
@@ -3675,59 +3825,26 @@ var state = {
        DEDICATED JOB ASSIGNMENT CONTROLLER (R6)
        ========================================================================= */
     function loadJobAssignmentView() {
+      // 1. Synchronize staff and customers immediately
+      syncAllStaffDropdowns();
+      syncAllCustomerDropdowns();
+
+      // 2. Background check for fresh customer data
+      if (!state.adminRecords || state.adminRecords.length === 0) {
+        apiCall('getAllCustomers', {}, function(recs) {
+          syncAllCustomerDropdowns(recs);
+        });
+      }
+
+      // 3. Background check for fresh staff list
+      if (!state.staffList || state.staffList.length === 0) {
+        apiCall('getStaffList', {}, function(list) {
+          syncAllStaffDropdowns(list);
+        });
+      }
+
       if (typeof loadDailyCleanRouteAssignments === 'function') {
         loadDailyCleanRouteAssignments();
-      }
-
-      function populateJobCustomers(list) {
-        var custSelect = document.getElementById('jobAssignCustomerSelect');
-        if (!custSelect) return;
-        var prevVal = custSelect.value;
-        custSelect.innerHTML = '<option value="">-- Select Customer --</option>';
-        (list || []).forEach(function(c) {
-          if (c.status !== 'inactive' && c.active !== 'No') {
-            var opt = document.createElement('option');
-            opt.value = c.id || c.customerId || c.customerCode || '';
-            var vehStr = formatVehiclePlateOrSummary(c, 'No Plate');
-            opt.textContent = (c.customerName || c.name || 'Customer') + ' (' + vehStr + ')';
-            custSelect.appendChild(opt);
-          }
-        });
-        if (prevVal) custSelect.value = prevVal;
-      }
-
-      function populateJobStaff(list) {
-        var staffSelect = document.getElementById('jobAssignStaff');
-        if (!staffSelect) return;
-        var prevVal = staffSelect.value;
-        staffSelect.innerHTML = '<option value="">-- Select Staff Cleaner --</option>';
-        (list || []).forEach(function(s) {
-          var opt = document.createElement('option');
-          opt.value = s.id;
-          opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Staff') + ')';
-          staffSelect.appendChild(opt);
-        });
-        if (prevVal) staffSelect.value = prevVal;
-      }
-
-      var allCusts = (state && (state.adminRecords || state.customers)) || [];
-      if (allCusts.length > 0) {
-        populateJobCustomers(allCusts);
-      } else {
-        apiCall('getAllCustomers', {}, function(recs) {
-          state.adminRecords = recs || [];
-          populateJobCustomers(state.adminRecords);
-        });
-      }
-
-      var staffList = (state && state.staffList) || [];
-      if (staffList.length > 0) {
-        populateJobStaff(staffList);
-      } else {
-        apiCall('getStaffList', {}, function(list) {
-          state.staffList = list || [];
-          populateJobStaff(state.staffList);
-        });
       }
 
       var dateInput = document.getElementById('jobAssignDate');
@@ -5850,6 +5967,9 @@ function loadStaffCustomerData(staffId) {
     function populateAdminStaffList(list) {
       state.staffList = list || [];
       state.adminStaffList = list || [];
+      if (typeof syncAllStaffDropdowns === 'function') {
+        syncAllStaffDropdowns(state.staffList);
+      }
       if (typeof populateSeqStaffDropdown === 'function') {
         populateSeqStaffDropdown(state.adminStaffList);
       }
@@ -7908,6 +8028,7 @@ function loadStaffCustomerData(staffId) {
 
         state.adminRecords = records || [];
         updateAdminKpiMetrics();
+        syncAllCustomerDropdowns(state.adminRecords);
 
         /* Update badge counter in tab */
         var recCountBadge = document.getElementById('tabRecordsCount');
@@ -14137,6 +14258,9 @@ function loadStaffCustomerData(staffId) {
           navigator.serviceWorker.register('/sw.js', { scope: '/' })
             .then(function(reg) {
               console.log('[PWA] Service Worker registered:', reg.scope);
+              if (reg && typeof reg.update === 'function') {
+                reg.update().catch(function() {});
+              }
 
               // Check if waiting worker already exists
               if (reg.waiting && navigator.serviceWorker.controller) {
