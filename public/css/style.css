@@ -6952,9 +6952,16 @@
     }
 
     .form-row-2 {
-      display: grid !important;
+      display: grid;
       grid-template-columns: 1fr 1fr !important;
       gap: 12px !important;
+    }
+
+    .form-row-2.is-hidden,
+    .form-row-2[style*="display: none"],
+    #editCustSolarPanelsRow[style*="display: none"],
+    #custSolarPanelsRow[style*="display: none"] {
+      display: none !important;
     }
 
     @media (max-width: 640px) {

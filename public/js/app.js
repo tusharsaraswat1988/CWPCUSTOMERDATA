@@ -5838,9 +5838,7 @@ function loadStaffCustomerData(staffId) {
             '<option value="One Time Solar Cleaning">One Time Solar Cleaning</option>' +
             '<option value="6 Month Subscription (6 frequencies)">6 Month Subscription (6 frequencies)</option>' +
             '<option value="12 Month Subscription (12 frequencies)">12 Month Subscription (12 frequencies)</option>' +
-            '<option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>' +
-            '<option value="SOLAR SINGLE">SOLAR SINGLE</option>' +
-            '<option value="OTHER">OTHER</option>';
+            '<option value="OTHER">OTHER (Custom Solar Plan)</option>';
         }
       } else if (isCarWash) {
         if (vLabel) vLabel.textContent = 'Vehicle Number & Model *';
@@ -5850,9 +5848,7 @@ function loadStaffCustomerData(staffId) {
           pkgSelect.innerHTML = 
             '<option value="Single Wash (One Time Wash)">Single Wash (One Time Wash)</option>' +
             '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
-            '<option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>' +
-            '<option value="CAR WASH SINGLE">CAR WASH SINGLE</option>' +
-            '<option value="OTHER">OTHER</option>';
+            '<option value="OTHER">OTHER (Custom Wash Plan)</option>';
         }
       } else if (isInterior) {
         if (vLabel) vLabel.textContent = 'Vehicle Number & Model *';
@@ -5862,7 +5858,7 @@ function loadStaffCustomerData(staffId) {
           pkgSelect.innerHTML = 
             '<option value="Interior Deep Cleaning">Interior Deep Cleaning</option>' +
             '<option value="Roof Cleaning">Roof Cleaning</option>' +
-            '<option value="OTHER">OTHER</option>';
+            '<option value="OTHER">OTHER (Custom Detailing)</option>';
         }
       } else if (isExterior) {
         if (vLabel) vLabel.textContent = 'Vehicle Number & Model *';
@@ -5874,7 +5870,7 @@ function loadStaffCustomerData(staffId) {
             '<option value="Graphene Coating">Graphene Coating</option>' +
             '<option value="Car Waxing">Car Waxing</option>' +
             '<option value="Glass Treatment">Glass Treatment</option>' +
-            '<option value="OTHER">OTHER</option>';
+            '<option value="OTHER">OTHER (Custom Detailing)</option>';
         }
       } else {
         /* Daily Car Cleaning */
@@ -5887,17 +5883,23 @@ function loadStaffCustomerData(staffId) {
             '<option value="Exterior Chemical Cleaning (30 Days)">Exterior Chemical Cleaning (30 Days)</option>' +
             '<option value="Exterior Chemical Cleaning + 1 Carwash/mo">Exterior Chemical Cleaning + 1 Carwash/mo</option>' +
             '<option value="Exterior Chemical Cleaning + 2 Carwash/mo">Exterior Chemical Cleaning + 2 Carwash/mo</option>' +
-            '<option value="DCC SILVER">DCC SILVER</option>' +
-            '<option value="DCC GOLD">DCC GOLD</option>' +
-            '<option value="OTHER">OTHER</option>';
+            '<option value="OTHER">OTHER (Custom Subscription)</option>';
         }
       }
       var carMakeColorRow = document.getElementById('custCarMakeColorRow');
       if (carMakeColorRow) carMakeColorRow.style.display = isSolar ? 'none' : 'grid';
       var custSolarPanelsRow = document.getElementById('custSolarPanelsRow');
       var custSeaterRow = document.getElementById('custSeaterRow');
-      if (custSolarPanelsRow) custSolarPanelsRow.style.display = isSolar ? 'block' : 'none';
-      if (custSeaterRow) custSeaterRow.style.display = isSolar ? 'none' : 'block';
+      if (custSolarPanelsRow) {
+        custSolarPanelsRow.style.display = isSolar ? 'grid' : 'none';
+        if (isSolar) custSolarPanelsRow.classList.remove('is-hidden');
+        else custSolarPanelsRow.classList.add('is-hidden');
+      }
+      if (custSeaterRow) {
+        custSeaterRow.style.display = isSolar ? 'none' : 'block';
+        if (isSolar) custSeaterRow.classList.add('is-hidden');
+        else custSeaterRow.classList.remove('is-hidden');
+      }
       handlePackageTypeChange(pkgSelect ? pkgSelect.value : '');
     }
 
@@ -5924,8 +5926,16 @@ function loadStaffCustomerData(staffId) {
       if (editCarMakeColorRow) editCarMakeColorRow.style.display = isSolar ? 'none' : 'grid';
       var editCustSolarPanelsRow = document.getElementById('editCustSolarPanelsRow');
       var editCustSeaterRow = document.getElementById('editCustSeaterRow');
-      if (editCustSolarPanelsRow) editCustSolarPanelsRow.style.display = isSolar ? 'block' : 'none';
-      if (editCustSeaterRow) editCustSeaterRow.style.display = isSolar ? 'none' : 'block';
+      if (editCustSolarPanelsRow) {
+        editCustSolarPanelsRow.style.display = isSolar ? 'grid' : 'none';
+        if (isSolar) editCustSolarPanelsRow.classList.remove('is-hidden');
+        else editCustSolarPanelsRow.classList.add('is-hidden');
+      }
+      if (editCustSeaterRow) {
+        editCustSeaterRow.style.display = isSolar ? 'none' : 'block';
+        if (isSolar) editCustSeaterRow.classList.add('is-hidden');
+        else editCustSeaterRow.classList.remove('is-hidden');
+      }
 
       var pkgSelect = document.getElementById('editCustPkgType');
       if (!pkgSelect) return;
@@ -5936,37 +5946,31 @@ function loadStaffCustomerData(staffId) {
           '<option value="One Time Solar Cleaning">One Time Solar Cleaning</option>' +
           '<option value="6 Month Subscription (6 frequencies)">6 Month Subscription (6 frequencies)</option>' +
           '<option value="12 Month Subscription (12 frequencies)">12 Month Subscription (12 frequencies)</option>' +
-          '<option value="SOLAR SUBSCRIPTION">SOLAR SUBSCRIPTION</option>' +
-          '<option value="SOLAR SINGLE">SOLAR SINGLE</option>' +
-          '<option value="OTHER">OTHER</option>';
+          '<option value="OTHER">OTHER (Custom Solar Plan)</option>';
       } else if (isCarWash) {
         pkgSelect.innerHTML = 
           '<option value="Single Wash (One Time Wash)">Single Wash (One Time Wash)</option>' +
           '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
-          '<option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>' +
-          '<option value="CAR WASH SINGLE">CAR WASH SINGLE</option>' +
-          '<option value="OTHER">OTHER</option>';
+          '<option value="OTHER">OTHER (Custom Wash Plan)</option>';
       } else if (isInterior) {
         pkgSelect.innerHTML = 
           '<option value="Interior Deep Cleaning">Interior Deep Cleaning</option>' +
           '<option value="Roof Cleaning">Roof Cleaning</option>' +
-          '<option value="OTHER">OTHER</option>';
+          '<option value="OTHER">OTHER (Custom Detailing)</option>';
       } else if (isExterior) {
         pkgSelect.innerHTML = 
           '<option value="Ceramic Coating">Ceramic Coating</option>' +
           '<option value="Graphene Coating">Graphene Coating</option>' +
           '<option value="Car Waxing">Car Waxing</option>' +
           '<option value="Glass Treatment">Glass Treatment</option>' +
-          '<option value="OTHER">OTHER</option>';
+          '<option value="OTHER">OTHER (Custom Detailing)</option>';
       } else {
         pkgSelect.innerHTML = 
           '<option value="DCC ONLY">DCC ONLY (Exterior Daily)</option>' +
           '<option value="Exterior Chemical Cleaning (30 Days)">Exterior Chemical Cleaning (30 Days)</option>' +
           '<option value="Exterior Chemical Cleaning + 1 Carwash/mo">Exterior Chemical Cleaning + 1 Carwash/mo</option>' +
           '<option value="Exterior Chemical Cleaning + 2 Carwash/mo">Exterior Chemical Cleaning + 2 Carwash/mo</option>' +
-          '<option value="DCC SILVER">DCC SILVER</option>' +
-          '<option value="DCC GOLD">DCC GOLD</option>' +
-          '<option value="OTHER">OTHER</option>';
+          '<option value="OTHER">OTHER (Custom Subscription)</option>';
       }
       if (curVal) {
         var matched = false;
@@ -8347,34 +8351,26 @@ function loadStaffCustomerData(staffId) {
           '<option value="Exterior Chemical Cleaning (30 Days)">Exterior Chemical Cleaning (30 Days)</option>' +
           '<option value="Exterior Chemical Cleaning + 1 Carwash/mo">Exterior Chemical Cleaning + 1 Carwash/mo</option>' +
           '<option value="Exterior Chemical Cleaning + 2 Carwash/mo">Exterior Chemical Cleaning + 2 Carwash/mo</option>' +
-          '<option value="DCC SILVER">DCC SILVER (Exterior Daily + Weekly Vacuum)</option>' +
-          '<option value="DCC GOLD">DCC GOLD (Full Executive Detailing)</option>' +
           '<option value="OTHER">OTHER (Custom Subscription)</option>';
       } else if (isCarWash) {
         pkgSelect.innerHTML = '<option value="Single Wash (One Time Wash)" selected>Single Wash (One Time Wash)</option>' +
           '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
-          '<option value="CAR WASH SUBSCRIPTION">CAR WASH SUBSCRIPTION</option>' +
-          '<option value="CAR WASH SINGLE">CAR WASH SINGLE</option>' +
-          '<option value="Foam Wash">Foam Wash</option>' +
-          '<option value="Deep Interior & Exterior Wash">Deep Interior & Exterior Wash</option>' +
-          '<option value="Other Wash">Other Wash</option>';
+          '<option value="OTHER">OTHER (Custom Wash Plan)</option>';
       } else if (isSolar) {
         pkgSelect.innerHTML = '<option value="One Time Solar Cleaning" selected>One Time Solar Cleaning</option>' +
           '<option value="6 Month Subscription (6 frequencies)">6 Month Subscription (6 frequencies)</option>' +
           '<option value="12 Month Subscription (12 frequencies)">12 Month Subscription (12 frequencies)</option>' +
-          '<option value="Solar Cleaning Standard">Solar Cleaning Standard (Up to 10 Panels)</option>' +
-          '<option value="Solar Cleaning Commercial">Solar Cleaning Commercial (10+ Panels)</option>' +
-          '<option value="OTHER">OTHER</option>';
+          '<option value="OTHER">OTHER (Custom Solar Plan)</option>';
       } else if (isInterior) {
         pkgSelect.innerHTML = '<option value="Interior Deep Cleaning" selected>Interior Deep Cleaning</option>' +
           '<option value="Roof Cleaning">Roof Cleaning</option>' +
-          '<option value="OTHER">OTHER</option>';
+          '<option value="OTHER">OTHER (Custom Detailing)</option>';
       } else if (isExterior) {
         pkgSelect.innerHTML = '<option value="Ceramic Coating" selected>Ceramic Coating</option>' +
           '<option value="Graphene Coating">Graphene Coating</option>' +
           '<option value="Car Waxing">Car Waxing</option>' +
           '<option value="Glass Treatment">Glass Treatment</option>' +
-          '<option value="OTHER">OTHER</option>';
+          '<option value="OTHER">OTHER (Custom Detailing)</option>';
       }
     }
 
@@ -9046,31 +9042,66 @@ function loadStaffCustomerData(staffId) {
         if (hiddenSeater) hiddenSeater.value = editSeaterVal;
       }
 
-      /* Set package type with case-insensitive fallback matching */
+      /* Set package type with canonical normalization & fallback matching */
       var pkgSelect = document.getElementById('editCustPkgType');
       var customPkgInput = document.getElementById('editCustPkgTypeCustom');
-      var pType = (r.packageType || (catVal === 'Daily Car Cleaning' ? 'DCC ONLY' : (catVal === 'Car Washing' ? 'CAR WASH SUBSCRIPTION' : 'SOLAR SUBSCRIPTION'))).trim();
+      var pType = (r.packageType || (catVal === 'Daily Car Cleaning' ? 'DCC ONLY' : (catVal === 'Car Washing' ? 'Wash Subscription (4 Washes / 6 Months)' : 'One Time Solar Cleaning'))).trim();
+
+      // Normalize legacy and alias package names to canonical catalog options
+      var normPackage = pType;
+      if (/car wash subscription/i.test(pType) || /wash sub/i.test(pType) || /wash.*4/i.test(pType)) {
+        normPackage = 'Wash Subscription (4 Washes / 6 Months)';
+      } else if (/car wash single/i.test(pType) || /single wash/i.test(pType)) {
+        normPackage = 'Single Wash (One Time Wash)';
+      } else if (/solar subscription/i.test(pType) || /solar.*6/i.test(pType)) {
+        normPackage = '6 Month Subscription (6 frequencies)';
+      } else if (/solar single/i.test(pType) || /one time solar/i.test(pType)) {
+        normPackage = 'One Time Solar Cleaning';
+      }
+
       if (pkgSelect && pType) {
         var matched = false;
+        var customVal = '';
+
+        if (/^OTHER\s*\((.*)\)$/i.test(pType)) {
+          var m = pType.match(/^OTHER\s*\((.*)\)$/i);
+          customVal = m ? m[1].trim() : '';
+          normPackage = 'OTHER';
+        }
+
         for (var i = 0; i < pkgSelect.options.length; i++) {
-          if (pkgSelect.options[i].value.toLowerCase() === pType.toLowerCase()) {
+          var optVal = pkgSelect.options[i].value;
+          if (optVal.toLowerCase() === normPackage.toLowerCase() || optVal.toLowerCase() === pType.toLowerCase()) {
             pkgSelect.selectedIndex = i;
             matched = true;
             break;
           }
         }
         if (!matched && pType) {
-          /* Preserve custom/legacy package type without overwriting */
-          var opt = document.createElement('option');
-          opt.value = pType;
-          opt.textContent = pType;
-          opt.selected = true;
-          pkgSelect.appendChild(opt);
-          matched = true;
+          /* Custom package - activate OTHER if present, else preserve option */
+          var otherIdx = -1;
+          for (var j = 0; j < pkgSelect.options.length; j++) {
+            if (pkgSelect.options[j].value === 'OTHER') {
+              otherIdx = j;
+              break;
+            }
+          }
+          if (otherIdx >= 0) {
+            pkgSelect.selectedIndex = otherIdx;
+            customVal = pType;
+            matched = true;
+          } else {
+            var opt = document.createElement('option');
+            opt.value = pType;
+            opt.textContent = pType;
+            opt.selected = true;
+            pkgSelect.appendChild(opt);
+            matched = true;
+          }
         }
         if (customPkgInput) {
           customPkgInput.style.display = (pkgSelect.value === 'OTHER') ? 'block' : 'none';
-          customPkgInput.value = '';
+          customPkgInput.value = customVal;
         }
       }
 

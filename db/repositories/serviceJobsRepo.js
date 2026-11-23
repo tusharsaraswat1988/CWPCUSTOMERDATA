@@ -260,11 +260,89 @@ async function softDelete(id, client = null) {
   return res.rows[0] || null;
 }
 
+async function findByCustomerId(customerId, { includeDeleted = false, client = null } = {}) {
+  const runner = client || db;
+  const conditions = ['j.customer_id = $1'];
+  if (!includeDeleted) {
+    conditions.push('j.deleted_at IS NULL');
+  }
+  const sql = `
+    SELECT j.*,
+           c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
+           v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
+           loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
+           sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code
+    FROM public.service_jobs j
+    JOIN public.customers c ON j.customer_id = c.id
+    LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
+    JOIN public.service_locations loc ON j.location_id = loc.id
+    LEFT JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
+    LEFT JOIN public.staff s ON sa.staff_id = s.id
+    WHERE ${conditions.join(' AND ')}
+    ORDER BY j.created_at DESC
+  `;
+  const res = await runner.query(sql, [customerId]);
+  return res.rows;
+}
+
+async function updateJob(id, updates = {}, client = null) {
+  const runner = client || db;
+  const setClauses = [];
+  const params = [id];
+
+  const fieldMap = {
+    vehicleId: 'vehicle_id',
+    locationId: 'location_id',
+    serviceCategoryId: 'service_category_id',
+    serviceType: 'service_type',
+    packageDetails: 'package_details',
+    packageCode: 'package_code',
+    seaterType: 'seater_type',
+    panelCount: 'panel_count',
+    siteDetails: 'site_details',
+    scheduledDate: 'scheduled_date',
+    status: 'status',
+    specialInstructions: 'special_instructions',
+    photoUrl: 'photo_url',
+    photoStorageKey: 'photo_storage_key',
+    completionNotes: 'completion_notes'
+  };
+
+  for (const [key, col] of Object.entries(fieldMap)) {
+    if (updates[key] !== undefined) {
+      let val = updates[key];
+      if (key === 'siteDetails' && val && typeof val === 'object') {
+        val = JSON.stringify(val);
+      } else if (key === 'panelCount' && val != null) {
+        val = isNaN(parseInt(val, 10)) ? null : parseInt(val, 10);
+      }
+      params.push(val);
+      setClauses.push(`${col} = $${params.length}`);
+    }
+  }
+
+  if (setClauses.length === 0) {
+    return findById(id, client);
+  }
+
+  setClauses.push('updated_at = CURRENT_TIMESTAMP');
+  const sql = `
+    UPDATE public.service_jobs
+    SET ${setClauses.join(', ')}
+    WHERE id = $1 AND deleted_at IS NULL
+    RETURNING *
+  `;
+  const res = await runner.query(sql, params);
+  return res.rows[0] || null;
+}
+
 module.exports = {
   findAll,
   findById,
+  findByCustomerId,
   findDispatchedForStaff,
   createJob,
+  updateJob,
   startJob,
   completeJob,
   cancelJob,

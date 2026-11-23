@@ -232,13 +232,17 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
       photoUrl: mainPhoto,
       serviceCategory: serviceCategory,
       sheetName: sheetName,
-      packageName: activeSub?.package_name || (serviceCategory === 'Daily Car Cleaning' ? 'Daily Clean' : serviceCategory),
-      packageType: activeSub?.package_name || 'Daily Clean',
+      packageName: activeSub?.package_name || jobs[0]?.package_details || jobs[0]?.service_type || (serviceCategory === 'Daily Car Cleaning' ? 'Daily Clean' : serviceCategory),
+      packageType: activeSub?.package_name || jobs[0]?.package_details || jobs[0]?.service_type || (serviceCategory === 'Daily Car Cleaning' ? 'DCC ONLY' : 'Standard'),
       packagesPurchased: String(activeSub?.packages_purchased || 1),
       rotationType: activeSub?.rotation_type || 'none',
       rotationNotes: activeSub?.rotation_notes || '',
       staffName: staffName,
       staffId: assignedStaffId,
+      panelCount: c.panel_count || jobs[0]?.panel_count || null,
+      panel_count: c.panel_count || jobs[0]?.panel_count || null,
+      seaterType: vehs[0]?.seater_type || c.preferred_seater_type || jobs[0]?.seater_type || '5_seater',
+      seater_type: vehs[0]?.seater_type || c.preferred_seater_type || jobs[0]?.seater_type || '5_seater',
       active: c.is_active ? 'Yes' : 'No',
       isActive: c.is_active,
       createdAt: c.created_at,
@@ -800,20 +804,23 @@ async function updateCustomer(custData, adminUser = 'admin') {
       const parsedPanelCount = isSolar ? (parseInt(custData.panelCount || custData.panel_count, 10) || customer.panel_count || 10) : null;
       const parsedSeaterType = isSolar ? null : (custData.seaterType || custData.seater_type || '5_seater');
 
+      let targetJobId = null;
       if (existingJobs.length > 0) {
-        await repos.serviceJobs.updateJob(existingJobs[0].id, {
+        targetJobId = existingJobs[0].id;
+        await repos.serviceJobs.updateJob(targetJobId, {
           serviceCategoryId: sCatId,
           serviceType: custData.serviceType || custData.packageType || normCategory,
           packageDetails: custData.packageType || null,
           seaterType: parsedSeaterType,
           panelCount: parsedPanelCount,
           siteDetails: isSolar ? { panelCount: parsedPanelCount, roofType: 'RCC' } : null,
+          status: targetStaff ? 'assigned' : (existingJobs[0].status === 'assigned' && !targetStaff ? 'pending' : existingJobs[0].status),
           specialInstructions: finalNotes || null
         }, client);
       } else {
         const custVehs = await repos.vehicles.findByCustomerId(customer.id, { client });
         const custLocs = await repos.serviceLocations.findByCustomerId(customer.id, { client });
-        await repos.serviceJobs.createJob({
+        const createdJob = await repos.serviceJobs.createJob({
           customerId: customer.id,
           vehicleId: custVehs[0]?.id || null,
           locationId: primaryLoc?.id || custLocs[0]?.id || null,
@@ -825,6 +832,22 @@ async function updateCustomer(custData, adminUser = 'admin') {
           siteDetails: isSolar ? { panelCount: parsedPanelCount, roofType: 'RCC' } : null,
           status: targetStaff ? 'assigned' : 'pending',
           specialInstructions: finalNotes || null
+        }, client);
+        targetJobId = createdJob.id;
+      }
+
+      // Synchronize Staff Assignment for On-Demand Job
+      if (targetStaff && targetJobId) {
+        await repos.staffAssignments.assignStaffToJob({
+          staffId: targetStaff.id,
+          jobId: targetJobId,
+          assignedBy: adminUser
+        }, client);
+      } else if (targetJobId && (sName.toLowerCase() === 'unassigned' || sId.toLowerCase() === 'unassigned' || (!sName && !sId))) {
+        await repos.staffAssignments.unassignJob({
+          jobId: targetJobId,
+          unassignedBy: adminUser,
+          reason: 'Customer unassigned by admin'
         }, client);
       }
     }

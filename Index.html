@@ -1977,10 +1977,11 @@
             <div class="form-group">
               <label class="form-label" for="custPkgType">Package Type <span class="req-star">*</span></label>
               <select id="custPkgType" class="form-select" onchange="handlePackageTypeChange(this.value)" required>
-                <option value="DCC ONLY">DCC ONLY</option>
-                <option value="DCC SILVER">DCC SILVER</option>
-                <option value="DCC GOLD">DCC GOLD</option>
-                <option value="OTHER">OTHER</option>
+                <option value="DCC ONLY">DCC ONLY (Exterior Daily)</option>
+                <option value="Exterior Chemical Cleaning (30 Days)">Exterior Chemical Cleaning (30 Days)</option>
+                <option value="Exterior Chemical Cleaning + 1 Carwash/mo">Exterior Chemical Cleaning + 1 Carwash/mo</option>
+                <option value="Exterior Chemical Cleaning + 2 Carwash/mo">Exterior Chemical Cleaning + 2 Carwash/mo</option>
+                <option value="OTHER">OTHER (Custom Plan)</option>
               </select>
               <input type="text" id="custPkgTypeCustom" class="form-input" placeholder="Other package details..." style="display: none; margin-top: 6px;">
             </div>
@@ -2076,16 +2077,17 @@
           <div class="form-section-head">
             <span class="section-num-pill">3</span>
             <div class="section-title-wrap">
-              <span class="section-title-text">Staff Assignment</span>
-              <span class="section-subtitle-text">Assign cleaner & special cleaning instructions</span>
+              <span class="section-title-text">Primary Staff & Notes</span>
+              <span class="section-subtitle-text">Assign regular cleaner & special instructions</span>
             </div>
           </div>
           <div class="form-row-2">
             <div class="form-group">
-              <label class="form-label" for="custStaffSelect">Assign Staff <span class="opt-tag">(Optional)</span></label>
+              <label class="form-label" for="custStaffSelect">Primary Cleaner / Staff (प्राथमिक स्टाफ) <span class="opt-tag">(Optional)</span></label>
               <select id="custStaffSelect" class="form-select">
                 <option value="">Unassigned</option>
               </select>
+              <span class="form-field-hint" style="font-size: 11px; color: #64748b; margin-top: 3px; display: block;">Default regular cleaner for this customer. (One-off / date-scheduled jobs are dispatched from "Job Assignment" tab)</span>
             </div>
             <div class="form-group" id="secondaryAddressGroup">
               <label class="form-label">Secondary Location <span class="opt-tag">(Daily Clean Only)</span></label>
@@ -2242,10 +2244,11 @@
           <div class="form-group">
             <label class="form-label" for="editCustPkgType">Package Type <span class="req-star">*</span></label>
             <select id="editCustPkgType" class="form-select" onchange="handleEditPackageTypeChange(this.value)" required>
-              <option value="DCC ONLY">DCC ONLY</option>
-              <option value="DCC SILVER">DCC SILVER</option>
-              <option value="DCC GOLD">DCC GOLD</option>
-              <option value="OTHER">OTHER</option>
+              <option value="DCC ONLY">DCC ONLY (Exterior Daily)</option>
+              <option value="Exterior Chemical Cleaning (30 Days)">Exterior Chemical Cleaning (30 Days)</option>
+              <option value="Exterior Chemical Cleaning + 1 Carwash/mo">Exterior Chemical Cleaning + 1 Carwash/mo</option>
+              <option value="Exterior Chemical Cleaning + 2 Carwash/mo">Exterior Chemical Cleaning + 2 Carwash/mo</option>
+              <option value="OTHER">OTHER (Custom Plan)</option>
             </select>
             <input type="text" id="editCustPkgTypeCustom" class="form-input" placeholder="Other package details..." style="display: none; margin-top: 6px;">
           </div>
@@ -2341,14 +2344,15 @@
         <div class="form-section-head">
           <span class="section-num-pill">3</span>
           <div class="section-title-wrap">
-            <span class="section-title-text">Staff & Status</span>
-            <span class="section-subtitle-text">Assign cleaner, active status & operational notes</span>
+            <span class="section-title-text">Primary Staff & Status</span>
+            <span class="section-subtitle-text">Dedicated regular cleaner & account status</span>
           </div>
         </div>
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" for="editCustStaff">Assign Staff <span class="opt-tag">(Optional)</span></label>
+            <label class="form-label" for="editCustStaff">Primary Cleaner / Staff (प्राथमिक स्टाफ) <span class="opt-tag">(Optional)</span></label>
             <select id="editCustStaff" class="form-select"></select>
+            <span class="form-field-hint" style="font-size: 11px; color: #64748b; margin-top: 3px; display: block;">Default regular cleaner for this customer. (One-off / date-scheduled jobs are dispatched from "Job Assignment" tab)</span>
           </div>
           <div class="form-group">
             <label class="form-label" for="editCustActive">Status <span class="req-star">*</span></label>

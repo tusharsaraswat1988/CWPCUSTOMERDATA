@@ -1891,7 +1891,7 @@ const server = http.createServer(async (req, res) => {
       const fileStat = fs.statSync(assetPath);
       const etag = `"${fileStat.size}-${fileStat.mtimeMs.toString(36)}"`;
 
-      const cacheControl = (ext === '.js' || ext === '.css' || ext === '.html')
+      const cacheControl = (ext === '.html')
         ? 'no-cache, must-revalidate'
         : 'public, max-age=86400, stale-while-revalidate=3600';
 
