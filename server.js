@@ -76,7 +76,7 @@ function isNeonPrimaryActive() {
 }
 
 const PORT = process.env.PORT || 3000;
-const DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN || 'cwpdata.up.railway.app';
+const DOMAIN = process.env.CUSTOM_DOMAIN || process.env.RAILWAY_PUBLIC_DOMAIN || 'cwpdetailers.in';
 
 /**
  * RFC 4180 compliant CSV parser that preserves exact cell text types,
@@ -1714,6 +1714,40 @@ const server = http.createServer(async (req, res) => {
       configured: isCloudinaryConfigured(),
       cloudName: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME || (process.env.CLOUDINARY_URL ? 'Configured via CLOUDINARY_URL' : 'Not configured')
     }));
+  }
+
+  // =========================================================================
+  // SEARCH ENGINE OPTIMIZATION (SEO) & CRAWLER DIRECTIVES
+  // (robots.txt, sitemap.xml for Google Search Console & Search Crawlers)
+  // =========================================================================
+
+  // 1. Robots.txt for Search Crawler Guidance
+  if (pathname === '/robots.txt') {
+    const robotsContent = seoConfig.generateRobotsTxt();
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400'
+    });
+    return res.end(robotsContent);
+  }
+
+  // 2. Sitemap.xml for Google Search Console & Automated Indexing
+  if (pathname === '/sitemap.xml') {
+    const sitemapContent = seoConfig.generateSitemapXml();
+    res.writeHead(200, {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600'
+    });
+    return res.end(sitemapContent);
+  }
+
+  // 3. /sitemap canonical redirect to /sitemap.xml
+  if (pathname === '/sitemap') {
+    res.writeHead(301, {
+      'Location': '/sitemap.xml',
+      'Cache-Control': 'public, max-age=86400'
+    });
+    return res.end();
   }
 
   // =========================================================================

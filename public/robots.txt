@@ -1,0 +1,30 @@
+# =====================================================================
+# Robots.txt for CWP Detailers & Motors (cwpdetailers.in)
+# =====================================================================
+
+User-agent: *
+Allow: /
+Allow: /careers
+Allow: /terms
+Allow: /privacy
+Allow: /refund
+Allow: /css/
+Allow: /js/
+Allow: /images/
+Allow: /videos/
+Allow: /icons/
+Allow: /cwp_logo.jpg
+Allow: /favicon.ico
+Allow: /favicon.png
+Allow: /manifest.json
+
+# Internal Portal & Private Administrative Routes (Prevent Crawling/Indexing)
+Disallow: /staff
+Disallow: /staff/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /uploads/
+
+# Canonical XML Sitemap
+Sitemap: https://cwpdetailers.in/sitemap.xml

@@ -3,10 +3,17 @@
  * Server-side injection for 100/100 Lighthouse SEO crawlability
  */
 
-const DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN || 'cwpdata.up.railway.app';
-const BASE_URL = `https://${DOMAIN}`;
+function getDomain() {
+  return process.env.CUSTOM_DOMAIN || process.env.RAILWAY_PUBLIC_DOMAIN || 'cwpdetailers.in';
+}
+
+function getBaseUrl() {
+  const domain = getDomain();
+  return `https://${domain}`;
+}
 
 function getHomepageSeoHead(config) {
+  const BASE_URL = getBaseUrl();
   const phone = config.contact.phone || '7054007733';
   const email = config.contact.email || 'cwpdetailers@gmail.com';
   const address = config.contact.address || 'FIRST FLOOR, 32/14-4A, Annapurna Nagar Colony, Vidya Vihar Colony, Shivpurwa, Varanasi, Uttar Pradesh 221002';
@@ -167,6 +174,7 @@ function getHomepageSeoHead(config) {
 }
 
 function getCareersSeoHead(config) {
+  const BASE_URL = getBaseUrl();
   const phone = config.contact.phone || '7054007733';
   const email = config.contact.email || 'cwpdetailers@gmail.com';
   const title = "Careers at CWP Detailers — Car Cleaner, Wash & Detailing Jobs in Varanasi";
@@ -237,7 +245,129 @@ function getCareersSeoHead(config) {
   `;
 }
 
+/**
+ * Generate standard XML Sitemap compliant with Google Search Console specs
+ * Includes primary public pages and high-res media images
+ */
+function generateSitemapXml() {
+  const baseUrl = getBaseUrl();
+  const today = new Date().toISOString().split('T')[0];
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <!-- Homepage: Car Wash, Detailing & Solar Cleaning Services in Varanasi -->
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>${baseUrl}/cwp_logo.jpg</image:loc>
+      <image:title>CWP Detailers &amp; Motors Varanasi</image:title>
+      <image:caption>Doorstep Car Wash, Detailing &amp; Rooftop Solar Panel Cleaning in Varanasi</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>${baseUrl}/images/why_dcc_thumb.jpg</image:loc>
+      <image:title>Daily Car Cleaning Varanasi</image:title>
+      <image:caption>Scientific 2-bucket soft water car cleaning care</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>${baseUrl}/images/solar_panel_thumb.jpg</image:loc>
+      <image:title>Rooftop Solar Panel Cleaning Varanasi</image:title>
+      <image:caption>Boost solar generation by 20-30% with scientific wash</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>${baseUrl}/images/apartment_wash_thumb.jpg</image:loc>
+      <image:title>Apartment &amp; Society Car Wash Varanasi</image:title>
+      <image:caption>Doorstep society and residential car cleaning</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>${baseUrl}/images/founder.jpg</image:loc>
+      <image:title>Leadership Team - CWP Detailers</image:title>
+      <image:caption>Professional vehicle detailing in Varanasi</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Careers & Employment: Technician & Detailing Jobs in Varanasi -->
+  <url>
+    <loc>${baseUrl}/careers</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>${baseUrl}/cwp_logo.jpg</image:loc>
+      <image:title>Careers at CWP Detailers Varanasi</image:title>
+      <image:caption>Vehicle care technician and operations jobs in Varanasi</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Legal & Customer Protection Pages -->
+  <url>
+    <loc>${baseUrl}/terms</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/privacy</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/refund</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>`;
+}
+
+/**
+ * Generate robots.txt instructing web crawlers (Googlebot, Bingbot, etc.)
+ * Allows all public content, explicitly disallows staff/admin internal portals, and links sitemap
+ */
+function generateRobotsTxt() {
+  const baseUrl = getBaseUrl();
+  return `# =====================================================================
+# Robots.txt for CWP Detailers & Motors (cwpdetailers.in)
+# =====================================================================
+
+User-agent: *
+Allow: /
+Allow: /careers
+Allow: /terms
+Allow: /privacy
+Allow: /refund
+Allow: /css/
+Allow: /js/
+Allow: /images/
+Allow: /videos/
+Allow: /icons/
+Allow: /cwp_logo.jpg
+Allow: /favicon.ico
+Allow: /favicon.png
+Allow: /manifest.json
+
+# Internal Portal & Private Administrative Routes (Prevent Crawling/Indexing)
+Disallow: /staff
+Disallow: /staff/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /uploads/
+
+# Canonical XML Sitemap
+Sitemap: ${baseUrl}/sitemap.xml
+`;
+}
+
 module.exports = {
   getHomepageSeoHead,
-  getCareersSeoHead
+  getCareersSeoHead,
+  generateSitemapXml,
+  generateRobotsTxt,
+  getBaseUrl,
+  getDomain
 };

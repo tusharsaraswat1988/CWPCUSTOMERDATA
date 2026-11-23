@@ -161,8 +161,29 @@ async function runTests() {
   assert.strictEqual(unauthPut.status, 401, 'Unauthenticated config update must return HTTP 401');
   console.log('✅ PASS 8: Dynamic config update strictly protected by admin authentication');
 
+  // --- Test 9: Robots.txt & Sitemap.xml SEO Directives ---
+  console.log('\n--- Test 9: Robots.txt & Sitemap.xml SEO Directives ---');
+  const robotsRes = await makeRequest('/robots.txt');
+  assert.strictEqual(robotsRes.status, 200, 'GET /robots.txt must return HTTP 200');
+  assert.ok(robotsRes.headers['content-type'].includes('text/plain'), 'Robots.txt must be text/plain');
+  assert.ok(robotsRes.body.includes('Sitemap: https://cwpdetailers.in/sitemap.xml'), 'Robots.txt must declare sitemap URL');
+  assert.ok(robotsRes.body.includes('Disallow: /admin'), 'Robots.txt must disallow /admin');
+  assert.ok(robotsRes.body.includes('Disallow: /staff'), 'Robots.txt must disallow /staff');
+
+  const sitemapRes = await makeRequest('/sitemap.xml');
+  assert.strictEqual(sitemapRes.status, 200, 'GET /sitemap.xml must return HTTP 200');
+  assert.ok(sitemapRes.headers['content-type'].includes('application/xml'), 'Sitemap must be application/xml');
+  assert.ok(sitemapRes.body.includes('<loc>https://cwpdetailers.in/</loc>'), 'Sitemap must contain root URL');
+  assert.ok(sitemapRes.body.includes('<loc>https://cwpdetailers.in/careers</loc>'), 'Sitemap must contain careers URL');
+  assert.ok(sitemapRes.body.includes('<image:loc>https://cwpdetailers.in/cwp_logo.jpg</image:loc>'), 'Sitemap must include image tags');
+
+  const sitemapRedirectRes = await makeRequest('/sitemap');
+  assert.strictEqual(sitemapRedirectRes.status, 301, 'GET /sitemap must redirect with 301');
+  assert.strictEqual(sitemapRedirectRes.headers['location'], '/sitemap.xml');
+  console.log('✅ PASS 9: robots.txt and sitemap.xml strictly verified with valid headers & schema');
+
   console.log('\n===============================================================');
-  console.log('🎉 ALL 8 HOMEPAGE, SEO & CAREERS TESTS PASSED WITH 100% SUCCESS!');
+  console.log('🎉 ALL 9 HOMEPAGE, SEO & CAREERS TESTS PASSED WITH 100% SUCCESS!');
   console.log('===============================================================');
   process.exit(0);
 }

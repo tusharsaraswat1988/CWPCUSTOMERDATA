@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <!-- Homepage: Car Wash, Detailing & Solar Cleaning Services in Varanasi -->
+  <url>
+    <loc>https://cwpdetailers.in/</loc>
+    <lastmod>2026-11-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://cwpdetailers.in/cwp_logo.jpg</image:loc>
+      <image:title>CWP Detailers &amp; Motors Varanasi</image:title>
+      <image:caption>Doorstep Car Wash, Detailing &amp; Rooftop Solar Panel Cleaning in Varanasi</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://cwpdetailers.in/images/why_dcc_thumb.jpg</image:loc>
+      <image:title>Daily Car Cleaning Varanasi</image:title>
+      <image:caption>Scientific 2-bucket soft water car cleaning care</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://cwpdetailers.in/images/solar_panel_thumb.jpg</image:loc>
+      <image:title>Rooftop Solar Panel Cleaning Varanasi</image:title>
+      <image:caption>Boost solar generation by 20-30% with scientific wash</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://cwpdetailers.in/images/apartment_wash_thumb.jpg</image:loc>
+      <image:title>Apartment &amp; Society Car Wash Varanasi</image:title>
+      <image:caption>Doorstep society and residential car cleaning</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://cwpdetailers.in/images/founder.jpg</image:loc>
+      <image:title>Leadership Team - CWP Detailers</image:title>
+      <image:caption>Professional vehicle detailing in Varanasi</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Careers & Employment: Technician & Detailing Jobs in Varanasi -->
+  <url>
+    <loc>https://cwpdetailers.in/careers</loc>
+    <lastmod>2026-11-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://cwpdetailers.in/cwp_logo.jpg</image:loc>
+      <image:title>Careers at CWP Detailers Varanasi</image:title>
+      <image:caption>Vehicle care technician and operations jobs in Varanasi</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Legal & Customer Protection Pages -->
+  <url>
+    <loc>https://cwpdetailers.in/terms</loc>
+    <lastmod>2026-11-23</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://cwpdetailers.in/privacy</loc>
+    <lastmod>2026-11-23</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://cwpdetailers.in/refund</loc>
+    <lastmod>2026-11-23</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>
