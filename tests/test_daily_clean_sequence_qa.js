@@ -384,7 +384,12 @@ async function runTests() {
     // =========================================================================
     // Test 5: Persistence Across Reload (saveLocalData & loadLocalData)
     // =========================================================================
-    const diskContentRaw = fs.readFileSync(tempFixturePath, 'utf8');
+    let diskContentRaw = '';
+    for (let r = 0; r < 5; r++) {
+      diskContentRaw = fs.readFileSync(tempFixturePath, 'utf8');
+      if (diskContentRaw && diskContentRaw.trim()) break;
+      await new Promise(res => setTimeout(res, 50));
+    }
     const diskContent = JSON.parse(diskContentRaw);
     assert(Array.isArray(diskContent.staffSequences), 'staffSequences must be an array in disk JSON');
     assert.strictEqual(diskContent.staffSequences.length, 5, 'Disk JSON must have 3 Rahul + 2 Amit sequences');

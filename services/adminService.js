@@ -740,6 +740,7 @@ async function updateCustomer(custData, adminUser = 'admin') {
     }
 
     // 4. Update Staff Assignment
+    const hasExplicitStaffField = (custData.staffId !== undefined || custData.staffName !== undefined);
     const sName = (custData.staffName || '').trim();
     const sId = (custData.staffId || '').trim();
 
@@ -766,7 +767,7 @@ async function updateCustomer(custData, adminUser = 'admin') {
             subscriptionId: sub.id,
             assignedBy: adminUser
           }, client);
-        } else if (sName.toLowerCase() === 'unassigned' || sId.toLowerCase() === 'unassigned' || (!sName && !sId)) {
+        } else if (hasExplicitStaffField && (sName.toLowerCase() === 'unassigned' || sId.toLowerCase() === 'unassigned')) {
           await repos.staffAssignments.unassignSubscription({
             subscriptionId: sub.id,
             unassignedBy: adminUser,
@@ -843,7 +844,7 @@ async function updateCustomer(custData, adminUser = 'admin') {
           jobId: targetJobId,
           assignedBy: adminUser
         }, client);
-      } else if (targetJobId && (sName.toLowerCase() === 'unassigned' || sId.toLowerCase() === 'unassigned' || (!sName && !sId))) {
+      } else if (targetJobId && hasExplicitStaffField && (sName.toLowerCase() === 'unassigned' || sId.toLowerCase() === 'unassigned')) {
         await repos.staffAssignments.unassignJob({
           jobId: targetJobId,
           unassignedBy: adminUser,
@@ -2467,6 +2468,189 @@ async function getDailyOperationsSummary(date = null) {
   return await getDailyCleanReports({ startDate: date, endDate: date });
 }
 
+/**
+ * Assign Daily Car Cleaning customer to a staff cleaner (Route Allocation)
+ */
+async function assignDailyCleanCustomer({ customerId, staffId, adminUser = 'admin' }) {
+  if (!customerId) return { success: false, error: 'Customer ID is required.' };
+  if (!staffId) return { success: false, error: 'Staff ID is required.' };
+
+  return db.withTransaction(async (client) => {
+    // 1. Resolve Customer
+    const target = String(customerId).trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(target);
+    let customer = isUuid ? await repos.customers.findById(target, client) : null;
+    if (!customer) customer = await repos.customers.findByCode(target, client);
+    if (!customer) {
+      const all = await repos.customers.findAll({ client });
+      customer = all.find(c => c.id === target || c.customer_code === target || c.phone === target || c.name === target) || null;
+    }
+    if (!customer) return { success: false, error: `Customer '${target}' not found.` };
+
+    // 2. Resolve Staff
+    const sTarget = String(staffId).trim();
+    const isStaffUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(sTarget);
+    let staff = isStaffUuid ? await repos.staff.findById(sTarget, client) : null;
+    if (!staff) staff = await repos.staff.findByStaffCode(sTarget, client);
+    if (!staff) {
+      const allStaff = await repos.staff.findAll({ client });
+      staff = allStaff.find(s => s.id === sTarget || s.staff_code?.toLowerCase() === sTarget.toLowerCase() || s.name?.toLowerCase() === sTarget.toLowerCase()) || null;
+    }
+    if (!staff) return { success: false, error: `Staff member '${sTarget}' not found.` };
+
+    // 3. Resolve or Create Active Subscription for Daily Car Cleaning
+    let sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
+    if (!sub) {
+      const allSubs = await repos.subscriptions.findByCustomerId(customer.id, { client });
+      sub = allSubs.find(s => s.status === 'active' && s.service_category_id === 'daily_car_cleaning') || allSubs.find(s => s.status === 'active') || null;
+    }
+    if (!sub) {
+      sub = await repos.subscriptions.createSubscription({
+        customerId: customer.id,
+        serviceCategoryId: 'daily_car_cleaning',
+        packageName: customer.interested_service || 'DCC ONLY',
+        status: 'active'
+      }, client);
+    }
+
+    // 4. Update Customer's interestedService / status
+    await repos.customers.updateCustomer(customer.id, {
+      interestedService: 'Daily Car Cleaning',
+      isActive: true
+    }, client);
+
+    // 5. Assign in staff_assignments ledger
+    const assignment = await repos.staffAssignments.assignStaffToSubscription({
+      staffId: staff.id,
+      subscriptionId: sub.id,
+      assignedBy: adminUser
+    }, client);
+
+    // 6. Append to staff route sequences if not already present
+    try {
+      const existingSeqs = await client.query(
+        'SELECT * FROM public.staff_route_sequences WHERE staff_id = $1 AND subscription_id = $2',
+        [staff.id, sub.id]
+      );
+      if (existingSeqs.rows.length === 0) {
+        const maxSeqRes = await client.query(
+          'SELECT COALESCE(MAX(sequence_order), 0) AS max_seq FROM public.staff_route_sequences WHERE staff_id = $1',
+          [staff.id]
+        );
+        const nextSeq = (maxSeqRes.rows[0]?.max_seq || 0) + 1;
+        await client.query(
+          `INSERT INTO public.staff_route_sequences (staff_id, subscription_id, sequence_order, updated_at)
+           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+           ON CONFLICT (staff_id, subscription_id) DO UPDATE SET sequence_order = $3, updated_at = CURRENT_TIMESTAMP`,
+          [staff.id, sub.id, nextSeq]
+        );
+      }
+    } catch (seqErr) {
+      console.warn('Route sequence auto-append non-fatal error:', seqErr.message);
+    }
+
+    // 7. Audit Log
+    await repos.auditLogs.logChange({
+      entityType: 'subscription',
+      entityId: sub.id,
+      action: 'assign_daily_clean_route',
+      changedBy: adminUser,
+      afterState: {
+        customerId: customer.id,
+        customerName: customer.name,
+        subscriptionId: sub.id,
+        staffId: staff.staff_code,
+        staffName: staff.name
+      }
+    }, client);
+
+    return {
+      success: true,
+      message: `${customer.name} allocated to ${staff.name}'s daily route.`,
+      customerId: customer.id,
+      staffId: staff.staff_code,
+      staffName: staff.name,
+      subscriptionId: sub.id,
+      assignmentId: assignment.id
+    };
+  });
+}
+
+/**
+ * Unassign Daily Car Cleaning customer from active staff route
+ */
+async function unassignDailyCleanCustomer({ customerId, reason = 'Unassigned by admin', adminUser = 'admin' }) {
+  if (!customerId) return { success: false, error: 'Customer ID is required.' };
+
+  return db.withTransaction(async (client) => {
+    const target = String(customerId).trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(target);
+    let customer = isUuid ? await repos.customers.findById(target, client) : null;
+    if (!customer) customer = await repos.customers.findByCode(target, client);
+    if (!customer) return { success: false, error: `Customer '${target}' not found.` };
+
+    const sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
+    if (sub) {
+      await repos.staffAssignments.unassignSubscription({
+        subscriptionId: sub.id,
+        unassignedBy: adminUser,
+        reason: reason || 'Customer unassigned from daily clean route'
+      }, client);
+
+      try {
+        await client.query('DELETE FROM public.staff_route_sequences WHERE subscription_id = $1', [sub.id]);
+      } catch (e) {}
+
+      await repos.auditLogs.logChange({
+        entityType: 'subscription',
+        entityId: sub.id,
+        action: 'unassign_daily_clean_route',
+        changedBy: adminUser,
+        afterState: { customerId: customer.id, customerName: customer.name, unassigned: true, reason }
+      }, client);
+    }
+
+    return {
+      success: true,
+      message: `${customer.name} unassigned from daily clean route.`,
+      customerId: customer.id
+    };
+  });
+}
+
+/**
+ * Fetch all Daily Car Cleaning assignments and unassigned subscribers
+ */
+async function getDailyCleanAssignments({ staffId = null, unassignedOnly = false } = {}) {
+  const sql = `
+    SELECT c.id AS customer_id, c.customer_code, c.name AS customer_name, c.name_hi AS customer_name_hi,
+           c.phone AS customer_phone, c.is_active,
+           v.id AS vehicle_id, v.registration_no, v.brand_or_model, v.car_make, v.car_color,
+           loc.id AS location_id, loc.address_text, loc.google_maps_url, loc.parking_details,
+           sub.id AS subscription_id, sub.package_name, sub.status AS subscription_status,
+           sa.staff_id, st.name AS staff_name, st.staff_code,
+           srs.sequence_order
+    FROM public.customers c
+    JOIN public.subscriptions sub ON sub.customer_id = c.id AND sub.status = 'active' AND sub.deleted_at IS NULL
+    LEFT JOIN public.staff_assignments sa ON sa.subscription_id = sub.id AND sa.is_active = TRUE
+    LEFT JOIN public.staff st ON sa.staff_id = st.id
+    LEFT JOIN public.service_locations loc ON loc.customer_id = c.id AND loc.is_primary = TRUE AND loc.deleted_at IS NULL
+    LEFT JOIN public.vehicles v ON v.customer_id = c.id AND v.deleted_at IS NULL
+    LEFT JOIN public.staff_route_sequences srs ON srs.staff_id = st.id AND srs.subscription_id = sub.id
+    WHERE c.deleted_at IS NULL AND c.is_active = TRUE
+    ORDER BY (st.name IS NULL) DESC, st.name ASC, srs.sequence_order ASC NULLS LAST, c.name ASC
+  `;
+  const res = await db.query(sql);
+  let rows = res.rows;
+  if (unassignedOnly) {
+    rows = rows.filter(r => !r.staff_id);
+  } else if (staffId) {
+    const norm = String(staffId).toLowerCase().trim();
+    rows = rows.filter(r => (r.staff_id && r.staff_id.toLowerCase() === norm) || (r.staff_code && r.staff_code.toLowerCase() === norm));
+  }
+  return { success: true, assignments: rows };
+}
+
 module.exports = {
   normalizeIndianMobile,
   isValidIndianMobile,
@@ -2495,5 +2679,8 @@ module.exports = {
   assignSpecialJob,
   reassignSpecialJob,
   getSpecialJobsAdmin,
+  assignDailyCleanCustomer,
+  unassignDailyCleanCustomer,
+  getDailyCleanAssignments,
   getServiceCatalog: () => serviceCatalog
 };

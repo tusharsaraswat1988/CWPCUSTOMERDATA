@@ -565,7 +565,7 @@ var state = {
         staff_login_desc: "पंजीकृत मोबाइल नंबर और 6-अंकों का पिन दर्ज करें",
         staff_pin_placeholder: "6-अंकों का पिन दर्ज करें",
         remember_device: "इस फोन पर लॉगिन याद रखें",
-        login_btn: "लॉगिन करें (Log In)",
+        login_btn: "लॉगिन करें",
         trust_strip: "सुरक्षित स्टाफ पोर्टल • CWP Detailers Official",
         live_sync: "लाइव",
         sync_title: "ऑटो-सिंक सक्रिय (30s) • लाइव डेटा सिंक चालू",
@@ -573,10 +573,10 @@ var state = {
         verified_portal: "CWP Verified Staff Portal",
         cars_count_suffix: "गाड़ियां",
         search_placeholder: "ग्राहक का नाम, गाड़ी नंबर या पता खोजें...",
-        tab_daily: "Daily Car Cleaning",
-        tab_wash: "Car Washing",
-        tab_solar: "Solar Panel Cleaning",
-        today_route: "Today's Cleaning Route",
+        tab_daily: "दैनिक कार सफाई",
+        tab_wash: "कार वॉश",
+        tab_solar: "सोलर सफाई",
+        today_route: "आज का सफाई रूट",
         route_staff_label: "स्टाफ",
         route_total_label: "कुल असाइन गाड़ियां",
         route_progress_label: "प्रोग्रेस:",
@@ -588,10 +588,10 @@ var state = {
         loc_none: "लोकेशन नहीं",
         photo: "फोटो",
         notes_label: "निर्देश:",
-        mark_done: "✓ साफ हो गई (Done)",
-        mark_clean: "○ आज साफ करें (Mark Cleaned)",
-        no_records: "No records found",
-        clear_search: "✕ Clear search",
+        mark_done: "✓ साफ हो गई",
+        mark_clean: "○ साफ करें",
+        no_records: "कोई रिकॉर्ड नहीं मिला",
+        clear_search: "✕ सर्च हटाएं",
         back_to_daily: "🚗 मुख्य दैनिक सफाई पर जाएं",
         open_maps: "Google Maps पर खोलें",
         close: "बंद करें",
@@ -633,7 +633,7 @@ var state = {
         loc_none: "No Location",
         photo: "Photo",
         notes_label: "Notes:",
-        mark_done: "✓ Cleaned (Done)",
+        mark_done: "✓ Cleaned",
         mark_clean: "○ Mark Cleaned",
         no_records: "No records found",
         clear_search: "✕ Clear search",
@@ -793,7 +793,7 @@ var state = {
       var staffLogoutBtn = document.getElementById('staffLogoutBtn');
       if (staffLogoutBtn) {
         var txt = staffLogoutBtn.querySelector('.logout-text');
-        if (txt) txt.textContent = isHi ? 'लॉगआउट (Shift Sign Out)' : 'Logout (Shift Sign Out)';
+        if (txt) txt.textContent = isHi ? 'लॉगआउट' : 'Shift Sign Out';
       }
 
       // Staff Auth Gate
@@ -808,7 +808,7 @@ var state = {
       var remLabel = document.querySelector('.admin-remember-row .remember-label span');
       if (remLabel) remLabel.textContent = isHi ? 'इस फोन पर लॉगिन याद रखें' : 'Remember login on this device';
       var loginBtnLabel = document.querySelector('#btnStaffLogin .btn-label');
-      if (loginBtnLabel) loginBtnLabel.textContent = isHi ? 'लॉगिन करें (Log In)' : 'Log In';
+      if (loginBtnLabel) loginBtnLabel.textContent = isHi ? 'लॉगिन करें' : 'Log In';
       var trustStrip = document.querySelector('.auth-trust-strip');
       if (trustStrip) {
         trustStrip.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; color: var(--md-sys-color-tertiary, #059669); margin-right: 4px;" aria-hidden="true">verified_user</span><span>' + (isHi ? 'सुरक्षित स्टाफ पोर्टल' : 'Secure Staff Portal') + '</span>';
@@ -849,8 +849,66 @@ var state = {
       // Route sequence header
       var rHeaderTitle = document.getElementById('routeHeaderTitle');
       if (rHeaderTitle) {
-        rHeaderTitle.textContent = isHi ? "आज का सफाई रूट (Today's Route)" : "Today's Cleaning Route";
+        rHeaderTitle.textContent = isHi ? "आज का सफाई रूट" : "Today's Cleaning Route";
       }
+
+      // Image Modal Language
+      var imgTabLabel = document.getElementById('imageModalOpenNewTabLabel');
+      if (imgTabLabel) imgTabLabel.textContent = isHi ? 'नए टैब में खोलें' : 'Open in New Tab';
+      var imgCloseBtn = document.querySelector('#imageModal .image-modal-close-icon');
+      if (imgCloseBtn) imgCloseBtn.title = isHi ? 'बंद करें' : 'Close';
+
+      // Camera Modal Language
+      if (typeof updateCameraModalLanguage === 'function') updateCameraModalLanguage(lang);
+
+      // Special Job Modals dynamic language update
+      var startModalTitle = document.getElementById('startSpecialJobModalTitle');
+      if (startModalTitle) startModalTitle.textContent = isHi ? 'काम शुरू करें' : 'Start Job';
+      var startJobSubTitle = document.getElementById('startJobSubTitle');
+      if (startJobSubTitle) startJobSubTitle.textContent = isHi ? 'सफाई से पहले की फोटो (1 या 2)' : 'Before Photos (1 or 2)';
+      var startJobBeforeLabel = document.getElementById('startJobBeforePhotoLabel');
+      if (startJobBeforeLabel) startJobBeforeLabel.textContent = isHi ? 'काम शुरू करने से पहले की फोटो' : 'Before Work Photos';
+      var btnStartJobAddPhotoText = document.getElementById('btnStartJobAddPhotoText');
+      if (btnStartJobAddPhotoText) btnStartJobAddPhotoText.textContent = isHi ? 'फोटो लें / अपलोड करें' : 'Take / Upload Photo';
+      var btnCancelStartJob = document.getElementById('btnCancelStartJob');
+      if (btnCancelStartJob) btnCancelStartJob.textContent = isHi ? 'रद्द करें' : 'Cancel';
+      var btnSubmitStartJobText = document.getElementById('btnSubmitStartJobText');
+      if (btnSubmitStartJobText) btnSubmitStartJobText.textContent = isHi ? 'काम शुरू करें' : 'Start Job';
+
+      var compModalTitle = document.getElementById('completeSpecialJobModalTitle');
+      if (compModalTitle) compModalTitle.textContent = isHi ? 'काम पूरा करें' : 'Complete Job';
+      var compJobSubTitle = document.getElementById('completeJobSubTitle');
+      if (compJobSubTitle) compJobSubTitle.textContent = isHi ? 'सफाई के बाद की फोटो (1 या 2)' : 'After Photos (1 or 2)';
+      var compJobAfterLabel = document.getElementById('completeJobAfterPhotoLabel');
+      if (compJobAfterLabel) compJobAfterLabel.textContent = isHi ? 'काम पूरा होने के बाद की फोटो' : 'After Work Photos';
+      var btnCompleteJobAddPhotoText = document.getElementById('btnCompleteJobAddPhotoText');
+      if (btnCompleteJobAddPhotoText) btnCompleteJobAddPhotoText.textContent = isHi ? 'फोटो लें / अपलोड करें' : 'Take / Upload Photo';
+      var compJobNotesLabel = document.getElementById('completeJobNotesLabel');
+      if (compJobNotesLabel) compJobNotesLabel.textContent = isHi ? 'विशेष टिप्पणी / विवरण' : 'Special Notes / Remarks';
+      var btnCancelCompJob = document.getElementById('btnCancelCompleteJob');
+      if (btnCancelCompJob) btnCancelCompJob.textContent = isHi ? 'रद्द करें' : 'Cancel';
+      var btnSubmitCompJobText = document.getElementById('btnSubmitCompleteJobText');
+      if (btnSubmitCompJobText) btnSubmitCompJobText.textContent = isHi ? 'काम पूरा करें' : 'Complete Job';
+
+      var cancelModalTitle = document.getElementById('cancelSpecialJobModalTitle');
+      if (cancelModalTitle) cancelModalTitle.textContent = isHi ? 'बुकिंग रद्द करें' : 'Cancel Booking';
+      var cancelJobSubTitle = document.getElementById('cancelJobSubTitle');
+      if (cancelJobSubTitle) cancelJobSubTitle.textContent = isHi ? 'कारण व टिप्पणी दर्ज करें' : 'Enter Reason & Remarks';
+      var cancelReasonLabel = document.getElementById('cancelJobReasonLabel');
+      if (cancelReasonLabel) cancelReasonLabel.textContent = isHi ? 'रद्द करने का कारण' : 'Cancellation Reason';
+      var cancelRemarksLabel = document.getElementById('cancelJobRemarksLabel');
+      if (cancelRemarksLabel) cancelRemarksLabel.textContent = isHi ? 'टिप्पणी / विवरण' : 'Remarks';
+      var btnBackCancelJob = document.getElementById('btnBackCancelJob');
+      if (btnBackCancelJob) btnBackCancelJob.textContent = isHi ? 'वापस जाएं' : 'Back';
+      var btnSubmitCancelJobText = document.getElementById('btnSubmitCancelJobText');
+      if (btnSubmitCancelJobText) btnSubmitCancelJobText.textContent = isHi ? 'रद्द दर्ज करें' : 'Confirm Cancellation';
+
+      var logoutHeading = document.getElementById('logoutConfirmModalTitle');
+      if (logoutHeading) logoutHeading.textContent = isHi ? 'स्टाफ लॉगआउट' : 'Staff Shift Sign Out';
+      var logoutCancelBtn = document.querySelector('#btnLogoutCancel .btn-text');
+      if (logoutCancelBtn) logoutCancelBtn.textContent = isHi ? 'वापस जाएं' : 'Cancel';
+      var logoutProceedBtn = document.querySelector('#btnLogoutProceed .btn-text');
+      if (logoutProceedBtn) logoutProceedBtn.textContent = isHi ? 'हाँ, लॉगआउट करें' : 'Yes, Sign Out';
 
       // Re-render customer cards if already loaded
       if (state.currentStaffFilteredList && state.currentStaffFilteredList.length > 0) {
@@ -1249,7 +1307,9 @@ var state = {
           { id: 'leadNoteModal', closer: function() { if (typeof closeLeadNoteModal === 'function') closeLeadNoteModal(); }, zIndex: 1000 },
           { id: 'assignSpecialJobModal', closer: function() { if (typeof closeAssignSpecialJobModal === 'function') closeAssignSpecialJobModal(); }, zIndex: 1000 },
           { id: 'startSpecialJobModal', closer: function() { if (typeof closeStartSpecialJobModal === 'function') closeStartSpecialJobModal(); }, zIndex: 1000 },
-          { id: 'completeSpecialJobModal', closer: function() { if (typeof closeCompleteSpecialJobModal === 'function') closeCompleteSpecialJobModal(); }, zIndex: 1000 }
+          { id: 'completeSpecialJobModal', closer: function() { if (typeof closeCompleteSpecialJobModal === 'function') closeCompleteSpecialJobModal(); }, zIndex: 1000 },
+          { id: 'cancelSpecialJobModal', closer: function() { if (typeof closeCancelSpecialJobModal === 'function') closeCancelSpecialJobModal(); }, zIndex: 1000 },
+          { id: 'reassignJobModal', closer: function() { if (typeof closeReassignJobModal === 'function') closeReassignJobModal(); }, zIndex: 1000 }
         ];
 
         var openModals = [];
@@ -1293,6 +1353,42 @@ var state = {
         }
         return false;
       }
+
+      var _modalHistoryStack = [];
+      var _isPoppingHistoryForModal = false;
+
+      function pushModalHistory(modalId) {
+        try {
+          _modalHistoryStack.push(modalId);
+          if (typeof history !== 'undefined' && history.pushState) {
+            history.pushState({ cwpModal: modalId, depth: _modalHistoryStack.length }, '');
+          }
+        } catch (e) {
+          console.warn('[ModalHistory] pushState error:', e);
+        }
+      }
+
+      function popModalHistory(modalId) {
+        if (_isPoppingHistoryForModal) return;
+        if (_modalHistoryStack.length > 0) {
+          var top = _modalHistoryStack[_modalHistoryStack.length - 1];
+          if (!modalId || top === modalId) {
+            _modalHistoryStack.pop();
+            if (typeof history !== 'undefined' && history.state && history.state.cwpModal) {
+              _isPoppingHistoryForModal = true;
+              try {
+                history.back();
+              } catch (e) {}
+              setTimeout(function() { _isPoppingHistoryForModal = false; }, 80);
+            }
+          }
+        }
+      }
+
+      window.pushModalHistory = pushModalHistory;
+      window.popModalHistory = popModalHistory;
+      window.getTopmostOpenModal = getTopmostOpenModal;
+      window.closeTopmostModal = closeTopmostModal;
 
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' || e.key === 'Esc') {
@@ -2072,9 +2168,9 @@ var state = {
         if (proceedText) proceedText.textContent = 'Log Out Securely';
         if (cancelText) cancelText.textContent = 'Cancel';
       } else {
-        if (heading) heading.textContent = isHi ? 'स्टाफ लॉगआउट (Shift Sign Out)' : 'Staff Shift Sign Out';
+        if (heading) heading.textContent = isHi ? 'स्टाफ लॉगआउट' : 'Staff Shift Sign Out';
         if (desc) desc.textContent = isHi 
-          ? 'क्या आप वाकई अपना आज का कार्य सत्र (Shift) सुरक्षित रूप से समाप्त करके लॉगआउट करना चाहते हैं?'
+          ? 'क्या आप वाकई अपना आज का कार्य सत्र सुरक्षित रूप से समाप्त करके लॉगआउट करना चाहते हैं?'
           : 'Are you sure you want to securely end your daily shift and log out?';
         
         var staffId = state.activeStaffId || sessionStorage.getItem('cwp_last_staff_id') || localStorage.getItem('cwp_last_staff_id') || '';
@@ -2097,7 +2193,7 @@ var state = {
           }
         }
         if (proceedText) proceedText.textContent = isHi ? 'हाँ, लॉगआउट करें' : 'Yes, Sign Out';
-        if (cancelText) cancelText.textContent = isHi ? 'वापस जाएं (Cancel)' : 'Cancel';
+        if (cancelText) cancelText.textContent = isHi ? 'वापस जाएं' : 'Cancel';
       }
 
       var modal = document.getElementById('logoutConfirmModal');
@@ -2105,6 +2201,7 @@ var state = {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
       }
+      if (typeof pushModalHistory === 'function') pushModalHistory('logoutConfirmModal');
     }
 
     function showLogoutModal(type, triggerEl) {
@@ -2112,6 +2209,7 @@ var state = {
     }
 
     function closeLogoutModal() {
+      if (typeof popModalHistory === 'function') popModalHistory('logoutConfirmModal');
       var modal = document.getElementById('logoutConfirmModal');
       if (modal) {
         modal.style.display = 'none';
@@ -3044,9 +3142,382 @@ var state = {
     window.renderCrewPulseStrip = renderCrewPulseStrip;
 
     /* =========================================================================
+       DAILY CLEAN ROUTE ASSIGNMENT CONTROLLERS (M3)
+       ========================================================================= */
+    var dccRosterCache = [];
+    var dccActiveSubTab = 'daily';
+
+    function switchJobAssignSubTab(subTab) {
+      dccActiveSubTab = subTab || 'daily';
+      var btnDaily = document.getElementById('btnSubTabDailyRoutes');
+      var btnSpecial = document.getElementById('btnSubTabSpecialJobs');
+      var paneDaily = document.getElementById('jobAssignSubPaneDaily');
+      var paneSpecial = document.getElementById('jobAssignSubPaneSpecial');
+
+      if (dccActiveSubTab === 'daily') {
+        if (btnDaily) {
+          btnDaily.classList.add('active');
+          btnDaily.setAttribute('aria-selected', 'true');
+        }
+        if (btnSpecial) {
+          btnSpecial.classList.remove('active');
+          btnSpecial.setAttribute('aria-selected', 'false');
+        }
+        if (paneDaily) paneDaily.style.display = 'block';
+        if (paneSpecial) paneSpecial.style.display = 'none';
+        loadDailyCleanRouteAssignments();
+      } else {
+        if (btnDaily) {
+          btnDaily.classList.remove('active');
+          btnDaily.setAttribute('aria-selected', 'false');
+        }
+        if (btnSpecial) {
+          btnSpecial.classList.add('active');
+          btnSpecial.setAttribute('aria-selected', 'true');
+        }
+        if (paneDaily) paneDaily.style.display = 'none';
+        if (paneSpecial) paneSpecial.style.display = 'block';
+        if (typeof renderJobAssignmentsLedger === 'function') renderJobAssignmentsLedger();
+      }
+    }
+    window.switchJobAssignSubTab = switchJobAssignSubTab;
+
+    function loadDailyCleanRouteAssignments() {
+      var tbody = document.getElementById('dccRouteRosterTableBody');
+      var banner = document.getElementById('dccUnassignedBanner');
+      var badge = document.getElementById('dccUnassignedBadge');
+      var filterStaffSelect = document.getElementById('dccRosterStaffFilter') || document.getElementById('dccFilterStaff');
+      var totalChip = document.getElementById('dccRosterTotalChip') || document.getElementById('dccRosterTotalCount');
+
+      if (tbody && (!tbody.innerHTML || tbody.innerHTML.indexOf('Loading') === -1)) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748b;"><div class="spinner-circle" style="width: 24px; height: 24px; margin: 0 auto 8px auto;"></div>Loading daily clean routes...</td></tr>';
+      }
+
+      // Populate Staff dropdowns
+      var staffList = (state && state.staffList) || [];
+      if (staffSelect) {
+        var prevStaffVal = staffSelect.value;
+        staffSelect.innerHTML = '<option value="">-- Choose Field Cleaner --</option>';
+        staffList.forEach(function(s) {
+          var opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Cleaner') + ')';
+          staffSelect.appendChild(opt);
+        });
+        if (prevStaffVal) staffSelect.value = prevStaffVal;
+      }
+
+      if (filterStaffSelect) {
+        var prevFilterVal = filterStaffSelect.value;
+        filterStaffSelect.innerHTML = '<option value="all">All Field Staff</option><option value="unassigned">⚠️ Unassigned Only</option>';
+        staffList.forEach(function(s) {
+          var opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = '👤 ' + (s.name || s.id);
+          filterStaffSelect.appendChild(opt);
+        });
+        if (prevFilterVal) filterStaffSelect.value = prevFilterVal;
+      }
+
+      apiCall('getDailyCleanAssignments', {}, function(res) {
+        var data = (res && res.data) || [];
+        var summary = (res && res.summary) || {};
+        dccRosterCache = data;
+
+        // Update unassigned badge & banner
+        var unassignedCount = summary.unassigned || 0;
+        if (badge) {
+          badge.textContent = unassignedCount;
+          badge.style.display = unassignedCount > 0 ? 'inline-flex' : 'none';
+        }
+        if (banner) {
+          banner.style.display = unassignedCount > 0 ? 'flex' : 'none';
+          var titleEl = document.getElementById('dccUnassignedBannerTitle');
+          if (titleEl) {
+            titleEl.textContent = unassignedCount + ' Daily Clean customer' + (unassignedCount > 1 ? 's' : '') + ' need a cleaner assigned!';
+          }
+        }
+
+        if (totalChip) totalChip.textContent = data.length + ' Active Subscribers';
+
+        // Populate Customer Select in Allocation Card (unassigned prioritized at top)
+        if (custSelect) {
+          var prevCustVal = custSelect.value;
+          custSelect.innerHTML = '<option value="">-- Choose Subscriber --</option>';
+
+          var unassignedCusts = data.filter(function(c) { return !c.isAssigned; });
+          var assignedCusts = data.filter(function(c) { return c.isAssigned; });
+
+          if (unassignedCusts.length > 0) {
+            var unassignedGroup = document.createElement('optgroup');
+            unassignedGroup.label = '⚠️ UNASSIGNED SUBSCRIBERS (' + unassignedCusts.length + ')';
+            unassignedCusts.forEach(function(c) {
+              var opt = document.createElement('option');
+              opt.value = c.customerId;
+              opt.textContent = (c.customerName || 'Subscriber') + ' - ' + (c.vehicleNumber || 'No plate') + ' (' + (c.locality || c.address || 'No Area') + ')';
+              unassignedGroup.appendChild(opt);
+            });
+            custSelect.appendChild(unassignedGroup);
+          }
+
+          if (assignedCusts.length > 0) {
+            var assignedGroup = document.createElement('optgroup');
+            assignedGroup.label = '✓ ALREADY ASSIGNED (' + assignedCusts.length + ')';
+            assignedCusts.forEach(function(c) {
+              var opt = document.createElement('option');
+              opt.value = c.customerId;
+              opt.textContent = (c.customerName || 'Subscriber') + ' - ' + (c.vehicleNumber || 'No plate') + ' [Current: ' + (c.staffName || 'Staff') + ']';
+              assignedGroup.appendChild(opt);
+            });
+            custSelect.appendChild(assignedGroup);
+          }
+
+          if (prevCustVal) custSelect.value = prevCustVal;
+        }
+
+        renderDccRouteRosterTable();
+      }, function(err) {
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #dc2626;">Failed to load assignments: ' + escapeHtml((err && err.message) || 'Unknown server error') + '</td></tr>';
+        }
+      });
+    }
+    window.loadDailyCleanRouteAssignments = loadDailyCleanRouteAssignments;
+
+    function renderDccRouteRosterTable() {
+      var tbody = document.getElementById('dccRouteRosterTableBody');
+      if (!tbody) return;
+
+      var filterSelect = document.getElementById('dccRosterStaffFilter') || document.getElementById('dccFilterStaff');
+      var filterStaff = filterSelect ? filterSelect.value : 'all';
+      var searchInput = document.getElementById('dccRosterSearch') || document.getElementById('dccSearchInput');
+      var searchVal = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+      var filtered = dccRosterCache.filter(function(row) {
+        if (filterStaff === 'unassigned') {
+          if (row.isAssigned) return false;
+        } else if (filterStaff !== 'all' && filterStaff !== '') {
+          if (!row.staffId || row.staffId !== filterStaff) return false;
+        }
+
+        if (searchVal) {
+          var matchName = (row.customerName || '').toLowerCase().indexOf(searchVal) !== -1;
+          var matchPhone = (row.phone || '').toLowerCase().indexOf(searchVal) !== -1;
+          var matchPlate = (row.vehicleNumber || '').toLowerCase().indexOf(searchVal) !== -1;
+          var matchLoc = (row.locality || row.address || '').toLowerCase().indexOf(searchVal) !== -1;
+          var matchStaff = (row.staffName || '').toLowerCase().indexOf(searchVal) !== -1;
+          if (!matchName && !matchPhone && !matchPlate && !matchLoc && !matchStaff) return false;
+        }
+
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 28px; color: #64748b;"><div class="empty-radar-wrap" style="width: 44px; height: 44px; margin: 0 auto 10px auto;"><div class="empty-radar-icon" style="font-size: 22px;">🚗</div></div>No matching daily clean route assignments found.</td></tr>';
+        return;
+      }
+
+      var staffList = (state && state.staffList) || [];
+      var html = '';
+
+      filtered.forEach(function(row, idx) {
+        var seqBadge = row.sequenceOrder ? '<span class="m3-chip" style="font-size: 11px; font-weight: 700; background: #e0e7ff; color: #3730a3;">#' + row.sequenceOrder + '</span>' : '<span style="color: #94a3b8; font-size: 11px;">--</span>';
+        var staffCell = '';
+
+        if (row.isAssigned) {
+          staffCell = '<div class="staff-cell-pill">' +
+                        '<span class="staff-avatar-dot" style="background: #2563eb; color: #fff;">' + escapeHtml((row.staffName || 'S').charAt(0).toUpperCase()) + '</span>' +
+                        '<span class="staff-cell-name" style="font-weight: 600;">' + escapeHtml(row.staffName) + '</span>' +
+                      '</div>';
+        } else {
+          staffCell = '<span class="badge-status-pill badge-unassigned" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a;">⚠️ Unassigned</span>';
+        }
+
+        // Build Staff Reassign Dropdown inline
+        var reassignSelect = '<select class="form-select" style="font-size: 11.5px; padding: 3px 6px; height: 28px; width: auto; max-width: 140px; display: inline-block;" onchange="handleDccInlineReassign(\'' + escapeHtml(row.customerId) + '\', this.value)">' +
+          '<option value="">' + (row.isAssigned ? 'Reassign...' : 'Assign cleaner...') + '</option>';
+        staffList.forEach(function(s) {
+          var isCurrent = (row.staffId && s.id === row.staffId);
+          reassignSelect += '<option value="' + escapeHtml(s.id) + '" ' + (isCurrent ? 'selected disabled' : '') + '>' + escapeHtml(s.name) + '</option>';
+        });
+        reassignSelect += '</select>';
+
+        var unassignBtn = row.isAssigned ? '<button type="button" class="btn-table-action-sm danger" onclick="handleDccUnassign(\'' + escapeHtml(row.customerId) + '\', \'' + escapeHtml(row.customerName) + '\')" title="Remove from cleaner route">✕ Unassign</button>' : '';
+
+        html += '<tr>' +
+          '  <td style="text-align: center; font-weight: 600;">' + (idx + 1) + '</td>' +
+          '  <td>' +
+          '    <div style="font-weight: 600; color: #1e293b;">' + escapeHtml(row.customerName || 'Subscriber') + '</div>' +
+          '    <div style="font-size: 11.5px; color: #64748b;">📞 ' + escapeHtml(row.phone || '--') + '</div>' +
+          '  </td>' +
+          '  <td>' +
+          '    <div style="font-weight: 600; font-family: monospace; color: #0f172a;">' + escapeHtml(row.vehicleNumber || '--') + '</div>' +
+          '    <div style="font-size: 11px; color: #64748b;">' + escapeHtml(row.packageType || 'Daily Clean') + '</div>' +
+          '  </td>' +
+          '  <td>' +
+          '    <div style="font-size: 12.5px; color: #334155;">📍 ' + escapeHtml(row.locality || row.address || 'Address not set') + '</div>' +
+          '  </td>' +
+          '  <td>' + staffCell + '</td>' +
+          '  <td style="text-align: center;">' + seqBadge + '</td>' +
+          '  <td style="text-align: right; white-space: nowrap;">' +
+          '    <div style="display: inline-flex; align-items: center; gap: 6px;">' +
+                 reassignSelect +
+                 unassignBtn +
+          '    </div>' +
+          '  </td>' +
+          '</tr>';
+      });
+
+      tbody.innerHTML = html;
+    }
+    window.renderDccRouteRosterTable = renderDccRouteRosterTable;
+
+    function filterDccRosterByStaff(staffId) {
+      var filterSelect = document.getElementById('dccRosterStaffFilter') || document.getElementById('dccFilterStaff');
+      if (filterSelect) {
+        filterSelect.value = staffId;
+      }
+      renderDccRouteRosterTable();
+    }
+    window.filterDccRosterByStaff = filterDccRosterByStaff;
+
+    function handleDccRosterFilterChange(val) {
+      filterDccRosterByStaff(val);
+    }
+    window.handleDccRosterFilterChange = handleDccRosterFilterChange;
+
+    function handleDccRosterSearch(val) {
+      renderDccRouteRosterTable();
+    }
+    window.handleDccRosterSearch = handleDccRosterSearch;
+
+    function handleDccAssignmentSubmit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+
+      var custSelect = document.getElementById('dccAssignCustomerSelect');
+      var staffSelect = document.getElementById('dccAssignStaffSelect');
+      var seqInput = document.getElementById('dccAssignSequenceOrder');
+
+      var custId = custSelect ? custSelect.value.trim() : '';
+      var staffId = staffSelect ? staffSelect.value.trim() : '';
+      var seqOrder = seqInput && seqInput.value ? parseInt(seqInput.value, 10) : null;
+
+      if (!custId || !staffId) {
+        if (typeof showToast === 'function') {
+          showToast('Please select both a Customer and a Field Cleaner.', 'warning');
+        } else {
+          alert('Please select both a Customer and a Field Cleaner.');
+        }
+        return;
+      }
+
+      var btnSubmit = document.getElementById('btnSubmitDccAssign');
+      if (btnSubmit) btnSubmit.disabled = true;
+
+      apiCall('assignDailyCleanCustomer', {
+        customerId: custId,
+        staffId: staffId,
+        sequenceOrder: seqOrder
+      }, function(res) {
+        if (btnSubmit) btnSubmit.disabled = false;
+        if (typeof showToast === 'function') {
+          showToast('Cleaner assigned to daily route successfully!', 'success');
+        }
+        if (custSelect) custSelect.value = '';
+        if (seqInput) seqInput.value = '';
+        loadDailyCleanRouteAssignments();
+      }, function(err) {
+        if (btnSubmit) btnSubmit.disabled = false;
+        if (typeof showToast === 'function') {
+          showToast('Error assigning daily cleaner: ' + ((err && err.message) || 'Server error'), 'error');
+        } else {
+          alert('Error assigning daily cleaner: ' + ((err && err.message) || 'Server error'));
+        }
+      });
+    }
+    window.handleDccAssignmentSubmit = handleDccAssignmentSubmit;
+
+    function handleDccInlineReassign(customerId, newStaffId) {
+      if (!customerId || !newStaffId) return;
+
+      apiCall('assignDailyCleanCustomer', {
+        customerId: customerId,
+        staffId: newStaffId
+      }, function(res) {
+        if (typeof showToast === 'function') {
+          showToast('Route reallocated successfully!', 'success');
+        }
+        loadDailyCleanRouteAssignments();
+      }, function(err) {
+        if (typeof showToast === 'function') {
+          showToast('Failed to reassign: ' + ((err && err.message) || 'Server error'), 'error');
+        } else {
+          alert('Failed to reassign: ' + ((err && err.message) || 'Server error'));
+        }
+        loadDailyCleanRouteAssignments();
+      });
+    }
+    window.handleDccInlineReassign = handleDccInlineReassign;
+
+    function handleDccUnassign(customerId, customerName) {
+      if (!customerId) return;
+      var conf = confirm('Are you sure you want to unassign ' + (customerName || 'this customer') + ' from their daily clean route?');
+      if (!conf) return;
+
+      apiCall('unassignDailyCleanCustomer', {
+        customerId: customerId,
+        reason: 'Admin unassigned from Job Assignment Hub'
+      }, function(res) {
+        if (typeof showToast === 'function') {
+          showToast('Customer removed from cleaner route.', 'success');
+        }
+        loadDailyCleanRouteAssignments();
+      }, function(err) {
+        if (typeof showToast === 'function') {
+          showToast('Failed to unassign: ' + ((err && err.message) || 'Server error'), 'error');
+        } else {
+          alert('Failed to unassign: ' + ((err && err.message) || 'Server error'));
+        }
+      });
+    }
+    window.handleDccUnassign = handleDccUnassign;
+
+    function navigateToJobAssignmentFromModal() {
+      var custId = document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value : '';
+      if (typeof closeEditCustomerModal === 'function') {
+        closeEditCustomerModal();
+      }
+      if (typeof switchTab === 'function') {
+        switchTab('jobAssignment');
+      } else if (typeof showAdminTab === 'function') {
+        showAdminTab('jobAssignment');
+      }
+      switchJobAssignSubTab('daily');
+
+      if (custId) {
+        setTimeout(function() {
+          var custSelect = document.getElementById('dccAssignCustomerSelect');
+          if (custSelect) {
+            custSelect.value = custId;
+          }
+          var searchInput = document.getElementById('dccSearchInput');
+          var nameEl = document.getElementById('editCustName');
+          if (searchInput && nameEl && nameEl.value) {
+            searchInput.value = nameEl.value.trim();
+            renderDccRouteRosterTable();
+          }
+        }, 400);
+      }
+    }
+    window.navigateToJobAssignmentFromModal = navigateToJobAssignmentFromModal;
+
+    /* =========================================================================
        DEDICATED JOB ASSIGNMENT CONTROLLER (R6)
        ========================================================================= */
     function loadJobAssignmentView() {
+      if (typeof loadDailyCleanRouteAssignments === 'function') {
+        loadDailyCleanRouteAssignments();
+      }
       var custSelect = document.getElementById('jobAssignCustomerSelect');
       if (custSelect) {
         custSelect.innerHTML = '<option value="">-- Select Customer --</option>';
@@ -3166,6 +3637,8 @@ var state = {
       var activeJobs = jobs.filter(function(j) { return j.status !== 'completed' && j.status !== 'cancelled'; });
 
       if (countEl) countEl.textContent = activeJobs.length;
+      var specialBadge = document.getElementById('specialActiveBadge');
+      if (specialBadge) specialBadge.textContent = activeJobs.length;
 
       if (activeJobs.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 28px; color: var(--text-muted);"><div class="empty-radar-wrap" style="width: 48px; height: 48px; margin: 0 auto 10px auto;"><div class="empty-radar-icon" style="font-size: 22px;">📋</div></div>No active assignments in queue. Use the dispatch form above to assign work.</td></tr>';
@@ -3279,8 +3752,25 @@ var state = {
     }
     window.computeWashSolarElapsed = computeWashSolarElapsed;
 
-    // Listen to browser back/forward buttons to switch admin tab seamlessly
+    // Listen to browser back/forward buttons (Mobile Android hardware back / gesture navigation)
     window.addEventListener('popstate', function(e) {
+      if (_isPoppingHistoryForModal) {
+        _isPoppingHistoryForModal = false;
+        return;
+      }
+      var topmost = (typeof getTopmostOpenModal === 'function') ? getTopmostOpenModal() : null;
+      if (topmost) {
+        _isPoppingHistoryForModal = true;
+        if (_modalHistoryStack && _modalHistoryStack.length > 0) {
+          _modalHistoryStack.pop();
+        }
+        if (typeof closeTopmostModal === 'function') {
+          closeTopmostModal();
+        }
+        setTimeout(function() { _isPoppingHistoryForModal = false; }, 80);
+        return; // Intercepted: closed topmost modal, app stays open!
+      }
+
       if (state.currentView === 'admin' && isUserAdminAuthenticated()) {
         var urlParams = new URLSearchParams(window.location.search);
         var t = urlParams.get('tab') || 'records';
@@ -4638,20 +5128,20 @@ function loadStaffCustomerData(staffId) {
             var compData = getCustomerCompletionData(custId);
             var isCarNotPresent = compData && (compData.carNotPresent === true || compData.tag === 'car_not_present' || compData.status === 'car_not_present');
             if (isCarNotPresent) {
-              html += '    <button type="button" class="btn-clean-done done-active card-status-not-present" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleDailyCleanClick(this.dataset.custId, Number(this.dataset.index))" title="' + (isHi ? 'कार मौजूद नहीं थी (फोटो देखने या रीटेक करने के लिए क्लिक करें)' : 'Car not present (Click to view or retake photo)') + '">';
+              html += '    <button type="button" class="btn-clean-done done-active card-status-not-present" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleDailyCleanClick(this.dataset.custId, Number(this.dataset.index))" title="' + (isHi ? 'कार मौजूद नहीं थी (रीटेक के लिए क्लिक करें)' : 'Car not present (Click to retake photo)') + '">';
               html += '      <span class="material-symbols-outlined status-completed-icon" style="font-size: 18px;" aria-hidden="true">cancel</span>';
-              html += '      <span>' + (isHi ? 'कार नहीं थी (Not Present)' : 'Car Not Present') + '</span>';
+              html += '      <span>' + (isHi ? 'कार नहीं थी' : 'Car Not Present') + '</span>';
               html += '    </button>';
             } else {
-              html += '    <button type="button" class="btn-clean-done done-active card-status-completed" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleDailyCleanClick(this.dataset.custId, Number(this.dataset.index))" title="' + (isHi ? 'सफाई पूर्ण हो चुकी है (फोटो देखने या रीटेक करने के लिए क्लिक करें)' : 'Cleaning completed (Click to view or retake photo)') + '">';
+              html += '    <button type="button" class="btn-clean-done done-active card-status-completed" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleDailyCleanClick(this.dataset.custId, Number(this.dataset.index))" title="' + (isHi ? 'सफाई पूर्ण (रीटेक के लिए क्लिक करें)' : 'Cleaning completed (Click to view or retake photo)') + '">';
               html += '      <span class="material-symbols-outlined status-completed-icon" style="font-size: 18px;" aria-hidden="true">check_circle</span>';
-              html += '      <span>' + (isHi ? 'साफ हो गई (Done)' : 'Cleaned (Done)') + '</span>';
+              html += '      <span>' + (isHi ? 'साफ हो गई' : 'Cleaned') + '</span>';
               html += '    </button>';
             }
           } else {
             html += '    <button type="button" class="btn-clean-done" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleDailyCleanClick(this.dataset.custId, Number(this.dataset.index))">';
             html += '      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">photo_camera</span>';
-            html += '      <span>' + (isHi ? 'आज साफ करें (Mark Cleaned)' : 'Mark Cleaned') + '</span>';
+            html += '      <span>' + (isHi ? 'साफ करें' : 'Mark Cleaned') + '</span>';
             html += '    </button>';
           }
           html += '    <button type="button" class="btn-clean-wa ' + (isDone ? 'wa-ready' : 'wa-idle') + '" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleCustomerWhatsAppShare(this.dataset.custId, Number(this.dataset.index))" title="' + (isHi ? 'व्हाट्सएप पर शेयर करें' : 'Share to WhatsApp') + '">';
@@ -4670,26 +5160,26 @@ function loadStaffCustomerData(staffId) {
 
           if (jStatus === 'assigned') {
             html += '    <div class="job-card-journey-bar job-status-assigned">';
-            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">assignment</span>नया काम (Awaiting Start)</span>';
-            html += '      <span class="job-time-chip">' + (item.scheduledDate ? 'तारीख: ' + escapeHtml(item.scheduledDate) : 'आज का काम') + '</span>';
+            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">assignment</span>' + (isHi ? 'नया काम' : 'Awaiting Start') + '</span>';
+            html += '      <span class="job-time-chip">' + (item.scheduledDate ? (isHi ? 'तारीख: ' : 'Date: ') + escapeHtml(item.scheduledDate) : (isHi ? 'आज का काम' : "Today's Job")) + '</span>';
             html += '    </div>';
             html += '    <div style="display: flex; gap: 8px; margin-top: 6px;">';
             html += '      <button type="button" class="btn-job-action btn-job-start" style="flex: 1;" onclick="openStartSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
-            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>काम शुरू करें (1-2 फ़ोटो लें)</span>';
+            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>' + (isHi ? 'काम शुरू करें' : 'Start Job') + '</span>';
             html += '      </button>';
-            html += '      <button type="button" class="btn-job-action btn-job-cancel" onclick="openCancelSpecialJobModal(\'' + escapeHtml(jId) + '\')" title="बुकिंग रद्द करें (Cancel Booking)">';
-            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">cancel</span><span>रद्द करें</span>';
+            html += '      <button type="button" class="btn-job-action btn-job-cancel" onclick="openCancelSpecialJobModal(\'' + escapeHtml(jId) + '\')" title="' + (isHi ? 'बुकिंग रद्द करें' : 'Cancel Booking') + '">';
+            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">cancel</span><span>' + (isHi ? 'रद्द करें' : 'Cancel') + '</span>';
             html += '      </button>';
             html += '    </div>';
           } else if (jStatus === 'in_progress') {
             var stTime = item.startedAt ? formatTimeOnly(item.startedAt) : '';
             html += '    <div class="job-card-journey-bar job-status-in-progress">';
-            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">pending</span>काम चालू है (In Progress)</span>';
-            html += '      <span class="job-time-chip">' + (stTime ? 'शुरू: ' + stTime : 'प्रगति पर') + '</span>';
+            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">pending</span>' + (isHi ? 'काम चालू है' : 'In Progress') + '</span>';
+            html += '      <span class="job-time-chip">' + (stTime ? (isHi ? 'शुरू: ' : 'Started: ') + stTime : (isHi ? 'प्रगति पर' : 'In Progress')) + '</span>';
             html += '    </div>';
 
             if (beforeList.length > 0) {
-              html += '    <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-outline, #64748b); margin-bottom: 4px;"><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle; margin-right: 3px;" aria-hidden="true">photo_camera</span>शुरू करने से पहले की फ़ोटो:</div>';
+              html += '    <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-outline, #64748b); margin-bottom: 4px;"><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle; margin-right: 3px;" aria-hidden="true">photo_camera</span>' + (isHi ? 'शुरू करने से पहले की फ़ोटो:' : 'Before Photos:') + '</div>';
               html += '    <div class="job-photos-grid">';
               beforeList.forEach(function(pUrl, pIdx) {
                 html += '    <div class="job-photo-item" onclick="openImageModal(\'' + escapeHtml(pUrl) + '\', \'' + escapeHtml(customerName) + '\', \'Before Photo ' + (pIdx + 1) + '\')">';
@@ -4702,21 +5192,21 @@ function loadStaffCustomerData(staffId) {
 
             html += '    <div style="display: flex; gap: 8px; margin-top: 6px;">';
             html += '      <button type="button" class="btn-job-action btn-job-complete" style="flex: 1;" onclick="openCompleteSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
-            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">task_alt</span><span>काम पूरा करें (1-2 फ़ोटो अपलोड करें)</span>';
+            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">task_alt</span><span>' + (isHi ? 'काम पूरा करें' : 'Complete Job') + '</span>';
             html += '      </button>';
-            html += '      <button type="button" class="btn-job-action btn-job-cancel" onclick="openCancelSpecialJobModal(\'' + escapeHtml(jId) + '\')" title="बुकिंग रद्द करें (Cancel Booking)">';
-            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">cancel</span><span>रद्द करें</span>';
+            html += '      <button type="button" class="btn-job-action btn-job-cancel" onclick="openCancelSpecialJobModal(\'' + escapeHtml(jId) + '\')" title="' + (isHi ? 'बुकिंग रद्द करें' : 'Cancel Booking') + '">';
+            html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">cancel</span><span>' + (isHi ? 'रद्द करें' : 'Cancel') + '</span>';
             html += '      </button>';
             html += '    </div>';
           } else if (jStatus === 'completed') {
             var compTime = item.completedAt ? formatTimeOnly(item.completedAt) : '';
             html += '    <div class="job-card-journey-bar job-status-completed">';
-            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">check_circle</span>काम पूरा हुआ (Completed)</span>';
-            html += '      <span class="job-time-chip">' + (compTime ? 'पूर्ण: ' + compTime : 'सफल') + '</span>';
+            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">check_circle</span>' + (isHi ? 'काम पूरा हुआ' : 'Completed') + '</span>';
+            html += '      <span class="job-time-chip">' + (compTime ? (isHi ? 'पूर्ण: ' : 'Completed: ') + compTime : (isHi ? 'सफल' : 'Done')) + '</span>';
             html += '    </div>';
 
             if (beforeList.length > 0 || afterList.length > 0) {
-              html += '    <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-outline, #64748b); margin-bottom: 4px;"><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle; margin-right: 3px;" aria-hidden="true">photo_camera</span>सफाई का प्रमाण (Before & After):</div>';
+              html += '    <div style="font-size: 11px; font-weight: 600; color: var(--md-sys-color-outline, #64748b); margin-bottom: 4px;"><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle; margin-right: 3px;" aria-hidden="true">photo_camera</span>' + (isHi ? 'सफाई का प्रमाण (Before & After):' : 'Cleaning Proof:') + '</div>';
               html += '    <div class="job-photos-grid">';
               beforeList.forEach(function(pUrl, pIdx) {
                 html += '    <div class="job-photo-item" onclick="openImageModal(\'' + escapeHtml(pUrl) + '\', \'' + escapeHtml(customerName) + '\', \'Before Photo\')">';
@@ -4735,26 +5225,26 @@ function loadStaffCustomerData(staffId) {
 
             if (item.completionNotes) {
               html += '    <div style="font-size: 12px; background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 6px 10px; border-radius: 6px; margin: 6px 0; color: var(--md-sys-color-on-surface-variant, #475569); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);">';
-              html += '      <strong>टिप्पणी:</strong> ' + escapeHtml(item.completionNotes);
+              html += '      <strong>' + (isHi ? 'टिप्पणी:' : 'Notes:') + '</strong> ' + escapeHtml(item.completionNotes);
               html += '    </div>';
             }
 
             html += '    <button type="button" class="btn-job-action btn-job-wa-share" onclick="shareSpecialJobWhatsApp(\'' + escapeHtml(jId) + '\')">';
             html += '      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.68 12.04 3.68C14.25 3.68 16.31 4.54 17.87 6.1C19.42 7.66 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.05 20.15Z"/></svg>';
-            html += '      <span>ग्राहक को व्हाट्सएप भेजें (Share Proof)</span>';
+            html += '      <span>' + (isHi ? 'व्हाट्सएप पर शेयर करें' : 'Share Proof on WhatsApp') + '</span>';
             html += '    </button>';
           } else if (jStatus === 'cancelled') {
             var cTime = item.cancelledAt ? formatTimeOnly(item.cancelledAt) : '';
-            var reason = item.cancellationReason || 'रद्द (Cancelled)';
+            var reason = item.cancellationReason || (isHi ? 'रद्द' : 'Cancelled');
             var remarks = item.cancellationRemarks || '';
             html += '    <div class="job-card-journey-bar job-status-cancelled">';
-            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">block</span>रद्द (Cancelled)</span>';
-            html += '      <span class="job-time-chip">' + (cTime ? 'रद्द: ' + cTime : 'रद्द') + '</span>';
+            html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">block</span>' + (isHi ? 'रद्द' : 'Cancelled') + '</span>';
+            html += '      <span class="job-time-chip">' + (cTime ? (isHi ? 'रद्द: ' : 'Cancelled: ') + cTime : (isHi ? 'रद्द' : 'Cancelled')) + '</span>';
             html += '    </div>';
             html += '    <div class="job-cancelled-details-box">';
-            html += '      <div><strong>कारण:</strong> ' + escapeHtml(reason) + '</div>';
+            html += '      <div><strong>' + (isHi ? 'कारण:' : 'Reason:') + '</strong> ' + escapeHtml(reason) + '</div>';
             if (remarks) {
-              html += '      <div style="margin-top: 4px; color: var(--md-sys-color-outline, #64748b);"><strong>टिप्पणी:</strong> ' + escapeHtml(remarks) + '</div>';
+              html += '      <div style="margin-top: 4px; color: var(--md-sys-color-outline, #64748b);"><strong>' + (isHi ? 'टिप्पणी:' : 'Remarks:') + '</strong> ' + escapeHtml(remarks) + '</div>';
             }
             html += '    </div>';
           }
@@ -9117,7 +9607,20 @@ function loadStaffCustomerData(staffId) {
       if (r.staffName && !staffFound && r.staffName.toLowerCase() !== 'none' && r.staffName.toLowerCase() !== 'unassigned') {
         options += '<option value="' + escapeHtml(r.staffName) + '" selected>' + escapeHtml(r.staffName) + '</option>';
       }
-      staffSelect.innerHTML = options;
+      if (staffSelect) staffSelect.innerHTML = options;
+
+      /* Update Informational Route Assignment Status Card */
+      var cleanerNameEl = document.getElementById('editCustCleanerName');
+      var cleanerMetaEl = document.getElementById('editCustCleanerMeta');
+      if (cleanerNameEl) {
+        if (r.staffName && r.staffName.trim() && r.staffName.toLowerCase() !== 'none' && r.staffName.toLowerCase() !== 'unassigned') {
+          cleanerNameEl.innerHTML = '<span style="color: #16a34a;">👤 ' + escapeHtml(r.staffName) + '</span>';
+          if (cleanerMetaEl) cleanerMetaEl.textContent = 'Allocated to Daily Clean Route';
+        } else {
+          cleanerNameEl.innerHTML = '<span style="color: #d97706;">⚠️ Unassigned</span>';
+          if (cleanerMetaEl) cleanerMetaEl.textContent = 'Not yet allocated to any cleaner route';
+        }
+      }
 
       /* Photo thumbnail preview */
       var thumb = document.getElementById('editPhotoThumb');
@@ -9476,7 +9979,7 @@ function loadStaffCustomerData(staffId) {
             if (noPhotoBox) {
               noPhotoBox.style.display = 'block';
               var titleBox = noPhotoBox.querySelector('div:nth-child(2)');
-              if (titleBox) titleBox.textContent = 'फोटो लोड नहीं हो सकी (Photo Unavailable)';
+              if (titleBox) titleBox.textContent = (typeof state !== 'undefined' && state.lang !== 'en') ? 'फोटो लोड नहीं हो सकी' : 'Photo Unavailable';
             }
           };
           img.src = url;
@@ -9497,11 +10000,16 @@ function loadStaffCustomerData(staffId) {
         if (noPhotoBox) noPhotoBox.style.display = 'block';
       }
 
+      var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
+      var tabLabel = document.getElementById('imageModalOpenNewTabLabel');
+      if (tabLabel) tabLabel.textContent = isHi ? 'नए टैब में खोलें' : 'Open in New Tab';
+
       if (modal) {
         modal.classList.add('open');
         modal.style.display = 'flex';
       }
       document.body.style.overflow = 'hidden';
+      if (typeof pushModalHistory === 'function') pushModalHistory('imageModal');
     }
 
     function closeImageModal() {
@@ -9518,6 +10026,7 @@ function loadStaffCustomerData(staffId) {
       if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
         document.body.style.overflow = '';
       }
+      if (typeof popModalHistory === 'function') popModalHistory('imageModal');
     }
 
     function openAdminPhotoModal(origIndex) {
@@ -9652,6 +10161,7 @@ function loadStaffCustomerData(staffId) {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
       }
+      if (typeof pushModalHistory === 'function') pushModalHistory('addressViewModal');
     }
 
     function closeAddressModal() {
@@ -9661,6 +10171,7 @@ function loadStaffCustomerData(staffId) {
         document.body.style.overflow = '';
       }
       _activeModalRecord = null;
+      if (typeof popModalHistory === 'function') popModalHistory('addressViewModal');
     }
 
     function copyLocationAddress(which) {
@@ -10773,6 +11284,46 @@ function loadStaffCustomerData(staffId) {
       openCleaningCameraModal(custId, index);
     }
 
+    function updateCameraModalLanguage(lang) {
+      var isHi = (lang === 'hi' || (typeof state !== 'undefined' && state.lang !== 'en'));
+      var guideText = document.getElementById('cameraGuideText');
+      if (guideText) guideText.textContent = isHi ? '🚗 पूरी गाड़ी फ्रेम के अंदर रखें' : '🚗 Align vehicle inside frame';
+
+      var flipBtn = document.getElementById('cameraFlipBtnLabel');
+      if (flipBtn) flipBtn.textContent = isHi ? 'फ्लिप' : 'Flip';
+
+      var fallbackBtn = document.getElementById('cameraFallbackBtnLabel');
+      if (fallbackBtn) fallbackBtn.textContent = isHi ? 'फ़ोन कैमरा' : 'Phone Camera';
+
+      var cnpTitle = document.getElementById('cameraCarNotPresentTitle');
+      if (cnpTitle) cnpTitle.textContent = isHi ? 'कार मौजूद नहीं है' : 'Car Not Present';
+
+      var cnpDesc = document.getElementById('cameraCarNotPresentDesc');
+      if (cnpDesc) cnpDesc.textContent = isHi ? 'खाली पार्किंग/स्पॉट का फोटो सबमिट करें' : 'Submit photo of empty spot';
+
+      var cnpBadge = document.getElementById('cameraCarNotPresentBadge');
+      if (cnpBadge) cnpBadge.textContent = isHi ? 'चिह्नित' : 'Tagged';
+
+      var retakeLabel = document.getElementById('btnReviewRetakeLabel');
+      if (retakeLabel) retakeLabel.textContent = isHi ? 'दोबारा लें' : 'Retake';
+
+      var confirmLabel = document.getElementById('btnConfirmCleanPhotoLabel');
+      var isNotPresent = document.getElementById('cameraCarNotPresentCheck') && document.getElementById('cameraCarNotPresentCheck').checked;
+      if (confirmLabel) {
+        if (isNotPresent) {
+          confirmLabel.textContent = isHi ? 'दर्ज करें: कार मौजूद नहीं' : 'Save: Car Not Present';
+        } else {
+          confirmLabel.textContent = isHi ? 'पुष्टि करें और सहेजें' : 'Confirm & Save';
+        }
+      }
+
+      var upTitle = document.getElementById('cameraUploadingTitle');
+      if (upTitle) upTitle.textContent = isHi ? 'फोटो सेव हो रही है...' : 'Saving photo...';
+      var upSub = document.getElementById('cameraUploadingSub');
+      if (upSub) upSub.textContent = isHi ? 'कृपया प्रतीक्षा करें...' : 'Please wait...';
+    }
+    window.updateCameraModalLanguage = updateCameraModalLanguage;
+
     function openCleaningCameraModal(custId, index) {
       var item = state.currentStaffFilteredList && state.currentStaffFilteredList[index];
       if (!item) return;
@@ -10784,8 +11335,12 @@ function loadStaffCustomerData(staffId) {
       var custEl = document.getElementById('cameraModalCustName');
       var vehEl = document.getElementById('cameraModalVehInfo');
 
-      if (custEl) custEl.textContent = item.customerName || item.name || 'Customer';
-      if (vehEl) vehEl.textContent = item.vehicle || item.vehicleNumbers || 'Vehicle';
+      var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
+      var rawName = (item.customerName || item.name || '').trim();
+      var hiName = (item.nameHi || item.name_hi || '').trim();
+      var cName = (isHi && hiName) ? hiName : (rawName || (isHi ? 'ग्राहक' : 'Customer'));
+      if (custEl) custEl.textContent = cName;
+      if (vehEl) vehEl.textContent = item.vehicle || item.vehicleNumbers || (isHi ? 'गाड़ी' : 'Vehicle');
 
       // Reset checkbox & button for Car Not Present tag
       var notPresentCheck = document.getElementById('cameraCarNotPresentCheck');
@@ -10793,7 +11348,7 @@ function loadStaffCustomerData(staffId) {
       var btnConfirm = document.getElementById('btnConfirmCleanPhoto');
       if (btnConfirm) {
         btnConfirm.classList.remove('btn-confirm-not-present');
-        btnConfirm.innerHTML = '<span>✓</span> ' + (state && state.lang === 'hi' ? 'पुष्टि करें (Confirm & Save)' : 'Confirm & Save');
+        btnConfirm.innerHTML = '<span>✓</span> <span id="btnConfirmCleanPhotoLabel">' + (isHi ? 'पुष्टि करें और सहेजें' : 'Confirm & Save') + '</span>';
       }
 
       // Reset view visibility
@@ -10808,6 +11363,8 @@ function loadStaffCustomerData(staffId) {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
       }
+      if (typeof pushModalHistory === 'function') pushModalHistory('cleaningCameraModal');
+      updateCameraModalLanguage(state.lang);
 
       startCleaningCameraFeed(currentCameraFacingMode);
     }
@@ -10823,6 +11380,7 @@ function loadStaffCustomerData(staffId) {
       }
       activeCameraTarget = null;
       currentSnappedPhotoBase64 = '';
+      if (typeof popModalHistory === 'function') popModalHistory('cleaningCameraModal');
     }
 
     function startCleaningCameraFeed(facing) {
@@ -10928,13 +11486,13 @@ function loadStaffCustomerData(staffId) {
       if (isChecked) {
         if (btn) {
           btn.classList.add('btn-confirm-not-present');
-          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">no_crash</span> <span>' + (state && state.lang === 'hi' ? 'दर्ज करें: कार मौजूद नहीं' : 'Save: Car Not Present') + '</span>';
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">no_crash</span> <span id="btnConfirmCleanPhotoLabel">' + (state && state.lang === 'hi' ? 'दर्ज करें: कार मौजूद नहीं' : 'Save: Car Not Present') + '</span>';
         }
-        if (carTag) carTag.textContent = '🚗❌ ' + vName + ' [कार नहीं थी]';
+        if (carTag) carTag.textContent = '🚗❌ ' + vName + (state && state.lang === 'hi' ? ' [कार नहीं थी]' : ' [Not Present]');
       } else {
         if (btn) {
           btn.classList.remove('btn-confirm-not-present');
-          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">check_circle</span> <span>' + (state && state.lang === 'hi' ? 'पुष्टि करें (Confirm & Save)' : 'Confirm & Save') + '</span>';
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">check_circle</span> <span id="btnConfirmCleanPhotoLabel">' + (state && state.lang === 'hi' ? 'पुष्टि करें और सहेजें' : 'Confirm & Save') + '</span>';
         }
         if (carTag) carTag.textContent = '🚗 ' + vName;
       }
@@ -10970,11 +11528,17 @@ function loadStaffCustomerData(staffId) {
       var timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
       var dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
 
-      if (carTag) carTag.textContent = '🚗 ' + (item.vehicle || item.vehicleNumbers || 'Vehicle');
-      if (timeTag) timeTag.textContent = '⏰ ' + dateStr + ', ' + timeStr;
-      if (custTag) custTag.textContent = '👤 ' + (item.customerName || item.name || 'Customer');
-      var sName = (state.staffData && state.staffData.staffName) || state.activeStaffName || 'Staff';
+      var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
+      var rawName = (item.customerName || item.name || '').trim();
+      var hiName = (item.nameHi || item.name_hi || '').trim();
+      var cName = (isHi && hiName) ? hiName : (rawName || (isHi ? 'ग्राहक' : 'Customer'));
+
+      if (carTag) carTag.textContent = '🚗 ' + (item.vehicle || item.vehicleNumbers || (isHi ? 'गाड़ी' : 'Vehicle'));
+      if (timeTag) timeTag.textContent = '⏱ ' + dateStr + ', ' + timeStr;
+      if (custTag) custTag.textContent = '👤 ' + cName;
+      var sName = (state.staffData && state.staffData.staffName) || state.activeStaffName || (isHi ? 'स्टाफ' : 'Staff');
       if (staffTag) staffTag.textContent = '👨‍🔧 ' + sName;
+      if (typeof updateCameraModalLanguage === 'function') updateCameraModalLanguage(state.lang);
     }
 
     function retakeCleaningPhoto() {
@@ -11435,6 +11999,7 @@ function loadStaffCustomerData(staffId) {
       if (modal) {
         modal.style.display = 'flex';
       }
+      if (typeof pushModalHistory === 'function') pushModalHistory('whatsAppImageShareModal');
     }
 
     function closeWhatsAppImageModal() {
@@ -11443,6 +12008,7 @@ function loadStaffCustomerData(staffId) {
       if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
         document.body.style.overflow = '';
       }
+      if (typeof popModalHistory === 'function') popModalHistory('whatsAppImageShareModal');
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
@@ -12064,6 +12630,7 @@ function loadStaffCustomerData(staffId) {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
       }
+      if (typeof pushModalHistory === 'function') pushModalHistory('reportPhotoLightboxModal');
     }
 
     function closeReportPhotoLightbox() {
@@ -12076,6 +12643,7 @@ function loadStaffCustomerData(staffId) {
       }
       currentLightboxPhotoUrl = '';
       currentLightboxPhone = '';
+      if (typeof popModalHistory === 'function') popModalHistory('reportPhotoLightboxModal');
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
@@ -12520,10 +13088,15 @@ function loadStaffCustomerData(staffId) {
       var err = document.getElementById('startJobErrorMsg');
       if (err) err.style.display = 'none';
       var modal = document.getElementById('startSpecialJobModal');
-      if (modal) modal.style.display = 'flex';
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+      if (typeof pushModalHistory === 'function') pushModalHistory('startSpecialJobModal');
     }
 
     function closeStartSpecialJobModal() {
+      if (typeof popModalHistory === 'function') popModalHistory('startSpecialJobModal');
       var modal = document.getElementById('startSpecialJobModal');
       if (modal) modal.style.display = 'none';
       if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
@@ -12675,10 +13248,15 @@ function loadStaffCustomerData(staffId) {
       var err = document.getElementById('completeJobErrorMsg');
       if (err) err.style.display = 'none';
       var modal = document.getElementById('completeSpecialJobModal');
-      if (modal) modal.style.display = 'flex';
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+      if (typeof pushModalHistory === 'function') pushModalHistory('completeSpecialJobModal');
     }
 
     function closeCompleteSpecialJobModal() {
+      if (typeof popModalHistory === 'function') popModalHistory('completeSpecialJobModal');
       var modal = document.getElementById('completeSpecialJobModal');
       if (modal) modal.style.display = 'none';
       if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
@@ -12804,10 +13382,15 @@ function loadStaffCustomerData(staffId) {
       if (err) err.style.display = 'none';
 
       var modal = document.getElementById('cancelSpecialJobModal');
-      if (modal) modal.style.display = 'flex';
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+      if (typeof pushModalHistory === 'function') pushModalHistory('cancelSpecialJobModal');
     }
 
     function closeCancelSpecialJobModal() {
+      if (typeof popModalHistory === 'function') popModalHistory('cancelSpecialJobModal');
       var modal = document.getElementById('cancelSpecialJobModal');
       if (modal) modal.style.display = 'none';
       if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
@@ -12961,9 +13544,12 @@ function loadStaffCustomerData(staffId) {
       if (err) err.style.display = 'none';
 
       modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      if (typeof pushModalHistory === 'function') pushModalHistory('assignSpecialJobModal');
     }
 
     function closeAssignSpecialJobModal() {
+      if (typeof popModalHistory === 'function') popModalHistory('assignSpecialJobModal');
       var modal = document.getElementById('assignSpecialJobModal');
       if (modal) modal.style.display = 'none';
       if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
@@ -13289,9 +13875,12 @@ function loadStaffCustomerData(staffId) {
       }
 
       modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      if (typeof pushModalHistory === 'function') pushModalHistory('reassignJobModal');
     }
 
     function closeReassignJobModal() {
+      if (typeof popModalHistory === 'function') popModalHistory('reassignJobModal');
       var modal = document.getElementById('reassignJobModal');
       if (modal) modal.style.display = 'none';
       if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {

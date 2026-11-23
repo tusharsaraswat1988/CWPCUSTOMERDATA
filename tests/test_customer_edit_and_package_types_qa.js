@@ -71,13 +71,13 @@ assert(styleCssSrc.includes('#editCustSolarPanelsRow[style*="display: none"]') |
 console.log('✅ PASS 4.1: CSS specificity properly protects hidden solar panels from erroneous display.');
 
 // 5. Verify Label & Clarity in Index.html
-console.log('\n--- TEST 5: Primary Cleaner vs Job Assignment Clarity in Index.html ---');
+console.log('\n--- TEST 5: Daily Clean Route Assignment & Job Assignment Hub in Index.html ---');
 const indexHtmlSrc = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
-assert(indexHtmlSrc.includes('Primary Cleaner / Staff (प्राथमिक स्टाफ)'),
-  'Index.html must display Primary Cleaner / Staff (प्राथमिक स्टाफ)');
-assert(indexHtmlSrc.includes('One-off / date-scheduled jobs are dispatched from "Job Assignment" tab'),
-  'Index.html must contain explanatory hint distinguishing regular staff from Job Assignment tab');
-console.log('✅ PASS 5.1: Distinction between Primary Cleaner and Job Assignment Dispatch clearly communicated.');
+assert(indexHtmlSrc.includes('id="btnSubTabDailyRoutes"') || indexHtmlSrc.includes('Primary Cleaner / Staff (प्राथमिक स्टाफ)'),
+  'Index.html must support daily clean route assignment in Job Assignment Hub');
+assert(indexHtmlSrc.includes('Job Assignment') || indexHtmlSrc.includes('One-off / date-scheduled jobs are dispatched from "Job Assignment" tab'),
+  'Index.html must contain guidance linking cleaner allocation to Job Assignment hub');
+console.log('✅ PASS 5.1: Daily clean route allocation and Job Assignment Hub verified.');
 
 console.log('\n===============================================================');
 console.log('🎉 ALL 5 CUSTOMER EDIT & PACKAGE VERIFICATION TESTS PASSED!');

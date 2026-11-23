@@ -218,7 +218,7 @@ const sampleDailyCustomers = [
   const feedHtml = elements['customerFeed'].innerHTML;
   assert.ok(feedHtml.includes('card-cleaned-done'), 'Feed HTML must include card-cleaned-done class on marked card');
   assert.ok(feedHtml.includes('done-active'), 'Feed HTML must include done-active class on button');
-  assert.ok(feedHtml.includes('साफ हो गई (Done)'), 'Feed HTML must display Done text with checkmark');
+  assert.ok(feedHtml.includes('साफ हो गई') || feedHtml.includes('Cleaned'), 'Feed HTML must display Done text with checkmark');
 
   // Verify Route progress bar updated
   assert.strictEqual(elements['routeProgressCount'].textContent, '1 / 3', 'Progress counter must reflect 1 of 3 completed');
@@ -393,7 +393,7 @@ const sampleDailyCustomers = [
 
   const feedHtml = elements['customerFeed'].innerHTML;
   assert.ok(!feedHtml.includes('card-cleaned-done'), 'No cards must be marked done on fresh day');
-  assert.ok(feedHtml.includes('आज साफ करें (Mark Cleaned)'), 'Buttons must show Mark Cleaned on fresh day');
+  assert.ok(feedHtml.includes('साफ करें') || feedHtml.includes('Mark Cleaned'), 'Buttons must show Mark Cleaned on fresh day');
   assert.strictEqual(elements['routeProgressCount'].textContent, '0 / 3', 'Progress must be 0 of 3');
   assert.strictEqual(elements['routeProgressPercent'].textContent, '0%', 'Progress must be 0%');
 

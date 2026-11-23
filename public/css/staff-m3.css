@@ -1028,10 +1028,10 @@ body.staff-mode-active #adminLogoutBtn,
   min-height: 46px !important;
   height: 46px !important;
   padding: 4px 10px !important;
-  border-radius: 10px !important;
+  border-radius: 12px !important;
   background: var(--md-sys-color-primary, #1d4ed8) !important;
   color: var(--md-sys-color-on-primary, #ffffff) !important;
-  font-size: 13px !important;
+  font-size: 13.5px !important;
   font-weight: 700 !important;
   line-height: 1.25 !important;
   border: none !important;
@@ -1042,7 +1042,7 @@ body.staff-mode-active #adminLogoutBtn,
   text-align: center !important;
   cursor: pointer !important;
   box-shadow: var(--md-sys-elevation-1, 0 1px 2px rgba(15, 23, 42, 0.08)) !important;
-  transition: transform 0.15s ease, background 0.2s ease !important;
+  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 #staffView .btn-clean-done:active {
@@ -1051,17 +1051,23 @@ body.staff-mode-active #adminLogoutBtn,
 
 #staffView .btn-clean-done.done-active,
 #staffView .card-status-completed {
-  background: var(--md-sys-color-surface-container-high, #ecfdf5) !important;
+  background: #ecfdf5 !important;
   color: #065f46 !important;
   border: 1.5px solid #a7f3d0 !important;
   box-shadow: none !important;
-  opacity: 0.96;
+  opacity: 0.98;
 }
 
 #staffView .btn-clean-done.done-active:hover,
 #staffView .card-status-completed:hover {
   background: #d1fae5 !important;
-  opacity: 1;
+}
+
+#staffView .btn-clean-done.done-active.card-status-not-present {
+  background: #fffbeb !important;
+  color: #b45309 !important;
+  border: 1.5px solid #fde68a !important;
+  box-shadow: none !important;
 }
 
 /* Secondary Action: WhatsApp (Balanced 46px Height) */
@@ -1070,10 +1076,7 @@ body.staff-mode-active #adminLogoutBtn,
   min-height: 46px !important;
   height: 46px !important;
   padding: 4px 10px !important;
-  border-radius: 10px !important;
-  background: #f0fdf4 !important;
-  color: #15803d !important;
-  border: 1.5px solid #86efac !important;
+  border-radius: 12px !important;
   font-size: 13px !important;
   font-weight: 700 !important;
   display: inline-flex !important;
@@ -1082,10 +1085,44 @@ body.staff-mode-active #adminLogoutBtn,
   gap: 6px !important;
   white-space: nowrap !important;
   cursor: pointer !important;
-  transition: transform 0.15s ease !important;
+  transition: transform 0.15s ease, background 0.2s ease !important;
 }
 
-@media (max-width: 360px) {
+#staffView .btn-clean-wa.wa-ready {
+  background: #25D366 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.28) !important;
+}
+
+#staffView .btn-clean-wa.wa-idle {
+  background: var(--md-sys-color-surface-container, #f1f5f9) !important;
+  color: var(--md-sys-color-on-surface-variant, #64748b) !important;
+  border: 1.5px solid var(--md-sys-color-outline-variant, #cbd5e1) !important;
+  box-shadow: none !important;
+}
+
+/* Dark Theme Overrides for Daily Clean Buttons */
+body.theme-dark #staffView .btn-clean-done.done-active,
+body.theme-dark #staffView .card-status-completed {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(110, 231, 183, 0.4) !important;
+}
+
+body.theme-dark #staffView .btn-clean-done.done-active.card-status-not-present {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fcd34d !important;
+  border-color: rgba(252, 211, 77, 0.4) !important;
+}
+
+body.theme-dark #staffView .btn-clean-wa.wa-idle {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+@media (max-width: 380px) {
   #staffView .btn-clean-done {
     font-size: 12px !important;
     padding: 4px 6px !important;
@@ -1094,20 +1131,6 @@ body.staff-mode-active #adminLogoutBtn,
     padding: 4px 6px !important;
     font-size: 12px !important;
   }
-}
-    padding: 6px 8px !important;
-    font-size: 12px !important;
-  }
-}
-
-#staffView .btn-clean-wa:active {
-  transform: scale(0.96) !important;
-}
-
-#staffView .btn-clean-wa.wa-ready {
-  background: #25D366 !important;
-  color: #ffffff !important;
-  border-color: #25D366 !important;
 }
 
 /* ==========================================================================

@@ -821,7 +821,7 @@ async function saveLocalData(data) {
     const toSave = { ...data };
     delete toSave.adminSessions;
     delete toSave.staffSessions;
-    await fs.promises.writeFile(DATA_FILE, JSON.stringify(toSave, null, 2), 'utf8');
+    fs.writeFileSync(DATA_FILE, JSON.stringify(toSave, null, 2), 'utf8');
   } catch (err) {
     console.error('Error writing local data file:', err.message);
   }
@@ -2848,6 +2848,9 @@ const server = http.createServer(async (req, res) => {
           'assignSpecialJob',
           'reassignSpecialJob',
           'deleteSpecialJob',
+          'assignDailyCleanCustomer',
+          'unassignDailyCleanCustomer',
+          'getDailyCleanAssignments',
           'getAuditLogs'
         ];
 
@@ -4858,6 +4861,97 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: true, message: 'Reassigned successfully (local mode)' }));
           } catch (err) {
             console.error('reassignSpecialJob error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Assign Daily Car Cleaning Customer to Staff (Route Allocation)
+        if (payload.action === 'assignDailyCleanCustomer') {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to allocate daily clean routes',
+              unauthorized: true
+            }));
+          }
+
+          try {
+            const adminUser = 'admin';
+            if (isNeonConfigured()) {
+              const result = await adminService.assignDailyCleanCustomer(payload.data || payload, adminUser);
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(result));
+            }
+
+            // Local fallback
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, message: 'Daily clean assigned successfully (local mode)' }));
+          } catch (err) {
+            console.error('assignDailyCleanCustomer error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Unassign Daily Car Cleaning Customer from Staff
+        if (payload.action === 'unassignDailyCleanCustomer') {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to unassign daily clean routes',
+              unauthorized: true
+            }));
+          }
+
+          try {
+            const adminUser = 'admin';
+            if (isNeonConfigured()) {
+              const result = await adminService.unassignDailyCleanCustomer(payload.data || payload, adminUser);
+              invalidateLiveCustomersCache();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(result));
+            }
+
+            // Local fallback
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, message: 'Daily clean unassigned successfully (local mode)' }));
+          } catch (err) {
+            console.error('unassignDailyCleanCustomer error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Get Daily Clean Route Assignments Roster
+        if (payload.action === 'getDailyCleanAssignments') {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to view daily clean assignments',
+              unauthorized: true
+            }));
+          }
+
+          try {
+            if (isNeonConfigured()) {
+              const result = await adminService.getDailyCleanAssignments(payload.data || payload);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(result));
+            }
+
+            // Local fallback
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, assignments: [] }));
+          } catch (err) {
+            console.error('getDailyCleanAssignments error:', err.message);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: err.message }));
           }

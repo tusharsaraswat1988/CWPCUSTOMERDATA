@@ -1391,28 +1391,131 @@
               <p class="records-hero-subtitle">Assign daily cleanings, solar panel maintenance and detailing jobs to field staff</p>
             </div>
           </div>
+          <div class="cwp-tab-segmented-control" role="tablist" style="margin-left: auto;">
+            <button type="button" class="cwp-segment-btn active" id="btnSubTabDailyRoutes" onclick="switchJobAssignSubTab('daily')" role="tab" aria-selected="true">
+              <span>🚗 Daily Clean Routes</span>
+              <span class="cwp-pill-count" id="dccUnassignedBadge" style="display: none;">0</span>
+            </button>
+            <button type="button" class="cwp-segment-btn" id="btnSubTabSpecialJobs" onclick="switchJobAssignSubTab('special')" role="tab" aria-selected="false">
+              <span>⚡ On-Demand Jobs</span>
+              <span class="cwp-pill-count" id="specialActiveBadge">0</span>
+            </button>
+          </div>
         </div>
-        <div class="job-assign-card">
-          <h3 class="job-assign-card-title"><span class="material-symbols-outlined job-assign-title-icon">assignment_add</span> Dispatch New Job Assignment</h3>
-          <form id="jobAssignForm" onsubmit="handleJobAssignmentSubmit(event)">
-            <div class="job-assign-grid">
-              <div class="form-group"><label class="form-label" for="jobAssignCustomerSelect">Customer *</label><select id="jobAssignCustomerSelect" class="form-select" onchange="handleJobAssignCustomerChange()" required><option value="">-- Select Customer --</option></select></div>
-              <div class="form-group"><label class="form-label" for="jobAssignWorkType">Work Type *</label><select id="jobAssignWorkType" class="form-select" onchange="handleJobAssignWorkTypeChange()" required><option value="daily_car_cleaning">🚗 Daily Car Cleaning</option><option value="car_washing">🧼 Car Wash & Foam</option><option value="solar_cleaning">☀️ Solar Panel Cleaning</option><option value="interior_detailing">✨ Interior Detailing</option><option value="exterior_detailing">🛡️ Exterior Detailing</option></select></div>
-              <div class="form-group"><label class="form-label" for="jobAssignDate">Scheduled Date *</label><input type="date" id="jobAssignDate" class="form-input" required></div>
-              <div class="form-group"><label class="form-label" for="jobAssignStaff">Assign Staff Cleaner *</label><select id="jobAssignStaff" class="form-select" required><option value="">-- Select Staff Cleaner --</option></select></div>
+
+        <!-- ========================================================================= -->
+        <!-- SUB-PANE 1: Daily Car Cleaning Route Allocation Hub                      -->
+        <!-- ========================================================================= -->
+        <div id="jobAssignSubPaneDaily" class="job-assign-subpane" style="display: block;">
+          <!-- Unassigned Queue Alert Banner -->
+          <div id="dccUnassignedBanner" class="cwp-alert-banner alert-warning" style="display: none; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 22px;">⚠️</span>
+              <div>
+                <strong id="dccUnassignedBannerTitle" style="display: block; font-size: 14px;">Daily Clean customers need a cleaner assigned!</strong>
+                <span style="font-size: 12px; color: #92400e;">Allocate cleaners below to add cars to morning routes.</span>
+              </div>
             </div>
-            <div class="job-assign-actions-row">
-              <div class="form-group job-assign-notes-wrap"><label class="form-label" for="jobAssignNotes">Instructions / Notes (Optional)</label><input type="text" id="jobAssignNotes" class="form-input" placeholder="e.g. Wash rooftop solar panels carefully, park in B2"></div>
-              <button type="submit" class="btn-primary" id="btnSubmitJobAssign"><span>⚡ Dispatch Assignment</span></button>
+            <button type="button" class="btn-alert-action" onclick="filterDccRosterByStaff('unassigned')">View Unassigned ▾</button>
+          </div>
+
+          <!-- Quick Route Allocation Card -->
+          <div class="job-assign-card" style="margin-bottom: 18px;">
+            <h3 class="job-assign-card-title"><span class="material-symbols-outlined job-assign-title-icon">person_add</span> Allocate Customer to Daily Clean Route</h3>
+            <form id="dccAssignForm" onsubmit="handleDccAssignmentSubmit(event)">
+              <div class="job-assign-grid">
+                <div class="form-group">
+                  <label class="form-label" for="dccAssignCustomerSelect">Daily Clean Customer *</label>
+                  <select id="dccAssignCustomerSelect" class="form-select" required>
+                    <option value="">-- Select Customer --</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="dccAssignStaffSelect">Assign to Cleaner (Morning Route) *</label>
+                  <select id="dccAssignStaffSelect" class="form-select" required>
+                    <option value="">-- Select Cleaner --</option>
+                  </select>
+                </div>
+                <div class="form-group" style="max-width: 170px;">
+                  <label class="form-label" for="dccAssignSequenceOrder">Route Order (क्रम)</label>
+                  <input type="number" id="dccAssignSequenceOrder" class="form-input" min="1" max="999" placeholder="Auto (End)">
+                </div>
+              </div>
+              <div class="job-assign-actions-row" style="margin-top: 10px;">
+                <div class="form-group job-assign-notes-wrap">
+                  <label class="form-label" for="dccAssignNotes">Route Notes / Special Instructions (Optional)</label>
+                  <input type="text" id="dccAssignNotes" class="form-input" placeholder="e.g. Park outside gate, keys with guard, early morning 6 AM wash">
+                </div>
+                <button type="submit" class="btn-primary" id="btnSubmitDccAssign">
+                  <span>🚗 Allocate to Daily Route</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Active Daily Clean Route Roster Table -->
+          <div class="records-table-wrapper reports-table-card" id="dccRouteRosterCard">
+            <div class="ledger-header-row" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <h3 class="ledger-title"><span class="material-symbols-outlined ledger-icon">commute</span> Daily Clean Route Allocation Roster</h3>
+                <span class="m3-chip m3-chip-selected ledger-chip" id="dccRosterTotalChip">0 Active Subscribers</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <select id="dccRosterStaffFilter" class="form-select form-select-sm" onchange="handleDccRosterFilterChange(this.value)" style="width: auto; min-width: 170px;">
+                  <option value="">All Cleaners</option>
+                  <option value="unassigned">⚠️ Unassigned Only</option>
+                </select>
+                <div class="records-search-wrap" style="min-width: 200px;">
+                  <span class="records-search-icon">🔍</span>
+                  <input type="text" id="dccRosterSearch" class="records-search-input" placeholder="Search customer or vehicle..." oninput="handleDccRosterSearch(this.value)">
+                </div>
+              </div>
             </div>
-          </form>
+            <table class="records-table" id="dccRouteRosterTable">
+              <thead>
+                <tr>
+                  <th class="col-sno" style="width: 44px;">#</th>
+                  <th class="col-cust">Customer & Phone</th>
+                  <th class="col-veh">Vehicle & Sizing</th>
+                  <th class="col-loc">Primary Address / Area</th>
+                  <th class="col-staff">Assigned Route Cleaner</th>
+                  <th class="col-plan">Subscription Plan</th>
+                  <th class="col-act" style="text-align: center; width: 140px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dccRouteRosterTableBody">
+                <tr><td colspan="7" class="table-loading-cell">Loading daily clean subscribers...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="records-table-wrapper reports-table-card" id="activeAssignmentsLedger">
-          <div class="ledger-header-row"><h3 class="ledger-title"><span class="material-symbols-outlined ledger-icon">table_rows</span> Active Assignments Ledger</h3><span class="m3-chip m3-chip-selected ledger-chip">Active Crew Queue</span></div>
-          <table class="records-table" id="jobAssignmentsLedgerTable">
-            <thead><tr><th class="col-sno">#</th><th class="col-date">Date & Schedule</th><th class="col-cust">Customer</th><th class="col-serv">Service Type</th><th class="col-staff">Assigned Cleaner</th><th class="col-stat">Status</th><th class="col-act">Actions</th></tr></thead>
-            <tbody id="jobAssignmentsTableBody"><tr><td colspan="7" class="table-loading-cell">No active assignments found</td></tr></tbody>
-          </table>
+
+        <!-- ========================================================================= -->
+        <!-- SUB-PANE 2: On-Demand & Special Jobs Dispatch (Wash / Solar / Detailing)   -->
+        <!-- ========================================================================= -->
+        <div id="jobAssignSubPaneSpecial" class="job-assign-subpane" style="display: none;">
+          <div class="job-assign-card">
+            <h3 class="job-assign-card-title"><span class="material-symbols-outlined job-assign-title-icon">assignment_add</span> Dispatch New Job Assignment</h3>
+            <form id="jobAssignForm" onsubmit="handleJobAssignmentSubmit(event)">
+              <div class="job-assign-grid">
+                <div class="form-group"><label class="form-label" for="jobAssignCustomerSelect">Customer *</label><select id="jobAssignCustomerSelect" class="form-select" onchange="handleJobAssignCustomerChange()" required><option value="">-- Select Customer --</option></select></div>
+                <div class="form-group"><label class="form-label" for="jobAssignWorkType">Work Type *</label><select id="jobAssignWorkType" class="form-select" onchange="handleJobAssignWorkTypeChange()" required><option value="daily_car_cleaning">🚗 Daily Car Cleaning</option><option value="car_washing">🧼 Car Wash & Foam</option><option value="solar_cleaning">☀️ Solar Panel Cleaning</option><option value="interior_detailing">✨ Interior Detailing</option><option value="exterior_detailing">🛡️ Exterior Detailing</option></select></div>
+                <div class="form-group"><label class="form-label" for="jobAssignDate">Scheduled Date *</label><input type="date" id="jobAssignDate" class="form-input" required></div>
+                <div class="form-group"><label class="form-label" for="jobAssignStaff">Assign Staff Cleaner *</label><select id="jobAssignStaff" class="form-select" required><option value="">-- Select Staff Cleaner --</option></select></div>
+              </div>
+              <div class="job-assign-actions-row">
+                <div class="form-group job-assign-notes-wrap"><label class="form-label" for="jobAssignNotes">Instructions / Notes (Optional)</label><input type="text" id="jobAssignNotes" class="form-input" placeholder="e.g. Wash rooftop solar panels carefully, park in B2"></div>
+                <button type="submit" class="btn-primary" id="btnSubmitJobAssign"><span>⚡ Dispatch Assignment</span></button>
+              </div>
+            </form>
+          </div>
+          <div class="records-table-wrapper reports-table-card" id="activeAssignmentsLedger">
+            <div class="ledger-header-row"><h3 class="ledger-title"><span class="material-symbols-outlined ledger-icon">table_rows</span> Active Assignments Ledger</h3><span class="m3-chip m3-chip-selected ledger-chip">Active Crew Queue</span></div>
+            <table class="records-table" id="jobAssignmentsLedgerTable">
+              <thead><tr><th class="col-sno">#</th><th class="col-date">Date & Schedule</th><th class="col-cust">Customer</th><th class="col-serv">Service Type</th><th class="col-staff">Assigned Cleaner</th><th class="col-stat">Status</th><th class="col-act">Actions</th></tr></thead>
+              <tbody id="jobAssignmentsTableBody"><tr><td colspan="7" class="table-loading-cell">No active assignments found</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -1540,25 +1643,24 @@
         </h3>
         <span class="camera-modal-sub" id="cameraModalVehInfo">गाड़ी नंबर</span>
       </div>
-      <button type="button" class="camera-close-btn" onclick="closeCleaningCameraModal()" title="Close (बंद करें)" aria-label="Close dialog">✕</button>
+      <button type="button" class="camera-close-btn" onclick="closeCleaningCameraModal()" title="Close" aria-label="Close dialog">✕</button>
     </div>
     <div id="cameraCaptureView">
       <div class="camera-viewport-wrap">
         <video id="cleaningCameraFeed" playsinline autoplay muted></video>
         <div class="camera-guide-frame">
-          <span class="camera-guide-text">🚗 पूरी गाड़ी फ्रेम के अंदर रखें</span>
-          <span class="camera-guide-text" style="font-size: 10px; opacity: 0.85;">Align vehicle inside frame</span>
+          <span id="cameraGuideText" class="camera-guide-text">🚗 पूरी गाड़ी फ्रेम के अंदर रखें</span>
         </div>
       </div>
       <div class="camera-controls-row">
-        <button type="button" class="btn-camera-flip" onclick="flipCleaningCamera()" title="कैमरा बदलें (Flip Camera)">
-          <span>🔄</span> फ्लिप
+        <button type="button" class="btn-camera-flip" id="btnCameraFlip" onclick="flipCleaningCamera()" title="Flip Camera">
+          <span>🔄</span> <span id="cameraFlipBtnLabel">फ्लिप</span>
         </button>
-        <button type="button" class="btn-camera-shutter" onclick="snapCleaningPhoto()" title="फोटो क्लिक करें (Click Photo)">
+        <button type="button" class="btn-camera-shutter" id="btnCameraShutter" onclick="snapCleaningPhoto()" title="Take Photo">
           <div class="btn-camera-shutter-inner"></div>
         </button>
-        <label class="btn-camera-fallback" title="फोन का ओरिजिनल कैमरा खोलें">
-          <span>📱</span> फ़ोन कैमरा
+        <label class="btn-camera-fallback" id="lblCameraFallback" title="Device Camera">
+          <span>📱</span> <span id="cameraFallbackBtnLabel">फ़ोन कैमरा</span>
           <input type="file" id="cameraNativeFileInput" accept="image/*" capture="environment" style="display: none;" onchange="handleNativeCameraFile(event)">
         </label>
       </div>
@@ -1584,10 +1686,10 @@
           </div>
           <div class="camera-tag-text-wrap">
             <div class="camera-tag-title-row">
-              <span class="camera-tag-title">कार मौजूद नहीं है (Car Not Present)</span>
+              <span class="camera-tag-title" id="cameraCarNotPresentTitle">कार मौजूद नहीं है</span>
               <span class="camera-tag-status-badge" id="cameraCarNotPresentBadge" style="display: none;">चिह्नित</span>
             </div>
-            <span class="camera-tag-desc">खाली पार्किंग/स्पॉट का फोटो सबमिट करें (Submit empty spot photo)</span>
+            <span class="camera-tag-desc" id="cameraCarNotPresentDesc">खाली पार्किंग/स्पॉट का फोटो सबमिट करें</span>
           </div>
           <div class="m3-switch-wrapper">
             <input type="checkbox" id="cameraCarNotPresentCheck" class="m3-switch-input" onchange="window.handleCarNotPresentToggle(this)">
@@ -1600,18 +1702,18 @@
         </label>
       </div>
       <div class="camera-review-actions">
-        <button type="button" class="btn-review-retake" onclick="retakeCleaningPhoto()">
-          <span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">refresh</span> <span>दोबारा लें (Retake)</span>
+        <button type="button" class="btn-review-retake" id="btnReviewRetake" onclick="retakeCleaningPhoto()">
+          <span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">refresh</span> <span id="btnReviewRetakeLabel">दोबारा लें</span>
         </button>
         <button type="button" class="btn-review-confirm" id="btnConfirmCleanPhoto" onclick="confirmAndSaveCleaningPhoto()">
-          <span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">check_circle</span> <span>पुष्टि करें (Confirm & Save)</span>
+          <span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">check_circle</span> <span id="btnConfirmCleanPhotoLabel">पुष्टि करें और सहेजें</span>
         </button>
       </div>
     </div>
     <div id="cameraUploadingView" style="display: none; padding: 48px 20px; text-align: center;">
       <div class="spinner-circle" style="width: 44px; height: 44px; border-width: 4px; margin: 0 auto 16px auto;"></div>
-      <h4 style="color: #f8fafc; font-size: 16px; margin-bottom: 6px;">फोटो सेव हो रही है...</h4>
-      <p style="color: #94a3b8; font-size: 12.5px;">Saving photo & preparing WhatsApp share...</p>
+      <h4 id="cameraUploadingTitle" style="color: #f8fafc; font-size: 16px; margin-bottom: 6px;">फोटो सेव हो रही है...</h4>
+      <p id="cameraUploadingSub" style="color: #94a3b8; font-size: 12.5px;">कृपया प्रतीक्षा करें...</p>
     </div>
   </div>
   </div>
@@ -1724,9 +1826,9 @@
       </div>
       <div class="image-modal-actions">
         <a id="imageModalOpenNewTab" href="" target="_blank" class="image-modal-btn" title="View full photo in new tab">
-          ↗ Open in New Tab
+          ↗ <span id="imageModalOpenNewTabLabel">Open in New Tab</span>
         </a>
-        <button type="button" class="image-modal-close-icon" onclick="closeImageModal()" title="Close (ESC)" aria-label="Close dialog">✕</button>
+        <button type="button" class="image-modal-close-icon" onclick="closeImageModal()" title="Close" aria-label="Close dialog">✕</button>
       </div>
     </div>
     <div class="image-modal-body">
@@ -1819,12 +1921,12 @@
         <span id="logoutStaffNameText" class="chip-name">स्टाफ सदस्य</span>
         <span id="logoutStaffIdText" class="chip-id">STF01</span>
       </div>
-      <h3 class="logout-confirm-heading" id="logoutConfirmModalTitle">स्टाफ लॉगआउट (Sign Out)</h3>
-      <p class="logout-confirm-desc">क्या आप वाकई अपना आज का कार्य सत्र (Shift) सुरक्षित रूप से समाप्त करके लॉगआउट करना चाहते हैं?</p>
+      <h3 class="logout-confirm-heading" id="logoutConfirmModalTitle">स्टाफ लॉगआउट</h3>
+      <p class="logout-confirm-desc">क्या आप वाकई अपना आज का कार्य सत्र सुरक्षित रूप से समाप्त करके लॉगआउट करना चाहते हैं?</p>
       <div class="logout-confirm-actions">
         <button type="button" class="btn-logout-cancel" id="btnLogoutCancel" onclick="closeLogoutModal()">
           <span class="btn-icon">✕</span>
-          <span class="btn-text">वापस जाएं (Cancel)</span>
+          <span class="btn-text">वापस जाएं</span>
         </button>
         <button type="button" class="btn-logout-proceed" id="btnLogoutProceed" onclick="proceedLogout()">
           <span class="btn-icon">🚪</span>
@@ -2077,17 +2179,20 @@
           <div class="form-section-head">
             <span class="section-num-pill">3</span>
             <div class="section-title-wrap">
-              <span class="section-title-text">Primary Staff & Notes</span>
-              <span class="section-subtitle-text">Assign regular cleaner & special instructions</span>
+              <span class="section-title-text">Route Assignment & Notes</span>
+              <span class="section-subtitle-text">Cleaner allocation hint & special instructions</span>
             </div>
           </div>
           <div class="form-row-2">
             <div class="form-group">
-              <label class="form-label" for="custStaffSelect">Primary Cleaner / Staff (प्राथमिक स्टाफ) <span class="opt-tag">(Optional)</span></label>
-              <select id="custStaffSelect" class="form-select">
+              <label class="form-label" for="custStaffSelect">Route Cleaner (सफाई स्टाफ)</label>
+              <div class="cwp-route-assign-notice" style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #475569; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 16px;">ℹ️</span>
+                <span>Cleaners are assigned from the <strong>Job Assignment</strong> tab after creating the customer.</span>
+              </div>
+              <select id="custStaffSelect" class="form-select" style="display: none;">
                 <option value="">Unassigned</option>
               </select>
-              <span class="form-field-hint" style="font-size: 11px; color: #64748b; margin-top: 3px; display: block;">Default regular cleaner for this customer. (One-off / date-scheduled jobs are dispatched from "Job Assignment" tab)</span>
             </div>
             <div class="form-group" id="secondaryAddressGroup">
               <label class="form-label">Secondary Location <span class="opt-tag">(Daily Clean Only)</span></label>
@@ -2344,15 +2449,27 @@
         <div class="form-section-head">
           <span class="section-num-pill">3</span>
           <div class="section-title-wrap">
-            <span class="section-title-text">Primary Staff & Status</span>
-            <span class="section-subtitle-text">Dedicated regular cleaner & account status</span>
+            <span class="section-title-text">Service Assignment & Status</span>
+            <span class="section-subtitle-text">Daily cleaner allocation & account status</span>
           </div>
         </div>
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" for="editCustStaff">Primary Cleaner / Staff (प्राथमिक स्टाफ) <span class="opt-tag">(Optional)</span></label>
-            <select id="editCustStaff" class="form-select"></select>
-            <span class="form-field-hint" style="font-size: 11px; color: #64748b; margin-top: 3px; display: block;">Default regular cleaner for this customer. (One-off / date-scheduled jobs are dispatched from "Job Assignment" tab)</span>
+            <label class="form-label" for="editCustStaff">Daily Route Assignment (सफाई रूट आवंटन)</label>
+            <div id="editCustAssignmentCard" class="cwp-cleaner-status-box">
+              <div class="cwp-cleaner-info">
+                <span class="material-symbols-outlined" style="color: var(--brand-blue, #2563eb); font-size: 22px;">route</span>
+                <div>
+                  <div id="editCustCleanerName" style="font-weight: 600; font-size: 13.5px; color: #1e293b;">Unassigned</div>
+                  <div id="editCustCleanerMeta" style="font-size: 11.5px; color: #64748b;">Daily Car Cleaning Route</div>
+                </div>
+              </div>
+              <button type="button" class="btn-manage-dispatch" onclick="navigateToJobAssignmentFromModal()" title="Open Job Assignment Tab to assign or reorder routes">
+                <span>Manage Route ↗</span>
+              </button>
+            </div>
+            <!-- Hidden select to maintain backward compatibility with legacy test assertions -->
+            <select id="editCustStaff" class="form-select" style="display: none;"></select>
           </div>
           <div class="form-group">
             <label class="form-label" for="editCustActive">Status <span class="req-star">*</span></label>
@@ -3261,8 +3378,8 @@
       <div style="display: flex; align-items: center; gap: 10px;">
         <span class="material-symbols-outlined" style="font-size: 24px; color: var(--md-sys-color-primary, #1d4ed8);" aria-hidden="true">play_circle</span>
         <div>
-          <h3 id="startSpecialJobModalTitle" style="margin: 0; font-size: 16px; font-weight: 700;">काम शुरू करें (Start Job)</h3>
-          <span id="startJobSubTitle" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">सफाई से पहले की फोटो (1 या 2 फोटो)</span>
+          <h3 id="startSpecialJobModalTitle" style="margin: 0; font-size: 16px; font-weight: 700;">काम शुरू करें</h3>
+          <span id="startJobSubTitle" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">सफाई से पहले की फोटो (1 या 2)</span>
         </div>
       </div>
       <button type="button" class="modal-close-x" onclick="closeStartSpecialJobModal()" aria-label="Close dialog" title="Close">✕</button>
@@ -3271,15 +3388,15 @@
       <div id="startJobCustomerSummary" style="background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: var(--md-sys-color-on-surface, #0f172a); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);"></div>
       <div style="margin-bottom: 14px;">
         <label style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
-          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">photo_camera</span>काम शुरू करने से पहले की फोटो (Before Photos - 1 या 2) <span style="color:#ef4444;">*</span>
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">photo_camera</span><span id="startJobBeforePhotoLabel">काम शुरू करने से पहले की फोटो</span> <span style="color:#ef4444;">*</span>
         </label>
-        <p style="font-size: 12px; color: var(--md-sys-color-outline, #64748b); margin-top: 0; margin-bottom: 10px;">
+        <p id="startJobPhotoHint" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b); margin-top: 0; margin-bottom: 10px;">
           काम शुरू करने से पहले की स्थिति दिखाने के लिए 1 या 2 फोटो लें।
         </p>
         <input type="file" id="startJobPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleStartJobPhotoSelect(event)">
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           <button type="button" id="btnStartJobAddPhoto" onclick="document.getElementById('startJobPhotoInput').click()" style="display: inline-flex; align-items: center; gap: 6px; background: var(--md-sys-color-primary, #1d4ed8); color: #ffffff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
-            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">add_a_photo</span><span>फोटो लें / अपलोड करें</span>
+            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">add_a_photo</span><span id="btnStartJobAddPhotoText">फोटो लें / अपलोड करें</span>
           </button>
           <span id="startJobPhotoCountHint" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">0 / 2 फोटो चुनी गई</span>
         </div>
@@ -3287,9 +3404,9 @@
       </div>
       <div id="startJobErrorMsg" style="display: none; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px;"></div>
       <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-        <button type="button" onclick="closeStartSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">रद्द करें (Cancel)</button>
+        <button type="button" id="btnCancelStartJob" onclick="closeStartSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">रद्द करें</button>
         <button type="button" id="btnSubmitStartJob" onclick="submitStartSpecialJob()" style="background: var(--md-sys-color-primary, #1d4ed8); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-          <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>काम शुरू करें</span>
+          <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span id="btnSubmitStartJobText">काम शुरू करें</span>
         </button>
       </div>
     </div>
@@ -3301,8 +3418,8 @@
       <div style="display: flex; align-items: center; gap: 10px;">
         <span class="material-symbols-outlined" style="font-size: 24px; color: var(--md-sys-color-tertiary, #059669);" aria-hidden="true">task_alt</span>
         <div>
-          <h3 id="completeSpecialJobModalTitle" style="margin: 0; font-size: 16px; font-weight: 700;">काम पूरा करें (Complete Job)</h3>
-          <span id="completeJobSubTitle" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">सफाई के बाद की फोटो (1 या 2 फोटो)</span>
+          <h3 id="completeSpecialJobModalTitle" style="margin: 0; font-size: 16px; font-weight: 700;">काम पूरा करें</h3>
+          <span id="completeJobSubTitle" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">सफाई के बाद की फोटो (1 या 2)</span>
         </div>
       </div>
       <button type="button" class="modal-close-x" onclick="closeCompleteSpecialJobModal()" aria-label="Close dialog" title="Close">✕</button>
@@ -3311,15 +3428,15 @@
       <div id="completeJobCustomerSummary" style="background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: var(--md-sys-color-on-surface, #0f172a); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);"></div>
       <div style="margin-bottom: 14px;">
         <label style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
-          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">photo_camera</span>काम पूरा होने के बाद की फोटो (After Photos - 1 या 2) <span style="color:#ef4444;">*</span>
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">photo_camera</span><span id="completeJobAfterPhotoLabel">काम पूरा होने के बाद की फोटो</span> <span style="color:#ef4444;">*</span>
         </label>
-        <p style="font-size: 12px; color: var(--md-sys-color-outline, #64748b); margin-top: 0; margin-bottom: 10px;">
+        <p id="completeJobPhotoHint" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b); margin-top: 0; margin-bottom: 10px;">
           चमकती हुई सफाई दिखाने के लिए 1 या 2 फोटो लें।
         </p>
         <input type="file" id="completeJobPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleCompleteJobPhotoSelect(event)">
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           <button type="button" id="btnCompleteJobAddPhoto" onclick="document.getElementById('completeJobPhotoInput').click()" style="display: inline-flex; align-items: center; gap: 6px; background: var(--md-sys-color-tertiary, #059669); color: #ffffff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
-            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">add_a_photo</span><span>फोटो लें / अपलोड करें</span>
+            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">add_a_photo</span><span id="btnCompleteJobAddPhotoText">फोटो लें / अपलोड करें</span>
           </button>
           <span id="completeJobPhotoCountHint" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">0 / 2 फोटो चुनी गई</span>
         </div>
@@ -3327,15 +3444,15 @@
       </div>
       <div style="margin-bottom: 14px;">
         <label style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
-          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">notes</span>विशेष टिप्पणी / विवरण (Optional)
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">notes</span><span id="completeJobNotesLabel">विशेष टिप्पणी / विवरण</span>
         </label>
         <textarea id="completeJobNotes" rows="2" class="form-textarea" placeholder="उदा. 20 सोलर पैनल अच्छी तरह साफ किए..." style="width: 100%; border-radius: 8px; padding: 8px 12px; font-size: 13px; border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1);"></textarea>
       </div>
       <div id="completeJobErrorMsg" style="display: none; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px;"></div>
       <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-        <button type="button" onclick="closeCompleteSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">रद्द करें (Cancel)</button>
+        <button type="button" id="btnCancelCompleteJob" onclick="closeCompleteSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">रद्द करें</button>
         <button type="button" id="btnSubmitCompleteJob" onclick="submitCompleteSpecialJob()" style="background: var(--md-sys-color-tertiary, #059669); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-          <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">check</span><span>काम पूर्ण और सबमिट करें</span>
+          <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">check</span><span id="btnSubmitCompleteJobText">काम पूरा करें</span>
         </button>
       </div>
     </div>
@@ -3347,8 +3464,8 @@
       <div style="display: flex; align-items: center; gap: 10px;">
         <span class="material-symbols-outlined" style="font-size: 24px; color: var(--md-sys-color-error, #dc2626);" aria-hidden="true">cancel</span>
         <div>
-          <h3 id="cancelSpecialJobModalTitle" style="margin: 0; font-size: 16px; font-weight: 700;">बुकिंग रद्द करें (Cancel Booking)</h3>
-          <span id="cancelJobSubTitle" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">कारण व टिप्पणी दर्ज करें (Reason & Remarks)</span>
+          <h3 id="cancelSpecialJobModalTitle" style="margin: 0; font-size: 16px; font-weight: 700;">बुकिंग रद्द करें</h3>
+          <span id="cancelJobSubTitle" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">कारण व टिप्पणी दर्ज करें</span>
         </div>
       </div>
       <button type="button" class="modal-close-x" onclick="closeCancelSpecialJobModal()" aria-label="Close dialog" title="Close">✕</button>
@@ -3357,28 +3474,28 @@
       <div id="cancelJobCustomerSummary" style="background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: var(--md-sys-color-on-surface, #0f172a); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);"></div>
       <div style="margin-bottom: 14px;">
         <label for="cancelJobReasonSelect" style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
-          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">help_outline</span>रद्द करने का कारण (Cancellation Reason) <span style="color:#ef4444;">*</span>
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">help_outline</span><span id="cancelJobReasonLabel">रद्द करने का कारण</span> <span style="color:#ef4444;">*</span>
         </label>
         <select id="cancelJobReasonSelect" class="form-select" style="width: 100%; border-radius: 8px; padding: 10px 12px; font-size: 13px; border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); background: var(--md-sys-color-surface, #ffffff);">
-          <option value="" disabled selected>-- कारण चुनें (Select Reason) --</option>
-          <option value="booking cancelled by customer">ग्राहक द्वारा रद्द (booking cancelled by customer)</option>
-          <option value="booking cancelled due to other reason">अन्य कारण से रद्द (booking cancelled due to other reason)</option>
-          <option value="Customer unavailable / phone unreachable">ग्राहक अनुपलब्ध / फोन बंद (Customer unavailable / phone unreachable)</option>
-          <option value="Bad weather / Rain / Power outage">खराब मौसम / बारिश / बिजली कटौती (Bad weather / Rain / Power outage)</option>
-          <option value="Vehicle / Location not accessible">गाड़ी / स्थान उपलब्ध नहीं (Vehicle / Location not accessible)</option>
+          <option value="" disabled selected>-- कारण चुनें --</option>
+          <option value="booking cancelled by customer">ग्राहक द्वारा रद्द</option>
+          <option value="booking cancelled due to other reason">अन्य कारण से रद्द</option>
+          <option value="Customer unavailable / phone unreachable">ग्राहक अनुपलब्ध / फोन बंद</option>
+          <option value="Bad weather / Rain / Power outage">खराब मौसम / बारिश / बिजली कटौती</option>
+          <option value="Vehicle / Location not accessible">गाड़ी / स्थान उपलब्ध नहीं</option>
         </select>
       </div>
       <div style="margin-bottom: 14px;">
         <label for="cancelJobRemarksInput" style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
-          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">notes</span>टिप्पणी / विवरण (Remarks)
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">notes</span><span id="cancelJobRemarksLabel">टिप्पणी / विवरण</span>
         </label>
         <textarea id="cancelJobRemarksInput" rows="3" class="form-textarea" placeholder="उदा. ग्राहक ने कहा आज शहर से बाहर हैं, कल कराएंगे..." style="width: 100%; border-radius: 8px; padding: 8px 12px; font-size: 13px; border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1);"></textarea>
       </div>
       <div id="cancelJobErrorMsg" style="display: none; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px;"></div>
       <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-        <button type="button" onclick="closeCancelSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">वापस जाएं (Back)</button>
+        <button type="button" id="btnBackCancelJob" onclick="closeCancelSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">वापस जाएं</button>
         <button type="button" id="btnSubmitCancelJob" onclick="submitCancelSpecialJob()" style="background: var(--md-sys-color-error, #dc2626); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-          <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">block</span><span>रद्द दर्ज करें (Confirm Cancellation)</span>
+          <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">block</span><span id="btnSubmitCancelJobText">रद्द दर्ज करें</span>
         </button>
       </div>
     </div>

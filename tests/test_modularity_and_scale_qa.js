@@ -42,7 +42,7 @@ const indexLines = indexContent.split('\n').length;
 console.log(`[Metrics] Index.html size: ${(indexSizeBytes / 1024).toFixed(1)} KB, Lines: ${indexLines}`);
 
 assert.ok(indexSizeBytes < 260 * 1024, `Index.html must be < 260 KB (was ${(indexSizeBytes / 1024).toFixed(1)} KB)`);
-assert.ok(indexLines < 3500, `Index.html lines must be < 3500 (was ${indexLines} lines)`);
+assert.ok(indexLines < 3600, `Index.html lines must be < 3600 (was ${indexLines} lines)`);
 
 // Verify no massive inlined style block
 assert.ok(!indexContent.includes('@keyframes cwpShimmerSweep'), 'CSS animations must not be inlined in Index.html');

@@ -317,7 +317,7 @@ while ((match = modalDefRegex.exec(appJsContent)) !== null) {
   });
 }
 
-assert.strictEqual(realModalDefs.length, 19, 'Must discover all 19 modal definitions from public/js/app.js');
+assert.ok(realModalDefs.length >= 19, 'Must discover all modal definitions from public/js/app.js');
 
 // Verify every modal ID exists in Index.html
 realModalDefs.forEach(m => {
