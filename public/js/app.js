@@ -1527,34 +1527,48 @@ var state = {
     /* Robust Vehicle Plate & Model Formatter (Guards against [object Object] and non-strings) */
     function formatVehiclePlateOrSummary(rec, fallback) {
       if (!rec) return fallback || '';
-      if (typeof rec === 'string') return rec.trim();
+      function isBadText(txt) {
+        return !txt || /^\[object\s+object\]$/i.test(txt.trim()) || /^undefined$/i.test(txt.trim()) || /^null$/i.test(txt.trim());
+      }
+      if (typeof rec === 'string') {
+        return isBadText(rec) ? (fallback || '') : rec.trim();
+      }
       if (typeof rec === 'object' && !rec.customerName && !rec.id && (rec.registration_no || rec.registrationNumber)) {
         var rNo = rec.registration_no || rec.registrationNumber || '';
         var rMod = rec.brand_or_model || rec.model || '';
-        return rMod ? (rNo + ' (' + rMod + ')') : rNo;
+        if (isBadText(rNo)) rNo = '';
+        if (isBadText(rMod)) rMod = '';
+        return rMod ? (rNo ? (rNo + ' (' + rMod + ')') : rMod) : (rNo || fallback || '');
       }
-      if (typeof rec.vehicle === 'string' && rec.vehicle.trim()) return rec.vehicle.trim();
+      if (typeof rec.vehicle === 'string' && rec.vehicle.trim() && !isBadText(rec.vehicle)) return rec.vehicle.trim();
       if (rec.vehicle && typeof rec.vehicle === 'object') {
         var reg = rec.vehicle.registration_no || rec.vehicle.registrationNumber || rec.vehicle.plate || rec.vehicle.number || '';
         var model = rec.vehicle.brand_or_model || rec.vehicle.model || '';
-        if (reg || model) return model ? (reg + ' (' + model + ')') : reg;
+        if (isBadText(reg)) reg = '';
+        if (isBadText(model)) model = '';
+        if (reg || model) return model ? (reg ? (reg + ' (' + model + ')') : model) : reg;
       }
       if (Array.isArray(rec.vehicles) && rec.vehicles.length > 0) {
         var v0 = rec.vehicles[0];
-        if (typeof v0 === 'string' && v0.trim()) return v0.trim();
+        if (typeof v0 === 'string' && v0.trim() && !isBadText(v0)) return v0.trim();
         if (v0 && typeof v0 === 'object') {
           var v0Reg = v0.registration_no || v0.registrationNumber || v0.plate || '';
           var v0Mod = v0.brand_or_model || v0.model || '';
-          if (v0Reg || v0Mod) return v0Mod ? (v0Reg + ' (' + v0Mod + ')') : v0Reg;
+          if (isBadText(v0Reg)) v0Reg = '';
+          if (isBadText(v0Mod)) v0Mod = '';
+          if (v0Reg || v0Mod) return v0Mod ? (v0Reg ? (v0Reg + ' (' + v0Mod + ')') : v0Mod) : v0Reg;
         }
       }
       if (rec.vehicleNumbers) {
-        if (typeof rec.vehicleNumbers === 'string' && rec.vehicleNumbers.trim()) return rec.vehicleNumbers.trim();
-        if (Array.isArray(rec.vehicleNumbers)) return rec.vehicleNumbers.filter(Boolean).join(', ');
+        if (typeof rec.vehicleNumbers === 'string' && rec.vehicleNumbers.trim() && !isBadText(rec.vehicleNumbers)) return rec.vehicleNumbers.trim();
+        if (Array.isArray(rec.vehicleNumbers)) {
+          var cleanNums = rec.vehicleNumbers.filter(function(v) { return v && !isBadText(String(v)); });
+          if (cleanNums.length > 0) return cleanNums.join(', ');
+        }
       }
-      if (typeof rec.vehicleNumber === 'string' && rec.vehicleNumber.trim()) return rec.vehicleNumber.trim();
-      if (typeof rec.vehicleNum === 'string' && rec.vehicleNum.trim()) return rec.vehicleNum.trim();
-      if (typeof rec.registration_no === 'string' && rec.registration_no.trim()) return rec.registration_no.trim();
+      if (typeof rec.vehicleNumber === 'string' && rec.vehicleNumber.trim() && !isBadText(rec.vehicleNumber)) return rec.vehicleNumber.trim();
+      if (typeof rec.vehicleNum === 'string' && rec.vehicleNum.trim() && !isBadText(rec.vehicleNum)) return rec.vehicleNum.trim();
+      if (typeof rec.registration_no === 'string' && rec.registration_no.trim() && !isBadText(rec.registration_no)) return rec.registration_no.trim();
       return fallback || '';
     }
 

@@ -239,7 +239,11 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
     }
 
     // Vehicles summary string e.g. "UP85BY2928 (White Swift)"
-    const vehicleStrings = vehs.map(v => v.brand_or_model ? `${v.registration_no} (${v.brand_or_model})` : v.registration_no);
+    const vehicleStrings = vehs.map(v => {
+      const reg = (v.registration_no && !/^\[object\s+object\]$/i.test(v.registration_no)) ? v.registration_no : '';
+      const model = (v.brand_or_model && !/^\[object\s+object\]$/i.test(v.brand_or_model)) ? v.brand_or_model : '';
+      return (reg && model) ? `${reg} (${model})` : (reg || model || '');
+    }).filter(Boolean);
     const mainVehicle = vehicleStrings[0] || '';
     const mainPhoto = vehs[0]?.photo_url || '';
     const resolvedCarMake = c.car_make || vehs[0]?.car_make || '';
