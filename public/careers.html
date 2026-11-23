@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/careers.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/careers.css?v=1.1.0">
 </head>
 <body>
 
@@ -45,7 +45,7 @@
         </div>
       </a>
 
-      <nav aria-label="Main Navigation">
+      <nav class="desktop-nav" aria-label="Main Navigation">
         <ul class="nav-links">
           <li><a href="/" class="nav-link">Home</a></li>
           <li><a href="/#services" class="nav-link">Services</a></li>
@@ -58,7 +58,7 @@
 
       <div class="nav-actions">
         <a href="tel:7054007733" class="btn-phone" title="Call directly 7 AM to 10 PM">
-          <span>📞</span> 7054007733
+          <span>📞</span> <span class="phone-text">7054007733</span>
         </a>
         <a href="#apply" class="btn-primary">
           Join CWP Team
@@ -80,7 +80,7 @@
         <p class="careers-hero-desc">
           Varanasi ke sabse modern aur fast-growing doorstep vehicle care & solar cleaning network mein kaam karein. Samman, modern training, aur timely payouts ke saath apne career ko nayi udaan dein.
         </p>
-        <div style="display: flex; gap: 16px; justify-content: center;">
+        <div class="hero-btn-wrap">
           <a href="#apply" class="btn-primary">
             Quick Job Application (2 Min) →
           </a>
@@ -128,22 +128,6 @@
           </div>
         </div>
 
-        <!-- Team Culture Visuals -->
-        <div class="culture-strip">
-          <div class="culture-card">
-            <img src="/cwp_logo.jpg" alt="Certified Training" class="culture-img">
-            <div class="culture-caption">Hands-on Machine & Detailing Training</div>
-          </div>
-          <div class="culture-card">
-            <img src="/cwp_logo.jpg" alt="Sigra Hub Morning Briefing" class="culture-img">
-            <div class="culture-caption">Sigra Hub Morning Rhythm & Team Spirit</div>
-          </div>
-          <div class="culture-card">
-            <img src="/cwp_logo.jpg" alt="Solar & Vehicle Care" class="culture-img">
-            <div class="culture-caption">Doorstep Precision on Premium Vehicles</div>
-          </div>
-        </div>
-
       </div>
     </section>
 
@@ -157,32 +141,32 @@
           <div class="apply-header">
             <span class="eyebrow">Job Application</span>
             <h2 class="apply-title">Apna Aavedan (Application) Bhejein</h2>
-            <p class="apply-subtitle">Sirf apna Naam aur Mobile Number daalein. Baaki sabhi fields optional hain. Hamari HR team aapse 24 ghante ke andar baat karegi.</p>
+            <p class="apply-subtitle">Sirf apna Naam aur Mobile Number daalna zaroori hai. Hamari HR team aapse 24 ghante ke andar baat karegi.</p>
           </div>
 
           <form id="jobAppForm">
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label" for="appName">Full Name (Poora Naam) *</label>
-                <input type="text" id="appName" class="form-input" placeholder="e.g. Ramesh Kumar" required>
+                <label class="form-label" for="appName">Poora Naam (Full Name) <span class="req-star">*</span></label>
+                <input type="text" id="appName" class="form-input" required autocomplete="name">
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="appMobile">Mobile Number *</label>
-                <input type="tel" id="appMobile" class="form-input" placeholder="e.g. 9876543210 (10 Digits)" pattern="[0-9]{10}" required>
+                <label class="form-label" for="appMobile">Mobile Number <span class="req-star">*</span></label>
+                <input type="tel" id="appMobile" class="form-input" pattern="[0-9]{10}" required autocomplete="tel">
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label" for="appAge">Age (Umar) — Optional</label>
-                <input type="number" id="appAge" class="form-input" placeholder="e.g. 24" min="18" max="65">
+                <label class="form-label" for="appAge">Umar / Age</label>
+                <input type="number" id="appAge" class="form-input" min="18" max="65">
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="appGender">Gender (Ling) — Optional</label>
+                <label class="form-label" for="appGender">Gender</label>
                 <select id="appGender" class="form-input">
-                  <option value="">Select Gender</option>
+                  <option value="">Gender chunein</option>
                   <option value="Male">Male (Purush)</option>
                   <option value="Female">Female (Mahila)</option>
                   <option value="Other">Other</option>
@@ -192,31 +176,31 @@
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label" for="appCity">Current City / Locality in Varanasi — Optional</label>
-                <input type="text" id="appCity" class="form-input" placeholder="e.g. Shivpurwa, Sigra, Cantt, Lanka">
+                <label class="form-label" for="appCity">Varanasi mein aapka Area ya Locality</label>
+                <input type="text" id="appCity" class="form-input">
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="appEmail">Email Address — Optional</label>
-                <input type="email" id="appEmail" class="form-input" placeholder="e.g. yourname@gmail.com">
+                <label class="form-label" for="appEmail">Email ID</label>
+                <input type="email" id="appEmail" class="form-input" autocomplete="email">
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Upload Resume / Biodata / Photo (Optional)</label>
+              <label class="form-label">Resume / Aadhaar Card / Photo</label>
               <label class="file-upload-wrap" for="appResume">
-                <span id="fileUploadLabel">📄 Click to select document or photo (PDF, JPG, PNG up to 10MB)</span>
+                <span id="fileUploadLabel">📄 Document ya photo chunein (PDF, JPG, PNG - 10MB tak)</span>
                 <input type="file" id="appResume" style="display: none;" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
               </label>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="appRemark">Remark / Past Experience — Optional</label>
-              <textarea id="appRemark" class="form-input" rows="3" placeholder="Pehle kisi car wash, driving, ya detailing mein kaam kiya hai? Koi khaas baat batana chahein toh yahan likhein..."></textarea>
+              <label class="form-label" for="appRemark">Pichla Kaam / Experience ya koi baat</label>
+              <textarea id="appRemark" class="form-input" rows="3"></textarea>
             </div>
 
             <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; font-size: 1.0625rem; margin-top: 12px;">
-              Submit Application →
+              Aavedan Bhejein (Submit Application) →
             </button>
           </form>
         </div>
@@ -291,6 +275,6 @@
     </div>
   </div>
 
-  <script src="/js/careers.js?v=1.0.0"></script>
+  <script src="/js/careers.js?v=1.1.0"></script>
 </body>
 </html>

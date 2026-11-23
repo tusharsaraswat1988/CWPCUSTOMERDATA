@@ -119,22 +119,113 @@
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
+.hero-btn-wrap {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.req-star {
+  color: var(--md-sys-color-error, #b3261e);
+  font-weight: 700;
+  margin-left: 2px;
+}
+
 .file-upload-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   border: 2px dashed var(--md-sys-color-outline-variant);
   border-radius: var(--radius-md);
   padding: 20px;
   text-align: center;
   background-color: var(--md-sys-color-surface-container-low);
   cursor: pointer;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
 }
 .file-upload-wrap:hover {
   border-color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-surface-container-high);
 }
 
-@media (max-width: 900px) {
-  .pride-grid { grid-template-columns: repeat(2, 1fr); }
-  .culture-strip { grid-template-columns: 1fr; }
-  .form-row { grid-template-columns: 1fr; }
-  .apply-box { padding: 24px; }
+@media (max-width: 1024px) {
+  .pride-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .careers-hero {
+    padding: 44px 0 36px 0;
+  }
+  .careers-hero-title {
+    font-size: 2.125rem;
+  }
+  .careers-hero-desc {
+    font-size: 1rem;
+    margin-bottom: 24px;
+  }
+  .hero-btn-wrap {
+    flex-direction: column;
+    max-width: 380px;
+    margin: 0 auto;
+    gap: 12px;
+  }
+  .hero-btn-wrap a {
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+    justify-content: center;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .apply-box {
+    padding: 28px 20px;
+    border-radius: var(--radius-lg);
+  }
+  .apply-title {
+    font-size: 1.5rem;
+  }
+  .apply-subtitle {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  .form-input {
+    font-size: 16px; /* Prevents iOS mobile safari zoom-in */
+  }
+  .culture-strip {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 540px) {
+  .careers-hero-title {
+    font-size: 1.75rem;
+  }
+  .pride-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .pride-card {
+    padding: 24px 16px;
+  }
+  .apply-box {
+    padding: 20px 14px;
+    box-shadow: var(--elevation-1);
+  }
+  .apply-title {
+    font-size: 1.3125rem;
+  }
+  .file-upload-wrap {
+    padding: 16px 10px;
+    font-size: 0.875rem;
+  }
 }

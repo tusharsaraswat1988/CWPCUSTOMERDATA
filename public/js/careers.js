@@ -18,12 +18,12 @@
     if (resumeInput.files && resumeInput.files[0]) {
       const file = resumeInput.files[0];
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size exceeds 10MB. Please choose a smaller document or photo.');
+        alert('File 10MB se badi hai. Kripya chhota document ya photo chunein.');
         resumeInput.value = '';
         return;
       }
       fileOriginalName = file.name;
-      fileLabel.textContent = `Selected: ${file.name}`;
+      fileLabel.textContent = `Chuna gaya: ${file.name}`;
       fileLabel.style.color = 'var(--md-sys-color-primary)';
       fileLabel.style.fontWeight = 'bold';
 
@@ -35,7 +35,7 @@
     } else {
       fileBase64 = null;
       fileOriginalName = null;
-      fileLabel.textContent = 'Click to upload Resume / Biodata / Photo (Optional)';
+      fileLabel.textContent = '📄 Document ya photo chunein (PDF, JPG, PNG - 10MB tak)';
       fileLabel.style.color = '';
       fileLabel.style.fontWeight = '';
     }
@@ -45,7 +45,7 @@
     e.preventDefault();
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Submitting Application...';
+    submitBtn.textContent = 'Aavedan Jama Ho Raha Hai...';
     submitBtn.disabled = true;
 
     const name = document.getElementById('appName').value.trim();
@@ -58,7 +58,7 @@
 
     const cleanPhone = mobile.replace(/\D/g, '').slice(-10);
     if (!name || cleanPhone.length < 10) {
-      alert('Please enter your Full Name and a valid 10-digit Mobile Number.');
+      alert('Kripya apna Poora Naam aur 10-digit Mobile Number daalein.');
       submitBtn.textContent = originalText;
       submitBtn.disabled = false;
       return;
@@ -97,7 +97,7 @@
       form.reset();
       fileBase64 = null;
       fileOriginalName = null;
-      fileLabel.textContent = 'Click to upload Resume / Biodata / Photo (Optional)';
+      fileLabel.textContent = '📄 Document ya photo chunein (PDF, JPG, PNG - 10MB tak)';
       fileLabel.style.color = '';
       fileLabel.style.fontWeight = '';
     } catch (err) {

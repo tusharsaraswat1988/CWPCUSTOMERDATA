@@ -536,7 +536,7 @@
         </div>
       `;
     } else {
-      reviewsSubtitle.textContent = 'Verified reviews from car and bike owners across Varanasi.';
+      reviewsSubtitle.textContent = 'Verified reviews from car, bike, and solar owners across Varanasi.';
       reviewsContainer.innerHTML = `
         <div class="review-card">
           <div class="review-top">
@@ -577,6 +577,20 @@
           <div class="review-stars">★★★★★</div>
           <p class="review-quote">
             "Riding across Varanasi with daily dust and monsoon slush makes two-wheeler upkeep tricky. I opted for CWP's ceramic coating for my bike, and the results have been remarkable. The paint depth and gloss look pristine, and the hydrophobic layer is so effective that mud and road grime wipe right off without scratching. The team is courteous, detail-oriented, and genuinely takes pride in their craft."
+          </p>
+        </div>
+
+        <div class="review-card">
+          <div class="review-top">
+            <div class="author-avatar amber">SS</div>
+            <div>
+              <div class="author-name">Mr. Salil Shah</div>
+              <div class="author-location">Sigra, Varanasi · Director, Lakshmishree Investment Pvt Ltd</div>
+            </div>
+          </div>
+          <div class="review-stars">★★★★★</div>
+          <p class="review-quote">
+            "We manage a 120-panel solar setup at our office rooftop in Varanasi. Dust accumulation and bird droppings were causing a 20–25% drop in generation, while normal tap water risked mineral scaling on the glass. CWP's annual AMC has been completely hassle-free — their technicians arrive on schedule with specialized RO soft-wash equipment and safety gear. Our power generation is consistently at its peak. Exceptional corporate reliability."
           </p>
         </div>
       `;
