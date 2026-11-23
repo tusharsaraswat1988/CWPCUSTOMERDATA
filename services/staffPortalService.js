@@ -88,7 +88,8 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     const svRes = await db.query(
       `SELECT sv.*, 
               v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
-              loc.address_text, loc.google_maps_url, loc.parking_details
+              loc.location_name, loc.address_type, loc.address_text, loc.address_text_hi, loc.google_maps_url,
+              loc.latitude, loc.longitude, loc.parking_details
        FROM public.subscription_vehicles sv
        JOIN public.vehicles v ON sv.vehicle_id = v.id
        LEFT JOIN public.service_locations loc ON sv.location_id = loc.id
@@ -178,19 +179,37 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       vehicle: vehicleSummary,
       carMake: svList[0]?.car_make || subRow.car_make || '',
       carColor: svList[0]?.car_color || subRow.car_color || '',
-      vehicles: svList.map(sv => ({
-        id: sv.vehicle_id,
-        vehicleId: sv.vehicle_id,
-        subVehId: sv.id,
-        subscriptionVehicleId: sv.id,
-        registrationNo: sv.registration_no,
-        brandOrModel: (sv.brand_or_model && !/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(sv.brand_or_model.trim())) ? sv.brand_or_model.trim() : '',
-        carMake: sv.car_make || '',
-        carColor: sv.car_color || '',
-        photoUrl: sv.vehicle_photo_url,
-        scheduleTag: sv.schedule_tag,
-        completedToday: !isStopped && completedSubVehKeys.has(`${subRow.id}_${sv.vehicle_id}`)
-      })),
+      vehicles: svList.map(sv => {
+        const vehLocName = sv.location_name || (sv.address_type ? (sv.address_type.charAt(0).toUpperCase() + sv.address_type.slice(1)) : (primaryLoc?.location_name || 'Home'));
+        const vehAddress = sv.address_text || primaryLoc?.address_text || '';
+        const vehAddressHi = sv.address_text_hi || primaryLoc?.address_text_hi || '';
+        const vehMapsUrl = sv.google_maps_url || primaryLoc?.google_maps_url || '';
+        const vehLat = sv.latitude != null ? parseFloat(sv.latitude) : (primaryLoc?.latitude != null ? parseFloat(primaryLoc.latitude) : null);
+        const vehLng = sv.longitude != null ? parseFloat(sv.longitude) : (primaryLoc?.longitude != null ? parseFloat(primaryLoc.longitude) : null);
+        const vehParking = sv.parking_details || primaryLoc?.parking_details || '';
+
+        return {
+          id: sv.vehicle_id,
+          vehicleId: sv.vehicle_id,
+          subVehId: sv.id,
+          subscriptionVehicleId: sv.id,
+          registrationNo: sv.registration_no,
+          brandOrModel: (sv.brand_or_model && !/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(sv.brand_or_model.trim())) ? sv.brand_or_model.trim() : '',
+          carMake: sv.car_make || '',
+          carColor: sv.car_color || '',
+          photoUrl: sv.vehicle_photo_url,
+          scheduleTag: sv.schedule_tag,
+          completedToday: !isStopped && completedSubVehKeys.has(`${subRow.id}_${sv.vehicle_id}`),
+          locationId: sv.location_id || primaryLoc?.id || null,
+          locationName: vehLocName,
+          addressText: vehAddress,
+          addressTextHi: vehAddressHi,
+          googleMapsUrl: vehMapsUrl,
+          latitude: vehLat,
+          longitude: vehLng,
+          parkingDetails: vehParking
+        };
+      }),
       photoUrl: mainPhoto,
       serviceCategory: 'Daily Car Cleaning',
       sheetName: 'Daily Clean',

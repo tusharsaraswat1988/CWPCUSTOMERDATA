@@ -1524,11 +1524,55 @@ var state = {
       }
     }
 
+    /* Robust Vehicle Plate & Model Formatter (Guards against [object Object] and non-strings) */
+    function formatVehiclePlateOrSummary(rec, fallback) {
+      if (!rec) return fallback || '';
+      if (typeof rec === 'string') return rec.trim();
+      if (typeof rec === 'object' && !rec.customerName && !rec.id && (rec.registration_no || rec.registrationNumber)) {
+        var rNo = rec.registration_no || rec.registrationNumber || '';
+        var rMod = rec.brand_or_model || rec.model || '';
+        return rMod ? (rNo + ' (' + rMod + ')') : rNo;
+      }
+      if (typeof rec.vehicle === 'string' && rec.vehicle.trim()) return rec.vehicle.trim();
+      if (rec.vehicle && typeof rec.vehicle === 'object') {
+        var reg = rec.vehicle.registration_no || rec.vehicle.registrationNumber || rec.vehicle.plate || rec.vehicle.number || '';
+        var model = rec.vehicle.brand_or_model || rec.vehicle.model || '';
+        if (reg || model) return model ? (reg + ' (' + model + ')') : reg;
+      }
+      if (Array.isArray(rec.vehicles) && rec.vehicles.length > 0) {
+        var v0 = rec.vehicles[0];
+        if (typeof v0 === 'string' && v0.trim()) return v0.trim();
+        if (v0 && typeof v0 === 'object') {
+          var v0Reg = v0.registration_no || v0.registrationNumber || v0.plate || '';
+          var v0Mod = v0.brand_or_model || v0.model || '';
+          if (v0Reg || v0Mod) return v0Mod ? (v0Reg + ' (' + v0Mod + ')') : v0Reg;
+        }
+      }
+      if (rec.vehicleNumbers) {
+        if (typeof rec.vehicleNumbers === 'string' && rec.vehicleNumbers.trim()) return rec.vehicleNumbers.trim();
+        if (Array.isArray(rec.vehicleNumbers)) return rec.vehicleNumbers.filter(Boolean).join(', ');
+      }
+      if (typeof rec.vehicleNumber === 'string' && rec.vehicleNumber.trim()) return rec.vehicleNumber.trim();
+      if (typeof rec.vehicleNum === 'string' && rec.vehicleNum.trim()) return rec.vehicleNum.trim();
+      if (typeof rec.registration_no === 'string' && rec.registration_no.trim()) return rec.registration_no.trim();
+      return fallback || '';
+    }
+
+    function playStaffCardAudioWarning(index, event) {
+      if (event && event.stopPropagation) event.stopPropagation();
+      var items = (state && state.staffData && state.staffData.dailyCarCleaning) || [];
+      var item = items[index];
+      if (!item) return;
+      var cName = (item.nameHi || item.name_hi || item.customerName || 'ग्राहक');
+      var vName = formatVehiclePlateOrSummary(item);
+      speakHindiStoppedCustomerWarning(cName, vName, event);
+    }
+
     /* Hindi Audio Warning for Stopped Customers (Speaking Customer Name) */
     function speakHindiStoppedCustomerWarning(customerName, vehicle, event) {
       if (event && event.stopPropagation) event.stopPropagation();
-      var cName = (customerName || 'ग्राहक').trim();
-      var vName = (vehicle || '').trim();
+      var cName = (customerName || 'ग्राहक').toString().trim();
+      var vName = formatVehiclePlateOrSummary(vehicle, typeof vehicle === 'string' ? vehicle : '');
       var text = 'सावधान! ' + cName + ' जी का काम रोका गया है। ' + (vName ? ('इनकी गाड़ी ' + vName + ' साफ नहीं करनी है।') : 'इनकी गाड़ी साफ नहीं करनी है।');
       if (!('speechSynthesis' in window)) {
         alert(text);
@@ -1572,6 +1616,13 @@ var state = {
         console.warn('Speech error:', e);
         alert(text);
       }
+    }
+
+    function triggerStoppedSummarySpeech(event) {
+      if (event && event.stopPropagation) event.stopPropagation();
+      var count = state._stoppedSummaryCount || 1;
+      var names = state._stoppedSummaryList || '';
+      speakHindiStoppedSummary(count, names, event);
     }
 
     function handleBackfillHindi() {
@@ -3346,7 +3397,7 @@ var state = {
             otherCusts.forEach(function(r) {
               var opt = document.createElement('option');
               opt.value = r.id;
-              var veh = r.vehicle || r.vehicleNumbers || 'No vehicle';
+              var veh = formatVehiclePlateOrSummary(r, 'No vehicle');
               opt.textContent = (r.customerName || 'Customer') + ' (' + veh + ')';
               otherGroup.appendChild(opt);
             });
@@ -3623,7 +3674,7 @@ var state = {
           if (c.status !== 'inactive' && c.active !== 'No') {
             var opt = document.createElement('option');
             opt.value = c.id || c.customerId || c.customerCode || '';
-            var vehStr = c.vehicle || c.vehicleNumbers || c.vehicleNum || c.registration_no || 'No Plate';
+            var vehStr = formatVehiclePlateOrSummary(c, 'No Plate');
             opt.textContent = (c.customerName || c.name || 'Customer') + ' (' + vehStr + ')';
             custSelect.appendChild(opt);
           }
@@ -5004,6 +5055,8 @@ function loadStaffCustomerData(staffId) {
         var stoppedNames = stoppedItems.map(function(it) {
           return (isHiGlobal && (it.nameHi || it.name_hi)) ? (it.nameHi || it.name_hi) : (it.customerName || 'Customer');
         }).join(', ');
+        state._stoppedSummaryList = stoppedNames;
+        state._stoppedSummaryCount = stoppedItems.length;
 
         html += '<div class="staff-stopped-summary-strip" style="background:#fee2e2; border:2px solid #ef4444; border-radius:10px; padding:12px 14px; margin-bottom:14px; box-shadow:0 3px 10px rgba(239,68,68,0.15); display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">' +
           '<div style="display:flex; align-items:center; gap:10px; flex:1; min-width:240px;">' +
@@ -5017,7 +5070,7 @@ function loadStaffCustomerData(staffId) {
               '</div>' +
             '</div>' +
           '</div>' +
-          '<button type="button" class="btn-audio-alert-pulse" onclick="speakHindiStoppedSummary(' + stoppedItems.length + ', \'' + escapeHtml(stoppedNames).replace(/'/g, "\\'") + '\', event)" style="background:#dc2626; color:#fff; border:none; border-radius:8px; padding:8px 12px; font-weight:700; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">' +
+          '<button type="button" class="btn-audio-alert-pulse" onclick="triggerStoppedSummarySpeech(event)" style="background:#dc2626; color:#fff; border:none; border-radius:8px; padding:8px 12px; font-weight:700; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">' +
             '<span class="material-symbols-outlined" style="font-size:18px;">volume_up</span> ' + (isHiGlobal ? 'चेतावनी सुनें' : 'Listen Warning') +
           '</button>' +
         '</div>';
@@ -5041,7 +5094,7 @@ function loadStaffCustomerData(staffId) {
         var cleanPhone = normalizeIndianMobile(item.customerNumber);
         var formattedPhone = cleanPhone ? formatIndianMobile(cleanPhone) : '';
 
-        var rawVeh = item.vehicleNumbers || item.vehicleOrSite || item.vehicle;
+        var rawVeh = formatVehiclePlateOrSummary(item);
         var vehicles = (rawVeh != null ? String(rawVeh) : '').trim() || (isSolar ? (isHi ? 'साइट विवरण उपलब्ध नहीं' : 'Site Details Not Provided') : (isHi ? 'गाड़ी नंबर उपलब्ध नहीं' : 'Vehicle Not Provided'));
         var notes = (item.staffNotes || item.notes != null ? String(item.staffNotes || item.notes) : '').trim();
 
@@ -5088,7 +5141,7 @@ function loadStaffCustomerData(staffId) {
                 '<div style="font-size:12px; opacity:0.95;">' + (item.stoppedReason ? ('कारण: ' + escapeHtml(item.stoppedReason)) : 'एडमिन द्वारा सर्विस रोक दी गई है।') + '</div>' +
               '</div>' +
             '</div>' +
-            '<button type="button" class="btn-card-audio-stopped" onclick="speakHindiStoppedCustomerWarning(\'' + escapeHtml(displayName).replace(/'/g, "\\'") + '\', \'' + escapeHtml(vehicles).replace(/'/g, "\\'") + '\', event)" style="background:#fff; color:#dc2626; border:none; border-radius:6px; padding:6px 10px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" title="बोलकर सुनें">' +
+            '<button type="button" class="btn-card-audio-stopped" onclick="playStaffCardAudioWarning(' + index + ', event)" style="background:#fff; color:#dc2626; border:none; border-radius:6px; padding:6px 10px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" title="बोलकर सुनें">' +
               '<span class="material-symbols-outlined" style="font-size:16px;">volume_up</span> <span>बोलें</span>' +
             '</button>' +
           '</div>';
@@ -9538,7 +9591,7 @@ function loadStaffCustomerData(staffId) {
         }
 
         /* 2d. Vehicle / Site Cell + Photo Micro-Thumb (Dedicated column) */
-        var carText = (r.vehicle || r.vehicleNumbers || '').trim();
+        var carText = formatVehiclePlateOrSummary(r, '');
         var carHtml = '<div class="vehicle-cell-wrap-modern">';
         if (carText) {
           if (catName === 'Solar Panel Cleaning') {
@@ -9549,8 +9602,8 @@ function loadStaffCustomerData(staffId) {
         } else {
           carHtml += '<span class="cell-empty-dash">—</span>';
         }
-        var rowMake = (r.carMake || r.car_make || '').trim();
-        var rowColor = (r.carColor || r.car_color || '').trim();
+        var rowMake = String(r.carMake || r.car_make || '').trim();
+        var rowColor = String(r.carColor || r.car_color || '').trim();
         if (catName !== 'Solar Panel Cleaning' && (rowMake || rowColor)) {
           var makeColorDisplay = [rowMake, rowColor].filter(Boolean).join(' • ');
           carHtml += '<div class="table-vehicle-make-color" title="Car Make & Color: ' + escapeHtml(makeColorDisplay) + '">' +
@@ -16739,5 +16792,8 @@ function loadStaffCustomerData(staffId) {
     window.handleStopServiceClickFromModal = handleStopServiceClickFromModal;
     window.speakHindiStoppedCustomerWarning = speakHindiStoppedCustomerWarning;
     window.speakHindiStoppedSummary = speakHindiStoppedSummary;
+    window.playStaffCardAudioWarning = playStaffCardAudioWarning;
+    window.triggerStoppedSummarySpeech = triggerStoppedSummarySpeech;
+    window.formatVehiclePlateOrSummary = formatVehiclePlateOrSummary;
     }
 

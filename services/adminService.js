@@ -2046,7 +2046,7 @@ async function convertLeadToCustomer(leadId, convertData = {}, adminUser = 'admi
         panelCount: parsedPanelCount,
         siteDetails: isSolar ? { panelCount: parsedPanelCount, roofType: 'RCC' } : null,
         scheduledDate: convertData.scheduledDate || null,
-        status: 'assigned',
+        status: assignedStaff ? 'assigned' : 'pending',
         specialInstructions: convertData.notes || null
       }, client);
 
@@ -2762,8 +2762,12 @@ async function assignDailyCleanCustomer({ customerId, staffId, adminUser = 'admi
       assignedBy: adminUser
     }, client);
 
-    // 6. Append to staff route sequences if not already present
+    // 6. Append to staff route sequences if not already present & clean old assignments
     try {
+      await client.query(
+        'DELETE FROM public.staff_route_sequences WHERE subscription_id = $1 AND staff_id != $2',
+        [sub.id, staff.id]
+      );
       const existingSeqs = await client.query(
         'SELECT * FROM public.staff_route_sequences WHERE staff_id = $1 AND subscription_id = $2',
         [staff.id, sub.id]
