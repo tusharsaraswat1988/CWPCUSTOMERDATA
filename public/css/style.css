@@ -2915,6 +2915,72 @@
       background: #fee2e2;
     }
 
+    /* Staff Active / Inactive Status Toggle Button in Admin */
+    .btn-staff-status-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn-staff-status-toggle.is-active {
+      background: var(--call-green-light, #ecfdf5);
+      color: var(--call-green, #065f46);
+      border-color: var(--call-green-border, #a7f3d0);
+    }
+
+    .btn-staff-status-toggle.is-active:hover {
+      background: #d1fae5;
+      border-color: #6ee7b7;
+      color: #047857;
+      box-shadow: 0 1px 3px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-staff-status-toggle.is-inactive {
+      background: var(--danger-red-light, #fef2f2);
+      color: var(--danger-red, #991b1b);
+      border-color: var(--danger-red-border, #fecaca);
+    }
+
+    .btn-staff-status-toggle.is-inactive:hover {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #b91c1c;
+      box-shadow: 0 1px 3px rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-staff-status-toggle .staff-toggle-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .btn-staff-status-toggle.is-active .staff-toggle-dot {
+      background: #10b981;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-staff-status-toggle.is-inactive .staff-toggle-dot {
+      background: #ef4444;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+    }
+
+    .staff-admin-card.staff-admin-card-inactive {
+      background: #f8fafc;
+      border-left: 3px solid #ef4444;
+      opacity: 0.9;
+    }
+
     /* Modern Search & Filter Toolbar */
     .records-header-row {
       display: flex;
@@ -9332,6 +9398,34 @@
     [data-theme="dark"] .btn-admin-action:hover {
       background: #27354a !important;
       border-color: #475569 !important;
+    }
+
+    body.theme-dark .btn-staff-status-toggle.is-active,
+    [data-theme="dark"] .btn-staff-status-toggle.is-active {
+      background: rgba(16, 185, 129, 0.16) !important;
+      color: #34d399 !important;
+      border-color: rgba(16, 185, 129, 0.35) !important;
+    }
+    body.theme-dark .btn-staff-status-toggle.is-active:hover,
+    [data-theme="dark"] .btn-staff-status-toggle.is-active:hover {
+      background: rgba(16, 185, 129, 0.28) !important;
+      border-color: #34d399 !important;
+    }
+    body.theme-dark .btn-staff-status-toggle.is-inactive,
+    [data-theme="dark"] .btn-staff-status-toggle.is-inactive {
+      background: rgba(239, 68, 68, 0.16) !important;
+      color: #f87171 !important;
+      border-color: rgba(239, 68, 68, 0.35) !important;
+    }
+    body.theme-dark .btn-staff-status-toggle.is-inactive:hover,
+    [data-theme="dark"] .btn-staff-status-toggle.is-inactive:hover {
+      background: rgba(239, 68, 68, 0.28) !important;
+      border-color: #f87171 !important;
+    }
+    body.theme-dark .staff-admin-card.staff-admin-card-inactive,
+    [data-theme="dark"] .staff-admin-card.staff-admin-card-inactive {
+      background: #0f172a !important;
+      border-left: 3px solid #ef4444 !important;
     }
 
     body.theme-dark .btn-toggle-pin,
