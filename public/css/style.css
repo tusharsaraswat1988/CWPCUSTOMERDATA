@@ -18970,3 +18970,124 @@ body.admin-mode-active .main-container,
   background: #16a34a;
   animation: pulseTrackingDot 1.5s infinite;
 }
+
+/* ==========================================================================
+   Multi-Location & Address System Styles
+   ========================================================================== */
+.cwp-location-card {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.cwp-location-card.is-primary-card {
+  border-color: #93c5fd;
+  background: #f8faff;
+}
+
+body.theme-dark .cwp-location-card,
+[data-theme="dark"] .cwp-location-card {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.theme-dark .cwp-location-card.is-primary-card,
+[data-theme="dark"] .cwp-location-card.is-primary-card {
+  border-color: #1e40af;
+  background: rgba(30, 58, 138, 0.15);
+}
+
+.cwp-location-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #f1f5f9);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cwp-location-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cwp-location-tag-select {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  background: var(--bg-surface, #ffffff);
+  color: var(--text-primary, #1e293b);
+  cursor: pointer;
+}
+
+.btn-location-delete {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s ease;
+}
+
+.btn-location-delete:hover {
+  background: #fee2e2;
+}
+
+.btn-add-location {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 1.5px dashed #93c5fd;
+  border-radius: 10px;
+  background: #f0f7ff;
+  color: #1d4ed8;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-add-location:hover {
+  background: #e0f2fe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+body.theme-dark .btn-add-location,
+[data-theme="dark"] .btn-add-location {
+  background: rgba(30, 58, 138, 0.25);
+  border-color: #2563eb;
+  color: #93c5fd;
+}
+
+.coords-tag-chip {
+  font-size: 11px;
+  font-family: monospace;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #bae6fd;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+

@@ -3238,39 +3238,52 @@ var state = {
       var badge = document.getElementById('dccUnassignedBadge');
       var filterStaffSelect = document.getElementById('dccRosterStaffFilter') || document.getElementById('dccFilterStaff');
       var totalChip = document.getElementById('dccRosterTotalChip') || document.getElementById('dccRosterTotalCount');
+      var staffSelect = document.getElementById('dccAssignStaffSelect');
+      var custSelect = document.getElementById('dccAssignCustomerSelect');
 
       if (tbody && (!tbody.innerHTML || tbody.innerHTML.indexOf('Loading') === -1)) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748b;"><div class="spinner-circle" style="width: 24px; height: 24px; margin: 0 auto 8px auto;"></div>Loading daily clean routes...</td></tr>';
       }
 
-      // Populate Staff dropdowns
-      var staffList = (state && state.staffList) || [];
-      if (staffSelect) {
-        var prevStaffVal = staffSelect.value;
-        staffSelect.innerHTML = '<option value="">-- Choose Field Cleaner --</option>';
-        staffList.forEach(function(s) {
-          var opt = document.createElement('option');
-          opt.value = s.id;
-          opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Cleaner') + ')';
-          staffSelect.appendChild(opt);
-        });
-        if (prevStaffVal) staffSelect.value = prevStaffVal;
+      function populateCleanerOptions(list) {
+        if (staffSelect) {
+          var prevStaffVal = staffSelect.value;
+          staffSelect.innerHTML = '<option value="">-- Select Cleaner --</option>';
+          (list || []).forEach(function(s) {
+            var opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Cleaner') + ')';
+            staffSelect.appendChild(opt);
+          });
+          if (prevStaffVal) staffSelect.value = prevStaffVal;
+        }
+
+        if (filterStaffSelect) {
+          var prevFilterVal = filterStaffSelect.value;
+          filterStaffSelect.innerHTML = '<option value="all">All Field Staff</option><option value="unassigned">⚠️ Unassigned Only</option>';
+          (list || []).forEach(function(s) {
+            var opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = '👤 ' + (s.name || s.id);
+            filterStaffSelect.appendChild(opt);
+          });
+          if (prevFilterVal) filterStaffSelect.value = prevFilterVal;
+        }
       }
 
-      if (filterStaffSelect) {
-        var prevFilterVal = filterStaffSelect.value;
-        filterStaffSelect.innerHTML = '<option value="all">All Field Staff</option><option value="unassigned">⚠️ Unassigned Only</option>';
-        staffList.forEach(function(s) {
-          var opt = document.createElement('option');
-          opt.value = s.id;
-          opt.textContent = '👤 ' + (s.name || s.id);
-          filterStaffSelect.appendChild(opt);
+      // Populate Staff dropdowns
+      var staffList = (state && state.staffList) || [];
+      if (staffList.length > 0) {
+        populateCleanerOptions(staffList);
+      } else {
+        apiCall('getStaffList', {}, function(list) {
+          state.staffList = list || [];
+          populateCleanerOptions(state.staffList);
         });
-        if (prevFilterVal) filterStaffSelect.value = prevFilterVal;
       }
 
       apiCall('getDailyCleanAssignments', {}, function(res) {
-        var data = (res && res.data) || [];
+        var data = (res && (res.data || res.assignments)) || [];
         var summary = (res && res.summary) || {};
         dccRosterCache = data;
 
@@ -3290,18 +3303,19 @@ var state = {
 
         if (totalChip) totalChip.textContent = data.length + ' Active Subscribers';
 
-        // Populate Customer Select in Allocation Card (unassigned prioritized at top)
-        if (custSelect) {
+        // Populate Customer Select in Allocation Card (unassigned prioritized at top, followed by other customers)
+        function renderCustOptions() {
+          if (!custSelect) return;
           var prevCustVal = custSelect.value;
-          custSelect.innerHTML = '<option value="">-- Choose Subscriber --</option>';
+          custSelect.innerHTML = '<option value="">-- Select Customer --</option>';
 
-          var unassignedCusts = data.filter(function(c) { return !c.isAssigned; });
-          var assignedCusts = data.filter(function(c) { return c.isAssigned; });
+          var unassignedSubs = data.filter(function(c) { return !c.isAssigned && !c.isStopped; });
+          var assignedSubs = data.filter(function(c) { return c.isAssigned && !c.isStopped; });
 
-          if (unassignedCusts.length > 0) {
+          if (unassignedSubs.length > 0) {
             var unassignedGroup = document.createElement('optgroup');
-            unassignedGroup.label = '⚠️ UNASSIGNED SUBSCRIBERS (' + unassignedCusts.length + ')';
-            unassignedCusts.forEach(function(c) {
+            unassignedGroup.label = '⚠️ UNASSIGNED SUBSCRIBERS (' + unassignedSubs.length + ')';
+            unassignedSubs.forEach(function(c) {
               var opt = document.createElement('option');
               opt.value = c.customerId;
               opt.textContent = (c.customerName || 'Subscriber') + ' - ' + (c.vehicleNumber || 'No plate') + ' (' + (c.locality || c.address || 'No Area') + ')';
@@ -3310,10 +3324,10 @@ var state = {
             custSelect.appendChild(unassignedGroup);
           }
 
-          if (assignedCusts.length > 0) {
+          if (assignedSubs.length > 0) {
             var assignedGroup = document.createElement('optgroup');
-            assignedGroup.label = '✓ ALREADY ASSIGNED (' + assignedCusts.length + ')';
-            assignedCusts.forEach(function(c) {
+            assignedGroup.label = '✓ ALREADY ASSIGNED (' + assignedSubs.length + ')';
+            assignedSubs.forEach(function(c) {
               var opt = document.createElement('option');
               opt.value = c.customerId;
               opt.textContent = (c.customerName || 'Subscriber') + ' - ' + (c.vehicleNumber || 'No plate') + ' [Current: ' + (c.staffName || 'Staff') + ']';
@@ -3322,7 +3336,33 @@ var state = {
             custSelect.appendChild(assignedGroup);
           }
 
+          var allRecords = (state && (state.adminRecords || state.customers)) || [];
+          var otherCusts = allRecords.filter(function(r) {
+            return !data.some(function(d) { return d.customerId === r.id; }) && (r.active !== 'No');
+          });
+          if (otherCusts.length > 0) {
+            var otherGroup = document.createElement('optgroup');
+            otherGroup.label = '👥 ALL OTHER CUSTOMERS (' + otherCusts.length + ')';
+            otherCusts.forEach(function(r) {
+              var opt = document.createElement('option');
+              opt.value = r.id;
+              var veh = r.vehicle || r.vehicleNumbers || 'No vehicle';
+              opt.textContent = (r.customerName || 'Customer') + ' (' + veh + ')';
+              otherGroup.appendChild(opt);
+            });
+            custSelect.appendChild(otherGroup);
+          }
+
           if (prevCustVal) custSelect.value = prevCustVal;
+        }
+
+        if (!state.adminRecords || state.adminRecords.length === 0) {
+          apiCall('getAllCustomers', {}, function(recs) {
+            state.adminRecords = recs || [];
+            renderCustOptions();
+          });
+        } else {
+          renderCustOptions();
         }
 
         renderDccRouteRosterTable();
@@ -3394,6 +3434,10 @@ var state = {
 
         var unassignBtn = row.isAssigned ? '<button type="button" class="btn-table-action-sm danger" onclick="handleDccUnassign(\'' + escapeHtml(row.customerId) + '\', \'' + escapeHtml(row.customerName) + '\')" title="Remove from cleaner route">✕ Unassign</button>' : '';
 
+        var locIcon = (row.locationName && row.locationName.toLowerCase().indexOf('office') !== -1) ? '🏢' : '📍';
+        var mapsBtn = row.googleMapsUrl ? (' <a href="' + escapeHtml(row.googleMapsUrl) + '" target="_blank" rel="noopener" style="color: #2563eb; text-decoration: none; font-size: 11px;" title="Open in Maps">🗺️</a>') : '';
+        var locBadge = row.locationName ? ('<span class="m3-chip" style="font-size: 10.5px; font-weight: 700; background: #f1f5f9; color: #475569; padding: 1px 6px; border-radius: 4px; margin-right: 4px;">' + locIcon + ' ' + escapeHtml(row.locationName) + '</span>') : '';
+
         html += '<tr>' +
           '  <td style="text-align: center; font-weight: 600;">' + (idx + 1) + '</td>' +
           '  <td>' +
@@ -3405,7 +3449,8 @@ var state = {
           '    <div style="font-size: 11px; color: #64748b;">' + escapeHtml(row.packageType || 'Daily Clean') + '</div>' +
           '  </td>' +
           '  <td>' +
-          '    <div style="font-size: 12.5px; color: #334155;">📍 ' + escapeHtml(row.locality || row.address || 'Address not set') + '</div>' +
+          '    <div style="margin-bottom: 2px;">' + locBadge + mapsBtn + '</div>' +
+          '    <div style="font-size: 12px; color: #334155;">' + escapeHtml(row.locality || row.address || 'Address not set') + '</div>' +
           '  </td>' +
           '  <td>' + staffCell + '</td>' +
           '  <td style="text-align: center;">' + seqBadge + '</td>' +
@@ -3568,29 +3613,55 @@ var state = {
       if (typeof loadDailyCleanRouteAssignments === 'function') {
         loadDailyCleanRouteAssignments();
       }
-      var custSelect = document.getElementById('jobAssignCustomerSelect');
-      if (custSelect) {
+
+      function populateJobCustomers(list) {
+        var custSelect = document.getElementById('jobAssignCustomerSelect');
+        if (!custSelect) return;
+        var prevVal = custSelect.value;
         custSelect.innerHTML = '<option value="">-- Select Customer --</option>';
-        var customers = (state && state.customers) || [];
-        customers.forEach(function(c) {
-          if (c.status !== 'inactive') {
+        (list || []).forEach(function(c) {
+          if (c.status !== 'inactive' && c.active !== 'No') {
             var opt = document.createElement('option');
             opt.value = c.id || c.customerId || c.customerCode || '';
-            opt.textContent = (c.name || 'Customer') + ' (' + (c.vehicleNum || c.vehicle_num || c.registration_no || 'No Plate') + ')';
+            var vehStr = c.vehicle || c.vehicleNumbers || c.vehicleNum || c.registration_no || 'No Plate';
+            opt.textContent = (c.customerName || c.name || 'Customer') + ' (' + vehStr + ')';
             custSelect.appendChild(opt);
           }
         });
+        if (prevVal) custSelect.value = prevVal;
       }
 
-      var staffSelect = document.getElementById('jobAssignStaff');
-      if (staffSelect) {
+      function populateJobStaff(list) {
+        var staffSelect = document.getElementById('jobAssignStaff');
+        if (!staffSelect) return;
+        var prevVal = staffSelect.value;
         staffSelect.innerHTML = '<option value="">-- Select Staff Cleaner --</option>';
-        var staffList = (state && state.staffList) || [];
-        staffList.forEach(function(s) {
+        (list || []).forEach(function(s) {
           var opt = document.createElement('option');
           opt.value = s.id;
           opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Staff') + ')';
           staffSelect.appendChild(opt);
+        });
+        if (prevVal) staffSelect.value = prevVal;
+      }
+
+      var allCusts = (state && (state.adminRecords || state.customers)) || [];
+      if (allCusts.length > 0) {
+        populateJobCustomers(allCusts);
+      } else {
+        apiCall('getAllCustomers', {}, function(recs) {
+          state.adminRecords = recs || [];
+          populateJobCustomers(state.adminRecords);
+        });
+      }
+
+      var staffList = (state && state.staffList) || [];
+      if (staffList.length > 0) {
+        populateJobStaff(staffList);
+      } else {
+        apiCall('getStaffList', {}, function(list) {
+          state.staffList = list || [];
+          populateJobStaff(state.staffList);
         });
       }
 
@@ -7482,6 +7553,12 @@ function loadStaffCustomerData(staffId) {
         ? (isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : (category === 'Interior Detailing' ? 'Interior Detailing' : (category === 'Exterior Detailing' ? 'Exterior Detailing' : 'Daily Car Cleaning'))))
         : 'None';
 
+      var customerLocationsList = (typeof collectCustomerLocations === 'function') ? collectCustomerLocations('add') : [];
+      var primaryLoc = customerLocationsList.find(function(l) { return l.isPrimary; }) || customerLocationsList[0];
+      var resolvedAddress = (primaryLoc && primaryLoc.addressText) ? primaryLoc.addressText : (document.getElementById('custAddress') ? document.getElementById('custAddress').value.trim() : '');
+      var resolvedAddressHi = (primaryLoc && primaryLoc.addressTextHi) ? primaryLoc.addressTextHi : (document.getElementById('custAddressHi') ? document.getElementById('custAddressHi').value.trim() : '');
+      var resolvedMapsUrl = (primaryLoc && primaryLoc.googleMapsUrl) ? primaryLoc.googleMapsUrl : (document.getElementById('custMapsUrl') ? document.getElementById('custMapsUrl').value.trim() : '');
+
       var customerData = {
         isLead: Boolean(isLeadMarked),
         tag: isLeadMarked ? 'lead' : 'customer',
@@ -7500,9 +7577,10 @@ function loadStaffCustomerData(staffId) {
         customerName: document.getElementById('custName').value.trim(),
         nameHi: document.getElementById('custNameHi') ? document.getElementById('custNameHi').value.trim() : '',
         customerNumber: normalizeIndianMobile(document.getElementById('custPhone').value),
-        address: document.getElementById('custAddress').value.trim(),
-        addressHi: document.getElementById('custAddressHi') ? document.getElementById('custAddressHi').value.trim() : '',
-        googleMapsUrl: document.getElementById('custMapsUrl').value.trim(),
+        address: resolvedAddress,
+        addressHi: resolvedAddressHi,
+        googleMapsUrl: resolvedMapsUrl,
+        locations: customerLocationsList,
         staffNotes: document.getElementById('custNotes').value.trim(),
         active: 'Yes',
         packageType: pkgVal || (hasService ? 'Standard' : 'None'),
@@ -9797,7 +9875,445 @@ function loadStaffCustomerData(staffId) {
       /* Initialize Edit Auto-Draft & Check for previous changes */
       initEditCustomerAutoDraft();
       checkAndShowEditDraftBanner();
+
+      /* Initialize Multi-Location System in Edit Modal */
+      var existingLocs = r.locations || [];
+      if (existingLocs.length === 0 && (r.address || r.location)) {
+        existingLocs = [{
+          id: '',
+          locationName: 'Home',
+          addressType: 'primary',
+          addressText: r.address || r.location || '',
+          addressTextHi: r.addressHi || r.address_hi || '',
+          googleMapsUrl: r.googleMapsUrl || '',
+          latitude: r.latitude || null,
+          longitude: r.longitude || null,
+          parkingDetails: r.parkingDetails || '',
+          isPrimary: true
+        }];
+        if (r.secondaryAddress) {
+          existingLocs.push({
+            id: '',
+            locationName: 'Office',
+            addressType: 'secondary',
+            addressText: r.secondaryAddress,
+            addressTextHi: r.secondaryAddressHi || '',
+            googleMapsUrl: r.secondaryMapsUrl || '',
+            latitude: r.secondaryLatitude || null,
+            longitude: r.secondaryLongitude || null,
+            parkingDetails: r.secondaryParkingDetails || '',
+            isPrimary: false
+          });
+        }
+      }
+      initCustomerLocations('edit', existingLocs);
     }
+
+    /* ==========================================================================
+       MULTI-LOCATION SYSTEM HELPERS (Add & Edit Customer Modals)
+       ========================================================================== */
+    state.customerLocations = { add: [], edit: [] };
+
+    function parseCoordinatesClient(input) {
+      if (!input) return { latitude: null, longitude: null };
+      var s = String(input).trim();
+      var m = s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+      m = s.match(/[?&](?:q|ll|query|destination)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+      m = s.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+      if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+      return { latitude: null, longitude: null };
+    }
+
+    function initCustomerLocations(mode, existingLocations) {
+      if (Array.isArray(existingLocations) && existingLocations.length > 0) {
+        state.customerLocations[mode] = existingLocations.map(function(l, i) {
+          return {
+            id: l.id || '',
+            locationName: l.locationName || l.location_name || (l.addressType ? (l.addressType.charAt(0).toUpperCase() + l.addressType.slice(1)) : (i === 0 ? 'Home' : 'Office')),
+            addressType: l.addressType || l.address_type || (i === 0 ? 'primary' : 'secondary'),
+            addressText: l.addressText || l.address_text || l.address || '',
+            addressTextHi: l.addressTextHi || l.address_text_hi || l.addressHi || '',
+            googleMapsUrl: l.googleMapsUrl || l.google_maps_url || '',
+            latitude: l.latitude != null ? parseFloat(l.latitude) : null,
+            longitude: l.longitude != null ? parseFloat(l.longitude) : null,
+            parkingDetails: l.parkingDetails || l.parking_details || '',
+            isPrimary: l.isPrimary !== undefined ? Boolean(l.isPrimary) : (l.is_primary !== undefined ? Boolean(l.is_primary) : (i === 0))
+          };
+        });
+      } else {
+        state.customerLocations[mode] = [
+          {
+            id: '',
+            locationName: 'Home',
+            addressType: 'primary',
+            addressText: '',
+            addressTextHi: '',
+            googleMapsUrl: '',
+            latitude: null,
+            longitude: null,
+            parkingDetails: '',
+            isPrimary: true
+          }
+        ];
+      }
+      renderCustomerLocations(mode);
+    }
+
+    function renderCustomerLocations(mode) {
+      var container = document.getElementById(mode === 'add' ? 'custLocationsContainer' : 'editCustLocationsContainer');
+      if (!container) return;
+
+      var list = state.customerLocations[mode] || [];
+      if (list.length === 0) {
+        list = [{
+          id: '',
+          locationName: 'Home',
+          addressType: 'primary',
+          addressText: '',
+          addressTextHi: '',
+          googleMapsUrl: '',
+          latitude: null,
+          longitude: null,
+          parkingDetails: '',
+          isPrimary: true
+        }];
+        state.customerLocations[mode] = list;
+      }
+
+      var html = '';
+      list.forEach(function(loc, idx) {
+        var isPrim = Boolean(loc.isPrimary);
+        var coordsText = (loc.latitude != null && loc.longitude != null) ? (loc.latitude.toFixed(5) + ', ' + loc.longitude.toFixed(5)) : '';
+        var isCustomPreset = loc.locationName && !['Home', 'Office', 'Site / Plant', 'Parking / Garage'].includes(loc.locationName);
+
+        html += '<div class="cwp-location-card ' + (isPrim ? 'is-primary-card' : '') + '" id="' + mode + 'LocCard_' + idx + '" data-loc-index="' + idx + '">' +
+          '  <input type="hidden" class="loc-field-id" value="' + escapeHtml(loc.id || '') + '">' +
+          '  <div class="cwp-location-card-header">' +
+          '    <div class="cwp-location-title-wrap">' +
+          '      <span style="font-size: 17px;">' + (isPrim ? '🏠' : (loc.locationName && loc.locationName.toLowerCase().indexOf('office') !== -1 ? '🏢' : '📍')) + '</span>' +
+          '      <select class="cwp-location-tag-select loc-field-name-preset" onchange="handleLocationPresetChange(\'' + mode + '\', ' + idx + ', this.value)">' +
+          '        <option value="Home" ' + (loc.locationName === 'Home' || (!loc.locationName && idx === 0) ? 'selected' : '') + '>🏠 Home (घर)</option>' +
+          '        <option value="Office" ' + (loc.locationName === 'Office' || loc.locationName === 'Office / Alternate' ? 'selected' : '') + '>🏢 Office (ऑफिस)</option>' +
+          '        <option value="Site / Plant" ' + (loc.locationName === 'Site / Plant' || loc.locationName === 'Site 1' ? 'selected' : '') + '>🏗️ Site / Plant (साइट)</option>' +
+          '        <option value="Parking / Garage" ' + (loc.locationName === 'Parking / Garage' ? 'selected' : '') + '>🚗 Parking / Garage</option>' +
+          '        <option value="Custom" ' + (isCustomPreset ? 'selected' : '') + '>⭐ Custom Name...</option>' +
+          '      </select>' +
+          '      <input type="text" class="form-input loc-field-custom-name" placeholder="Location Name" value="' + escapeHtml(loc.locationName || '') + '" style="' + (isCustomPreset ? 'width: 130px; height: 30px; font-size: 12px; display: inline-block;' : 'display: none; width: 130px; height: 30px; font-size: 12px;') + '" oninput="syncLocationCardData(\'' + mode + '\', ' + idx + ')">' +
+          '    </div>' +
+          '    <div style="display: flex; align-items: center; gap: 8px;">' +
+          '      <label style="display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; cursor: pointer; color: ' + (isPrim ? '#1d4ed8' : '#64748b') + ';">' +
+          '        <input type="radio" name="' + mode + 'PrimaryLocRadio" ' + (isPrim ? 'checked' : '') + ' onchange="setPrimaryLocationCard(\'' + mode + '\', ' + idx + ')" style="cursor: pointer;">' +
+          '        <span>' + (isPrim ? '★ Primary (मुख्य)' : 'Make Primary') + '</span>' +
+          '      </label>' +
+          (list.length > 1 ? '      <button type="button" class="btn-location-delete" onclick="removeCustomerLocationCard(\'' + mode + '\', ' + idx + ')" title="Remove Location">🗑️ Remove</button>' : '') +
+          '    </div>' +
+          '  </div>' +
+          '  <div class="form-row-2">' +
+          '    <div class="form-group" style="margin-bottom: 0;">' +
+          '      <label class="form-label">Full Address <span class="req-star">*</span></label>' +
+          '      <textarea class="form-textarea form-textarea-compact loc-field-address" rows="2" placeholder="House/Flat No, Colony/Society, Landmark, City..." required oninput="handleLocationAddressInput(\'' + mode + '\', ' + idx + ', this.value)">' + escapeHtml(loc.addressText || '') + '</textarea>' +
+          '      <div class="indic-assist-wrap" style="margin-top: 5px;">' +
+          '        <span class="indic-assist-label">🌐 हिन्दी पता:</span>' +
+          '        <input type="text" class="form-input form-input-indic loc-field-address-hi" placeholder="हिंदी पता स्वतः आएगा..." value="' + escapeHtml(loc.addressTextHi || '') + '" oninput="syncLocationCardData(\'' + mode + '\', ' + idx + ')">' +
+          '      </div>' +
+          '    </div>' +
+          '    <div class="form-group" style="margin-bottom: 0;">' +
+          '      <label class="form-label">Map Location / GPS Coordinates <span class="opt-tag">(Optional)</span></label>' +
+          '      <div class="form-input-addon-group map-input-group">' +
+          '        <input type="text" class="form-input loc-field-maps" placeholder="Google Maps link, Plus Code, or Coordinates" value="' + escapeHtml(loc.googleMapsUrl || '') + '" oninput="handleLocationMapsInput(\'' + mode + '\', ' + idx + ', this.value)">' +
+          '        <button type="button" class="form-addon-btn btn-gps-detect" onclick="detectCardGpsLocation(\'' + mode + '\', ' + idx + ')" title="Auto-detect GPS location">' +
+          '          <span>📍</span> <span>GPS</span>' +
+          '        </button>' +
+          '      </div>' +
+          '      <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">' +
+          '        <span class="form-field-hint">Paste Maps link or click GPS</span>' +
+          '        <span class="coords-tag-chip loc-coords-chip" style="' + (coordsText ? 'display: inline-flex;' : 'display: none;') + '">' +
+          '          📍 <span class="loc-coords-text">' + escapeHtml(coordsText) + '</span>' +
+          '        </span>' +
+          '      </div>' +
+          '      <div style="margin-top: 6px;">' +
+          '        <input type="text" class="form-input loc-field-parking" style="font-size: 11.5px; height: 32px;" placeholder="Parking / Gate note (e.g. Basement -1, slot 14)" value="' + escapeHtml(loc.parkingDetails || '') + '" oninput="syncLocationCardData(\'' + mode + '\', ' + idx + ')">' +
+          '      </div>' +
+          '    </div>' +
+          '  </div>' +
+          '</div>';
+      });
+
+      container.innerHTML = html;
+      syncLegacyAddressFields(mode);
+    }
+
+    function addCustomerLocationCard(mode) {
+      syncAllLocationCardsFromDom(mode);
+      var list = state.customerLocations[mode] || [];
+      var nextIndex = list.length + 1;
+      list.push({
+        id: '',
+        locationName: nextIndex === 2 ? 'Office' : ('Location ' + nextIndex),
+        addressType: nextIndex === 2 ? 'office' : 'other',
+        addressText: '',
+        addressTextHi: '',
+        googleMapsUrl: '',
+        latitude: null,
+        longitude: null,
+        parkingDetails: '',
+        isPrimary: false
+      });
+      renderCustomerLocations(mode);
+    }
+
+    function removeCustomerLocationCard(mode, index) {
+      syncAllLocationCardsFromDom(mode);
+      var list = state.customerLocations[mode] || [];
+      if (list.length <= 1) {
+        showToast('At least one location is required.', '⚠️');
+        return;
+      }
+      var wasPrimary = list[index].isPrimary;
+      list.splice(index, 1);
+      if (wasPrimary && list.length > 0) {
+        list[0].isPrimary = true;
+      }
+      renderCustomerLocations(mode);
+    }
+
+    function setPrimaryLocationCard(mode, index) {
+      syncAllLocationCardsFromDom(mode);
+      var list = state.customerLocations[mode] || [];
+      list.forEach(function(l, i) {
+        l.isPrimary = (i === index);
+      });
+      renderCustomerLocations(mode);
+    }
+
+    function handleLocationPresetChange(mode, index, preset) {
+      var card = document.getElementById(mode + 'LocCard_' + index);
+      if (!card) return;
+      var customInput = card.querySelector('.loc-field-custom-name');
+      var list = state.customerLocations[mode] || [];
+      if (preset === 'Custom') {
+        if (customInput) {
+          customInput.style.display = 'inline-block';
+          customInput.focus();
+        }
+      } else {
+        if (customInput) customInput.style.display = 'none';
+        if (list[index]) list[index].locationName = preset;
+      }
+      syncLocationCardData(mode, index);
+    }
+
+    function handleLocationAddressInput(mode, index, val) {
+      var list = state.customerLocations[mode] || [];
+      if (list[index]) list[index].addressText = val;
+      syncLegacyAddressFields(mode);
+
+      var card = document.getElementById(mode + 'LocCard_' + index);
+      var hiInput = card ? card.querySelector('.loc-field-address-hi') : null;
+      if (hiInput && typeof debounce === 'function' && typeof transliterateToHindi === 'function') {
+        if (!card._indicDebounce) {
+          card._indicDebounce = debounce(function(text) {
+            if (!text || text.length < 2) return;
+            transliterateToHindi(text, function(hi) {
+              if (hi && hiInput && !hiInput.dataset.manualEdit) {
+                hiInput.value = hi;
+                if (list[index]) list[index].addressTextHi = hi;
+                syncLegacyAddressFields(mode);
+              }
+            });
+          }, 350);
+        }
+        card._indicDebounce(val);
+      }
+    }
+
+    function handleLocationMapsInput(mode, index, val) {
+      var list = state.customerLocations[mode] || [];
+      if (list[index]) list[index].googleMapsUrl = val;
+
+      var coords = parseCoordinatesClient(val);
+      if (coords.latitude != null) {
+        if (list[index]) {
+          list[index].latitude = coords.latitude;
+          list[index].longitude = coords.longitude;
+        }
+      }
+
+      var card = document.getElementById(mode + 'LocCard_' + index);
+      if (card) {
+        var chip = card.querySelector('.loc-coords-chip');
+        var text = card.querySelector('.loc-coords-text');
+        if (coords.latitude != null) {
+          if (chip) chip.style.display = 'inline-flex';
+          if (text) text.textContent = coords.latitude.toFixed(5) + ', ' + coords.longitude.toFixed(5);
+        } else {
+          if (chip) chip.style.display = 'none';
+        }
+      }
+      syncLegacyAddressFields(mode);
+    }
+
+    function detectCardGpsLocation(mode, index) {
+      if (!navigator.geolocation) {
+        showToast('Geolocation is not supported by your browser.', '⚠️');
+        return;
+      }
+      var card = document.getElementById(mode + 'LocCard_' + index);
+      var mapsInput = card ? card.querySelector('.loc-field-maps') : null;
+      var gpsBtn = card ? card.querySelector('.btn-gps-detect') : null;
+      if (gpsBtn) {
+        gpsBtn.disabled = true;
+        gpsBtn.innerHTML = '<span>⏳</span>';
+      }
+
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        if (gpsBtn) {
+          gpsBtn.disabled = false;
+          gpsBtn.innerHTML = '<span>📍</span> <span>GPS</span>';
+        }
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        var mapsUrl = 'https://maps.google.com/?q=' + lat.toFixed(6) + ',' + lng.toFixed(6);
+        if (mapsInput) mapsInput.value = mapsUrl;
+
+        var list = state.customerLocations[mode] || [];
+        if (list[index]) {
+          list[index].googleMapsUrl = mapsUrl;
+          list[index].latitude = lat;
+          list[index].longitude = lng;
+        }
+
+        var chip = card ? card.querySelector('.loc-coords-chip') : null;
+        var text = card ? card.querySelector('.loc-coords-text') : null;
+        if (chip) chip.style.display = 'inline-flex';
+        if (text) text.textContent = lat.toFixed(5) + ', ' + lng.toFixed(5);
+
+        showToast('GPS coordinates detected: ' + lat.toFixed(4) + ', ' + lng.toFixed(4), '📍');
+        syncLegacyAddressFields(mode);
+      }, function(err) {
+        if (gpsBtn) {
+          gpsBtn.disabled = false;
+          gpsBtn.innerHTML = '<span>📍</span> <span>GPS</span>';
+        }
+        showToast('GPS detection failed: ' + (err.message || 'Permission denied'), '⚠️');
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    }
+
+    function syncLocationCardData(mode, index) {
+      var card = document.getElementById(mode + 'LocCard_' + index);
+      if (!card) return;
+      var list = state.customerLocations[mode] || [];
+      if (!list[index]) return;
+
+      var presetSelect = card.querySelector('.loc-field-name-preset');
+      var customInput = card.querySelector('.loc-field-custom-name');
+      var addrText = card.querySelector('.loc-field-address');
+      var addrHi = card.querySelector('.loc-field-address-hi');
+      var mapsInput = card.querySelector('.loc-field-maps');
+      var parkingInput = card.querySelector('.loc-field-parking');
+
+      var locName = (presetSelect && presetSelect.value === 'Custom')
+        ? (customInput ? customInput.value.trim() : 'Location')
+        : (presetSelect ? presetSelect.value : 'Home');
+
+      list[index].locationName = locName;
+      list[index].addressText = addrText ? addrText.value.trim() : '';
+      list[index].addressTextHi = addrHi ? addrHi.value.trim() : '';
+      list[index].googleMapsUrl = mapsInput ? mapsInput.value.trim() : '';
+      list[index].parkingDetails = parkingInput ? parkingInput.value.trim() : '';
+
+      syncLegacyAddressFields(mode);
+    }
+
+    function syncAllLocationCardsFromDom(mode) {
+      var container = document.getElementById(mode === 'add' ? 'custLocationsContainer' : 'editCustLocationsContainer');
+      if (!container) return;
+      var cards = container.querySelectorAll('.cwp-location-card');
+      var list = state.customerLocations[mode] || [];
+
+      cards.forEach(function(card, idx) {
+        if (!list[idx]) return;
+        var idField = card.querySelector('.loc-field-id');
+        var presetSelect = card.querySelector('.loc-field-name-preset');
+        var customInput = card.querySelector('.loc-field-custom-name');
+        var addrText = card.querySelector('.loc-field-address');
+        var addrHi = card.querySelector('.loc-field-address-hi');
+        var mapsInput = card.querySelector('.loc-field-maps');
+        var parkingInput = card.querySelector('.loc-field-parking');
+
+        list[idx].id = idField ? idField.value : (list[idx].id || '');
+        list[idx].locationName = (presetSelect && presetSelect.value === 'Custom')
+          ? (customInput ? customInput.value.trim() : 'Location')
+          : (presetSelect ? presetSelect.value : 'Home');
+        list[idx].addressText = addrText ? addrText.value.trim() : '';
+        list[idx].addressTextHi = addrHi ? addrHi.value.trim() : '';
+        list[idx].googleMapsUrl = mapsInput ? mapsInput.value.trim() : '';
+        list[idx].parkingDetails = parkingInput ? parkingInput.value.trim() : '';
+      });
+
+      syncLegacyAddressFields(mode);
+    }
+
+    function syncLegacyAddressFields(mode) {
+      var list = state.customerLocations[mode] || [];
+      var primary = list.find(function(l) { return l.isPrimary; }) || list[0];
+      var secondary = list.find(function(l) { return !l.isPrimary; }) || (list.length > 1 ? list[1] : null);
+
+      var pfx = mode === 'add' ? 'cust' : 'editCust';
+      var addrEl = document.getElementById(pfx + 'Address');
+      var addrHiEl = document.getElementById(pfx + 'AddressHi');
+      var mapsEl = document.getElementById(pfx + 'MapsUrl');
+
+      if (primary) {
+        if (addrEl) addrEl.value = primary.addressText || '';
+        if (addrHiEl) addrHiEl.value = primary.addressTextHi || '';
+        if (mapsEl) mapsEl.value = primary.googleMapsUrl || '';
+      }
+
+      var secAddrEl = document.getElementById(pfx + 'SecAddress');
+      var secAddrHiEl = document.getElementById(pfx + 'SecAddressHi');
+      var secMapsEl = document.getElementById(pfx + 'SecMaps');
+      if (secondary) {
+        if (secAddrEl) secAddrEl.value = secondary.addressText || '';
+        if (secAddrHiEl) secAddrHiEl.value = secondary.addressTextHi || '';
+        if (secMapsEl) secMapsEl.value = secondary.googleMapsUrl || '';
+      } else {
+        if (secAddrEl) secAddrEl.value = '';
+        if (secAddrHiEl) secAddrHiEl.value = '';
+        if (secMapsEl) secMapsEl.value = '';
+      }
+    }
+
+    function collectCustomerLocations(mode) {
+      syncAllLocationCardsFromDom(mode);
+      var list = state.customerLocations[mode] || [];
+      return list.map(function(loc, idx) {
+        var coords = parseCoordinatesClient(loc.googleMapsUrl);
+        return {
+          id: loc.id || null,
+          locationName: loc.locationName || (idx === 0 ? 'Home' : ('Location ' + (idx + 1))),
+          addressType: loc.addressType || (loc.isPrimary ? 'primary' : 'other'),
+          addressText: loc.addressText || '',
+          addressTextHi: loc.addressTextHi || '',
+          googleMapsUrl: loc.googleMapsUrl || '',
+          latitude: loc.latitude != null ? loc.latitude : coords.latitude,
+          longitude: loc.longitude != null ? loc.longitude : coords.longitude,
+          parkingDetails: loc.parkingDetails || '',
+          isPrimary: Boolean(loc.isPrimary)
+        };
+      });
+    }
+
+    window.addCustomerLocationCard = addCustomerLocationCard;
+    window.removeCustomerLocationCard = removeCustomerLocationCard;
+    window.setPrimaryLocationCard = setPrimaryLocationCard;
+    window.handleLocationPresetChange = handleLocationPresetChange;
+    window.handleLocationAddressInput = handleLocationAddressInput;
+    window.handleLocationMapsInput = handleLocationMapsInput;
+    window.detectCardGpsLocation = detectCardGpsLocation;
+    window.syncLocationCardData = syncLocationCardData;
 
     /* Add Customer Modal Handlers */
     function openAddCustomerModal(triggerEl) {
@@ -9807,6 +10323,7 @@ function loadStaffCustomerData(staffId) {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         setupIndicInputListeners();
+        initCustomerLocations('add', []);
         var nameInput = document.getElementById('custName');
         if (nameInput) setTimeout(function() { nameInput.focus(); }, 120);
         else if (typeof trapFocus === 'function') trapFocus(modal);
@@ -9941,6 +10458,57 @@ function loadStaffCustomerData(staffId) {
           customPkgInput.style.display = 'block';
           customPkgInput.value = currentPkg;
         }
+      }
+
+      // 3b. Populate Location Selector (Multi-Location System)
+      var locSelect = document.getElementById('assignServiceLocationSelect');
+      var locPreview = document.getElementById('assignServiceLocationPreview');
+      if (locSelect) {
+        locSelect.innerHTML = '<option value="">-- Choose Customer Location --</option>';
+        var locs = r.locations || [];
+        if (locs.length === 0 && (r.address || r.location)) {
+          locs = [{
+            id: '',
+            locationName: 'Home',
+            addressText: r.address || r.location,
+            googleMapsUrl: r.googleMapsUrl || '',
+            latitude: r.latitude || null,
+            longitude: r.longitude || null,
+            isPrimary: true
+          }];
+        }
+        var selectedLocId = '';
+        locs.forEach(function(l, lIdx) {
+          var opt = document.createElement('option');
+          opt.value = l.id || ('loc_' + lIdx);
+          var icon = l.isPrimary ? '🏠' : ((l.locationName || '').toLowerCase().indexOf('office') !== -1 ? '🏢' : '📍');
+          var lName = l.locationName || (l.isPrimary ? 'Home' : ('Location ' + (lIdx + 1)));
+          var coordsStr = (l.latitude != null && l.longitude != null) ? (' [' + Number(l.latitude).toFixed(4) + ', ' + Number(l.longitude).toFixed(4) + ']') : '';
+          var addrSnippet = l.addressText ? (' - ' + l.addressText.slice(0, 35) + (l.addressText.length > 35 ? '...' : '')) : '';
+          opt.textContent = icon + ' ' + lName + addrSnippet + coordsStr;
+          if (l.isPrimary || lIdx === 0) {
+            opt.selected = true;
+            selectedLocId = opt.value;
+          }
+          locSelect.appendChild(opt);
+        });
+
+        function handleAssignLocationChange(locId) {
+          if (!locPreview) return;
+          var found = (r.locations || []).find(function(item) { return item.id === locId; });
+          if (!found && locs.length > 0) found = locs[0];
+          if (found && (found.addressText || found.googleMapsUrl)) {
+            locPreview.style.display = 'block';
+            var mapsLink = found.googleMapsUrl ? (' • <a href="' + escapeHtml(found.googleMapsUrl) + '" target="_blank" rel="noopener" style="color: #2563eb; font-weight: 600;">🗺️ View Maps ↗</a>') : '';
+            var coords = (found.latitude != null && found.longitude != null) ? (' • 📍 ' + Number(found.latitude).toFixed(5) + ', ' + Number(found.longitude).toFixed(5)) : '';
+            locPreview.innerHTML = '<strong>' + escapeHtml(found.locationName || 'Location') + ':</strong> ' + escapeHtml(found.addressText || 'No address text') + coords + mapsLink;
+          } else {
+            locPreview.style.display = 'none';
+          }
+        }
+        window.handleAssignLocationChange = handleAssignLocationChange;
+
+        handleAssignLocationChange(selectedLocId);
       }
 
       // 4. Vehicle Details
@@ -10153,8 +10721,12 @@ function loadStaffCustomerData(staffId) {
         }
       }
 
+      var locSelect = document.getElementById('assignServiceLocationSelect');
+      var locationId = locSelect ? locSelect.value.trim() : '';
+
       var payload = {
         customerId: custId,
+        locationId: locationId,
         serviceCategory: cat,
         packageType: pkgType,
         vehicleNumbers: vehNumbers,
@@ -10394,6 +10966,12 @@ function loadStaffCustomerData(staffId) {
 
       var editCustId = document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value.trim() : '';
 
+      var editLocationsList = (typeof collectCustomerLocations === 'function') ? collectCustomerLocations('edit') : [];
+      var editPrimaryLoc = editLocationsList.find(function(l) { return l.isPrimary; }) || editLocationsList[0];
+      var resolvedEditAddress = (editPrimaryLoc && editPrimaryLoc.addressText) ? editPrimaryLoc.addressText : (document.getElementById('editCustAddress') ? document.getElementById('editCustAddress').value.trim() : '');
+      var resolvedEditAddressHi = (editPrimaryLoc && editPrimaryLoc.addressTextHi) ? editPrimaryLoc.addressTextHi : (document.getElementById('editCustAddressHi') ? document.getElementById('editCustAddressHi').value.trim() : '');
+      var resolvedEditMapsUrl = (editPrimaryLoc && editPrimaryLoc.googleMapsUrl) ? editPrimaryLoc.googleMapsUrl : (document.getElementById('editCustMapsUrl') ? document.getElementById('editCustMapsUrl').value.trim() : '');
+
       var updatedData = {
         id: editCustId,
         sheetName: resolvedSheetName,
@@ -10419,12 +10997,13 @@ function loadStaffCustomerData(staffId) {
         car_make: editCarMakeVal,
         carColor: editCarColorVal,
         car_color: editCarColorVal,
-        address: document.getElementById('editCustAddress').value.trim(),
-        addressHi: document.getElementById('editCustAddressHi') ? document.getElementById('editCustAddressHi').value.trim() : '',
+        address: resolvedEditAddress,
+        addressHi: resolvedEditAddressHi,
+        googleMapsUrl: resolvedEditMapsUrl,
+        locations: editLocationsList,
         secondaryAddress: secAddressVal,
         secondaryAddressHi: document.getElementById('editCustSecAddressHi') ? document.getElementById('editCustSecAddressHi').value.trim() : '',
         secondaryMapsUrl: secMapsVal,
-        googleMapsUrl: document.getElementById('editCustMapsUrl').value.trim(),
         staffNotes: document.getElementById('editCustNotes').value.trim(),
         active: document.getElementById('editCustActive').value,
         photoUrl: photoUrl

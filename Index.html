@@ -2036,56 +2036,36 @@
               </div>
             </div>
           </div>
-          <div class="form-row-2">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="custAddress">Customer Address <span class="req-star">*</span></label>
-              <textarea id="custAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House No, Colony, Landmark, City..." required></textarea>
-              <div class="indic-assist-wrap" id="custAddressHiWrap" style="margin-top: 5px;">
-                <span class="indic-assist-label">🌐 हिन्दी पता:</span>
-                <input type="text" id="custAddressHi" class="form-input form-input-indic" placeholder="हिंदी पता स्वतः आएगा..." title="Google Indic Transliteration">
-              </div>
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="custMapsUrl">Map Location / GPS Coordinates <span class="opt-tag">(Optional)</span></label>
-              <div class="form-input-addon-group map-input-group">
-                <input type="text" id="custMapsUrl" class="form-input" placeholder="Google Maps Link, Plus Code (7XQV+H8F), or Coordinates">
-                <button type="button" class="form-addon-btn btn-gps-detect" onclick="detectGpsLocation()" title="Auto-detect current GPS location">
-                  <span>📍</span> <span>GPS</span>
-                </button>
-              </div>
-              <span class="form-field-hint">Paste Google Maps link or click GPS to detect location</span>
-            </div>
-          </div>
         </div>
-        <!-- Section 2: Location & Notes -->
+
+        <!-- Section 2: Service Locations & Addresses (Multi-Location System) -->
         <div class="cwp-form-section-card">
           <div class="form-section-head">
             <span class="section-num-pill">2</span>
             <div class="section-title-wrap">
-              <span class="section-title-text">Additional Location & Notes</span>
-              <span class="section-subtitle-text">Secondary address & special instructions</span>
+              <span class="section-title-text">Service Locations & Addresses (पते एवं लोकेशन)</span>
+              <span class="section-subtitle-text">Manage customer's locations (Home, Office, Sites) with GPS coordinates</span>
             </div>
           </div>
-          <div class="form-group" id="secondaryAddressGroup" style="margin-bottom: 8px;">
-            <label class="form-label">Secondary Location <span class="opt-tag">(Optional)</span></label>
-            <button type="button" class="btn-secondary-loc-toggle" id="btnToggleCustSec" onclick="toggleCustSecLocation()">
-              <span>🏢</span> <span id="custSecBtnText">+ Add Secondary Location (Office / Alternate)</span>
+          
+          <div id="custLocationsContainer" style="display: flex; flex-direction: column; gap: 4px;">
+            <!-- Rendered dynamically by renderCustomerLocations() -->
+          </div>
+
+          <div style="margin-top: 8px;">
+            <button type="button" class="btn-add-location" onclick="addCustomerLocationCard('add')">
+              <span>➕</span> <span>Add Another Location (अन्य पता जोड़ें)</span>
             </button>
-            <div id="custSecCollapse" class="collapsible-panel" style="display: none; margin-top: 8px;">
-              <div class="form-row-2">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" for="custSecAddress">Secondary Address</label>
-                  <input type="text" id="custSecAddress" class="form-input" placeholder="e.g. Office address / Basement parking">
-                  <div class="indic-assist-wrap" id="custSecAddressHiWrap" style="margin-top: 5px;">
-                    <span class="indic-assist-label">🌐 हिन्दी सेकेंडरी पता:</span>
-                    <input type="text" id="custSecAddressHi" class="form-input form-input-indic" placeholder="सेकेंडरी हिंदी पता स्वतः आएगा...">
-                  </div>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" for="custSecMaps">Secondary Map Link</label>
-                  <input type="text" id="custSecMaps" class="form-input" placeholder="https://maps.google.com/...">
-                </div>
-              </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Staff Notes & Instructions -->
+        <div class="cwp-form-section-card">
+          <div class="form-section-head">
+            <span class="section-num-pill">3</span>
+            <div class="section-title-wrap">
+              <span class="section-title-text">Staff Notes & Instructions</span>
+              <span class="section-subtitle-text">Operational remarks & access details</span>
             </div>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
@@ -2103,6 +2083,18 @@
 
         <!-- Hidden container preserving legacy DOM elements for test compatibility -->
         <div id="custLegacyServiceFieldsWrap" style="display: none;" aria-hidden="true">
+          <textarea id="custAddress" class="form-textarea"></textarea>
+          <input type="text" id="custAddressHi" class="form-input">
+          <input type="text" id="custMapsUrl" class="form-input">
+          <div id="secondaryAddressGroup">
+            <button type="button" id="btnToggleCustSec" onclick="toggleCustSecLocation()"></button>
+            <span id="custSecBtnText"></span>
+            <div id="custSecCollapse">
+              <input type="text" id="custSecAddress">
+              <input type="text" id="custSecAddressHi">
+              <input type="text" id="custSecMaps">
+            </div>
+          </div>
           <select id="custCategory" class="form-select">
             <option value="none" selected>None</option>
             <option value="Daily Car Cleaning">Daily Car Cleaning</option>
@@ -2203,34 +2195,14 @@
             </div>
           </div>
         </div>
-        <div class="form-row-2">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="editCustAddress">Customer Address <span class="req-star">*</span></label>
-            <textarea id="editCustAddress" class="form-textarea form-textarea-compact" rows="2" placeholder="House No, Colony, City..."></textarea>
-            <div class="indic-assist-wrap" id="editCustAddressHiWrap" style="margin-top: 5px;">
-              <span class="indic-assist-label">🌐 हिन्दी पता:</span>
-              <input type="text" id="editCustAddressHi" class="form-input form-input-indic" placeholder="हिंदी पता स्वतः आएगा..." title="Google Indic Transliteration">
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="editCustMapsUrl">Map Location / GPS Coordinates <span class="opt-tag">(Optional)</span></label>
-            <div class="form-input-addon-group map-input-group">
-              <input type="text" id="editCustMapsUrl" class="form-input" placeholder="Google Maps Link or Plus Code">
-              <button type="button" class="form-addon-btn btn-gps-detect" onclick="detectEditGpsLocation()" title="Auto-detect GPS location">
-                <span>📍</span> <span>GPS</span>
-              </button>
-            </div>
-            <span class="form-field-hint">Paste Google Maps link or click GPS to detect location</span>
-          </div>
-        </div>
       </div>
-      <!-- Section 2: Account Status & Notes -->
+      <!-- Section 2: Account Status -->
       <div class="cwp-form-section-card">
         <div class="form-section-head">
           <span class="section-num-pill">2</span>
           <div class="section-title-wrap">
-            <span class="section-title-text">Account Status & Location</span>
-            <span class="section-subtitle-text">Customer activity status & additional address</span>
+            <span class="section-title-text">Account Status & Service (खाता स्थिति)</span>
+            <span class="section-subtitle-text">Customer activity status & dedicated service assignment</span>
           </div>
         </div>
         <div class="form-row-2">
@@ -2248,25 +2220,36 @@
             </button>
           </div>
         </div>
-        <div class="form-group" id="editSecondaryAddressGroup" style="margin-bottom: 8px;">
-          <button type="button" class="btn-secondary-loc-toggle" id="btnToggleEditSec" onclick="toggleEditSecLocation()">
-            <span>🏢</span> <span id="editSecBtnText">+ Add Secondary Location (Office / Alternate)</span>
+      </div>
+
+      <!-- Section 3: Service Locations & Addresses (Multi-Location System) -->
+      <div class="cwp-form-section-card">
+        <div class="form-section-head">
+          <span class="section-num-pill">3</span>
+          <div class="section-title-wrap">
+            <span class="section-title-text">Service Locations & Addresses (पते एवं लोकेशन)</span>
+            <span class="section-subtitle-text">Manage customer's locations (Home, Office, Sites) with GPS coordinates</span>
+          </div>
+        </div>
+        
+        <div id="editCustLocationsContainer" style="display: flex; flex-direction: column; gap: 4px;">
+          <!-- Rendered dynamically by renderCustomerLocations() -->
+        </div>
+
+        <div style="margin-top: 8px;">
+          <button type="button" class="btn-add-location" onclick="addCustomerLocationCard('edit')">
+            <span>➕</span> <span>Add Another Location (अन्य पता जोड़ें)</span>
           </button>
-          <div id="editSecCollapse" class="collapsible-panel" style="display: none; margin-top: 8px;">
-            <div class="form-row-2">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="editCustSecAddress">Secondary Address</label>
-                <input type="text" id="editCustSecAddress" class="form-input" placeholder="e.g. Office address / Basement parking">
-                <div class="indic-assist-wrap" id="editCustSecAddressHiWrap" style="margin-top: 5px;">
-                  <span class="indic-assist-label">🌐 हिन्दी सेकेंडरी पता:</span>
-                  <input type="text" id="editCustSecAddressHi" class="form-input form-input-indic" placeholder="सेकेंडरी हिंदी पता स्वतः आएगा...">
-                </div>
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="editCustSecMaps">Secondary Map Link</label>
-                <input type="text" id="editCustSecMaps" class="form-input" placeholder="https://maps.google.com/...">
-              </div>
-            </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Staff Notes -->
+      <div class="cwp-form-section-card">
+        <div class="form-section-head">
+          <span class="section-num-pill">4</span>
+          <div class="section-title-wrap">
+            <span class="section-title-text">Staff Notes & Instructions</span>
+            <span class="section-subtitle-text">Operational remarks & access instructions</span>
           </div>
         </div>
         <div class="form-group" style="margin-bottom: 0;">
@@ -2277,6 +2260,18 @@
 
       <!-- Hidden container preserving legacy DOM elements for test compatibility -->
       <div id="editCustLegacyServiceFieldsWrap" style="display: none;" aria-hidden="true">
+        <textarea id="editCustAddress" class="form-textarea"></textarea>
+        <input type="text" id="editCustAddressHi" class="form-input">
+        <input type="text" id="editCustMapsUrl" class="form-input">
+        <div id="editSecondaryAddressGroup">
+          <button type="button" id="btnToggleEditSec" onclick="toggleEditSecLocation()"></button>
+          <span id="editSecBtnText"></span>
+          <div id="editSecCollapse">
+            <input type="text" id="editCustSecAddress">
+            <input type="text" id="editCustSecAddressHi">
+            <input type="text" id="editCustSecMaps">
+          </div>
+        </div>
         <select id="editCustCategory" class="form-select">
           <option value="Daily Car Cleaning">Daily Car Cleaning</option>
           <option value="Car Washing">Car Washing</option>
@@ -2298,7 +2293,9 @@
         <input type="text" id="editCustCarColor" class="form-input">
         <input type="number" id="editCustSolarPanelsCount" class="form-input" value="10">
         <select id="editCustStaff" class="form-select"></select>
-        <div id="editCustCleanerName">Unassigned</div>
+        <div id="editCustAssignmentCard" onclick="navigateToJobAssignmentFromModal()">
+          <span id="editCustCleanerName">Unassigned</span>
+        </div>
       </div>
       <div class="modal-card-footer" style="padding: 12px 0 0 0; margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
         <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteCustomerFromModal()" style="font-weight: 600;">
@@ -2384,9 +2381,23 @@
           <div class="form-section-head">
             <span class="section-num-pill">2</span>
             <div class="section-title-wrap">
-              <span class="section-title-text" id="assignAssetCardTitle">Vehicle & Car Details</span>
-              <span class="section-subtitle-text">Registration number, car make, color and sizing</span>
+              <span class="section-title-text" id="assignAssetCardTitle">Vehicle & Location Details</span>
+              <span class="section-subtitle-text">Service location, registration number, make and sizing</span>
             </div>
+          </div>
+
+          <!-- Service Location Selector (Multi-Location System) -->
+          <div class="form-group" style="margin-bottom: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
+            <label class="form-label" for="assignServiceLocationSelect" style="margin-bottom: 4px; font-weight: 700; color: #1e293b;">
+              📍 Service Location (गाड़ी / सर्विस का स्थान) <span class="req-star">*</span>
+            </label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">📍</span>
+              <select id="assignServiceLocationSelect" class="form-select with-icon" required onchange="handleAssignLocationChange(this.value)">
+                <option value="">-- Choose Customer Location --</option>
+              </select>
+            </div>
+            <div id="assignServiceLocationPreview" style="font-size: 11.5px; color: #475569; margin-top: 6px; padding: 6px 10px; background: #ffffff; border-radius: 6px; border: 1px solid #e2e8f0; display: none;"></div>
           </div>
           
           <!-- Car Asset Inputs -->

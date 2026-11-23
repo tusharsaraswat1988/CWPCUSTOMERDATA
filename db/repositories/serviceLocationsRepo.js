@@ -35,6 +35,7 @@ async function findPrimaryByCustomerId(customerId, client = null) {
 async function createLocation({
   customerId,
   addressType = 'primary',
+  locationName = null,
   addressText,
   googleMapsUrl = null,
   latitude = null,
@@ -47,12 +48,13 @@ async function createLocation({
   addressTextHi = null
 }, client = null) {
   const runner = client || db;
+  const resolvedLocName = locationName || (addressType ? (addressType.charAt(0).toUpperCase() + addressType.slice(1)) : 'Home');
   const res = await runner.query(
     `INSERT INTO public.service_locations (
        customer_id, address_type, address_text, google_maps_url,
        latitude, longitude, parking_details, photo_url, photo_storage_key,
-       is_primary, is_active, address_text_hi
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       is_primary, is_active, address_text_hi, location_name
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
      RETURNING *`,
     [
       customerId,
@@ -66,7 +68,8 @@ async function createLocation({
       photoStorageKey,
       Boolean(isPrimary),
       Boolean(isActive),
-      addressTextHi ? addressTextHi.trim() : null
+      addressTextHi ? addressTextHi.trim() : null,
+      resolvedLocName
     ]
   );
   return res.rows[0];
@@ -74,6 +77,7 @@ async function createLocation({
 
 async function updateLocation(id, {
   addressType,
+  locationName,
   addressText,
   googleMapsUrl,
   latitude,
@@ -92,6 +96,10 @@ async function updateLocation(id, {
   if (addressType !== undefined) {
     params.push(addressType);
     updates.push(`address_type = $${params.length}`);
+  }
+  if (locationName !== undefined) {
+    params.push(locationName);
+    updates.push(`location_name = $${params.length}`);
   }
   if (addressText !== undefined) {
     params.push(addressText.trim());

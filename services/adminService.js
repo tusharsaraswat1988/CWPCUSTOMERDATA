@@ -63,6 +63,34 @@ function parseVehicleString(str) {
 }
 
 /**
+ * Extract GPS Latitude & Longitude from Google Maps URLs, Plus Codes, or raw coordinate strings
+ */
+function extractCoordinates(input) {
+  if (!input) return { latitude: null, longitude: null };
+  const s = String(input).trim();
+
+  // Pattern 1: @26.852345,80.946210 or @26.852345,80.946210,17z
+  let m = s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) {
+    return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  }
+
+  // Pattern 2: ?q=26.852345,80.946210 or &ll=26.852345,80.946210
+  m = s.match(/[?&](?:q|ll|query|destination)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) {
+    return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  }
+
+  // Pattern 3: Raw "26.852345, 80.946210" or "26.852345,80.946210"
+  m = s.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+  if (m) {
+    return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  }
+
+  return { latitude: null, longitude: null };
+}
+
+/**
  * Retrieve aggregated customers list for Admin Panel
  */
 async function getAllCustomers({ search = '', category = null, staffId = null, limit = 500, offset = 0, isLead = false } = {}) {
@@ -234,10 +262,14 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
       address: primaryLoc?.address_text || '',
       addressHi: primaryLoc?.address_text_hi || c.address_hi || '',
       googleMapsUrl: primaryLoc?.google_maps_url || '',
+      latitude: primaryLoc?.latitude != null ? parseFloat(primaryLoc.latitude) : null,
+      longitude: primaryLoc?.longitude != null ? parseFloat(primaryLoc.longitude) : null,
       parkingDetails: primaryLoc?.parking_details || '',
       secondaryAddress: secondaryLoc?.address_text || '',
       secondaryAddressHi: secondaryLoc?.address_text_hi || c.secondary_address_hi || '',
       secondaryMapsUrl: secondaryLoc?.google_maps_url || '',
+      secondaryLatitude: secondaryLoc?.latitude != null ? parseFloat(secondaryLoc.latitude) : null,
+      secondaryLongitude: secondaryLoc?.longitude != null ? parseFloat(secondaryLoc.longitude) : null,
       secondaryParkingDetails: secondaryLoc?.parking_details || '',
       vehicle: mainVehicle,
       vehicles: vehs,
@@ -245,7 +277,19 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
       car_make: resolvedCarMake,
       carColor: resolvedCarColor,
       car_color: resolvedCarColor,
-      locations: locs,
+      locations: locs.map(l => ({
+        id: l.id,
+        customerId: l.customer_id,
+        locationName: l.location_name || (l.address_type ? l.address_type.charAt(0).toUpperCase() + l.address_type.slice(1) : 'Home'),
+        addressType: l.address_type || 'primary',
+        addressText: l.address_text || '',
+        addressTextHi: l.address_text_hi || '',
+        googleMapsUrl: l.google_maps_url || '',
+        latitude: l.latitude != null ? parseFloat(l.latitude) : null,
+        longitude: l.longitude != null ? parseFloat(l.longitude) : null,
+        parkingDetails: l.parking_details || '',
+        isPrimary: Boolean(l.is_primary)
+      })),
       photoUrl: mainPhoto,
       serviceCategory: serviceCategory,
       serviceStatus: serviceStatus,
@@ -405,34 +449,103 @@ async function saveCustomer(custData, adminUser = 'admin') {
       panelCount: customerPanelCount
     }, client);
 
-    // 2. Create Service Locations
+    // 2. Create Service Locations (Multi-Location System)
     let primaryLocation = null;
-    if (addr) {
-      primaryLocation = await repos.serviceLocations.createLocation({
-        customerId: customer.id,
-        addressType: 'primary',
-        addressText: addr,
-        addressTextHi: addressHi,
-        googleMapsUrl: custData.googleMapsUrl || null,
-        parkingDetails: custData.parkingDetails || null,
-        isPrimary: true,
-        isActive: true
-      }, client);
-    }
+    const incomingLocations = Array.isArray(custData.locations) ? custData.locations.filter(l => l && (l.addressText || l.address)) : [];
 
-    // Secondary Location if provided
-    let secondaryLocation = null;
-    if (secAddr) {
-      secondaryLocation = await repos.serviceLocations.createLocation({
-        customerId: customer.id,
-        addressType: 'secondary',
-        addressText: secAddr,
-        addressTextHi: secAddressHi,
-        googleMapsUrl: custData.secondaryMapsUrl || custData.secondGoogleMapsUrl || null,
-        parkingDetails: custData.secondaryParkingDetails || custData.secondParkingDetails || null,
-        isPrimary: false,
-        isActive: true
-      }, client);
+    if (incomingLocations.length > 0) {
+      const hasExplicitPrimary = incomingLocations.some(l => l.isPrimary || l.is_primary);
+      for (let idx = 0; idx < incomingLocations.length; idx++) {
+        const item = incomingLocations[idx];
+        const isPrim = hasExplicitPrimary ? Boolean(item.isPrimary || item.is_primary) : (idx === 0);
+        const lName = (item.locationName || item.name || item.addressType || (isPrim ? 'Home' : `Location ${idx + 1}`)).trim();
+        const aType = (item.addressType || (isPrim ? 'primary' : 'other')).trim().toLowerCase();
+        const aText = (item.addressText || item.address || '').trim();
+        let aHi = (item.addressTextHi || item.addressHi || '').trim() || null;
+        if (!aHi && aText) {
+          try { aHi = await indicService.transliterateAddress(aText); } catch (e) { aHi = aText; }
+        }
+        const mUrl = (item.googleMapsUrl || item.mapsUrl || item.mapLink || '').trim() || null;
+        let lat = item.latitude != null ? parseFloat(item.latitude) : null;
+        let lng = item.longitude != null ? parseFloat(item.longitude) : null;
+        if ((lat == null || lng == null || isNaN(lat) || isNaN(lng)) && mUrl) {
+          const coords = extractCoordinates(mUrl);
+          if (coords.latitude != null) {
+            lat = coords.latitude;
+            lng = coords.longitude;
+          }
+        }
+        const pDetails = (item.parkingDetails || item.parking || '').trim() || null;
+
+        const createdLoc = await repos.serviceLocations.createLocation({
+          customerId: customer.id,
+          locationName: lName,
+          addressType: aType,
+          addressText: aText,
+          addressTextHi: aHi,
+          googleMapsUrl: mUrl,
+          latitude: lat,
+          longitude: lng,
+          parkingDetails: pDetails,
+          isPrimary: isPrim,
+          isActive: true
+        }, client);
+
+        if (isPrim && !primaryLocation) {
+          primaryLocation = createdLoc;
+        }
+      }
+      if (!primaryLocation && incomingLocations.length > 0) {
+        const allLocs = await repos.serviceLocations.findByCustomerId(customer.id, { client });
+        primaryLocation = allLocs[0] || null;
+      }
+    } else {
+      // Legacy single / secondary location fallback
+      if (addr) {
+        let lat = custData.latitude != null ? parseFloat(custData.latitude) : null;
+        let lng = custData.longitude != null ? parseFloat(custData.longitude) : null;
+        if ((lat == null || lng == null || isNaN(lat) || isNaN(lng)) && custData.googleMapsUrl) {
+          const coords = extractCoordinates(custData.googleMapsUrl);
+          if (coords.latitude != null) { lat = coords.latitude; lng = coords.longitude; }
+        }
+        primaryLocation = await repos.serviceLocations.createLocation({
+          customerId: customer.id,
+          locationName: custData.locationName || 'Home',
+          addressType: 'primary',
+          addressText: addr,
+          addressTextHi: addressHi,
+          googleMapsUrl: custData.googleMapsUrl || null,
+          latitude: lat,
+          longitude: lng,
+          parkingDetails: custData.parkingDetails || null,
+          isPrimary: true,
+          isActive: true
+        }, client);
+      }
+
+      // Secondary Location if provided
+      if (secAddr) {
+        let secLat = custData.secondaryLatitude != null ? parseFloat(custData.secondaryLatitude) : null;
+        let secLng = custData.secondaryLongitude != null ? parseFloat(custData.secondaryLongitude) : null;
+        const secUrl = custData.secondaryMapsUrl || custData.secondGoogleMapsUrl || null;
+        if ((secLat == null || secLng == null || isNaN(secLat) || isNaN(secLng)) && secUrl) {
+          const coords = extractCoordinates(secUrl);
+          if (coords.latitude != null) { secLat = coords.latitude; secLng = coords.longitude; }
+        }
+        await repos.serviceLocations.createLocation({
+          customerId: customer.id,
+          locationName: custData.secondaryLocationName || 'Office / Alternate',
+          addressType: 'secondary',
+          addressText: secAddr,
+          addressTextHi: secAddressHi,
+          googleMapsUrl: secUrl,
+          latitude: secLat,
+          longitude: secLng,
+          parkingDetails: custData.secondaryParkingDetails || custData.secondParkingDetails || null,
+          isPrimary: false,
+          isActive: true
+        }, client);
+      }
     }
 
     // 3. Create Vehicles
@@ -680,50 +793,148 @@ async function updateCustomer(custData, adminUser = 'admin') {
       interestedService: normCategory
     }, client);
 
-    // 2. Update / Upsert Primary Location
-    let primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
-    if (addr) {
-      if (primaryLoc) {
-        await repos.serviceLocations.updateLocation(primaryLoc.id, {
-          addressText: addr,
-          addressTextHi: addressHi,
-          googleMapsUrl: custData.googleMapsUrl,
-          parkingDetails: custData.parkingDetails
-        }, client);
-      } else {
-        primaryLoc = await repos.serviceLocations.createLocation({
-          customerId: customer.id,
-          addressType: 'primary',
-          addressText: addr,
-          addressTextHi: addressHi,
-          googleMapsUrl: custData.googleMapsUrl,
-          parkingDetails: custData.parkingDetails,
-          isPrimary: true
-        }, client);
-      }
-    }
+    // 2. Synchronize Service Locations (Multi-Location System)
+    let primaryLoc = null;
+    if (Array.isArray(custData.locations)) {
+      const incomingLocations = custData.locations.filter(l => l && (l.addressText || l.address));
+      const existingLocs = await repos.serviceLocations.findByCustomerId(customer.id, { client });
+      const incomingIds = new Set(incomingLocations.map(l => l.id).filter(Boolean));
 
-    // 2b. Update / Upsert Secondary Location
-    const custLocs = await repos.serviceLocations.findByCustomerId(customer.id, { client });
-    let secondaryLoc = custLocs.find(l => !l.is_primary) || null;
-    if (secAddr) {
-      if (secondaryLoc) {
-        await repos.serviceLocations.updateLocation(secondaryLoc.id, {
-          addressText: secAddr,
-          addressTextHi: secAddressHi,
-          googleMapsUrl: custData.secondaryMapsUrl || '',
-          parkingDetails: custData.secondaryParkingDetails || ''
-        }, client);
-      } else {
-        await repos.serviceLocations.createLocation({
-          customerId: customer.id,
-          addressType: 'secondary',
-          addressText: secAddr,
-          addressTextHi: secAddressHi,
-          googleMapsUrl: custData.secondaryMapsUrl || '',
-          parkingDetails: custData.secondaryParkingDetails || '',
-          isPrimary: false
-        }, client);
+      // Soft delete locations not present in incoming list
+      for (const exLoc of existingLocs) {
+        if (!incomingIds.has(exLoc.id)) {
+          await repos.serviceLocations.softDelete(exLoc.id, client);
+        }
+      }
+
+      let hasExplicitPrimary = incomingLocations.some(l => l.isPrimary || l.is_primary);
+      for (let idx = 0; idx < incomingLocations.length; idx++) {
+        const item = incomingLocations[idx];
+        const isPrim = hasExplicitPrimary ? Boolean(item.isPrimary || item.is_primary) : (idx === 0);
+        const lName = (item.locationName || item.name || item.addressType || (isPrim ? 'Home' : `Location ${idx + 1}`)).trim();
+        const aType = (item.addressType || (isPrim ? 'primary' : 'other')).trim().toLowerCase();
+        const aText = (item.addressText || item.address || '').trim();
+        let aHi = (item.addressTextHi || item.addressHi || '').trim() || null;
+        if (!aHi && aText) {
+          try { aHi = await indicService.transliterateAddress(aText); } catch (e) { aHi = aText; }
+        }
+        const mUrl = (item.googleMapsUrl || item.mapsUrl || item.mapLink || '').trim() || null;
+        let lat = item.latitude != null ? parseFloat(item.latitude) : null;
+        let lng = item.longitude != null ? parseFloat(item.longitude) : null;
+        if ((lat == null || lng == null || isNaN(lat) || isNaN(lng)) && mUrl) {
+          const coords = extractCoordinates(mUrl);
+          if (coords.latitude != null) {
+            lat = coords.latitude;
+            lng = coords.longitude;
+          }
+        }
+        const pDetails = (item.parkingDetails || item.parking || '').trim() || null;
+
+        if (item.id && existingLocs.some(e => e.id === item.id)) {
+          const updated = await repos.serviceLocations.updateLocation(item.id, {
+            locationName: lName,
+            addressType: aType,
+            addressText: aText,
+            addressTextHi: aHi,
+            googleMapsUrl: mUrl,
+            latitude: lat,
+            longitude: lng,
+            parkingDetails: pDetails,
+            isPrimary: isPrim,
+            isActive: true
+          }, client);
+          if (isPrim && !primaryLoc) primaryLoc = updated;
+        } else {
+          const created = await repos.serviceLocations.createLocation({
+            customerId: customer.id,
+            locationName: lName,
+            addressType: aType,
+            addressText: aText,
+            addressTextHi: aHi,
+            googleMapsUrl: mUrl,
+            latitude: lat,
+            longitude: lng,
+            parkingDetails: pDetails,
+            isPrimary: isPrim,
+            isActive: true
+          }, client);
+          if (isPrim && !primaryLoc) primaryLoc = created;
+        }
+      }
+      if (!primaryLoc) {
+        primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
+      }
+    } else {
+      // Fallback: Update / Upsert Primary Location
+      primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
+      if (addr) {
+        let lat = custData.latitude != null ? parseFloat(custData.latitude) : null;
+        let lng = custData.longitude != null ? parseFloat(custData.longitude) : null;
+        if ((lat == null || lng == null || isNaN(lat) || isNaN(lng)) && custData.googleMapsUrl) {
+          const coords = extractCoordinates(custData.googleMapsUrl);
+          if (coords.latitude != null) { lat = coords.latitude; lng = coords.longitude; }
+        }
+        if (primaryLoc) {
+          await repos.serviceLocations.updateLocation(primaryLoc.id, {
+            locationName: custData.locationName || primaryLoc.location_name || 'Home',
+            addressText: addr,
+            addressTextHi: addressHi,
+            googleMapsUrl: custData.googleMapsUrl,
+            latitude: lat,
+            longitude: lng,
+            parkingDetails: custData.parkingDetails
+          }, client);
+        } else {
+          primaryLoc = await repos.serviceLocations.createLocation({
+            customerId: customer.id,
+            locationName: custData.locationName || 'Home',
+            addressType: 'primary',
+            addressText: addr,
+            addressTextHi: addressHi,
+            googleMapsUrl: custData.googleMapsUrl,
+            latitude: lat,
+            longitude: lng,
+            parkingDetails: custData.parkingDetails,
+            isPrimary: true
+          }, client);
+        }
+      }
+
+      // 2b. Update / Upsert Secondary Location
+      const custLocs = await repos.serviceLocations.findByCustomerId(customer.id, { client });
+      let secondaryLoc = custLocs.find(l => !l.is_primary) || null;
+      if (secAddr) {
+        let secLat = custData.secondaryLatitude != null ? parseFloat(custData.secondaryLatitude) : null;
+        let secLng = custData.secondaryLongitude != null ? parseFloat(custData.secondaryLongitude) : null;
+        const secUrl = custData.secondaryMapsUrl || custData.secondGoogleMapsUrl || '';
+        if ((secLat == null || secLng == null || isNaN(secLat) || isNaN(secLng)) && secUrl) {
+          const coords = extractCoordinates(secUrl);
+          if (coords.latitude != null) { secLat = coords.latitude; secLng = coords.longitude; }
+        }
+        if (secondaryLoc) {
+          await repos.serviceLocations.updateLocation(secondaryLoc.id, {
+            locationName: custData.secondaryLocationName || secondaryLoc.location_name || 'Office / Alternate',
+            addressText: secAddr,
+            addressTextHi: secAddressHi,
+            googleMapsUrl: secUrl,
+            latitude: secLat,
+            longitude: secLng,
+            parkingDetails: custData.secondaryParkingDetails || ''
+          }, client);
+        } else {
+          await repos.serviceLocations.createLocation({
+            customerId: customer.id,
+            locationName: custData.secondaryLocationName || 'Office / Alternate',
+            addressType: 'secondary',
+            addressText: secAddr,
+            addressTextHi: secAddressHi,
+            googleMapsUrl: secUrl,
+            latitude: secLat,
+            longitude: secLng,
+            parkingDetails: custData.secondaryParkingDetails || '',
+            isPrimary: false
+          }, client);
+        }
       }
     }
 
@@ -2650,7 +2861,13 @@ async function getDailyCleanAssignments({ staffId = null, unassignedOnly = false
     SELECT c.id AS customer_id, c.customer_code, c.name AS customer_name, c.name_hi AS customer_name_hi,
            c.phone AS customer_phone, c.is_active,
            v.id AS vehicle_id, v.registration_no, v.brand_or_model, v.car_make, v.car_color,
-           loc.id AS location_id, loc.address_text, loc.google_maps_url, loc.parking_details,
+           COALESCE(sv_loc.id, loc.id) AS location_id,
+           COALESCE(sv_loc.location_name, loc.location_name, 'Home') AS location_name,
+           COALESCE(sv_loc.address_text, loc.address_text) AS address_text,
+           COALESCE(sv_loc.google_maps_url, loc.google_maps_url) AS google_maps_url,
+           COALESCE(sv_loc.latitude, loc.latitude) AS latitude,
+           COALESCE(sv_loc.longitude, loc.longitude) AS longitude,
+           COALESCE(sv_loc.parking_details, loc.parking_details) AS parking_details,
            sub.id AS subscription_id, sub.package_name, sub.status AS subscription_status,
            sa.staff_id, st.name AS staff_name, st.staff_code,
            srs.sequence_order
@@ -2658,21 +2875,64 @@ async function getDailyCleanAssignments({ staffId = null, unassignedOnly = false
     JOIN public.subscriptions sub ON sub.customer_id = c.id AND sub.status = 'active' AND sub.deleted_at IS NULL
     LEFT JOIN public.staff_assignments sa ON sa.subscription_id = sub.id AND sa.is_active = TRUE
     LEFT JOIN public.staff st ON sa.staff_id = st.id
-    LEFT JOIN public.service_locations loc ON loc.customer_id = c.id AND loc.is_primary = TRUE AND loc.deleted_at IS NULL
-    LEFT JOIN public.vehicles v ON v.customer_id = c.id AND v.deleted_at IS NULL
     LEFT JOIN public.staff_route_sequences srs ON srs.staff_id = st.id AND srs.subscription_id = sub.id
+    LEFT JOIN public.subscription_vehicles sv ON sv.subscription_id = sub.id
+    LEFT JOIN public.service_locations sv_loc ON sv_loc.id = sv.location_id AND sv_loc.deleted_at IS NULL
+    LEFT JOIN public.service_locations loc ON loc.customer_id = c.id AND loc.is_primary = TRUE AND loc.deleted_at IS NULL
+    LEFT JOIN public.vehicles v ON (v.id = sv.vehicle_id OR (sv.vehicle_id IS NULL AND v.customer_id = c.id)) AND v.deleted_at IS NULL
     WHERE c.deleted_at IS NULL AND c.is_active = TRUE
     ORDER BY (st.name IS NULL) DESC, st.name ASC, srs.sequence_order ASC NULLS LAST, c.name ASC
   `;
   const res = await db.query(sql);
-  let rows = res.rows;
+  let rows = res.rows.map(r => ({
+    customerId: r.customer_id,
+    customerCode: r.customer_code,
+    customerName: r.customer_name,
+    customerNameHi: r.customer_name_hi,
+    phone: r.customer_phone,
+    vehicleId: r.vehicle_id,
+    vehicleNumber: r.registration_no || (r.brand_or_model ? `${r.brand_or_model}` : 'Unregistered'),
+    brandOrModel: r.brand_or_model,
+    carMake: r.car_make,
+    carColor: r.car_color,
+    locationId: r.location_id,
+    locationName: r.location_name || 'Home',
+    address: r.address_text || '',
+    locality: r.address_text || '',
+    googleMapsUrl: r.google_maps_url,
+    latitude: r.latitude != null ? parseFloat(r.latitude) : null,
+    longitude: r.longitude != null ? parseFloat(r.longitude) : null,
+    parkingDetails: r.parking_details,
+    subscriptionId: r.subscription_id,
+    packageType: r.package_name || 'DCC ONLY',
+    packageName: r.package_name || 'DCC ONLY',
+    staffId: r.staff_id,
+    staffName: r.staff_name,
+    staffCode: r.staff_code,
+    isAssigned: Boolean(r.staff_id),
+    sequenceOrder: r.sequence_order
+  }));
+
   if (unassignedOnly) {
-    rows = rows.filter(r => !r.staff_id);
+    rows = rows.filter(r => !r.isAssigned);
   } else if (staffId) {
     const norm = String(staffId).toLowerCase().trim();
-    rows = rows.filter(r => (r.staff_id && r.staff_id.toLowerCase() === norm) || (r.staff_code && r.staff_code.toLowerCase() === norm));
+    rows = rows.filter(r => (r.staffId && r.staffId.toLowerCase() === norm) || (r.staffCode && r.staffCode.toLowerCase() === norm));
   }
-  return { success: true, assignments: rows };
+
+  const unassignedCount = rows.filter(r => !r.isAssigned).length;
+  const assignedCount = rows.filter(r => r.isAssigned).length;
+
+  return {
+    success: true,
+    data: rows,
+    assignments: rows,
+    summary: {
+      total: rows.length,
+      assigned: assignedCount,
+      unassigned: unassignedCount
+    }
+  };
 }
 
 /**
@@ -2704,6 +2964,15 @@ async function assignCustomerService(serviceData, adminUser = 'admin') {
     const pkgType = serviceData.packageType || serviceData.packageName || (isDaily ? 'DCC ONLY' : 'Standard');
     const photoUrl = serviceData.photoUrl || null;
 
+    // Resolve Target Service Location
+    let targetLoc = null;
+    if (serviceData.locationId) {
+      targetLoc = await repos.serviceLocations.findById(serviceData.locationId, client);
+    }
+    if (!targetLoc) {
+      targetLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
+    }
+
     // 1. Upsert Customer Vehicle if provided
     const rawVeh = (serviceData.vehicle || serviceData.vehicleNumbers || '').trim();
     let targetVehicle = null;
@@ -2717,14 +2986,14 @@ async function assignCustomerService(serviceData, adminUser = 'admin') {
           photoUrl: photoUrl || existingVehs[0].photo_url,
           carMake: carMake || existingVehs[0].car_make,
           carColor: carColor || existingVehs[0].car_color,
-          seaterType: seaterType || existingVehs[0].seater_type
+          seaterType: seaterType || existingVehs[0].seater_type,
+          defaultLocationId: targetLoc?.id || existingVehs[0].default_location_id
         }, client);
         targetVehicle = existingVehs[0];
       } else if (parsed.reg) {
-        const primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
         targetVehicle = await repos.vehicles.createVehicle({
           customerId: customer.id,
-          defaultLocationId: primaryLoc?.id || null,
+          defaultLocationId: targetLoc?.id || null,
           registrationNo: parsed.reg,
           brandOrModel: parsed.model || null,
           photoUrl: photoUrl,
@@ -2784,14 +3053,13 @@ async function assignCustomerService(serviceData, adminUser = 'admin') {
       }
       subId = sub.id;
 
-      // Link vehicle to subscription
+      // Link vehicle to subscription with chosen location
       if (targetVehicle) {
-        const primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
         await repos.subscriptionVehicles.addVehicleToSubscription({
           subscriptionId: sub.id,
           customerId: customer.id,
           vehicleId: targetVehicle.id,
-          locationId: primaryLoc?.id || null,
+          locationId: targetLoc?.id || null,
           scheduleTag: 'daily'
         }, client);
       }
@@ -2859,13 +3127,14 @@ async function assignCustomerService(serviceData, adminUser = 'admin') {
           seaterType: seaterType,
           panelCount: panelCount,
           siteDetails: isSolar ? { panelCount: panelCount, roofType: 'RCC' } : null,
+          locationId: targetLoc?.id || null,
           status: targetStaff ? 'assigned' : 'pending'
         }, client);
       } else {
         const newJob = await repos.serviceJobs.createJob({
           customerId: customer.id,
           vehicleId: targetVehicle?.id || null,
-          locationId: primaryLoc?.id || null,
+          locationId: targetLoc?.id || null,
           serviceCategoryId: sCatId,
           serviceType: cat,
           packageDetails: pkgType,
