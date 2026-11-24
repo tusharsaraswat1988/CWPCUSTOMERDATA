@@ -1736,6 +1736,73 @@ async function getDailyCleanReports(filters = {}, adminUser = 'admin') {
   };
 }
 
+async function updateDailyCleanReportStatus({ reportId, status, reason = '', adminUser = 'admin' }) {
+  if (!reportId) throw new Error('reportId is required');
+  if (!status || !['completed', 'car_not_present'].includes(status)) {
+    throw new Error('Valid status (completed or car_not_present) is required');
+  }
+
+  const existing = await repos.serviceLogs.findById(reportId);
+  if (!existing) {
+    throw new Error(`Service report with id '${reportId}' not found`);
+  }
+
+  const updated = await repos.serviceLogs.updateStatusAndReason(reportId, {
+    status,
+    adminNotes: reason,
+    adminUser
+  });
+
+  try {
+    await repos.auditLogs.logChange({
+      entityType: 'service_log',
+      entityId: reportId,
+      action: 'update_clean_report_status',
+      changedBy: adminUser,
+      beforeState: { status: existing.status, car_not_present: existing.car_not_present, tag: existing.tag },
+      afterState: { status: updated.status, car_not_present: updated.car_not_present, admin_notes: reason }
+    });
+  } catch (aErr) {
+    console.warn('[AuditLog] Failed to log clean report status update:', aErr.message);
+  }
+
+  return {
+    success: true,
+    report: updated,
+    message: `Report status updated to '${status}' successfully`
+  };
+}
+
+async function deleteDailyCleanReport({ reportId, reason = '', adminUser = 'admin' }) {
+  if (!reportId) throw new Error('reportId is required');
+
+  const existing = await repos.serviceLogs.findById(reportId);
+  if (!existing) {
+    throw new Error(`Service report with id '${reportId}' not found`);
+  }
+
+  const deleted = await repos.serviceLogs.deleteReport(reportId);
+
+  try {
+    await repos.auditLogs.logChange({
+      entityType: 'service_log',
+      entityId: reportId,
+      action: 'delete_clean_report',
+      changedBy: adminUser,
+      beforeState: existing,
+      afterState: { deleted: true, reason }
+    });
+  } catch (aErr) {
+    console.warn('[AuditLog] Failed to log clean report deletion:', aErr.message);
+  }
+
+  return {
+    success: true,
+    deleted: true,
+    message: 'Report deleted successfully'
+  };
+}
+
 async function backfillHindiCustomerData(adminUser = 'admin') {
   const allCusts = await repos.customers.findAll({ includeDeleted: false, limit: 1000 });
   let updatedCount = 0;
@@ -3292,6 +3359,8 @@ module.exports = {
   saveStaffSequence,
   resetStaffSequence,
   getDailyCleanReports,
+  updateDailyCleanReportStatus,
+  deleteDailyCleanReport,
   calculateConsecutiveTimes,
   computeWashSolarElapsed,
   getDailyOperationsSummary,

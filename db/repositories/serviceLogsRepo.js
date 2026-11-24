@@ -233,6 +233,9 @@ async function queryDailyCleanReports({
       sl.source,
       sl.device_metadata,
       sl.car_not_present, sl.tag,
+      sl.admin_notes,
+      sl.admin_updated_at,
+      sl.admin_updated_by,
       s.id AS staff_id,
       s.staff_code,
       s.name AS staff_name,
@@ -324,12 +327,74 @@ async function queryDailyCleanReports({
   };
 }
 
+async function findById(id, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `SELECT sl.*,
+            v.registration_no,
+            COALESCE(c.name, jc.name) AS customer_name,
+            s.name AS staff_name,
+            s.staff_code
+     FROM public.service_logs sl
+     LEFT JOIN public.staff s ON sl.staff_id = s.id
+     LEFT JOIN public.subscriptions sub ON sl.subscription_id = sub.id
+     LEFT JOIN public.customers c ON sub.customer_id = c.id
+     LEFT JOIN public.vehicles v ON sl.vehicle_id = v.id
+     LEFT JOIN public.service_jobs sj ON sl.job_id = sj.id
+     LEFT JOIN public.customers jc ON sj.customer_id = jc.id
+     WHERE sl.id = $1 LIMIT 1`,
+    [id]
+  );
+  return res.rows[0] || null;
+}
+
+async function updateStatusAndReason(id, { status, adminNotes, adminUser = 'admin' }, client = null) {
+  const runner = client || db;
+  const isCnp = (status === 'car_not_present');
+  const effTag = isCnp ? 'car_not_present' : null;
+  const effStatus = isCnp ? 'car_not_present' : 'completed';
+  const effNotes = isCnp
+    ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)'
+    : 'Daily clean verified with photo proof';
+
+  const res = await runner.query(
+    `UPDATE public.service_logs
+     SET status = $1::varchar,
+         car_not_present = $2,
+         tag = $3,
+         admin_notes = $4,
+         admin_updated_at = CURRENT_TIMESTAMP,
+         admin_updated_by = $5,
+         notes = CASE 
+           WHEN $2 = FALSE AND (car_not_present = TRUE OR notes LIKE '%Car not present%') THEN $6
+           WHEN $2 = TRUE AND notes NOT LIKE '%Car not present%' THEN $6
+           ELSE notes
+         END
+     WHERE id = $7
+     RETURNING *`,
+    [effStatus, isCnp, effTag, adminNotes ? adminNotes.trim() : null, adminUser, effNotes, id]
+  );
+  return res.rows[0] || null;
+}
+
+async function deleteReport(id, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `DELETE FROM public.service_logs WHERE id = $1 RETURNING *`,
+    [id]
+  );
+  return res.rows[0] || null;
+}
+
 module.exports = {
   computeIstServiceDate,
   recordCompletion,
   findByStaffAndDate,
   findBySubscriptionVehicleAndDate,
   findByJobId,
+  findById,
+  updateStatusAndReason,
+  deleteReport,
   resolveConflict,
   queryDailyCleanReports
 };

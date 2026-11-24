@@ -2903,6 +2903,8 @@ const server = http.createServer(async (req, res) => {
           'resetStaffSequence',
           'revealStaffPin',
           'getDailyCleanReports',
+          'updateDailyCleanReportStatus',
+          'deleteDailyCleanReport',
           'getSpecialJobs',
           'assignSpecialJob',
           'reassignSpecialJob',
@@ -4534,6 +4536,122 @@ const server = http.createServer(async (req, res) => {
               latestPunchTime: filtered.length > 0 ? filtered[0].completed_at_device : null,
               staffMatrix
             }
+          }));
+        }
+
+        // Admin: Update Status and Reason of a Daily Clean Report
+        if (payload.action === 'updateDailyCleanReportStatus') {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to update clean report status',
+              unauthorized: true
+            }));
+          }
+
+          if (!payload.reportId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'reportId is required' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const resObj = await adminService.updateDailyCleanReportStatus({
+                reportId: payload.reportId,
+                status: payload.status,
+                reason: payload.reason || '',
+                adminUser: adminSess.username || 'admin'
+              });
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(resObj));
+            } catch (err) {
+              console.error('updateDailyCleanReportStatus error:', err.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
+          // Local fallback mode
+          if (!appState.serviceLogs) appState.serviceLogs = [];
+          const logIdx = appState.serviceLogs.findIndex(l => l.id === payload.reportId);
+          if (logIdx === -1) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: `Report '${payload.reportId}' not found` }));
+          }
+
+          const isCnp = (payload.status === 'car_not_present');
+          appState.serviceLogs[logIdx].status = payload.status || (isCnp ? 'car_not_present' : 'completed');
+          appState.serviceLogs[logIdx].car_not_present = isCnp;
+          appState.serviceLogs[logIdx].tag = isCnp ? 'car_not_present' : null;
+          appState.serviceLogs[logIdx].admin_notes = payload.reason ? payload.reason.trim() : null;
+          appState.serviceLogs[logIdx].admin_updated_at = new Date().toISOString();
+          appState.serviceLogs[logIdx].admin_updated_by = adminSess.username || 'admin';
+          if (isCnp) {
+            appState.serviceLogs[logIdx].notes = 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)';
+          } else {
+            appState.serviceLogs[logIdx].notes = 'Daily clean verified with photo proof';
+          }
+          saveLocalData(appState);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            report: appState.serviceLogs[logIdx],
+            message: 'Report status updated successfully'
+          }));
+        }
+
+        // Admin: Delete a Daily Clean Report
+        if (payload.action === 'deleteDailyCleanReport') {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Unauthorized: Admin privileges required to delete clean report',
+              unauthorized: true
+            }));
+          }
+
+          if (!payload.reportId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'reportId is required' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const resObj = await adminService.deleteDailyCleanReport({
+                reportId: payload.reportId,
+                reason: payload.reason || '',
+                adminUser: adminSess.username || 'admin'
+              });
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(resObj));
+            } catch (err) {
+              console.error('deleteDailyCleanReport error:', err.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          }
+
+          // Local fallback mode
+          if (!appState.serviceLogs) appState.serviceLogs = [];
+          const logIdx = appState.serviceLogs.findIndex(l => l.id === payload.reportId);
+          if (logIdx === -1) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: `Report '${payload.reportId}' not found` }));
+          }
+
+          appState.serviceLogs.splice(logIdx, 1);
+          saveLocalData(appState);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            deleted: true,
+            message: 'Report deleted successfully'
           }));
         }
 

@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=3.3.3">
+  <link rel="stylesheet" href="/css/style.css?v=3.3.4">
   <link rel="stylesheet" href="/css/m3-tokens.css?v=3.3.2">
   <link rel="stylesheet" href="/css/staff-m3.css?v=3.3.2">
   <link rel="stylesheet" href="/css/cwp-neural-login.css?v=1.0.0">
@@ -1279,11 +1279,12 @@
                 <th style="width: 170px; min-width: 150px;">Vehicle & Model</th>
                 <th style="min-width: 180px;">Location / Parking</th>
                 <th style="width: 90px; text-align: center;">Photo Proof</th>
-                <th style="width: 120px; text-align: center;">Status & Action</th>
+                <th style="min-width: 180px;">Reason / Notes</th>
+                <th style="width: 150px; text-align: center;">Status & Actions</th>
               </tr>
             </thead>
             <tbody id="adminCleanReportsTableBody">
-              <tr><td colspan="8" style="text-align: center; padding: 36px; color: var(--text-muted);">Loading cleaning reports...</td></tr>
+              <tr><td colspan="9" style="text-align: center; padding: 36px; color: var(--text-muted);">Loading cleaning reports...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1737,6 +1738,10 @@
         <strong id="lightboxMetaVehicle">Vehicle: DL 01 AB 1234</strong>
         <span id="lightboxMetaDetails" style="color: var(--text-muted); font-size: 11.5px;">Staff: Ramesh • Time: 09:15 AM</span>
       </div>
+      <div id="lightboxAdminActionsWrap" style="display: flex; gap: 8px; align-items: center;">
+        <button type="button" class="btn-table-action btn-action-fix" id="btnLightboxEditStatus" onclick="triggerEditStatusFromLightbox()" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"><span>✏️</span> Status सुधारें</button>
+        <button type="button" class="btn-table-action btn-action-delete" id="btnLightboxDelete" onclick="triggerDeleteFromLightbox()" style="padding: 6px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"><span>🗑️</span> हटाएं</button>
+      </div>
       <button type="button" class="btn-primary-compact is-staff-only" id="btnLightboxSendWhatsApp" onclick="forwardPhotoFromLightbox()" style="display: none !important;" hidden>
         💬 Forward to Customer on WhatsApp
       </button>
@@ -1765,6 +1770,120 @@
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button type="button" class="btn-clean-done" style="width: auto; height: 38px;" onclick="closeStaffWhatsAppGroupModal()">रद्द करें</button>
         <button type="button" class="btn-primary-compact" style="height: 38px; padding: 0 16px;" onclick="saveStaffWhatsAppGroupSetting()">✓ सुरक्षित करें (Save)</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Edit Clean Report Status Modal (Admin) -->
+  <div id="editCleanReportModal" class="camera-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="editCleanReportModalTitle">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 500px; width: 94%;">
+      <div class="modal-card-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #fff; padding: 14px 18px; border-radius: 12px 12px 0 0; display:flex; justify-content:space-between; align-items:center;">
+        <h3 class="modal-card-title" id="editCleanReportModalTitle" style="color: #fff; font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <span>✏️</span> सफाई रिकॉर्ड स्थिति सुधारें (Edit Report)
+        </h3>
+        <button type="button" class="modal-close-x" onclick="closeEditReportStatusModal()" aria-label="Close dialog" style="color: #94a3b8; background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
+      </div>
+      <div style="padding: 18px;">
+        <input type="hidden" id="editReportIdInput">
+        <div style="background: var(--bg-hover, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 12.5px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="color: var(--text-muted, #64748b);">ग्राहक (Customer):</span>
+            <strong id="editReportCustomerName" style="color: var(--text-primary, #0f172a);">—</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="color: var(--text-muted, #64748b);">गाड़ी नंबर (Plate):</span>
+            <strong id="editReportPlateNumber" style="color: var(--text-primary, #0f172a); font-family: monospace;">—</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted, #64748b);">स्टाफ (Staff):</span>
+            <span id="editReportStaffName" style="color: var(--text-primary, #0f172a);">—</span>
+          </div>
+        </div>
+
+        <div class="cwp-form-group" style="margin-bottom: 14px;">
+          <label style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; display: block;">
+            नई स्थिति चुनें (Select New Status):
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <label id="statusOptionCompletedLabel" style="border: 2px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;">
+              <input type="radio" name="editReportStatusRadio" value="completed" id="radioStatusCompleted">
+              <span style="color: #059669;">✓ Cleaned (साफ हुई)</span>
+            </label>
+            <label id="statusOptionCnpLabel" style="border: 2px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;">
+              <input type="radio" name="editReportStatusRadio" value="car_not_present" id="radioStatusCnp">
+              <span style="color: #d97706;">🚫 Car Not Present</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="cwp-form-group" style="margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label style="font-size: 12.5px; font-weight: 700; color: var(--text-primary);">
+              सुधार का कारण (Reason / Note) <span style="color:#ef4444;">*</span>:
+            </label>
+            <span style="font-size: 11px; color: var(--text-muted);">ऑडिट हेतु अनिवार्य</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+            <button type="button" class="btn-quick-chip" onclick="applyEditReasonChip('स्टाफ ने गलती से कार नॉट प्रेजेंट चुन लिया था')" style="font-size: 11px; padding: 4px 8px; border-radius: 12px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;">
+              ⚡ स्टाफ की गलती से गलत चयन
+            </button>
+            <button type="button" class="btn-quick-chip" onclick="applyEditReasonChip('गाड़ी बाद में पार्क हुई और सफाई पूर्ण की गई')" style="font-size: 11px; padding: 4px 8px; border-radius: 12px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;">
+              ⚡ बाद में पार्क हुई और साफ हुई
+            </button>
+            <button type="button" class="btn-quick-chip" onclick="applyEditReasonChip('कस्टमर एवं फोटो सत्यापन उपरांत सुधार')" style="font-size: 11px; padding: 4px 8px; border-radius: 12px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;">
+              ⚡ फोटो सत्यापन उपरांत सुधार
+            </button>
+          </div>
+          <textarea id="editReportReasonText" class="report-search-input" rows="3" style="width: 100%; font-size: 13px; padding: 8px 10px; border-radius: 6px; resize: vertical;" placeholder="कृपया सुधार का कारण यहाँ लिखें (उदा. स्टाफ ने गलती से Car Not Present लगा दिया था, गाड़ी साफ हो चुकी है)..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+          <button type="button" class="btn-clean-done" style="width: auto; height: 38px; padding: 0 16px;" onclick="closeEditReportStatusModal()">रद्द करें</button>
+          <button type="button" class="btn-primary-compact" id="btnSubmitEditReportStatus" style="height: 38px; padding: 0 20px; font-weight: 700; background: #0284c7; border:none; border-radius:6px; color:#fff; cursor:pointer;" onclick="submitEditReportStatus()">✓ स्थिति अपडेट करें (Save)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Clean Report Confirmation Modal (Admin) -->
+  <div id="deleteCleanReportModal" class="camera-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="deleteCleanReportModalTitle">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px; width: 94%;">
+      <div class="modal-card-header" style="background: linear-gradient(135deg, #b91c1c, #991b1b); color: #fff; padding: 14px 18px; border-radius: 12px 12px 0 0; display:flex; justify-content:space-between; align-items:center;">
+        <h3 class="modal-card-title" id="deleteCleanReportModalTitle" style="color: #fff; font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <span>🗑️</span> सफाई रिकॉर्ड हटाएं (Delete Entry)
+        </h3>
+        <button type="button" class="modal-close-x" onclick="closeDeleteReportModal()" aria-label="Close dialog" style="color: #fca5a5; background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
+      </div>
+      <div style="padding: 18px;">
+        <input type="hidden" id="deleteReportIdInput">
+        <p style="font-size: 13.5px; color: var(--text-primary); margin-bottom: 12px; line-height: 1.5;">
+          क्या आप सचमुच <strong id="deleteReportTargetInfo">इस गाड़ी</strong> का सफाई रिकॉर्ड हटाना चाहते हैं?
+        </p>
+        <div style="background: #fef2f2; border: 1px dashed #ef4444; color: #991b1b; padding: 10px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 14px;">
+          ⚠️ <strong>नोट:</strong> यह रिकॉर्ड हटने के बाद संबंधित स्टाफ सदस्य अपनी मोबाइल ऐप से इस गाड़ी को दोबारा फ्रेश फोटो के साथ साफ/पंच कर सकेगा।
+        </div>
+        <div class="cwp-form-group" style="margin-bottom: 14px;">
+          <label style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; display: block;">
+            हटाने का कारण (Reason for Deletion) <span style="color:#ef4444;">*</span>:
+          </label>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+            <button type="button" class="btn-quick-chip" onclick="applyDeleteReasonChip('गलत गाड़ी पर पंच हो गया था - दोबारा सही गाड़ी पंच करवानी है')" style="font-size: 11px; padding: 4px 8px; border-radius: 12px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;">
+              ⚡ गलत गाड़ी पर पंच
+            </button>
+            <button type="button" class="btn-quick-chip" onclick="applyDeleteReasonChip('धुंधली फोटो के कारण दोबारा पंच करवाना है')" style="font-size: 11px; padding: 4px 8px; border-radius: 12px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;">
+              ⚡ फोटो स्पष्ट नहीं थी
+            </button>
+            <button type="button" class="btn-quick-chip" onclick="applyDeleteReasonChip('टेस्टिंग/डुप्लीकेट रिकॉर्ड हटाया गया')" style="font-size: 11px; padding: 4px 8px; border-radius: 12px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;">
+              ⚡ टेस्टिंग / डुप्लीकेट
+            </button>
+          </div>
+          <input type="text" id="deleteReportReasonText" class="report-search-input" style="width: 100%; font-size: 13px;" placeholder="कारण लिखें (उदा. गलत एंट्री, स्टाफ दोबारा पंच करेगा)...">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+          <button type="button" class="btn-clean-done" style="width: auto; height: 38px; padding: 0 16px;" onclick="closeDeleteReportModal()">रद्द करें</button>
+          <button type="button" class="btn-primary-compact" id="btnConfirmDeleteReport" style="height: 38px; padding: 0 18px; font-weight: 700; background: #dc2626; border:none; border-radius:6px; color:#fff; cursor:pointer;" onclick="submitDeleteReport()">🗑️ डिलीट करें (Confirm Delete)</button>
+        </div>
       </div>
     </div>
   </div>
@@ -3545,7 +3664,7 @@
   </script>
   <script src="/js/cropper.min.js"></script>
   <script src="/js/cwp-neural-core.js?v=1.0.0"></script>
-  <script src="/js/app.js?v=3.3.7" defer></script>
+  <script src="/js/app.js?v=3.3.8" defer></script>
   <script>
   // Failsafe listener for staff photo selection
   document.addEventListener('change', function(e) {

@@ -13811,7 +13811,7 @@ function loadStaffCustomerData(staffId) {
       if (!tbody) return;
 
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8">' +
+        tbody.innerHTML = '<tr><td colspan="9">' +
           '<div class="reports-empty-state">' +
           '  <div class="empty-radar-wrap"><div class="empty-radar-pulse"></div><div class="empty-radar-icon">📋</div></div>' +
           '  <h3 class="empty-state-title">इस अवधि में कोई सफाई रिकॉर्ड नहीं मिला (No Records Found)</h3>' +
@@ -13870,11 +13870,17 @@ function loadStaffCustomerData(staffId) {
         html += '  </div></td>';
         html += '  <td><div class="table-loc-cell"><span class="loc-pin">📍</span><span class="loc-text" title="' + escapeHtml(locText) + '">' + escapeHtml(locText) + '</span></div></td>';
         
+        var isCarNotPresent = r.car_not_present === true || r.tag === 'car_not_present' || r.status === 'car_not_present';
+        var reportIdStr = String(r.id || '');
+        var safeReg = escapeHtml(vReg);
+        var safeCust = escapeHtml(cName);
+        var safeStaff = escapeHtml(sName);
+
         // Photo Proof Thumbnail Column
         html += '  <td style="text-align: center;">';
         if (photoUrl) {
           html += '    <div class="photo-proof-cell">' +
-                  '      <img src="' + escapeHtml(photoUrl) + '" class="report-thumb-img" onclick="openReportPhotoLightbox(\'' + escapeHtml(photoUrl) + '\', \'' + escapeHtml(vReg + ' - ' + cName) + '\', \'Staff: ' + escapeHtml(sName) + ' • Time: ' + timeFormatted + '\', \'' + escapeHtml(cPhone) + '\')" title="Click to view full photo proof">' +
+                  '      <img src="' + escapeHtml(photoUrl) + '" class="report-thumb-img" onclick="openReportPhotoLightbox(\'' + escapeHtml(photoUrl) + '\', \'' + escapeHtml(vReg + ' - ' + cName) + '\', \'Staff: ' + escapeHtml(sName) + ' • Time: ' + timeFormatted + '\', \'' + escapeHtml(cPhone) + '\', this, \'' + reportIdStr + '\', ' + isCarNotPresent + ')" title="Click to view full photo proof">' +
                   '      <span class="photo-zoom-badge">🔍 Zoom</span>' +
                   '    </div>';
         } else {
@@ -13882,13 +13888,29 @@ function loadStaffCustomerData(staffId) {
         }
         html += '  </td>';
 
+        // 8. Reason / Notes Column (कारण / टिप्पणी)
+        var adminNotes = (r.admin_notes || '').trim();
+        var staffNotes = (r.notes || '').trim();
+
+        html += '  <td><div class="report-reason-cell">';
+        if (isCarNotPresent) {
+          html += '    <div class="reason-tag-pill cnp-tag"><span class="material-symbols-outlined" style="font-size:12px;">warning</span> Car Not Present</div>';
+          html += '    <div class="reason-text" title="' + escapeHtml(staffNotes || 'गाड़ी पार्किंग में नहीं थी') + '">' + escapeHtml(staffNotes || 'गाड़ी पार्किंग में नहीं थी') + '</div>';
+        } else {
+          html += '    <div class="reason-text-clean" title="' + escapeHtml(staffNotes || 'Daily clean verified') + '">✓ ' + escapeHtml(staffNotes || 'Daily clean verified with photo proof') + '</div>';
+        }
+        if (adminNotes) {
+          html += '    <div class="admin-override-note" title="' + escapeHtml(adminNotes) + '"><span class="badge-admin-fixed">🛡️ Admin Reason:</span> ' + escapeHtml(adminNotes) + '</div>';
+        }
+        html += '  </div></td>';
+
+        // 9. Status & Actions Column (स्थिति व सुधार)
         var transitStr = '';
         if (r.transitDurationMinutes !== undefined || r.transitMinutes !== undefined) {
           var tMin = r.transitDurationMinutes !== undefined ? r.transitDurationMinutes : r.transitMinutes;
           transitStr = '<span class="cell-time-transit" style="font-size: 10.5px; color: #64748b; display: block; margin-top: 2px;">⏱️ ' + tMin + 'm transit</span>';
         }
 
-        var isCarNotPresent = r.car_not_present === true || r.tag === 'car_not_present' || r.status === 'car_not_present';
         var statusBadge = isCarNotPresent
           ? '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>🚫</span> Car Not Present</span>'
           : '<span class="badge-status-pill badge-active" style="font-size:11px; padding:3px 8px;">✓ Cleaned</span>';
@@ -13897,7 +13919,13 @@ function loadStaffCustomerData(staffId) {
                 '    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">' +
                 statusBadge +
                 transitStr +
-                '      <!-- Admin share disabled -->' +
+                '      <div class="report-row-actions-group">' +
+                (isCarNotPresent
+                  ? '        <button type="button" class="btn-table-action btn-action-fix" onclick="openEditReportStatusModal(\'' + reportIdStr + '\', \'completed\')" title="गलती सुधारें: Cleaned में बदलें"><span>✓</span> Cleaned करें</button>'
+                  : '        <button type="button" class="btn-table-action btn-action-edit" onclick="openEditReportStatusModal(\'' + reportIdStr + '\', \'car_not_present\')" title="Status बदलें"><span>✏️</span> Status</button>'
+                ) +
+                '        <button type="button" class="btn-table-action btn-action-delete" onclick="confirmDeleteCleanReport(\'' + reportIdStr + '\', \'' + safeReg + '\', \'' + safeCust + '\')" title="इस रिकॉर्ड को हटाएं"><span>🗑️</span></button>' +
+                '      </div>' +
                 '    </div>' +
                 '  </td>';
         html += '</tr>';
@@ -13918,21 +13946,32 @@ function loadStaffCustomerData(staffId) {
     /* Lightbox Modal Functions */
     var currentLightboxPhotoUrl = '';
     var currentLightboxPhone = '';
-    function openReportPhotoLightbox(url, title, metaDetails, customerPhone, triggerEl) {
+    var currentLightboxReportId = '';
+    var currentLightboxIsCnp = false;
+    var currentLightboxTitle = '';
+
+    function openReportPhotoLightbox(url, title, metaDetails, customerPhone, triggerEl, reportId, isCarNotPresent) {
       if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       currentLightboxPhotoUrl = url;
       currentLightboxPhone = customerPhone || '';
+      currentLightboxReportId = reportId || '';
+      currentLightboxIsCnp = Boolean(isCarNotPresent);
+      currentLightboxTitle = title || '';
 
       var modal = document.getElementById('reportPhotoLightboxModal');
       var img = document.getElementById('lightboxModalImg');
       var titleEl = document.getElementById('lightboxModalTitle');
       var metaEl = document.getElementById('lightboxMetaDetails');
       var openNew = document.getElementById('lightboxOpenNewTab');
+      var btnFix = document.getElementById('btnLightboxEditStatus');
 
       if (img) img.src = url;
       if (titleEl) titleEl.innerHTML = '<span>🚗</span> ' + escapeHtml(title);
       if (metaEl) metaEl.textContent = metaDetails;
       if (openNew) openNew.href = url;
+      if (btnFix) {
+        btnFix.innerHTML = currentLightboxIsCnp ? '<span>✓</span> Cleaned करें' : '<span>✏️</span> Status बदलें';
+      }
 
       if (modal) {
         modal.style.display = 'flex';
@@ -13940,6 +13979,19 @@ function loadStaffCustomerData(staffId) {
       }
       if (typeof pushModalHistory === 'function') pushModalHistory('reportPhotoLightboxModal');
     }
+
+    function triggerEditStatusFromLightbox() {
+      if (!currentLightboxReportId) return;
+      var targetStatus = currentLightboxIsCnp ? 'completed' : 'car_not_present';
+      openEditReportStatusModal(currentLightboxReportId, targetStatus);
+    }
+    window.triggerEditStatusFromLightbox = triggerEditStatusFromLightbox;
+
+    function triggerDeleteFromLightbox() {
+      if (!currentLightboxReportId) return;
+      confirmDeleteCleanReport(currentLightboxReportId, currentLightboxTitle, '');
+    }
+    window.triggerDeleteFromLightbox = triggerDeleteFromLightbox;
 
     function closeReportPhotoLightbox() {
       var modal = document.getElementById('reportPhotoLightboxModal');
@@ -13951,6 +14003,9 @@ function loadStaffCustomerData(staffId) {
       }
       currentLightboxPhotoUrl = '';
       currentLightboxPhone = '';
+      currentLightboxReportId = '';
+      currentLightboxIsCnp = false;
+      currentLightboxTitle = '';
       if (typeof popModalHistory === 'function') popModalHistory('reportPhotoLightboxModal');
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
@@ -13969,6 +14024,209 @@ function loadStaffCustomerData(staffId) {
       a.click();
       document.body.removeChild(a);
     }
+
+    /* =========================================================================
+       ADMIN CLEAN REPORT STATUS & REASON ACTIONS
+       ========================================================================= */
+    function openEditReportStatusModal(reportId, targetStatus) {
+      if (!reportId) return;
+      var record = null;
+      if (adminCleanReportsState && adminCleanReportsState.records) {
+        record = adminCleanReportsState.records.find(function(r) { return String(r.id) === String(reportId); });
+      }
+
+      var modal = document.getElementById('editCleanReportModal');
+      var idInput = document.getElementById('editReportIdInput');
+      var custEl = document.getElementById('editReportCustomerName');
+      var plateEl = document.getElementById('editReportPlateNumber');
+      var staffEl = document.getElementById('editReportStaffName');
+      var reasonInput = document.getElementById('editReportReasonText');
+      var radioCompleted = document.getElementById('radioStatusCompleted');
+      var radioCnp = document.getElementById('radioStatusCnp');
+
+      if (idInput) idInput.value = reportId;
+      if (custEl) custEl.textContent = record ? (record.customer_name || 'Customer') : 'Customer';
+      if (plateEl) plateEl.textContent = record ? (record.registration_no || 'Car') : 'Car';
+      if (staffEl) staffEl.textContent = record ? (record.staff_name || record.staff_code || 'Staff') : 'Staff';
+
+      var statusToSet = targetStatus || (record && (record.car_not_present || record.status === 'car_not_present') ? 'completed' : 'car_not_present');
+      if (statusToSet === 'completed' && radioCompleted) {
+        radioCompleted.checked = true;
+      } else if (radioCnp) {
+        radioCnp.checked = true;
+      }
+
+      // Pre-fill reason if existing admin_notes, or clear
+      if (reasonInput) {
+        reasonInput.value = (record && record.admin_notes) ? record.admin_notes : '';
+      }
+
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+      if (typeof pushModalHistory === 'function') pushModalHistory('editCleanReportModal');
+    }
+    window.openEditReportStatusModal = openEditReportStatusModal;
+
+    function closeEditReportStatusModal() {
+      var modal = document.getElementById('editCleanReportModal');
+      if (modal) {
+        modal.style.display = 'none';
+        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+          document.body.style.overflow = '';
+        }
+      }
+      if (typeof popModalHistory === 'function') popModalHistory('editCleanReportModal');
+    }
+    window.closeEditReportStatusModal = closeEditReportStatusModal;
+
+    function applyEditReasonChip(text) {
+      var input = document.getElementById('editReportReasonText');
+      if (input) {
+        input.value = text;
+        input.focus();
+      }
+    }
+    window.applyEditReasonChip = applyEditReasonChip;
+
+    function submitEditReportStatus() {
+      var reportId = (document.getElementById('editReportIdInput') || {}).value;
+      if (!reportId) {
+        showToast('त्रुटि: रिपोर्ट ID नहीं मिली', 'error');
+        return;
+      }
+
+      var radioCompleted = document.getElementById('radioStatusCompleted');
+      var newStatus = (radioCompleted && radioCompleted.checked) ? 'completed' : 'car_not_present';
+      var reason = ((document.getElementById('editReportReasonText') || {}).value || '').trim();
+
+      if (!reason) {
+        showToast('कृपया स्थिति सुधारने का कारण दर्ज करें (Reason is required)', 'warning');
+        var reasonIn = document.getElementById('editReportReasonText');
+        if (reasonIn) {
+          reasonIn.focus();
+          reasonIn.style.borderColor = '#ef4444';
+          setTimeout(function() { reasonIn.style.borderColor = ''; }, 2000);
+        }
+        return;
+      }
+
+      var btn = document.getElementById('btnSubmitEditReportStatus');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'सेव हो रहा है...';
+      }
+
+      apiCall('updateDailyCleanReportStatus', {
+        reportId: reportId,
+        status: newStatus,
+        reason: reason
+      }, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '✓ स्थिति अपडेट करें (Save)';
+        }
+        closeEditReportStatusModal();
+        closeReportPhotoLightbox();
+        showToast('✓ रिपोर्ट की स्थिति सफलतापूर्वक ठीक कर दी गई!', 'success');
+        loadDailyCleanReports(false);
+      }, function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '✓ स्थिति अपडेट करें (Save)';
+        }
+        showToast('सुधार विफल: ' + (err.error || err.message || err), 'error');
+      });
+    }
+    window.submitEditReportStatus = submitEditReportStatus;
+
+    function confirmDeleteCleanReport(reportId, regNo, custName) {
+      if (!reportId) return;
+      var idInput = document.getElementById('deleteReportIdInput');
+      var infoEl = document.getElementById('deleteReportTargetInfo');
+      var reasonInput = document.getElementById('deleteReportReasonText');
+
+      if (idInput) idInput.value = reportId;
+      if (infoEl) infoEl.textContent = (regNo || 'गाड़ी') + (custName ? ' (' + custName + ')' : '');
+      if (reasonInput) reasonInput.value = '';
+
+      var modal = document.getElementById('deleteCleanReportModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+      if (typeof pushModalHistory === 'function') pushModalHistory('deleteCleanReportModal');
+    }
+    window.confirmDeleteCleanReport = confirmDeleteCleanReport;
+
+    function closeDeleteReportModal() {
+      var modal = document.getElementById('deleteCleanReportModal');
+      if (modal) {
+        modal.style.display = 'none';
+        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+          document.body.style.overflow = '';
+        }
+      }
+      if (typeof popModalHistory === 'function') popModalHistory('deleteCleanReportModal');
+    }
+    window.closeDeleteReportModal = closeDeleteReportModal;
+
+    function applyDeleteReasonChip(text) {
+      var input = document.getElementById('deleteReportReasonText');
+      if (input) {
+        input.value = text;
+        input.focus();
+      }
+    }
+    window.applyDeleteReasonChip = applyDeleteReasonChip;
+
+    function submitDeleteReport() {
+      var reportId = (document.getElementById('deleteReportIdInput') || {}).value;
+      if (!reportId) {
+        showToast('त्रुटि: रिपोर्ट ID नहीं मिली', 'error');
+        return;
+      }
+
+      var reason = ((document.getElementById('deleteReportReasonText') || {}).value || '').trim();
+      if (!reason) {
+        showToast('कृपया हटाने का कारण दर्ज करें (Reason is required)', 'warning');
+        var rIn = document.getElementById('deleteReportReasonText');
+        if (rIn) {
+          rIn.focus();
+          rIn.style.borderColor = '#ef4444';
+          setTimeout(function() { rIn.style.borderColor = ''; }, 2000);
+        }
+        return;
+      }
+
+      var btn = document.getElementById('btnConfirmDeleteReport');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'हटाया जा रहा है...';
+      }
+
+      apiCall('deleteDailyCleanReport', {
+        reportId: reportId,
+        reason: reason
+      }, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '🗑️ डिलीट करें (Confirm Delete)';
+        }
+        closeDeleteReportModal();
+        closeReportPhotoLightbox();
+        showToast('🗑️ रिपोर्ट हटा दी गई! स्टाफ अब दोबारा फ्रेश पंच कर सकता है।', 'success');
+        loadDailyCleanReports(false);
+      }, function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '🗑️ डिलीट करें (Confirm Delete)';
+        }
+        showToast('हटाना विफल: ' + (err.error || err.message || err), 'error');
+      });
+    }
+    window.submitDeleteReport = submitDeleteReport;
 
     function forwardPhotoFromLightbox() {
       if (!currentLightboxPhotoUrl) return;
@@ -15905,6 +16163,16 @@ function loadStaffCustomerData(staffId) {
       window.setReportPeriodChip = setReportPeriodChip;
       window.openReportPhotoLightbox = openReportPhotoLightbox;
       window.closeReportPhotoLightbox = closeReportPhotoLightbox;
+      window.openEditReportStatusModal = openEditReportStatusModal;
+      window.closeEditReportStatusModal = closeEditReportStatusModal;
+      window.applyEditReasonChip = applyEditReasonChip;
+      window.submitEditReportStatus = submitEditReportStatus;
+      window.confirmDeleteCleanReport = confirmDeleteCleanReport;
+      window.closeDeleteReportModal = closeDeleteReportModal;
+      window.applyDeleteReasonChip = applyDeleteReasonChip;
+      window.submitDeleteReport = submitDeleteReport;
+      window.triggerEditStatusFromLightbox = triggerEditStatusFromLightbox;
+      window.triggerDeleteFromLightbox = triggerDeleteFromLightbox;
       window.exportDailyCleanReportsCSV = exportDailyCleanReportsCSV;
       window.getCustomerCompletionData = getCustomerCompletionData;
       window.openStaffWhatsAppGroupModal = openStaffWhatsAppGroupModal;
