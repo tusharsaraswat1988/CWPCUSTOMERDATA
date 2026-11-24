@@ -999,12 +999,6 @@
               </select>
             </div>
             <div class="filter-select-wrapper">
-              <select id="filterAdminStaff" class="filter-select" onchange="filterAdminRecords()" title="Staff Assignment">
-                <option value="all">All Staff</option>
-                <option value="none">⚠️ Unassigned (None)</option>
-              </select>
-            </div>
-            <div class="filter-select-wrapper">
               <select id="filterAdminStatus" class="filter-select" onchange="filterAdminRecords()" title="Active Status">
                 <option value="all">All Status</option>
                 <option value="yes">Active</option>
@@ -1038,12 +1032,11 @@
                 <th style="min-width: 160px;">Primary Address</th>
                 <th style="width: 72px; min-width: 68px; text-align: center;">Primary Map</th>
                 <th style="width: 68px; min-width: 65px; text-align: center;">2nd Loc</th>
-                <th style="width: 105px; min-width: 95px; text-align: center;">Staff</th>
                 <th style="width: 90px; min-width: 85px; text-align: center;">Actions</th>
               </tr>
             </thead>
             <tbody id="adminRecordsTableBody">
-              <tr><td colspan="10" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading customer records...</td></tr>
+              <tr><td colspan="9" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading customer records...</td></tr>
             </tbody>
           </table>
         </div>
@@ -3486,7 +3479,7 @@
   </script>
   <script src="/js/cropper.min.js"></script>
   <script src="/js/cwp-neural-core.js?v=1.0.0"></script>
-  <script src="/js/app.js?v=3.3.5" defer></script>
+  <script src="/js/app.js?v=3.3.6" defer></script>
   <script>
   // Failsafe listener for staff photo selection
   document.addEventListener('change', function(e) {

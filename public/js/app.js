@@ -7878,9 +7878,6 @@ function loadStaffCustomerData(staffId) {
             '<div class="skeleton-shimmer" style="width:44px; height:20px; margin:0 auto; border-radius:12px;"></div>' +
           '</td>' +
           '<td style="text-align:center;">' +
-            '<div class="skeleton-shimmer" style="width:75px; height:20px; margin:0 auto; border-radius:12px;"></div>' +
-          '</td>' +
-          '<td style="text-align:center;">' +
             '<div class="skeleton-shimmer" style="width:54px; height:24px; margin:0 auto; border-radius:6px;"></div>' +
           '</td>' +
         '</tr>';
@@ -9628,7 +9625,7 @@ function loadStaffCustomerData(staffId) {
       var paginationContainer = document.getElementById('adminTablePagination');
 
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
           '<div style="font-size: 32px; margin-bottom: 10px;">🔍</div>' +
           '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">No customer records match your filter</div>' +
           '<div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">Try adjusting your search criteria, staff assignment or category filters</div>' +
@@ -9846,7 +9843,6 @@ function loadStaffCustomerData(staffId) {
         html += '  <td>' + primaryAddrHtml + '</td>';
         html += '  <td style="text-align: center;">' + primaryMapHtml + '</td>';
         html += '  <td style="text-align: center;">' + secLocHtml + '</td>';
-        html += '  <td style="text-align: center;">' + staffHtml + '</td>';
         html += '  <td style="text-align: center;">' + actionsHtml + '</td>';
         html += '</tr>';
       });
