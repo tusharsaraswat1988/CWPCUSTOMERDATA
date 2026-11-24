@@ -16977,6 +16977,14 @@ function loadStaffCustomerData(staffId) {
       window.loadAdminSpecialJobs = loadAdminSpecialJobs;
       window.filterAdminSpecialJobs = filterAdminSpecialJobs;
       window.resetAdminSpecialFilters = resetAdminSpecialFilters;
+      window.setSpecialPeriodChip = setSpecialPeriodChip;
+      window.handleSpecialDateChange = handleSpecialDateChange;
+      window.computeSpecialJobDatesFromPeriod = computeSpecialJobDatesFromPeriod;
+      window.getJobEffectiveDateKey = getJobEffectiveDateKey;
+      window.adminSpecialState = adminSpecialState;
+      window.refreshAllAdminBadges = refreshAllAdminBadges;
+      window.initAdminRealtimeStream = initAdminRealtimeStream;
+      window.stopAdminRealtimeStream = stopAdminRealtimeStream;
       window.handleAdminSpecialSearch = handleAdminSpecialSearch;
       window.renderAdminSpecialJobsTable = renderAdminSpecialJobsTable;
       window.deleteAdminSpecialJob = deleteAdminSpecialJob;
