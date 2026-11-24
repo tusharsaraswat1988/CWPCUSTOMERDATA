@@ -4381,48 +4381,30 @@ const server = http.createServer(async (req, res) => {
               const effectiveStatus = payload.status || (isCarNotPresent ? 'car_not_present' : 'completed');
               const effectiveNotes = payload.notes || (isCarNotPresent ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)' : 'Daily clean verified with photo proof');
 
-              // Resolve customer location and coordinates
-              let custId = payload.customerId;
-              if (!custId && payload.subscriptionId) {
-                try {
-                  const sub = await repos.subscriptions.findById(payload.subscriptionId);
-                  if (sub) custId = sub.customer_id;
-                } catch (e) {}
-              }
-              let custLoc = null;
-              if (custId) {
-                try {
-                  custLoc = await repos.serviceLocations.findPrimaryByCustomerId(custId);
-                } catch (e) {}
-              }
-
-              let effectivePunchLat = payload.punchLatitude !== undefined && payload.punchLatitude !== null ? parseFloat(payload.punchLatitude) : null;
-              let effectivePunchLng = payload.punchLongitude !== undefined && payload.punchLongitude !== null ? parseFloat(payload.punchLongitude) : null;
-              let effectiveAccuracy = payload.punchAccuracyMeters !== undefined && payload.punchAccuracyMeters !== null ? parseFloat(payload.punchAccuracyMeters) : 15;
-              let punchLocationSource = 'pwa_gps';
-
-              // Basement / Weak GPS Graceful Fallback: If device could not lock GPS, fallback to customer registered location
-              if ((effectivePunchLat === null || effectivePunchLng === null) && custLoc && custLoc.latitude && custLoc.longitude) {
-                effectivePunchLat = parseFloat(custLoc.latitude);
-                effectivePunchLng = parseFloat(custLoc.longitude);
-                effectiveAccuracy = 45;
-                punchLocationSource = 'customer_registered_coords_fallback';
-              }
-
               // Phase 2 Pre-Alignment: Calculate in-house Haversine distance against customer location (non-blocking)
               let punchDistMeters = null;
               let punchVerified = null;
               let punchStatus = payload.punchVerificationStatus || 'pending';
 
-              if (effectivePunchLat !== null && effectivePunchLng !== null) {
+              if (payload.punchLatitude !== undefined && payload.punchLongitude !== undefined && payload.punchLatitude !== null && payload.punchLongitude !== null) {
                 try {
-                  if (custLoc && custLoc.latitude && custLoc.longitude) {
-                    punchDistMeters = repos.staffTracking.calculateHaversineDistanceMeters(
-                      custLoc.latitude, custLoc.longitude,
-                      effectivePunchLat, effectivePunchLng
-                    );
-                    punchVerified = (punchDistMeters <= 250);
-                    punchStatus = punchVerified ? 'verified' : 'out_of_range';
+                  let custId = payload.customerId;
+                  if (!custId && payload.subscriptionId) {
+                    const sub = await repos.subscriptions.findById(payload.subscriptionId);
+                    if (sub) custId = sub.customer_id;
+                  }
+                  if (custId) {
+                    const custLoc = await repos.serviceLocations.findPrimaryByCustomerId(custId);
+                    if (custLoc && custLoc.latitude && custLoc.longitude) {
+                      punchDistMeters = repos.staffTracking.calculateHaversineDistanceMeters(
+                        custLoc.latitude, custLoc.longitude,
+                        payload.punchLatitude, payload.punchLongitude
+                      );
+                      punchVerified = (punchDistMeters <= 200);
+                      punchStatus = punchVerified ? 'verified' : 'out_of_range';
+                    } else {
+                      punchStatus = 'no_customer_coords';
+                    }
                   } else {
                     punchStatus = 'no_customer_coords';
                   }
@@ -4445,36 +4427,14 @@ const server = http.createServer(async (req, res) => {
                 deviceMetadata: payload.deviceMetadata || null,
                 carNotPresent: isCarNotPresent,
                 tag: effectiveTag,
-                punchLatitude: effectivePunchLat,
-                punchLongitude: effectivePunchLng,
-                punchAccuracyMeters: effectiveAccuracy,
+                punchLatitude: payload.punchLatitude !== undefined ? payload.punchLatitude : null,
+                punchLongitude: payload.punchLongitude !== undefined ? payload.punchLongitude : null,
+                punchAccuracyMeters: payload.punchAccuracyMeters !== undefined ? payload.punchAccuracyMeters : null,
                 punchDistanceMeters: punchDistMeters,
                 punchVerified: punchVerified,
                 punchVerificationStatus: punchStatus,
-                punchMetadata: payload.punchMetadata || { source: punchLocationSource }
+                punchMetadata: payload.punchMetadata || null
               });
-
-              // Bridge into Real-time Staff Tracking & Verified Stoppages
-              if (effectivePunchLat !== null && effectivePunchLng !== null) {
-                try {
-                  const custName = payload.customerName || (custLoc && custLoc.customer_name) || 'ग्राहक';
-                  const regNo = payload.registrationNo || '';
-                  const stopLabel = regNo ? `${custName} (${regNo}) - कार सफाई` : `${custName} - कार सफाई`;
-                  await repos.staffTracking.recordJobStop({
-                    staffId: staff.id,
-                    latitude: effectivePunchLat,
-                    longitude: effectivePunchLng,
-                    accuracy: effectiveAccuracy,
-                    addressText: stopLabel,
-                    matchedCustomerId: custId || null,
-                    completedAt: completedAt,
-                    triggerType: 'job_punch',
-                    source: punchLocationSource
-                  });
-                } catch (trackBridgeErr) {
-                  console.warn('[Staff Tracking Bridge] Job punch waypoint non-critical warning:', trackBridgeErr.message);
-                }
-              }
 
               broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', { action: 'recorded', log: outcome.log, serviceDate: istDate });
               res.writeHead(200, { 'Content-Type': 'application/json' });

@@ -18775,30 +18775,6 @@ body.admin-mode-active .main-container,
 .staff-text-meta .staff-sub {
   font-size: 10.5px;
   color: var(--color-text-secondary, #64748b);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-card-call-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
-  text-decoration: none;
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-
-.btn-card-call-icon:hover {
-  background: #059669;
-  color: #ffffff;
-  transform: scale(1.08);
 }
 
 .staff-badge-status {

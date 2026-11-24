@@ -13250,38 +13250,9 @@ function loadStaffCustomerData(staffId) {
     }
     window.updateCameraModalLanguage = updateCameraModalLanguage;
 
-    function prefetchStaffGpsFix() {
-      if (!navigator.geolocation) return;
-      try {
-        navigator.geolocation.getCurrentPosition(function(pos) {
-          if (pos && pos.coords) {
-            latestStaffGpsFix = {
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              accuracy: pos.coords.accuracy,
-              speed: pos.coords.speed,
-              heading: pos.coords.heading,
-              altitude: pos.coords.altitude,
-              capturedAt: new Date().toISOString()
-            };
-          }
-        }, function(err) {
-          console.warn('[Staff GPS] Prefetch fix warning:', err.message);
-        }, {
-          enableHighAccuracy: true,
-          timeout: 8000,
-          maximumAge: 120000
-        });
-      } catch (e) {}
-    }
-    window.prefetchStaffGpsFix = prefetchStaffGpsFix;
-
     function openCleaningCameraModal(custId, index) {
       var item = state.currentStaffFilteredList && state.currentStaffFilteredList[index];
       if (!item) return;
-
-      // Prefetch high-accuracy GPS fix so position is locked before photo is confirmed
-      prefetchStaffGpsFix();
 
       activeCameraTarget = { custId: custId, index: index, item: item };
       currentSnappedPhotoBase64 = '';
@@ -13645,22 +13616,15 @@ function loadStaffCustomerData(staffId) {
           });
         }
 
-        // Check if fresh GPS fix is already available from prefetch (within last 3 minutes)
-        var hasFreshGps = Boolean(latestStaffGpsFix && latestStaffGpsFix.latitude && latestStaffGpsFix.longitude);
-        if (hasFreshGps) {
-          dispatchUpload(latestStaffGpsFix);
-          return;
-        }
-
-        // If not yet locked, probe with 3500ms timeout before uploading
-        if (navigator.geolocation) {
+        // If GPS is active and fresh position not yet cached, await a short probe (up to 1500ms) before uploading
+        if (navigator.geolocation && (!cleanPayload.punchLatitude || !cleanPayload.punchLongitude)) {
           var probeDone = false;
           var probeTimer = setTimeout(function() {
             if (!probeDone) {
               probeDone = true;
               dispatchUpload(null);
             }
-          }, 3500);
+          }, 1500);
 
           try {
             navigator.geolocation.getCurrentPosition(function(quickFix) {
@@ -13683,9 +13647,8 @@ function loadStaffCustomerData(staffId) {
               if (probeDone) return;
               probeDone = true;
               clearTimeout(probeTimer);
-              console.warn('[Staff Geolocation] Position acquisition failed or basement mode:', err.message);
               dispatchUpload(null);
-            }, { enableHighAccuracy: true, timeout: 3500, maximumAge: 180000 });
+            }, { enableHighAccuracy: true, timeout: 1500, maximumAge: 60000 });
           } catch (e) {
             if (!probeDone) {
               probeDone = true;
@@ -17808,17 +17771,12 @@ function loadStaffCustomerData(staffId) {
       filtered.forEach(function(s) {
         var statusBadgeClass = 'status-badge-' + (s.status || 'idle');
         var dotClass = 'dot-' + (s.status || 'idle');
-        var statusLabel = (s.status === 'moving' ? '🟢 ऑन-ड्यूटी' : (s.status === 'stopped' ? '🛑 स्टॉप' : '⚪ निष्क्रिय'));
+        var statusLabel = (s.status === 'moving' ? 'Moving' : (s.status === 'stopped' ? 'Stopped' : 'Idle'));
         var isSelected = trackingSelectedStaffId === s.staffId;
         var initial = (s.name || s.staffCode || 'S').charAt(0).toUpperCase();
 
-        var timeAgo = s.lastSeenAt ? formatTimeAgo(new Date(s.lastSeenAt)) : 'कोई गतिविधि नहीं';
-        var locationText = s.lastLocationText || (s.latitude && s.longitude ? 'फील्ड लोकेशन' : 'लोकेशन प्रतीक्षारत');
-
-        var callBtn = s.phone ? 
-          '<a href="tel:' + escapeHtml(s.phone) + '" class="btn-card-call-icon" title="कॉल करें: ' + escapeHtml(s.phone) + '" onclick="event.stopPropagation();">' +
-            '<span class="material-symbols-outlined" style="font-size:14px;">call</span>' +
-          '</a>' : '';
+        var timeAgo = s.lastSeenAt ? formatTimeAgo(new Date(s.lastSeenAt)) : 'Never';
+        var coordsText = s.latitude && s.longitude ? (Number(s.latitude).toFixed(4) + ', ' + Number(s.longitude).toFixed(4)) : 'No GPS Fix';
 
         html += 
           '<div class="tracking-staff-card ' + (isSelected ? 'selected' : '') + '" id="trackingCard_' + s.staffId + '" onclick="highlightStaffCard(\'' + s.staffId + '\')">' +
@@ -17830,34 +17788,30 @@ function loadStaffCustomerData(staffId) {
                 '</div>' +
                 '<div class="staff-text-meta">' +
                   '<div class="staff-name">' + escapeHtml(s.name || s.staffCode) + '</div>' +
-                  '<div class="staff-sub">' +
-                    '<span>' + escapeHtml(s.staffCode) + '</span>' +
-                    callBtn +
-                  '</div>' +
+                  '<div class="staff-sub">' + escapeHtml(s.staffCode) + ' • 📞 ' + escapeHtml(s.phone || 'N/A') + '</div>' +
                 '</div>' +
               '</div>' +
               '<span class="staff-badge-status ' + statusBadgeClass + '">' + statusLabel + '</span>' +
             '</div>' +
             '<div class="staff-location-row">' +
-              '<span class="material-symbols-outlined" style="font-size: 14px; color: var(--color-brand-blue, #0284c7);">place</span>' +
-              '<span style="font-weight: 500;">' + escapeHtml(locationText) + ' • <span style="color: var(--text-muted);">' + timeAgo + '</span></span>' +
+              '<span class="material-symbols-outlined" style="font-size: 14px;">place</span>' +
+              '<span>' + coordsText + ' • ' + timeAgo + '</span>' +
             '</div>' +
             '<div class="staff-metrics-strip">' +
-              '<span>🛣️ <b>' + (s.todayDistanceKm || 0) + ' km</b> सड़क</span>' +
+              '<span>🛣️ <b>' + (s.todayDistanceKm || 0) + ' km</b> today</span>' +
               '<span>•</span>' +
-              '<span>🛑 <b>' + (s.stoppageCount || 0) + '</b> स्टॉप</span>' +
-              (s.completedJobsCount ? '<span>•</span><span>🚗 <b>' + s.completedJobsCount + '</b> गाड़ियां</span>' : '') +
+              '<span>🛑 <b>' + (s.stoppageCount || 0) + '</b> stops</span>' +
               (s.batteryLevel !== null ? '<span>•</span><span>🔋 <b>' + s.batteryLevel + '%</b></span>' : '') +
             '</div>' +
             '<div class="staff-actions-bar">' +
-              '<button type="button" class="btn-card-action" onclick="centerStaffOnMap(\'' + s.staffId + '\'); event.stopPropagation();" title="मैप को इस स्टाफ के स्थान पर ले जाएं">' +
-                '<span class="material-symbols-outlined" style="font-size:14px;">my_location</span> नक्शा देखें' +
+              '<button type="button" class="btn-card-action" onclick="centerStaffOnMap(\'' + s.staffId + '\'); event.stopPropagation();">' +
+                '<span class="material-symbols-outlined" style="font-size:14px;">my_location</span> Center' +
               '</button>' +
-              '<button type="button" class="btn-card-action btn-ping-action" id="btnPingStaff_' + s.staffId + '" onclick="pingStaffFromAdmin(\'' + s.staffId + '\', \'' + escapeHtml(s.name || s.staffCode) + '\', this); event.stopPropagation();" title="स्टाफ के फोन से तुरंत ताज़ा GPS मंगाएं">' +
-                '<span class="material-symbols-outlined" style="font-size:14px;">radar</span> ताज़ा GPS' +
+              '<button type="button" class="btn-card-action btn-ping-action" id="btnPingStaff_' + s.staffId + '" onclick="pingStaffFromAdmin(\'' + s.staffId + '\', \'' + escapeHtml(s.name || s.staffCode) + '\', this); event.stopPropagation();">' +
+                '<span class="material-symbols-outlined" style="font-size:14px;">satellite_alt</span> Ping' +
               '</button>' +
-              '<button type="button" class="btn-card-action" onclick="viewStaffStoppages(\'' + s.staffId + '\', \'' + escapeHtml(s.name || s.staffCode) + '\'); event.stopPropagation();" title="आज के सभी स्टॉपेज और रूट का ब्योरा देखें">' +
-                '<span class="material-symbols-outlined" style="font-size:14px;">route</span> आज का रूट' +
+              '<button type="button" class="btn-card-action" onclick="viewStaffStoppages(\'' + s.staffId + '\', \'' + escapeHtml(s.name || s.staffCode) + '\'); event.stopPropagation();">' +
+                '<span class="material-symbols-outlined" style="font-size:14px;">history</span> Stops' +
               '</button>' +
             '</div>' +
           '</div>';
@@ -17943,12 +17897,12 @@ function loadStaffCustomerData(staffId) {
       if (!drawer || !tableContainer) return;
 
       drawer.style.display = 'flex';
-      if (drawerTitle) drawerTitle.textContent = staffName + ' — आज का रूट और स्टॉप्स (Route & Stoppages)';
-      tableContainer.innerHTML = '<div class="tracking-loading-state">रूट लोड हो रहा है...</div>';
+      if (drawerTitle) drawerTitle.textContent = staffName + ' — Stoppages & Dwell Times';
+      tableContainer.innerHTML = '<div class="tracking-loading-state">Loading stoppage journey...</div>';
 
       apiCall('getStaffMovementHistory', { staffId: staffId }, function(res) {
         if (!res || !res.success) {
-          tableContainer.innerHTML = '<div class="tracking-empty-state">आज कोई मूवमेंट डेटा दर्ज नहीं हुआ</div>';
+          tableContainer.innerHTML = '<div class="tracking-empty-state">No movement data recorded today</div>';
           return;
         }
 
@@ -17958,7 +17912,7 @@ function loadStaffCustomerData(staffId) {
         }
 
         if (!res.stoppages || res.stoppages.length === 0) {
-          tableContainer.innerHTML = '<div class="tracking-empty-state">आज कोई स्टॉपेज दर्ज नहीं हुआ (No stoppages recorded today)</div>';
+          tableContainer.innerHTML = '<div class="tracking-empty-state">No stoppages detected today (continuous motion)</div>';
           return;
         }
 
@@ -17967,21 +17921,21 @@ function loadStaffCustomerData(staffId) {
             '<thead>' +
               '<tr>' +
                 '<th>#</th>' +
-                '<th>स्थान / कस्टमर (Location / Customer)</th>' +
-                '<th>पहुंचे (Arrived)</th>' +
-                '<th>रवाना / पूर्ण (Completed)</th>' +
-                '<th>अवधि (Duration)</th>' +
-                '<th>स्थिति (Status)</th>' +
+                '<th>Location / Customer</th>' +
+                '<th>Arrived</th>' +
+                '<th>Departed</th>' +
+                '<th>Dwell Duration</th>' +
+                '<th>Status</th>' +
               '</tr>' +
             '</thead>' +
             '<tbody>';
 
         res.stoppages.forEach(function(s, idx) {
           var arrTime = s.arrivedAt ? new Date(s.arrivedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '-';
-          var depTime = s.departedAt ? new Date(s.departedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : (s.isActive ? 'उपस्थित 🛑' : '-');
+          var depTime = s.departedAt ? new Date(s.departedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : (s.isActive ? 'Present Now 🛑' : '-');
           var statusPill = s.isActive 
-            ? '<span class="filter-pill active" style="padding:2px 8px;font-size:10px;background:#fef3c7;color:#b45309;border-color:#f59e0b;">🛑 कार्यस्थल पर उपस्थित</span>'
-            : '<span class="filter-pill" style="padding:2px 8px;font-size:10px;background:#ecfdf5;color:#065f46;border-color:#10b981;">✓ पूर्ण (Completed)</span>';
+            ? '<span class="filter-pill active" style="padding:2px 8px;font-size:10px;background:#fef3c7;color:#b45309;border-color:#f59e0b;">Dwelling Now</span>'
+            : '<span class="filter-pill" style="padding:2px 8px;font-size:10px;">Departed</span>';
 
           tableHtml += 
             '<tr>' +

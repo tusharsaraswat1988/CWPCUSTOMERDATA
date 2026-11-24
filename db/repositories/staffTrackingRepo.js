@@ -8,12 +8,11 @@ const db = require('../index');
 
 // Constants for In-House Spatial Processing
 const EARTH_RADIUS_METERS = 6371000;
-const URBAN_ROAD_FACTOR = 1.35;    // Accounts for Varanasi street grid, winding alleys, detours & U-turns
 const JITTER_DISTANCE_METERS = 15; // Ignore movement < 15m to eliminate stationary GPS drift
 const MAX_URBAN_SPEED_KMH = 150;   // Discard impossible teleports / GPS glitches (> 150 km/h)
 const STOPPAGE_CLUSTER_METERS = 35; // Maximum radius for stoppage cluster
 const STOPPAGE_EXIT_METERS = 50;    // Departure radius to break out of stoppage
-const MIN_STOPPAGE_DWELL_MINUTES = 2; // Minimum dwell time (minutes) to count as a stoppage
+const MIN_STOPPAGE_DWELL_MINUTES = 5; // Minimum dwell time (minutes) to count as a stoppage
 
 /**
  * Pure In-House Haversine Great-Circle Distance
@@ -50,21 +49,6 @@ function calculateHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
   
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
   return Math.round(EARTH_RADIUS_METERS * c * 100) / 100;
-}
-
-/**
- * Real-world Road Distance Calculator
- * Bridges straight-line (Euclidean) air distance to realistic on-ground street network driving.
- * 
- * @param {number} lat1 Latitude of point 1 (degrees)
- * @param {number} lon1 Longitude of point 1 (degrees)
- * @param {number} lat2 Latitude of point 2 (degrees)
- * @param {number} lon2 Longitude of point 2 (degrees)
- * @returns {number} Road distance in meters
- */
-function calculateRoadDistanceMeters(lat1, lon1, lat2, lon2) {
-  const straight = calculateHaversineDistanceMeters(lat1, lon1, lat2, lon2);
-  return Math.round(straight * URBAN_ROAD_FACTOR * 100) / 100;
 }
 
 /**
@@ -133,13 +117,8 @@ function filterJitterAndGlitch(prevPoint, newPoint) {
   }
 
   // 3. Genuine movement
-  const roadDistMeters = calculateRoadDistanceMeters(
-    prevPoint.latitude, prevPoint.longitude,
-    newPoint.latitude, newPoint.longitude
-  );
-
   return {
-    distanceIncrementMeters: roadDistMeters,
+    distanceIncrementMeters: distMeters,
     isValid: true,
     isStationary: false,
     isGlitch: false,
@@ -433,130 +412,6 @@ async function recordLocation(staffIdentifier, data, client = null) {
 }
 
 /**
- * Records a verified customer job punch (e.g. Daily Car Clean or Service Job)
- * as an authoritative waypoint in staff movement, creating/updating stoppage and road distance.
- */
-async function recordJobStop({
-  staffId,
-  latitude,
-  longitude,
-  accuracy = 15,
-  addressText = 'Customer Service Stop',
-  matchedCustomerId = null,
-  completedAt = null,
-  triggerType = 'job_punch',
-  source = 'pwa_gps',
-  client = null
-}) {
-  const runner = client || db;
-  const resolvedId = await resolveStaffId(staffId, runner);
-  if (!resolvedId) return null;
-
-  const lat = parseFloat(latitude);
-  const lng = parseFloat(longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-
-  const fixTime = completedAt ? new Date(completedAt) : new Date();
-  const todayDate = getTodayIstDate();
-
-  // 1. Insert into public.staff_locations as a verified waypoint
-  await runner.query(
-    `INSERT INTO public.staff_locations (
-       staff_id, latitude, longitude, accuracy, speed, heading,
-       trigger_type, captured_at
-     ) VALUES ($1, $2, $3, $4, 0, NULL, $5, $6)`,
-    [resolvedId, lat, lng, accuracy, triggerType, fixTime]
-  );
-
-  // 2. Calculate realistic road distance from previous point
-  const prevRes = await runner.query(
-    `SELECT *, tracking_date::text AS tracking_date_text FROM public.staff_tracking_current WHERE staff_id = $1 LIMIT 1`,
-    [resolvedId]
-  );
-  const prevRow = prevRes.rows[0] || null;
-
-  let distIncrement = 0;
-  if (prevRow && Number.isFinite(Number(prevRow.last_latitude)) && Number.isFinite(Number(prevRow.last_longitude))) {
-    const rawDist = calculateHaversineDistanceMeters(
-      prevRow.last_latitude, prevRow.last_longitude,
-      lat, lng
-    );
-    const prevTime = new Date(prevRow.last_seen_at || Date.now()).getTime();
-    const timeDeltaSec = Math.max(1, (fixTime.getTime() - prevTime) / 1000);
-    const speedKmh = (rawDist / timeDeltaSec) * 3.6;
-
-    if (rawDist >= JITTER_DISTANCE_METERS && speedKmh <= MAX_URBAN_SPEED_KMH) {
-      distIncrement = calculateRoadDistanceMeters(
-        prevRow.last_latitude, prevRow.last_longitude,
-        lat, lng
-      );
-    }
-  }
-
-  let newDistanceMeters = 0;
-  if (prevRow) {
-    const prevDateStr = prevRow.tracking_date_text || (prevRow.tracking_date instanceof Date ?
-      `${prevRow.tracking_date.getFullYear()}-${String(prevRow.tracking_date.getMonth() + 1).padStart(2, '0')}-${String(prevRow.tracking_date.getDate()).padStart(2, '0')}` :
-      String(prevRow.tracking_date || '').slice(0, 10));
-    const isSameDay = prevDateStr === todayDate;
-    newDistanceMeters = isSameDay ? (parseFloat(prevRow.today_distance_meters || 0) + distIncrement) : distIncrement;
-  } else {
-    newDistanceMeters = distIncrement;
-  }
-
-  // 3. Close any active stoppage and insert an authoritative stoppage for this car cleaning
-  await runner.query(
-    `UPDATE public.staff_stoppages 
-     SET is_active = FALSE, departed_at = $1, updated_at = CURRENT_TIMESTAMP 
-     WHERE staff_id = $2 AND is_active = TRUE`,
-    [fixTime, resolvedId]
-  );
-
-  const arrivedTime = new Date(fixTime.getTime() - (15 * 60 * 1000)); // Standard 15-min dwell for car clean
-  const stoppageRes = await runner.query(
-    `INSERT INTO public.staff_stoppages (
-       staff_id, latitude, longitude, address_text, matched_customer_id,
-       arrived_at, departed_at, dwell_minutes, is_active, stoppage_date
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, 15.00, FALSE, $8)
-     RETURNING id`,
-    [resolvedId, lat, lng, addressText, matchedCustomerId, arrivedTime, fixTime, todayDate]
-  );
-  const stoppageId = stoppageRes.rows[0].id;
-
-  // 4. Update staff_tracking_current
-  await runner.query(
-    `INSERT INTO public.staff_tracking_current (
-       staff_id, last_latitude, last_longitude, last_accuracy, last_speed,
-       last_seen_at, current_status, today_distance_meters,
-       tracking_date, current_stoppage_id, updated_at
-     ) VALUES (
-       $1, $2, $3, $4, 0,
-       $5, 'stopped', $6,
-       $7, $8, CURRENT_TIMESTAMP
-     )
-     ON CONFLICT (staff_id) DO UPDATE SET
-       last_latitude = EXCLUDED.last_latitude,
-       last_longitude = EXCLUDED.last_longitude,
-       last_accuracy = EXCLUDED.last_accuracy,
-       last_speed = 0,
-       last_seen_at = EXCLUDED.last_seen_at,
-       current_status = 'stopped',
-       today_distance_meters = EXCLUDED.today_distance_meters,
-       tracking_date = EXCLUDED.tracking_date,
-       current_stoppage_id = EXCLUDED.current_stoppage_id,
-       updated_at = CURRENT_TIMESTAMP`,
-    [resolvedId, lat, lng, accuracy, fixTime, newDistanceMeters, todayDate, stoppageId]
-  );
-
-  return {
-    success: true,
-    staffId: resolvedId,
-    stoppageId,
-    todayDistanceKm: Math.round((newDistanceMeters / 1000) * 100) / 100
-  };
-}
-
-/**
  * Returns tracking summary for all staff, including KPIs and stoppages.
  * 
  * @param {string} [date] YYYY-MM-DD date string (defaults to today in IST)
@@ -592,21 +447,6 @@ async function getCurrentTrackingSummary(date = null, client = null) {
     ORDER BY s.staff_code ASC
   `;
   const staffRes = await runner.query(staffQuery);
-
-  // 1b. Fetch completed daily cleans count today by staff
-  const cleansByStaff = {};
-  try {
-    const cleansRes = await runner.query(
-      `SELECT staff_id, COUNT(id) AS total_cleans 
-       FROM public.service_logs 
-       WHERE service_date::date = $1::date AND status = 'completed'
-       GROUP BY staff_id`,
-      [targetDate]
-    );
-    for (const r of cleansRes.rows) {
-      cleansByStaff[r.staff_id] = parseInt(r.total_cleans, 10) || 0;
-    }
-  } catch (e) {}
 
   // 2. Fetch stoppages for the target date
   const stoppagesQuery = `
@@ -656,22 +496,12 @@ async function getCurrentTrackingSummary(date = null, client = null) {
     totalDistanceMeters += distMeters;
 
     const staffStops = stoppagesByStaff[row.staff_id] || [];
-    const completedJobsCount = cleansByStaff[row.staff_id] || 0;
-    const stopCount = Math.max(staffStops.length, completedJobsCount);
+    const stopCount = staffStops.length;
 
     // Derive status
     let status = row.current_status || 'idle';
     if (!lastSeenMs || (Date.now() - lastSeenMs) > 60 * 60 * 1000) {
       status = 'idle';
-    }
-
-    let lastLocText = 'वाराणसी (Varanasi)';
-    if (staffStops.length > 0 && staffStops[0].address_text) {
-      lastLocText = staffStops[0].address_text;
-    } else if (row.latitude && row.longitude) {
-      lastLocText = `फील्ड लोकेशन (${parseFloat(row.latitude).toFixed(3)}, ${parseFloat(row.longitude).toFixed(3)})`;
-    } else {
-      lastLocText = 'लोकेशन प्रतीक्षारत (No GPS)';
     }
 
     return {
@@ -691,20 +521,16 @@ async function getCurrentTrackingSummary(date = null, client = null) {
       lastSeenAt: row.last_seen_at,
       todayDistanceKm: Math.round((distMeters / 1000) * 100) / 100,
       stoppageCount: stopCount,
-      completedJobsCount,
-      lastLocationText: lastLocText
+      lastLocationText: row.latitude && row.longitude ? `Coords (${parseFloat(row.latitude).toFixed(4)}, ${parseFloat(row.longitude).toFixed(4)})` : 'No GPS fix yet'
     };
   });
 
-  const totalStoppages = Math.max(
-    stoppagesRes.rows.length,
-    Object.values(cleansByStaff).reduce((acc, v) => acc + v, 0)
-  );
+  const totalStoppages = stoppagesRes.rows.length;
   let sumDwellMinutes = 0;
   for (const s of stoppagesRes.rows) {
     sumDwellMinutes += parseFloat(s.dwell_minutes || 0);
   }
-  const avgDwellMinutes = totalStoppages > 0 ? Math.round((sumDwellMinutes / Math.max(1, stoppagesRes.rows.length)) * 10) / 10 : 0;
+  const avgDwellMinutes = totalStoppages > 0 ? Math.round((sumDwellMinutes / totalStoppages) * 10) / 10 : 0;
 
   const formattedStoppages = stoppagesRes.rows.map(s => ({
     id: s.id,
@@ -761,7 +587,7 @@ async function getMovementHistory(staffIdentifier, date = null, client = null) {
     [staffId, targetDate]
   );
 
-  let breadcrumbs = crumbsRes.rows.map(r => ({
+  const breadcrumbs = crumbsRes.rows.map(r => ({
     id: r.id,
     lat: parseFloat(r.latitude),
     lng: parseFloat(r.longitude),
@@ -783,7 +609,7 @@ async function getMovementHistory(staffIdentifier, date = null, client = null) {
     [staffId, targetDate, MIN_STOPPAGE_DWELL_MINUTES]
   );
 
-  let stoppages = stopRes.rows.map(s => ({
+  const stoppages = stopRes.rows.map(s => ({
     id: s.id,
     lat: parseFloat(s.latitude),
     lng: parseFloat(s.longitude),
@@ -793,65 +619,6 @@ async function getMovementHistory(staffIdentifier, date = null, client = null) {
     locationText: s.address_text || 'Field Stop',
     isActive: Boolean(s.is_active)
   }));
-
-  // 3. Fallback: If no stoppages recorded via heartbeat, load verified cleanings from service_logs
-  if (stoppages.length === 0) {
-    try {
-      const logsRes = await runner.query(
-        `SELECT sl.id, sl.punch_latitude AS latitude, sl.punch_longitude AS longitude,
-                sl.completed_at_device AS arrived_at, sl.completed_at_device AS departed_at,
-                15.0 AS dwell_minutes,
-                COALESCE(c.name || ' (' || COALESCE(v.registration_no, 'गाड़ी') || ') - कार सफाई', 'कार सफाई (Daily Clean)') AS location_text
-         FROM public.service_logs sl
-         LEFT JOIN public.subscriptions sub ON sl.subscription_id = sub.id
-         LEFT JOIN public.customers c ON sub.customer_id = c.id
-         LEFT JOIN public.vehicles v ON sl.vehicle_id = v.id
-         WHERE sl.staff_id = $1 AND sl.service_date::date = $2::date
-         ORDER BY sl.completed_at_device ASC`,
-        [staffId, targetDate]
-      );
-      if (logsRes.rows.length > 0) {
-        stoppages = logsRes.rows.map(l => ({
-          id: l.id,
-          lat: l.latitude ? parseFloat(l.latitude) : 25.3176,
-          lng: l.longitude ? parseFloat(l.longitude) : 82.9739,
-          arrivedAt: l.arrived_at,
-          departedAt: l.departed_at,
-          dwellMinutes: 15.0,
-          locationText: l.location_text,
-          isActive: false
-        }));
-      }
-    } catch (e) {}
-  }
-
-  // 4. Fallback: If breadcrumbs are sparse, enrich with job punch locations
-  if (breadcrumbs.length < 2) {
-    try {
-      const logCrumbs = await runner.query(
-        `SELECT sl.id, sl.punch_latitude AS latitude, sl.punch_longitude AS longitude,
-                sl.completed_at_device AS captured_at
-         FROM public.service_logs sl
-         WHERE sl.staff_id = $1 AND sl.service_date::date = $2::date
-           AND sl.punch_latitude IS NOT NULL AND sl.punch_longitude IS NOT NULL
-         ORDER BY sl.completed_at_device ASC`,
-        [staffId, targetDate]
-      );
-      if (logCrumbs.rows.length > 0) {
-        breadcrumbs = logCrumbs.rows.map(r => ({
-          id: r.id,
-          lat: parseFloat(r.latitude),
-          lng: parseFloat(r.longitude),
-          accuracy: 15,
-          speed: null,
-          heading: null,
-          batteryLevel: null,
-          trigger: 'job_punch',
-          time: r.captured_at
-        }));
-      }
-    } catch (e) {}
-  }
 
   return {
     success: true,
@@ -973,10 +740,8 @@ async function getPendingPings(staffIdentifier, client = null) {
 
 module.exports = {
   calculateHaversineDistanceMeters,
-  calculateRoadDistanceMeters,
   filterJitterAndGlitch,
   recordLocation,
-  recordJobStop,
   getCurrentTrackingSummary,
   getMovementHistory,
   createLocationPing,
