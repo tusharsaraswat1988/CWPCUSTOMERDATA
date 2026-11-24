@@ -469,6 +469,36 @@ body.staff-mode-active #adminLogoutBtn,
   border: 1px solid rgba(220, 38, 38, 0.25) !important;
 }
 
+/* Tactile Shake & Error Animations for Staff Login */
+@keyframes staffTactileShake {
+  0%, 100% { transform: translateX(0); }
+  15%, 45%, 75% { transform: translateX(-8px); }
+  30%, 60%, 90% { transform: translateX(8px); }
+}
+
+#staffAuthGate .input-shake,
+#staffAuthGate .input-error-shake {
+  animation: staffTactileShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+}
+
+#staffAuthGate .staff-login-card.cwp-card-shake,
+#staffAuthGate .cwp-card-shake {
+  animation: staffTactileShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+}
+
+#staffAuthGate .cwp-pin-dots-row.dots-error .cwp-pin-dot {
+  background: #ef4444 !important;
+  border-color: #ef4444 !important;
+  transform: scale(1.2) !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6) !important;
+}
+
+#staffAuthGate .cwp-pin-dots-row.dots-error {
+  animation: staffTactileShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+}
+
 /* ==========================================================================
    3. SEARCH ROW & ROUTE PROGRESS CHIP
    ========================================================================== */

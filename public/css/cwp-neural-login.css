@@ -576,6 +576,21 @@ body.theme-dark .cwp-login-error-banner,
   color: #FCA5A5;
 }
 
+/* Tactile Shake & Error Animations for Admin Login */
+.cwp-password-prompt-box.shake-error,
+.cwp-password-prompt-box.input-shake,
+.cwp-core-wrapper.shake-error,
+.cwp-core-wrapper.input-shake {
+  animation: cwpShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+}
+
+.cwp-password-input.input-shake,
+.cwp-password-input.input-error-shake {
+  animation: cwpShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3) !important;
+}
+
 /* ==========================================================================
    6. BOTTOM UTILITY STRIP (STAFF SWITCHER & THEME)
    ========================================================================== */

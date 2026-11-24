@@ -1784,6 +1784,7 @@ var state = {
       initLanguage();
       initAllPhoneFormatters();
       initStaffPinDots();
+      initAdminAutoLogin();
       syncBrandLogos();
       setupIndicInputListeners();
       initStaffBottomNavKeyboardHandling();
@@ -1986,13 +1987,79 @@ var state = {
       }
     }
 
+    var staffAutoSubmitTimer = null;
+    var isStaffAuthSubmitting = false;
+
+    function checkStaffAutoLoginTrigger() {
+      var pinInp = document.getElementById('staffPinInput');
+      var phoneInp = document.getElementById('staffPhoneInput');
+      if (!pinInp) return;
+
+      var rawPin = (pinInp.value || '').trim();
+      if (/[^0-9]/.test(rawPin)) {
+        rawPin = rawPin.replace(/[^0-9]/g, '').slice(0, 6);
+        pinInp.value = rawPin;
+      }
+
+      updateStaffPinDots();
+
+      if (rawPin.length === 6 && !isStaffAuthSubmitting) {
+        var rawPhone = phoneInp ? phoneInp.value : '';
+        var phone = normalizeIndianMobile(rawPhone);
+
+        if (!phone || !isValidIndianMobile(phone)) {
+          if (phoneInp) {
+            triggerInputShake(phoneInp);
+            phoneInp.focus();
+          }
+          showToast(state.lang !== 'en' ? 'कृपया पहले 10-अंकों का मोबाइल नंबर दर्ज करें' : 'Please enter 10-digit mobile number first', 'warning');
+          return;
+        }
+
+        if (staffAutoSubmitTimer) clearTimeout(staffAutoSubmitTimer);
+        staffAutoSubmitTimer = setTimeout(function() {
+          if (!isStaffAuthSubmitting) {
+            handleStaffAuthSubmit(null, true);
+          }
+        }, 120);
+      }
+    }
+
+    function checkStaffPhoneAutoLogin() {
+      var phoneInp = document.getElementById('staffPhoneInput');
+      var pinInp = document.getElementById('staffPinInput');
+      if (!phoneInp || !pinInp) return;
+      var rawPhone = phoneInp.value || '';
+      var cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+      if (cleanPhone.length >= 10 && (pinInp.value || '').trim().length === 6 && !isStaffAuthSubmitting) {
+        if (staffAutoSubmitTimer) clearTimeout(staffAutoSubmitTimer);
+        staffAutoSubmitTimer = setTimeout(function() {
+          if (!isStaffAuthSubmitting) {
+            handleStaffAuthSubmit(null, true);
+          }
+        }, 120);
+      }
+    }
+
     function initStaffPinDots() {
       var pinInp = document.getElementById('staffPinInput');
+      var phoneInp = document.getElementById('staffPhoneInput');
       if (pinInp) {
-        pinInp.addEventListener('input', updateStaffPinDots);
-        pinInp.addEventListener('change', updateStaffPinDots);
-        pinInp.addEventListener('keyup', updateStaffPinDots);
+        pinInp.addEventListener('input', checkStaffAutoLoginTrigger);
+        pinInp.addEventListener('change', checkStaffAutoLoginTrigger);
+        pinInp.addEventListener('keyup', checkStaffAutoLoginTrigger);
+        pinInp.addEventListener('paste', function() {
+          setTimeout(checkStaffAutoLoginTrigger, 50);
+        });
         updateStaffPinDots();
+      }
+      if (phoneInp && !phoneInp.__staffPhoneBound) {
+        phoneInp.__staffPhoneBound = true;
+        phoneInp.addEventListener('input', checkStaffPhoneAutoLogin);
+        phoneInp.addEventListener('change', checkStaffPhoneAutoLogin);
+        phoneInp.addEventListener('paste', function() {
+          setTimeout(checkStaffPhoneAutoLogin, 50);
+        });
       }
     }
 
@@ -2082,7 +2149,11 @@ var state = {
     }
 
     function handleStaffAuthSubmit(e) {
-      e.preventDefault();
+      var isAuto = arguments[1];
+      if (e && e.preventDefault) e.preventDefault();
+      if (staffAutoSubmitTimer) clearTimeout(staffAutoSubmitTimer);
+      if (isStaffAuthSubmitting) return;
+
       var phoneInput = document.getElementById('staffPhoneInput');
       var pinInput = document.getElementById('staffPinInput');
       var rawPhone = phoneInput ? phoneInput.value : '';
@@ -2095,6 +2166,7 @@ var state = {
       var loaderBanner = document.getElementById('staffLoginLoaderBanner');
       var loaderMsg = document.getElementById('staffLoginLoaderMsg');
       var card = document.querySelector('#staffAuthGate .admin-auth-card');
+      var dotsRow = document.getElementById('staffPinDotsRow');
 
       if (!phone || !isValidIndianMobile(phone)) {
         if (errBox) {
@@ -2124,6 +2196,8 @@ var state = {
         return;
       }
 
+      isStaffAuthSubmitting = true;
+
       if (btn) {
         btn.disabled = true;
         btn.classList.add('cwp-btn-loading');
@@ -2135,8 +2209,10 @@ var state = {
       }
       if (errBox) errBox.style.display = 'none';
       if (inactiveBox) inactiveBox.style.display = 'none';
+      if (dotsRow) dotsRow.classList.remove('dots-error');
 
-      apiCall('verifyStaffPin', { phone: phone, pin: pin }, function(res) {
+      apiCall('verifyStaffPin', { phone: phone, pin: pin, isAuto: !!isAuto }, function(res) {
+        isStaffAuthSubmitting = false;
         if (res && res.inactive) {
           if (btn) {
             btn.disabled = false;
@@ -2147,6 +2223,10 @@ var state = {
           if (inactiveBox) inactiveBox.style.display = 'block';
           if (errBox) errBox.style.display = 'none';
           if (card) triggerInputShake(card);
+          if (dotsRow) {
+            dotsRow.classList.add('dots-error');
+            setTimeout(function() { dotsRow.classList.remove('dots-error'); }, 500);
+          }
           showToast(isHi ? '🚫 आपका अकाउंट निष्क्रिय है! एडमिन से बात करें।' : '🚫 Your account is deactivated! Contact your admin.', 'warning');
           return;
         }
@@ -2216,6 +2296,7 @@ var state = {
           }, 350);
 
         } else {
+          // WRONG PIN ANIMATION
           if (btn) {
             btn.disabled = false;
             btn.classList.remove('cwp-btn-loading');
@@ -2227,13 +2308,28 @@ var state = {
             errBox.style.display = 'block';
           }
           showToast(isHi ? 'गलत पिन! ध्यान से देखकर दोबारा डालो।' : 'Wrong PIN! Double check and try again.', 'error');
+          
           if (pinInput) {
             triggerInputShake(pinInput);
-            pinInput.focus();
           }
-          if (card) triggerInputShake(card);
+          if (card) {
+            triggerInputShake(card);
+          }
+          if (dotsRow) {
+            dotsRow.classList.add('dots-error');
+            triggerInputShake(dotsRow);
+          }
+          setTimeout(function() {
+            if (dotsRow) dotsRow.classList.remove('dots-error');
+            if (pinInput) {
+              pinInput.value = '';
+              updateStaffPinDots();
+              pinInput.focus();
+            }
+          }, 450);
         }
       }, function(err) {
+        isStaffAuthSubmitting = false;
         if (btn) {
           btn.disabled = false;
           btn.classList.remove('cwp-btn-loading');
@@ -2246,6 +2342,19 @@ var state = {
         }
         showToast(isHi ? 'नेटवर्क समस्या! कनेक्शन चेक करें।' : 'Network issue! Check your connection.', 'error');
         if (card) triggerInputShake(card);
+        if (pinInput) triggerInputShake(pinInput);
+        if (dotsRow) {
+          dotsRow.classList.add('dots-error');
+          triggerInputShake(dotsRow);
+          setTimeout(function() {
+            dotsRow.classList.remove('dots-error');
+            if (pinInput) {
+              pinInput.value = '';
+              updateStaffPinDots();
+              pinInput.focus();
+            }
+          }, 450);
+        }
       });
     }
 
@@ -2551,6 +2660,7 @@ var state = {
         }
         setTimeout(function() {
           var input = document.getElementById('adminPasswordInput');
+          initAdminAutoLogin();
           if (input && window.CwpNeuralCore && window.CwpNeuralCore.getStage() === 'passwordPrompt') {
             input.focus();
           }
@@ -2558,25 +2668,73 @@ var state = {
       }
     }
 
-    function handleAdminAuth(e) {
-      e.preventDefault();
+    var adminAutoLoginTimer = null;
+    var isAdminAuthSubmitting = false;
+
+    function initAdminAutoLogin() {
       var input = document.getElementById('adminPasswordInput');
-      var password = (input.value || '').trim();
+      if (!input || input.__adminAutoLoginBound) return;
+      input.__adminAutoLoginBound = true;
+
+      function onAdminPasswordInput() {
+        if (isAdminAuthSubmitting) return;
+        var pass = (input.value || '').trim();
+        if (adminAutoLoginTimer) clearTimeout(adminAutoLoginTimer);
+
+        var errBox = document.getElementById('adminAuthError');
+        if (errBox && pass.length > 0) {
+          errBox.style.display = 'none';
+        }
+
+        if (pass.length >= 4) {
+          adminAutoLoginTimer = setTimeout(function() {
+            if (!isAdminAuthSubmitting && (input.value || '').trim().length >= 4) {
+              handleAdminAuth(null, true);
+            }
+          }, 450);
+        }
+      }
+
+      input.addEventListener('input', onAdminPasswordInput);
+      input.addEventListener('paste', function() {
+        setTimeout(onAdminPasswordInput, 50);
+      });
+    }
+
+    function handleAdminAuth(e) {
+      var isAuto = arguments[1];
+      if (e && e.preventDefault) e.preventDefault();
+      if (adminAutoLoginTimer) clearTimeout(adminAutoLoginTimer);
+      if (isAdminAuthSubmitting) return;
+
+      var input = document.getElementById('adminPasswordInput');
+      var password = (input ? input.value || '' : '').trim();
       var errBox = document.getElementById('adminAuthError');
       var errText = document.getElementById('adminAuthErrorText');
       var btn = document.getElementById('btnAdminLogin');
+      var pwBox = document.getElementById('cwpCorePasswordBox');
+      var coreWrapper = document.querySelector('.cwp-core-wrapper');
 
-      if (!password) return;
+      if (!password) {
+        if (!isAuto) {
+          if (input) triggerInputShake(input);
+          if (pwBox) triggerInputShake(pwBox);
+        }
+        return;
+      }
+
+      isAdminAuthSubmitting = true;
 
       if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
         window.CwpNeuralCore.setStage('authenticating');
       }
 
-      btn.disabled = true;
+      if (btn) btn.disabled = true;
       if (errBox) errBox.style.display = 'none';
 
-      apiCall('verifyAdminPassword', { password: password }, function(res) {
-        btn.disabled = false;
+      apiCall('verifyAdminPassword', { password: password, isAuto: !!isAuto }, function(res) {
+        isAdminAuthSubmitting = false;
+        if (btn) btn.disabled = false;
         if (res && res.success) {
           var rememberEl = document.getElementById('rememberAdminDevice');
           var remember = rememberEl ? rememberEl.checked : true;
@@ -2609,10 +2767,11 @@ var state = {
               localStorage.setItem('cwp_admin_active_tab', 'records');
             } catch (e) {}
           }
-          input.value = '';
+          if (input) input.value = '';
           showToast('Login successful!', '✓');
           checkAdminAuthStatus();
         } else {
+          // WRONG ADMIN PASSWORD ANIMATION
           if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
             window.CwpNeuralCore.setStage('passwordPrompt');
           }
@@ -2623,11 +2782,22 @@ var state = {
             errBox.textContent = '❌ ' + errMsg;
           }
           if (errBox) errBox.style.display = 'flex';
-          triggerInputShake(input);
-          input.focus();
+
+          if (input) {
+            triggerInputShake(input);
+            input.select();
+          }
+          if (pwBox) {
+            triggerInputShake(pwBox);
+          }
+          if (coreWrapper) {
+            triggerInputShake(coreWrapper);
+          }
+          showToast('गलत पासवर्ड! कृपया सही एडमिन पासवर्ड दर्ज करें।', 'error');
         }
       }, function(err) {
-        btn.disabled = false;
+        isAdminAuthSubmitting = false;
+        if (btn) btn.disabled = false;
         if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
           window.CwpNeuralCore.setStage('passwordPrompt');
         }
@@ -2638,7 +2808,12 @@ var state = {
           errBox.textContent = '❌ ' + errMsg;
         }
         if (errBox) errBox.style.display = 'flex';
-        triggerInputShake(input);
+        if (input) {
+          triggerInputShake(input);
+          input.focus();
+        }
+        if (pwBox) triggerInputShake(pwBox);
+        if (coreWrapper) triggerInputShake(coreWrapper);
       });
     }
 
@@ -12192,10 +12367,20 @@ function loadStaffCustomerData(staffId) {
 
     function triggerInputShake(el) {
       if (!el) return;
-      el.classList.remove('input-shake');
+      el.classList.remove('input-shake', 'input-error-shake', 'cwp-card-shake', 'shake-error');
       void el.offsetWidth;
-      el.classList.add('input-shake');
-      setTimeout(function() { el.classList.remove('input-shake'); }, 500);
+      el.classList.add('input-shake', 'input-error-shake');
+      if (el.classList.contains('admin-auth-card') || el.classList.contains('staff-login-card') || el.classList.contains('cwp-core-wrapper') || el.classList.contains('cwp-password-prompt-box')) {
+        el.classList.add('cwp-card-shake', 'shake-error');
+      }
+      try {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([40, 50, 40]);
+        }
+      } catch (e) {}
+      setTimeout(function() {
+        el.classList.remove('input-shake', 'input-error-shake', 'cwp-card-shake', 'shake-error');
+      }, 550);
     }
 
     var toastTimer = null;

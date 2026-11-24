@@ -2576,6 +2576,7 @@ const server = http.createServer(async (req, res) => {
         // 1. Admin Authentication Handler
         if (payload.action === 'verifyAdminPassword') {
           const clientIp = getClientIp(req);
+          const isAuto = !!payload.isAuto;
           const rateCheck = checkRateLimit(clientIp, 'admin');
           if (!rateCheck.allowed) {
             res.writeHead(429, { 'Content-Type': 'application/json' });
@@ -2587,7 +2588,7 @@ const server = http.createServer(async (req, res) => {
 
           const inputPass = (payload.password || '').trim();
           if (!inputPass) {
-            recordFailedLogin(clientIp, 'admin');
+            if (!isAuto) recordFailedLogin(clientIp, 'admin');
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
@@ -2618,7 +2619,7 @@ const server = http.createServer(async (req, res) => {
                   expiresIn: SESSION_TTL_MS / 1000
                 }));
               } else if (authRes && authRes.rateLimited) {
-                recordFailedLogin(clientIp, 'admin');
+                if (!isAuto) recordFailedLogin(clientIp, 'admin');
                 res.writeHead(429, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify(authRes));
               }
@@ -2640,7 +2641,9 @@ const server = http.createServer(async (req, res) => {
             }));
           }
 
-          recordFailedLogin(clientIp, 'admin');
+          if (!isAuto) {
+            recordFailedLogin(clientIp, 'admin');
+          }
 
           if (!hasAdminPasswordConfigured()) {
             res.writeHead(401, { 'Content-Type': 'application/json' });

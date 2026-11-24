@@ -170,6 +170,7 @@
       if (loaderText) loaderText.style.display = 'none';
       if (pwInput) {
         pwInput.disabled = false;
+        if (typeof initAdminAutoLogin === 'function') initAdminAutoLogin();
         setTimeout(function () {
           pwInput.focus();
         }, 150);
