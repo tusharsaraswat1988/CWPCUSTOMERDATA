@@ -2142,6 +2142,9 @@ async function assignSpecialJob(params, adminUser = 'admin') {
     panelCount = null,
     siteDetails = null,
     scheduledDate = null,
+    scheduledTime = null,
+    tentativeTime = null,
+    sequenceOrder = null,
     staffId,
     specialInstructions = null,
     vehicleId = null,
@@ -2320,6 +2323,11 @@ async function assignSpecialJob(params, adminUser = 'admin') {
       finalSiteDetails = Object.assign({}, siteDetails || {}, { panelCount: finalPanelCount, roofScope: packageDetails || 'Solar Cleaning' });
     }
 
+    const finalScheduledTime = (scheduledTime || tentativeTime || params.time || params.scheduled_time || params.tentative_time || '').trim() || null;
+    const finalSequenceOrder = (sequenceOrder != null && sequenceOrder !== '' && !isNaN(parseInt(sequenceOrder, 10)))
+      ? parseInt(sequenceOrder, 10)
+      : (params.sequence_order != null && !isNaN(parseInt(params.sequence_order, 10)) ? parseInt(params.sequence_order, 10) : null);
+
     // 7. Create Service Job
     const job = await repos.serviceJobs.createJob({
       customerId: targetCustomer.id,
@@ -2333,6 +2341,8 @@ async function assignSpecialJob(params, adminUser = 'admin') {
       panelCount: finalPanelCount,
       siteDetails: finalSiteDetails,
       scheduledDate: istDate,
+      scheduledTime: finalScheduledTime,
+      sequenceOrder: finalSequenceOrder,
       status: 'assigned',
       specialInstructions: specialInstructions ? specialInstructions.trim() : null
     }, client);
@@ -2360,7 +2370,9 @@ async function assignSpecialJob(params, adminUser = 'admin') {
         panelCount: finalPanelCount,
         staffId: targetStaff.staff_code,
         staffName: targetStaff.name,
-        scheduledDate: istDate
+        scheduledDate: istDate,
+        scheduledTime: finalScheduledTime,
+        sequenceOrder: finalSequenceOrder
       }
     }, client);
 
@@ -2383,6 +2395,9 @@ async function assignSpecialJob(params, adminUser = 'admin') {
         panelCount: job.panel_count,
         panel_count: job.panel_count,
         scheduledDate: istDate,
+        scheduledTime: finalScheduledTime,
+        tentativeTime: finalScheduledTime,
+        sequenceOrder: finalSequenceOrder,
         status: job.status,
         assignedStaffId: targetStaff.staff_code,
         assignedStaffName: targetStaff.name
@@ -2396,8 +2411,11 @@ async function assignSpecialJob(params, adminUser = 'admin') {
 /**
  * Reassign an existing special / on-demand job to another staff member
  */
-async function reassignSpecialJob({ jobId, newStaffId, toStaffId, targetStaffId, reason = null, adminUser = 'admin' }) {
-  const staffTarget = newStaffId || toStaffId || targetStaffId;
+async function reassignSpecialJob(params = {}, maybeAdminUser = null) {
+  const jobId = params.jobId;
+  const staffTarget = params.newStaffId || params.toStaffId || params.targetStaffId;
+  const reason = params.reason || null;
+  const adminUser = maybeAdminUser || params.adminUser || 'admin';
   if (!jobId) {
     return { success: false, error: 'Job ID is required for reassignment.' };
   }
@@ -2437,6 +2455,20 @@ async function reassignSpecialJob({ jobId, newStaffId, toStaffId, targetStaffId,
 
     if (oldStaffId && oldStaffId === targetStaff.id) {
       return { success: false, error: `${targetStaff.name} is already assigned to this job.` };
+    }
+
+    // 4. Update scheduled time or sequence order if provided
+    const jobUpdates = {};
+    if (params.scheduledTime !== undefined || params.tentativeTime !== undefined) {
+      jobUpdates.scheduledTime = (params.scheduledTime || params.tentativeTime || '').trim() || null;
+    }
+    if (params.sequenceOrder !== undefined) {
+      jobUpdates.sequenceOrder = (params.sequenceOrder != null && params.sequenceOrder !== '' && !isNaN(parseInt(params.sequenceOrder, 10)))
+        ? parseInt(params.sequenceOrder, 10)
+        : null;
+    }
+    if (Object.keys(jobUpdates).length > 0) {
+      await repos.serviceJobs.updateJob(job.id, jobUpdates, client);
     }
 
     // 4. Assign new staff (this automatically deactivates prior assignment with reason)
@@ -2618,6 +2650,9 @@ async function getSpecialJobsAdmin({ status = null, serviceCategoryId = null, st
       panelCount: row.panel_count,
       siteDetails: row.site_details,
       scheduledDate: row.scheduled_date,
+      scheduledTime: row.scheduled_time || '',
+      tentativeTime: row.scheduled_time || '',
+      sequenceOrder: row.sequence_order !== null && row.sequence_order !== undefined ? row.sequence_order : null,
       status: row.status,
       specialInstructions: row.special_instructions,
       beforePhotos,

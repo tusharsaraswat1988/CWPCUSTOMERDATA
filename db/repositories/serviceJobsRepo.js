@@ -105,8 +105,10 @@ async function findDispatchedForStaff(staffId, client = null) {
          WHEN 'cancelled' THEN 4
          ELSE 5 
        END ASC,
-       j.scheduled_date ASC NULLS LAST, 
-       j.created_at DESC`,
+       j.scheduled_date ASC NULLS LAST,
+       j.sequence_order ASC NULLS LAST,
+       j.scheduled_time ASC NULLS LAST,
+       j.created_at ASC`,
     [staffId]
   );
   return res.rows;
@@ -124,6 +126,8 @@ async function createJob({
   panelCount = null,
   siteDetails = null,
   scheduledDate = null,
+  scheduledTime = null,
+  sequenceOrder = null,
   status = 'assigned',
   specialInstructions = null,
   photoUrl = null,
@@ -136,10 +140,10 @@ async function createJob({
     `INSERT INTO public.service_jobs (
        customer_id, vehicle_id, location_id, service_category_id,
        service_type, package_details, package_code, seater_type, panel_count,
-       site_details, scheduled_date,
+       site_details, scheduled_date, scheduled_time, sequence_order,
        status, special_instructions, photo_url, photo_storage_key,
        before_photos, after_photos
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
      RETURNING *`,
     [
       customerId,
@@ -153,6 +157,8 @@ async function createJob({
       panelCount != null && !isNaN(parseInt(panelCount, 10)) ? parseInt(panelCount, 10) : null,
       siteDetails ? (typeof siteDetails === 'string' ? siteDetails : JSON.stringify(siteDetails)) : null,
       scheduledDate,
+      scheduledTime ? scheduledTime.trim() : null,
+      sequenceOrder != null && !isNaN(parseInt(sequenceOrder, 10)) ? parseInt(sequenceOrder, 10) : null,
       status || 'assigned',
       specialInstructions ? specialInstructions.trim() : null,
       photoUrl,
@@ -301,6 +307,8 @@ async function updateJob(id, updates = {}, client = null) {
     panelCount: 'panel_count',
     siteDetails: 'site_details',
     scheduledDate: 'scheduled_date',
+    scheduledTime: 'scheduled_time',
+    sequenceOrder: 'sequence_order',
     status: 'status',
     specialInstructions: 'special_instructions',
     photoUrl: 'photo_url',

@@ -1504,7 +1504,11 @@ var state = {
       bindDebouncedTransliterate('editCustSecAddress', 'editCustSecAddressHi', 'address');
     }
 
-    function speakHindiCustomerDetails(name, address, event) {
+    function speakHindiCustomerDetails(name, address, extraText, event) {
+      if (typeof extraText === 'object' && extraText !== null && extraText.stopPropagation) {
+        event = extraText;
+        extraText = '';
+      }
       if (event) event.stopPropagation();
       if (!('speechSynthesis' in window)) {
         showToast('स्पीच सिंथेसाइज़र समर्थित नहीं है', '⚠️');
@@ -1514,6 +1518,7 @@ var state = {
         window.speechSynthesis.cancel();
         var text = (name || '').trim();
         if (address) text += ', पता: ' + address;
+        if (extraText) text += ', ' + extraText;
         var utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'hi-IN';
         utterance.rate = 0.88;
@@ -3870,6 +3875,8 @@ var state = {
       var workType = (document.getElementById('jobAssignWorkType') || {}).value;
       var schedDate = (document.getElementById('jobAssignDate') || {}).value;
       var staffId = (document.getElementById('jobAssignStaff') || {}).value;
+      var jobTime = (document.getElementById('jobAssignTime') || {}).value || '';
+      var jobSeq = (document.getElementById('jobAssignSequenceOrder') || {}).value || '';
       var notes = (document.getElementById('jobAssignNotes') || {}).value || '';
 
       if (!custId || !workType || !schedDate || !staffId) {
@@ -3898,6 +3905,9 @@ var state = {
         vehicleNum: customer ? (customer.vehicleNum || customer.registration_no || '') : '',
         serviceCategory: workType,
         scheduledDate: schedDate,
+        scheduledTime: jobTime.trim() || null,
+        tentativeTime: jobTime.trim() || null,
+        sequenceOrder: jobSeq ? parseInt(jobSeq, 10) : null,
         staffId: staffId,
         staffName: staff ? staff.name : staffId,
         instructions: notes,
@@ -3951,11 +3961,13 @@ var state = {
       var html = '';
       activeJobs.forEach(function(j, idx) {
         var dateStr = j.scheduled_date || j.assigned_at ? new Date(j.scheduled_date || j.assigned_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'Today';
+        var timeStr = j.scheduledTime || j.tentativeTime || j.scheduled_time || '';
+        var seqStr = (j.sequenceOrder != null && j.sequenceOrder !== '') ? j.sequenceOrder : (j.sequence_order != null ? j.sequence_order : '');
         var catLabel = (j.service_category || 'Job').replace(/_/g, ' ');
 
         html += '<tr>';
-        html += '  <td style="text-align: center;">' + (idx + 1) + '</td>';
-        html += '  <td><strong>' + dateStr + '</strong></td>';
+        html += '  <td style="text-align: center;">' + (seqStr ? '<span class="special-route-seq-tag">#' + escapeHtml(String(seqStr)) + '</span>' : (idx + 1)) + '</td>';
+        html += '  <td><strong>' + dateStr + '</strong>' + (timeStr ? '<div style="font-size:11px; color:#d97706; font-weight:600; margin-top:2px;">⏰ ' + escapeHtml(timeStr) + '</div>' : '') + '</td>';
         html += '  <td><div style="font-weight: 600;">' + escapeHtml(j.customer_name || 'Customer') + '</div><div style="font-size: 11px; color: var(--text-muted);">' + escapeHtml(j.vehicle_details || j.vehicle_num || '') + '</div></td>';
         html += '  <td><span class="m3-chip" style="font-size: 11px;">' + escapeHtml(catLabel) + '</span></td>';
         html += '  <td><div class="staff-cell-pill"><span class="staff-avatar-dot">' + escapeHtml((j.staff_name || 'S').charAt(0).toUpperCase()) + '</span><span class="staff-cell-name">' + escapeHtml(j.staff_name || 'Staff') + '</span></div></td>';
@@ -4808,10 +4820,19 @@ function loadStaffCustomerData(staffId) {
           });
         }
         if (data.otherJobs && Array.isArray(data.otherJobs)) {
-          data.otherJobs.forEach(function(item, idx) {
+          var sortedOtherJobs = data.otherJobs.slice().sort(function(a, b) {
+            var seqA = (a.sequenceOrder != null && a.sequenceOrder !== '') ? Number(a.sequenceOrder) : 999;
+            var seqB = (b.sequenceOrder != null && b.sequenceOrder !== '') ? Number(b.sequenceOrder) : 999;
+            if (seqA !== seqB) return seqA - seqB;
+            var timeA = a.scheduledTime || a.tentativeTime || '';
+            var timeB = b.scheduledTime || b.tentativeTime || '';
+            if (timeA && timeB) return timeA.localeCompare(timeB);
+            return 0;
+          });
+          sortedOtherJobs.forEach(function(item, idx) {
             item.category = item.serviceCategoryId || item.category || 'other_jobs';
             item.serviceCategory = item.categoryName || item.serviceType || 'Other Job';
-            item._seq = idx + 1;
+            item._seq = (item.sequenceOrder != null && item.sequenceOrder !== '') ? Number(item.sequenceOrder) : (idx + 1);
             list.push(item);
           });
         } else {
@@ -5284,7 +5305,7 @@ function loadStaffCustomerData(staffId) {
         if (isDaily) {
           html += '      <span class="cust-route-seq-badge" title="रूट क्रम: ' + seqDisplay + '">' + seqDisplay + '</span>';
         } else {
-          html += '      <span class="cust-index-badge">#' + seqNumber + '</span>';
+          html += '      <span class="cust-route-seq-badge special-route-seq-badge" title="' + (isHi ? 'विजिट क्रम: स्टॉप #' + seqNumber : 'Visit Sequence: Stop #' + seqNumber) + '">#' + seqNumber + '</span>';
         }
         html += '      <div class="cust-name-with-audio" style="display: flex; flex-direction: column; min-width: 0;">';
         html += '        <h3 class="cust-full-name" title="' + customerName + '">' + customerName + '</h3>';
@@ -5292,7 +5313,9 @@ function loadStaffCustomerData(staffId) {
           html += '        <span class="cust-bilingual-sub" title="' + subNameEn + '">(' + subNameEn + ')</span>';
         }
         html += '      </div>';
-        html += '      <button type="button" class="btn-card-audio" onclick="speakHindiCustomerDetails(\'' + escapeHtml(displayName).replace(/'/g, "\\'") + '\', \'' + escapeHtml(address).replace(/'/g, "\\'") + '\', event)" title="' + (isHi ? 'नाम और पता सुनें' : 'Listen name & address') + '">';
+        var tentativeTime = item.scheduledTime || item.tentativeTime || '';
+        var speechExtra = (!isDaily && tentativeTime) ? ((isHi ? 'संभावित समय: ' : 'Tentative time: ') + tentativeTime + (isHi ? ', स्टॉप नंबर: ' : ', stop number: ') + seqNumber) : '';
+        html += '      <button type="button" class="btn-card-audio" onclick="speakHindiCustomerDetails(\'' + escapeHtml(displayName).replace(/'/g, "\\'") + '\', \'' + escapeHtml(address).replace(/'/g, "\\'") + '\', \'' + escapeHtml(speechExtra).replace(/'/g, "\\'") + '\', event)" title="' + (isHi ? 'नाम और पता सुनें' : 'Listen name & address') + '">';
         html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">volume_up</span>';
         html += '      </button>';
         html += '    </div>';
@@ -5323,6 +5346,18 @@ function loadStaffCustomerData(staffId) {
         }
         html += '    </div>';
         html += '  </div>';
+
+        /* Tentative Time Badge Row for On-Demand Staff Bookings */
+        var tentativeTime = item.scheduledTime || item.tentativeTime || '';
+        if (!isDaily && tentativeTime) {
+          html += '  <div class="card-tentative-time-row" style="margin: 0 12px 6px 12px;">' +
+            '<div class="job-tentative-time-badge" title="' + (isHi ? 'काम पर पहुंचने का संभावित समय' : 'Tentative arrival time') + '">' +
+              '<span class="material-symbols-outlined time-icon" aria-hidden="true">schedule</span>' +
+              '<span>' + (isHi ? 'संभावित समय: ' : 'Tentative Time: ') + '<strong>' + escapeHtml(tentativeTime) + '</strong></span>' +
+              '<span class="seq-tag">' + (isHi ? 'स्टॉप #' : 'Stop #') + seqNumber + '</span>' +
+            '</div>' +
+          '</div>';
+        }
 
         /* Row 2: Vehicle / Site Plate + Package Badge + Photo Thumbnail */
         html += '  <div class="card-vehicle-row">';
@@ -5515,7 +5550,7 @@ function loadStaffCustomerData(staffId) {
           if (jStatus === 'assigned') {
             html += '    <div class="job-card-journey-bar job-status-assigned">';
             html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">assignment</span>' + (isHi ? 'नया काम' : 'Awaiting Start') + '</span>';
-            html += '      <span class="job-time-chip">' + (item.scheduledDate ? (isHi ? 'तारीख: ' : 'Date: ') + escapeHtml(item.scheduledDate) : (isHi ? 'आज का काम' : "Today's Job")) + '</span>';
+            html += '      <span class="job-time-chip">' + (item.scheduledDate ? (isHi ? 'तारीख: ' : 'Date: ') + escapeHtml(item.scheduledDate) : (isHi ? 'आज का काम' : "Today's Job")) + (tentativeTime ? ' • ⏰ ' + escapeHtml(tentativeTime) : '') + ' • Stop #' + seqNumber + '</span>';
             html += '    </div>';
             html += '    <div style="display: flex; gap: 8px; margin-top: 6px;">';
             html += '      <button type="button" class="btn-job-action btn-job-start" style="flex: 1;" onclick="openStartSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
@@ -14802,6 +14837,10 @@ function loadStaffCustomerData(staffId) {
       if (dateInput && !dateInput.value) {
         dateInput.value = new Date().toISOString().split('T')[0];
       }
+      var timeInp = document.getElementById('specialScheduledTime');
+      var seqInp = document.getElementById('specialSequenceOrder');
+      if (timeInp) timeInp.value = '';
+      if (seqInp) seqInp.value = '';
 
       // Initialize category and seater sizing
       var catSelect = document.getElementById('specialServiceCategory');
@@ -14985,6 +15024,46 @@ function loadStaffCustomerData(staffId) {
       }
     }
 
+
+    function setSpecialTimePreset(timeSlot, seq) {
+      var timeInp = document.getElementById('specialScheduledTime');
+      var seqInp = document.getElementById('specialSequenceOrder');
+      if (timeInp) timeInp.value = timeSlot;
+      if (seqInp && seq) seqInp.value = seq;
+    }
+    window.setSpecialTimePreset = setSpecialTimePreset;
+
+    function handleSpecialStaffChange() {
+      var staffId = document.getElementById('specialStaffSelect')?.value;
+      var dateVal = document.getElementById('specialScheduledDate')?.value || new Date().toISOString().split('T')[0];
+      var seqInp = document.getElementById('specialSequenceOrder');
+      var timeInp = document.getElementById('specialScheduledTime');
+      if (!staffId) return;
+
+      var specialState = (typeof adminSpecialJobsState !== 'undefined' && adminSpecialJobsState)
+        ? adminSpecialJobsState
+        : ((typeof adminSpecialState !== 'undefined' && adminSpecialState) ? adminSpecialState : (window.adminSpecialState || null));
+      var allJobs = (specialState && Array.isArray(specialState.allJobs))
+        ? specialState.allJobs
+        : ((typeof adminSpecialJobsCache !== 'undefined' && Array.isArray(adminSpecialJobsCache)) ? adminSpecialJobsCache : []);
+
+      var staffJobsToday = allJobs.filter(function(j) {
+        var sMatch = (j.staffId === staffId || j.assigned_staff_code === staffId || j.assignedStaffId === staffId || j.assigned_staff_name === staffId);
+        var dMatch = !j.scheduledDate || j.scheduledDate === dateVal || (j.scheduled_date && j.scheduled_date.startsWith(dateVal));
+        return sMatch && dMatch && j.status !== 'cancelled';
+      });
+
+      var nextSeq = staffJobsToday.length + 1;
+      if (seqInp && (!seqInp.value || seqInp.value === '1')) {
+        seqInp.value = nextSeq;
+      }
+      var defaultSlots = ['09:00 AM - 10:30 AM', '11:00 AM - 12:30 PM', '02:00 PM - 03:30 PM', '04:30 PM - 06:00 PM'];
+      if (timeInp && !timeInp.value && defaultSlots[nextSeq - 1]) {
+        timeInp.value = defaultSlots[nextSeq - 1];
+      }
+    }
+    window.handleSpecialStaffChange = handleSpecialStaffChange;
+
     function handleAssignSpecialJobSubmit(event) {
       event.preventDefault();
       var err = document.getElementById('assignSpecialJobError');
@@ -14997,6 +15076,8 @@ function loadStaffCustomerData(staffId) {
       var custAddress = document.getElementById('specialCustAddress')?.value.trim() || '';
       var serviceCat = document.getElementById('specialServiceCategory')?.value || 'solar_cleaning';
       var scheduledDate = document.getElementById('specialScheduledDate')?.value || '';
+      var scheduledTime = document.getElementById('specialScheduledTime')?.value.trim() || '';
+      var sequenceOrder = document.getElementById('specialSequenceOrder')?.value.trim() || '';
       var staffId = document.getElementById('specialStaffSelect')?.value || '';
       var instructions = document.getElementById('specialInstructions')?.value.trim() || '';
 
@@ -15046,6 +15127,9 @@ function loadStaffCustomerData(staffId) {
         siteDetails: isSolar ? { panelCount: solarPanelsCount, panelScope: solarPanels } : null,
         vehicleDetails: isSolar ? null : (carVeh ? { vehicle: carVeh, seaterType: seaterType } : { seaterType: seaterType }),
         scheduledDate: scheduledDate,
+        scheduledTime: scheduledTime,
+        tentativeTime: scheduledTime,
+        sequenceOrder: sequenceOrder ? parseInt(sequenceOrder, 10) : null,
         staffId: staffId,
         specialInstructions: instructions
       };
@@ -15089,6 +15173,10 @@ function loadStaffCustomerData(staffId) {
       var staffEl = document.getElementById('reassignCurrentStaff');
       var select = document.getElementById('reassignStaffSelect') || document.getElementById('reassignNewStaffSelect');
       var reasonInput = document.getElementById('reassignReason');
+      var reassignTimeInp = document.getElementById('reassignScheduledTime');
+      var reassignSeqInp = document.getElementById('reassignSequenceOrder');
+      if (reassignTimeInp) reassignTimeInp.value = job ? (job.scheduledTime || job.tentativeTime || job.scheduled_time || '') : '';
+      if (reassignSeqInp) reassignSeqInp.value = (job && job.sequenceOrder != null) ? job.sequenceOrder : ((job && job.sequence_order != null) ? job.sequence_order : '');
       var err = document.getElementById('reassignJobError');
 
       if (err) err.style.display = 'none';
@@ -15177,6 +15265,8 @@ function loadStaffCustomerData(staffId) {
       var jobId = document.getElementById('reassignJobTargetId')?.value;
       var newStaffId = (document.getElementById('reassignStaffSelect') || document.getElementById('reassignNewStaffSelect'))?.value;
       var reason = document.getElementById('reassignReason')?.value.trim();
+      var reassignTime = document.getElementById('reassignScheduledTime')?.value.trim() || '';
+      var reassignSeq = document.getElementById('reassignSequenceOrder')?.value.trim() || '';
 
       if (!jobId || !newStaffId) {
         if (err) { err.textContent = 'कृपया नया स्टाफ चुनें।'; err.style.display = 'block'; }
@@ -15189,7 +15279,14 @@ function loadStaffCustomerData(staffId) {
         btn.innerHTML = '<span>⏳ Reassigning...</span>';
       }
 
-      apiCall('reassignSpecialJob', { jobId: jobId, newStaffId: newStaffId, reason: reason }, function(res) {
+      apiCall('reassignSpecialJob', {
+        jobId: jobId,
+        newStaffId: newStaffId,
+        reason: reason,
+        scheduledTime: reassignTime || null,
+        tentativeTime: reassignTime || null,
+        sequenceOrder: reassignSeq ? parseInt(reassignSeq, 10) : null
+      }, function(res) {
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '<span>🔁</span> Confirm Reassign';
@@ -15561,8 +15658,13 @@ function loadStaffCustomerData(staffId) {
 
         var scheduleHtml = formatJobScheduledDate(j.scheduledDate);
 
+        var timeLabel = j.scheduledTime || j.tentativeTime || j.scheduled_time || '';
+        var seqVal = (j.sequenceOrder != null && j.sequenceOrder !== '') ? j.sequenceOrder : (j.sequence_order != null ? j.sequence_order : '');
+        var timeBadgeHtml = timeLabel ? '<span class="scope-pill" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; font-weight:700;">⏰ ' + escapeHtml(timeLabel) + (seqVal ? ' (Stop #' + escapeHtml(String(seqVal)) + ')' : '') + '</span>' : (seqVal ? '<span class="scope-pill">Stop #' + escapeHtml(String(seqVal)) + '</span>' : '');
+
         var scopeColHtml = '<div class="scope-cell-block">' +
           (scopePills ? '<div style="display:flex; gap:4px; flex-wrap:wrap;">' + scopePills + '</div>' : '<span style="color:var(--text-muted); font-size:12px;">Standard</span>') +
+          (timeBadgeHtml ? '<div style="margin-top:4px;">' + timeBadgeHtml + '</div>' : '') +
           '<div class="scope-sched-sub"><span class="material-symbols-outlined sched-icon">event</span> ' + scheduleHtml + '</div>' +
         '</div>';
 
@@ -15845,6 +15947,8 @@ function loadStaffCustomerData(staffId) {
       window.closeCancelSpecialJobModal = closeCancelSpecialJobModal;
       window.submitCancelSpecialJob = submitCancelSpecialJob;
       window.shareSpecialJobWhatsApp = shareSpecialJobWhatsApp;
+      window.setSpecialTimePreset = setSpecialTimePreset;
+      window.handleSpecialStaffChange = handleSpecialStaffChange;
       window.openAssignSpecialJobModal = openAssignSpecialJobModal;
       window.closeAssignSpecialJobModal = closeAssignSpecialJobModal;
       window.toggleSpecialCustMode = toggleSpecialCustMode;
