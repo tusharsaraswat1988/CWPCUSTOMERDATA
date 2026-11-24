@@ -2458,6 +2458,9 @@ var state = {
       if (typeof stopDailyCleanReportsAutoSync === 'function') {
         stopDailyCleanReportsAutoSync();
       }
+      if (typeof stopAdminRealtimeStream === 'function') {
+        stopAdminRealtimeStream();
+      }
     }
 
     function isUserAdminAuthenticated() {
@@ -2515,6 +2518,8 @@ var state = {
         loadStaffListForAdmin();
         loadAdminRecords();
         initCustomerAutoDraft();
+        if (typeof refreshAllAdminBadges === 'function') refreshAllAdminBadges();
+        if (typeof initAdminRealtimeStream === 'function') initAdminRealtimeStream();
 
         // Restore current active tab (keeps same panel on refresh, or records on login)
         var currentTab = getSavedAdminTab();
@@ -2980,6 +2985,172 @@ var state = {
       }
     }
     window.refreshOperationsDashboard = refreshOperationsDashboard;
+
+    /* =========================================================================
+       ADMIN REALTIME SSE CLIENT & UNIFIED OPERATIONS STREAM
+       ========================================================================= */
+    var adminRealtimeEventSource = null;
+    var adminRealtimeReconnectTimer = null;
+    var adminRealtimePulseTimer = null;
+
+    function refreshAllAdminBadges() {
+      if (!isUserAdminAuthenticated()) return;
+      if (typeof loadAdminSpecialJobs === 'function') {
+        loadAdminSpecialJobs(true);
+      }
+      if (typeof loadDailyCleanReports === 'function') {
+        loadDailyCleanReports(true);
+      }
+      if (typeof refreshLeadsBadgeCount === 'function') {
+        refreshLeadsBadgeCount();
+      }
+    }
+    window.refreshAllAdminBadges = refreshAllAdminBadges;
+
+    function initAdminRealtimeStream() {
+      if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
+      if (!isUserAdminAuthenticated()) return;
+
+      if (adminRealtimeEventSource) {
+        try { adminRealtimeEventSource.close(); } catch(e) {}
+        adminRealtimeEventSource = null;
+      }
+
+      var token = getAdminToken();
+      if (!token) return;
+
+      var streamUrl = '/api/admin-realtime-stream?token=' + encodeURIComponent(token);
+      try {
+        adminRealtimeEventSource = new EventSource(streamUrl);
+
+        adminRealtimeEventSource.onopen = function() {
+          updateRealtimeConnectionUi(true);
+        };
+
+        adminRealtimeEventSource.onmessage = function(event) {
+          if (!event || !event.data) return;
+          try {
+            var payload = JSON.parse(event.data);
+            handleAdminRealtimeEvent(payload);
+          } catch(err) {
+            console.warn('[Admin SSE] Error parsing realtime event:', err);
+          }
+        };
+
+        adminRealtimeEventSource.onerror = function() {
+          updateRealtimeConnectionUi(false);
+          if (adminRealtimeEventSource) {
+            try { adminRealtimeEventSource.close(); } catch(e) {}
+            adminRealtimeEventSource = null;
+          }
+          if (adminRealtimeReconnectTimer) clearTimeout(adminRealtimeReconnectTimer);
+          adminRealtimeReconnectTimer = setTimeout(function() {
+            if (isUserAdminAuthenticated()) {
+              initAdminRealtimeStream();
+            }
+          }, 5000);
+        };
+      } catch(err) {
+        console.warn('[Admin SSE] Connection failed:', err.message);
+      }
+
+      startAdminRealtimePulse();
+    }
+    window.initAdminRealtimeStream = initAdminRealtimeStream;
+
+    function handleAdminRealtimeEvent(payload) {
+      if (!payload || !payload.type) return;
+      var activeTab = getSavedAdminTab();
+
+      if (payload.type === 'SPECIAL_JOB_CHANGED') {
+        if (typeof loadAdminSpecialJobs === 'function') {
+          loadAdminSpecialJobs(true);
+        }
+        if (payload.data && payload.data.action === 'completed') {
+          if (typeof playTaskCompletedChime === 'function') playTaskCompletedChime();
+        } else if (payload.data && payload.data.action === 'assigned') {
+          if (typeof playNewTaskChime === 'function') playNewTaskChime();
+        }
+      } else if (payload.type === 'DAILY_CLEAN_CHANGED') {
+        if (typeof loadDailyCleanReports === 'function') {
+          loadDailyCleanReports(true);
+        }
+      } else if (payload.type === 'LEAD_CHANGED') {
+        if (typeof refreshLeadsBadgeCount === 'function') {
+          refreshLeadsBadgeCount();
+        }
+        if (activeTab === 'leads' && typeof loadAdminLeads === 'function') {
+          loadAdminLeads(true);
+        }
+      } else if (payload.type === 'CUSTOMERS_CHANGED' || payload.type === 'CUSTOMER_ASSIGNMENT_CHANGED') {
+        if (activeTab === 'records' && typeof loadAdminRecords === 'function') {
+          loadAdminRecords(true);
+        }
+        if (typeof refreshAllAdminBadges === 'function') {
+          refreshAllAdminBadges();
+        }
+      } else if (payload.type === 'PING') {
+        updateRealtimeConnectionUi(true);
+      }
+    }
+    window.handleAdminRealtimeEvent = handleAdminRealtimeEvent;
+
+    function updateRealtimeConnectionUi(isLive) {
+      var syncDot = document.getElementById('staffSyncDot');
+      var syncText = document.getElementById('staffSyncText');
+      var liveBadge = document.getElementById('staffLiveBadge');
+      var rDot = document.getElementById('reportsLiveDot');
+      var rText = document.getElementById('reportsLiveSyncText');
+      var rTime = document.getElementById('reportsLastSyncTime');
+
+      if (isLive) {
+        if (syncDot) syncDot.style.color = '#10b981';
+        if (syncText) syncText.textContent = 'Live SSE';
+        if (liveBadge) liveBadge.classList.add('status-live');
+        if (rDot) rDot.style.display = 'inline-block';
+        if (rText) rText.textContent = 'LIVE AUDIT';
+        if (rTime) {
+          var now = new Date();
+          var timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          rTime.textContent = 'Realtime SSE Active • ' + timeStr;
+        }
+      }
+    }
+
+    function startAdminRealtimePulse() {
+      if (adminRealtimePulseTimer) clearInterval(adminRealtimePulseTimer);
+      adminRealtimePulseTimer = setInterval(function() {
+        if (!isUserAdminAuthenticated() || state.currentView !== 'admin') return;
+        if (document.visibilityState !== 'visible' || navigator.onLine === false) return;
+
+        var activeTab = getSavedAdminTab();
+        refreshAllAdminBadges();
+
+        if (activeTab === 'specialJobs' && typeof loadAdminSpecialJobs === 'function') {
+          loadAdminSpecialJobs(true);
+        } else if (activeTab === 'cleanReports' && typeof loadDailyCleanReports === 'function') {
+          loadDailyCleanReports(true);
+        } else if (activeTab === 'dashboard' && typeof refreshOperationsDashboard === 'function') {
+          refreshOperationsDashboard();
+        }
+      }, 15000);
+    }
+
+    function stopAdminRealtimeStream() {
+      if (adminRealtimeEventSource) {
+        try { adminRealtimeEventSource.close(); } catch(e) {}
+        adminRealtimeEventSource = null;
+      }
+      if (adminRealtimeReconnectTimer) {
+        clearTimeout(adminRealtimeReconnectTimer);
+        adminRealtimeReconnectTimer = null;
+      }
+      if (adminRealtimePulseTimer) {
+        clearInterval(adminRealtimePulseTimer);
+        adminRealtimePulseTimer = null;
+      }
+    }
+    window.stopAdminRealtimeStream = stopAdminRealtimeStream;
 
     /* =========================================================================
        SIDEBAR RAIL COLLAPSE CONTROLLER (R1 / Material Design 3)
