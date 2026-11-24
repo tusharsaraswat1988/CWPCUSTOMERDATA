@@ -57,13 +57,54 @@ const SERVICE_CATEGORIES = {
     descriptionHi: 'डीप एक्सटीरियर और अंडरबॉडी फोम वॉश सर्विस।',
     packages: [
       {
+        code: 'WASH_SINGLE_5',
+        name: 'Single Wash (5 Seater)',
+        nameHi: 'सिंगल वॉश (5 सीटर)',
+        description: 'One-time on-demand high-pressure foam wash for 5-seater vehicles.',
+        descriptionHi: 'एक बार की हाई-प्रेशर फोम वॉश सर्विस (5 सीटर)',
+        seaterType: '5_seater',
+        validityMonths: 1,
+        frequencies: 1
+      },
+      {
+        code: 'WASH_SINGLE_5PLUS',
+        name: 'Single Wash (5+ Seater)',
+        nameHi: 'सिंगल वॉश (5+ सीटर / SUV)',
+        description: 'One-time on-demand high-pressure foam wash for 5+ seater / SUV vehicles.',
+        descriptionHi: 'एक बार की हाई-प्रेशर फोम वॉश सर्विस (5+ सीटर / SUV)',
+        seaterType: '5_plus_seater',
+        validityMonths: 1,
+        frequencies: 1
+      },
+      {
+        code: 'WASH_SUB_4_5',
+        name: 'Wash Subscription (4 Washes / 6 Months) - 5 Seater',
+        nameHi: 'वॉश सब्सक्रिप्शन (4 वॉश / 6 माह) - 5 सीटर',
+        description: 'Package of 4 car washes valid for up to 6 months for 5-seater vehicles.',
+        descriptionHi: '4 कार वॉश का पैकेज, 6 महीने की वैधता (5 सीटर)',
+        seaterType: '5_seater',
+        validityMonths: 6,
+        frequencies: 4
+      },
+      {
+        code: 'WASH_SUB_4_5PLUS',
+        name: 'Wash Subscription (4 Washes / 6 Months) - 5+ Seater',
+        nameHi: 'वॉश सब्सक्रिप्शन (4 वॉश / 6 माह) - 5+ सीटर',
+        description: 'Package of 4 car washes valid for up to 6 months for 5+ seater vehicles.',
+        descriptionHi: '4 कार वॉश का पैकेज, 6 महीने की वैधता (5+ सीटर / SUV)',
+        seaterType: '5_plus_seater',
+        validityMonths: 6,
+        frequencies: 4
+      },
+      {
         code: 'WASH_SINGLE',
         name: 'Single Wash (One Time Wash)',
         nameHi: 'सिंगल वॉश (एक बार)',
         description: 'One-time on-demand high-pressure foam wash.',
         descriptionHi: 'एक बार की हाई-प्रेशर फोम वॉश सर्विस',
         validityMonths: 1,
-        frequencies: 1
+        frequencies: 1,
+        isLegacyAlias: true
       },
       {
         code: 'WASH_SUB_4',
@@ -72,7 +113,8 @@ const SERVICE_CATEGORIES = {
         description: 'Package of 4 car washes valid for up to 6 months.',
         descriptionHi: '4 कार वॉश का पैकेज, 6 महीने की वैधता के साथ',
         validityMonths: 6,
-        frequencies: 4
+        frequencies: 4,
+        isLegacyAlias: true
       }
     ]
   },
