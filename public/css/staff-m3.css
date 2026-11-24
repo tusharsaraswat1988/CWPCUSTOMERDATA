@@ -1221,18 +1221,20 @@ body.theme-dark #staffView .btn-clean-wa.wa-idle {
 
 .btn-job-action {
   width: 100% !important;
-  height: 44px !important;
-  border-radius: 10px !important;
-  font-size: 14px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  border-radius: 12px !important;
+  font-size: 13.5px !important;
   font-weight: 700 !important;
   border: none !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
   box-shadow: var(--md-sys-elevation-1, 0 1px 2px rgba(15, 23, 42, 0.08)) !important;
-  transition: transform 0.15s ease !important;
+  transition: transform 0.15s ease, background 0.2s ease !important;
 }
 
 .btn-job-action:active {
@@ -1252,6 +1254,40 @@ body.theme-dark #staffView .btn-clean-wa.wa-idle {
 .btn-job-action.btn-job-wa-share {
   background: #25D366 !important;
   color: #ffffff !important;
+}
+
+/* Balanced 2-Button Row for Special/On-Demand Job Cards */
+.job-action-buttons-row {
+  display: flex !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+.job-action-buttons-row .btn-job-start,
+.job-action-buttons-row .btn-job-complete {
+  flex: 1.7 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  padding: 0 12px !important;
+}
+
+.job-action-buttons-row .btn-job-cancel {
+  flex: 1 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  padding: 0 10px !important;
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fecaca !important;
+}
+
+.job-action-buttons-row .btn-job-cancel:hover {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
 }
 
 /* ==========================================================================

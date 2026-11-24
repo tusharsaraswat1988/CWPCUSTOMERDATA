@@ -74,7 +74,7 @@ async function findById(id, client = null) {
      FROM public.service_jobs j
      JOIN public.customers c ON j.customer_id = c.id
      LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
-     JOIN public.service_locations loc ON j.location_id = loc.id
+     LEFT JOIN public.service_locations loc ON j.location_id = loc.id
      LEFT JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
      LEFT JOIN public.staff s ON sa.staff_id = s.id
      WHERE j.id = $1 AND j.deleted_at IS NULL

@@ -3151,8 +3151,8 @@ var state = {
         var yPending = 145 - hPending;
 
         svgContent += '<rect x="' + xCleaned + '" y="' + yCleaned + '" width="' + barWidth + '" height="' + Math.max(4, hCleaned) + '" rx="4" fill="#10b981"/>';
-        svgContent += '<text x="' + (xCleaned + barWidth / 2) + '" y="' + (yCleaned - 4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#0f172a">' + cleaned + '</text>';
-        svgContent += '<text x="' + (xCleaned + barWidth) + '" y="165" text-anchor="middle" font-size="10" font-weight="600" fill="#64748b">' + escapeHtml(k.split(' ')[0]) + '</text>';
+        svgContent += '<text x="' + (xCleaned + barWidth / 2) + '" y="' + (yCleaned - 4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="currentColor">' + cleaned + '</text>';
+        svgContent += '<text x="' + (xCleaned + barWidth) + '" y="165" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor" opacity="0.75">' + escapeHtml(k.split(' ')[0]) + '</text>';
       });
 
       staffGroup.innerHTML = svgContent;
@@ -3196,8 +3196,8 @@ var state = {
         var y = 145 - h;
 
         svgContent += '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + Math.max(6, h) + '" rx="5" fill="' + item.color + '"/>';
-        svgContent += '<text x="' + (x + barW / 2) + '" y="' + (y - 5) + '" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">' + item.count + '</text>';
-        svgContent += '<text x="' + (x + barW / 2) + '" y="165" text-anchor="middle" font-size="10.5" font-weight="600" fill="#64748b">' + item.label + '</text>';
+        svgContent += '<text x="' + (x + barW / 2) + '" y="' + (y - 5) + '" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor">' + item.count + '</text>';
+        svgContent += '<text x="' + (x + barW / 2) + '" y="165" text-anchor="middle" font-size="10.5" font-weight="600" fill="currentColor" opacity="0.75">' + item.label + '</text>';
       });
 
       trendGroup.innerHTML = svgContent;
@@ -3644,8 +3644,8 @@ var state = {
         }
 
         // Build Staff Reassign Dropdown inline
-        var reassignSelect = '<select class="form-select" style="font-size: 11.5px; padding: 3px 6px; height: 28px; width: auto; max-width: 140px; display: inline-block;" onchange="handleDccInlineReassign(\'' + escapeHtml(row.customerId) + '\', this.value)">' +
-          '<option value="">' + (row.isAssigned ? 'Reassign...' : 'Assign cleaner...') + '</option>';
+        var reassignSelect = '<select class="form-select table-inline-assign-select" onchange="handleDccInlineReassign(\'' + escapeHtml(row.customerId) + '\', this.value)">' +
+          '<option value="">' + (row.isAssigned ? 'Reassign cleaner ▾' : 'Assign cleaner ▾') + '</option>';
         staffList.forEach(function(s) {
           var isCurrent = (row.staffId && s.id === row.staffId);
           reassignSelect += '<option value="' + escapeHtml(s.id) + '" ' + (isCurrent ? 'selected disabled' : '') + '>' + escapeHtml(s.name) + '</option>';
@@ -3673,8 +3673,8 @@ var state = {
           '    <div style="font-size: 12px; color: #334155;">' + escapeHtml(row.locality || row.address || 'Address not set') + '</div>' +
           '  </td>' +
           '  <td>' + staffCell + '</td>' +
-          '  <td style="text-align: center;">' + seqBadge + '</td>' +
-          '  <td style="text-align: right; white-space: nowrap;">' +
+          '  <td style="text-align: center;">' + seqBadge + (row.packageType ? '<div style="font-size: 11px; color: #64748b; margin-top: 2px;">' + escapeHtml(row.packageType) + '</div>' : '') + '</td>' +
+          '  <td style="text-align: right; white-space: nowrap;" class="col-act-roster">' +
           '    <div style="display: inline-flex; align-items: center; gap: 6px;">' +
                  reassignSelect +
                  unassignBtn +
@@ -5164,6 +5164,20 @@ function loadStaffCustomerData(staffId) {
       }
     }
 
+    function formatJobDisplayDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        var raw = String(dateStr).split('T')[0];
+        var parts = raw.split('-');
+        if (parts.length === 3) {
+          return parts[2] + '-' + parts[1] + '-' + parts[0];
+        }
+        return raw;
+      } catch (e) {
+        return String(dateStr);
+      }
+    }
+
     /* =========================================================================
        SMART COMPACT CARD RENDERER (Mobile-First, Professional Layout)
        - Customer name & sequence hierarchy
@@ -5550,13 +5564,13 @@ function loadStaffCustomerData(staffId) {
           if (jStatus === 'assigned') {
             html += '    <div class="job-card-journey-bar job-status-assigned">';
             html += '      <span><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">assignment</span>' + (isHi ? 'नया काम' : 'Awaiting Start') + '</span>';
-            html += '      <span class="job-time-chip">' + (item.scheduledDate ? (isHi ? 'तारीख: ' : 'Date: ') + escapeHtml(item.scheduledDate) : (isHi ? 'आज का काम' : "Today's Job")) + (tentativeTime ? ' • ⏰ ' + escapeHtml(tentativeTime) : '') + ' • Stop #' + seqNumber + '</span>';
+            html += '      <span class="job-time-chip">' + (item.scheduledDate ? (isHi ? 'तारीख: ' : 'Date: ') + escapeHtml(formatJobDisplayDate(item.scheduledDate)) : (isHi ? 'आज का काम' : "Today's Job")) + (tentativeTime ? ' • ⏰ ' + escapeHtml(tentativeTime) : '') + ' • Stop #' + seqNumber + '</span>';
             html += '    </div>';
-            html += '    <div style="display: flex; gap: 8px; margin-top: 6px;">';
-            html += '      <button type="button" class="btn-job-action btn-job-start" style="flex: 1;" onclick="openStartSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
+            html += '    <div class="job-action-buttons-row" style="display: flex; gap: 8px; margin-top: 8px; align-items: stretch;">';
+            html += '      <button type="button" class="btn-job-action btn-job-start" style="flex: 1.7; min-width: 0; white-space: nowrap;" onclick="openStartSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
             html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>' + (isHi ? 'काम शुरू करें' : 'Start Job') + '</span>';
             html += '      </button>';
-            html += '      <button type="button" class="btn-job-action btn-job-cancel" onclick="openCancelSpecialJobModal(\'' + escapeHtml(jId) + '\')" title="' + (isHi ? 'बुकिंग रद्द करें' : 'Cancel Booking') + '">';
+            html += '      <button type="button" class="btn-job-action btn-job-cancel" style="flex: 1; min-width: 0; white-space: nowrap;" onclick="openCancelSpecialJobModal(\'' + escapeHtml(jId) + '\')" title="' + (isHi ? 'बुकिंग रद्द करें' : 'Cancel Booking') + '">';
             html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">cancel</span><span>' + (isHi ? 'रद्द करें' : 'Cancel') + '</span>';
             html += '      </button>';
             html += '    </div>';
@@ -5579,11 +5593,11 @@ function loadStaffCustomerData(staffId) {
               html += '    </div>';
             }
 
-            html += '    <div style="display: flex; gap: 8px; margin-top: 6px;">';
-            html += '      <button type="button" class="btn-job-action btn-job-complete" style="flex: 1;" onclick="openCompleteSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
+            html += '    <div class="job-action-buttons-row" style="display: flex; gap: 8px; margin-top: 8px; align-items: stretch;">';
+            html += '      <button type="button" class="btn-job-action btn-job-complete" style="flex: 1.7; min-width: 0; white-space: nowrap;" onclick="openCompleteSpecialJobModal(\'' + escapeHtml(jId) + '\')">';
             html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">task_alt</span><span>' + (isHi ? 'काम पूरा करें' : 'Complete Job') + '</span>';
             html += '      </button>';
-            html += '      <button type="button" class="btn-job-action btn-job-cancel" onclick="openCancelSpecialJobModal(\'' + escapeHtml(jId) + '\')" title="' + (isHi ? 'बुकिंग रद्द करें' : 'Cancel Booking') + '">';
+            html += '      <button type="button" class="btn-job-action btn-job-cancel" style="flex: 1; min-width: 0; white-space: nowrap;" onclick="openCancelSpecialJobModal(\'' + escapeHtml(jId) + '\')" title="' + (isHi ? 'बुकिंग रद्द करें' : 'Cancel Booking') + '">';
             html += '        <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">cancel</span><span>' + (isHi ? 'रद्द करें' : 'Cancel') + '</span>';
             html += '      </button>';
             html += '    </div>';
@@ -6739,8 +6753,10 @@ function loadStaffCustomerData(staffId) {
         if (secGroup) secGroup.style.display = 'none';
         if (pkgSelect) {
           pkgSelect.innerHTML = 
-            '<option value="Single Wash (One Time Wash)">Single Wash (One Time Wash)</option>' +
-            '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
+            '<option value="Single Wash (5 Seater)">Single Wash (5 Seater)</option>' +
+            '<option value="Single Wash (5+ Seater)">Single Wash (5+ Seater)</option>' +
+            '<option value="Wash Subscription (4 Washes / 6 Months) - 5 Seater">Wash Subscription (4 Washes / 6 Months) - 5 Seater</option>' +
+            '<option value="Wash Subscription (4 Washes / 6 Months) - 5+ Seater">Wash Subscription (4 Washes / 6 Months) - 5+ Seater</option>' +
             '<option value="OTHER">OTHER (Custom Wash Plan)</option>';
         }
       } else if (isInterior) {
@@ -6781,10 +6797,12 @@ function loadStaffCustomerData(staffId) {
       }
       var carMakeColorRow = document.getElementById('custCarMakeColorRow');
       if (carMakeColorRow) carMakeColorRow.style.display = isSolar ? 'none' : 'grid';
+      var custVehicleManager = document.getElementById('custVehicleManagerSection');
+      if (custVehicleManager) custVehicleManager.style.display = isSolar ? 'none' : 'block';
       var custSolarPanelsRow = document.getElementById('custSolarPanelsRow');
       var custSeaterRow = document.getElementById('custSeaterRow');
       if (custSolarPanelsRow) {
-        custSolarPanelsRow.style.display = isSolar ? 'grid' : 'none';
+        custSolarPanelsRow.style.display = isSolar ? 'block' : 'none';
         if (isSolar) custSolarPanelsRow.classList.remove('is-hidden');
         else custSolarPanelsRow.classList.add('is-hidden');
       }
@@ -6795,6 +6813,23 @@ function loadStaffCustomerData(staffId) {
       }
       handlePackageTypeChange(pkgSelect ? pkgSelect.value : '');
     }
+
+    function handleCustCategoryChange(cat) {
+      toggleCategoryFields(cat);
+    }
+    window.handleCustCategoryChange = handleCustCategoryChange;
+
+    function setCustomerSolarPanels(mode, count) {
+      var id = mode === 'edit' ? 'editCustSolarPanelsCount' : 'custSolarPanelsCount';
+      var el = document.getElementById(id);
+      if (el) {
+        el.value = count;
+        el.dispatchEvent(new Event('input'));
+        el.dispatchEvent(new Event('change'));
+        if (typeof triggerCustomerAutoDraft === 'function') triggerCustomerAutoDraft();
+      }
+    }
+    window.setCustomerSolarPanels = setCustomerSolarPanels;
 
     function handleEditCategoryChange(cat) {
       var isSolar = (cat === 'Solar Panel Cleaning' || cat === 'solar_cleaning');
@@ -6817,10 +6852,12 @@ function loadStaffCustomerData(staffId) {
       }
       var editCarMakeColorRow = document.getElementById('editCustCarMakeColorRow');
       if (editCarMakeColorRow) editCarMakeColorRow.style.display = isSolar ? 'none' : 'grid';
+      var editVehicleManager = document.getElementById('editCustVehicleManagerSection');
+      if (editVehicleManager) editVehicleManager.style.display = isSolar ? 'none' : 'block';
       var editCustSolarPanelsRow = document.getElementById('editCustSolarPanelsRow');
       var editCustSeaterRow = document.getElementById('editCustSeaterRow');
       if (editCustSolarPanelsRow) {
-        editCustSolarPanelsRow.style.display = isSolar ? 'grid' : 'none';
+        editCustSolarPanelsRow.style.display = isSolar ? 'block' : 'none';
         if (isSolar) editCustSolarPanelsRow.classList.remove('is-hidden');
         else editCustSolarPanelsRow.classList.add('is-hidden');
       }
@@ -6842,8 +6879,10 @@ function loadStaffCustomerData(staffId) {
           '<option value="OTHER">OTHER (Custom Solar Plan)</option>';
       } else if (isCarWash) {
         pkgSelect.innerHTML = 
-          '<option value="Single Wash (One Time Wash)">Single Wash (One Time Wash)</option>' +
-          '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
+          '<option value="Single Wash (5 Seater)">Single Wash (5 Seater)</option>' +
+          '<option value="Single Wash (5+ Seater)">Single Wash (5+ Seater)</option>' +
+          '<option value="Wash Subscription (4 Washes / 6 Months) - 5 Seater">Wash Subscription (4 Washes / 6 Months) - 5 Seater</option>' +
+          '<option value="Wash Subscription (4 Washes / 6 Months) - 5+ Seater">Wash Subscription (4 Washes / 6 Months) - 5+ Seater</option>' +
           '<option value="OTHER">OTHER (Custom Wash Plan)</option>';
       } else if (isInterior) {
         pkgSelect.innerHTML = 
@@ -6883,14 +6922,32 @@ function loadStaffCustomerData(staffId) {
       handleEditPackageTypeChange(pkgSelect.value);
     }
 
+    function syncPackageAndVehicleSeater(mode, pkgVal) {
+      if (!pkgVal) return;
+      var list = state.customerVehicles[mode] || [];
+      if (!list || list.length === 0) return;
+      var targetSeater = null;
+      if (/5\+\s*seater|5plus|7_seater/i.test(pkgVal)) {
+        targetSeater = '5_plus_seater';
+      } else if (/5\s*seater/i.test(pkgVal)) {
+        targetSeater = '5_seater';
+      }
+      if (targetSeater && list[0] && list[0].seaterType !== targetSeater) {
+        list[0].seaterType = targetSeater;
+        renderCustomerVehicles(mode);
+      }
+    }
+
     function handleEditPackageTypeChange(val) {
       var customInput = document.getElementById('editCustPkgTypeCustom');
       if (customInput) customInput.style.display = (val === 'OTHER') ? 'block' : 'none';
+      syncPackageAndVehicleSeater('edit', val);
     }
 
     function handlePackageTypeChange(val) {
       var customInput = document.getElementById('custPkgTypeCustom');
       if (customInput) customInput.style.display = (val === 'OTHER') ? 'block' : 'none';
+      syncPackageAndVehicleSeater('add', val);
     }
 
     function handleOtherPackageTypeChange(val) {
@@ -9264,8 +9321,10 @@ function loadStaffCustomerData(staffId) {
           '<option value="Exterior Chemical Cleaning + 2 Carwash/mo">Exterior Chemical Cleaning + 2 Carwash/mo</option>' +
           '<option value="OTHER">OTHER (Custom Subscription)</option>';
       } else if (isCarWash) {
-        pkgSelect.innerHTML = '<option value="Single Wash (One Time Wash)" selected>Single Wash (One Time Wash)</option>' +
-          '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
+        pkgSelect.innerHTML = '<option value="Single Wash (5 Seater)" selected>Single Wash (5 Seater)</option>' +
+          '<option value="Single Wash (5+ Seater)">Single Wash (5+ Seater)</option>' +
+          '<option value="Wash Subscription (4 Washes / 6 Months) - 5 Seater">Wash Subscription (4 Washes / 6 Months) - 5 Seater</option>' +
+          '<option value="Wash Subscription (4 Washes / 6 Months) - 5+ Seater">Wash Subscription (4 Washes / 6 Months) - 5+ Seater</option>' +
           '<option value="OTHER">OTHER (Custom Wash Plan)</option>';
       } else if (isSolar) {
         pkgSelect.innerHTML = '<option value="One Time Solar Cleaning" selected>One Time Solar Cleaning</option>' +
@@ -9660,7 +9719,7 @@ function loadStaffCustomerData(staffId) {
       var paginationContainer = document.getElementById('adminTablePagination');
 
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
           '<div style="font-size: 32px; margin-bottom: 10px;">🔍</div>' +
           '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">No customer records match your filter</div>' +
           '<div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">Try adjusting your search criteria, staff assignment or category filters</div>' +
@@ -9878,6 +9937,7 @@ function loadStaffCustomerData(staffId) {
         html += '  <td>' + primaryAddrHtml + '</td>';
         html += '  <td style="text-align: center;">' + primaryMapHtml + '</td>';
         html += '  <td style="text-align: center;">' + secLocHtml + '</td>';
+        html += '  <td style="text-align: center;">' + staffHtml + '</td>';
         html += '  <td style="text-align: center;">' + actionsHtml + '</td>';
         html += '</tr>';
       });
@@ -9978,10 +10038,11 @@ function loadStaffCustomerData(staffId) {
 
       // Normalize legacy and alias package names to canonical catalog options
       var normPackage = pType;
+      var is5PlusCust = (editSeaterVal === '5_plus_seater' || editSeaterVal === '7_seater');
       if (/car wash subscription/i.test(pType) || /wash sub/i.test(pType) || /wash.*4/i.test(pType)) {
-        normPackage = 'Wash Subscription (4 Washes / 6 Months)';
+        normPackage = is5PlusCust ? 'Wash Subscription (4 Washes / 6 Months) - 5+ Seater' : 'Wash Subscription (4 Washes / 6 Months) - 5 Seater';
       } else if (/car wash single/i.test(pType) || /single wash/i.test(pType)) {
-        normPackage = 'Single Wash (One Time Wash)';
+        normPackage = is5PlusCust ? 'Single Wash (5+ Seater)' : 'Single Wash (5 Seater)';
       } else if (/solar subscription/i.test(pType) || /solar.*6/i.test(pType)) {
         normPackage = '6 Month Subscription (6 frequencies)';
       } else if (/solar single/i.test(pType) || /one time solar/i.test(pType)) {
@@ -10126,6 +10187,9 @@ function loadStaffCustomerData(staffId) {
         }
       }
       initCustomerLocations('edit', existingLocs);
+      var existingVehicles = r.vehicles || r.vehicleNumbers || r.vehicle || '';
+      initCustomerVehicles('edit', existingVehicles);
+      switchEditCustomerTab('profile');
     }
 
     /* ==========================================================================
@@ -10534,6 +10598,381 @@ function loadStaffCustomerData(staffId) {
     window.detectCardGpsLocation = detectCardGpsLocation;
     window.syncLocationCardData = syncLocationCardData;
 
+    /* ==========================================================================
+       MULTI-VEHICLE SYSTEM HELPERS (Add & Edit Customer Modals)
+       ========================================================================== */
+    state.customerVehicles = { add: [], edit: [] };
+
+    function parseCustomerVehicleCards(vehString) {
+      if (!vehString) return [];
+      var parts = String(vehString).split(/\s*\/\s*/).map(function(s) { return s.trim(); }).filter(Boolean);
+      return parts.map(function(part, idx) {
+        var m = part.match(/^([A-Za-z]{2}\s*\d{1,2}\s*[A-Za-z]{0,3}\s*\d{1,4})(.*)$/);
+        var plate = part;
+        var model = '';
+        if (m) {
+          plate = m[1].trim().toUpperCase();
+          model = (m[2] || '').trim().replace(/^[\(\-–—\s]+|[\)\s]+$/g, '');
+        }
+        return {
+          id: '',
+          plateNumber: plate,
+          carMake: model,
+          carColor: '',
+          seaterType: '5_seater',
+          scheduleTag: idx === 0 ? 'daily' : 'alternate'
+        };
+      });
+    }
+
+    function initCustomerVehicles(mode, existingVehicles) {
+      var list = [];
+      if (Array.isArray(existingVehicles) && existingVehicles.length > 0) {
+        list = existingVehicles.map(function(v, i) {
+          return {
+            id: v.id || '',
+            plateNumber: (v.plateNumber || v.registrationNo || v.registration_no || v.vehicleNumber || '').toUpperCase(),
+            carMake: v.carMake || v.car_make || v.brandOrModel || v.brand_or_model || '',
+            carColor: v.carColor || v.car_color || '',
+            seaterType: v.seaterType || v.seater_type || '5_seater',
+            scheduleTag: v.scheduleTag || v.schedule_tag || (i === 0 ? 'daily' : 'alternate')
+          };
+        });
+      } else if (typeof existingVehicles === 'string' && existingVehicles.trim()) {
+        list = parseCustomerVehicleCards(existingVehicles);
+      }
+
+      if (list.length === 0) {
+        list = [{
+          id: '',
+          plateNumber: '',
+          carMake: '',
+          carColor: '',
+          seaterType: '5_seater',
+          scheduleTag: 'daily'
+        }];
+      }
+      state.customerVehicles[mode] = list;
+      renderCustomerVehicles(mode);
+    }
+
+    function renderCustomerVehicles(mode) {
+      var container = document.getElementById(mode === 'add' ? 'custVehicleCardsList' : 'editCustVehicleCardsList');
+      if (!container) return;
+      var list = state.customerVehicles[mode] || [];
+      if (list.length === 0) {
+        list = [{
+          id: '',
+          plateNumber: '',
+          carMake: '',
+          carColor: '',
+          seaterType: '5_seater',
+          scheduleTag: 'daily'
+        }];
+        state.customerVehicles[mode] = list;
+      }
+
+      var html = '';
+      list.forEach(function(v, idx) {
+        var isAlt = (v.scheduleTag === 'alternate');
+        html += '<div class="cwp-vehicle-card" id="' + mode + 'VehCard_' + idx + '" data-veh-index="' + idx + '" style="background: var(--color-surface-container-low, #f8fafc); border: 1px solid var(--color-border-subtle, #e2e8f0); border-radius: 8px; padding: 12px; margin-bottom: 8px;">' +
+          '  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
+          '    <div style="display: flex; align-items: center; gap: 6px;">' +
+          '      <span style="font-size: 15px;">🚗</span>' +
+          '      <span class="cwp-vehicle-card-title" style="font-weight: 700; font-size: 13px; color: var(--color-text-primary, #0f172a);">Vehicle #' + (idx + 1) + '</span>' +
+          '      <span class="m3-chip" style="font-size: 10px; padding: 2px 6px; background: ' + (isAlt ? '#fef3c7; color: #b45309;' : '#ecfdf5; color: #047857;') + '">' + (isAlt ? 'Alternate Days' : 'Daily Clean') + '</span>' +
+          '    </div>' +
+          (list.length > 1 ? '    <button type="button" class="btn-location-delete" onclick="removeCustomerVehicleCard(\'' + mode + '\', ' + idx + ')" style="padding: 2px 8px; font-size: 11px;">🗑️ Remove</button>' : '') +
+          '  </div>' +
+          '  <div class="form-row-2">' +
+          '    <div class="form-group" style="margin-bottom: 6px;">' +
+          '      <label class="form-label" style="font-size: 11.5px;">Registration / Plate No. <span class="req-star">*</span></label>' +
+          '      <input type="text" class="form-input veh-field-plate" placeholder="e.g. UP65 AB 1234" value="' + escapeHtml(v.plateNumber || '') + '" oninput="handleVehicleCardInput(\'' + mode + '\', ' + idx + ', \'plateNumber\', this.value)" style="text-transform: uppercase; font-family: monospace; font-weight: 600;">' +
+          '    </div>' +
+          '    <div class="form-group" style="margin-bottom: 6px;">' +
+          '      <label class="form-label" style="font-size: 11.5px;">Car Make / Model <span class="opt-tag">(Optional)</span></label>' +
+          '      <input type="text" class="form-input veh-field-make" list="carMakeDatalist" placeholder="e.g. Hyundai Creta, Swift" value="' + escapeHtml(v.carMake || '') + '" oninput="handleVehicleCardInput(\'' + mode + '\', ' + idx + ', \'carMake\', this.value)">' +
+          '    </div>' +
+          '  </div>' +
+          '  <div class="form-row-2" style="margin-top: 4px;">' +
+          '    <div class="form-group" style="margin-bottom: 0;">' +
+          '      <label class="form-label" style="font-size: 11.5px;">Car Color <span class="opt-tag">(Optional)</span></label>' +
+          '      <input type="text" class="form-input veh-field-color" list="carColorDatalist" placeholder="e.g. White, Silver, Grey" value="' + escapeHtml(v.carColor || '') + '" oninput="handleVehicleCardInput(\'' + mode + '\', ' + idx + ', \'carColor\', this.value)">' +
+          '    </div>' +
+          '    <div class="form-group" style="margin-bottom: 0;">' +
+          '      <label class="form-label" style="font-size: 11.5px;">Seater Sizing & Schedule</label>' +
+          '      <div style="display: flex; gap: 8px; align-items: center; height: 38px;">' +
+          '        <select class="form-select veh-field-seater" onchange="handleVehicleCardInput(\'' + mode + '\', ' + idx + ', \'seaterType\', this.value)" style="font-size: 11.5px; height: 32px; padding: 2px 8px;">' +
+          '          <option value="5_seater" ' + (v.seaterType === '5_seater' || !v.seaterType ? 'selected' : '') + '>Hatch/Sedan/CSUV (5 Seater)</option>' +
+          '          <option value="5_plus_seater" ' + (v.seaterType === '5_plus_seater' || v.seaterType === '7_seater' ? 'selected' : '') + '>Large SUV/MPV (5+ Seater)</option>' +
+          '        </select>' +
+          '        <select class="form-select veh-field-schedule" onchange="handleVehicleCardInput(\'' + mode + '\', ' + idx + ', \'scheduleTag\', this.value)" style="font-size: 11.5px; height: 32px; padding: 2px 8px;">' +
+          '          <option value="daily" ' + (!isAlt ? 'selected' : '') + '>Daily</option>' +
+          '          <option value="alternate" ' + (isAlt ? 'selected' : '') + '>Alternate Days</option>' +
+          '        </select>' +
+          '      </div>' +
+          '    </div>' +
+          '  </div>' +
+          '</div>';
+      });
+      container.innerHTML = html;
+      syncLegacyVehicleFields(mode);
+    }
+
+    function handleVehicleCardInput(mode, idx, field, val) {
+      var list = state.customerVehicles[mode] || [];
+      if (list[idx]) {
+        if (field === 'plateNumber') list[idx].plateNumber = (val || '').toUpperCase();
+        else list[idx][field] = val;
+      }
+      syncLegacyVehicleFields(mode);
+
+      // Bidirectional Experience Intelligence: align package when vehicle card 0 seater changes
+      if (field === 'seaterType' && idx === 0) {
+        var catSelect = document.getElementById(mode === 'add' ? 'custCategory' : 'editCustCategory');
+        var pkgSelect = document.getElementById(mode === 'add' ? 'custPkgType' : 'editCustPkgType');
+        var cat = catSelect ? catSelect.value : '';
+        if (pkgSelect && (cat === 'Car Washing' || cat === 'car_washing')) {
+          var curPkg = pkgSelect.value;
+          var is5Plus = (val === '5_plus_seater' || val === '7_seater');
+          if (/single wash/i.test(curPkg)) {
+            pkgSelect.value = is5Plus ? 'Single Wash (5+ Seater)' : 'Single Wash (5 Seater)';
+          } else if (/wash subscription/i.test(curPkg)) {
+            pkgSelect.value = is5Plus ? 'Wash Subscription (4 Washes / 6 Months) - 5+ Seater' : 'Wash Subscription (4 Washes / 6 Months) - 5 Seater';
+          }
+        }
+      }
+    }
+
+    function addCustomerVehicleCard(mode) {
+      var list = state.customerVehicles[mode] || [];
+      list.push({
+        id: '',
+        plateNumber: '',
+        carMake: '',
+        carColor: '',
+        seaterType: '5_seater',
+        scheduleTag: list.length === 0 ? 'daily' : 'alternate'
+      });
+      renderCustomerVehicles(mode);
+    }
+
+    function removeCustomerVehicleCard(mode, index) {
+      var list = state.customerVehicles[mode] || [];
+      if (list.length <= 1) {
+        if (typeof showToast === 'function') showToast('At least one vehicle card is required.', 'warning');
+        return;
+      }
+      list.splice(index, 1);
+      renderCustomerVehicles(mode);
+    }
+
+    function syncLegacyVehicleFields(mode) {
+      var list = state.customerVehicles[mode] || [];
+      var pfx = mode === 'add' ? 'cust' : 'editCust';
+      var vehInput = document.getElementById(pfx + 'Vehicles');
+      var makeInput = document.getElementById(pfx + 'CarMake');
+      var colorInput = document.getElementById(pfx + 'CarColor');
+
+      var summaryParts = list.filter(function(v) { return v.plateNumber || v.carMake; }).map(function(v) {
+        var str = (v.plateNumber || '').trim();
+        if (v.carMake && v.carMake.trim()) {
+          str = str ? (str + ' ' + v.carMake.trim()) : v.carMake.trim();
+        }
+        return str;
+      });
+
+      var fullSummary = summaryParts.join(' / ');
+      if (vehInput) vehInput.value = fullSummary;
+
+      var firstVeh = list[0];
+      if (firstVeh) {
+        if (makeInput && firstVeh.carMake) makeInput.value = firstVeh.carMake;
+        if (colorInput && firstVeh.carColor) colorInput.value = firstVeh.carColor;
+      }
+    }
+
+    function collectCustomerVehicles(mode) {
+      return (state.customerVehicles[mode] || []).map(function(v) {
+        return {
+          id: v.id || null,
+          plateNumber: (v.plateNumber || '').trim().toUpperCase(),
+          carMake: (v.carMake || '').trim(),
+          carColor: (v.carColor || '').trim(),
+          seaterType: v.seaterType || '5_seater',
+          scheduleTag: v.scheduleTag || 'daily'
+        };
+      });
+    }
+
+    /* ==========================================================================
+       PROGRESSIVE 4-STEP STEPPER CONTROLLER (Add Customer Modal)
+       ========================================================================== */
+    function goToAddCustomerStep(step) {
+      var targetStep = parseInt(step, 10);
+      if (isNaN(targetStep) || targetStep < 1 || targetStep > 4) targetStep = 1;
+
+      // Validation when moving forward from Step 1
+      if (targetStep > 1) {
+        var nameEl = document.getElementById('custName');
+        var phoneEl = document.getElementById('custPhone');
+        var custNameVal = nameEl ? nameEl.value.trim() : '';
+        var custPhoneVal = phoneEl ? phoneEl.value.trim() : '';
+        var normPhone = normalizeIndianMobile(custPhoneVal);
+
+        if (!custNameVal) {
+          if (typeof showToast === 'function') showToast('Please enter customer name.', 'warning');
+          if (nameEl) nameEl.focus();
+          return;
+        }
+        if (!isValidIndianMobile(normPhone)) {
+          if (typeof showToast === 'function') showToast('Please enter a valid 10-digit Indian mobile number.', 'warning');
+          if (phoneEl) phoneEl.focus();
+          return;
+        }
+      }
+
+      for (var i = 1; i <= 4; i++) {
+        var ind = document.getElementById('stepIndicator' + i);
+        var pane = document.getElementById('stepPaneAdd' + i);
+        if (ind) {
+          if (i === targetStep) ind.classList.add('active');
+          else ind.classList.remove('active');
+        }
+        if (pane) {
+          if (i === targetStep) pane.classList.add('active');
+          else pane.classList.remove('active');
+        }
+      }
+
+      if (targetStep === 2) {
+        if (!state.customerLocations.add || state.customerLocations.add.length === 0) {
+          initCustomerLocations('add', []);
+        } else {
+          renderCustomerLocations('add');
+        }
+      } else if (targetStep === 3) {
+        if (!state.customerVehicles || !state.customerVehicles.add || state.customerVehicles.add.length === 0) {
+          initCustomerVehicles('add', []);
+        } else {
+          renderCustomerVehicles('add');
+        }
+      } else if (targetStep === 4) {
+        var staffSelect = document.getElementById('custStaffSelect');
+        if (staffSelect && (staffSelect.options.length <= 1) && Array.isArray(state.staffList) && state.staffList.length > 0) {
+          var opts = '<option value="">Unassigned</option>';
+          state.staffList.forEach(function(s) {
+            var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+            opts += '<option value="' + escapeHtml(s.name) + '">' + escapeHtml(s.name + (isAct ? '' : ' (Inactive)')) + '</option>';
+          });
+          staffSelect.innerHTML = opts;
+        }
+      }
+    }
+
+    /* ==========================================================================
+       SEGMENTED TAB CONTROLLER (Edit Customer Modal)
+       ========================================================================== */
+    function switchEditCustomerTab(tabName) {
+      var tabs = ['profile', 'locations', 'service', 'dispatch'];
+      if (!tabs.includes(tabName)) tabName = 'profile';
+
+      var tabMap = {
+        profile: { btn: 'tabBtnEditProfile', pane: 'editTabPaneProfile' },
+        locations: { btn: 'tabBtnEditLocations', pane: 'editTabPaneLocations' },
+        service: { btn: 'tabBtnEditService', pane: 'editTabPaneService' },
+        dispatch: { btn: 'tabBtnEditDispatch', pane: 'editTabPaneDispatch' }
+      };
+
+      tabs.forEach(function(t) {
+        var conf = tabMap[t];
+        var btn = document.getElementById(conf.btn);
+        var pane = document.getElementById(conf.pane);
+        if (btn) {
+          if (t === tabName) {
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+          } else {
+            btn.classList.remove('active');
+            btn.setAttribute('aria-selected', 'false');
+          }
+        }
+        if (pane) {
+          if (t === tabName) pane.classList.add('active');
+          else pane.classList.remove('active');
+        }
+      });
+
+      if (tabName === 'locations') {
+        renderCustomerLocations('edit');
+      } else if (tabName === 'service') {
+        renderCustomerVehicles('edit');
+      }
+    }
+
+    /* ==========================================================================
+       IMMEDIATE CUSTOMER CONTEXT CARD (Job Assignment Tab)
+       ========================================================================== */
+    function handleDccCustomerSelectChange(custId) {
+      var card = document.getElementById('dccCustomerContextCard');
+      if (!card) return;
+      if (!custId) {
+        card.style.display = 'none';
+        card.innerHTML = '';
+        return;
+      }
+      var rosterData = Array.isArray(dccRosterCache) ? dccRosterCache : [];
+      var cust = rosterData.find(function(c) { return String(c.customerId) === String(custId); });
+      if (!cust && typeof allCustomersCache !== 'undefined' && Array.isArray(allCustomersCache)) {
+        var raw = allCustomersCache.find(function(r) { return String(r.id) === String(custId); });
+        if (raw) {
+          cust = {
+            customerName: raw.customerName || raw.name,
+            phone: raw.customerNumber || raw.phone,
+            vehicleNumber: formatVehiclePlateOrSummary(raw, 'No plate'),
+            locality: raw.address || raw.locality || 'Address not set',
+            packageType: raw.packageType || raw.packageDetails || 'Daily Clean'
+          };
+        }
+      }
+      if (!cust && typeof state !== 'undefined' && state.customerDirectory) {
+        var dRaw = state.customerDirectory.find(function(r) { return String(r.id) === String(custId); });
+        if (dRaw) {
+          cust = {
+            customerName: dRaw.customerName || dRaw.name,
+            phone: dRaw.customerNumber || dRaw.phone,
+            vehicleNumber: formatVehiclePlateOrSummary(dRaw, 'No plate'),
+            locality: dRaw.address || dRaw.locality || 'Address not set',
+            packageType: dRaw.packageType || dRaw.packageDetails || 'Daily Clean'
+          };
+        }
+      }
+      if (!cust) {
+        card.style.display = 'none';
+        return;
+      }
+
+      card.innerHTML =
+        '<div class="dcc-context-item"><span>👤</span> <strong>' + escapeHtml(cust.customerName || 'Subscriber') + '</strong>' + (cust.phone ? ' (' + escapeHtml(cust.phone) + ')' : '') + '</div>' +
+        '<div class="dcc-context-item"><span>🚗</span> <strong>' + escapeHtml(cust.vehicleNumber || 'No plate set') + '</strong></div>' +
+        '<div class="dcc-context-item"><span>📍</span> <strong>' + escapeHtml(cust.locality || cust.address || 'Address not set') + '</strong></div>' +
+        '<div class="dcc-context-item"><span>📋</span> Plan: <strong>' + escapeHtml(cust.packageType || 'Daily Clean') + '</strong></div>';
+      card.style.display = 'flex';
+    }
+
+    window.parseVehicleDetails = parseVehicleDetails;
+    window.parseCustomerVehicleCards = parseCustomerVehicleCards;
+    window.initCustomerVehicles = initCustomerVehicles;
+    window.renderCustomerVehicles = renderCustomerVehicles;
+    window.handleVehicleCardInput = handleVehicleCardInput;
+    window.addCustomerVehicleCard = addCustomerVehicleCard;
+    window.removeCustomerVehicleCard = removeCustomerVehicleCard;
+    window.syncLegacyVehicleFields = syncLegacyVehicleFields;
+    window.collectCustomerVehicles = collectCustomerVehicles;
+    window.goToAddCustomerStep = goToAddCustomerStep;
+    window.switchEditCustomerTab = switchEditCustomerTab;
+    window.handleDccCustomerSelectChange = handleDccCustomerSelectChange;
+
     /* Add Customer Modal Handlers */
     function openAddCustomerModal(triggerEl) {
       if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl);
@@ -10542,7 +10981,13 @@ function loadStaffCustomerData(staffId) {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         setupIndicInputListeners();
+        goToAddCustomerStep(1);
         initCustomerLocations('add', []);
+        initCustomerVehicles('add', []);
+        var catEl = document.getElementById('custCategory');
+        if (catEl && typeof handleCustCategoryChange === 'function') {
+          handleCustCategoryChange(catEl.value);
+        }
         var nameInput = document.getElementById('custName');
         if (nameInput) setTimeout(function() { nameInput.focus(); }, 120);
         else if (typeof trapFocus === 'function') trapFocus(modal);
@@ -10822,8 +11267,10 @@ function loadStaffCustomerData(staffId) {
 
         if (pkgSelect) {
           pkgSelect.innerHTML =
-            '<option value="Wash Subscription (4 Washes / 6 Months)">Wash Subscription (4 Washes / 6 Months)</option>' +
-            '<option value="Single Wash (One Time Wash)">Single Wash (One Time Wash)</option>' +
+            '<option value="Single Wash (5 Seater)">Single Wash (5 Seater)</option>' +
+            '<option value="Single Wash (5+ Seater)">Single Wash (5+ Seater)</option>' +
+            '<option value="Wash Subscription (4 Washes / 6 Months) - 5 Seater">Wash Subscription (4 Washes / 6 Months) - 5 Seater</option>' +
+            '<option value="Wash Subscription (4 Washes / 6 Months) - 5+ Seater">Wash Subscription (4 Washes / 6 Months) - 5+ Seater</option>' +
             '<option value="OTHER">OTHER (Custom Plan)</option>';
         }
       } else if (category === 'Interior Detailing') {
@@ -14639,7 +15086,7 @@ function loadStaffCustomerData(staffId) {
       if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       currentStartJobId = jobId;
       startJobPhotos = [];
-      var job = (state.customers || []).find(function(c) { return (c.jobId || c.id) === jobId; });
+      var job = (state.customers || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); });
       if (!job) {
         showToast('काम की जानकारी नहीं मिली।', '⚠️');
         return;
@@ -14746,18 +15193,10 @@ function loadStaffCustomerData(staffId) {
 
     function submitStartSpecialJob() {
       if (!currentStartJobId) return;
-      if (startJobPhotos.length === 0) {
-        var err = document.getElementById('startJobErrorMsg');
-        if (err) {
-          err.textContent = 'कृपया काम शुरू करने से पहले की कम से कम 1 फोटो लें।';
-          err.style.display = 'block';
-        }
-        return;
-      }
       var submitBtn = document.getElementById('btnSubmitStartJob');
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span>⏳ फोटो अपलोड हो रही है...</span>';
+        submitBtn.innerHTML = '<span>⏳ काम शुरू हो रहा है...</span>';
       }
 
       var payload = {
@@ -14771,21 +15210,33 @@ function loadStaffCustomerData(staffId) {
       apiCall('startSpecialJob', payload, function(res) {
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span>🚀 काम शुरू करें</span>';
+          submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>काम शुरू करें</span>';
         }
         if (res && res.success) {
           showToast('▶️ काम शुरू हो गया! स्टेटस लाइव अपडेट हो गया।', '✅');
           closeStartSpecialJobModal();
           loadStaffCustomerData(state.activeStaffId);
         } else {
-          showToast((res && res.error) || 'काम शुरू करने में त्रुटि', '❌');
+          var errMsg = (res && res.error) || 'काम शुरू करने में त्रुटि';
+          showToast(errMsg, '❌');
+          var err = document.getElementById('startJobErrorMsg');
+          if (err) {
+            err.textContent = errMsg;
+            err.style.display = 'block';
+          }
         }
       }, function(err) {
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span>🚀 काम शुरू करें</span>';
+          submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>काम शुरू करें</span>';
         }
-        showToast('Error: ' + err.message, '❌');
+        var msg = 'Error: ' + (err && err.message ? err.message : err);
+        showToast(msg, '❌');
+        var errEl = document.getElementById('startJobErrorMsg');
+        if (errEl) {
+          errEl.textContent = msg;
+          errEl.style.display = 'block';
+        }
       });
     }
 
@@ -15567,35 +16018,129 @@ function loadStaffCustomerData(staffId) {
 
     /* Admin: Special Jobs Management & Table View */
     var adminSpecialJobsCache = [];
+    var adminSpecialState = {
+      allJobs: [],
+      period: 'today', // Default is "Today (आज)"
+      startDate: '',
+      endDate: ''
+    };
 
-    function formatJobScheduledDate(dateVal) {
-      if (!dateVal) return '<span class="schedule-pill pill-today"><span class="material-symbols-outlined">event</span> Today</span>';
-      if (typeof dateVal === 'string' && (dateVal.toLowerCase() === 'today' || dateVal.toLowerCase() === 'कल' || dateVal.toLowerCase() === 'आज')) {
+    function getJobEffectiveDateKey(j) {
+      if (!j) return '';
+      var sDate = j.scheduledDate || j.scheduled_date;
+      if (sDate) {
+        if (typeof sDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sDate.trim())) {
+          return sDate.trim();
+        }
+        try {
+          var d = new Date(sDate);
+          if (!isNaN(d.getTime())) return getAsiaKolkataDateKey(d);
+        } catch(e) {}
+      }
+      var fallback = j.assignedAt || j.assigned_at || j.createdAt || j.created_at;
+      if (fallback) {
+        try {
+          var d2 = new Date(fallback);
+          if (!isNaN(d2.getTime())) return getAsiaKolkataDateKey(d2);
+        } catch(e) {}
+      }
+      return '';
+    }
+
+    function computeSpecialJobDatesFromPeriod() {
+      var today = new Date();
+      var todayKey = getAsiaKolkataDateKey(today);
+
+      if (adminSpecialState.period === 'today') {
+        adminSpecialState.startDate = todayKey;
+        adminSpecialState.endDate = todayKey;
+      } else if (adminSpecialState.period === 'yesterday') {
+        var yest = new Date(today);
+        yest.setDate(yest.getDate() - 1);
+        var yestKey = getAsiaKolkataDateKey(yest);
+        adminSpecialState.startDate = yestKey;
+        adminSpecialState.endDate = yestKey;
+      } else if (adminSpecialState.period === '7days') {
+        var d7 = new Date(today);
+        d7.setDate(d7.getDate() - 6);
+        adminSpecialState.startDate = getAsiaKolkataDateKey(d7);
+        adminSpecialState.endDate = todayKey;
+      } else if (adminSpecialState.period === 'month') {
+        var dMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        adminSpecialState.startDate = getAsiaKolkataDateKey(dMonth);
+        adminSpecialState.endDate = todayKey;
+      } else if (adminSpecialState.period === 'all') {
+        adminSpecialState.startDate = '';
+        adminSpecialState.endDate = '';
+      }
+      var customBox = document.getElementById('specialCustomDateRangeBox');
+      if (customBox) {
+        customBox.style.display = (adminSpecialState.period === 'custom') ? 'inline-flex' : 'none';
+      }
+      var startInput = document.getElementById('specialStartDate');
+      var endInput = document.getElementById('specialEndDate');
+      if (startInput && adminSpecialState.startDate) startInput.value = adminSpecialState.startDate;
+      if (endInput && adminSpecialState.endDate) endInput.value = adminSpecialState.endDate;
+    }
+
+    function setSpecialPeriodChip(period) {
+      adminSpecialState.period = period;
+      ['today', 'yesterday', '7days', 'month', 'all', 'custom'].forEach(function(p) {
+        var cap = p === '7days' ? '7Days' : (p.charAt(0).toUpperCase() + p.slice(1));
+        var chip = document.getElementById('chipSpecialPeriod' + cap);
+        if (chip) chip.classList.toggle('active', p === period);
+      });
+      computeSpecialJobDatesFromPeriod();
+      filterAdminSpecialJobs();
+    }
+
+    function handleSpecialDateChange() {
+      var startInput = document.getElementById('specialStartDate');
+      var endInput = document.getElementById('specialEndDate');
+      if (startInput) adminSpecialState.startDate = startInput.value;
+      if (endInput) adminSpecialState.endDate = endInput.value;
+      adminSpecialState.period = 'custom';
+      ['today', 'yesterday', '7days', 'month', 'all'].forEach(function(p) {
+        var cap = p === '7days' ? '7Days' : (p.charAt(0).toUpperCase() + p.slice(1));
+        var chip = document.getElementById('chipSpecialPeriod' + cap);
+        if (chip) chip.classList.remove('active');
+      });
+      var custChip = document.getElementById('chipSpecialPeriodCustom');
+      if (custChip) custChip.classList.add('active');
+      filterAdminSpecialJobs();
+    }
+
+    function formatJobScheduledDate(dateVal, createdVal, assignedVal) {
+      var effDate = dateVal;
+      if (!effDate) effDate = assignedVal || createdVal;
+      if (!effDate) return '<span class="schedule-pill pill-today"><span class="material-symbols-outlined">event</span> Today</span>';
+      if (typeof effDate === 'string' && (effDate.toLowerCase() === 'today' || effDate.toLowerCase() === 'कल' || effDate.toLowerCase() === 'आज')) {
         return '<span class="schedule-pill pill-today"><span class="material-symbols-outlined">event</span> Today</span>';
       }
       try {
-        var d = new Date(dateVal);
+        var d = new Date(effDate);
         if (isNaN(d.getTime())) {
-          return '<span class="schedule-pill pill-date"><span class="material-symbols-outlined">event</span> ' + escapeHtml(String(dateVal)) + '</span>';
+          return '<span class="schedule-pill pill-date"><span class="material-symbols-outlined">event</span> ' + escapeHtml(String(effDate)) + '</span>';
         }
         
-        var now = new Date();
-        var isToday = (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate());
+        var todayKey = getTodayDateKey();
+        var jobDateKey = getAsiaKolkataDateKey(d);
+        var isToday = (jobDateKey === todayKey);
         
-        var yest = new Date(now);
-        yest.setDate(now.getDate() - 1);
-        var isYesterday = (d.getFullYear() === yest.getFullYear() && d.getMonth() === yest.getMonth() && d.getDate() === yest.getDate());
+        var yest = new Date();
+        yest.setDate(yest.getDate() - 1);
+        var isYesterday = (jobDateKey === getAsiaKolkataDateKey(yest));
         
-        var tom = new Date(now);
-        tom.setDate(now.getDate() + 1);
-        var isTomorrow = (d.getFullYear() === tom.getFullYear() && d.getMonth() === tom.getMonth() && d.getDate() === tom.getDate());
+        var tom = new Date();
+        tom.setDate(tom.getDate() + 1);
+        var isTomorrow = (jobDateKey === getAsiaKolkataDateKey(tom));
         
-        var dateFormatted = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        var dateFormatted = d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
         
         var hours = d.getHours();
         var minutes = d.getMinutes();
         var timeFormatted = '';
-        if (typeof dateVal === 'string' && dateVal.includes('T') && (hours !== 0 || minutes !== 0) && !(hours === 5 && minutes === 30)) {
+        if (typeof effDate === 'string' && effDate.includes('T') && (hours !== 0 || minutes !== 0) && !(hours === 5 && minutes === 30)) {
           var ampm = hours >= 12 ? 'PM' : 'AM';
           var h12 = hours % 12 || 12;
           var minStr = minutes < 10 ? '0' + minutes : minutes;
@@ -15612,7 +16157,7 @@ function loadStaffCustomerData(staffId) {
           return '<span class="schedule-pill pill-date"><span class="material-symbols-outlined">calendar_today</span> ' + dateFormatted + timeFormatted + '</span>';
         }
       } catch (e) {
-        return '<span class="schedule-pill pill-date"><span class="material-symbols-outlined">event</span> ' + escapeHtml(String(dateVal)) + '</span>';
+        return '<span class="schedule-pill pill-date"><span class="material-symbols-outlined">event</span> ' + escapeHtml(String(effDate)) + '</span>';
       }
     }
 
@@ -15705,10 +16250,13 @@ function loadStaffCustomerData(staffId) {
       document.body.removeChild(ta);
     }
 
-    function loadAdminSpecialJobs() {
+    function loadAdminSpecialJobs(silent) {
       var tbody = document.getElementById('adminSpecialJobsTableBody');
-      if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="8" class="table-loading-cell"><span class="status-sync-spinner" style="display:inline-block; margin-right:8px;"></span> Loading Wash & Solar jobs...</td></tr>';
+      var activeTab = getSavedAdminTab();
+      var isSpecialTab = (activeTab === 'specialJobs');
+
+      if (!silent && tbody && isSpecialTab) {
+        tbody.innerHTML = '<tr><td colspan="10" class="table-loading-cell"><span class="status-sync-spinner" style="display:inline-block; margin-right:8px;"></span> Loading Wash & Solar jobs...</td></tr>';
       }
 
       // Populate Staff Filter
@@ -15725,17 +16273,17 @@ function loadStaffCustomerData(staffId) {
           adminSpecialJobsCache = res.jobs || [];
           if (typeof adminSpecialState !== 'undefined' && adminSpecialState) adminSpecialState.allJobs = adminSpecialJobsCache;
           if (typeof window !== 'undefined' && window.adminSpecialState) window.adminSpecialState.allJobs = adminSpecialJobsCache;
-          updateSpecialJobsKPIs(adminSpecialJobsCache);
+          computeSpecialJobDatesFromPeriod();
           filterAdminSpecialJobs();
         } else {
-          if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 36px; color: #b91c1c;">Failed to load jobs: ' + escapeHtml((res && res.error) || 'Unknown error') + '</td></tr>';
+          if (!silent && tbody && isSpecialTab) tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 36px; color: #b91c1c;">Failed to load jobs: ' + escapeHtml((res && res.error) || 'Unknown error') + '</td></tr>';
         }
       }, function(err) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 36px; color: #b91c1c;">Connection error: ' + escapeHtml(err.message) + '</td></tr>';
+        if (!silent && tbody && isSpecialTab) tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 36px; color: #b91c1c;">Connection error: ' + escapeHtml(err.message) + '</td></tr>';
       });
     }
 
-    function updateSpecialJobsKPIs(jobs) {
+    function updateSpecialJobsKPIs(jobs, allTimeTotal) {
       var total = jobs.length;
       var assigned = jobs.filter(function(j) { return j.status === 'assigned' || !j.status; }).length;
       var inProgress = jobs.filter(function(j) { return j.status === 'in_progress'; }).length;
@@ -15751,7 +16299,6 @@ function loadStaffCustomerData(staffId) {
       if (kAssigned) kAssigned.textContent = assigned;
       if (kProg) kProg.textContent = inProgress;
       if (kComp) kComp.textContent = completed;
-      if (badgeTab) badgeTab.textContent = total;
 
       // Update category chip counts
       var chipAll = document.getElementById('chipCatCountAll');
@@ -15767,6 +16314,18 @@ function loadStaffCustomerData(staffId) {
       if (chipExterior) chipExterior.textContent = jobs.filter(function(j) { return j.serviceCategoryId === 'exterior_detailing'; }).length;
       if (chipCarWash) chipCarWash.textContent = jobs.filter(function(j) { return j.serviceCategoryId === 'car_washing'; }).length;
       if (chipDaily) chipDaily.textContent = jobs.filter(function(j) { return j.serviceCategoryId === 'daily_car_cleaning'; }).length;
+
+      // Sidebar Tab Badge:
+      // Show Today's count when viewing Today or other periods; show All Time when All Time is selected!
+      var todayKey = getTodayDateKey();
+      var todayJobs = (adminSpecialJobsCache || []).filter(function(j) {
+        return getJobEffectiveDateKey(j) === todayKey;
+      });
+      var badgeCount = (adminSpecialState.period === 'all') ? (allTimeTotal != null ? allTimeTotal : (adminSpecialJobsCache.length || total)) : todayJobs.length;
+      if (badgeTab) {
+        badgeTab.textContent = badgeCount;
+        badgeTab.title = 'Wash & Solar: ' + todayJobs.length + ' Today (' + (adminSpecialJobsCache.length) + ' Total)';
+      }
 
       if (typeof updateOperationsDashboardKPIs === 'function') {
         updateOperationsDashboardKPIs();
@@ -15785,7 +16344,20 @@ function loadStaffCustomerData(staffId) {
         clrBtn.style.display = searchVal ? 'flex' : 'none';
       }
 
-      var filtered = adminSpecialJobsCache.filter(function(j) {
+      // 1. Filter by Period (Date)
+      var periodJobs = (adminSpecialJobsCache || []).filter(function(j) {
+        if (adminSpecialState.period === 'all') return true;
+        var jDate = getJobEffectiveDateKey(j);
+        if (!jDate) return false;
+        if (adminSpecialState.startDate && jDate < adminSpecialState.startDate) return false;
+        if (adminSpecialState.endDate && jDate > adminSpecialState.endDate) return false;
+        return true;
+      });
+
+      updateSpecialJobsKPIs(periodJobs, adminSpecialJobsCache.length);
+
+      // 2. Filter by Category, Status, Staff, Search
+      var filtered = periodJobs.filter(function(j) {
         if (catFilter !== 'all' && j.serviceCategoryId !== catFilter) return false;
         if (statusFilter !== 'all') {
           var s = j.status || 'assigned';
@@ -15812,7 +16384,7 @@ function loadStaffCustomerData(staffId) {
       var countEl = document.getElementById('adminSpecialJobsFilteredCount');
       var totalEl = document.getElementById('adminSpecialJobsTotalCount');
       if (countEl) countEl.textContent = filtered.length;
-      if (totalEl) totalEl.textContent = adminSpecialJobsCache.length;
+      if (totalEl) totalEl.textContent = periodJobs.length;
 
       renderAdminSpecialJobsTable(filtered);
     }
@@ -15832,7 +16404,7 @@ function loadStaffCustomerData(staffId) {
 
       syncAdminSpecialCategoryChips('all');
       syncAdminSpecialKpiCards('all');
-      filterAdminSpecialJobs();
+      setSpecialPeriodChip('today');
     }
 
     function handleAdminSpecialSearch(val) {
@@ -15914,7 +16486,7 @@ function loadStaffCustomerData(staffId) {
           scopePills += '<span class="scope-pill" style="font-family:monospace; font-weight:700;">' + escapeHtml(j.registrationNo) + '</span>';
         }
 
-        var scheduleHtml = formatJobScheduledDate(j.scheduledDate);
+        var scheduleHtml = formatJobScheduledDate(j.scheduledDate, j.createdAt, j.assignedAt);
 
         var timeLabel = j.scheduledTime || j.tentativeTime || j.scheduled_time || '';
         var seqVal = (j.sequenceOrder != null && j.sequenceOrder !== '') ? j.sequenceOrder : (j.sequence_order != null ? j.sequence_order : '');

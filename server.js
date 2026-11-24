@@ -246,8 +246,11 @@ if (process.env.CLOUDINARY_URL) {
 async function uploadToCloudinary(photoObj) {
   if (!photoObj || !photoObj.base64) return '';
 
-  const mimeType = photoObj.mimeType || 'image/jpeg';
-  const dataUri = `data:${mimeType};base64,${photoObj.base64}`;
+  let dataUri = photoObj.base64;
+  if (!dataUri.startsWith('data:')) {
+    const mimeType = photoObj.mimeType || 'image/jpeg';
+    dataUri = `data:${mimeType};base64,${photoObj.base64}`;
+  }
 
   if (isCloudinaryConfigured()) {
     try {
@@ -273,9 +276,10 @@ async function uploadToCloudinary(photoObj) {
 function saveLocalUpload(photoObj) {
   const mimeType = photoObj.mimeType || 'image/jpeg';
   const ext = mimeType === 'image/png' ? '.png' : '.jpg';
-  const filename = 'cwp_' + Date.now() + ext;
+  const filename = 'cwp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + ext;
   const filepath = path.join(UPLOADS_DIR, filename);
-  fs.writeFileSync(filepath, Buffer.from(photoObj.base64, 'base64'));
+  const rawBase64 = photoObj.base64.replace(/^data:[^;]+;base64,/, '');
+  fs.writeFileSync(filepath, Buffer.from(rawBase64, 'base64'));
   return `/uploads/${filename}`;
 }
 
@@ -1395,6 +1399,29 @@ let lastKnownGoodDataset = null;
 function invalidateLiveCustomersCache() {
   liveCustomersCache = null;
   liveCustomersCacheExpiry = 0;
+  broadcastAdminRealtimeEvent('CUSTOMERS_CHANGED', {});
+}
+
+// =========================================================================
+// ADMIN REALTIME SERVER-SENT EVENTS (SSE) BROADCAST ENGINE
+// =========================================================================
+const adminRealtimeClients = new Set();
+
+function broadcastAdminRealtimeEvent(eventType, eventData = {}) {
+  if (adminRealtimeClients.size === 0) return;
+  const payload = JSON.stringify({
+    type: eventType,
+    data: eventData,
+    timestamp: new Date().toISOString()
+  });
+  const sseMessage = `event: message\ndata: ${payload}\n\n`;
+  for (const clientRes of adminRealtimeClients) {
+    try {
+      clientRes.write(sseMessage);
+    } catch (err) {
+      adminRealtimeClients.delete(clientRes);
+    }
+  }
 }
 
 /**
@@ -1998,6 +2025,43 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(404);
       return res.end('Not found');
     }
+  }
+
+  // GET /api/admin-realtime-stream - Server-Sent Events (SSE) for Admin Live Operations & Audit Hub
+  if (req.method === 'GET' && pathname === '/api/admin-realtime-stream') {
+    const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const token = parsedUrl.searchParams.get('token') || (req.headers.authorization && req.headers.authorization.replace(/^Bearer\s+/i, '').trim());
+    const adminSess = await resolveAdminSession(token);
+    if (!adminSess) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin session required for realtime stream' }));
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no'
+    });
+    res.write('retry: 3000\n\n');
+    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', message: 'Admin Realtime SSE connection established' })}\n\n`);
+
+    adminRealtimeClients.add(res);
+
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(`data: ${JSON.stringify({ type: 'PING', time: Date.now() })}\n\n`);
+      } catch (err) {
+        clearInterval(heartbeat);
+        adminRealtimeClients.delete(res);
+      }
+    }, 20000);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      adminRealtimeClients.delete(res);
+    });
+    return;
   }
 
   // GET /api/staff-ping-stream - SSE stream for realtime on-demand location pings
@@ -4372,6 +4436,7 @@ const server = http.createServer(async (req, res) => {
                 punchMetadata: payload.punchMetadata || null
               });
 
+              broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', { action: 'recorded', log: outcome.log, serviceDate: istDate });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: true,
@@ -4415,6 +4480,7 @@ const server = http.createServer(async (req, res) => {
           appState.serviceLogs.unshift(localLog);
           saveLocalData(appState);
 
+          broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', { action: 'recorded', log: localLog, serviceDate: localLog.service_date });
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: true,
@@ -4564,6 +4630,7 @@ const server = http.createServer(async (req, res) => {
                 reason: payload.reason || '',
                 adminUser: adminSess.username || 'admin'
               });
+              broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', { action: 'updated', reportId: payload.reportId, status: payload.status });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(resObj));
             } catch (err) {
@@ -4627,6 +4694,7 @@ const server = http.createServer(async (req, res) => {
                 reason: payload.reason || '',
                 adminUser: adminSess.username || 'admin'
               });
+              broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', { action: 'deleted', reportId: payload.reportId });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(resObj));
             } catch (err) {
@@ -4953,6 +5021,7 @@ const server = http.createServer(async (req, res) => {
             if (isNeonConfigured()) {
               const result = await adminService.assignSpecialJob(payload.jobData || payload, adminUser);
               invalidateLiveCustomersCache();
+              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'assigned', jobId: result.job?.id });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(result));
             }
@@ -4967,6 +5036,7 @@ const server = http.createServer(async (req, res) => {
             }, payload.jobData || payload);
             appState.serviceJobs.push(localJob);
             saveLocalData(appState);
+            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'assigned', jobId: jId });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, job: localJob }));
           } catch (err) {
@@ -5032,10 +5102,12 @@ const server = http.createServer(async (req, res) => {
             if (isNeonConfigured()) {
               const result = await adminService.reassignSpecialJob(payload.jobData || payload, adminUser);
               invalidateLiveCustomersCache();
+              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'reassigned', jobId: result.job?.id });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(result));
             }
             // Local fallback
+            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'reassigned' });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, message: 'Reassigned successfully (local mode)' }));
           } catch (err) {
@@ -5062,11 +5134,13 @@ const server = http.createServer(async (req, res) => {
             if (isNeonConfigured()) {
               const result = await adminService.assignDailyCleanCustomer(payload.data || payload, adminUser);
               invalidateLiveCustomersCache();
+              broadcastAdminRealtimeEvent('CUSTOMER_ASSIGNMENT_CHANGED', { action: 'assigned' });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(result));
             }
 
             // Local fallback
+            broadcastAdminRealtimeEvent('CUSTOMER_ASSIGNMENT_CHANGED', { action: 'assigned' });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, message: 'Daily clean assigned successfully (local mode)' }));
           } catch (err) {
@@ -5093,11 +5167,13 @@ const server = http.createServer(async (req, res) => {
             if (isNeonConfigured()) {
               const result = await adminService.unassignDailyCleanCustomer(payload.data || payload, adminUser);
               invalidateLiveCustomersCache();
+              broadcastAdminRealtimeEvent('CUSTOMER_ASSIGNMENT_CHANGED', { action: 'unassigned' });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(result));
             }
 
             // Local fallback
+            broadcastAdminRealtimeEvent('CUSTOMER_ASSIGNMENT_CHANGED', { action: 'unassigned' });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, message: 'Daily clean unassigned successfully (local mode)' }));
           } catch (err) {
@@ -5229,7 +5305,8 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(404, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
             }
-            if (existingJob.assigned_to_staff_id && existingJob.assigned_to_staff_id !== staffSess.staffId && existingJob.assigned_to_staff_id !== staffSess.staffCode) {
+            const assignedStaffId = existingJob.staff_id || existingJob.assigned_to_staff_id;
+            if (assignedStaffId && assignedStaffId !== staffSess.staffId && existingJob.assigned_staff_code !== staffSess.staffCode && assignedStaffId !== staffSess.staffCode) {
               res.writeHead(403, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
             }
@@ -5263,6 +5340,7 @@ const server = http.createServer(async (req, res) => {
                 startedAt: startedAt
               });
               invalidateLiveCustomersCache();
+              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'started', jobId: jobId, status: 'in_progress' });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: true,
@@ -5283,6 +5361,7 @@ const server = http.createServer(async (req, res) => {
                 saveLocalData(appState);
               }
             }
+            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'started', jobId: jobId, status: 'in_progress' });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, status: 'in_progress', beforePhotos: beforePhotoUrls }));
           } catch (err) {
@@ -5314,7 +5393,8 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(404, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
             }
-            if (existingJob.assigned_to_staff_id && existingJob.assigned_to_staff_id !== staffSess.staffId && existingJob.assigned_to_staff_id !== staffSess.staffCode) {
+            const assignedStaffId = existingJob.staff_id || existingJob.assigned_to_staff_id;
+            if (assignedStaffId && assignedStaffId !== staffSess.staffId && existingJob.assigned_staff_code !== staffSess.staffCode && assignedStaffId !== staffSess.staffCode) {
               res.writeHead(403, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
             }
@@ -5377,6 +5457,7 @@ const server = http.createServer(async (req, res) => {
               }
 
               invalidateLiveCustomersCache();
+              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'completed', jobId: jobId, status: 'completed' });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: true,
@@ -5398,6 +5479,7 @@ const server = http.createServer(async (req, res) => {
                 saveLocalData(appState);
               }
             }
+            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'completed', jobId: jobId, status: 'completed' });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, status: 'completed', afterPhotos: afterPhotoUrls }));
           } catch (err) {
@@ -5424,6 +5506,7 @@ const server = http.createServer(async (req, res) => {
             if (isNeonConfigured()) {
               await repos.serviceJobs.softDelete(jobId);
               invalidateLiveCustomersCache();
+              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'deleted', jobId: jobId });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: true, message: 'Job cancelled successfully' }));
             }
@@ -5431,6 +5514,7 @@ const server = http.createServer(async (req, res) => {
               appState.serviceJobs = appState.serviceJobs.filter(x => x.id !== jobId);
               saveLocalData(appState);
             }
+            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'deleted', jobId: jobId });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, message: 'Job cancelled' }));
           } catch (err) {
@@ -5462,7 +5546,8 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(404, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
             }
-            if (existingJob.assigned_to_staff_id && existingJob.assigned_to_staff_id !== staffSess.staffId && existingJob.assigned_to_staff_id !== staffSess.staffCode) {
+            const assignedStaffId = existingJob.staff_id || existingJob.assigned_to_staff_id;
+            if (assignedStaffId && assignedStaffId !== staffSess.staffId && existingJob.assigned_staff_code !== staffSess.staffCode && assignedStaffId !== staffSess.staffCode) {
               res.writeHead(403, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
             }
@@ -5515,6 +5600,7 @@ const server = http.createServer(async (req, res) => {
               }
 
               invalidateLiveCustomersCache();
+              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'cancelled', jobId: jobId, status: 'cancelled' });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: true,

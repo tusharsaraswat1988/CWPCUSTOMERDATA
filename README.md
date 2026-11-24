@@ -71,6 +71,25 @@ The CWP Data App is an enterprise-grade operational application completely decou
 
 ---
 
+## 💻 Local Development
+
+```bash
+# Start local dev server (default port 3005 defined in .env)
+npm run dev
+# or
+npm start
+
+# If port 3005 is occupied by a previous process, free it with:
+npm run clean-port
+```
+
+Access locally at:
+- **Customer Homepage**: [http://localhost:3005/](http://localhost:3005/)
+- **Admin Portal**: [http://localhost:3005/admin](http://localhost:3005/admin)
+- **Staff Operations Portal**: [http://localhost:3005/staff](http://localhost:3005/staff)
+
+---
+
 ## 🧪 Testing & Verification
 
 The application includes comprehensive automated test suites:

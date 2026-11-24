@@ -87,6 +87,8 @@
 
   /* --- 2. Semantic Color Tokens --- */
   /* Surface Containers */
+  --color-surface: #ffffff;
+  --color-surface-hover: var(--color-primitive-slate-50, #f8fafc);
   --color-surface-canvas: var(--color-primitive-slate-50, #f8fafc);
   --color-surface-card: #ffffff;
   --color-surface-container-low: var(--color-primitive-slate-100, #f1f5f9);
@@ -284,6 +286,8 @@
 :root[data-theme="dark"],
 body.theme-dark {
   /* Surface Containers */
+  --color-surface: #111827;
+  --color-surface-hover: var(--color-primitive-slate-800, #1e293b);
   --color-surface-canvas: var(--color-primitive-slate-950, #0b0f17);
   --color-surface-card: #111827;
   --color-surface-container-low: var(--color-primitive-slate-800, #1e293b);

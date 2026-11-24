@@ -11,3 +11,5 @@ scratch/
 local_data.json
 data/job_applications.json
 .edge_profile/
+.*_profile*/
+tests/screenshots/.*_profile*/
