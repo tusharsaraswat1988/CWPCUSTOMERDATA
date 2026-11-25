@@ -13,6 +13,8 @@ const indicService = require('./indicTransliterateService');
 const bilingualSearchService = require('./bilingualSearchService');
 const serviceCatalog = require('./serviceCatalog');
 const { resolveCanonicalCategory } = serviceCatalog;
+const staffCapabilityService = require('./staffCapabilityService');
+const staffDesignationService = require('./staffDesignationService');
 
 function normalizeIndianMobile(value) {
   if (value === null || value === undefined) return '';
@@ -1192,15 +1194,33 @@ async function deleteCustomer(id, { reason = 'Administrative deletion', adminUse
  */
 async function getStaffList({ isAdmin = true } = {}) {
   const staffMembers = await repos.staff.findAll({ includeInactive: true });
+  const allDesigs = await staffDesignationService.getAllDesignations({ includeInactive: true }).catch(() => []);
+  const desigMap = new Map();
+  for (const d of allDesigs) {
+    if (d.id) desigMap.set(String(d.id).toLowerCase(), d);
+    if (d.code) desigMap.set(String(d.code).toLowerCase(), d);
+  }
+  const staffMap = new Map();
+  for (const s of staffMembers) {
+    if (s.id) staffMap.set(String(s.id), s);
+    if (s.staff_code) staffMap.set(String(s.staff_code), s);
+  }
+
   const results = [];
 
   for (const s of staffMembers) {
+    const desigKey = (s.designation_id || s.designationId || 'cleaner').toString().toLowerCase();
+    const desig = desigMap.get(desigKey) || desigMap.get('cleaner');
+    const mgr = s.reports_to_id ? staffMap.get(String(s.reports_to_id)) : null;
+
     if (!isAdmin) {
       results.push({
         id: s.staff_code,
         name: s.name,
         photoUrl: s.photo_url || '',
-        active: s.is_active ? 'Yes' : 'No'
+        active: s.is_active ? 'Yes' : 'No',
+        designationId: desig ? desig.id : (s.designation_id || 'cleaner'),
+        designationName: desig ? desig.name : 'Cleaner'
       });
     } else {
       const auth = await repos.staffAuth.findByStaffId(s.id);
@@ -1214,6 +1234,8 @@ async function getStaffList({ isAdmin = true } = {}) {
       } else if (s.staff_code === 'STF02') {
         displayPin = '654321';
       }
+      const isLocked = Boolean(auth && auth.locked_until && new Date() < new Date(auth.locked_until));
+      const activeSess = await repos.authSessions.findActiveForStaff(s.id);
       results.push({
         id: s.staff_code,
         dbId: s.id,
@@ -1222,6 +1244,11 @@ async function getStaffList({ isAdmin = true } = {}) {
         photoUrl: s.photo_url || '',
         active: s.is_active ? 'Yes' : 'No',
         isActive: s.is_active,
+        isLocked: isLocked,
+        hasActiveSession: Boolean(activeSess),
+        activeDeviceId: activeSess ? activeSess.device_id : null,
+        failedAttempts: auth ? (auth.failed_attempts || 0) : 0,
+        lockedUntil: auth && auth.locked_until ? auth.locked_until : null,
         pin: displayPin,
         displayPin: displayPin,
         hasPin: Boolean(auth && auth.pin_hash),
@@ -1237,6 +1264,24 @@ async function getStaffList({ isAdmin = true } = {}) {
         drivingLicenseUrl: s.driving_license_url || '',
         salary: s.salary !== null && s.salary !== undefined ? Number(s.salary) : '',
         weeklyOff: s.weekly_off || '',
+        workType: s.work_type || 'dcc_only',
+        work_type: s.work_type || 'dcc_only',
+        serviceCapabilities: s.service_capabilities || ['daily_car_cleaning'],
+        service_capabilities: s.service_capabilities || ['daily_car_cleaning'],
+        designationId: desig ? desig.id : (s.designation_id || 'cleaner'),
+        designation_id: desig ? desig.id : (s.designation_id || 'cleaner'),
+        designationName: desig ? desig.name : 'Cleaner',
+        designationLevel: desig ? desig.hierarchyLevel : 1,
+        isSupervisory: desig ? Boolean(desig.isSupervisory) : false,
+        authorities: desig ? (desig.authorities || {}) : {},
+        reportsToId: s.reports_to_id || null,
+        reports_to_id: s.reports_to_id || null,
+        reportsToName: mgr ? mgr.name : '',
+        reportsToCode: mgr ? mgr.staff_code : '',
+        teamName: s.team_name || '',
+        team_name: s.team_name || '',
+        operationalScope: s.operational_scope || '',
+        operational_scope: s.operational_scope || '',
         createdAt: s.created_at
       });
     }
@@ -1267,7 +1312,19 @@ async function saveStaffMember({
   drivingLicenseNumber,
   drivingLicenseUrl,
   salary,
-  weeklyOff
+  weeklyOff,
+  workType,
+  work_type,
+  serviceCapabilities,
+  service_capabilities,
+  designationId,
+  designation_id,
+  reportsToId,
+  reports_to_id,
+  teamName,
+  team_name,
+  operationalScope,
+  operational_scope
 }, adminUser = 'admin') {
   if (!name || !name.trim()) {
     return { success: false, error: 'Staff name is required.' };
@@ -1302,6 +1359,60 @@ async function saveStaffMember({
 
     const isNowActive = active === true || active === 'Yes' || active === 'yes' || active === 'true';
 
+    // Work-Type & Service Capabilities Validation
+    const inputWorkType = (work_type || workType || (staff ? (staff.work_type || staff.workType) : 'dcc_only') || 'dcc_only').toLowerCase().trim();
+    const inputCaps = service_capabilities !== undefined ? service_capabilities : (serviceCapabilities !== undefined ? serviceCapabilities : (staff ? (staff.service_capabilities || staff.serviceCapabilities) : ['daily_car_cleaning']));
+
+    const validatedCap = staffCapabilityService.validateCapabilityCombination(inputWorkType, inputCaps);
+
+    // If updating existing staff, check for operational conflicts (active routes or active service jobs)
+    if (staff && staff.id) {
+      await staffCapabilityService.checkCapabilityChangeConflicts(staff.id, validatedCap.workType, validatedCap.serviceCapabilities, client);
+    }
+
+    // Designation resolution & validation
+    const rawDesigId = designation_id !== undefined ? designation_id : designationId;
+    let resolvedDesignationId = rawDesigId !== undefined ? (rawDesigId ? String(rawDesigId).trim().toLowerCase() : null) : (staff ? (staff.designation_id || staff.designationId) : null);
+
+    if (!resolvedDesignationId && !staff) {
+      resolvedDesignationId = 'cleaner';
+    }
+
+    if (resolvedDesignationId) {
+      const desig = await staffDesignationService.getDesignationById(resolvedDesignationId);
+      if (!desig) {
+        return { success: false, error: `Invalid designation specified: '${resolvedDesignationId}'.` };
+      }
+      resolvedDesignationId = desig.id;
+    }
+
+    // Reports-to / Manager resolution & validation
+    const rawReportsTo = reports_to_id !== undefined ? reports_to_id : reportsToId;
+    let resolvedReportsToId = rawReportsTo !== undefined ? (rawReportsTo ? String(rawReportsTo).trim() : null) : (staff ? (staff.reports_to_id || staff.reportsToId) : null);
+
+    if (resolvedReportsToId === '' || resolvedReportsToId === 'null' || resolvedReportsToId === 'none' || resolvedReportsToId === 'undefined') {
+      resolvedReportsToId = null;
+    }
+
+    if (resolvedReportsToId) {
+      try {
+        await staffDesignationService.validateReportingRelationship(
+          staff ? staff.id : null,
+          resolvedReportsToId,
+          client,
+          resolvedDesignationId
+        );
+      } catch (hierErr) {
+        return { success: false, error: hierErr.message };
+      }
+    }
+
+    const rawTeamName = team_name !== undefined ? team_name : teamName;
+    const resolvedTeamName = rawTeamName !== undefined ? (rawTeamName ? String(rawTeamName).trim() : null) : (staff ? staff.team_name : null);
+
+    const rawOpScope = operational_scope !== undefined ? operational_scope : operationalScope;
+    const resolvedOperationalScope = rawOpScope !== undefined ? (rawOpScope ? String(rawOpScope).trim() : null) : (staff ? staff.operational_scope : null);
+
     if (!staff) {
       isNew = true;
       if (!pin || !/^\d{6}$/.test(pin.trim())) {
@@ -1332,14 +1443,22 @@ async function saveStaffMember({
         drivingLicenseNumber: drivingLicenseNumber !== undefined ? drivingLicenseNumber : null,
         drivingLicenseUrl: drivingLicenseUrl !== undefined ? drivingLicenseUrl : null,
         salary: salary !== undefined ? salary : null,
-        weeklyOff: weeklyOff !== undefined ? weeklyOff : null
+        weeklyOff: weeklyOff !== undefined ? weeklyOff : null,
+        workType: validatedCap.workType,
+        serviceCapabilities: validatedCap.serviceCapabilities,
+        designationId: resolvedDesignationId,
+        reportsToId: resolvedReportsToId,
+        teamName: resolvedTeamName,
+        operationalScope: resolvedOperationalScope
       }, client);
     } else {
       // Update existing
       const updateData = {
         name: name.trim(),
         phone: cleanPhone,
-        isActive: isNowActive
+        isActive: isNowActive,
+        workType: validatedCap.workType,
+        serviceCapabilities: validatedCap.serviceCapabilities
       };
       if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
       if (email !== undefined) updateData.email = email;
@@ -1354,6 +1473,10 @@ async function saveStaffMember({
       if (drivingLicenseUrl !== undefined) updateData.drivingLicenseUrl = drivingLicenseUrl;
       if (salary !== undefined) updateData.salary = salary;
       if (weeklyOff !== undefined) updateData.weeklyOff = weeklyOff;
+      if (resolvedDesignationId !== undefined) updateData.designationId = resolvedDesignationId;
+      if (rawReportsTo !== undefined) updateData.reportsToId = resolvedReportsToId;
+      if (rawTeamName !== undefined) updateData.teamName = resolvedTeamName;
+      if (rawOpScope !== undefined) updateData.operationalScope = resolvedOperationalScope;
 
       staff = await repos.staff.updateStaff(staff.id, updateData, client);
     }
@@ -1376,7 +1499,17 @@ async function saveStaffMember({
       entityId: staff.id,
       action: isNew ? 'create' : 'update',
       changedBy: adminUser,
-      afterState: { staffCode: staff.staff_code, name: staff.name, phone: staff.phone }
+      afterState: {
+        staffCode: staff.staff_code,
+        name: staff.name,
+        phone: staff.phone,
+        workType: validatedCap.workType,
+        serviceCapabilities: validatedCap.serviceCapabilities,
+        designationId: resolvedDesignationId,
+        reportsToId: resolvedReportsToId,
+        teamName: resolvedTeamName,
+        operationalScope: resolvedOperationalScope
+      }
     }, client);
 
     return {
@@ -1738,8 +1871,9 @@ async function getDailyCleanReports(filters = {}, adminUser = 'admin') {
 
 async function updateDailyCleanReportStatus({ reportId, status, reason = '', adminUser = 'admin' }) {
   if (!reportId) throw new Error('reportId is required');
-  if (!status || !['completed', 'car_not_present'].includes(status)) {
-    throw new Error('Valid status (completed or car_not_present) is required');
+  const validStatuses = ['completed', 'car_not_present', 'customer_absent', 'vehicle_not_available', 'skipped', 'unable_to_complete'];
+  if (!status || !validStatuses.includes(status)) {
+    throw new Error(`Valid status (${validStatuses.join(', ')}) is required`);
   }
 
   const existing = await repos.serviceLogs.findById(reportId);
@@ -2368,10 +2502,21 @@ async function assignSpecialJob(params, adminUser = 'admin') {
     }
     if (!targetStaff) {
       const allStaff = await repos.staff.findAll({ client });
-      targetStaff = allStaff.find(s => s.name.toLowerCase() === staffId.toLowerCase() || s.staff_code.toLowerCase() === staffId.toLowerCase()) || null;
+      targetStaff = (allStaff || []).find(s => (s.id && s.id === staffId) || (s.name && s.name.toLowerCase() === staffId.toLowerCase()) || (s.staff_code && s.staff_code.toLowerCase() === staffId.toLowerCase())) || null;
     }
     if (!targetStaff) {
       return { success: false, error: `Staff member '${staffId}' not found.` };
+    }
+    if (!targetStaff.is_active) {
+      return { success: false, error: `Cannot assign service job to deactivated staff member '${targetStaff.name}'.` };
+    }
+    if (!staffCapabilityService.hasServiceCapability(targetStaff, catId)) {
+      const eff = staffCapabilityService.getStaffEffectiveCapabilities(targetStaff);
+      const catName = categoryMeta ? categoryMeta.name : catId;
+      return {
+        success: false,
+        error: `Staff member '${targetStaff.name}' is classified as '${eff.workType}' and does not have the capability for '${catName}'.`
+      };
     }
 
     // 5. Determine IST Scheduled Date
@@ -2510,10 +2655,22 @@ async function reassignSpecialJob(params = {}, maybeAdminUser = null) {
     }
     if (!targetStaff) {
       const allStaff = await repos.staff.findAll({ client });
-      targetStaff = allStaff.find(s => s.name.toLowerCase() === staffTarget.toLowerCase() || s.staff_code.toLowerCase() === staffTarget.toLowerCase()) || null;
+      targetStaff = (allStaff || []).find(s => (s.id && s.id === staffTarget) || (s.name && s.name.toLowerCase() === staffTarget.toLowerCase()) || (s.staff_code && s.staff_code.toLowerCase() === staffTarget.toLowerCase())) || null;
     }
     if (!targetStaff) {
       return { success: false, error: `Staff member '${staffTarget}' not found.` };
+    }
+    if (!targetStaff.is_active) {
+      return { success: false, error: `Cannot reassign service job to deactivated staff member '${targetStaff.name}'.` };
+    }
+    if (!staffCapabilityService.hasServiceCapability(targetStaff, job.service_category_id)) {
+      const eff = staffCapabilityService.getStaffEffectiveCapabilities(targetStaff);
+      const catMeta = serviceCatalog.getCategory(job.service_category_id);
+      const catName = catMeta ? catMeta.name : job.service_category_id;
+      return {
+        success: false,
+        error: `Staff member '${targetStaff.name}' is classified as '${eff.workType}' and does not have the capability for '${catName}'.`
+      };
     }
 
     // 3. Find current active assignment
@@ -3209,20 +3366,7 @@ async function assignCustomerService(serviceData, adminUser = 'admin') {
         }, client);
       }
     } else {
-      // On-Demand Job
-      const sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
-      if (sub) {
-        await client.query(
-          `UPDATE public.subscriptions SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-          [sub.id]
-        );
-        await repos.staffAssignments.unassignSubscription({
-          subscriptionId: sub.id,
-          unassignedBy: adminUser,
-          reason: `Switched to ${cat}`
-        }, client);
-      }
-
+      // On-Demand Job (Decoupled: does not alter active recurring subscriptions)
       const sCatId = resolveCanonicalCategory(cat);
       const existingJobs = await repos.serviceJobs.findByCustomerId(customer.id, { client });
       const primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
@@ -3340,6 +3484,91 @@ async function stopCustomerService({ customerId, reason = 'Customer requested se
   });
 }
 
+/**
+ * Designation & Hierarchy Management for Admin
+ */
+async function getDesignationsList() {
+  const designations = await staffDesignationService.getAllDesignations({ includeInactive: true });
+  const allStaff = await repos.staff.findAll({ includeInactive: true });
+  const countsByDesig = {};
+  for (const s of allStaff) {
+    const dId = (s.designation_id || 'cleaner').toLowerCase();
+    countsByDesig[dId] = (countsByDesig[dId] || 0) + 1;
+  }
+  return designations.map(d => ({
+    ...d,
+    staffCount: countsByDesig[d.id.toLowerCase()] || 0
+  }));
+}
+
+async function saveDesignation(data, adminUser = 'admin') {
+  return await staffDesignationService.saveDesignation(data, adminUser);
+}
+
+async function deleteDesignation(id, adminUser = 'admin') {
+  return await staffDesignationService.deleteDesignation(id, adminUser);
+}
+
+async function getStaffHierarchy() {
+  const staffList = await getStaffList({ isAdmin: true });
+  const activeStaff = staffList.filter(s => s.isActive);
+  
+  const staffById = new Map();
+  const subordinatesMap = new Map();
+
+  for (const s of activeStaff) {
+    staffById.set(s.dbId || s.id, s);
+    subordinatesMap.set(s.dbId || s.id, []);
+  }
+
+  const roots = [];
+  for (const s of activeStaff) {
+    const managerId = s.reportsToId;
+    if (managerId && staffById.has(managerId)) {
+      subordinatesMap.get(managerId).push(s);
+    } else {
+      roots.push(s);
+    }
+  }
+
+  function buildNode(staffMember) {
+    const subs = subordinatesMap.get(staffMember.dbId || staffMember.id) || [];
+    return {
+      id: staffMember.id,
+      dbId: staffMember.dbId,
+      name: staffMember.name,
+      phone: staffMember.phone,
+      photoUrl: staffMember.photoUrl,
+      designationId: staffMember.designationId,
+      designationName: staffMember.designationName,
+      designationLevel: staffMember.designationLevel,
+      isSupervisory: staffMember.isSupervisory,
+      authorities: staffMember.authorities,
+      workType: staffMember.workType,
+      serviceCapabilities: staffMember.serviceCapabilities,
+      reportsToId: staffMember.reportsToId,
+      reportsToName: staffMember.reportsToName,
+      teamName: staffMember.teamName,
+      operationalScope: staffMember.operationalScope,
+      subordinateCount: subs.length,
+      subordinates: subs.map(buildNode)
+    };
+  }
+
+  const tree = roots.map(buildNode);
+
+  return {
+    success: true,
+    totalStaff: activeStaff.length,
+    rootCount: roots.length,
+    hierarchyTree: tree,
+    flatStaff: activeStaff.map(s => ({
+      ...s,
+      directSubordinateCount: (subordinatesMap.get(s.dbId || s.id) || []).length
+    }))
+  };
+}
+
 module.exports = {
   assignCustomerService,
   stopCustomerService,
@@ -3375,5 +3604,9 @@ module.exports = {
   assignDailyCleanCustomer,
   unassignDailyCleanCustomer,
   getDailyCleanAssignments,
+  getDesignationsList,
+  saveDesignation,
+  deleteDesignation,
+  getStaffHierarchy,
   getServiceCatalog: () => serviceCatalog
 };

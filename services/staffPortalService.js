@@ -9,6 +9,8 @@ const crypto = require('crypto');
 const db = require('../db/index');
 const repos = require('../db/repositories/index');
 const serviceCatalog = require('./serviceCatalog');
+const staffCapabilityService = require('./staffCapabilityService');
+const staffDesignationService = require('./staffDesignationService');
 
 /**
  * Computes deterministic ETag / version hash from staff payload
@@ -47,6 +49,9 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     staff = await repos.staff.findById(staffCodeOrId);
   } else {
     staff = await repos.staff.findByStaffCode(staffCodeOrId);
+    if (!staff) {
+      staff = await repos.staff.findById(staffCodeOrId);
+    }
   }
 
   if (!staff) {
@@ -58,26 +63,31 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
   }
 
   const currentDate = todayDate || getIstCurrentDate();
+  const effCaps = staffCapabilityService.getStaffEffectiveCapabilities(staff);
+  const isDccAllowed = staffCapabilityService.isDccEligible(staff);
 
-  // 2. Fetch Active Daily Clean Subscriptions assigned to this staff
-  const dailySubsRes = await db.query(
-    `SELECT sub.*, 
-            c.id AS customer_id, c.customer_code, c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone,
-            c.alt_phone AS customer_alt_phone, c.notes AS customer_notes,
-            srs.sequence_order
-     FROM public.staff_assignments sa
-     JOIN public.subscriptions sub ON sa.subscription_id = sub.id
-     JOIN public.customers c ON sub.customer_id = c.id
-     LEFT JOIN public.staff_route_sequences srs ON srs.staff_id = $1 AND srs.subscription_id = sub.id
-     WHERE sa.staff_id = $1 
-       AND sa.is_active = TRUE 
-       AND (sub.status = 'active' OR (sub.status = 'stopped' AND (sub.stopped_at IS NULL OR sub.stopped_at >= CURRENT_DATE - INTERVAL '14 days')))
-       AND sub.deleted_at IS NULL
-       AND c.deleted_at IS NULL
-       AND c.is_active = TRUE
-     ORDER BY srs.sequence_order ASC NULLS LAST, sub.created_at ASC`,
-    [staff.id]
-  );
+  // 2. Fetch Active Daily Clean Subscriptions assigned to this staff (only if DCC capable)
+  let dailySubsRes = { rows: [] };
+  if (isDccAllowed) {
+    dailySubsRes = await db.query(
+      `SELECT sub.*, 
+              c.id AS customer_id, c.customer_code, c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone,
+              c.alt_phone AS customer_alt_phone, c.notes AS customer_notes,
+              srs.sequence_order
+       FROM public.staff_assignments sa
+       JOIN public.subscriptions sub ON sa.subscription_id = sub.id
+       JOIN public.customers c ON sub.customer_id = c.id
+       LEFT JOIN public.staff_route_sequences srs ON srs.staff_id = $1 AND srs.subscription_id = sub.id
+       WHERE sa.staff_id = $1 
+         AND sa.is_active = TRUE 
+         AND (sub.status = 'active' OR (sub.status = 'stopped' AND (sub.stopped_at IS NULL OR sub.stopped_at >= CURRENT_DATE - INTERVAL '14 days')))
+         AND sub.deleted_at IS NULL
+         AND c.deleted_at IS NULL
+         AND c.is_active = TRUE
+       ORDER BY srs.sequence_order ASC NULLS LAST, sub.created_at ASC`,
+      [staff.id]
+    );
+  }
 
   const subIds = dailySubsRes.rows.map(r => r.id);
   const custIds = dailySubsRes.rows.map(r => r.customer_id);
@@ -231,7 +241,11 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
   });
 
   // 7. Fetch Dispatched On-Demand & Instance Jobs (Car Wash, Solar, Interior & Exterior Detailing)
-  const dispatchedJobs = await repos.serviceJobs.findDispatchedForStaff(staff.id);
+  let dispatchedJobs = [];
+  if (effCaps.workType !== 'dcc_only') {
+    const rawJobs = await repos.serviceJobs.findDispatchedForStaff(staff.id);
+    dispatchedJobs = (rawJobs || []).filter(j => staffCapabilityService.hasServiceCapability(staff, j.service_category_id));
+  }
   const otherJobs = [];
   const carWashing = [];
   const solarCleaning = [];
@@ -317,6 +331,17 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     }
   });
 
+  const desigId = (staff.designation_id || staff.designationId || 'cleaner').toString().toLowerCase();
+  const designation = await staffDesignationService.getDesignationById(desigId).catch(() => null);
+
+  let manager = null;
+  if (staff.reports_to_id) {
+    manager = await repos.staff.findById(staff.reports_to_id).catch(() => null);
+    if (!manager) {
+      manager = await repos.staff.findByStaffCode(staff.reports_to_id).catch(() => null);
+    }
+  }
+
   const responsePayload = {
     staffId: staff.staff_code,
     staffName: staff.name,
@@ -330,6 +355,19 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     aadharNumber: staff.aadhar_number || '',
     panNumber: staff.pan_number || '',
     drivingLicenseNumber: staff.driving_license_number || '',
+    workType: effCaps.workType,
+    serviceCapabilities: effCaps.serviceCapabilities,
+    isDccEligible: isDccAllowed,
+    designationId: designation ? designation.id : (staff.designation_id || 'cleaner'),
+    designationName: designation ? designation.name : 'Cleaner',
+    designationLevel: designation ? designation.hierarchyLevel : 1,
+    isSupervisory: designation ? Boolean(designation.isSupervisory) : false,
+    authorities: designation ? (designation.authorities || {}) : {},
+    reportsToId: staff.reports_to_id || null,
+    reportsToName: manager ? manager.name : '',
+    reportsToCode: manager ? manager.staff_code : '',
+    teamName: staff.team_name || '',
+    operationalScope: staff.operational_scope || '',
     dailyCarCleaning,
     otherJobs,
     carWashing,

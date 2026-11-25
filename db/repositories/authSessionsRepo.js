@@ -10,15 +10,16 @@ async function createSession({
   adminId = null,
   expiresAt,
   ipAddress = null,
-  userAgent = null
+  userAgent = null,
+  deviceId = null
 }, client = null) {
   const runner = client || db;
   const res = await runner.query(
     `INSERT INTO public.auth_sessions (
-       token_hash, user_type, staff_id, admin_id, expires_at, ip_address, user_agent
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+       token_hash, user_type, staff_id, admin_id, expires_at, ip_address, user_agent, device_id
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
-    [tokenHash, userType, staffId, adminId, expiresAt, ipAddress, userAgent]
+    [tokenHash, userType, staffId, adminId, expiresAt, ipAddress, userAgent, deviceId]
   );
   return res.rows[0];
 }
@@ -37,6 +38,20 @@ async function findActiveSession(tokenHash, client = null) {
        AND s.expires_at > CURRENT_TIMESTAMP
      LIMIT 1`,
     [tokenHash]
+  );
+  return res.rows[0] || null;
+}
+
+async function findActiveForStaff(staffId, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `SELECT * FROM public.auth_sessions
+     WHERE staff_id = $1 
+       AND revoked_at IS NULL 
+       AND expires_at > CURRENT_TIMESTAMP
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [staffId]
   );
   return res.rows[0] || null;
 }
@@ -87,6 +102,7 @@ async function cleanupExpired(client = null) {
 module.exports = {
   createSession,
   findActiveSession,
+  findActiveForStaff,
   revokeSession,
   revokeAllForStaff,
   revokeAllForAdmin,

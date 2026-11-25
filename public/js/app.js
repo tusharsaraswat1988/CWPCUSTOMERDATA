@@ -54,6 +54,23 @@ function formatIndianMobile(value, includePrefix) {
   return includePrefix ? ('+91 ' + formattedDigits) : formattedDigits;
 }
 
+function getOrCreateDeviceId() {
+  var devId = '';
+  try {
+    devId = localStorage.getItem('cwp_device_id') || '';
+    if (!devId) {
+      devId = 'dev_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
+      localStorage.setItem('cwp_device_id', devId);
+    }
+  } catch (e) {
+    devId = 'dev_mem_' + Date.now().toString(36);
+  }
+  return devId;
+}
+if (typeof window !== 'undefined') {
+  window.getOrCreateDeviceId = getOrCreateDeviceId;
+}
+
 function getIndianPhoneLink(value) {
   var digits = normalizeIndianMobile(value);
   return digits ? ('tel:+91' + digits) : 'tel:';
@@ -2211,7 +2228,8 @@ var state = {
       if (inactiveBox) inactiveBox.style.display = 'none';
       if (dotsRow) dotsRow.classList.remove('dots-error');
 
-      apiCall('verifyStaffPin', { phone: phone, pin: pin, isAuto: !!isAuto }, function(res) {
+      var devId = typeof getOrCreateDeviceId === 'function' ? getOrCreateDeviceId() : '';
+      apiCall('verifyStaffPin', { phone: phone, pin: pin, isAuto: !!isAuto, deviceId: devId }, function(res) {
         isStaffAuthSubmitting = false;
         if (res && res.inactive) {
           if (btn) {
@@ -2336,11 +2354,17 @@ var state = {
           btn.innerHTML = '<span class="btn-label">' + (isHi ? 'लॉगिन करें (Log In)' : 'Log In') + '</span> <span class="btn-icon">→</span>';
         }
         if (loaderBanner) loaderBanner.style.display = 'none';
+        var errMsg = (err && (err.message || err.error)) ? String(err.message || err.error) : '';
+        var isConflict = errMsg.indexOf('अन्य डिवाइस') !== -1 || errMsg.indexOf('already active') !== -1 || errMsg.indexOf('active on another') !== -1;
         if (errBox) {
-          errBox.textContent = '❌ ' + (err.message || (isHi ? 'वेरिफिकेशन फेल हुआ' : 'Verification failed'));
+          errBox.textContent = '❌ ' + (errMsg || (isHi ? 'वेरिफिकेशन फेल हुआ' : 'Verification failed'));
           errBox.style.display = 'block';
         }
-        showToast(isHi ? 'नेटवर्क समस्या! कनेक्शन चेक करें।' : 'Network issue! Check your connection.', 'error');
+        if (isConflict) {
+          showToast('⚠️ यह अकाउंट पहले से दूसरे मोबाइल पर एक्टिव है!', 'warning');
+        } else {
+          showToast(isHi ? (errMsg || 'गलत पिन! ध्यान से देखकर दोबारा डालो।') : (errMsg || 'Verification failed'), 'error');
+        }
         if (card) triggerInputShake(card);
         if (pinInput) triggerInputShake(pinInput);
         if (dotsRow) {
@@ -3680,7 +3704,7 @@ var state = {
         specialStaffSelect.innerHTML = '<option value="">-- Choose Active Staff --</option>';
         list.forEach(function(s) {
           var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
-          if (isAct) {
+          if (isAct && (typeof isStaffServiceEligible !== 'function' || isStaffServiceEligible(s))) {
             var opt = document.createElement('option');
             opt.value = s.id;
             opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Staff') + ')';
@@ -6359,9 +6383,490 @@ function loadStaffCustomerData(staffId) {
       window.viewStaffDoc = viewStaffDoc;
     }
 
+    
+    /* --- Task 01.8: Staff Capability & Work-Type Helpers --- */
+    function isStaffDccEligible(s) {
+      if (!s) return false;
+      var wt = s.workType || s.work_type || 'dcc_only';
+      if (wt === 'services_only') return false;
+      var caps = s.serviceCapabilities || s.service_capabilities;
+      if (Array.isArray(caps)) {
+        return caps.includes('daily_car_cleaning');
+      }
+      return wt === 'dcc_only' || wt === 'dcc_and_services';
+    }
+
+    function isStaffServiceEligible(s, serviceCategoryId) {
+      if (!s) return false;
+      var wt = s.workType || s.work_type || 'dcc_only';
+      if (wt === 'dcc_only') return false;
+      var caps = s.serviceCapabilities || s.service_capabilities;
+      if (!Array.isArray(caps) || caps.length === 0) return false;
+      if (serviceCategoryId) return caps.includes(serviceCategoryId);
+      return caps.some(function(c) { return c !== 'daily_car_cleaning'; });
+    }
+
+    function handleStaffWorkTypeChange(workType, context) {
+      var prefix = (context === 'edit') ? 'edit' : 'new';
+      var dccCheck = document.getElementById('capCheck_' + prefix + '_daily_car_cleaning');
+      var carWashCheck = document.getElementById('capCheck_' + prefix + '_car_washing');
+      var solarCheck = document.getElementById('capCheck_' + prefix + '_solar_cleaning');
+      var interiorCheck = document.getElementById('capCheck_' + prefix + '_interior_detailing');
+      var exteriorCheck = document.getElementById('capCheck_' + prefix + '_exterior_detailing');
+      var hintEl = document.getElementById(prefix + 'StaffWorkTypeHint');
+      var badgeEl = document.getElementById(prefix + 'StaffCapsSummaryBadge');
+      var errEl = document.getElementById(prefix + 'StaffCapsError');
+      if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
+
+      var nonDccChecks = [carWashCheck, solarCheck, interiorCheck, exteriorCheck].filter(Boolean);
+
+      if (workType === 'dcc_only') {
+        if (dccCheck) { dccCheck.checked = true; dccCheck.disabled = true; }
+        nonDccChecks.forEach(function(chk) { chk.checked = false; chk.disabled = true; });
+        if (hintEl) hintEl.textContent = 'केवल डेली कार क्लीनिंग रूट्स और गाड़ियों की सफाई के लिए अधिकृत। (Authorized strictly for DCC daily routes)';
+        if (badgeEl) {
+          badgeEl.textContent = 'DCC Only';
+          badgeEl.style.color = '#1d4ed8';
+          badgeEl.style.background = '#eff6ff';
+          badgeEl.style.borderColor = '#bfdbfe';
+        }
+      } else if (workType === 'dcc_and_services') {
+        if (dccCheck) { dccCheck.checked = true; dccCheck.disabled = true; }
+        nonDccChecks.forEach(function(chk) { chk.disabled = false; });
+        var anyChecked = nonDccChecks.some(function(chk) { return chk.checked; });
+        if (!anyChecked && carWashCheck) { carWashCheck.checked = true; }
+        if (hintEl) hintEl.textContent = 'डेली कार क्लीनिंग रूट्स + चुनी गई विशिष्ट ऑन-डिमांड सेवाएँ। (DCC routes + specifically enabled services)';
+        if (badgeEl) {
+          badgeEl.textContent = 'DCC + Services';
+          badgeEl.style.color = '#6d28d9';
+          badgeEl.style.background = '#f5f3ff';
+          badgeEl.style.borderColor = '#ddd6fe';
+        }
+      } else if (workType === 'services_only') {
+        if (dccCheck) { dccCheck.checked = false; dccCheck.disabled = true; }
+        nonDccChecks.forEach(function(chk) { chk.disabled = false; });
+        var anyChecked2 = nonDccChecks.some(function(chk) { return chk.checked; });
+        if (!anyChecked2 && carWashCheck) { carWashCheck.checked = true; }
+        if (hintEl) hintEl.textContent = 'केवल ऑन-डिमांड काम। डेली कार क्लीनिंग रूट्स से पूर्णतः बाहर। (Services only. Strictly excluded from DCC routes)';
+        if (badgeEl) {
+          badgeEl.textContent = 'Services Only';
+          badgeEl.style.color = '#b45309';
+          badgeEl.style.background = '#fef3c7';
+          badgeEl.style.borderColor = '#fde68a';
+        }
+      }
+      handleStaffCapabilityToggle(context);
+    }
+
+    function handleStaffCapabilityToggle(context) {
+      var prefix = (context === 'edit') ? 'edit' : 'new';
+      var wtEl = document.getElementById(prefix + 'StaffWorkType');
+      var workType = wtEl ? wtEl.value : 'dcc_only';
+      var errEl = document.getElementById(prefix + 'StaffCapsError');
+      var capKeys = ['daily_car_cleaning', 'car_washing', 'solar_cleaning', 'interior_detailing', 'exterior_detailing'];
+
+      capKeys.forEach(function(key) {
+        var chk = document.getElementById('capCheck_' + prefix + '_' + key);
+        var card = document.getElementById('capCard_' + prefix + '_' + key);
+        if (chk && card) {
+          if (chk.checked) {
+            card.style.borderColor = '#2563eb';
+            card.style.background = 'rgba(37, 99, 235, 0.06)';
+          } else {
+            card.style.borderColor = 'var(--border-color)';
+            card.style.background = 'var(--bg-surface)';
+          }
+        }
+      });
+
+      if (workType === 'dcc_and_services' || workType === 'services_only') {
+        var nonDccKeys = ['car_washing', 'solar_cleaning', 'interior_detailing', 'exterior_detailing'];
+        var hasAny = nonDccKeys.some(function(k) {
+          var c = document.getElementById('capCheck_' + prefix + '_' + k);
+          return c && c.checked;
+        });
+        if (!hasAny && errEl) {
+          errEl.textContent = 'कम से कम एक सेवा क्षमता चुनना अनिवार्य है। (At least one service capability must be selected)';
+          errEl.style.display = 'block';
+        } else if (errEl) {
+          errEl.textContent = '';
+          errEl.style.display = 'none';
+        }
+      }
+    }
+    window.isStaffDccEligible = isStaffDccEligible;
+    window.isStaffServiceEligible = isStaffServiceEligible;
+    window.handleStaffWorkTypeChange = handleStaffWorkTypeChange;
+    window.handleStaffCapabilityToggle = handleStaffCapabilityToggle;
+
+
+    /* --- Task 01.9: Staff Designation, Hierarchy & Operational Authority --- */
+    state.designationsList = [];
+
+    function loadDesignationsForAdmin(callback) {
+      apiCall('getDesignationsList', {}, function(res) {
+        if (res && res.designations) {
+          state.designationsList = res.designations;
+          populateDesignationDropdowns();
+          if (typeof renderDesignationsTable === 'function') {
+            renderDesignationsTable();
+          }
+        }
+        if (typeof callback === 'function') callback(null, state.designationsList);
+      }, function(err) {
+        console.warn('Failed to load designations:', err);
+        if (typeof callback === 'function') callback(err);
+      });
+    }
+
+    function populateDesignationDropdowns() {
+      var desigs = state.designationsList || [];
+      if (desigs.length === 0) return;
+
+      var editSel = document.getElementById('editStaffDesignation');
+      var newSel = document.getElementById('newStaffDesignation');
+
+      var editVal = editSel ? editSel.value : '';
+      var newVal = newSel ? newSel.value : '';
+
+      var optionsHtml = '';
+      desigs.forEach(function(d) {
+        var isSup = d.isSupervisory ? ' - Supervisory' : '';
+        optionsHtml += '<option value="' + escapeHtml(d.id) + '">' + escapeHtml(d.name) + ' (Level ' + d.hierarchyLevel + isSup + ')</option>';
+      });
+
+      if (editSel) {
+        editSel.innerHTML = optionsHtml;
+        if (editVal) editSel.value = editVal;
+      }
+      if (newSel) {
+        newSel.innerHTML = optionsHtml;
+        if (newVal) newSel.value = newVal;
+      }
+    }
+
+    function populateReportsToDropdown(currentStaffId, selectedManagerId) {
+      var sel = document.getElementById('editStaffReportsTo');
+      if (!sel) return;
+
+      var allStaff = state.staffList || [];
+      var optionsHtml = '<option value="">None / Top Level (स्वतंत्र / शीर्ष स्तर)</option>';
+
+      allStaff.forEach(function(s) {
+        var sId = (s.id || '').toUpperCase();
+        var curId = (currentStaffId || '').toUpperCase();
+        if (sId && curId && sId === curId) return;
+        if (s.active === false || s.active === 'No' || s.active === 'false') return;
+
+        var label = s.name + ' (' + s.id + (s.designationName ? ' • ' + s.designationName : '') + ')';
+        var isSel = (selectedManagerId && (s.id === selectedManagerId || s.dbId === selectedManagerId || (s.staff_code && s.staff_code === selectedManagerId))) ? ' selected' : '';
+        optionsHtml += '<option value="' + escapeHtml(s.id) + '"' + isSel + '>' + escapeHtml(label) + '</option>';
+      });
+
+      sel.innerHTML = optionsHtml;
+      if (selectedManagerId) sel.value = selectedManagerId;
+    }
+
+    function handleStaffDesignationChange(designationId, context) {
+      var cleanId = (designationId || 'cleaner').toString().toLowerCase();
+      var desig = (state.designationsList || []).find(function(d) {
+        return (d.id || '').toLowerCase() === cleanId || (d.code || '').toLowerCase() === cleanId;
+      });
+
+      var badgeEl = document.getElementById('editStaffDesignationLevelBadge');
+      var container = document.getElementById('editStaffAuthoritiesContainer');
+
+      if (!desig) {
+        var level = 1;
+        var name = 'Cleaner';
+        var isSup = false;
+        if (cleanId === 'service_specialist') { level = 1; name = 'Service Specialist'; }
+        else if (cleanId === 'senior_cleaner') { level = 2; name = 'Senior Cleaner'; }
+        else if (cleanId === 'team_leader') { level = 3; name = 'Team Leader'; isSup = true; }
+        else if (cleanId === 'supervisor') { level = 4; name = 'Supervisor'; isSup = true; }
+        else if (cleanId === 'zone_manager') { level = 5; name = 'Zone Manager'; isSup = true; }
+        else if (cleanId === 'operations_manager') { level = 6; name = 'Operations Manager'; isSup = true; }
+
+        if (badgeEl) {
+          badgeEl.textContent = 'Level ' + level + ' • ' + name + (isSup ? ' (Supervisory)' : '');
+          badgeEl.style.color = isSup ? '#15803d' : '#0284c7';
+          badgeEl.style.background = isSup ? '#f0fdf4' : '#e0f2fe';
+          badgeEl.style.borderColor = isSup ? '#bbf7d0' : '#bae6fd';
+        }
+        return;
+      }
+
+      if (badgeEl) {
+        var isSup = Boolean(desig.isSupervisory);
+        badgeEl.textContent = 'Level ' + desig.hierarchyLevel + ' • ' + desig.name + (isSup ? ' (Supervisory)' : '');
+        badgeEl.style.color = isSup ? '#15803d' : '#0284c7';
+        badgeEl.style.background = isSup ? '#f0fdf4' : '#e0f2fe';
+        badgeEl.style.borderColor = isSup ? '#bbf7d0' : '#bae6fd';
+      }
+
+      if (container) {
+        var auths = desig.authorities || {};
+        var authKeys = ['canViewTeam', 'canAssignRoutes', 'canReorderSequences', 'canSuperviseJobs', 'canApproveExceptions', 'canManageStaff'];
+        var chipsHtml = '';
+
+        authKeys.forEach(function(k) {
+          var isGranted = Boolean(auths[k]);
+          var color = isGranted ? '#15803d' : '#94a3b8';
+          var bg = isGranted ? '#f0fdf4' : '#f1f5f9';
+          var border = isGranted ? '#bbf7d0' : '#e2e8f0';
+
+          chipsHtml += '<span class="badge-status-pill" style="background:' + bg + '; color:' + color + '; border:1px solid ' + border + '; font-size:10.5px; font-weight:600; display:inline-flex; align-items:center; gap:3px;">';
+          chipsHtml += '<span class="material-symbols-outlined" style="font-size:12px;">' + (isGranted ? 'verified' : 'cancel') + '</span> ';
+          chipsHtml += escapeHtml(k);
+          chipsHtml += '</span>';
+        });
+
+        container.innerHTML = chipsHtml;
+      }
+    }
+
+    function openDesignationManagementModal() {
+      var modal = document.getElementById('designationManagementModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+      loadDesignationsForAdmin(function() {
+        renderDesignationsTable();
+      });
+    }
+
+    function closeDesignationManagementModal() {
+      var modal = document.getElementById('designationManagementModal');
+      if (modal) {
+        modal.style.display = 'none';
+        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+          document.body.style.overflow = '';
+        }
+      }
+    }
+
+    function toggleAddDesignationForm(forceState) {
+      var container = document.getElementById('addDesignationFormContainer');
+      var btn = document.getElementById('btnToggleAddDesigForm');
+      if (!container) return;
+
+      var shouldShow = (forceState !== undefined) ? forceState : (container.style.display === 'none');
+      container.style.display = shouldShow ? 'block' : 'none';
+      if (btn) {
+        btn.innerHTML = shouldShow
+          ? '<span class="material-symbols-outlined" style="font-size: 16px;">close</span><span>Close Form</span>'
+          : '<span class="material-symbols-outlined" style="font-size: 16px;">add</span><span>Add Custom Designation</span>';
+      }
+    }
+
+    function renderDesignationsTable() {
+      var container = document.getElementById('designationsTableContainer');
+      if (!container) return;
+
+      var desigs = state.designationsList || [];
+      if (desigs.length === 0) {
+        container.innerHTML = '<div class="empty-state-box">No designations found.</div>';
+        return;
+      }
+
+      var tableHtml = '<div style="overflow-x:auto;"><table class="admin-table" style="width:100%; border-collapse:collapse; font-size:12px;">';
+      tableHtml += '<thead><tr style="background:var(--bg-surface); border-bottom:2px solid var(--border-color); text-align:left;">';
+      tableHtml += '<th style="padding:10px 12px;">Designation & Code</th>';
+      tableHtml += '<th style="padding:10px 12px;">Hindi Title</th>';
+      tableHtml += '<th style="padding:10px 12px; text-align:center;">Level</th>';
+      tableHtml += '<th style="padding:10px 12px; text-align:center;">Type</th>';
+      tableHtml += '<th style="padding:10px 12px; text-align:center;">Staff Count</th>';
+      tableHtml += '<th style="padding:10px 12px;">Authorities Granted</th>';
+      tableHtml += '<th style="padding:10px 12px; text-align:center;">Actions</th>';
+      tableHtml += '</tr></thead><tbody>';
+
+      desigs.forEach(function(d) {
+        var isProtected = Boolean(d.isSystemProtected);
+        var staffCnt = d.staffCount || 0;
+        var auths = d.authorities || {};
+        var grantedKeys = Object.keys(auths).filter(function(k) { return auths[k]; });
+
+        tableHtml += '<tr style="border-bottom:1px solid var(--border-color);">';
+        tableHtml += '<td style="padding:10px 12px;">';
+        tableHtml += '  <div style="font-weight:700; color:var(--text-primary);">' + escapeHtml(d.name) + '</div>';
+        tableHtml += '  <code style="font-size:10.5px; color:var(--text-muted);">' + escapeHtml(d.id) + '</code>';
+        tableHtml += '</td>';
+        tableHtml += '<td style="padding:10px 12px; color:var(--text-secondary);">' + escapeHtml(d.nameHi || '—') + '</td>';
+        tableHtml += '<td style="padding:10px 12px; text-align:center;"><span class="badge-status-pill" style="font-weight:700; background:#f1f5f9; color:#334155;">L' + d.hierarchyLevel + '</span></td>';
+        tableHtml += '<td style="padding:10px 12px; text-align:center;">' + (isProtected
+          ? '<span class="badge-status-pill" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:10px; font-weight:700;">Core (Protected)</span>'
+          : '<span class="badge-status-pill" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:10px; font-weight:700;">Custom</span>') + '</td>';
+        tableHtml += '<td style="padding:10px 12px; text-align:center;"><b style="color:var(--text-primary);">' + staffCnt + '</b></td>';
+        tableHtml += '<td style="padding:10px 12px;">';
+        if (grantedKeys.length === 0) {
+          tableHtml += '<span style="color:var(--text-muted); font-size:11px;">None (Field Level)</span>';
+        } else {
+          tableHtml += '<div style="display:flex; gap:4px; flex-wrap:wrap;">';
+          grantedKeys.forEach(function(k) {
+            tableHtml += '<span class="badge-status-pill" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size:10px; font-weight:600;">' + escapeHtml(k) + '</span>';
+          });
+          tableHtml += '</div>';
+        }
+        tableHtml += '</td>';
+        tableHtml += '<td style="padding:10px 12px; text-align:center;">';
+        if (isProtected) {
+          tableHtml += '<span class="material-symbols-outlined" style="font-size:18px; color:var(--text-muted);" title="Protected Core Designation">lock</span>';
+        } else if (staffCnt > 0) {
+          tableHtml += '<span style="font-size:10.5px; color:#b45309;" title="Cannot delete: active staff assigned">Assigned (' + staffCnt + ')</span>';
+        } else {
+          tableHtml += '<button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteCustomDesignation(\'' + escapeHtml(d.id) + '\', \'' + escapeHtml(d.name) + '\')" style="padding:4px 8px; font-size:11px;">Delete</button>';
+        }
+        tableHtml += '</td>';
+        tableHtml += '</tr>';
+      });
+
+      tableHtml += '</tbody></table></div>';
+      container.innerHTML = tableHtml;
+    }
+
+    function handleSaveCustomDesignation(e) {
+      e.preventDefault();
+      var id = document.getElementById('newDesigId').value.trim().toLowerCase();
+      var name = document.getElementById('newDesigName').value.trim();
+      var nameHi = document.getElementById('newDesigNameHi').value.trim();
+      var level = parseInt(document.getElementById('newDesigLevel').value, 10) || 1;
+      var desc = document.getElementById('newDesigDesc').value.trim();
+
+      var auths = {
+        canViewTeam: Boolean(document.getElementById('auth_canViewTeam') && document.getElementById('auth_canViewTeam').checked),
+        canAssignRoutes: Boolean(document.getElementById('auth_canAssignRoutes') && document.getElementById('auth_canAssignRoutes').checked),
+        canReorderSequences: Boolean(document.getElementById('auth_canReorderSequences') && document.getElementById('auth_canReorderSequences').checked),
+        canSuperviseJobs: Boolean(document.getElementById('auth_canSuperviseJobs') && document.getElementById('auth_canSuperviseJobs').checked),
+        canApproveExceptions: Boolean(document.getElementById('auth_canApproveExceptions') && document.getElementById('auth_canApproveExceptions').checked),
+        canManageStaff: Boolean(document.getElementById('auth_canManageStaff') && document.getElementById('auth_canManageStaff').checked)
+      };
+
+      var btn = document.getElementById('btnSubmitAddDesig');
+      if (btn) btn.disabled = true;
+
+      apiCall('saveDesignation', {
+        id: id,
+        name: name,
+        nameHi: nameHi,
+        hierarchyLevel: level,
+        description: desc,
+        authorities: auths
+      }, function(res) {
+        if (btn) btn.disabled = false;
+        showToast('Designation "' + name + '" saved successfully!', '✓');
+        document.getElementById('addDesignationForm').reset();
+        toggleAddDesignationForm(false);
+        loadDesignationsForAdmin();
+      }, function(err) {
+        if (btn) btn.disabled = false;
+        showToast('Error saving designation: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleDeleteCustomDesignation(id, name) {
+      if (!confirm('Are you sure you want to delete custom designation "' + (name || id) + '"?')) return;
+
+      apiCall('deleteDesignation', { id: id }, function(res) {
+        showToast('Designation deleted successfully.', '✓');
+        loadDesignationsForAdmin();
+      }, function(err) {
+        showToast('Error: ' + (err.message || err), '❌');
+      });
+    }
+
+    function openStaffHierarchyView() {
+      var modal = document.getElementById('staffHierarchyModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+      refreshStaffHierarchy();
+    }
+
+    function closeStaffHierarchyModal() {
+      var modal = document.getElementById('staffHierarchyModal');
+      if (modal) {
+        modal.style.display = 'none';
+        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+          document.body.style.overflow = '';
+        }
+      }
+    }
+
+    function refreshStaffHierarchy() {
+      var container = document.getElementById('staffHierarchyTreeContainer');
+      var chipsEl = document.getElementById('staffHierarchySummaryChips');
+      if (container) container.innerHTML = '<div class="empty-state-box">Loading hierarchy tree...</div>';
+
+      apiCall('getStaffHierarchy', {}, function(res) {
+        if (!res || !res.hierarchyTree) {
+          if (container) container.innerHTML = '<div class="empty-state-box">No hierarchy data available.</div>';
+          return;
+        }
+
+        if (chipsEl) {
+          var total = res.totalStaff || 0;
+          var roots = res.rootCount || 0;
+          chipsEl.innerHTML = '<span class="badge-status-pill" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:700;">👥 Total Active: ' + total + '</span>' +
+                              '<span class="badge-status-pill" style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; font-weight:700;">👑 Top-Level: ' + roots + '</span>';
+        }
+
+        function renderNode(node) {
+          var isSup = Boolean(node.isSupervisory);
+          var subCount = node.subordinateCount || 0;
+          var html = '<div style="margin-left:20px; border-left:2px solid ' + (isSup ? '#7c3aed' : '#cbd5e1') + '; padding-left:14px; margin-top:8px; margin-bottom:8px;">';
+          html += '<div style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:8px; padding:8px 12px; display:inline-flex; align-items:center; gap:10px; min-width:280px;">';
+          html += '<div style="width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg, #7c3aed, #2563eb); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">' + escapeHtml((node.name || 'S').charAt(0).toUpperCase()) + '</div>';
+          html += '<div>';
+          html += '<div style="font-weight:700; font-size:12px; color:var(--text-primary);">' + escapeHtml(node.name) + ' <span style="font-size:10px; color:var(--text-muted);">(' + escapeHtml(node.id) + ')</span></div>';
+          html += '<div style="display:flex; gap:6px; align-items:center; margin-top:2px;">';
+          html += '<span class="badge-status-pill" style="background:' + (isSup ? '#f0fdf4' : '#f1f5f9') + '; color:' + (isSup ? '#15803d' : '#334155') + '; font-size:9.5px; font-weight:700;">' + escapeHtml(node.designationName || 'Cleaner') + '</span>';
+          if (node.teamName) {
+            html += '<span class="badge-status-pill" style="background:#eff6ff; color:#1d4ed8; font-size:9.5px;">' + escapeHtml(node.teamName) + '</span>';
+          }
+          if (subCount > 0) {
+            html += '<span style="font-size:10px; color:#7c3aed; font-weight:600;">• ' + subCount + ' Direct Report' + (subCount > 1 ? 's' : '') + '</span>';
+          }
+          html += '</div></div></div>';
+
+          if (node.subordinates && node.subordinates.length > 0) {
+            node.subordinates.forEach(function(sub) {
+              html += renderNode(sub);
+            });
+          }
+          html += '</div>';
+          return html;
+        }
+
+        var treeHtml = '<div style="padding:10px 0;">';
+        res.hierarchyTree.forEach(function(rootNode) {
+          treeHtml += renderNode(rootNode);
+        });
+        treeHtml += '</div>';
+        if (container) container.innerHTML = treeHtml;
+      }, function(err) {
+        if (container) container.innerHTML = '<div class="empty-state-box" style="color:#b91c1c;">Failed to load hierarchy: ' + escapeHtml(err.message || err) + '</div>';
+      });
+    }
+
+    window.openDesignationManagementModal = openDesignationManagementModal;
+    window.closeDesignationManagementModal = closeDesignationManagementModal;
+    window.toggleAddDesignationForm = toggleAddDesignationForm;
+    window.handleSaveCustomDesignation = handleSaveCustomDesignation;
+    window.handleDeleteCustomDesignation = handleDeleteCustomDesignation;
+    window.openStaffHierarchyView = openStaffHierarchyView;
+    window.closeStaffHierarchyModal = closeStaffHierarchyModal;
+    window.refreshStaffHierarchy = refreshStaffHierarchy;
+    window.handleStaffDesignationChange = handleStaffDesignationChange;
+    window.loadDesignationsForAdmin = loadDesignationsForAdmin;
+
     function populateAdminStaffList(list) {
       state.staffList = list || [];
       state.adminStaffList = list || [];
+      if (!state.designationsList || state.designationsList.length === 0) {
+        loadDesignationsForAdmin();
+      }
       if (typeof syncAllStaffDropdowns === 'function') {
         syncAllStaffDropdowns(state.staffList);
       }
@@ -6403,6 +6908,7 @@ function loadStaffCustomerData(staffId) {
         var normPhone = normalizeIndianMobile(s.phone);
         var formattedPhone = normPhone ? formatIndianMobile(normPhone) : '';
         var isActive = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+        var isLocked = Boolean(s.isLocked || (s.lockedUntil && new Date() < new Date(s.lockedUntil)));
         var sPin = (s.pin || s.displayPin || '').toString().trim();
         if (sPin.includes('*') || sPin.startsWith('scrypt:') || sPin.startsWith('sha256:') || sPin === '[PROTECTED]') {
           sPin = '';
@@ -6423,10 +6929,31 @@ function loadStaffCustomerData(staffId) {
         }
         cardsHtml += '  </div>';
         cardsHtml += '  <div class="staff-admin-info" style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">';        cardsHtml += '    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">';
+        var sWt = s.workType || s.work_type || 'dcc_only';
+        if (sWt === 'dcc_only') {
+          cardsHtml += '      <span class="badge-status-pill" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:10.5px; font-weight:700;">🚗 DCC Only</span>';
+        } else if (sWt === 'dcc_and_services') {
+          cardsHtml += '      <span class="badge-status-pill" style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; font-size:10.5px; font-weight:700;">✨ DCC + Services</span>';
+        } else if (sWt === 'services_only') {
+          cardsHtml += '      <span class="badge-status-pill" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:10.5px; font-weight:700;">🛠️ Services Only</span>';
+        }
+        var desigName = s.designationName || 'Cleaner';
+        var isSup = Boolean(s.isSupervisory);
+        var desigBg = isSup ? '#f0fdf4' : '#f8fafc';
+        var desigColor = isSup ? '#15803d' : '#475569';
+        var desigBorder = isSup ? '#bbf7d0' : '#e2e8f0';
+        var desigIcon = isSup ? 'shield_person' : 'badge';
+        cardsHtml += '      <span class="badge-status-pill" style="background:' + desigBg + '; color:' + desigColor + '; border:1px solid ' + desigBorder + '; font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; gap:3px;"><span class="material-symbols-outlined" style="font-size:12px;">' + desigIcon + '</span> ' + escapeHtml(desigName) + '</span>';
         cardsHtml += '      <span class="staff-admin-name">' + escapeHtml(s.name) + '</span>';
         cardsHtml += '      <button type="button" class="badge-status-pill ' + (isActive ? 'badge-active' : 'badge-inactive') + '" onclick="toggleStaffActiveStatus(\'' + escapeHtml(s.id) + '\', ' + (!isActive) + ')" title="Click to toggle status">';
         cardsHtml += '        ' + (isActive ? '● Active' : '○ Inactive');
         cardsHtml += '      </button>';
+        if (s.hasActiveSession) {
+          cardsHtml += '      <span class="badge-status-pill" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:600;" title="Currently logged in on a mobile device">📱 Logged In</span>';
+        }
+        if (isLocked) {
+          cardsHtml += '      <span class="badge-status-pill" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Account locked due to failed attempts">🔒 Locked</span>';
+        }
         cardsHtml += '    </div>';
         cardsHtml += '    <div class="staff-admin-id" style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted); align-items: center;">';
         cardsHtml += '      <span>ID: <b style="color: var(--text-primary);">' + escapeHtml(s.id) + '</b></span>';
@@ -6458,6 +6985,27 @@ function loadStaffCustomerData(staffId) {
         if (docChips.length > 0) {
           extraDetails.push('<span style="color:#059669; font-weight:600;">🪪 KYC: ' + escapeHtml(docChips.join(', ')) + '</span>');
         }
+        var sCaps = s.serviceCapabilities || s.service_capabilities;
+        if (Array.isArray(sCaps) && sCaps.length > 0) {
+          var capNames = sCaps.map(function(c) {
+            if (c === 'daily_car_cleaning') return 'DCC';
+            if (c === 'car_washing') return 'Wash';
+            if (c === 'solar_cleaning') return 'Solar';
+            if (c === 'interior_detailing') return 'Interior';
+            if (c === 'exterior_detailing') return 'Exterior';
+            return c;
+          });
+          extraDetails.push('<span style="color:#6d28d9; font-weight:600;">🛠️ Caps: ' + escapeHtml(capNames.join(', ')) + '</span>');
+        }
+        if (s.reportsToName) {
+          extraDetails.push('<span style="color:#0284c7; font-weight:600;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">account_tree</span> Reports to: <b>' + escapeHtml(s.reportsToName) + '</b></span>');
+        }
+        if (s.teamName) {
+          extraDetails.push('<span style="color:#475569; font-weight:600;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">groups</span> ' + escapeHtml(s.teamName) + '</span>');
+        }
+        if (s.operationalScope) {
+          extraDetails.push('<span style="color:#475569; font-weight:600;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">location_on</span> ' + escapeHtml(s.operationalScope) + '</span>');
+        }
 
         if (extraDetails.length > 0) {
           cardsHtml += '    <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); align-items: center; margin-top: 3px;">';
@@ -6466,6 +7014,12 @@ function loadStaffCustomerData(staffId) {
         }
         cardsHtml += '  </div>';
         cardsHtml += '  <div class="staff-admin-actions">';
+        if (isLocked) {
+          cardsHtml += '    <button type="button" class="btn-admin-action" onclick="handleUnlockStaff(\'' + escapeHtml(s.id) + '\')" title="Unlock account immediately" style="background:#fef2f2; border-color:#fca5a5; color:#b91c1c; font-weight:700;">🔓 Unlock</button>';
+        }
+        if (s.hasActiveSession) {
+          cardsHtml += '    <button type="button" class="btn-admin-action" onclick="handleResetStaffDeviceSession(\'' + escapeHtml(s.id) + '\')" title="Force logout active phone & allow new login" style="background:#fffbeb; border-color:#fde68a; color:#b45309; font-weight:600;">🔄 Reset Device</button>';
+        }
         cardsHtml += '    <button type="button" class="btn-admin-action" onclick="openEditStaffModal(\'' + escapeHtml(s.id) + '\')">✏️ Edit</button>';
         if (isActive) {
           cardsHtml += '    <button type="button" class="btn-admin-action btn-staff-status-toggle is-active" onclick="toggleStaffActiveStatus(\'' + escapeHtml(s.id) + '\', false)" title="Active • Click to make Inactive" aria-label="Mark ' + escapeHtml(s.name) + ' as Inactive">';
@@ -6670,6 +7224,34 @@ function loadStaffCustomerData(staffId) {
       setPhoneInputValue(document.getElementById('editStaffPhone'), staff.phone || '');
       document.getElementById('editStaffPin').value = '';
 
+      var isStaffLocked = Boolean(staff.isLocked || (staff.lockedUntil && new Date() < new Date(staff.lockedUntil)));
+      var lockBanner = document.getElementById('modalStaffLockedBanner');
+      if (lockBanner) {
+        if (isStaffLocked) {
+          lockBanner.style.display = 'flex';
+          var reasonEl = document.getElementById('modalStaffLockedReason');
+          if (reasonEl) {
+            reasonEl.textContent = (staff.failedAttempts ? staff.failedAttempts : 5) + ' बार गलत पिन डालने के कारण अकाउंट लॉक है। अनलॉक करने के लिए बटन दबाएं।';
+          }
+        } else {
+          lockBanner.style.display = 'none';
+        }
+      }
+
+      var hasActiveDev = Boolean(staff.hasActiveSession);
+      var devBanner = document.getElementById('modalStaffActiveSessionBanner');
+      if (devBanner) {
+        if (hasActiveDev) {
+          devBanner.style.display = 'flex';
+          var devInfo = document.getElementById('modalStaffActiveSessionInfo');
+          if (devInfo) {
+            devInfo.textContent = 'यह स्टाफ वर्तमान में एक मोबाइल पर एक्टिव है। नया फोन लॉगिन करवाने के लिए Reset Device दबाएं।';
+          }
+        } else {
+          devBanner.style.display = 'none';
+        }
+      }
+
       state.editStaffPhotoObj = null;
       state.editStaffPhotoRemove = false;
       var pFile = document.getElementById('editStaffPhotoFile');
@@ -6723,6 +7305,37 @@ function loadStaffCustomerData(staffId) {
 
       var isAct = staff.active !== undefined ? (staff.active === true || staff.active === 'Yes' || staff.active === 'yes' || staff.active === 'Active') : true;
       document.getElementById('editStaffActive').value = isAct ? 'true' : 'false';
+      // Populate Work Type & Service Capabilities (Task 01.8)
+      var staffWt = staff.workType || staff.work_type || 'dcc_only';
+      var wtEl = document.getElementById('editStaffWorkType');
+      if (wtEl) wtEl.value = staffWt;
+      var rawCaps = staff.serviceCapabilities || staff.service_capabilities;
+      var staffCaps = Array.isArray(rawCaps) ? rawCaps : (staffWt === 'services_only' ? ['car_washing'] : ['daily_car_cleaning']);
+      ['daily_car_cleaning', 'car_washing', 'solar_cleaning', 'interior_detailing', 'exterior_detailing'].forEach(function(k) {
+        var chk = document.getElementById('capCheck_edit_' + k);
+        if (chk) chk.checked = staffCaps.includes(k);
+      });
+      if (typeof handleStaffWorkTypeChange === 'function') {
+        handleStaffWorkTypeChange(staffWt, 'edit');
+      }
+
+      // Populate Designation & Hierarchy (Task 01.9)
+      var desigSelect = document.getElementById('editStaffDesignation');
+      if (desigSelect) {
+        desigSelect.value = (staff.designationId || staff.designation_id || 'cleaner').toLowerCase();
+      }
+      if (typeof populateReportsToDropdown === 'function') {
+        populateReportsToDropdown(staff.id, staff.reportsToId || staff.reports_to_id);
+      }
+      if (document.getElementById('editStaffTeamName')) {
+        document.getElementById('editStaffTeamName').value = staff.teamName || staff.team_name || '';
+      }
+      if (document.getElementById('editStaffOperationalScope')) {
+        document.getElementById('editStaffOperationalScope').value = staff.operationalScope || staff.operational_scope || '';
+      }
+      if (typeof handleStaffDesignationChange === 'function') {
+        handleStaffDesignationChange(staff.designationId || staff.designation_id || 'cleaner', 'edit');
+      }
 
       // Extended non-mandatory profile fields
       if (document.getElementById('editStaffJoiningDate')) {
@@ -6844,6 +7457,23 @@ function loadStaffCustomerData(staffId) {
         btn.innerHTML = '<span>⏳</span> Saving...';
       }
 
+      var editWt = (document.getElementById('editStaffWorkType') ? document.getElementById('editStaffWorkType').value : 'dcc_only') || 'dcc_only';
+      var editCaps = [];
+      if (editWt === 'dcc_only') {
+        editCaps = ['daily_car_cleaning'];
+      } else {
+        ['car_washing', 'solar_cleaning', 'interior_detailing', 'exterior_detailing'].forEach(function(k) {
+          var chk = document.getElementById('capCheck_edit_' + k);
+          if (chk && chk.checked) editCaps.push(k);
+        });
+        if (editCaps.length === 0) {
+          alert('Please select at least one non-DCC service capability for this staff member.');
+          return;
+        }
+        if (editWt === 'dcc_and_services') {
+          editCaps.unshift('daily_car_cleaning');
+        }
+      }
       var email = (document.getElementById('editStaffEmail') ? document.getElementById('editStaffEmail').value : '').trim();
       var dateOfJoining = (document.getElementById('editStaffJoiningDate') ? document.getElementById('editStaffJoiningDate').value : '').trim();
       var salary = (document.getElementById('editStaffSalary') ? document.getElementById('editStaffSalary').value : '').trim();
@@ -6851,6 +7481,10 @@ function loadStaffCustomerData(staffId) {
       var aadharNumber = (document.getElementById('editStaffAadharNumber') ? document.getElementById('editStaffAadharNumber').value : '').trim();
       var panNumber = (document.getElementById('editStaffPanNumber') ? document.getElementById('editStaffPanNumber').value : '').trim().toUpperCase();
       var drivingLicenseNumber = (document.getElementById('editStaffDlNumber') ? document.getElementById('editStaffDlNumber').value : '').trim();
+      var editDesig = (document.getElementById('editStaffDesignation') ? document.getElementById('editStaffDesignation').value : 'cleaner') || 'cleaner';
+      var editReportsTo = document.getElementById('editStaffReportsTo') ? (document.getElementById('editStaffReportsTo').value || null) : null;
+      var editTeamName = (document.getElementById('editStaffTeamName') ? document.getElementById('editStaffTeamName').value : '').trim();
+      var editOpScope = (document.getElementById('editStaffOperationalScope') ? document.getElementById('editStaffOperationalScope').value : '').trim();
 
       var staffPayload = {
         id: id,
@@ -6863,7 +7497,13 @@ function loadStaffCustomerData(staffId) {
         weeklyOff: weeklyOff,
         aadharNumber: aadharNumber,
         panNumber: panNumber,
-        drivingLicenseNumber: drivingLicenseNumber
+        drivingLicenseNumber: drivingLicenseNumber,
+        workType: editWt,
+        serviceCapabilities: editCaps,
+        designationId: editDesig,
+        reportsToId: editReportsTo,
+        teamName: editTeamName,
+        operationalScope: editOpScope
       };
       if (pin) {
         staffPayload.pin = pin;
@@ -7001,12 +7641,23 @@ function loadStaffCustomerData(staffId) {
         return;
       }
 
+      var addWt = (document.getElementById('newStaffWorkType') ? document.getElementById('newStaffWorkType').value : 'dcc_only') || 'dcc_only';
+      var addDesig = (document.getElementById('newStaffDesignation') ? document.getElementById('newStaffDesignation').value : 'cleaner') || 'cleaner';
+      var addCaps = ['daily_car_cleaning'];
+      if (addWt === 'dcc_and_services') {
+        addCaps = ['daily_car_cleaning', 'car_washing'];
+      } else if (addWt === 'services_only') {
+        addCaps = ['car_washing'];
+      }
       var staffPayload = {
         name: name,
         id: id,
         phone: phone,
         pin: pin,
-        active: true
+        active: true,
+        workType: addWt,
+        serviceCapabilities: addCaps,
+        designationId: addDesig
       };
       if (state.newStaffPhotoObj) {
         staffPayload.photoObj = state.newStaffPhotoObj;
@@ -7067,6 +7718,73 @@ function loadStaffCustomerData(staffId) {
         return;
       }
       handleDeleteStaff(staffId);
+    }
+
+    function handleUnlockStaff(staffId) {
+      if (!staffId) return;
+      var staff = (state.staffList || []).find(function(s) {
+        return (s.id || '').toUpperCase() === (staffId || '').toUpperCase();
+      });
+      var staffName = staff ? staff.name : staffId;
+
+      if (!confirm('Are you sure you want to unlock staff member "' + staffName + '"?\n\nThis will reset their failed login attempts and allow them to log in immediately.')) {
+        return;
+      }
+
+      apiCall('unlockStaff', { staffId: staffId }, function(res) {
+        showToast('Staff "' + staffName + '" unlocked successfully!', '✓');
+        loadStaffListForAdmin();
+        var banner = document.getElementById('modalStaffLockedBanner');
+        if (banner) banner.style.display = 'none';
+      }, function(err) {
+        showToast('Error unlocking staff: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleUnlockStaffFromModal() {
+      var staffId = (document.getElementById('editStaffId') && document.getElementById('editStaffId').value) || '';
+      if (!staffId) {
+        showToast('Staff identifier not found to unlock', '❌');
+        return;
+      }
+      handleUnlockStaff(staffId);
+    }
+
+    function handleResetStaffDeviceSession(staffId) {
+      if (!staffId) return;
+      var staff = (state.staffList || []).find(function(s) {
+        return (s.id || '').toUpperCase() === (staffId || '').toUpperCase();
+      });
+      var staffName = staff ? staff.name : staffId;
+
+      if (!confirm('Are you sure you want to reset the active device session for "' + staffName + '"?\n\nThis will safely log them out from their current phone so they can log in on a new device.')) {
+        return;
+      }
+
+      apiCall('unlockStaff', { staffId: staffId, clearSession: true }, function(res) {
+        showToast('Staff "' + staffName + '" device session reset successfully! New device can now log in.', '✓');
+        loadStaffListForAdmin();
+        var banner = document.getElementById('modalStaffActiveSessionBanner');
+        if (banner) banner.style.display = 'none';
+      }, function(err) {
+        showToast('Error resetting device: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleResetStaffDeviceSessionFromModal() {
+      var staffId = (document.getElementById('editStaffId') && document.getElementById('editStaffId').value) || '';
+      if (!staffId) {
+        showToast('Staff identifier not found to reset', '❌');
+        return;
+      }
+      handleResetStaffDeviceSession(staffId);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.handleUnlockStaff = handleUnlockStaff;
+      window.handleUnlockStaffFromModal = handleUnlockStaffFromModal;
+      window.handleResetStaffDeviceSession = handleResetStaffDeviceSession;
+      window.handleResetStaffDeviceSessionFromModal = handleResetStaffDeviceSessionFromModal;
     }
 
     /* Customer Form Handling */
@@ -11220,14 +11938,16 @@ function loadStaffCustomerData(staffId) {
        SEGMENTED TAB CONTROLLER (Edit Customer Modal)
        ========================================================================== */
     function switchEditCustomerTab(tabName) {
-      var tabs = ['profile', 'locations', 'service', 'dispatch'];
+      var tabs = ['profile', 'locations', 'service', 'dispatch', 'packages', 'bookings'];
       if (!tabs.includes(tabName)) tabName = 'profile';
 
       var tabMap = {
         profile: { btn: 'tabBtnEditProfile', pane: 'editTabPaneProfile' },
         locations: { btn: 'tabBtnEditLocations', pane: 'editTabPaneLocations' },
         service: { btn: 'tabBtnEditService', pane: 'editTabPaneService' },
-        dispatch: { btn: 'tabBtnEditDispatch', pane: 'editTabPaneDispatch' }
+        dispatch: { btn: 'tabBtnEditDispatch', pane: 'editTabPaneDispatch' },
+        packages: { btn: 'tabBtnEditPackages', pane: 'editTabPanePackages' },
+        bookings: { btn: 'tabBtnEditBookings', pane: 'editTabPaneBookings' }
       };
 
       tabs.forEach(function(t) {
@@ -11253,6 +11973,10 @@ function loadStaffCustomerData(staffId) {
         renderCustomerLocations('edit');
       } else if (tabName === 'service') {
         renderCustomerVehicles('edit');
+      } else if (tabName === 'packages') {
+        loadCustomerPackagesForEditModal();
+      } else if (tabName === 'bookings') {
+        loadCustomerBookingsForEditModal();
       }
     }
 
@@ -11797,6 +12521,1213 @@ function loadStaffCustomerData(staffId) {
         btn.disabled = false;
         btn.innerHTML = '<span>🛑</span> Stop Service (काम रोकें)';
         showToast('Failed to stop service: ' + (err.message || err), '❌');
+      });
+    }
+
+    /* ==========================================================================
+       PACKAGES & ENTITLEMENTS CONTROLLER (Admin Panel)
+       ========================================================================== */
+    state.customerPackages = [];
+    state.packageCatalogCache = null;
+    state.currentPackageFilter = 'all';
+
+    function loadCustomerPackagesForEditModal() {
+      var custId = document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value : '';
+      if (!custId && state.currentEditCustomerIndex != null && state.adminRecords && state.adminRecords[state.currentEditCustomerIndex]) {
+        var rec = state.adminRecords[state.currentEditCustomerIndex];
+        custId = rec.id || rec.customerId || rec.customerCode || '';
+      }
+      if (!custId) {
+        renderCustomerPackagesUI([]);
+        return;
+      }
+
+      var container = document.getElementById('custPackagesListContainer');
+      if (container) {
+        container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 28px 10px;">' +
+          '<span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 8px; color: #94a3b8; animation: spin 1.5s linear infinite;">sync</span>' +
+          'Loading packages & entitlements...</div>';
+      }
+
+      apiCall('getCustomerPackages', { customerId: custId }, function(res) {
+        if (res && res.packages) {
+          state.customerPackages = Array.isArray(res.packages) ? res.packages : [];
+        } else {
+          state.customerPackages = [];
+        }
+        renderCustomerPackagesUI(state.customerPackages);
+      }, function(err) {
+        console.error('Failed to load customer packages:', err);
+        if (container) {
+          container.innerHTML = '<div style="text-align: center; color: #dc2626; padding: 20px 10px;">' +
+            '<span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 6px;">error</span>' +
+            'Could not load packages. ' + escapeHtml(err.message || 'Server error') + '</div>';
+        }
+      });
+    }
+
+    function renderCustomerPackagesUI(packages) {
+      packages = packages || state.customerPackages || [];
+
+      // Update badge counts
+      var allCount = packages.length;
+      var activeCount = packages.filter(function(p) { return (p.status || '').toLowerCase() === 'active'; }).length;
+      var exhaustedCount = packages.filter(function(p) { return (p.status || '').toLowerCase() === 'exhausted'; }).length;
+      var cancelledCount = packages.filter(function(p) { return (p.status || '').toLowerCase() === 'cancelled'; }).length;
+
+      var cAll = document.getElementById('pkgCountAll');
+      var cActive = document.getElementById('pkgCountActive');
+      var cExhausted = document.getElementById('pkgCountExhausted');
+      var cCancelled = document.getElementById('pkgCountCancelled');
+      if (cAll) cAll.textContent = allCount;
+      if (cActive) cActive.textContent = activeCount;
+      if (cExhausted) cExhausted.textContent = exhaustedCount;
+      if (cCancelled) cCancelled.textContent = cancelledCount;
+
+      filterCustomerPackagesUI(state.currentPackageFilter || 'all');
+    }
+
+    function filterCustomerPackagesUI(filterType) {
+      state.currentPackageFilter = filterType;
+
+      var pills = ['All', 'Active', 'Exhausted', 'Cancelled'];
+      pills.forEach(function(p) {
+        var btn = document.getElementById('pkgFilter' + p);
+        if (btn) {
+          if (p.toLowerCase() === filterType.toLowerCase()) {
+            btn.classList.add('active');
+            btn.style.background = '#2563eb';
+            btn.style.color = '#fff';
+          } else {
+            btn.classList.remove('active');
+            btn.style.background = '#f8fafc';
+            btn.style.color = '#475569';
+          }
+        }
+      });
+
+      var packages = state.customerPackages || [];
+      var filtered = packages;
+      if (filterType !== 'all') {
+        filtered = packages.filter(function(p) {
+          return (p.status || '').toLowerCase() === filterType.toLowerCase();
+        });
+      }
+
+      renderPackagesList(filtered);
+    }
+
+    function renderPackagesList(packages) {
+      var container = document.getElementById('custPackagesListContainer');
+      if (!container) return;
+
+      if (!packages || packages.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 28px 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">' +
+          '<span class="material-symbols-outlined" style="font-size: 38px; color: #94a3b8; display: block; margin-bottom: 8px;">inventory_2</span>' +
+          '<div style="font-weight: 600; color: #475569; font-size: 14px;">No Packages in this category</div>' +
+          '<div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Click "Sell Package" to assign a new service package.</div>' +
+          '</div>';
+        return;
+      }
+
+      var html = '';
+      packages.forEach(function(pkg) {
+        var total = pkg.total_quantity || pkg.totalQuantity || 0;
+        var redeemed = pkg.redeemed_quantity || pkg.redeemedQuantity || 0;
+        var remaining = pkg.remaining_quantity != null ? pkg.remaining_quantity : (total - redeemed);
+        var status = (pkg.status || 'active').toLowerCase();
+        var percent = total > 0 ? Math.min(100, Math.round((redeemed / total) * 100)) : 0;
+
+        var statusBadge = '';
+        if (status === 'active') {
+          statusBadge = '<span class="m3-chip" style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 3px 8px;">Active</span>';
+        } else if (status === 'exhausted') {
+          statusBadge = '<span class="m3-chip" style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; padding: 3px 8px;">Exhausted</span>';
+        } else if (status === 'cancelled') {
+          statusBadge = '<span class="m3-chip" style="background: #fee2e2; color: #dc2626; font-size: 11px; font-weight: 700; padding: 3px 8px;">Cancelled</span>';
+        } else if (status === 'expired') {
+          statusBadge = '<span class="m3-chip" style="background: #ffedd5; color: #c2410c; font-size: 11px; font-weight: 700; padding: 3px 8px;">Expired</span>';
+        }
+
+        var expiryFormatted = 'No Expiry';
+        if (pkg.expiry_date) {
+          expiryFormatted = new Date(pkg.expiry_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        var priceStr = pkg.purchase_price ? ('₹' + pkg.purchase_price) : 'Complimentary / Included';
+        var payStatus = pkg.payment_status || 'Paid';
+        var payBadge = payStatus === 'Paid'
+          ? '<span style="color: #16a34a; font-weight: 600;">✓ Paid</span>'
+          : '<span style="color: #d97706; font-weight: 600;">⏳ ' + escapeHtml(payStatus) + '</span>';
+
+        var pkgId = pkg.id;
+
+        html += '<div class="cwp-package-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: box-shadow 0.2s ease;">' +
+          '<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap;">' +
+            '<div>' +
+              '<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">' +
+                '<span style="font-weight: 700; font-size: 15px; color: #1e293b;">' + escapeHtml(pkg.package_name || pkg.packageName || 'Service Package') + '</span>' +
+                '<span class="m3-chip" style="background: #e0f2fe; color: #0284c7; font-size: 11px; padding: 2px 7px;">' + escapeHtml(pkg.service_category || pkg.serviceCategory || 'Service') + '</span>' +
+                statusBadge +
+              '</div>' +
+              '<div style="font-size: 12px; color: #64748b; margin-top: 4px;">' +
+                '<span>Price: ' + priceStr + ' (' + payBadge + ')</span> • ' +
+                '<span>Expires: ' + expiryFormatted + '</span>' +
+                (pkg.notes ? (' • <span style="font-style: italic;">Note: ' + escapeHtml(pkg.notes) + '</span>') : '') +
+              '</div>' +
+            '</div>' +
+            '<div style="text-align: right;">' +
+              '<span style="font-size: 14px; font-weight: 700; color: ' + (remaining > 0 ? '#15803d' : '#64748b') + ';">' +
+                remaining + ' / ' + total + ' Remaining' +
+              '</span>' +
+            '</div>' +
+          '</div>' +
+
+          // Progress bar
+          '<div style="margin-top: 10px;">' +
+            '<div style="background: #e2e8f0; height: 7px; border-radius: 4px; overflow: hidden;">' +
+              '<div style="background: ' + (remaining > 0 ? '#2563eb' : '#94a3b8') + '; width: ' + (100 - percent) + '%; height: 100%; border-radius: 4px; transition: width 0.3s ease;"></div>' +
+            '</div>' +
+            '<div style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-top: 4px;">' +
+              '<span>Redeemed: ' + redeemed + '</span>' +
+              '<span>Total Entitlement: ' + total + '</span>' +
+            '</div>' +
+          '</div>' +
+
+          // Action row
+          '<div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #f1f5f9;">' +
+            '<button type="button" class="btn-admin-action" onclick="openPackageHistoryModal(\'' + pkgId + '\')" style="font-size: 12px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px;">' +
+              '<span class="material-symbols-outlined" style="font-size: 15px;">history</span> History' +
+            '</button>';
+
+        if (status === 'active' && remaining > 0) {
+          html += '<button type="button" class="btn-admin-action" onclick="openRedeemPackageModal(\'' + pkgId + '\')" style="background: #16a34a; color: #fff; border-color: #16a34a; font-size: 12px; font-weight: 600; padding: 5px 12px; display: inline-flex; align-items: center; gap: 4px;">' +
+            '<span class="material-symbols-outlined" style="font-size: 15px;">redeem</span> Redeem' +
+          '</button>';
+        }
+
+        if (status === 'active') {
+          html += '<button type="button" class="btn-admin-action btn-admin-danger" onclick="handleCancelPackageClick(\'' + pkgId + '\')" style="font-size: 12px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px;">' +
+            '<span class="material-symbols-outlined" style="font-size: 15px;">cancel</span> Cancel' +
+          '</button>';
+        }
+
+        html += '</div></div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function openSellPackageModalFromEditCustomer() {
+      var custId = document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value : '';
+      var rec = null;
+      if (state.currentEditCustomerIndex != null && state.adminRecords && state.adminRecords[state.currentEditCustomerIndex]) {
+        rec = state.adminRecords[state.currentEditCustomerIndex];
+      }
+      if (!rec && custId && state.adminRecords) {
+        rec = state.adminRecords.find(function(r) { return r.id === custId || r.customerId === custId; });
+      }
+
+      var name = (rec && (rec.customerName || rec.name)) || 'Customer';
+      var phone = (rec && (rec.customerNumber || rec.phone)) || '';
+      var code = (rec && (rec.customerCode || rec.id)) || custId;
+
+      var nameEl = document.getElementById('sellPkgCustName');
+      var metaEl = document.getElementById('sellPkgCustMeta');
+      var idInput = document.getElementById('sellPkgCustomerId');
+      if (nameEl) nameEl.textContent = name;
+      if (metaEl) metaEl.textContent = [phone ? ('+91 ' + phone) : '', code ? ('ID: ' + code) : ''].filter(Boolean).join(' • ');
+      if (idInput) idInput.value = custId || code;
+
+      // Populate Vehicles dropdown
+      var assetSelect = document.getElementById('sellPkgAssetSelect');
+      if (assetSelect) {
+        assetSelect.innerHTML = '<option value="">-- Any Vehicle / Customer Level --</option>';
+        if (rec) {
+          var vehStr = rec.vehicle || rec.vehicleNumbers || '';
+          if (vehStr) {
+            vehStr.split(',').forEach(function(v) {
+              v = v.trim();
+              if (v) {
+                var opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = '🚗 ' + v;
+                assetSelect.appendChild(opt);
+              }
+            });
+          }
+          if (Array.isArray(rec.assets)) {
+            rec.assets.forEach(function(a) {
+              var opt = document.createElement('option');
+              opt.value = a.id || a.registrationNumber;
+              opt.textContent = '🚗 ' + (a.registrationNumber || a.model || 'Vehicle');
+              assetSelect.appendChild(opt);
+            });
+          }
+        }
+      }
+
+      // Populate Locations dropdown
+      var locSelect = document.getElementById('sellPkgLocationSelect');
+      if (locSelect) {
+        locSelect.innerHTML = '<option value="">-- Any Location / Customer Level --</option>';
+        if (rec && Array.isArray(rec.locations) && rec.locations.length > 0) {
+          rec.locations.forEach(function(l, idx) {
+            var opt = document.createElement('option');
+            opt.value = l.id || ('loc_' + idx);
+            opt.textContent = '📍 ' + (l.locationName || ('Location ' + (idx + 1))) + ' - ' + (l.addressText || l.address || '');
+            locSelect.appendChild(opt);
+          });
+        } else if (rec && rec.address) {
+          var opt = document.createElement('option');
+          opt.value = 'primary_loc';
+          opt.textContent = '🏠 Primary: ' + rec.address;
+          locSelect.appendChild(opt);
+        }
+      }
+
+      // Load Catalog and populate templates
+      loadPackageCatalogAndInitSelect();
+
+      var modal = document.getElementById('sellPackageModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeSellPackageModal() {
+      var modal = document.getElementById('sellPackageModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function loadPackageCatalogAndInitSelect() {
+      if (state.packageCatalogCache && state.packageCatalogCache.length > 0) {
+        populateSellCatalogTemplates();
+        return;
+      }
+      apiCall('getPackageCatalog', {}, function(res) {
+        if (res && res.catalog) {
+          state.packageCatalogCache = res.catalog;
+        } else {
+          state.packageCatalogCache = [];
+        }
+        populateSellCatalogTemplates();
+      }, function(err) {
+        console.warn('Failed to load package catalog:', err);
+        state.packageCatalogCache = [];
+        populateSellCatalogTemplates();
+      });
+    }
+
+    function populateSellCatalogTemplates() {
+      var catSelect = document.getElementById('sellPkgCategory');
+      var templateSelect = document.getElementById('sellPkgCatalogSelect');
+      if (!catSelect || !templateSelect) return;
+
+      var currentCat = catSelect.value || 'Car Washing';
+      templateSelect.innerHTML = '';
+
+      var catalog = state.packageCatalogCache || [];
+      var matches = catalog.filter(function(item) {
+        return (item.category || '').toLowerCase() === currentCat.toLowerCase();
+      });
+
+      if (matches.length > 0) {
+        matches.forEach(function(item) {
+          var opt = document.createElement('option');
+          opt.value = item.packageCode;
+          opt.textContent = item.name + ' (' + item.quantity + ' services - ₹' + item.price + ')';
+          templateSelect.appendChild(opt);
+        });
+      }
+
+      // Always include Custom / Manual option
+      var customOpt = document.createElement('option');
+      customOpt.value = 'CUSTOM';
+      customOpt.textContent = '➕ Custom Package / Manual Entitlement';
+      templateSelect.appendChild(customOpt);
+
+      // Trigger selection change to update fields
+      handleSellPackageCatalogChange(templateSelect.value);
+    }
+
+    function handleSellPackageCategoryChange(newCat) {
+      populateSellCatalogTemplates();
+    }
+
+    function handleSellPackageCatalogChange(code) {
+      var catalog = state.packageCatalogCache || [];
+      var item = catalog.find(function(c) { return c.packageCode === code; });
+
+      var nameInput = document.getElementById('sellPkgName');
+      var qtyInput = document.getElementById('sellPkgTotalQuantity');
+      var priceInput = document.getElementById('sellPkgPrice');
+      var validityInput = document.getElementById('sellPkgValidityMonths');
+
+      if (item) {
+        if (nameInput) nameInput.value = item.name || '';
+        if (qtyInput) qtyInput.value = item.quantity || 1;
+        if (priceInput) priceInput.value = item.price || 0;
+        if (validityInput) validityInput.value = item.validityMonths || 6;
+      } else {
+        if (code === 'CUSTOM') {
+          if (nameInput) nameInput.value = '';
+          if (qtyInput) qtyInput.value = 1;
+          if (priceInput) priceInput.value = '';
+          if (validityInput) validityInput.value = 6;
+        }
+      }
+    }
+
+    function recalculateSellPackageExpiry() {
+      // Validity months input change handler
+    }
+
+    function handleSellPackageSubmit(e) {
+      if (e) e.preventDefault();
+
+      var custId = document.getElementById('sellPkgCustomerId').value;
+      if (!custId) {
+        showToast('Customer ID missing', '❌');
+        return;
+      }
+
+      var category = document.getElementById('sellPkgCategory').value;
+      var templateCode = document.getElementById('sellPkgCatalogSelect').value;
+      var name = document.getElementById('sellPkgName').value.trim();
+      var qty = parseInt(document.getElementById('sellPkgTotalQuantity').value, 10);
+      var price = parseFloat(document.getElementById('sellPkgPrice').value) || 0;
+      var validity = parseInt(document.getElementById('sellPkgValidityMonths').value, 10) || 6;
+      var payStatus = document.getElementById('sellPkgPaymentStatus').value;
+      var assetId = document.getElementById('sellPkgAssetSelect').value;
+      var locationId = document.getElementById('sellPkgLocationSelect').value;
+      var notes = document.getElementById('sellPkgNotes').value.trim();
+
+      if (!name) {
+        showToast('Package name is required', '⚠️');
+        return;
+      }
+      if (!qty || qty < 1) {
+        showToast('Entitlement quantity must be at least 1', '⚠️');
+        return;
+      }
+
+      var btn = document.getElementById('btnSubmitSellPackage');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="cwp-spinner"></span> Selling Package...';
+      }
+
+      var payload = {
+        customerId: custId,
+        serviceCategory: category,
+        packageCode: templateCode !== 'CUSTOM' ? templateCode : 'CUSTOM',
+        packageName: name,
+        totalQuantity: qty,
+        purchasePrice: price,
+        validityMonths: validity,
+        paymentStatus: payStatus,
+        assetId: assetId || null,
+        locationId: locationId || null,
+        notes: notes
+      };
+
+      apiCall('sellCustomerPackage', { packageData: payload }, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">check_circle</span> <span>Confirm & Sell Package</span>';
+        }
+        if (res && res.success === false) {
+          showToast('Error: ' + (res.error || 'Failed to sell package'), '❌');
+        } else {
+          showToast('Package assigned successfully! Entitlement balance created.', '✅');
+          closeSellPackageModal();
+          loadCustomerPackagesForEditModal();
+        }
+      }, function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">check_circle</span> <span>Confirm & Sell Package</span>';
+        }
+        showToast('Failed to sell package: ' + (err.message || err), '❌');
+      });
+    }
+
+    function openRedeemPackageModal(packageId) {
+      var pkg = (state.customerPackages || []).find(function(p) { return p.id === packageId; });
+      if (!pkg) {
+        showToast('Package record not found', '❌');
+        return;
+      }
+
+      var total = pkg.total_quantity || pkg.totalQuantity || 0;
+      var redeemed = pkg.redeemed_quantity || pkg.redeemedQuantity || 0;
+      var remaining = pkg.remaining_quantity != null ? pkg.remaining_quantity : (total - redeemed);
+
+      if (remaining <= 0) {
+        showToast('Package has no remaining entitlement balance', '⚠️');
+        return;
+      }
+
+      var idInput = document.getElementById('redeemPackageId');
+      if (idInput) idInput.value = packageId;
+
+      var nameEl = document.getElementById('redeemPkgNameDisplay');
+      if (nameEl) nameEl.textContent = pkg.package_name || pkg.packageName || 'Service Package';
+
+      var rec = null;
+      if (state.currentEditCustomerIndex != null && state.adminRecords && state.adminRecords[state.currentEditCustomerIndex]) {
+        rec = state.adminRecords[state.currentEditCustomerIndex];
+      }
+      var custEl = document.getElementById('redeemPkgCustDisplay');
+      if (custEl) custEl.textContent = 'Customer: ' + ((rec && (rec.customerName || rec.name)) || 'Selected Customer');
+
+      var remEl = document.getElementById('redeemPkgRemainingQty');
+      var totEl = document.getElementById('redeemPkgTotalQty');
+      if (remEl) remEl.textContent = remaining;
+      if (totEl) totEl.textContent = total;
+
+      var qtyInput = document.getElementById('redeemQuantity');
+      if (qtyInput) {
+        qtyInput.value = 1;
+        qtyInput.max = remaining;
+      }
+
+      var dateInput = document.getElementById('redeemServiceDate');
+      if (dateInput) {
+        dateInput.value = new Date().toISOString().slice(0, 10);
+      }
+
+      // Populate Vehicle selector
+      var assetSelect = document.getElementById('redeemAssetSelect');
+      if (assetSelect) {
+        assetSelect.innerHTML = '<option value="">-- Customer Default Vehicle --</option>';
+        if (rec) {
+          var vehStr = rec.vehicle || rec.vehicleNumbers || '';
+          if (vehStr) {
+            vehStr.split(',').forEach(function(v) {
+              v = v.trim();
+              if (v) {
+                var opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = '🚗 ' + v;
+                if (pkg.asset_id && pkg.asset_id === v) opt.selected = true;
+                assetSelect.appendChild(opt);
+              }
+            });
+          }
+        }
+      }
+
+      // Populate Location selector
+      var locSelect = document.getElementById('redeemLocationSelect');
+      if (locSelect) {
+        locSelect.innerHTML = '<option value="">-- Customer Primary Location --</option>';
+        if (rec && Array.isArray(rec.locations)) {
+          rec.locations.forEach(function(l, idx) {
+            var opt = document.createElement('option');
+            opt.value = l.id || ('loc_' + idx);
+            opt.textContent = '📍 ' + (l.locationName || ('Location ' + (idx + 1)));
+            if (pkg.location_id && pkg.location_id === opt.value) opt.selected = true;
+            locSelect.appendChild(opt);
+          });
+        }
+      }
+
+      var notesInput = document.getElementById('redeemNotes');
+      if (notesInput) notesInput.value = '';
+
+      var modal = document.getElementById('redeemPackageModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeRedeemPackageModal() {
+      var modal = document.getElementById('redeemPackageModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleRedeemPackageSubmit(e) {
+      if (e) e.preventDefault();
+
+      var packageId = document.getElementById('redeemPackageId').value;
+      if (!packageId) {
+        showToast('Package ID missing', '❌');
+        return;
+      }
+
+      var qty = parseInt(document.getElementById('redeemQuantity').value, 10) || 1;
+      var serviceDate = document.getElementById('redeemServiceDate').value || new Date().toISOString().slice(0, 10);
+      var assetId = document.getElementById('redeemAssetSelect').value;
+      var locationId = document.getElementById('redeemLocationSelect').value;
+      var notes = document.getElementById('redeemNotes').value.trim();
+
+      var btn = document.getElementById('btnSubmitRedeemPackage');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="cwp-spinner"></span> Redeeming...';
+      }
+
+      var payload = {
+        packageId: packageId,
+        quantityRedeemed: qty,
+        redemptionDate: serviceDate,
+        assetId: assetId || null,
+        locationId: locationId || null,
+        notes: notes
+      };
+
+      apiCall('redeemPackageEntitlement', { redemptionData: payload }, function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">done_all</span> <span>Confirm Redemption</span>';
+        }
+        if (res && res.success === false) {
+          showToast('Error: ' + (res.error || 'Failed to redeem entitlement'), '❌');
+        } else {
+          var rem = res.package ? res.package.remaining_quantity : (res.remainingBalance || 0);
+          showToast('Redeemed ' + qty + ' service(s) successfully! Remaining balance: ' + rem, '✅');
+          closeRedeemPackageModal();
+          loadCustomerPackagesForEditModal();
+        }
+      }, function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">done_all</span> <span>Confirm Redemption</span>';
+        }
+        showToast('Redemption failed: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleCancelPackageClick(packageId) {
+      var pkg = (state.customerPackages || []).find(function(p) { return p.id === packageId; });
+      var pkgName = pkg ? (pkg.package_name || pkg.packageName) : 'this package';
+
+      var reason = prompt('Cancellation reason (रद्द करने का कारण):\n(e.g. Customer refund, incorrect purchase, plan upgraded)', 'Customer cancellation');
+      if (reason === null) return;
+
+      apiCall('cancelCustomerPackage', { packageId: packageId, reason: reason }, function(res) {
+        if (res && res.success === false) {
+          showToast('Error: ' + (res.error || 'Failed to cancel package'), '❌');
+        } else {
+          showToast('Package cancelled successfully.', '⚠️');
+          loadCustomerPackagesForEditModal();
+        }
+      }, function(err) {
+        showToast('Failed to cancel package: ' + (err.message || err), '❌');
+      });
+    }
+
+    function openPackageHistoryModal(packageId) {
+      var pkg = (state.customerPackages || []).find(function(p) { return p.id === packageId; });
+      var titleEl = document.getElementById('pkgHistoryTitle');
+      var metaEl = document.getElementById('pkgHistoryMeta');
+      var container = document.getElementById('pkgHistoryListContainer');
+
+      if (titleEl) titleEl.textContent = pkg ? (pkg.package_name || pkg.packageName) : 'Package History';
+      if (metaEl && pkg) {
+        var total = pkg.total_quantity || pkg.totalQuantity || 0;
+        var redeemed = pkg.redeemed_quantity || pkg.redeemedQuantity || 0;
+        var rem = pkg.remaining_quantity != null ? pkg.remaining_quantity : (total - redeemed);
+        metaEl.textContent = 'Purchased: ' + total + ' | Redeemed: ' + redeemed + ' | Remaining: ' + rem;
+      }
+
+      if (container) {
+        container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 24px 10px;">' +
+          '<span class="material-symbols-outlined" style="font-size: 28px; animation: spin 1.5s linear infinite; color: #94a3b8; display: block; margin-bottom: 6px;">sync</span>' +
+          'Loading redemption records...</div>';
+      }
+
+      var modal = document.getElementById('packageHistoryModal');
+      if (modal) modal.style.display = 'flex';
+
+      apiCall('getPackageRedemptionHistory', { packageId: packageId }, function(res) {
+        var logs = (res && res.redemptions) || [];
+        if (!container) return;
+
+        if (logs.length === 0) {
+          container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 30px 10px; background: #f8fafc; border-radius: 8px;">' +
+            '<span class="material-symbols-outlined" style="font-size: 36px; color: #94a3b8; display: block; margin-bottom: 6px;">event_busy</span>' +
+            'No redemptions logged yet for this package.</div>';
+          return;
+        }
+
+        var hHtml = '<table style="width: 100%; border-collapse: collapse; font-size: 13px;">' +
+          '<thead><tr style="border-bottom: 2px solid #e2e8f0; text-align: left; color: #475569;">' +
+            '<th style="padding: 8px 6px;">Date</th>' +
+            '<th style="padding: 8px 6px;">Qty</th>' +
+            '<th style="padding: 8px 6px;">Remaining</th>' +
+            '<th style="padding: 8px 6px;">Vehicle / Loc</th>' +
+            '<th style="padding: 8px 6px;">Notes / User</th>' +
+          '</tr></thead><tbody>';
+
+        logs.forEach(function(l) {
+          var dateStr = l.redemption_date || l.created_at;
+          var formattedDate = dateStr ? new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+          var qty = l.quantity_redeemed != null ? l.quantity_redeemed : 1;
+          var remAfter = l.remaining_balance_after != null ? l.remaining_balance_after : '-';
+          var vehLoc = [l.asset_id, l.location_id].filter(Boolean).join(' • ') || '-';
+          var noteUser = [l.notes, l.redeemed_by].filter(Boolean).join(' / ') || '-';
+
+          hHtml += '<tr style="border-bottom: 1px solid #f1f5f9;">' +
+            '<td style="padding: 8px 6px; color: #1e293b; font-weight: 500;">' + escapeHtml(formattedDate) + '</td>' +
+            '<td style="padding: 8px 6px; font-weight: 700; color: #16a34a;">' + qty + '</td>' +
+            '<td style="padding: 8px 6px; font-weight: 600; color: #2563eb;">' + remAfter + '</td>' +
+            '<td style="padding: 8px 6px; color: #64748b;">' + escapeHtml(vehLoc) + '</td>' +
+            '<td style="padding: 8px 6px; color: #64748b; font-size: 12px;">' + escapeHtml(noteUser) + '</td>' +
+          '</tr>';
+        });
+
+        hHtml += '</tbody></table>';
+        container.innerHTML = hHtml;
+      }, function(err) {
+        if (container) {
+          container.innerHTML = '<div style="color: #dc2626; text-align: center; padding: 20px;">' +
+            'Failed to load history: ' + escapeHtml(err.message || 'Server error') + '</div>';
+        }
+      });
+    }
+
+    function closePackageHistoryModal() {
+      var modal = document.getElementById('packageHistoryModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    /* ==========================================================================
+       SERVICE BOOKINGS & JOB LIFECYCLE CONTROLLER (Admin Panel)
+       ========================================================================== */
+    state.customerBookings = [];
+    state.currentBookingFilter = 'all';
+
+    function loadCustomerBookingsForEditModal() {
+      var custId = document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value : '';
+      if (!custId && state.currentEditCustomerIndex != null && state.adminRecords && state.adminRecords[state.currentEditCustomerIndex]) {
+        var rec = state.adminRecords[state.currentEditCustomerIndex];
+        custId = rec.id || rec.customerId || rec.customerCode || '';
+      }
+      if (!custId) {
+        renderCustomerBookingsUI([]);
+        return;
+      }
+
+      var container = document.getElementById('custBookingsListContainer');
+      if (container) {
+        container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 28px 10px;">' +
+          '<span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 8px; color: #0284c7; animation: spin 1.5s linear infinite;">sync</span>' +
+          'Loading bookings & service jobs...</div>';
+      }
+
+      apiCall('getCustomerServiceJobs', { customerId: custId }, function(res) {
+        if (res && res.jobs) {
+          state.customerBookings = Array.isArray(res.jobs) ? res.jobs : [];
+        } else {
+          state.customerBookings = [];
+        }
+        renderCustomerBookingsUI(state.customerBookings);
+      }, function(err) {
+        console.error('Failed to load customer service jobs:', err);
+        if (container) {
+          container.innerHTML = '<div style="text-align: center; color: #dc2626; padding: 20px 10px;">' +
+            '<span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 6px;">error</span>' +
+            'Could not load service bookings. ' + escapeHtml(err.message || 'Server error') + '</div>';
+        }
+      });
+    }
+
+    function renderCustomerBookingsUI(jobs) {
+      jobs = jobs || state.customerBookings || [];
+
+      // Calculate counts by lifecycle stage
+      var allCount = jobs.length;
+      var upcomingCount = jobs.filter(function(j) {
+        var st = (j.status || '').toLowerCase();
+        return st === 'booked' || st === 'assigned' || st === 'in_progress' || st === 'requested';
+      }).length;
+      var completedCount = jobs.filter(function(j) {
+        return (j.status || '').toLowerCase() === 'completed';
+      }).length;
+      var cancelledCount = jobs.filter(function(j) {
+        var st = (j.status || '').toLowerCase();
+        return st === 'cancelled' || st === 'unable_to_complete' || st === 'failed';
+      }).length;
+
+      var cAll = document.getElementById('bookingCountAll');
+      var cUpcoming = document.getElementById('bookingCountUpcoming');
+      var cCompleted = document.getElementById('bookingCountCompleted');
+      var cCancelled = document.getElementById('bookingCountCancelled');
+      if (cAll) cAll.textContent = allCount;
+      if (cUpcoming) cUpcoming.textContent = upcomingCount;
+      if (cCompleted) cCompleted.textContent = completedCount;
+      if (cCancelled) cCancelled.textContent = cancelledCount;
+
+      filterCustomerBookingsUI(state.currentBookingFilter || 'all');
+    }
+
+    function filterCustomerBookingsUI(filterType) {
+      state.currentBookingFilter = filterType || 'all';
+
+      // Update pill styling
+      var pills = {
+        all: 'bookingFilterAll',
+        upcoming: 'bookingFilterUpcoming',
+        completed: 'bookingFilterCompleted',
+        cancelled: 'bookingFilterCancelled'
+      };
+      Object.keys(pills).forEach(function(k) {
+        var btn = document.getElementById(pills[k]);
+        if (btn) {
+          if (k === state.currentBookingFilter) {
+            btn.classList.add('active');
+            btn.style.background = '#0284c7';
+            btn.style.color = '#fff';
+            btn.style.fontWeight = '600';
+          } else {
+            btn.classList.remove('active');
+            btn.style.background = '#f8fafc';
+            btn.style.color = '#475569';
+            btn.style.fontWeight = '500';
+          }
+        }
+      });
+
+      var container = document.getElementById('custBookingsListContainer');
+      if (!container) return;
+
+      var filtered = (state.customerBookings || []).filter(function(j) {
+        var st = (j.status || '').toLowerCase();
+        if (state.currentBookingFilter === 'upcoming') {
+          return st === 'booked' || st === 'assigned' || st === 'in_progress' || st === 'requested';
+        } else if (state.currentBookingFilter === 'completed') {
+          return st === 'completed';
+        } else if (state.currentBookingFilter === 'cancelled') {
+          return st === 'cancelled' || st === 'unable_to_complete' || st === 'failed';
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        var msg = 'No service bookings found';
+        if (state.currentBookingFilter === 'upcoming') msg = 'No upcoming or active service bookings';
+        else if (state.currentBookingFilter === 'completed') msg = 'No completed service jobs recorded yet';
+        else if (state.currentBookingFilter === 'cancelled') msg = 'No cancelled or failed bookings';
+
+        container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 32px 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">' +
+          '<span class="material-symbols-outlined" style="font-size: 40px; color: #94a3b8; display: block; margin-bottom: 8px;">calendar_month</span>' +
+          '<div style="font-weight: 600; color: #475569; font-size: 14px;">' + escapeHtml(msg) + '</div>' +
+          '<div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Click "Book Service" above to schedule a new visit.</div>' +
+        '</div>';
+        return;
+      }
+
+      var html = '';
+      filtered.forEach(function(job) {
+        var st = (job.status || 'booked').toLowerCase();
+        var stBadgeBg = '#e0f2fe';
+        var stBadgeColor = '#0369a1';
+        var stIcon = 'schedule';
+        var stLabel = 'Booked';
+
+        if (st === 'assigned') {
+          stBadgeBg = '#ede9fe';
+          stBadgeColor = '#6d28d9';
+          stIcon = 'person_pin';
+          stLabel = 'Assigned';
+        } else if (st === 'in_progress') {
+          stBadgeBg = '#fef3c7';
+          stBadgeColor = '#b45309';
+          stIcon = 'hourglass_top';
+          stLabel = 'In Progress';
+        } else if (st === 'completed') {
+          stBadgeBg = '#dcfce7';
+          stBadgeColor = '#15803d';
+          stIcon = 'check_circle';
+          stLabel = 'Completed';
+        } else if (st === 'cancelled') {
+          stBadgeBg = '#f1f5f9';
+          stBadgeColor = '#475569';
+          stIcon = 'cancel';
+          stLabel = 'Cancelled';
+        } else if (st === 'unable_to_complete' || st === 'failed') {
+          stBadgeBg = '#fee2e2';
+          stBadgeColor = '#b91c1c';
+          stIcon = 'report_problem';
+          stLabel = 'Unable to Complete';
+        }
+
+        var scheduledDateStr = job.job_date || job.date || job.scheduled_date || '';
+        var formattedDate = scheduledDateStr;
+        if (scheduledDateStr && !isNaN(Date.parse(scheduledDateStr))) {
+          formattedDate = new Date(scheduledDateStr).toLocaleDateString('en-IN', {
+            weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+          });
+        }
+
+        var serviceTitle = job.service_type || job.serviceType || 'Service Visit';
+        var category = job.service_category || 'car_wash';
+        var categoryIcon = 'directions_car';
+        if (category === 'solar_cleaning') categoryIcon = 'solar_power';
+        else if (category === 'bike_wash') categoryIcon = 'two_wheeler';
+        else if (category === 'detailing') categoryIcon = 'auto_fix_high';
+
+        var vehicleLabel = job.vehicle_reg || job.asset_id || '-';
+        var locationLabel = job.location_name || job.location_address || '-';
+        var cleanerName = job.staff_name || job.assigned_cleaner || (job.staff_id ? ('Staff #' + job.staff_id) : 'Unassigned');
+
+        // Entitlement and Package Details
+        var packageBadgeHtml = '';
+        if (job.package_id) {
+          var consumed = job.entitlement_consumed === true;
+          packageBadgeHtml = '<div style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; background: #fff7ed; border: 1px solid #ffedd5; padding: 3px 8px; border-radius: 6px; font-size: 11px;">' +
+            '<span class="material-symbols-outlined" style="font-size: 14px; color: #ea580c;">inventory_2</span>' +
+            '<span style="color: #9a3412; font-weight: 600;">Package Attached</span>' +
+            '<span style="color: #c2410c;">•</span>' +
+            (consumed
+              ? '<span style="color: #16a34a; font-weight: 700; display: inline-flex; align-items: center; gap: 2px;"><span class="material-symbols-outlined" style="font-size: 13px;">check_circle</span> Entitlement Consumed</span>'
+              : '<span style="color: #b45309; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;"><span class="material-symbols-outlined" style="font-size: 13px;">hourglass_empty</span> Consumes on Complete</span>') +
+          '</div>';
+        }
+
+        // Action Buttons based on lifecycle
+        var actionsHtml = '';
+        if (st === 'booked' || st === 'assigned') {
+          actionsHtml = '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;">' +
+            '<button type="button" class="btn-admin-action" onclick="handleStartBookingClick(\'' + escapeHtml(job.id) + '\')" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; cursor: pointer;">' +
+              '<span class="material-symbols-outlined" style="font-size: 14px;">play_arrow</span> Start Job' +
+            '</button>' +
+            '<button type="button" class="btn-admin-action" onclick="handleCompleteBookingClick(\'' + escapeHtml(job.id) + '\')" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; padding: 4px 10px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; cursor: pointer;">' +
+              '<span class="material-symbols-outlined" style="font-size: 14px;">check_circle</span> Complete Job' +
+            '</button>' +
+            '<button type="button" class="btn-admin-action" onclick="handleCancelBookingClick(\'' + escapeHtml(job.id) + '\')" style="background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; padding: 4px 10px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; cursor: pointer;">' +
+              '<span class="material-symbols-outlined" style="font-size: 14px;">cancel</span> Cancel' +
+            '</button>' +
+          '</div>';
+        } else if (st === 'in_progress') {
+          actionsHtml = '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;">' +
+            '<button type="button" class="btn-admin-action" onclick="handleCompleteBookingClick(\'' + escapeHtml(job.id) + '\')" style="background: #16a34a; color: #fff; border: none; padding: 5px 12px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">' +
+              '<span class="material-symbols-outlined" style="font-size: 15px;">check_circle</span> Mark Completed' +
+            '</button>' +
+            '<button type="button" class="btn-admin-action" onclick="handleFailJobClick(\'' + escapeHtml(job.id) + '\')" style="background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 4px 10px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; cursor: pointer;">' +
+              '<span class="material-symbols-outlined" style="font-size: 14px;">report_problem</span> Unable to Complete' +
+            '</button>' +
+          '</div>';
+        } else if (st === 'cancelled') {
+          var cancelReason = job.cancellation_reason || 'Administrative cancellation';
+          var cancelAt = job.cancelled_at ? new Date(job.cancelled_at).toLocaleString('en-IN') : '-';
+          actionsHtml = '<div style="font-size: 11px; color: #64748b; margin-top: 6px; background: #f8fafc; padding: 6px 10px; border-radius: 4px; border: 1px solid #e2e8f0;">' +
+            '<strong>Cancelled:</strong> ' + escapeHtml(cancelReason) + ' <span style="color: #94a3b8;">(' + escapeHtml(cancelAt) + ')</span>' +
+          '</div>';
+        } else if (st === 'unable_to_complete' || st === 'failed') {
+          var failReason = job.failure_reason || job.remarks || 'Unable to complete service';
+          var failedAt = job.failed_at ? new Date(job.failed_at).toLocaleString('en-IN') : '-';
+          actionsHtml = '<div style="font-size: 11px; color: #b91c1c; margin-top: 6px; background: #fef2f2; padding: 6px 10px; border-radius: 4px; border: 1px solid #fecaca;">' +
+            '<strong>Failure Reason:</strong> ' + escapeHtml(failReason) + ' <span style="color: #ef4444;">(' + escapeHtml(failedAt) + ')</span>' +
+          '</div>';
+        } else if (st === 'completed') {
+          var compAt = job.completed_at ? new Date(job.completed_at).toLocaleString('en-IN') : '-';
+          actionsHtml = '<div style="font-size: 11px; color: #166534; margin-top: 6px; background: #f0fdf4; padding: 6px 10px; border-radius: 4px; border: 1px solid #bbf7d0;">' +
+            '<strong>Completed At:</strong> ' + escapeHtml(compAt) +
+            (job.remarks ? (' • <em>' + escapeHtml(job.remarks) + '</em>') : '') +
+          '</div>';
+        }
+
+        html += '<div class="cwp-booking-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">' +
+          '<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap;">' +
+            '<div style="display: flex; align-items: center; gap: 8px;">' +
+              '<span class="material-symbols-outlined" style="font-size: 20px; color: #0284c7;">' + escapeHtml(categoryIcon) + '</span>' +
+              '<div>' +
+                '<span style="font-weight: 700; font-size: 14px; color: #1e293b;">' + escapeHtml(serviceTitle) + '</span>' +
+                '<span style="font-size: 12px; color: #64748b; margin-left: 6px;">📅 ' + escapeHtml(formattedDate) + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<span class="m3-chip" style="background: ' + stBadgeBg + '; color: ' + stBadgeColor + '; font-weight: 600; font-size: 11.5px; padding: 3px 9px; display: inline-flex; align-items: center; gap: 4px;">' +
+              '<span class="material-symbols-outlined" style="font-size: 14px;">' + escapeHtml(stIcon) + '</span>' +
+              escapeHtml(stLabel) +
+            '</span>' +
+          '</div>' +
+
+          '<div style="margin-top: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px; font-size: 12px; color: #475569; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">' +
+            '<div><strong style="color: #64748b;">Vehicle:</strong> ' + escapeHtml(vehicleLabel) + '</div>' +
+            '<div><strong style="color: #64748b;">Location:</strong> ' + escapeHtml(locationLabel) + '</div>' +
+            '<div><strong style="color: #64748b;">Cleaner:</strong> ' + escapeHtml(cleanerName) + '</div>' +
+            '<div><strong style="color: #64748b;">Price:</strong> ' + (job.service_price != null ? ('₹' + job.service_price) : 'Included') + ' (' + escapeHtml(job.payment_status || 'standard') + ')</div>' +
+          '</div>' +
+
+          packageBadgeHtml +
+          actionsHtml +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function openCreateBookingModalFromCustomer() {
+      var custId = document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value : '';
+      var custRec = null;
+      if (state.currentEditCustomerIndex != null && state.adminRecords && state.adminRecords[state.currentEditCustomerIndex]) {
+        custRec = state.adminRecords[state.currentEditCustomerIndex];
+        if (!custId) custId = custRec.id || custRec.customerId || custRec.customerCode || '';
+      }
+
+      var custName = document.getElementById('editCustName') ? document.getElementById('editCustName').value : (custRec ? (custRec.customerName || custRec.name) : 'Customer');
+      var custPhone = document.getElementById('editCustMobile') ? document.getElementById('editCustMobile').value : (custRec ? (custRec.mobileNumber || custRec.phone) : '');
+
+      var dName = document.getElementById('bookingCustNameDisplay');
+      var dPhone = document.getElementById('bookingCustPhoneDisplay');
+      var dId = document.getElementById('bookingCustIdBadge');
+      var inputCustId = document.getElementById('bookingCustomerId');
+
+      if (dName) dName.textContent = custName || 'Unknown Customer';
+      if (dPhone) dPhone.textContent = custPhone ? ('+91 ' + custPhone) : 'No mobile registered';
+      if (dId) dId.textContent = custId ? ('ID: ' + custId) : 'New';
+      if (inputCustId) inputCustId.value = custId || '';
+
+      // Set default scheduled date to today
+      var schedInput = document.getElementById('bookingScheduledDate');
+      if (schedInput) schedInput.value = new Date().toISOString().slice(0, 10);
+
+      // Populate Vehicles dropdown
+      var vSelect = document.getElementById('bookingVehicleSelect');
+      if (vSelect) {
+        vSelect.innerHTML = '<option value="">-- Customer Default / Any Vehicle --</option>';
+        if (state.currentCustomerVehicles && Array.isArray(state.currentCustomerVehicles)) {
+          state.currentCustomerVehicles.forEach(function(v) {
+            var reg = v.vehicle_reg || v.registrationNumber || v.reg || '';
+            var label = [reg, v.make, v.model].filter(Boolean).join(' - ');
+            if (label) {
+              vSelect.innerHTML += '<option value="' + escapeHtml(reg || v.id) + '">' + escapeHtml(label) + '</option>';
+            }
+          });
+        }
+      }
+
+      // Populate Locations dropdown
+      var lSelect = document.getElementById('bookingLocationSelect');
+      if (lSelect) {
+        lSelect.innerHTML = '<option value="">-- Customer Primary Address --</option>';
+        if (state.currentCustomerLocations && Array.isArray(state.currentCustomerLocations)) {
+          state.currentCustomerLocations.forEach(function(loc) {
+            var label = [loc.name || loc.label, loc.address || loc.address_line1].filter(Boolean).join(' - ');
+            if (label) {
+              lSelect.innerHTML += '<option value="' + escapeHtml(loc.id || loc.address) + '">' + escapeHtml(label) + '</option>';
+            }
+          });
+        }
+      }
+
+      // Populate Cleaner dropdown from editCustStaff options
+      var cSelect = document.getElementById('bookingCleanerSelect');
+      var editCustStaff = document.getElementById('editCustStaff');
+      if (cSelect) {
+        cSelect.innerHTML = '<option value="">-- Leave Unassigned (Status: Booked) --</option>';
+        if (editCustStaff && editCustStaff.options) {
+          for (var i = 0; i < editCustStaff.options.length; i++) {
+            var opt = editCustStaff.options[i];
+            if (opt.value && opt.value !== '') {
+              cSelect.innerHTML += '<option value="' + escapeHtml(opt.value) + '">' + escapeHtml(opt.textContent) + '</option>';
+            }
+          }
+        }
+      }
+
+      // Reset pricing and remarks
+      var priceInput = document.getElementById('bookingPrice');
+      if (priceInput) priceInput.value = '350';
+      var notesInput = document.getElementById('bookingNotes');
+      if (notesInput) notesInput.value = '';
+
+      // Trigger category change to fetch eligible customer packages
+      handleBookingCategoryChange();
+
+      var modal = document.getElementById('createBookingModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function handleBookingCategoryChange() {
+      var catSelect = document.getElementById('bookingCategorySelect');
+      var cat = catSelect ? catSelect.value : 'car_wash';
+      var custId = document.getElementById('bookingCustomerId') ? document.getElementById('bookingCustomerId').value : '';
+      var pkgSelect = document.getElementById('bookingPackageSelect');
+
+      if (!pkgSelect) return;
+      pkgSelect.innerHTML = '<option value="">-- No Package / Standalone Booking (Direct Bill) --</option>';
+
+      if (!custId) return;
+
+      apiCall('getEligiblePackagesForBooking', { customerId: custId, serviceCategory: cat }, function(res) {
+        var pkgs = (res && res.packages) || [];
+        if (!pkgSelect) return;
+
+        pkgSelect.innerHTML = '<option value="">-- No Package / Standalone Booking (Direct Bill) --</option>';
+        pkgs.forEach(function(p) {
+          var total = p.total_quantity || 0;
+          var redeemed = p.redeemed_quantity || 0;
+          var remaining = p.remaining_quantity != null ? p.remaining_quantity : (total - redeemed);
+          var optLabel = (p.package_name || 'Package') + ' (Remaining: ' + remaining + '/' + total + ')';
+          pkgSelect.innerHTML += '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(optLabel) + '</option>';
+        });
+      }, function(err) {
+        console.warn('Could not fetch eligible packages for category:', err);
+      });
+    }
+
+    function handleBookingPackageSelectChange() {
+      var pkgSelect = document.getElementById('bookingPackageSelect');
+      var priceInput = document.getElementById('bookingPrice');
+      var paySelect = document.getElementById('bookingPaymentStatus');
+
+      if (pkgSelect && pkgSelect.value) {
+        if (priceInput) priceInput.value = '0';
+        if (paySelect) paySelect.value = 'waived';
+      } else {
+        if (priceInput && (!priceInput.value || priceInput.value === '0')) priceInput.value = '350';
+        if (paySelect && paySelect.value === 'waived') paySelect.value = 'unpaid';
+      }
+    }
+
+    function handleCreateBookingSubmit(event) {
+      if (event && event.preventDefault) event.preventDefault();
+
+      var custId = document.getElementById('bookingCustomerId') ? document.getElementById('bookingCustomerId').value : '';
+      var cat = document.getElementById('bookingCategorySelect') ? document.getElementById('bookingCategorySelect').value : 'car_wash';
+      var serviceType = document.getElementById('bookingServiceType') ? document.getElementById('bookingServiceType').value.trim() : '';
+      var scheduledDate = document.getElementById('bookingScheduledDate') ? document.getElementById('bookingScheduledDate').value : '';
+      var timeSlot = document.getElementById('bookingTimeSlot') ? document.getElementById('bookingTimeSlot').value : 'Any Time';
+      var vehicle = document.getElementById('bookingVehicleSelect') ? document.getElementById('bookingVehicleSelect').value : '';
+      var location = document.getElementById('bookingLocationSelect') ? document.getElementById('bookingLocationSelect').value : '';
+      var cleanerId = document.getElementById('bookingCleanerSelect') ? document.getElementById('bookingCleanerSelect').value : '';
+      var packageId = document.getElementById('bookingPackageSelect') ? document.getElementById('bookingPackageSelect').value : '';
+      var price = document.getElementById('bookingPrice') ? document.getElementById('bookingPrice').value : '0';
+      var paymentStatus = document.getElementById('bookingPaymentStatus') ? document.getElementById('bookingPaymentStatus').value : 'unpaid';
+      var notes = document.getElementById('bookingNotes') ? document.getElementById('bookingNotes').value.trim() : '';
+
+      if (!custId) {
+        showToast('Customer ID is required for booking', '❌');
+        return;
+      }
+      if (!serviceType) {
+        showToast('Please enter a service title / name', '⚠️');
+        return;
+      }
+      if (!scheduledDate) {
+        showToast('Please select a scheduled service date', '⚠️');
+        return;
+      }
+
+      var submitBtn = document.getElementById('btnSubmitCreateBooking');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px; animation: spin 1s linear infinite;">sync</span> Confirming...';
+      }
+
+      var payload = {
+        customerId: custId,
+        serviceCategory: cat,
+        serviceType: serviceType,
+        scheduledDate: scheduledDate,
+        preferredTimeSlot: timeSlot,
+        assetId: vehicle || undefined,
+        locationId: location || undefined,
+        assignedCleanerId: cleanerId || undefined,
+        packageId: packageId || undefined,
+        servicePrice: parseFloat(price) || 0,
+        paymentStatus: paymentStatus,
+        specialInstructions: notes
+      };
+
+      apiCall('createServiceBooking', payload, function(res) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">event_available</span> Confirm Booking';
+        }
+        if (res && res.success === false) {
+          showToast('Booking failed: ' + (res.error || 'Server error'), '❌');
+        } else {
+          showToast('Service booking created successfully!', '📅');
+          closeCreateBookingModal();
+          loadCustomerBookingsForEditModal();
+        }
+      }, function(err) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">event_available</span> Confirm Booking';
+        }
+        showToast('Failed to create booking: ' + (err.message || err), '❌');
+      });
+    }
+
+    function closeCreateBookingModal() {
+      var modal = document.getElementById('createBookingModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleStartBookingClick(jobId) {
+      if (!jobId) return;
+      apiCall('startSpecialJob', { jobId: jobId }, function(res) {
+        if (res && res.success === false) {
+          showToast('Could not start job: ' + (res.error || 'Unknown error'), '❌');
+        } else {
+          showToast('Job marked In Progress', '⏱️');
+          loadCustomerBookingsForEditModal();
+        }
+      }, function(err) {
+        showToast('Failed to start job: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleCompleteBookingClick(jobId) {
+      if (!jobId) return;
+      if (!confirm('Mark this service job as completed? If a package is attached, 1 entitlement will be redeemed.')) {
+        return;
+      }
+      var remarks = prompt('Optional completion remarks / notes:', 'Completed successfully');
+      if (remarks === null) return;
+
+      apiCall('completeSpecialJob', { jobId: jobId, completionRemarks: remarks }, function(res) {
+        if (res && res.success === false) {
+          showToast('Failed to complete job: ' + (res.error || 'Unknown error'), '❌');
+        } else {
+          var toastMsg = 'Job marked completed!';
+          if (res && res.entitlement_redeemed) toastMsg += ' Entitlement redeemed.';
+          showToast(toastMsg, '✅');
+          loadCustomerBookingsForEditModal();
+          loadCustomerPackagesForEditModal(); // refresh package remaining units
+        }
+      }, function(err) {
+        showToast('Failed to complete job: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleCancelBookingClick(jobId) {
+      if (!jobId) return;
+      var reason = prompt('Please enter cancellation reason:', 'Customer rescheduled or cancelled');
+      if (reason === null) return;
+
+      apiCall('cancelSpecialJob', { jobId: jobId, cancellationReason: reason }, function(res) {
+        if (res && res.success === false) {
+          showToast('Failed to cancel booking: ' + (res.error || 'Unknown error'), '❌');
+        } else {
+          showToast('Booking cancelled. Zero entitlement was consumed.', '⚠️');
+          loadCustomerBookingsForEditModal();
+          loadCustomerPackagesForEditModal();
+        }
+      }, function(err) {
+        showToast('Failed to cancel booking: ' + (err.message || err), '❌');
+      });
+    }
+
+    function handleFailJobClick(jobId) {
+      if (!jobId) return;
+      var reason = prompt('Enter reason job could not be completed (e.g. Car not present, Customer unavailable, Bad weather):', 'Vehicle not present');
+      if (reason === null) return;
+      var remarks = prompt('Additional failure remarks (optional):', '');
+
+      apiCall('failServiceJob', { jobId: jobId, failureReason: reason, failureRemarks: remarks }, function(res) {
+        if (res && res.success === false) {
+          showToast('Failed to record failure: ' + (res.error || 'Unknown error'), '❌');
+        } else {
+          showToast('Job marked Unable to Complete. Zero entitlement consumed.', '⚠️');
+          loadCustomerBookingsForEditModal();
+          loadCustomerPackagesForEditModal();
+        }
+      }, function(err) {
+        showToast('Failed to record failure: ' + (err.message || err), '❌');
       });
     }
 
@@ -12568,6 +14499,7 @@ function loadStaffCustomerData(staffId) {
       var html = '';
       (staffList || []).forEach(function(s) {
         if (!s || !s.name) return;
+        if (typeof isStaffDccEligible === 'function' && !isStaffDccEligible(s)) return;
         var sId = s.id || '';
         var sName = s.name || '';
         html += '<option value="' + escapeHtml(sId) + '">' + escapeHtml(sName) + ' (' + escapeHtml(sId) + ')</option>';
@@ -13294,6 +15226,42 @@ function loadStaffCustomerData(staffId) {
       return set;
     }
 
+    function getActualCleanedCustomersSet(optStaffId, optDateKey) {
+      var staffId = getCleanStaffId(optStaffId);
+      var dateKey = optDateKey || getTodayDateKey();
+      var set = new Set();
+      var store = getDailyCleanStore();
+      var staffMap = store[staffId] || store[staffId.toLowerCase()] || store[staffId.toUpperCase()];
+      if (staffMap && staffMap[dateKey]) {
+        var dayMap = staffMap[dateKey];
+        Object.keys(dayMap).forEach(function(cId) {
+          var val = dayMap[cId];
+          if (val === true || (val && (val.done === true || val.completed === true) && !val.carNotPresent && (!val.status || val.status === 'completed'))) {
+            set.add(cId);
+          }
+        });
+      }
+      return set;
+    }
+
+    function getNonCompletedCustomersSet(optStaffId, optDateKey) {
+      var staffId = getCleanStaffId(optStaffId);
+      var dateKey = optDateKey || getTodayDateKey();
+      var set = new Set();
+      var store = getDailyCleanStore();
+      var staffMap = store[staffId] || store[staffId.toLowerCase()] || store[staffId.toUpperCase()];
+      if (staffMap && staffMap[dateKey]) {
+        var dayMap = staffMap[dateKey];
+        Object.keys(dayMap).forEach(function(cId) {
+          var val = dayMap[cId];
+          if (val && (val.carNotPresent === true || (val.status && val.status !== 'completed'))) {
+            set.add(cId);
+          }
+        });
+      }
+      return set;
+    }
+
     function isCustomerDoneToday(custId, optStaffId) {
       if (!custId) return false;
       return getCompletedCustomersSet(optStaffId).has(custId);
@@ -13585,6 +15553,7 @@ function loadStaffCustomerData(staffId) {
       var badge = document.getElementById('cameraCarNotPresentBadge');
       var btn = document.getElementById('btnConfirmCleanPhoto');
       var carTag = document.getElementById('reviewCarTag');
+      var reasonBox = document.getElementById('cameraNonCompletionReasonBox');
       var item = activeCameraTarget ? activeCameraTarget.item : {};
       var vName = (item.vehicle || item.vehicleNumbers || 'Vehicle');
       if (row) {
@@ -13594,12 +15563,15 @@ function loadStaffCustomerData(staffId) {
       if (badge) {
         badge.style.display = isChecked ? 'inline-block' : 'none';
       }
+      if (reasonBox) {
+        reasonBox.style.display = isChecked ? 'block' : 'none';
+      }
       if (isChecked) {
         if (btn) {
           btn.classList.add('btn-confirm-not-present');
-          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">no_crash</span> <span id="btnConfirmCleanPhotoLabel">' + (state && state.lang === 'hi' ? 'दर्ज करें: कार मौजूद नहीं' : 'Save: Car Not Present') + '</span>';
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 19px;" aria-hidden="true">no_crash</span> <span id="btnConfirmCleanPhotoLabel">' + (state && state.lang === 'hi' ? 'दर्ज करें: सफाई नहीं हो पाई' : 'Save: Unable to Clean') + '</span>';
         }
-        if (carTag) carTag.textContent = '🚗❌ ' + vName + (state && state.lang === 'hi' ? ' [कार नहीं थी]' : ' [Not Present]');
+        if (carTag) carTag.textContent = '🚗❌ ' + vName + (state && state.lang === 'hi' ? ' [सफाई नहीं हो पाई]' : ' [Not Cleaned]');
       } else {
         if (btn) {
           btn.classList.remove('btn-confirm-not-present');
@@ -13613,12 +15585,18 @@ function loadStaffCustomerData(staffId) {
     function showVisualCheckReview(imageDataUrl) {
       currentSnappedPhotoBase64 = imageDataUrl;
 
-      // Reset car not present toggle for each new capture
+      // Reset car not present / non-completion toggle for each new capture
       var cnpCheck = document.getElementById('cameraCarNotPresentCheck');
       if (cnpCheck) {
         cnpCheck.checked = false;
         handleCarNotPresentToggle(cnpCheck);
       }
+      var cnpReasonBox = document.getElementById('cameraNonCompletionReasonBox');
+      if (cnpReasonBox) cnpReasonBox.style.display = 'none';
+      var cnpReasonSel = document.getElementById('cameraNonCompletionReasonSelect');
+      if (cnpReasonSel) cnpReasonSel.value = 'car_not_present';
+      var cnpNotesInput = document.getElementById('cameraNonCompletionNotes');
+      if (cnpNotesInput) cnpNotesInput.value = '';
 
       var capView = document.getElementById('cameraCaptureView');
       var revView = document.getElementById('cameraReviewView');
@@ -13680,6 +15658,22 @@ function loadStaffCustomerData(staffId) {
 
       var notPresentCheck = document.getElementById('cameraCarNotPresentCheck');
       var isCarNotPresent = Boolean(notPresentCheck && notPresentCheck.checked);
+      var reasonSelect = document.getElementById('cameraNonCompletionReasonSelect');
+      var nonCompletionReason = (isCarNotPresent && reasonSelect && reasonSelect.value) ? reasonSelect.value : (isCarNotPresent ? 'car_not_present' : 'completed');
+      var customNotesInput = document.getElementById('cameraNonCompletionNotes');
+      var customNotes = (isCarNotPresent && customNotesInput && customNotesInput.value) ? customNotesInput.value.trim() : '';
+
+      var reasonLabels = {
+        'car_not_present': 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)',
+        'customer_absent': 'Customer absent (ग्राहक अनुपस्थित है)',
+        'vehicle_not_available': 'Vehicle not available (गाड़ी उपलब्ध नहीं थी / गैराज बंद था)',
+        'skipped': 'Skipped (सोसायटी या गेट प्रवेश अस्वीकृत)',
+        'unable_to_complete': 'Unable to complete (पानी की कमी या अन्य परिचालन बाधा)'
+      };
+
+      var finalNotes = isCarNotPresent
+        ? (customNotes ? (reasonLabels[nonCompletionReason] || nonCompletionReason) + ' - ' + customNotes : (reasonLabels[nonCompletionReason] || 'Car not present'))
+        : 'Daily car cleaning completed with photo proof';
 
       var revView = document.getElementById('cameraReviewView');
       var upView = document.getElementById('cameraUploadingView');
@@ -13700,11 +15694,11 @@ function loadStaffCustomerData(staffId) {
           photoBase64: compressedBase64.replace(/^data:image\/[a-z]+;base64,/, ''),
           mimeType: 'image/jpeg',
           completedAtDevice: completedAtDevice,
-          notes: isCarNotPresent ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)' : 'Daily car cleaning completed with photo proof',
+          notes: finalNotes,
           staffId: staffCode,
           carNotPresent: isCarNotPresent,
-          tag: isCarNotPresent ? 'car_not_present' : null,
-          status: isCarNotPresent ? 'car_not_present' : 'completed',
+          tag: isCarNotPresent ? nonCompletionReason : null,
+          status: isCarNotPresent ? nonCompletionReason : 'completed',
           punchLatitude: (typeof latestStaffGpsFix !== 'undefined' && latestStaffGpsFix) ? latestStaffGpsFix.latitude : null,
           punchLongitude: (typeof latestStaffGpsFix !== 'undefined' && latestStaffGpsFix) ? latestStaffGpsFix.longitude : null,
           punchAccuracyMeters: (typeof latestStaffGpsFix !== 'undefined' && latestStaffGpsFix) ? latestStaffGpsFix.accuracy : null,
@@ -13769,6 +15763,18 @@ function loadStaffCustomerData(staffId) {
 
           }, function(err) {
             console.error('Failed to save cleaning photo:', err);
+            var errMsg = (err && (err.message || err.error)) ? String(err.message || err.error) : '';
+            var isClientOrAuthError = (errMsg.indexOf('Unauthorized') !== -1 ||
+                                       errMsg.indexOf('Forbidden') !== -1 ||
+                                       errMsg.indexOf('Ineligible') !== -1 ||
+                                       errMsg.indexOf('Invalid') !== -1 ||
+                                       errMsg.indexOf('expired') !== -1 ||
+                                       errMsg.indexOf('strictly required') !== -1);
+            if (isClientOrAuthError) {
+              closeCleaningCameraModal();
+              showToast('❌ त्रुटि: ' + errMsg, 'error');
+              return;
+            }
             // Offline Fallback: Still mark completed locally and store photo locally
             var dateKey = getTodayDateKey();
             var store = getDailyCleanStore();
@@ -14320,17 +16326,26 @@ function loadStaffCustomerData(staffId) {
       }
 
       populateReportStaffDropdown();
+      populateReportRouteDropdown();
       computeReportDatesFromPeriod();
 
       var photoFilterVal = document.getElementById('reportPhotoFilter') ? document.getElementById('reportPhotoFilter').value : (adminCleanReportsState.hasPhoto || 'all');
       adminCleanReportsState.hasPhoto = photoFilterVal;
 
+      var routeFilterVal = document.getElementById('reportRouteFilter') ? document.getElementById('reportRouteFilter').value : 'all';
+
+      var validStatuses = ['completed', 'car_not_present', 'customer_absent', 'vehicle_not_available', 'skipped', 'unable_to_complete'];
+      var isExplicitStatus = validStatuses.indexOf(photoFilterVal) >= 0;
+      var effStatus = isExplicitStatus ? photoFilterVal : (photoFilterVal === 'not_present' ? 'car_not_present' : undefined);
+
       var payload = {
         startDate: adminCleanReportsState.startDate,
         endDate: adminCleanReportsState.endDate,
         staffId: adminCleanReportsState.staffId,
-        hasPhoto: photoFilterVal === 'not_present' ? 'all' : photoFilterVal,
-        carNotPresent: photoFilterVal === 'not_present' ? 'yes' : undefined,
+        routeId: (routeFilterVal && routeFilterVal !== 'all') ? routeFilterVal : undefined,
+        hasPhoto: (photoFilterVal === 'yes' || photoFilterVal === 'no') ? photoFilterVal : 'all',
+        carNotPresent: (photoFilterVal === 'not_present' || photoFilterVal === 'car_not_present') ? 'yes' : undefined,
+        status: effStatus,
         search: adminCleanReportsState.search
       };
 
@@ -14420,6 +16435,21 @@ function loadStaffCustomerData(staffId) {
           select.appendChild(opt);
         });
       }
+    }
+
+    function populateReportRouteDropdown() {
+      var select = document.getElementById('reportRouteFilter');
+      if (!select || select.options.length > 1) return;
+
+      apiCall('getAllRoutes', {}, function(res) {
+        var routes = (res && res.routes) || (Array.isArray(res) ? res : []);
+        routes.forEach(function(r) {
+          var opt = document.createElement('option');
+          opt.value = r.id;
+          opt.textContent = (r.route_code || r.code || '') + ' - ' + (r.route_name || r.name || '');
+          select.appendChild(opt);
+        });
+      });
     }
 
     function computeReportDatesFromPeriod() {
@@ -14695,10 +16725,17 @@ function loadStaffCustomerData(staffId) {
         var adminNotes = (r.admin_notes || '').trim();
         var staffNotes = (r.notes || '').trim();
 
+        var rowStatus = r.status || (isCarNotPresent ? 'car_not_present' : 'completed');
+
         html += '  <td><div class="report-reason-cell">';
-        if (isCarNotPresent) {
-          html += '    <div class="reason-tag-pill cnp-tag"><span class="material-symbols-outlined" style="font-size:12px;">warning</span> Car Not Present</div>';
-          html += '    <div class="reason-text" title="' + escapeHtml(staffNotes || 'गाड़ी पार्किंग में नहीं थी') + '">' + escapeHtml(staffNotes || 'गाड़ी पार्किंग में नहीं थी') + '</div>';
+        if (rowStatus !== 'completed') {
+          var tagLabel = (rowStatus === 'car_not_present' || isCarNotPresent) ? 'Car Not Present' :
+                         (rowStatus === 'customer_absent') ? 'Customer Absent' :
+                         (rowStatus === 'vehicle_not_available') ? 'Vehicle Not Available' :
+                         (rowStatus === 'skipped') ? 'Skipped' :
+                         (rowStatus === 'unable_to_complete') ? 'Unable to Complete' : rowStatus;
+          html += '    <div class="reason-tag-pill cnp-tag"><span class="material-symbols-outlined" style="font-size:12px;">warning</span> ' + escapeHtml(tagLabel) + '</div>';
+          html += '    <div class="reason-text" title="' + escapeHtml(staffNotes || 'सेवा अपूर्ण दर्ज की गई') + '">' + escapeHtml(staffNotes || 'सेवा अपूर्ण दर्ज की गई') + '</div>';
         } else {
           html += '    <div class="reason-text-clean" title="' + escapeHtml(staffNotes || 'Daily clean verified') + '">✓ ' + escapeHtml(staffNotes || 'Daily clean verified with photo proof') + '</div>';
         }
@@ -14714,9 +16751,18 @@ function loadStaffCustomerData(staffId) {
           transitStr = '<span class="cell-time-transit" style="font-size: 10.5px; color: #64748b; display: block; margin-top: 2px;">⏱️ ' + tMin + 'm transit</span>';
         }
 
-        var statusBadge = isCarNotPresent
-          ? '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>🚫</span> Car Not Present</span>'
-          : '<span class="badge-status-pill badge-active" style="font-size:11px; padding:3px 8px;">✓ Cleaned</span>';
+        var statusBadge = '<span class="badge-status-pill badge-active" style="font-size:11px; padding:3px 8px;">✓ Cleaned</span>';
+        if (rowStatus === 'car_not_present' || isCarNotPresent) {
+          statusBadge = '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>🚫</span> Car Not Present</span>';
+        } else if (rowStatus === 'customer_absent') {
+          statusBadge = '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>👤</span> Customer Absent</span>';
+        } else if (rowStatus === 'vehicle_not_available') {
+          statusBadge = '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>🚗</span> Vehicle Not Avail</span>';
+        } else if (rowStatus === 'skipped') {
+          statusBadge = '<span class="badge-status-pill" style="background: rgba(148, 163, 184, 0.15); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>⏭️</span> Skipped</span>';
+        } else if (rowStatus === 'unable_to_complete') {
+          statusBadge = '<span class="badge-status-pill badge-danger" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>❌</span> Unable to Complete</span>';
+        }
 
         html += '  <td style="text-align: center;">' +
                 '    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">' +
@@ -14900,8 +16946,9 @@ function loadStaffCustomerData(staffId) {
         return;
       }
 
+      var selectedRadio = document.querySelector('input[name="editReportStatusRadio"]:checked');
       var radioCompleted = document.getElementById('radioStatusCompleted');
-      var newStatus = (radioCompleted && radioCompleted.checked) ? 'completed' : 'car_not_present';
+      var newStatus = selectedRadio ? selectedRadio.value : ((radioCompleted && radioCompleted.checked) ? 'completed' : 'car_not_present');
       var reason = ((document.getElementById('editReportReasonText') || {}).value || '').trim();
 
       if (!reason) {
@@ -15101,14 +17148,23 @@ function loadStaffCustomerData(staffId) {
       }
       var total = allDaily.length;
 
-      var completedSet = getCompletedCustomersSet();
-      var doneCount = 0;
+      var cleanedSet = getActualCleanedCustomersSet();
+      var nonCompletedSet = getNonCompletedCustomersSet();
+
+      var cleanCount = 0;
+      var nonCompletedCount = 0;
       allDaily.forEach(function(c) {
         var cId = c.customerId || c.id || getCustomerStableId(c);
-        if (completedSet.has(cId) || c.completedToday) {
-          doneCount++;
+        if (cleanedSet.has(cId) || (c.completedToday && (c.todayStatus === 'completed' || !c.todayStatus))) {
+          cleanCount++;
+        } else if (nonCompletedSet.has(cId) || (c.completedToday && c.todayStatus && c.todayStatus !== 'completed')) {
+          nonCompletedCount++;
         }
       });
+
+      var visitedCount = cleanCount + nonCompletedCount;
+      var cleanPercent = total > 0 ? Math.round((cleanCount / total) * 100) : 0;
+      var visitPercent = total > 0 ? Math.round((visitedCount / total) * 100) : 0;
 
       var staffName = (state.staffData && state.staffData.staffName) ? state.staffData.staffName : (state.activeStaffName || 'Staff');
       var nameEl = document.getElementById('routeStaffName');
@@ -15118,26 +17174,29 @@ function loadStaffCustomerData(staffId) {
       if (totalEl) totalEl.textContent = total;
 
       var progressEl = document.getElementById('routeProgressCount');
-      if (progressEl) progressEl.textContent = doneCount + ' / ' + total;
+      if (progressEl) {
+        progressEl.textContent = cleanCount + ' / ' + total + ' सफाई पूर्ण';
+      }
 
-      var percent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
       var percentEl = document.getElementById('routeProgressPercent');
-      if (percentEl) percentEl.textContent = percent + '%';
+      if (percentEl) {
+        percentEl.textContent = cleanPercent + '% (विज़िट: ' + visitedCount + '/' + total + ', ' + visitPercent + '%)';
+      }
 
       var barFill = document.getElementById('routeProgressBarFill');
-      if (barFill) barFill.style.width = percent + '%';
+      if (barFill) barFill.style.width = cleanPercent + '%';
 
       // Update compact inline progress chip beside search bar
       var inlineCount = document.getElementById('inlineRouteProgressCount');
-      if (inlineCount) inlineCount.textContent = doneCount + '/' + total;
+      if (inlineCount) inlineCount.textContent = cleanCount + '/' + total;
 
       var inlinePct = document.getElementById('inlineRouteProgressPercent');
-      if (inlinePct) inlinePct.textContent = '(' + percent + '%)';
+      if (inlinePct) inlinePct.textContent = '(' + cleanPercent + '%)';
 
       var inlineBar = document.getElementById('inlineRouteProgressBarFill');
       if (inlineBar) {
-        inlineBar.style.width = percent + '%';
-        if (percent === 100) {
+        inlineBar.style.width = cleanPercent + '%';
+        if (cleanPercent === 100) {
           inlineBar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
         } else {
           inlineBar.style.background = 'linear-gradient(90deg, #2563eb, #38bdf8)';

@@ -12,11 +12,40 @@
     {
       "id": "STF02",
       "name": "Gaurav Kr Gupta",
-      "phone": "8081913264",
+      "phone": "8603756369",
       "pin": "scrypt:2714d91afecc56ab6026ef038221112f:66469ac169722ba51e202778ee5bb9f992d3dc6f17075f7e997af066d83411a3",
       "displayPin": "654321",
       "lastKnownSheetPin": "654321",
-      "active": true
+      "active": true,
+      "photoUrl": "",
+      "email": "",
+      "dateOfJoining": "",
+      "aadharNumber": "",
+      "aadharFrontUrl": "",
+      "aadharBackUrl": "",
+      "bankPassbookUrl": "",
+      "panNumber": "",
+      "panCardUrl": "",
+      "drivingLicenseNumber": "",
+      "drivingLicenseUrl": "",
+      "salary": 14000,
+      "weeklyOff": "Wednesday",
+      "workType": "dcc_and_services",
+      "work_type": "dcc_and_services",
+      "serviceCapabilities": [
+        "daily_car_cleaning",
+        "car_washing",
+        "solar_cleaning",
+        "interior_detailing",
+        "exterior_detailing"
+      ],
+      "service_capabilities": [
+        "daily_car_cleaning",
+        "car_washing",
+        "solar_cleaning",
+        "interior_detailing",
+        "exterior_detailing"
+      ]
     },
     {
       "id": "STF03",

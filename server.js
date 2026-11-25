@@ -63,6 +63,11 @@ const serviceCatalog = require('./services/serviceCatalog');
 const homepageConfigService = require('./services/homepageConfigService');
 const careerService = require('./services/careerService');
 const seoConfig = require('./services/seoConfig');
+const packageService = require('./services/packageService');
+const bookingService = require('./services/bookingService');
+const dccService = require('./services/dccService');
+const routeService = require('./services/routeService');
+const staffCapabilityService = require('./services/staffCapabilityService');
 
 function isNeonConfigured() {
   return db.isConfigured();
@@ -521,6 +526,34 @@ function clearRateLimit(clientIp, identifier) {
 }
 
 /**
+ * Clears failed logins and lockout rate limits across ALL client IPs for a staff identifier
+ * (e.g. staff ID, phone number, or normalized digits).
+ */
+function clearAllRateLimitsForIdentifier(identifier) {
+  if (!identifier) return;
+  const idStr = String(identifier).trim().toLowerCase();
+  const digits = idStr.replace(/\D/g, '');
+  const last10 = digits.slice(-10);
+
+  for (const key of Array.from(failedLogins.keys())) {
+    const colonIdx = key.indexOf(':');
+    if (colonIdx === -1) continue;
+    const keyTarget = key.slice(colonIdx + 1).toLowerCase();
+    const keyDigits = keyTarget.replace(/\D/g, '');
+    const keyLast10 = keyDigits.slice(-10);
+
+    if (
+      keyTarget === idStr ||
+      (last10 && keyLast10 && last10 === keyLast10) ||
+      keyTarget.endsWith(idStr) ||
+      idStr.endsWith(keyTarget)
+    ) {
+      failedLogins.delete(key);
+    }
+  }
+}
+
+/**
  * =========================================================================
  * SECURITY: SERVER-ISSUED SESSIONS (ADMIN & STAFF) - 12-Hour TTL
  * Tokens have 12-hour expiry, explicit revocation, and in-memory TTL store.
@@ -606,7 +639,7 @@ function revokeAdminSession(token) {
   }
 }
 
-function createStaffSession(staffId, staffName, phone) {
+function createStaffSession(staffId, staffName, phone, deviceId = null) {
   const token = 'stf_' + crypto.randomBytes(32).toString('hex');
   let staffPhone = phone || '';
   if (!staffPhone && appState && appState.staffList) {
@@ -618,6 +651,7 @@ function createStaffSession(staffId, staffName, phone) {
     staffCode: staffId,
     staffName: staffName,
     staffPhone: staffPhone,
+    deviceId: deviceId || null,
     createdAt: Date.now(),
     expiresAt: Date.now() + SESSION_TTL_MS
   };
@@ -1184,7 +1218,28 @@ function sanitizeStaffForAdmin(staff) {
     drivingLicenseNumber: staff.driving_license_number || staff.drivingLicenseNumber || '',
     drivingLicenseUrl: staff.driving_license_url || staff.drivingLicenseUrl || '',
     salary: (staff.salary !== null && staff.salary !== undefined && staff.salary !== '') ? Number(staff.salary) : '',
-    weeklyOff: staff.weekly_off || staff.weeklyOff || ''
+    weeklyOff: staff.weekly_off || staff.weeklyOff || '',
+    isLocked: staff.isLocked !== undefined ? Boolean(staff.isLocked) : (staff.lockedUntil ? new Date() < new Date(staff.lockedUntil) : false),
+    failedAttempts: staff.failedAttempts || 0,
+    lockedUntil: staff.lockedUntil || null,
+    hasActiveSession: Boolean(staff.hasActiveSession),
+    activeDeviceId: staff.activeDeviceId || null,
+    workType: staff.work_type || staff.workType || 'dcc_only',
+    serviceCapabilities: Array.isArray(staff.service_capabilities)
+      ? staff.service_capabilities
+      : (Array.isArray(staff.serviceCapabilities)
+          ? staff.serviceCapabilities
+          : (staff.service_capabilities ? JSON.parse(staff.service_capabilities) : ['daily_car_cleaning'])),
+    designationId: staff.designation_id || staff.designationId || 'cleaner',
+    designationName: staff.designationName || staff.designation_name || 'Cleaner',
+    designationLevel: staff.designationLevel !== undefined ? staff.designationLevel : (staff.hierarchy_level || 1),
+    isSupervisory: staff.isSupervisory !== undefined ? Boolean(staff.isSupervisory) : Boolean(staff.is_supervisory),
+    authorities: staff.authorities || {},
+    reportsToId: staff.reports_to_id || staff.reportsToId || null,
+    reportsToName: staff.reportsToName || staff.reports_to_name || '',
+    reportsToCode: staff.reportsToCode || staff.reports_to_code || '',
+    teamName: staff.team_name || staff.teamName || '',
+    operationalScope: staff.operational_scope || staff.operationalScope || ''
   };
 }
 
@@ -2683,6 +2738,7 @@ const server = http.createServer(async (req, res) => {
             : rawInputPhone.replace(/[^0-9]/g, '').slice(-10);
           const staffId = (payload.staffId || '').toString().trim();
           const pin = (payload.pin || '').toString().trim();
+          const deviceId = (payload.deviceId || payload.device_id || '').toString().trim();
 
           const rateKey = cleanPhone || staffId;
 
@@ -2708,19 +2764,28 @@ const server = http.createServer(async (req, res) => {
                 identifier: cleanPhone || staffId,
                 pin,
                 ipAddress: clientIp,
-                userAgent: req.headers['user-agent']
+                userAgent: req.headers['user-agent'],
+                deviceId
               });
+
+              if (authRes.sessionConflict) {
+                res.writeHead(409, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(authRes));
+              }
 
               if (authRes.success) {
                 clearRateLimit(clientIp, rateKey);
                 const sCode = authRes.staffId || (authRes.staff && authRes.staff.staff_code) || staffId;
                 const sName = authRes.staffName || (authRes.staff && authRes.staff.name) || '';
                 const sPhone = authRes.phone || (authRes.staff && authRes.staff.phone) || '';
+                const sDbId = (authRes.staff && authRes.staff.id) || sCode;
+
                 recordStaffSession(authRes.token, {
-                  staffId: (authRes.staff && authRes.staff.id) || sCode,
+                  staffId: sDbId,
                   staffCode: sCode,
                   staffName: sName,
                   staffPhone: sPhone,
+                  deviceId: deviceId || null,
                   createdAt: Date.now(),
                   expiresAt: Date.now() + SESSION_TTL_MS
                 });
@@ -2778,6 +2843,27 @@ const server = http.createServer(async (req, res) => {
 
           if (isPinValid) {
             clearRateLimit(clientIp, rateKey);
+
+            // Active Session Shield: Protect existing active device from unauthorized takeover
+            let existingLocalSess = null;
+            for (const [sTok, sObj] of staffSessions.entries()) {
+              if (((sObj.staffId || '').toUpperCase() === staff.id.toUpperCase() || (sObj.staffCode || '').toUpperCase() === staff.id.toUpperCase()) && Date.now() < sObj.expiresAt) {
+                existingLocalSess = sObj;
+                break;
+              }
+            }
+            if (existingLocalSess) {
+              const isSameDev = (deviceId && existingLocalSess.deviceId && existingLocalSess.deviceId === deviceId);
+              if (!isSameDev) {
+                res.writeHead(409, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: false,
+                  sessionConflict: true,
+                  error: 'यह स्टाफ अकाउंट पहले से किसी अन्य मोबाइल/डिवाइस पर एक्टिव है। सुरक्षा और गोपनीयता के लिए नया लॉगिन ब्लॉक किया गया है। कृपया पहले पुराने फोन से लॉगआउट करें या एडमिन से रीसेट करवाएं।'
+                }));
+              }
+            }
+            revokeAllStaffSessionsForId(staff.id);
 
             // Migration: Upgrade legacy plaintext or SHA-256 PIN to scrypt immediately
             if (needsRehash(staff.pin)) {
@@ -2963,6 +3049,7 @@ const server = http.createServer(async (req, res) => {
           'deleteStaffMember',
           'toggleStaffActive',
           'resetStaffPin',
+          'unlockStaff',
           'cleanAndSyncStaff',
           'updateAdminPassword',
           'getStaffSequence',
@@ -2981,7 +3068,41 @@ const server = http.createServer(async (req, res) => {
           'getDailyCleanAssignments',
           'assignCustomerService',
           'stopCustomerService',
-          'getAuditLogs'
+          'getAuditLogs',
+          'sellCustomerPackage',
+          'redeemPackageEntitlement',
+          'cancelCustomerPackage',
+          'getCustomerPackages',
+          'getPackageRedemptionHistory',
+          'createServiceBooking',
+          'getEligiblePackagesForBooking',
+          'getCustomerServiceJobs',
+          'failServiceJob',
+          'getCustomerDccDetails',
+          'getCustomerDccSubscriptions',
+          'renewCustomerDccSubscription',
+          'stopCustomerDccSubscription',
+          'cancelCustomerDccSubscription',
+          'getAllRoutes',
+          'getRoutes',
+          'getRouteDetails',
+          'createRoute',
+          'updateRoute',
+          'setRouteStatus',
+          'deleteRoute',
+          'assignStaffToRoute',
+          'unassignStaffFromRoute',
+          'addStopToRoute',
+          'removeStopFromRoute',
+          'reorderRouteStops',
+          'moveStopBetweenRoutes',
+          'moveStopInRoute',
+          'getUnassignedDccVehicles',
+          'getDailyRouteReconciliation',
+          'getDesignationsList',
+          'saveDesignation',
+          'deleteDesignation',
+          'getStaffHierarchy'
         ];
 
         if (adminProtectedActions.includes(payload.action)) {
@@ -3369,6 +3490,8 @@ const server = http.createServer(async (req, res) => {
                 newPin,
                 adminUser: 'admin'
               });
+              clearAllRateLimitsForIdentifier(staffId);
+              if (resetRes && resetRes.phone) clearAllRateLimitsForIdentifier(resetRes.phone);
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(resetRes));
             } catch (err) {
@@ -3385,8 +3508,12 @@ const server = http.createServer(async (req, res) => {
 
           staff.pin = hashPinScrypt(newPin);
           staff.displayPin = newPin;
+          delete staff.lockedUntil;
+          delete staff.failedAttempts;
           saveLocalData(appState);
           revokeAllStaffSessionsForId(staff.id);
+          clearAllRateLimitsForIdentifier(staff.id);
+          if (staff.phone) clearAllRateLimitsForIdentifier(staff.phone);
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
@@ -3394,6 +3521,73 @@ const server = http.createServer(async (req, res) => {
             staffId: staff.id,
             pin: newPin,
             message: `6-digit PIN for staff member (${staff.name}) reset successfully.`
+          }));
+        }
+
+        // Admin: Unlock Staff Account (Clears lockout & failed attempts in DB and rate limits)
+        if (payload.action === 'unlockStaff') {
+          const staffId = (payload.staffId || payload.staffCode || '').trim();
+          if (!staffId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Staff ID is required.' }));
+          }
+
+          if (isNeonConfigured()) {
+            try {
+              const unlockRes = await authService.unlockStaff({
+                staffCodeOrId: staffId,
+                adminUser: 'admin',
+                clearSessions: true
+              });
+              if (unlockRes.success) {
+                clearAllRateLimitsForIdentifier(staffId);
+                if (unlockRes.phone) clearAllRateLimitsForIdentifier(unlockRes.phone);
+                revokeAllStaffSessionsForId(staffId);
+                if (unlockRes.staffId) revokeAllStaffSessionsForId(unlockRes.staffId);
+                // Also clear in appState if present
+                const localStaff = (appState.staffList || []).find(s =>
+                  (s.id || '').toUpperCase() === staffId.toUpperCase() ||
+                  (s.phone && s.phone === unlockRes.phone)
+                );
+                if (localStaff) {
+                  delete localStaff.lockedUntil;
+                  delete localStaff.failedAttempts;
+                  saveLocalData(appState);
+                }
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(unlockRes));
+              } else {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(unlockRes));
+              }
+            } catch (err) {
+              console.warn('[StaffAuth] Neon unlockStaff error, trying fallback:', err.message);
+            }
+          }
+
+          const staff = (appState.staffList || []).find(s =>
+            (s.id || '').toUpperCase() === staffId.toUpperCase() ||
+            (s.name || '').toLowerCase() === staffId.toLowerCase()
+          );
+          if (!staff) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Staff member not found.' }));
+          }
+
+          delete staff.lockedUntil;
+          delete staff.failedAttempts;
+          saveLocalData(appState);
+
+          clearAllRateLimitsForIdentifier(staff.id);
+          if (staff.phone) clearAllRateLimitsForIdentifier(staff.phone);
+          revokeAllStaffSessionsForId(staff.id);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            staffId: staff.id,
+            name: staff.name,
+            message: `Staff member (${staff.name}) unlocked successfully.`
           }));
         }
 
@@ -3664,6 +3858,24 @@ const server = http.createServer(async (req, res) => {
             drivingLicenseUrl = appState.staffList[idx].drivingLicenseUrl || appState.staffList[idx].driving_license_url || '';
           }
 
+          const rawWorkType = sData.workType || payload.workType || sData.work_type || (idx >= 0 ? (appState.staffList[idx].workType || appState.staffList[idx].work_type) : 'dcc_only') || 'dcc_only';
+          const rawCaps = sData.serviceCapabilities || payload.serviceCapabilities || sData.service_capabilities || (idx >= 0 ? (appState.staffList[idx].serviceCapabilities || appState.staffList[idx].service_capabilities) : ['daily_car_cleaning']) || ['daily_car_cleaning'];
+          const rawDesigId = sData.designationId || payload.designationId || sData.designation_id || (idx >= 0 ? (appState.staffList[idx].designationId || appState.staffList[idx].designation_id) : 'cleaner') || 'cleaner';
+          const rawReportsTo = sData.reportsToId !== undefined ? (sData.reportsToId || null) : (payload.reportsToId !== undefined ? (payload.reportsToId || null) : (sData.reports_to_id !== undefined ? (sData.reports_to_id || null) : (idx >= 0 ? (appState.staffList[idx].reportsToId || appState.staffList[idx].reports_to_id || null) : null)));
+          const rawTeamName = sData.teamName !== undefined ? sData.teamName : (payload.teamName !== undefined ? payload.teamName : (sData.team_name !== undefined ? sData.team_name : (idx >= 0 ? (appState.staffList[idx].teamName || appState.staffList[idx].team_name || '') : '')));
+          const rawOpScope = sData.operationalScope !== undefined ? sData.operationalScope : (payload.operationalScope !== undefined ? payload.operationalScope : (sData.operational_scope !== undefined ? sData.operational_scope : (idx >= 0 ? (appState.staffList[idx].operationalScope || appState.staffList[idx].operational_scope || '') : '')));
+
+          let validatedCap;
+          try {
+            validatedCap = staffCapabilityService.validateCapabilityCombination(rawWorkType, rawCaps);
+            if (existingStaff) {
+              await staffCapabilityService.checkCapabilityChangeConflicts(existingStaff.id, validatedCap.workType, validatedCap.serviceCapabilities);
+            }
+          } catch (capErr) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: capErr.message }));
+          }
+
           if (isNeonPrimaryActive()) {
             try {
               const adminUser = 'admin';
@@ -3685,7 +3897,13 @@ const server = http.createServer(async (req, res) => {
                 drivingLicenseNumber: drivingLicenseNumber,
                 drivingLicenseUrl: drivingLicenseUrl,
                 salary: salary,
-                weeklyOff: weeklyOff
+                weeklyOff: weeklyOff,
+                workType: validatedCap.workType,
+                serviceCapabilities: validatedCap.serviceCapabilities,
+                designationId: rawDesigId,
+                reportsToId: rawReportsTo,
+                teamName: rawTeamName,
+                operationalScope: rawOpScope
               }, adminUser);
 
               if (!neonStaffRes || !neonStaffRes.success) {
@@ -3712,7 +3930,19 @@ const server = http.createServer(async (req, res) => {
                 drivingLicenseNumber,
                 drivingLicenseUrl,
                 salary,
-                weeklyOff
+                weeklyOff,
+                workType: validatedCap.workType,
+                work_type: validatedCap.workType,
+                serviceCapabilities: validatedCap.serviceCapabilities,
+                service_capabilities: validatedCap.serviceCapabilities,
+                designationId: rawDesigId,
+                designation_id: rawDesigId,
+                reportsToId: rawReportsTo,
+                reports_to_id: rawReportsTo,
+                teamName: rawTeamName,
+                team_name: rawTeamName,
+                operationalScope: rawOpScope,
+                operational_scope: rawOpScope
               };
               if (idx >= 0) {
                 appState.staffList[idx] = Object.assign({}, appState.staffList[idx], newObj);
@@ -3724,6 +3954,10 @@ const server = http.createServer(async (req, res) => {
 
               if (existingStaff && (phoneChanged || pinChanged || deactivated)) {
                 revokeAllStaffSessionsForId(newObj.id);
+                if (pinChanged) {
+                  clearAllRateLimitsForIdentifier(newObj.id);
+                  if (newObj.phone) clearAllRateLimitsForIdentifier(newObj.phone);
+                }
               }
 
               const allStaff = await adminService.getStaffList({ isAdmin: true });
@@ -3738,7 +3972,7 @@ const server = http.createServer(async (req, res) => {
                 message: neonStaffRes.message || 'Staff member saved successfully.'
               }));
             } catch (err) {
-              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.writeHead(400, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: err.message }));
             }
           }
@@ -3762,7 +3996,19 @@ const server = http.createServer(async (req, res) => {
             drivingLicenseNumber,
             drivingLicenseUrl,
             salary,
-            weeklyOff
+            weeklyOff,
+            workType: validatedCap.workType,
+            work_type: validatedCap.workType,
+            serviceCapabilities: validatedCap.serviceCapabilities,
+            service_capabilities: validatedCap.serviceCapabilities,
+            designationId: rawDesigId,
+            designation_id: rawDesigId,
+            reportsToId: rawReportsTo,
+            reports_to_id: rawReportsTo,
+            teamName: rawTeamName,
+            team_name: rawTeamName,
+            operationalScope: rawOpScope,
+            operational_scope: rawOpScope
           };
 
           if (idx >= 0) {
@@ -4348,17 +4594,54 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff or Admin session required' }));
           }
 
+          // Security: Prevent client-supplied staff ID spoofing
+          if (staffSess && !adminSess && payload.staffId) {
+            const myCode = (staffSess.staffCode || '').toUpperCase();
+            const myId = (staffSess.staffId || '').toUpperCase();
+            const reqUpper = String(payload.staffId).toUpperCase();
+            if (reqUpper !== myCode && reqUpper !== myId) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Forbidden: Staff attribution spoofing attempt blocked' }));
+            }
+          }
+
           const staffCode = (staffSess && (staffSess.staffCode || staffSess.staffId)) || payload.staffId || 'STF01';
           let uploadedPhotoUrl = payload.photoUrl || null;
 
-          // Upload photo if base64 provided
+          // Evidence Validation: Image size and type validation
           const photoObj = payload.photoData || payload.photoFile || (payload.photoBase64 ? { base64: payload.photoBase64, mimeType: payload.mimeType || 'image/jpeg' } : null);
+          if (photoObj) {
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            if (photoObj.mimeType && !allowedTypes.includes(photoObj.mimeType.toLowerCase())) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Invalid photo format: Only JPEG, PNG, or WebP images are allowed.' }));
+            }
+            if (photoObj.base64 && photoObj.base64.length > 20 * 1024 * 1024) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Photo exceeds maximum allowed upload size (15MB).' }));
+            }
+          }
+
+          // Upload photo if base64 provided
           if (photoObj && photoObj.base64) {
             try {
               uploadedPhotoUrl = await uploadToCloudinary(photoObj);
             } catch (uErr) {
               console.error('Photo upload failed:', uErr.message);
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Photo upload failed: ' + uErr.message }));
             }
+          }
+
+          const isCarNotPresent = Boolean(payload.carNotPresent || payload.tag === 'car_not_present');
+          const effectiveTag = payload.tag || (isCarNotPresent ? 'car_not_present' : null);
+          const effectiveStatus = payload.status || (isCarNotPresent ? 'car_not_present' : 'completed');
+          const effectiveNotes = payload.notes || (isCarNotPresent ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)' : 'Daily clean verified with photo proof');
+
+          // Evidence Validation: Mandatory photo proof for completed daily cleaning
+          if (effectiveStatus === 'completed' && !uploadedPhotoUrl) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Photo proof is strictly required for daily clean completion.' }));
           }
 
           const completedAt = payload.completedAtDevice || new Date().toISOString();
@@ -4378,11 +4661,32 @@ const server = http.createServer(async (req, res) => {
                 return res.end(JSON.stringify({ success: false, error: `Staff '${staffCode}' not found` }));
               }
 
+              // Authorization: Ensure staff is assigned to the active route for this stop
+              if (staffSess && !adminSess && payload.subscriptionId && repos.routes && repos.routes.findActiveStopBySubscriptionAndVehicle) {
+                const activeStop = await repos.routes.findActiveStopBySubscriptionAndVehicle(payload.subscriptionId, payload.vehicleId);
+                if (activeStop && activeStop.assigned_staff_id) {
+                  if (activeStop.assigned_staff_id !== staff.id) {
+                    res.writeHead(403, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to the active route for this stop.' }));
+                  }
+                }
+              }
+
               const istDate = repos.serviceLogs.computeIstServiceDate(completedAt);
-              const isCarNotPresent = Boolean(payload.carNotPresent || payload.tag === 'car_not_present');
-              const effectiveTag = payload.tag || (isCarNotPresent ? 'car_not_present' : null);
-              const effectiveStatus = payload.status || (isCarNotPresent ? 'car_not_present' : 'completed');
-              const effectiveNotes = payload.notes || (isCarNotPresent ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)' : 'Daily clean verified with photo proof');
+
+              // DCC Eligibility Validation
+              if (payload.subscriptionId) {
+                const eligCheck = await dccService.validateDccEligibility({
+                  subscriptionId: payload.subscriptionId,
+                  vehicleId: payload.vehicleId,
+                  customerId: payload.customerId,
+                  operationalDate: istDate
+                });
+                if (!eligCheck.eligible) {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({ success: false, error: `Ineligible for DCC: ${eligCheck.reason}` }));
+                }
+              }
 
               // Phase 2 Pre-Alignment: Calculate in-house Haversine distance against customer location (non-blocking)
               let punchDistMeters = null;
@@ -4457,10 +4761,48 @@ const server = http.createServer(async (req, res) => {
 
           // Local fallback mode
           if (!appState.serviceLogs) appState.serviceLogs = [];
-          const isCarNotPresent = Boolean(payload.carNotPresent || payload.tag === 'car_not_present');
-          const effectiveTag = payload.tag || (isCarNotPresent ? 'car_not_present' : null);
-          const effectiveStatus = payload.status || (isCarNotPresent ? 'car_not_present' : 'completed');
-          const effectiveNotes = payload.notes || (isCarNotPresent ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)' : 'Daily clean verified with photo proof');
+
+          // Authorization: Ensure staff is assigned to the active route for this stop
+          if (staffSess && !adminSess && payload.subscriptionId && repos.routes && repos.routes.findActiveStopBySubscriptionAndVehicle) {
+            const activeStop = await repos.routes.findActiveStopBySubscriptionAndVehicle(payload.subscriptionId, payload.vehicleId);
+            if (activeStop && activeStop.assigned_staff_id && staffCode) {
+              if (activeStop.assigned_staff_id !== staffCode) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to the active route for this stop.' }));
+              }
+            }
+          }
+
+          const istServiceDate = completedAt.split('T')[0];
+
+          // Local Duplicate Guard
+          if (payload.subscriptionId && payload.vehicleId) {
+            const existingLocal = appState.serviceLogs.find(
+              l => l.subscription_id === payload.subscriptionId && l.vehicle_id === payload.vehicleId && l.service_date === istServiceDate
+            );
+            if (existingLocal) {
+              if (existingLocal.status === effectiveStatus) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: true,
+                  log: existingLocal,
+                  photoUrl: uploadedPhotoUrl,
+                  serviceDate: istServiceDate,
+                  idempotent: true
+                }));
+              }
+              if (existingLocal.status === 'completed' && effectiveStatus !== 'completed' && !adminSess) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'Cannot overwrite already completed daily clean without admin authorization' }));
+              }
+              existingLocal.status = effectiveStatus;
+              existingLocal.car_not_present = isCarNotPresent;
+              existingLocal.tag = effectiveTag;
+              saveLocalData(appState);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, log: existingLocal, serviceDate: istServiceDate, conflictResolved: true }));
+            }
+          }
 
           const localLog = {
             id: mutationId,
@@ -5286,6 +5628,663 @@ const server = http.createServer(async (req, res) => {
           }));
         }
 
+        // Public / Admin: Get Packages & Entitlements Catalog
+        if (payload.action === 'getPackageCatalog') {
+          try {
+            const catalog = packageService.getPackageCatalog();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, catalog }));
+          } catch (err) {
+            console.error('getPackageCatalog error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Get Packages for a Specific Customer
+        if (payload.action === 'getCustomerPackages') {
+          try {
+            const customerId = payload.customerId || payload.id;
+            if (!customerId) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Customer ID is required' }));
+            }
+            const packages = await packageService.getCustomerPackages(customerId);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, packages }));
+          } catch (err) {
+            console.error('getCustomerPackages error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Sell / Assign Package to Customer
+        if (payload.action === 'sellCustomerPackage') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || adminSess?.user || 'admin';
+            const packageData = payload.packageData || payload.data || payload;
+            const result = await packageService.sellPackage(packageData, adminUser);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, package: result, message: 'Package assigned successfully' }));
+          } catch (err) {
+            console.error('sellCustomerPackage error:', err.message);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Redeem Package Entitlement
+        if (payload.action === 'redeemPackageEntitlement') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || adminSess?.user || 'admin';
+            const redemptionData = payload.redemptionData || payload.data || payload;
+            const result = await packageService.redeemPackage(redemptionData, adminUser);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: true,
+              redemption: result.redemption,
+              package: result.package,
+              message: 'Entitlement redeemed successfully'
+            }));
+          } catch (err) {
+            console.error('redeemPackageEntitlement error:', err.message);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Cancel Customer Package
+        if (payload.action === 'cancelCustomerPackage') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || adminSess?.user || 'admin';
+            const packageId = payload.packageId || payload.id;
+            const reason = payload.reason || payload.cancelReason || 'Cancelled by admin';
+            if (!packageId) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Package ID is required' }));
+            }
+            const result = await packageService.cancelPackage(packageId, reason, adminUser);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, package: result, message: 'Package cancelled successfully' }));
+          } catch (err) {
+            console.error('cancelCustomerPackage error:', err.message);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Get Package Redemption History
+        if (payload.action === 'getPackageRedemptionHistory') {
+          try {
+            const packageId = payload.packageId || payload.id;
+            if (!packageId) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Package ID is required' }));
+            }
+            const redemptions = await packageService.getPackageRedemptions(packageId);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, redemptions }));
+          } catch (err) {
+            console.error('getPackageRedemptionHistory error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Create Service Booking (Decoupled from Daily Clean, with optional Package Entitlement)
+        if (payload.action === 'createServiceBooking') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || adminSess?.user || 'admin';
+            const bookingData = payload.bookingData || payload.data || payload;
+            const result = await bookingService.createBooking(bookingData, adminUser);
+            invalidateLiveCustomersCache();
+            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'created', jobId: result.job?.id || result.id });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, booking: result.job || result, message: 'Booking created successfully' }));
+          } catch (err) {
+            console.error('createServiceBooking error:', err.message);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin / Staff: Get Eligible Packages for a Customer Booking
+        if (payload.action === 'getEligiblePackagesForBooking') {
+          try {
+            const customerId = payload.customerId || payload.id;
+            const serviceCategoryId = payload.serviceCategoryId || payload.category;
+            const vehicleId = payload.vehicleId || payload.assetId || null;
+            if (!customerId) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Customer ID is required' }));
+            }
+            const eligiblePackages = await bookingService.getEligiblePackagesForBooking(customerId, serviceCategoryId, vehicleId);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, eligiblePackages }));
+          } catch (err) {
+            console.error('getEligiblePackagesForBooking error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin / Staff: Get Customer Bookings & Complete Service History
+        if (payload.action === 'getCustomerServiceJobs') {
+          try {
+            const customerId = payload.customerId || payload.id;
+            if (!customerId) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Customer ID is required' }));
+            }
+            const jobData = await bookingService.getCustomerBookingsAndHistory(customerId);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, ...jobData }));
+          } catch (err) {
+            console.error('getCustomerServiceJobs error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Staff / Admin: Mark Service Job as Unable to Complete / Failed
+        if (payload.action === 'failServiceJob' || payload.action === 'failServiceBooking') {
+          try {
+            const staffSess = await resolveStaffSession(token);
+            const adminSess = await resolveAdminSession(token);
+            if (!staffSess && !adminSess) {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
+            }
+            const actor = (staffSess && (staffSess.staffCode || staffSess.name)) || (adminSess && adminSess.username) || 'staff';
+            const jobId = payload.jobId || payload.id;
+            const result = await bookingService.failJob(jobId, {
+              failureReason: payload.failureReason || payload.reason,
+              failureRemarks: payload.failureRemarks || payload.remarks,
+              failedBy: actor,
+              actor
+            });
+            invalidateLiveCustomersCache();
+            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'failed', jobId: jobId, status: 'unable_to_complete' });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, job: result.job || result, message: 'Service marked unable to complete' }));
+          } catch (err) {
+            console.error('failServiceJob error:', err.message);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Get Customer DCC Subscriptions & Enrolled Vehicles
+        if (payload.action === 'getCustomerDccDetails' || payload.action === 'getCustomerDccSubscriptions') {
+          try {
+            const customerId = payload.customerId || payload.id;
+            if (!customerId) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Customer ID is required' }));
+            }
+            const details = await dccService.getCustomerDccDetails(customerId);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, ...details }));
+          } catch (err) {
+            console.error('getCustomerDccDetails error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Renew Customer DCC Subscription
+        if (payload.action === 'renewCustomerDccSubscription') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const subId = payload.subscriptionId || payload.id;
+            const result = await dccService.renewSubscription({
+              subscriptionId: subId,
+              newEndDate: payload.newEndDate || payload.endDate,
+              durationMonths: payload.durationMonths,
+              newPackageName: payload.packageName,
+              notes: payload.notes,
+              actor: adminUser
+            });
+            invalidateLiveCustomersCache();
+            broadcastAdminRealtimeEvent('CUSTOMER_ASSIGNMENT_CHANGED', { action: 'renewed', subscriptionId: subId });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            console.error('renewCustomerDccSubscription error:', err.message);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Stop Customer DCC Subscription
+        if (payload.action === 'stopCustomerDccSubscription') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const subId = payload.subscriptionId || payload.id;
+            const result = await dccService.stopSubscription({
+              subscriptionId: subId,
+              reason: payload.reason || 'Customer requested service stop',
+              actor: adminUser
+            });
+            invalidateLiveCustomersCache();
+            broadcastAdminRealtimeEvent('CUSTOMER_ASSIGNMENT_CHANGED', { action: 'stopped', subscriptionId: subId });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            console.error('stopCustomerDccSubscription error:', err.message);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Cancel Customer DCC Subscription
+        if (payload.action === 'cancelCustomerDccSubscription') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const subId = payload.subscriptionId || payload.id;
+            const result = await dccService.cancelSubscription({
+              subscriptionId: subId,
+              reason: payload.reason || 'Subscription cancelled',
+              actor: adminUser
+            });
+            invalidateLiveCustomersCache();
+            broadcastAdminRealtimeEvent('CUSTOMER_ASSIGNMENT_CHANGED', { action: 'cancelled', subscriptionId: subId });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            console.error('cancelCustomerDccSubscription error:', err.message);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // =====================================================================
+        // ROUTE MANAGEMENT & STAFF ROUTE SEQUENCE (Task 01.5)
+        // =====================================================================
+
+        // Admin: List all Routes
+        if (payload.action === 'getAllRoutes' || payload.action === 'getRoutes') {
+          try {
+            const routes = await routeService.getAllRoutes(payload);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(routes));
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Get Route Details with Stops
+        if (payload.action === 'getRouteDetails') {
+          try {
+            const routeId = payload.routeId || payload.id;
+            const details = await routeService.getRouteDetails(routeId);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, ...details }));
+          } catch (err) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Create Route
+        if (payload.action === 'createRoute') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const result = await routeService.createRoute({
+              ...payload,
+              adminUser
+            });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Update Route
+        if (payload.action === 'updateRoute') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const routeId = payload.routeId || payload.id;
+            const result = await routeService.updateRoute(routeId, payload, adminUser);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Set Route Status (active / inactive / archived)
+        if (payload.action === 'setRouteStatus') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const routeId = payload.routeId || payload.id;
+            const result = await routeService.setRouteStatus(routeId, payload.status, adminUser);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Delete Route
+        if (payload.action === 'deleteRoute') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const routeId = payload.routeId || payload.id;
+            const result = await routeService.deleteRoute(routeId, adminUser);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Assign Staff to Route
+        if (payload.action === 'assignStaffToRoute') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const result = await routeService.assignStaffToRoute({
+              routeId: payload.routeId,
+              staffId: payload.staffId,
+              adminUser
+            });
+            invalidateLiveCustomersCache();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Unassign Staff from Route
+        if (payload.action === 'unassignStaffFromRoute') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const result = await routeService.unassignStaffFromRoute({
+              routeId: payload.routeId,
+              reason: payload.reason,
+              adminUser
+            });
+            invalidateLiveCustomersCache();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Add Stop to Route
+        if (payload.action === 'addStopToRoute') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const result = await routeService.addStopToRoute({
+              ...payload,
+              adminUser
+            });
+            invalidateLiveCustomersCache();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Remove Stop from Route
+        if (payload.action === 'removeStopFromRoute') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const result = await routeService.removeStopFromRoute({
+              routeId: payload.routeId,
+              stopId: payload.stopId,
+              reason: payload.reason,
+              adminUser
+            });
+            invalidateLiveCustomersCache();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Move Stop Between Routes
+        if (payload.action === 'moveStopBetweenRoutes') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const result = await routeService.moveStopBetweenRoutes({
+              sourceRouteId: payload.sourceRouteId,
+              targetRouteId: payload.targetRouteId,
+              stopId: payload.stopId,
+              targetSequenceOrder: payload.targetSequenceOrder,
+              adminUser
+            });
+            invalidateLiveCustomersCache();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Reorder Route Stops
+        if (payload.action === 'reorderRouteStops') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const result = await routeService.reorderRouteStops({
+              routeId: payload.routeId,
+              orderedStopIds: payload.orderedStopIds || payload.stopIds || payload.stops,
+              adminUser
+            });
+            invalidateLiveCustomersCache();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Move Single Stop in Route (up, down, top, bottom)
+        if (payload.action === 'moveStopInRoute') {
+          try {
+            const adminSess = await resolveAdminSession(token);
+            const adminUser = adminSess?.username || 'admin';
+            const result = await routeService.moveStopInRoute({
+              routeId: payload.routeId,
+              stopId: payload.stopId,
+              direction: payload.direction,
+              adminUser
+            });
+            invalidateLiveCustomersCache();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Get Unassigned DCC Vehicles
+        if (payload.action === 'getUnassignedDccVehicles') {
+          try {
+            const result = await routeService.getUnassignedDccVehicles();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Staff / Admin: Get Staff Route View
+        if (payload.action === 'getStaffRouteView') {
+          try {
+            const staffSess = await resolveStaffSession(token);
+            const adminSess = await resolveAdminSession(token);
+
+            if (!staffSess && !adminSess) {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Session required' }));
+            }
+
+            const requestedStaff = payload.staffId || payload.staffCode || (staffSess ? (staffSess.staffCode || staffSess.staffId) : null);
+            if (!requestedStaff) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Staff identifier is required' }));
+            }
+
+            // Security: Staff can only access their own route view
+            if (staffSess && !adminSess) {
+              const myCode = (staffSess.staffCode || '').toUpperCase();
+              const myId = (staffSess.staffId || '').toUpperCase();
+              const reqUpper = String(requestedStaff).toUpperCase();
+              if (reqUpper !== myCode && reqUpper !== myId) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'Forbidden: You can only view your own assigned route.' }));
+              }
+            }
+
+            const result = await routeService.getStaffRouteView(requestedStaff, payload.operationalDate);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Staff / Admin: Get Staff Daily Route Worklist
+        if (payload.action === 'getStaffRouteWorklist') {
+          try {
+            const staffSess = await resolveStaffSession(token);
+            const adminSess = await resolveAdminSession(token);
+
+            if (!staffSess && !adminSess) {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Session required' }));
+            }
+
+            const requestedStaff = payload.staffId || payload.staffCode || (staffSess ? (staffSess.staffCode || staffSess.staffId) : null);
+            if (!requestedStaff) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Staff identifier is required' }));
+            }
+
+            // Security: Staff can only access their own route worklist
+            if (staffSess && !adminSess) {
+              const myCode = (staffSess.staffCode || '').toUpperCase();
+              const myId = (staffSess.staffId || '').toUpperCase();
+              const reqUpper = String(requestedStaff).toUpperCase();
+              if (reqUpper !== myCode && reqUpper !== myId) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'Forbidden: You can only view your own assigned route worklist.' }));
+              }
+            }
+
+            const result = await routeService.getStaffRouteWorklist(requestedStaff, payload.operationalDate);
+            if (result && result.unauthorized) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(result));
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Get Daily Route Reconciliation
+        if (payload.action === 'getDailyRouteReconciliation') {
+          try {
+            const result = await routeService.getDailyRouteReconciliation(payload);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Get Designations List
+        if (payload.action === 'getDesignationsList') {
+          try {
+            const designations = await adminService.getDesignationsList();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, designations }));
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Save / Update Custom Designation
+        if (payload.action === 'saveDesignation') {
+          try {
+            const desigData = payload.designationData || payload;
+            const result = await adminService.saveDesignation(desigData, 'admin');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Delete Custom Designation
+        if (payload.action === 'deleteDesignation') {
+          try {
+            const desigId = payload.id || payload.designationId;
+            const result = await adminService.deleteDesignation(desigId, 'admin');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
+        // Admin: Get Staff Hierarchy Tree & Roster
+        if (payload.action === 'getStaffHierarchy') {
+          try {
+            const result = await adminService.getStaffHierarchy();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        }
+
         // Staff: Start Special Job with 1 or max 2 Before Photos
         if (payload.action === 'startSpecialJob') {
           const staffSess = await resolveStaffSession(token);
@@ -5337,24 +6336,13 @@ const server = http.createServer(async (req, res) => {
           const startedAt = payload.startedAtDevice || new Date().toISOString();
 
           try {
-            if (isNeonConfigured()) {
-              const updatedJob = await repos.serviceJobs.startJob(jobId, {
-                beforePhotos: beforePhotoUrls,
-                startedAt: startedAt
-              });
-              invalidateLiveCustomersCache();
-              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'started', jobId: jobId, status: 'in_progress' });
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({
-                success: true,
-                job: updatedJob,
-                beforePhotos: beforePhotoUrls,
-                startedAt: startedAt,
-                message: 'Job started successfully'
-              }));
-            }
+            const startActor = (staffSess && (staffSess.staffCode || staffSess.name)) || (adminSess && adminSess.username) || 'staff';
+            const startRes = await bookingService.startJob(jobId, {
+              beforePhotos: beforePhotoUrls,
+              startedAt: startedAt,
+              actor: startActor
+            });
 
-            // Local fallback
             if (appState.serviceJobs) {
               const j = appState.serviceJobs.find(x => x.id === jobId);
               if (j) {
@@ -5364,18 +6352,26 @@ const server = http.createServer(async (req, res) => {
                 saveLocalData(appState);
               }
             }
+
+            invalidateLiveCustomersCache();
             broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'started', jobId: jobId, status: 'in_progress' });
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: true, status: 'in_progress', beforePhotos: beforePhotoUrls }));
+            return res.end(JSON.stringify({
+              success: true,
+              job: startRes.job || startRes,
+              beforePhotos: beforePhotoUrls,
+              startedAt: startedAt,
+              message: 'Job started successfully'
+            }));
           } catch (err) {
             console.error('startSpecialJob error:', err.message);
-            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: err.message }));
           }
         }
 
         // Staff: Complete Special Job with 1 or max 2 After Photos & Notes
-        if (payload.action === 'completeSpecialJob') {
+        if (payload.action === 'completeSpecialJob' || payload.action === 'completeServiceBooking') {
           const staffSess = await resolveStaffSession(token);
           const adminSess = await resolveAdminSession(token);
 
@@ -5428,13 +6424,17 @@ const server = http.createServer(async (req, res) => {
           const notes = (payload.notes || payload.completionNotes || '').trim();
 
           try {
-            if (isNeonConfigured()) {
-              const updatedJob = await repos.serviceJobs.completeJob(jobId, {
-                afterPhotos: afterPhotoUrls,
-                completedAt: completedAt,
-                completionNotes: notes
-              });
+            const actor = (staffSess && (staffSess.staffCode || staffSess.name)) || (adminSess && adminSess.username) || 'staff';
+            const compRes = await bookingService.completeJob(jobId, {
+              afterPhotos: afterPhotoUrls,
+              completedAt: completedAt,
+              completionNotes: notes,
+              staffId: staffCode,
+              actor
+            });
+            const updatedJob = compRes.job || compRes;
 
+            if (isNeonConfigured()) {
               // Record in service_logs for audit ledger
               let staff = null;
               if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffCode)) {
@@ -5458,36 +6458,22 @@ const server = http.createServer(async (req, res) => {
                   source: 'staff_portal'
                 });
               }
-
-              invalidateLiveCustomersCache();
-              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'completed', jobId: jobId, status: 'completed' });
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({
-                success: true,
-                job: updatedJob,
-                afterPhotos: afterPhotoUrls,
-                completedAt: completedAt,
-                message: 'Job completed successfully'
-              }));
             }
 
-            // Local fallback
-            if (appState.serviceJobs) {
-              const j = appState.serviceJobs.find(x => x.id === jobId);
-              if (j) {
-                j.status = 'completed';
-                j.completed_at = completedAt;
-                j.after_photos = afterPhotoUrls;
-                j.completion_notes = notes;
-                saveLocalData(appState);
-              }
-            }
+            invalidateLiveCustomersCache();
             broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'completed', jobId: jobId, status: 'completed' });
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: true, status: 'completed', afterPhotos: afterPhotoUrls }));
+            return res.end(JSON.stringify({
+              success: true,
+              job: updatedJob,
+              afterPhotos: afterPhotoUrls,
+              completedAt: completedAt,
+              entitlementDeducted: Boolean(compRes.entitlementDeducted),
+              message: 'Job completed successfully'
+            }));
           } catch (err) {
             console.error('completeSpecialJob error:', err.message);
-            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: err.message }));
           }
         }
@@ -5507,6 +6493,11 @@ const server = http.createServer(async (req, res) => {
           const jobId = payload.jobId || payload.id;
           try {
             if (isNeonConfigured()) {
+              const existingJob = await repos.serviceJobs.findById(jobId);
+              if (existingJob && (existingJob.status === 'completed' || existingJob.status === 'in_progress')) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: `Cannot delete job in status '${existingJob.status}'.` }));
+              }
               await repos.serviceJobs.softDelete(jobId);
               invalidateLiveCustomersCache();
               broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'deleted', jobId: jobId });
@@ -5514,6 +6505,11 @@ const server = http.createServer(async (req, res) => {
               return res.end(JSON.stringify({ success: true, message: 'Job cancelled successfully' }));
             }
             if (appState.serviceJobs) {
+              const j = appState.serviceJobs.find(x => x.id === jobId);
+              if (j && (j.status === 'completed' || j.status === 'in_progress')) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: `Cannot delete job in status '${j.status}'.` }));
+              }
               appState.serviceJobs = appState.serviceJobs.filter(x => x.id !== jobId);
               saveLocalData(appState);
             }
@@ -5567,64 +6563,34 @@ const server = http.createServer(async (req, res) => {
           const cancelledBy = (staffSess && (staffSess.staffCode || staffSess.name || staffSess.staffId)) || (adminSess && (adminSess.username || adminSess.id || 'admin')) || 'staff';
 
           try {
-            if (isNeonConfigured()) {
-              // Verify job is not already completed
-              const existingJob = await repos.serviceJobs.findById(jobId);
-              if (!existingJob) {
-                res.writeHead(404, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
-              }
-              if (existingJob.status === 'completed') {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ success: false, error: 'Cannot cancel an already completed job' }));
-              }
+            const cancelRes = await bookingService.cancelBooking(jobId, {
+              cancellationReason: reason,
+              cancellationRemarks: remarks,
+              cancelledAt: cancelledAt,
+              cancelledBy: cancelledBy,
+              actor: cancelledBy
+            });
 
-              const updatedJob = await repos.serviceJobs.cancelJob(jobId, {
-                cancellationReason: reason,
-                cancellationRemarks: remarks,
-                cancelledAt: cancelledAt,
-                cancelledBy: cancelledBy
-              });
-
-              // Audit logging
-              if (repos.auditLogs && repos.auditLogs.logChange) {
-                try {
-                  await repos.auditLogs.logChange({
-                    tableName: 'service_jobs',
-                    recordId: jobId,
-                    action: 'CANCEL',
-                    oldData: { status: existingJob.status },
-                    newData: { status: 'cancelled', cancellation_reason: reason, cancellation_remarks: remarks },
-                    changedBy: cancelledBy
-                  });
-                } catch (aErr) {
-                  console.warn('Audit log write error:', aErr.message);
-                }
+            // Audit logging
+            if (repos.auditLogs && repos.auditLogs.logChange) {
+              try {
+                await repos.auditLogs.logChange({
+                  tableName: 'service_jobs',
+                  recordId: jobId,
+                  action: 'CANCEL',
+                  oldData: { status: 'prior' },
+                  newData: { status: 'cancelled', cancellation_reason: reason, cancellation_remarks: remarks },
+                  changedBy: cancelledBy
+                });
+              } catch (aErr) {
+                console.warn('Audit log write error:', aErr.message);
               }
-
-              invalidateLiveCustomersCache();
-              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'cancelled', jobId: jobId, status: 'cancelled' });
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({
-                success: true,
-                jobId: jobId,
-                status: 'cancelled',
-                cancellationReason: reason,
-                cancellationRemarks: remarks,
-                cancelledAt: cancelledAt,
-                job: updatedJob,
-                message: 'Job cancelled successfully'
-              }));
             }
 
-            // Local fallback
+            // Sync appState if local
             if (appState.serviceJobs) {
               const j = appState.serviceJobs.find(x => x.id === jobId);
               if (j) {
-                if (j.status === 'completed') {
-                  res.writeHead(400, { 'Content-Type': 'application/json' });
-                  return res.end(JSON.stringify({ success: false, error: 'Cannot cancel an already completed job' }));
-                }
                 j.status = 'cancelled';
                 j.cancellation_reason = reason;
                 j.cancellation_remarks = remarks;
@@ -5633,6 +6599,9 @@ const server = http.createServer(async (req, res) => {
                 saveLocalData(appState);
               }
             }
+
+            invalidateLiveCustomersCache();
+            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'cancelled', jobId: jobId, status: 'cancelled' });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: true,
@@ -5641,11 +6610,12 @@ const server = http.createServer(async (req, res) => {
               cancellationReason: reason,
               cancellationRemarks: remarks,
               cancelledAt: cancelledAt,
+              job: cancelRes.job || cancelRes,
               message: 'Job cancelled successfully'
             }));
           } catch (err) {
             console.error('cancelSpecialJob error:', err.message);
-            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: err.message }));
           }
         }

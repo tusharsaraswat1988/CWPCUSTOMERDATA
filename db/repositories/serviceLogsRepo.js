@@ -50,43 +50,57 @@ async function recordCompletion({
   const effectiveTag = tag || (carNotPresent ? 'car_not_present' : null);
 
   // Idempotent insert with client_mutation_id
-  const res = await runner.query(
-    `INSERT INTO public.service_logs (
-       client_mutation_id, staff_id, subscription_id, vehicle_id, job_id,
-       service_date, status, completed_at_device, synced_at_server,
-       notes, photo_url, source, device_metadata, car_not_present, tag,
-       punch_latitude, punch_longitude, punch_accuracy_meters, punch_distance_meters,
-       punch_verified, punch_verification_status, punch_metadata
-     ) VALUES (
-       $1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, $9, $10, $11, $12, $13, $14,
-       $15, $16, $17, $18, $19, $20, $21
-     )
-     ON CONFLICT (client_mutation_id) DO NOTHING
-     RETURNING *`,
-    [
-      clientMutationId,
-      staffId,
-      subscriptionId,
-      vehicleId,
-      jobId,
-      targetDate,
-      status || 'completed',
-      completedAtDevice,
-      notes ? notes.trim() : null,
-      photoUrl,
-      source || 'staff_portal',
-      deviceMetadata ? (typeof deviceMetadata === 'string' ? deviceMetadata : JSON.stringify(deviceMetadata)) : null,
-      Boolean(carNotPresent),
-      effectiveTag,
-      punchLatitude !== null && punchLatitude !== undefined ? parseFloat(punchLatitude) : null,
-      punchLongitude !== null && punchLongitude !== undefined ? parseFloat(punchLongitude) : null,
-      punchAccuracyMeters !== null && punchAccuracyMeters !== undefined ? parseFloat(punchAccuracyMeters) : null,
-      punchDistanceMeters !== null && punchDistanceMeters !== undefined ? parseFloat(punchDistanceMeters) : null,
-      punchVerified !== null && punchVerified !== undefined ? Boolean(punchVerified) : null,
-      punchVerificationStatus || (punchLatitude !== null ? 'pending' : null),
-      punchMetadata ? (typeof punchMetadata === 'string' ? punchMetadata : JSON.stringify(punchMetadata)) : null
-    ]
-  );
+  let res;
+  try {
+    res = await runner.query(
+      `INSERT INTO public.service_logs (
+         client_mutation_id, staff_id, subscription_id, vehicle_id, job_id,
+         service_date, status, completed_at_device, synced_at_server,
+         notes, photo_url, source, device_metadata, car_not_present, tag,
+         punch_latitude, punch_longitude, punch_accuracy_meters, punch_distance_meters,
+         punch_verified, punch_verification_status, punch_metadata
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, $9, $10, $11, $12, $13, $14,
+         $15, $16, $17, $18, $19, $20, $21
+       )
+       ON CONFLICT (client_mutation_id) DO NOTHING
+       RETURNING *`,
+      [
+        clientMutationId,
+        staffId,
+        subscriptionId,
+        vehicleId,
+        jobId,
+        targetDate,
+        status || 'completed',
+        completedAtDevice,
+        notes ? notes.trim() : null,
+        photoUrl,
+        source || 'staff_portal',
+        deviceMetadata ? (typeof deviceMetadata === 'string' ? deviceMetadata : JSON.stringify(deviceMetadata)) : null,
+        Boolean(carNotPresent),
+        effectiveTag,
+        punchLatitude !== null && punchLatitude !== undefined ? parseFloat(punchLatitude) : null,
+        punchLongitude !== null && punchLongitude !== undefined ? parseFloat(punchLongitude) : null,
+        punchAccuracyMeters !== null && punchAccuracyMeters !== undefined ? parseFloat(punchAccuracyMeters) : null,
+        punchDistanceMeters !== null && punchDistanceMeters !== undefined ? parseFloat(punchDistanceMeters) : null,
+        punchVerified !== null && punchVerified !== undefined ? Boolean(punchVerified) : null,
+        punchVerificationStatus || (punchLatitude !== null ? 'pending' : null),
+        punchMetadata ? (typeof punchMetadata === 'string' ? punchMetadata : JSON.stringify(punchMetadata)) : null
+      ]
+    );
+  } catch (err) {
+    if (err.code === '23505' && subscriptionId && vehicleId) {
+      const dup = await runner.query(
+        'SELECT * FROM public.service_logs WHERE subscription_id = $1 AND vehicle_id = $2 AND service_date = $3 LIMIT 1',
+        [subscriptionId, vehicleId, targetDate]
+      );
+      if (dup.rows.length > 0) {
+        return { inserted: false, duplicate: true, idempotent: true, log: dup.rows[0] };
+      }
+    }
+    throw err;
+  }
 
   if (res.rows.length > 0) {
     return { inserted: true, log: res.rows[0] };
@@ -163,6 +177,7 @@ async function queryDailyCleanReports({
   search = null,
   hasPhoto = null,
   carNotPresent = null,
+  status = null,
   tag = null,
   limit = 200,
   offset = 0
@@ -215,6 +230,11 @@ async function queryDailyCleanReports({
     conditions.push(`(sl.car_not_present = TRUE OR sl.tag = 'car_not_present')`);
   } else if (carNotPresent === 'no' || carNotPresent === false || carNotPresent === 'false') {
     conditions.push(`(sl.car_not_present = FALSE AND (sl.tag IS NULL OR sl.tag != 'car_not_present'))`);
+  }
+
+  if (status && status !== 'all') {
+    params.push(status);
+    conditions.push(`sl.status = $${params.length}`);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -350,12 +370,12 @@ async function findById(id, client = null) {
 
 async function updateStatusAndReason(id, { status, adminNotes, adminUser = 'admin' }, client = null) {
   const runner = client || db;
-  const isCnp = (status === 'car_not_present');
-  const effTag = isCnp ? 'car_not_present' : null;
-  const effStatus = isCnp ? 'car_not_present' : 'completed';
+  const isCnp = (status === 'car_not_present' || status === 'customer_absent');
+  const effTag = status === 'completed' ? null : (status || 'car_not_present');
+  const effStatus = status || (isCnp ? 'car_not_present' : 'completed');
   const effNotes = isCnp
     ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)'
-    : 'Daily clean verified with photo proof';
+    : (status === 'skipped' ? 'Daily clean skipped upon customer request' : (status === 'unable_to_complete' ? 'Unable to complete service' : 'Daily clean verified with photo proof'));
 
   const res = await runner.query(
     `UPDATE public.service_logs

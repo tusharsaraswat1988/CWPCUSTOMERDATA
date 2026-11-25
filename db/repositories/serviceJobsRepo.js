@@ -84,6 +84,19 @@ async function findById(id, client = null) {
   return res.rows[0] || null;
 }
 
+async function findByIdForUpdate(id, client) {
+  if (!client || typeof client.query !== 'function') {
+    throw new Error('client with active transaction is required for findByIdForUpdate');
+  }
+  const res = await client.query(
+    `SELECT * FROM public.service_jobs
+     WHERE id = $1 AND deleted_at IS NULL
+     FOR UPDATE`,
+    [id]
+  );
+  return res.rows[0] || null;
+}
+
 async function findDispatchedForStaff(staffId, client = null) {
   const runner = client || db;
   const res = await runner.query(
@@ -181,7 +194,7 @@ async function startJob(id, opts = {}, client = null) {
          started_at = $2,
          before_photos = $3,
          updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL
+     WHERE id = $1 AND deleted_at IS NULL AND status IN ('requested', 'booked', 'assigned')
      RETURNING *`,
     [id, stAt, JSON.stringify(beforePhotos || [])]
   );
@@ -205,7 +218,7 @@ async function completeJob(id, opts = {}, clientOrNotes = null, maybeClient = nu
          after_photos = $3,
          completion_notes = $4,
          updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL
+     WHERE id = $1 AND deleted_at IS NULL AND status = 'in_progress'
      RETURNING *`,
     [id, compAt, JSON.stringify(afterPhotos || []), completionNotes ? completionNotes.trim() : null]
   );
@@ -240,7 +253,7 @@ async function cancelJob(id, {
          cancelled_at = $4,
          cancelled_by = $5,
          updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL
+     WHERE id = $1 AND deleted_at IS NULL AND status IN ('requested', 'booked', 'assigned')
      RETURNING *`,
     [
       id,
@@ -259,7 +272,7 @@ async function softDelete(id, client = null) {
   const res = await runner.query(
     `UPDATE public.service_jobs
      SET deleted_at = CURRENT_TIMESTAMP, status = 'cancelled', updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL
+     WHERE id = $1 AND deleted_at IS NULL AND status IN ('requested', 'booked', 'assigned')
      RETURNING *`,
     [id]
   );
@@ -344,9 +357,40 @@ async function updateJob(id, updates = {}, client = null) {
   return res.rows[0] || null;
 }
 
+
+async function failJob(id, {
+  failureReason,
+  failureRemarks = null,
+  failedAt = null,
+  failedBy = null
+} = {}, client = null) {
+  const runner = client || db;
+  const fAt = failedAt || new Date().toISOString();
+  const res = await runner.query(
+    `UPDATE public.service_jobs
+     SET status = 'unable_to_complete',
+         failure_reason = $2,
+         failure_remarks = $3,
+         failed_at = $4,
+         failed_by = $5,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND deleted_at IS NULL AND status IN ('assigned', 'in_progress')
+     RETURNING *`,
+    [
+      id,
+      failureReason ? String(failureReason).trim() : 'Unable to complete service',
+      failureRemarks ? String(failureRemarks).trim() : null,
+      fAt,
+      failedBy || null
+    ]
+  );
+  return res.rows[0] || null;
+}
+
 module.exports = {
   findAll,
   findById,
+  findByIdForUpdate,
   findByCustomerId,
   findDispatchedForStaff,
   createJob,
@@ -354,6 +398,7 @@ module.exports = {
   startJob,
   completeJob,
   cancelJob,
+  failJob,
   updateJobStatus,
   softDelete
 };

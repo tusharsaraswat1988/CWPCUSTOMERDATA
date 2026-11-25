@@ -754,12 +754,21 @@
     </div></div></div>
     <div id="adminTabStaff" class="admin-tab-pane" style="display: none;">
       <div class="admin-card-section">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
-     <div>
-      <h2 class="admin-card-title">Staff Management</h2>
-     </div></div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+       <h2 class="admin-card-title" style="margin: 0;">Staff Management</h2>
+       <button type="button" class="btn-admin-action" onclick="openDesignationManagementModal()" title="Manage Staff Designations & Operational Authorities" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 12px;">
+        <span class="material-symbols-outlined" style="font-size: 16px; color: var(--md-sys-color-primary, #1d4ed8);">badge</span>
+        <span>Designations & Authorities</span>
+       </button>
+       <button type="button" class="btn-admin-action" onclick="openStaffHierarchyView()" title="View Organizational Hierarchy & Reporting Lines" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 12px;">
+        <span class="material-symbols-outlined" style="font-size: 16px; color: #7c3aed;">account_tree</span>
+        <span>Org Hierarchy</span>
+       </button>
+      </div>
+     </div>
     <form onsubmit="handleAddStaff(event)" style="margin-bottom: 16px;">
-     <div id="addStaffFormGrid" style="display: grid; grid-template-columns: auto 2fr 1.5fr 1fr auto; gap: 8px; align-items: center;">
+     <div id="addStaffFormGrid" style="display: grid; grid-template-columns: auto 2fr 1.3fr 0.9fr 1.2fr 1.2fr auto; gap: 8px; align-items: center;">
       <div class="new-staff-photo-btn-wrap" style="position: relative;">
       <button type="button" class="btn-admin-action" id="btnAddNewStaffPhoto" onclick="var f=document.getElementById('newStaffPhotoFile'); if(f){f.value=''; f.click();}" title="Staff Photo (Optional)" style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; font-size: 12px; height: 38px; border-radius: var(--radius-md); border: 1px dashed var(--border-color); background: var(--bg-surface);">
       <span id="newStaffPhotoPreview" style="display: none; width: 22px; height: 22px; border-radius: 50%; overflow: hidden; flex-shrink: 0;"><img id="newStaffPhotoPreviewImg" src="" style="width: 100%; height: 100%; object-fit: cover;"></span>
@@ -774,7 +783,21 @@
       <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
       <input type="tel" id="newStaffPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
       </div>
-      <input type="text" id="newStaffPin" class="form-input" placeholder="6-digit PIN (e.g. 849201)" maxlength="6" pattern="[0-9]{6}" required title="6-digit password for Staff Portal login">
+      <input type="text" id="newStaffPin" class="form-input" placeholder="6-digit PIN" maxlength="6" pattern="[0-9]{6}" required title="6-digit password for Staff Portal login">
+      <select id="newStaffWorkType" class="form-select" style="font-size: 12px; height: 38px;" title="Work Type (कार्य प्रकार)">
+      <option value="dcc_only">DCC Only (दैनिक सफाई)</option>
+      <option value="dcc_and_services">DCC + Services (सफाई व अन्य)</option>
+      <option value="services_only">Services Only (केवल ऑन-डिमांड)</option>
+      </select>
+      <select id="newStaffDesignation" class="form-select" style="font-size: 12px; height: 38px;" title="Designation (पद / भूमिका)">
+      <option value="cleaner">Cleaner (Level 1)</option>
+      <option value="service_specialist">Service Specialist (Level 1)</option>
+      <option value="senior_cleaner">Senior Cleaner (Level 2)</option>
+      <option value="team_leader">Team Leader (Level 3)</option>
+      <option value="supervisor">Supervisor (Level 4)</option>
+      <option value="zone_manager">Zone Manager (Level 5)</option>
+      <option value="operations_manager">Operations Manager (Level 6)</option>
+      </select>
       <input type="hidden" id="newStaffId" value="">
       <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
       + Add New Staff
@@ -2119,6 +2142,12 @@
     <button type="button" class="cwp-segment-btn" id="tabBtnEditDispatch" onclick="switchEditCustomerTab('dispatch')" role="tab" aria-selected="false">
      <span>👷 Cleaner & Route</span>
     </button>
+    <button type="button" class="cwp-segment-btn" id="tabBtnEditPackages" onclick="switchEditCustomerTab('packages')" role="tab" aria-selected="false">
+     <span class="material-symbols-outlined" style="font-size: 16px;">inventory_2</span> <span>Packages</span>
+    </button>
+    <button type="button" class="cwp-segment-btn" id="tabBtnEditBookings" onclick="switchEditCustomerTab('bookings')" role="tab" aria-selected="false">
+     <span class="material-symbols-outlined" style="font-size: 16px;">calendar_month</span> <span>Bookings</span>
+    </button>
       </div>
       <form id="editCustomerForm" onsubmit="handleEditCustomerSubmit(event)" class="cwp-compact-form">
     <input type="hidden" id="editCustomerId">
@@ -2264,6 +2293,84 @@
       <label class="form-label" for="editCustNotes">Staff Notes & Instructions</label>
       <textarea id="editCustNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="Cleaning instructions..."></textarea>
       </div></div></div>
+
+    <!-- Tab Pane: Packages & Entitlements -->
+    <div id="editTabPanePackages" class="edit-tab-pane">
+      <div class="cwp-form-section-card">
+        <div class="form-section-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 22px; color: var(--brand-blue, #2563eb);">loyalty</span>
+            <div>
+              <span class="section-title-text" style="margin: 0; font-size: 15px; font-weight: 700;">Customer Packages & Entitlements</span>
+              <span class="section-subtitle-text" style="display: block; font-size: 12px; color: var(--text-secondary);">Manage prepaid multi-service bundles, balance tracking and redemptions</span>
+            </div>
+          </div>
+          <button type="button" class="btn-admin-action" onclick="openSellPackageModalFromEditCustomer()" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 12px; background: var(--brand-blue, #2563eb); color: #fff; border-color: var(--brand-blue, #2563eb);">
+            <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+            <span>Sell Package</span>
+          </button>
+        </div>
+
+        <!-- Filter Pills -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <button type="button" id="pkgFilterAll" class="m3-filter-pill active" onclick="filterCustomerPackagesUI('all')" style="padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--border-color); background: #2563eb; color: #fff; cursor: pointer;">
+            All (<span id="pkgCountAll">0</span>)
+          </button>
+          <button type="button" id="pkgFilterActive" class="m3-filter-pill" onclick="filterCustomerPackagesUI('active')" style="padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;">
+            Active (<span id="pkgCountActive">0</span>)
+          </button>
+          <button type="button" id="pkgFilterExhausted" class="m3-filter-pill" onclick="filterCustomerPackagesUI('exhausted')" style="padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;">
+            Exhausted (<span id="pkgCountExhausted">0</span>)
+          </button>
+          <button type="button" id="pkgFilterCancelled" class="m3-filter-pill" onclick="filterCustomerPackagesUI('cancelled')" style="padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;">
+            Cancelled (<span id="pkgCountCancelled">0</span>)
+          </button>
+        </div>
+
+        <div id="custPackagesListContainer" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Pane: Service Bookings & Jobs -->
+    <div id="editTabPaneBookings" class="edit-tab-pane">
+      <div class="cwp-form-section-card">
+        <div class="form-section-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 22px; color: #7c3aed;">event_available</span>
+            <div>
+              <span class="section-title-text" style="margin: 0; font-size: 15px; font-weight: 700;">Service Bookings & Lifecycle</span>
+              <span class="section-subtitle-text" style="display: block; font-size: 12px; color: var(--text-secondary);">Track scheduled service bookings, on-demand jobs, and fulfillment</span>
+            </div>
+          </div>
+          <button type="button" class="btn-admin-action" onclick="openCreateBookingModalFromCustomer()" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 12px; background: #7c3aed; color: #fff; border-color: #7c3aed;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+            <span>New Booking</span>
+          </button>
+        </div>
+
+        <!-- Filter Pills -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <button type="button" id="bookingFilterAll" class="m3-filter-pill active" onclick="filterCustomerBookingsUI('all')" style="padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--border-color); background: #7c3aed; color: #fff; cursor: pointer;">
+            All (<span id="bookingCountAll">0</span>)
+          </button>
+          <button type="button" id="bookingFilterUpcoming" class="m3-filter-pill" onclick="filterCustomerBookingsUI('upcoming')" style="padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;">
+            Upcoming (<span id="bookingCountUpcoming">0</span>)
+          </button>
+          <button type="button" id="bookingFilterCompleted" class="m3-filter-pill" onclick="filterCustomerBookingsUI('completed')" style="padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;">
+            Completed (<span id="bookingCountCompleted">0</span>)
+          </button>
+          <button type="button" id="bookingFilterCancelled" class="m3-filter-pill" onclick="filterCustomerBookingsUI('cancelled')" style="padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;">
+            Cancelled (<span id="bookingCountCancelled">0</span>)
+          </button>
+        </div>
+
+        <div id="custBookingsListContainer" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
 
     <div id="editCustLegacyServiceFieldsWrap" style="display: none;" aria-hidden="true">
      <textarea id="editCustAddress" class="form-textarea"></textarea>
@@ -2528,6 +2635,122 @@
       <option value="false">🚫 Inactive (Login Disabled)</option>
       </select>
      </div></div></div>
+
+      <!-- Task 01.9: Designation, Hierarchy & Operational Authority -->
+      <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; background: var(--bg-card, #ffffff); margin-bottom: 12px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 18px; color: #0284c7;">shield_person</span>
+            <span>Designation & Operational Hierarchy (पद, पदानुक्रम व अधिकार) *</span>
+          </div>
+          <span id="editStaffDesignationLevelBadge" style="font-size: 11px; font-weight: 700; color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; padding: 2px 8px; border-radius: 12px;">Level 1 • Cleaner</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="editStaffDesignation">Designation (पद / भूमिका) *</label>
+            <select id="editStaffDesignation" class="form-select" onchange="window.handleStaffDesignationChange(this.value, 'edit')" required>
+              <option value="cleaner">Cleaner (Level 1)</option>
+              <option value="service_specialist">Service Specialist (Level 1)</option>
+              <option value="senior_cleaner">Senior Cleaner (Level 2)</option>
+              <option value="team_leader">Team Leader (Level 3 - Supervisory)</option>
+              <option value="supervisor">Supervisor (Level 4 - Supervisory)</option>
+              <option value="zone_manager">Zone Manager (Level 5 - Managerial)</option>
+              <option value="operations_manager">Operations Manager (Level 6 - Operations Head)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="editStaffReportsTo">Reports To / Manager (रिपोर्टिंग अधिकारी)</label>
+            <select id="editStaffReportsTo" class="form-select">
+              <option value="">None / Top Level (स्वतंत्र / शीर्ष स्तर)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="editStaffTeamName">Team Name / Cluster (टीम का नाम)</label>
+            <input type="text" id="editStaffTeamName" class="form-input" placeholder="e.g. Alpha DCC Crew, Central Detailing Team">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="editStaffOperationalScope">Operational Scope / Territory (कार्यक्षेत्र / ज़ोन)</label>
+            <input type="text" id="editStaffOperationalScope" class="form-input" placeholder="e.g. Sector 50-62 Cluster, Indirapuram Zone">
+          </div>
+        </div>
+
+        <!-- Authorities Granted Preview -->
+        <div style="background: var(--bg-surface, #f8fafc); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 10px;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+            <span class="material-symbols-outlined" style="font-size: 14px; color: #16a34a;">verified_user</span>
+            <span>Granted Operational Authorities (प्राप्त परिचालन अधिकार):</span>
+          </div>
+          <div id="editStaffAuthoritiesContainer" style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Task 01.8: Work-Type & Service Capabilities -->
+      <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; background: var(--bg-card, #ffffff); margin-bottom: 12px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 18px; color: #7c3aed;">badge</span>
+            <span>Work Type & Service Capabilities (कार्य प्रकार व सेवा क्षमताएँ) *</span>
+          </div>
+          <span id="editStaffCapsSummaryBadge" style="font-size: 11px; font-weight: 700; color: #6d28d9; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 2px 8px; border-radius: 12px;">DCC Only</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" for="editStaffWorkType">Primary Work Type (मुख्य कार्य प्रकार) *</label>
+          <select id="editStaffWorkType" class="form-select" onchange="window.handleStaffWorkTypeChange(this.value, 'edit')" required>
+            <option value="dcc_only">Daily Cleaning Only (केवल दैनिक कार सफाई)</option>
+            <option value="dcc_and_services">Daily Cleaning + Other Jobs (दैनिक सफाई + अन्य काम)</option>
+            <option value="services_only">Other Jobs Only (केवल ऑन-डिमांड काम)</option>
+          </select>
+          <div id="editStaffWorkTypeHint" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+            केवल डेली कार क्लीनिंग रूट्स और गाड़ियों की सफाई के लिए अधिकृत।
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <div style="font-size: 11.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">
+            Authorized Service Capabilities (अधिकृत सेवाएँ):
+          </div>
+          <div id="editStaffCapabilitiesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+            <!-- DCC -->
+            <label class="capability-checkbox-card" id="capCard_edit_daily_car_cleaning" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); cursor: pointer; user-select: none;">
+              <input type="checkbox" id="capCheck_edit_daily_car_cleaning" value="daily_car_cleaning" checked disabled onchange="window.handleStaffCapabilityToggle('edit')" style="accent-color: #2563eb; width: 16px; height: 16px;">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: #2563eb;">directions_car</span>
+              <span style="font-size: 12px; font-weight: 600;">Daily Clean (DCC)</span>
+            </label>
+            <!-- Car Wash -->
+            <label class="capability-checkbox-card" id="capCard_edit_car_washing" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); cursor: pointer; user-select: none;">
+              <input type="checkbox" id="capCheck_edit_car_washing" value="car_washing" disabled onchange="window.handleStaffCapabilityToggle('edit')" style="accent-color: #0284c7; width: 16px; height: 16px;">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: #0284c7;">local_car_wash</span>
+              <span style="font-size: 12px; font-weight: 600;">Car Wash</span>
+            </label>
+            <!-- Solar Cleaning -->
+            <label class="capability-checkbox-card" id="capCard_edit_solar_cleaning" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); cursor: pointer; user-select: none;">
+              <input type="checkbox" id="capCheck_edit_solar_cleaning" value="solar_cleaning" disabled onchange="window.handleStaffCapabilityToggle('edit')" style="accent-color: #d97706; width: 16px; height: 16px;">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: #d97706;">solar_power</span>
+              <span style="font-size: 12px; font-weight: 600;">Solar Cleaning</span>
+            </label>
+            <!-- Interior Detailing -->
+            <label class="capability-checkbox-card" id="capCard_edit_interior_detailing" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); cursor: pointer; user-select: none;">
+              <input type="checkbox" id="capCheck_edit_interior_detailing" value="interior_detailing" disabled onchange="window.handleStaffCapabilityToggle('edit')" style="accent-color: #7c3aed; width: 16px; height: 16px;">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: #7c3aed;">auto_awesome</span>
+              <span style="font-size: 12px; font-weight: 600;">Interior Detailing</span>
+            </label>
+            <!-- Exterior Detailing -->
+            <label class="capability-checkbox-card" id="capCard_edit_exterior_detailing" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); cursor: pointer; user-select: none;">
+              <input type="checkbox" id="capCheck_edit_exterior_detailing" value="exterior_detailing" disabled onchange="window.handleStaffCapabilityToggle('edit')" style="accent-color: #059669; width: 16px; height: 16px;">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: #059669;">shield</span>
+              <span style="font-size: 12px; font-weight: 600;">Exterior Detailing</span>
+            </label>
+          </div>
+          <div id="editStaffCapsError" style="display: none; color: #b91c1c; font-size: 11px; margin-top: 6px; font-weight: 600;"></div>
+        </div>
+      </div>
 
       <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; background: var(--bg-card, #ffffff);">
     <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
@@ -3374,6 +3597,366 @@
      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">block</span><span id="btnSubmitCancelJobText">रद्द दर्ज करें</span>
     </button>
       </div></div></div></div>
+    <!-- Task 01.9: Designation & Operational Authority Management Modal -->
+  <div id="designationManagementModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="designationModalTitle" onclick="handleStaticBackdropClick('designationManagementModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 820px; width: 94%; max-height: 88vh; display: flex; flex-direction: column;">
+      <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(3, 105, 161, 0.05)); display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; display: flex; align-items: center; justify-content: center;">
+            <span class="material-symbols-outlined" style="font-size: 20px;">badge</span>
+          </div>
+          <div>
+            <h3 class="modal-card-title" id="designationModalTitle" style="margin: 0; font-size: 16px;">Staff Designations & Operational Authorities</h3>
+            <span style="font-size: 12px; color: var(--text-secondary);">पद, पदानुक्रम स्तर व परिचालन अधिकार प्रबंधन</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" class="btn-admin-action" id="btnToggleAddDesigForm" onclick="toggleAddDesignationForm()" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 12px; background: var(--brand-blue); color: #fff; border-color: var(--brand-blue);">
+            <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+            <span>Add Custom Designation</span>
+          </button>
+          <button type="button" class="modal-close-x" onclick="closeDesignationManagementModal()" aria-label="Close dialog" title="Close (ESC)">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-card-body" style="padding: 16px; overflow-y: auto; flex: 1;">
+        <!-- Add Custom Designation Form Container (Collapsible) -->
+        <div id="addDesignationFormContainer" style="display: none; background: var(--bg-surface, #f8fafc); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 16px; color: var(--brand-blue);">add_circle</span>
+            <span>Create New Custom Designation (नया पद बनाएं)</span>
+          </div>
+          <form id="addDesignationForm" onsubmit="handleSaveCustomDesignation(event)">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Designation ID / Code *</label>
+                <input type="text" id="newDesigId" class="form-input" placeholder="e.g. night_lead, qc_inspector" pattern="[a-z0-9_]{3,32}" required title="Lowercase letters, numbers, and underscores only (3-32 chars)">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Title (English) *</label>
+                <input type="text" id="newDesigName" class="form-input" placeholder="e.g. Night Shift Lead" required>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Title (Hindi / देवनागरी)</label>
+                <input type="text" id="newDesigNameHi" class="form-input" placeholder="e.g. नाईट शिफ्ट लीड">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px; margin-bottom: 10px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Hierarchy Level (1-6) *</label>
+                <select id="newDesigLevel" class="form-select" required>
+                  <option value="1">Level 1 - Field Cleaners & Specialists</option>
+                  <option value="2">Level 2 - Senior Cleaners</option>
+                  <option value="3">Level 3 - Team Leaders (Supervisory)</option>
+                  <option value="4">Level 4 - Supervisors (Operational Lead)</option>
+                  <option value="5">Level 5 - Zone Managers</option>
+                  <option value="6">Level 6 - Operations Managers</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Description / Responsibilities</label>
+                <input type="text" id="newDesigDesc" class="form-input" placeholder="e.g. Manages late-evening cleaning shifts and audit compliance">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 12px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+              <div style="font-size: 11.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">
+                Operational Authorities (प्राधिकृत परिचालन अधिकार):
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px;">
+                <label class="capability-checkbox-card" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: #fff; cursor: pointer;">
+                  <input type="checkbox" id="auth_canViewTeam" style="accent-color: #2563eb; width: 15px; height: 15px;">
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: #2563eb;">groups</span>
+                  <span style="font-size: 11.5px; font-weight: 600;">canViewTeam</span>
+                </label>
+                <label class="capability-checkbox-card" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: #fff; cursor: pointer;">
+                  <input type="checkbox" id="auth_canAssignRoutes" style="accent-color: #0284c7; width: 15px; height: 15px;">
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: #0284c7;">route</span>
+                  <span style="font-size: 11.5px; font-weight: 600;">canAssignRoutes</span>
+                </label>
+                <label class="capability-checkbox-card" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: #fff; cursor: pointer;">
+                  <input type="checkbox" id="auth_canReorderSequences" style="accent-color: #7c3aed; width: 15px; height: 15px;">
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: #7c3aed;">format_list_numbered</span>
+                  <span style="font-size: 11.5px; font-weight: 600;">canReorderSequences</span>
+                </label>
+                <label class="capability-checkbox-card" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: #fff; cursor: pointer;">
+                  <input type="checkbox" id="auth_canSuperviseJobs" style="accent-color: #059669; width: 15px; height: 15px;">
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: #059669;">checklist</span>
+                  <span style="font-size: 11.5px; font-weight: 600;">canSuperviseJobs</span>
+                </label>
+                <label class="capability-checkbox-card" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: #fff; cursor: pointer;">
+                  <input type="checkbox" id="auth_canApproveExceptions" style="accent-color: #d97706; width: 15px; height: 15px;">
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: #d97706;">rule</span>
+                  <span style="font-size: 11.5px; font-weight: 600;">canApproveExceptions</span>
+                </label>
+                <label class="capability-checkbox-card" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: #fff; cursor: pointer;">
+                  <input type="checkbox" id="auth_canManageStaff" style="accent-color: #dc2626; width: 15px; height: 15px;">
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: #dc2626;">manage_accounts</span>
+                  <span style="font-size: 11.5px; font-weight: 600;">canManageStaff</span>
+                </label>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+              <button type="button" class="btn-cancel-form" onclick="toggleAddDesignationForm(false)">Cancel</button>
+              <button type="submit" id="btnSubmitAddDesig" class="btn-admin-action" style="background: var(--brand-blue); color: #fff; border-color: var(--brand-blue); font-weight: 700;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">save</span>
+                <span>Save Designation</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Designations Table Container -->
+        <div id="designationsTableContainer">
+          <div class="empty-state-box">Loading designations...</div>
+        </div>
+      </div>
+
+      <div class="modal-card-footer" style="padding: 12px 18px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11.5px; color: var(--text-muted);">
+          Core designations are protected by system invariants and cannot be deleted.
+        </span>
+        <button type="button" class="btn-cancel-form" onclick="closeDesignationManagementModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task 01.2: Sell Package Modal -->
+  <div id="sellPackageModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sellPackageModalTitle" onclick="handleStaticBackdropClick('sellPackageModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 600px; width: 92%; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-card-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-outlined" style="font-size: 22px; color: var(--brand-blue, #2563eb);">loyalty</span>
+          <h3 class="modal-card-title" id="sellPackageModalTitle" style="margin: 0; font-size: 16px;">Sell Prepaid Service Package</h3>
+        </div>
+        <button type="button" class="modal-close-x" onclick="closeSellPackageModal()" aria-label="Close dialog">✕</button>
+      </div>
+      <div style="padding: 12px 18px; background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+        <div id="sellPkgCustName" style="font-weight: 700; font-size: 14px;">Customer Name</div>
+        <div id="sellPkgCustMeta" style="font-size: 12px; color: var(--text-secondary);">+91 98765 43210</div>
+      </div>
+      <form id="sellPackageForm" onsubmit="handleSellPackageSubmit(event)" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
+        <input type="hidden" id="sellPkgCustomerId">
+        <div class="form-group">
+          <label class="form-label" for="sellPkgSelect">Select Package Template *</label>
+          <select id="sellPkgSelect" class="form-select" onchange="handleSellPkgTemplateChange(this.value)" required>
+            <option value="">-- Select Package --</option>
+          </select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="sellPkgQuantity">Total Service Units / Quantity *</label>
+            <input type="number" id="sellPkgQuantity" class="form-input" min="1" value="1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sellPkgPrice">Total Price (₹)</label>
+            <input type="number" id="sellPkgPrice" class="form-input" min="0" value="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sellPkgAssetSelect">Linked Vehicle (Optional)</label>
+          <select id="sellPkgAssetSelect" class="form-select">
+            <option value="">-- Any Vehicle / Customer Level --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sellPkgLocationSelect">Linked Location (Optional)</label>
+          <select id="sellPkgLocationSelect" class="form-select">
+            <option value="">-- Any Location / Customer Level --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sellPkgNotes">Admin Notes</label>
+          <textarea id="sellPkgNotes" class="form-textarea" rows="2" placeholder="Optional package notes or invoice ref..."></textarea>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+          <button type="button" class="btn-cancel-form" onclick="closeSellPackageModal()">Cancel</button>
+          <button type="submit" id="btnSubmitSellPkg" class="btn-admin-action" style="background: var(--brand-blue, #2563eb); color: #fff; border-color: var(--brand-blue, #2563eb); font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">redeem</span>
+            <span>Confirm & Sell Package</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Task 01.2: Redeem Package Modal -->
+  <div id="redeemPackageModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="redeemPackageModalTitle" onclick="handleStaticBackdropClick('redeemPackageModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 500px; width: 90%; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-card-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-outlined" style="font-size: 22px; color: #16a34a;">redeem</span>
+          <h3 class="modal-card-title" id="redeemPackageModalTitle" style="margin: 0; font-size: 16px;">Redeem Package Units</h3>
+        </div>
+        <button type="button" class="modal-close-x" onclick="closeRedeemPackageModal()" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="redeemPackageForm" onsubmit="handleRedeemPackageSubmit(event)" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
+        <input type="hidden" id="redeemPkgId">
+        <div style="padding: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+          <div id="redeemPkgTitle" style="font-weight: 700; font-size: 14px; color: #15803d;">Package Name</div>
+          <div style="font-size: 12px; color: #166534; margin-top: 4px;">Remaining Balance: <span id="redeemPkgRemaining" style="font-weight: 700;">0</span> unit(s)</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="redeemPkgQuantity">Quantity to Redeem *</label>
+          <input type="number" id="redeemPkgQuantity" class="form-input" min="1" value="1" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="redeemPkgNotes">Redemption Notes</label>
+          <textarea id="redeemPkgNotes" class="form-textarea" rows="2" placeholder="Service completed or redemption reason..."></textarea>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+          <button type="button" class="btn-cancel-form" onclick="closeRedeemPackageModal()">Cancel</button>
+          <button type="submit" id="btnSubmitRedeemPkg" class="btn-admin-action" style="background: #16a34a; color: #fff; border-color: #16a34a; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span>
+            <span>Confirm Redemption</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Task 01.2: Package History Modal -->
+  <div id="packageHistoryModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="packageHistoryModalTitle" onclick="handleStaticBackdropClick('packageHistoryModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 650px; width: 92%; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-card-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-outlined" style="font-size: 22px; color: #0284c7;">history</span>
+          <h3 class="modal-card-title" id="packageHistoryModalTitle" style="margin: 0; font-size: 16px;">Package Redemption History</h3>
+        </div>
+        <button type="button" class="modal-close-x" onclick="closePackageHistoryModal()" aria-label="Close dialog">✕</button>
+      </div>
+      <div style="padding: 12px 18px; background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+        <div id="pkgHistoryTitle" style="font-weight: 700; font-size: 14px;">Package Name</div>
+        <div id="pkgHistoryMeta" style="font-size: 12px; color: var(--text-secondary);">Purchased: 0 | Redeemed: 0 | Remaining: 0</div>
+      </div>
+      <div class="modal-card-body" style="padding: 16px; overflow-y: auto; flex: 1;">
+        <div id="pkgHistoryListContainer">
+          <div class="empty-state-box">Loading redemption logs...</div>
+        </div>
+      </div>
+      <div class="modal-card-footer" style="padding: 12px 18px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
+        <button type="button" class="btn-cancel-form" onclick="closePackageHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task 01.3: Create Booking Modal -->
+  <div id="createBookingModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="createBookingModalTitle" onclick="handleStaticBackdropClick('createBookingModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 650px; width: 92%; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-card-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-outlined" style="font-size: 22px; color: #7c3aed;">event_available</span>
+          <h3 class="modal-card-title" id="createBookingModalTitle" style="margin: 0; font-size: 16px;">Create Service Booking</h3>
+        </div>
+        <button type="button" class="modal-close-x" onclick="closeCreateBookingModal()" aria-label="Close dialog">✕</button>
+      </div>
+      <div style="padding: 12px 18px; background: #f8fafc; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div id="bookingCustNameDisplay" style="font-weight: 700; font-size: 14px;">Customer Name</div>
+          <div id="bookingCustPhoneDisplay" style="font-size: 12px; color: var(--text-secondary);">+91 98765 43210</div>
+        </div>
+        <span id="bookingCustIdBadge" class="m3-chip" style="font-size: 11px;">ID</span>
+      </div>
+      <form id="createBookingForm" onsubmit="handleCreateBookingSubmit(event)" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
+        <input type="hidden" id="bookingCustomerId">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="bookingCategorySelect">Service Category *</label>
+            <select id="bookingCategorySelect" class="form-select" onchange="handleBookingCategoryChange(this.value)" required>
+              <option value="">-- Select Category --</option>
+              <option value="car_washing">Car Washing</option>
+              <option value="solar_cleaning">Solar Panel Cleaning</option>
+              <option value="interior_detailing">Interior Detailing</option>
+              <option value="exterior_detailing">Exterior Detailing</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="bookingPackageSelect">Link Prepaid Package (Optional)</label>
+            <select id="bookingPackageSelect" class="form-select">
+              <option value="">-- None / Pay Separately --</option>
+            </select>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="bookingVehicleSelect">Target Vehicle</label>
+            <select id="bookingVehicleSelect" class="form-select">
+              <option value="">-- Customer Default / Any Vehicle --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="bookingLocationSelect">Service Location</label>
+            <select id="bookingLocationSelect" class="form-select">
+              <option value="">-- Customer Primary Location --</option>
+            </select>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="bookingScheduledDate">Scheduled Date *</label>
+            <input type="date" id="bookingScheduledDate" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="bookingCleanerSelect">Assign Staff Specialist</label>
+            <select id="bookingCleanerSelect" class="form-select">
+              <option value="">-- Assign Later / Unassigned --</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="bookingNotes">Special Instructions</label>
+          <textarea id="bookingNotes" class="form-textarea" rows="2" placeholder="Gate pass, special cleaning focus or access notes..."></textarea>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+          <button type="button" class="btn-cancel-form" onclick="closeCreateBookingModal()">Cancel</button>
+          <button type="submit" id="btnSubmitCreateBooking" class="btn-admin-action" style="background: #7c3aed; color: #fff; border-color: #7c3aed; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">calendar_month</span>
+            <span>Create Booking</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Task 01.9: Organizational Hierarchy Tree Modal -->
+  <div id="staffHierarchyModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="staffHierarchyModalTitle" onclick="handleStaticBackdropClick('staffHierarchyModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 900px; width: 94%; max-height: 88vh; display: flex; flex-direction: column;">
+      <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(109, 40, 217, 0.05)); display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; display: flex; align-items: center; justify-content: center;">
+            <span class="material-symbols-outlined" style="font-size: 20px;">account_tree</span>
+          </div>
+          <div>
+            <h3 class="modal-card-title" id="staffHierarchyModalTitle" style="margin: 0; font-size: 16px;">Organizational Hierarchy & Reporting Lines</h3>
+            <span style="font-size: 12px; color: var(--text-secondary);">संगठनात्मक संरचना एवं रिपोर्टिंग शृंखला</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" class="btn-admin-action" onclick="refreshStaffHierarchy()" title="Refresh Hierarchy" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 12px;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span>
+            <span>Refresh</span>
+          </button>
+          <button type="button" class="modal-close-x" onclick="closeStaffHierarchyModal()" aria-label="Close dialog" title="Close (ESC)">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-card-body" style="padding: 16px; overflow-y: auto; flex: 1;">
+        <div id="staffHierarchySummaryChips" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
+          <!-- Populated dynamically -->
+        </div>
+        <div id="staffHierarchyTreeContainer">
+          <div class="empty-state-box">Loading hierarchy tree...</div>
+        </div>
+      </div>
+
+      <div class="modal-card-footer" style="padding: 12px 18px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; align-items: center;">
+        <button type="button" class="btn-cancel-form" onclick="closeStaffHierarchyModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   var initialStaffId = "<?= typeof initialStaffId !== 'undefined' ? initialStaffId : '' ?>";
   var initialMode = "<?= typeof initialMode !== 'undefined' ? initialMode : 'admin' ?>";

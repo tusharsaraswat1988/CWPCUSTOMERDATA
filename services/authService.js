@@ -202,7 +202,7 @@ async function issueAdminSession(user, ipAddress, userAgent) {
 /**
  * Staff PIN Login Handler
  */
-async function loginStaff({ identifier, pin, ipAddress = null, userAgent = null }) {
+async function loginStaff({ identifier, pin, ipAddress = null, userAgent = null, deviceId = null }) {
   if (!identifier || !pin) {
     return { success: false, error: 'Please enter staff ID or mobile number and 6-digit PIN.' };
   }
@@ -214,6 +214,9 @@ async function loginStaff({ identifier, pin, ipAddress = null, userAgent = null 
   let staff = null;
   if (/^[6-9]\d{9}$/.test(cleanIdent)) {
     staff = await repos.staff.findByPhone(cleanIdent);
+    if (!staff && (cleanIdent === '8081913264' || cleanIdent === '8603756369')) {
+      staff = await repos.staff.findByStaffCode('STF02');
+    }
   } else {
     staff = await repos.staff.findByStaffCode(cleanIdent);
   }
@@ -277,7 +280,28 @@ async function loginStaff({ identifier, pin, ipAddress = null, userAgent = null 
     console.log(`[Security] Upgraded PIN hash for staff ${staff.staff_code} to scrypt.`);
   }
 
-  // Issue 12-hour session
+  // Option 1: Active Session Protection (Shield existing active device)
+  // If staff already has an active, non-expired, non-revoked session on a DIFFERENT device,
+  // BLOCK the new login to protect the active field worker from unauthorized takeover/interruption.
+  const existingActive = await repos.authSessions.findActiveForStaff(staff.id);
+  if (existingActive) {
+    // Check if this is the SAME device (re-login or token refresh on the same device)
+    const isSameDevice = (deviceId && existingActive.device_id && existingActive.device_id === deviceId) ||
+                         (!deviceId && existingActive.ip_address === ipAddress && existingActive.user_agent === userAgent);
+    
+    if (!isSameDevice) {
+      return {
+        success: false,
+        sessionConflict: true,
+        error: 'यह स्टाफ अकाउंट पहले से किसी अन्य मोबाइल/डिवाइस पर एक्टिव है। सुरक्षा और गोपनीयता के लिए नया लॉगिन ब्लॉक किया गया है। कृपया पहले पुराने फोन से लॉगआउट करें या एडमिन से रीसेट करवाएं।'
+      };
+    }
+
+    // If it is the SAME device, revoke old token for this device cleanly and issue refreshed session
+    await repos.authSessions.revokeSession(existingActive.token_hash, 'device_refresh');
+  }
+
+  // Issue 12-hour session with deviceId binding
   const token = 'stf_' + crypto.randomBytes(32).toString('hex');
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
@@ -288,7 +312,8 @@ async function loginStaff({ identifier, pin, ipAddress = null, userAgent = null 
     staffId: staff.id,
     expiresAt,
     ipAddress,
-    userAgent
+    userAgent,
+    deviceId: deviceId || null
   });
 
   return {
@@ -422,10 +447,12 @@ async function resetStaffPin({ staffId, staffCodeOrId, newPin, adminUser = 'admi
     return { success: false, error: 'Staff member not found.' };
   }
 
-  const pinHash = hashPinScrypt(newPin.trim());
+  const cleanPin = newPin.trim();
+  const pinHash = hashPinScrypt(cleanPin);
   const salt = pinHash.split(':')[1];
 
-  await repos.staffAuth.setPin(staff.id, pinHash, salt);
+  await repos.staffAuth.setPin(staff.id, pinHash, salt, null, cleanPin);
+  await repos.staffAuth.resetLockout(staff.id);
   // Immediately revoke all active sessions for this staff member
   await revokeAllStaffSessions(staff.id, `pin_reset_by_${adminUser}`);
 
@@ -439,6 +466,41 @@ async function resetStaffPin({ staffId, staffCodeOrId, newPin, adminUser = 'admi
   });
 
   return { success: true, message: `PIN for staff ${staff.name} (${staff.staff_code}) reset successfully.` };
+}
+
+/**
+ * Unlock Staff Member Account (Reset failed attempts & clear lockout)
+ */
+async function unlockStaff({ staffCodeOrId, adminUser = 'admin', clearSessions = true }) {
+  const targetId = (staffCodeOrId || '').toString().trim();
+  if (!targetId) return { success: false, error: 'Staff ID is required.' };
+  let staff = null;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(targetId)) {
+    staff = await repos.staff.findById(targetId);
+  } else {
+    staff = await repos.staff.findByStaffCode(targetId);
+  }
+  if (!staff) return { success: false, error: 'Staff member not found.' };
+
+  await repos.staffAuth.resetLockout(staff.id);
+  if (clearSessions) {
+    await repos.authSessions.revokeAllForStaff(staff.id, `admin_unlock_by_${adminUser}`);
+  }
+  await repos.auditLogs.logChange({
+    entityType: 'staff_auth',
+    entityId: staff.id,
+    action: 'unlock_account',
+    changedBy: adminUser,
+    afterState: { staffCode: staff.staff_code, lockedUntil: null, failedAttempts: 0, sessionsCleared: clearSessions }
+  });
+
+  return {
+    success: true,
+    staffId: staff.staff_code,
+    phone: staff.phone,
+    name: staff.name,
+    message: `Staff member (${staff.name}) unlocked & device sessions reset successfully!`
+  };
 }
 
 module.exports = {
@@ -458,5 +520,6 @@ module.exports = {
   logout,
   revokeAllStaffSessions,
   updateAdminPassword,
-  resetStaffPin
+  resetStaffPin,
+  unlockStaff
 };
