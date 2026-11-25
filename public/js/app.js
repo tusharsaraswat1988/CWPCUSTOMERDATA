@@ -3026,6 +3026,9 @@ var state = {
       if (tabName === 'records') loadAdminRecords(true);
       if (tabName === 'leads' && typeof loadAdminLeads === 'function') loadAdminLeads(true);
       if (tabName === 'sequence') {
+        if (typeof initAdminRouteManagement === 'function') {
+          initAdminRouteManagement();
+        }
         initAdminSequenceManager();
         if (typeof loadStaffSequenceData === 'function' && state.seqManagement && state.seqManagement.currentStaffId) {
           loadStaffSequenceData(true);
@@ -14578,6 +14581,1858 @@ function loadStaffCustomerData(staffId) {
       single.vehicles = [single];
       return single;
     }
+
+    /* =========================================================================
+       TASK 01.11: ROUTE MANAGEMENT & OPERATIONAL SEQUENCE ADMIN MODULE
+       UI-First implementation with complete workflows, M3 tokens, and API bindings
+       ========================================================================= */
+    var currentActiveRouteId = null;
+
+    state.routeManagement = {
+      routes: [],
+      allRoutesRaw: [],
+      unassigned: [],
+      reconciliation: null,
+      activeSubtab: 'routes', // 'routes' | 'unassigned' | 'legacy'
+      currentRouteDetails: null,
+      currentRouteStops: [],
+      hasUnsavedSequenceChanges: false,
+      selectedUnassignedIds: new Set(),
+      filters: {
+        search: '',
+        status: 'all',
+        staffId: 'all',
+        area: 'all',
+        sort: 'code_asc'
+      },
+      unassignedFilters: {
+        search: '',
+        area: 'all'
+      }
+    };
+
+    function isStaffDccEligible(staff) {
+      if (!staff) return false;
+      if (staff.is_active === false) return false;
+      if (staff.work_type === 'services_only') return false;
+      if (staff.work_type === 'dcc_only' || staff.work_type === 'dcc_and_services') return true;
+      if (Array.isArray(staff.service_capabilities)) {
+        return staff.service_capabilities.indexOf('daily_car_cleaning') !== -1;
+      }
+      return true;
+    }
+
+    function getStaffDesignationLabel(staff) {
+      if (!staff) return 'Cleaner';
+      var dId = staff.designation_id || 'cleaner';
+      var labels = {
+        'cleaner': 'Cleaner',
+        'service_specialist': 'Service Specialist',
+        'senior_cleaner': 'Senior Cleaner',
+        'team_leader': 'Team Leader',
+        'supervisor': 'Field Supervisor',
+        'zone_manager': 'Zone Manager',
+        'operations_manager': 'Operations Manager'
+      };
+      return labels[dId] || staff.designation_name || dId;
+    }
+
+    function initAdminRouteManagement() {
+      // Ensure subtab button state matches active subtab
+      var activeSub = state.routeManagement.activeSubtab || 'routes';
+      switchRouteSubtab(activeSub, false);
+      refreshRouteManagementData(false);
+    }
+
+    function switchRouteSubtab(subtab, refreshIfSwitching) {
+      state.routeManagement.activeSubtab = subtab;
+
+      var routesView = document.getElementById('rmRoutesView');
+      var unassignedView = document.getElementById('rmUnassignedView');
+      var legacyView = document.getElementById('rmLegacySeqView');
+      var detailView = document.getElementById('rmRouteDetailView');
+
+      var btnRoutes = document.getElementById('rmSubtabRoutesBtn');
+      var btnUnassigned = document.getElementById('rmSubtabUnassignedBtn');
+      var btnLegacy = document.getElementById('rmSubtabLegacyBtn');
+
+      if (btnRoutes) btnRoutes.classList.toggle('active', subtab === 'routes');
+      if (btnUnassigned) btnUnassigned.classList.toggle('active', subtab === 'unassigned');
+      if (btnLegacy) btnLegacy.classList.toggle('active', subtab === 'legacy');
+
+      if (detailView) detailView.style.display = 'none';
+
+      if (routesView) routesView.style.display = (subtab === 'routes') ? 'block' : 'none';
+      if (unassignedView) unassignedView.style.display = (subtab === 'unassigned') ? 'block' : 'none';
+      if (legacyView) legacyView.style.display = (subtab === 'legacy') ? 'block' : 'none';
+
+      if (subtab === 'routes') {
+        if (refreshIfSwitching !== false && (!state.routeManagement.routes || state.routeManagement.routes.length === 0)) {
+          refreshRouteManagementData(false);
+        }
+      } else if (subtab === 'unassigned') {
+        loadUnassignedWorkbenchData(refreshIfSwitching !== false);
+      } else if (subtab === 'legacy') {
+        if (typeof initAdminSequenceManager === 'function') initAdminSequenceManager();
+        if (typeof loadStaffSequenceData === 'function') loadStaffSequenceData(false);
+      }
+    }
+
+    function refreshRouteManagementData(force) {
+      var grid = document.getElementById('rmRoutesGrid');
+      if (grid && (!state.routeManagement.routes || state.routeManagement.routes.length === 0)) {
+        grid.innerHTML = '<div class="rm-empty-state"><span class="material-symbols-outlined rm-empty-state-icon cwp-spinner">refresh</span><h3>Loading operational routes...</h3><p>Fetching routes, staff allocations, and doorstep stops.</p></div>';
+      }
+
+      // Fetch all routes
+      apiCall('getAllRoutes', {}, function(res) {
+        var rawRoutes = (res && res.routes) ? res.routes : (Array.isArray(res) ? res : []);
+        state.routeManagement.allRoutesRaw = rawRoutes;
+        state.routeManagement.routes = rawRoutes;
+
+        // Fetch unassigned count & reconciliation in parallel
+        apiCall('getUnassignedDccVehicles', {}, function(uRes) {
+          var unassignedList = (uRes && uRes.unassigned) ? uRes.unassigned : (Array.isArray(uRes) ? uRes : []);
+          state.routeManagement.unassigned = unassignedList;
+          updateRouteManagementKPIs(rawRoutes, unassignedList);
+        }, function() {
+          updateRouteManagementKPIs(rawRoutes, []);
+        });
+
+        populateRouteAreaFilter(rawRoutes);
+        applyRouteFiltersAndRender();
+      }, function(err) {
+        if (grid) {
+          grid.innerHTML = '<div class="rm-empty-state" style="border-color: var(--color-primitive-red-200); background: var(--color-primitive-red-50);">' +
+            '<span class="material-symbols-outlined rm-empty-state-icon" style="color: var(--color-primitive-red-600);">error</span>' +
+            '<h3 style="color: var(--color-primitive-red-700);">Failed to load routes</h3>' +
+            '<p style="color: var(--color-primitive-red-600);">' + escapeHtml((err && err.error) || String(err)) + '</p>' +
+            '<button type="button" class="rm-btn-refresh" onclick="refreshRouteManagementData(true)" style="margin-top: 10px;">Retry</button>' +
+            '</div>';
+        }
+      });
+    }
+
+    function updateRouteManagementKPIs(routes, unassigned) {
+      routes = routes || [];
+      unassigned = unassigned || [];
+
+      var total = routes.length;
+      var active = routes.filter(function(r) { return r.status === 'active'; }).length;
+      var inactive = routes.filter(function(r) { return r.status !== 'active'; }).length;
+      var assignedStaffSet = new Set();
+      var totalStops = 0;
+
+      routes.forEach(function(r) {
+        if (r.assigned_staff_id) assignedStaffSet.add(r.assigned_staff_id);
+        totalStops += parseInt(r.stop_count || 0, 10);
+      });
+
+      var elTotal = document.getElementById('rmKpiTotalRoutes');
+      var elActive = document.getElementById('rmKpiActiveRoutes');
+      var elInactive = document.getElementById('rmKpiInactiveRoutes');
+      var elAssignedStaff = document.getElementById('rmKpiAssignedStaff');
+      var elTotalStops = document.getElementById('rmKpiTotalStops');
+      var elUnassigned = document.getElementById('rmKpiUnassignedDcc');
+
+      var elBadgeRoutes = document.getElementById('rmRoutesCountBadge');
+      var elBadgeUnassigned = document.getElementById('rmUnassignedCountBadge');
+      var elTabBadge = document.getElementById('tabSequenceBadge');
+
+      if (elTotal) elTotal.textContent = total;
+      if (elActive) elActive.textContent = active;
+      if (elInactive) elInactive.textContent = inactive;
+      if (elAssignedStaff) elAssignedStaff.textContent = assignedStaffSet.size;
+      if (elTotalStops) elTotalStops.textContent = totalStops;
+      if (elUnassigned) elUnassigned.textContent = unassigned.length;
+
+      if (elBadgeRoutes) elBadgeRoutes.textContent = total;
+      if (elBadgeUnassigned) elBadgeUnassigned.textContent = unassigned.length;
+      if (elTabBadge) elTabBadge.textContent = total + ' Routes';
+    }
+
+    function populateRouteAreaFilter(routes) {
+      var select = document.getElementById('rmAreaFilter');
+      if (!select) return;
+
+      var currentVal = select.value || 'all';
+      var areas = new Set();
+      (routes || []).forEach(function(r) {
+        if (r.operational_area && r.operational_area.trim()) {
+          areas.add(r.operational_area.trim());
+        }
+      });
+
+      var html = '<option value="all">All Operational Areas</option>';
+      Array.from(areas).sort().forEach(function(area) {
+        var sel = (area === currentVal) ? ' selected' : '';
+        html += '<option value="' + escapeHtml(area) + '"' + sel + '>' + escapeHtml(area) + '</option>';
+      });
+      select.innerHTML = html;
+    }
+
+    function handleRouteSearch(val) {
+      state.routeManagement.filters.search = (val || '').trim().toLowerCase();
+      var clearBtn = document.getElementById('rmRouteSearchClearBtn');
+      if (clearBtn) clearBtn.style.display = val ? 'flex' : 'none';
+      applyRouteFiltersAndRender();
+    }
+
+    function clearRouteSearch() {
+      var input = document.getElementById('rmRouteSearchInput');
+      if (input) input.value = '';
+      handleRouteSearch('');
+    }
+
+    function handleRouteFilterChange() {
+      var sFilter = document.getElementById('rmStatusFilter');
+      var stFilter = document.getElementById('rmStaffFilter');
+      var aFilter = document.getElementById('rmAreaFilter');
+
+      if (sFilter) state.routeManagement.filters.status = sFilter.value;
+      if (stFilter) state.routeManagement.filters.staffId = stFilter.value;
+      if (aFilter) state.routeManagement.filters.area = aFilter.value;
+
+      applyRouteFiltersAndRender();
+    }
+
+    function handleRouteSortChange() {
+      var sortSelect = document.getElementById('rmSortSelect');
+      if (sortSelect) state.routeManagement.filters.sort = sortSelect.value;
+      applyRouteFiltersAndRender();
+    }
+
+    function resetRouteFilters() {
+      var sInput = document.getElementById('rmRouteSearchInput');
+      var sFilter = document.getElementById('rmStatusFilter');
+      var stFilter = document.getElementById('rmStaffFilter');
+      var aFilter = document.getElementById('rmAreaFilter');
+      var sortSelect = document.getElementById('rmSortSelect');
+
+      if (sInput) sInput.value = '';
+      if (sFilter) sFilter.value = 'all';
+      if (stFilter) stFilter.value = 'all';
+      if (aFilter) aFilter.value = 'all';
+      if (sortSelect) sortSelect.value = 'code_asc';
+
+      state.routeManagement.filters = {
+        search: '',
+        status: 'all',
+        staffId: 'all',
+        area: 'all',
+        sort: 'code_asc'
+      };
+
+      var clearBtn = document.getElementById('rmRouteSearchClearBtn');
+      if (clearBtn) clearBtn.style.display = 'none';
+
+      applyRouteFiltersAndRender();
+    }
+
+    function applyRouteFiltersAndRender() {
+      var all = state.routeManagement.allRoutesRaw || [];
+      var f = state.routeManagement.filters;
+
+      var filtered = all.filter(function(r) {
+        // Status filter
+        if (f.status && f.status !== 'all' && r.status !== f.status) return false;
+
+        // Staff assignment filter
+        if (f.staffId === 'assigned' && !r.assigned_staff_id) return false;
+        if (f.staffId === 'unassigned' && r.assigned_staff_id) return false;
+
+        // Area filter
+        if (f.area && f.area !== 'all') {
+          var rArea = (r.operational_area || '').trim();
+          if (rArea !== f.area) return false;
+        }
+
+        // Search filter
+        if (f.search) {
+          var q = f.search;
+          var inCode = (r.route_code || '').toLowerCase().indexOf(q) !== -1;
+          var inName = (r.route_name || '').toLowerCase().indexOf(q) !== -1;
+          var inArea = (r.operational_area || '').toLowerCase().indexOf(q) !== -1;
+          var inStaff = (r.staff_name || '').toLowerCase().indexOf(q) !== -1;
+          if (!inCode && !inName && !inArea && !inStaff) return false;
+        }
+
+        return true;
+      });
+
+      // Sorting
+      filtered.sort(function(a, b) {
+        var s = f.sort || 'code_asc';
+        if (s === 'code_asc') {
+          return (a.route_code || '').localeCompare(b.route_code || '');
+        } else if (s === 'name_asc') {
+          return (a.route_name || '').localeCompare(b.route_name || '');
+        } else if (s === 'stops_desc') {
+          return (parseInt(b.stop_count || 0, 10)) - (parseInt(a.stop_count || 0, 10));
+        } else if (s === 'stops_asc') {
+          return (parseInt(a.stop_count || 0, 10)) - (parseInt(b.stop_count || 0, 10));
+        } else if (s === 'created_desc') {
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        }
+        return 0;
+      });
+
+      state.routeManagement.routes = filtered;
+      renderRouteCards(filtered);
+    }
+
+    function renderRouteCards(routes) {
+      var container = document.getElementById('rmRoutesGrid');
+      if (!container) return;
+
+      if (!routes || routes.length === 0) {
+        container.innerHTML = '<div class="rm-empty-state" style="grid-column: 1 / -1;">' +
+          '<span class="material-symbols-outlined rm-empty-state-icon">alt_route</span>' +
+          '<h3>No operational routes found</h3>' +
+          '<p>No routes match your current search and filter criteria.</p>' +
+          '<div style="display: flex; gap: 8px; margin-top: 10px;">' +
+          '<button type="button" class="rm-btn-refresh" onclick="resetRouteFilters()">Reset Filters</button>' +
+          '<button type="button" class="rm-btn-create" onclick="openCreateRouteModal()">Create New Route</button>' +
+          '</div></div>';
+        return;
+      }
+
+      var html = '';
+      routes.forEach(function(r) {
+        var statusClass = r.status || 'active';
+        var stopCount = parseInt(r.stop_count || 0, 10);
+        var staffAssigned = Boolean(r.assigned_staff_id);
+        var staffInitial = (r.staff_name || 'U').charAt(0).toUpperCase();
+
+        html += '<div class="rm-route-card" data-route-id="' + escapeHtml(r.id) + '">' +
+          '<div>' +
+            '<div class="rm-route-card-header">' +
+              '<span class="rm-route-code-pill">' + escapeHtml(r.route_code) + '</span>' +
+              '<span class="rm-status-badge ' + escapeHtml(statusClass) + '">' +
+                '<span class="material-symbols-outlined" style="font-size: 14px;">' + (r.status === 'active' ? 'check_circle' : (r.status === 'archived' ? 'archive' : 'pause_circle')) + '</span>' +
+                '<span>' + escapeHtml(r.status || 'active') + '</span>' +
+              '</span>' +
+            '</div>' +
+            '<h3 class="rm-route-title">' + escapeHtml(r.route_name) + '</h3>' +
+            '<div class="rm-route-area">' +
+              '<span class="material-symbols-outlined">location_on</span>' +
+              '<span>' + escapeHtml(r.operational_area || 'Jaipur City') + '</span>' +
+            '</div>' +
+
+            // Staff Chip
+            '<div class="rm-staff-chip">' +
+              '<div class="rm-staff-chip-avatar' + (staffAssigned ? '' : ' unassigned') + '">' +
+                (staffAssigned ? staffInitial : '<span class="material-symbols-outlined" style="font-size: 16px;">person_off</span>') +
+              '</div>' +
+              '<div class="rm-staff-chip-details">' +
+                '<div class="rm-staff-chip-name">' + (staffAssigned ? escapeHtml(r.staff_name) : '<em style="color: var(--color-text-muted);">Unassigned Staff</em>') + '</div>' +
+                '<div class="rm-staff-chip-meta">' +
+                  (staffAssigned ? ('<span>' + escapeHtml(r.staff_code || '') + '</span><span>•</span><span style="color: var(--color-primitive-blue-700);">' + escapeHtml(r.staff_phone || '') + '</span>') : '<span>Click Assign to link cleaner</span>') +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+
+            // Metrics Strip
+            '<div class="rm-metric-strip">' +
+              '<div class="rm-metric-item">' +
+                '<span class="material-symbols-outlined" style="font-size: 17px; color: var(--color-primitive-blue-600);">directions_car</span>' +
+                '<span>Doorstep Stops: <strong>' + stopCount + '</strong></span>' +
+              '</div>' +
+              '<div class="rm-metric-item">' +
+                '<span class="material-symbols-outlined" style="font-size: 17px; color: var(--color-primitive-green-600);">format_list_numbered</span>' +
+                '<span>Order: <strong>1..' + (stopCount > 0 ? stopCount : 0) + '</strong></span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+
+          // Action Buttons
+          '<div class="rm-route-actions-row">' +
+            '<button type="button" class="rm-btn-manage-seq" onclick="openRouteDetailView(\'' + escapeHtml(r.id) + '\')" title="Manage Stops & Sequence for ' + escapeHtml(r.route_code) + '">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">format_list_numbered</span>' +
+              '<span>Manage Stops (' + stopCount + ')</span>' +
+            '</button>' +
+            '<button type="button" class="rm-btn-icon-action" onclick="openEditRouteModal(\'' + escapeHtml(r.id) + '\')" title="Edit Route Details">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">edit</span>' +
+            '</button>' +
+            '<button type="button" class="rm-btn-icon-action" onclick="openAssignStaffModal(\'' + escapeHtml(r.id) + '\')" title="' + (staffAssigned ? 'Reassign Staff' : 'Assign Staff') + '">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">' + (staffAssigned ? 'person_pin' : 'person_add') + '</span>' +
+            '</button>' +
+            '<button type="button" class="rm-btn-icon-action" onclick="toggleRouteStatus(\'' + escapeHtml(r.id) + '\', \'' + escapeHtml(r.status) + '\')" title="' + (r.status === 'active' ? 'Deactivate Route' : 'Activate Route') + '">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">' + (r.status === 'active' ? 'pause' : 'play_arrow') + '</span>' +
+            '</button>' +
+            '<button type="button" class="rm-btn-icon-action destructive" onclick="confirmDeleteRoute(\'' + escapeHtml(r.id) + '\')" title="Delete Route">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    // =========================================================================
+    // ROUTE DETAILS & SEQUENCE MANAGEMENT WORKSPACE
+    // =========================================================================
+
+    function openRouteDetailView(routeId) {
+      if (!routeId) return;
+      currentActiveRouteId = routeId;
+      state.routeManagement.hasUnsavedSequenceChanges = false;
+
+      var routesView = document.getElementById('rmRoutesView');
+      var unassignedView = document.getElementById('rmUnassignedView');
+      var legacyView = document.getElementById('rmLegacySeqView');
+      var detailView = document.getElementById('rmRouteDetailView');
+
+      if (routesView) routesView.style.display = 'none';
+      if (unassignedView) unassignedView.style.display = 'none';
+      if (legacyView) legacyView.style.display = 'none';
+      if (detailView) detailView.style.display = 'block';
+
+      // Update save button and unsaved pill
+      var unsavedPill = document.getElementById('rmSeqUnsavedPill');
+      var saveBtn = document.getElementById('rmBtnSaveSequence');
+      if (unsavedPill) unsavedPill.style.display = 'none';
+      if (saveBtn) saveBtn.disabled = true;
+
+      // Show loader in stops list
+      var stopsContainer = document.getElementById('rmStopsList');
+      if (stopsContainer) {
+        stopsContainer.innerHTML = '<div class="rm-empty-state"><span class="material-symbols-outlined rm-empty-state-icon cwp-spinner">refresh</span><h3>Loading route stops...</h3><p>Retrieving doorstep visit sequence and customer details.</p></div>';
+      }
+
+      apiCall('getRouteDetails', { routeId: routeId }, function(res) {
+        state.routeManagement.currentRouteDetails = res;
+        var stops = (res && res.stops) ? res.stops : [];
+        state.routeManagement.currentRouteStops = stops.slice();
+        state.routeManagement.originalRouteStopsOrder = stops.slice();
+
+        // Populate header & master card
+        var bCode = document.getElementById('rmDetailBreadcrumbRouteCode');
+        var bName = document.getElementById('rmDetailBreadcrumbRouteName');
+        var rCode = document.getElementById('rmDetailRouteCode');
+        var rName = document.getElementById('rmDetailRouteName');
+        var rArea = document.getElementById('rmDetailOperationalArea');
+        var rDesc = document.getElementById('rmDetailDescription');
+        var rStatus = document.getElementById('rmDetailStatusBadge');
+        var rCount = document.getElementById('rmDetailStopCount');
+        var rCreatedBy = document.getElementById('rmDetailCreatedBy');
+
+        if (bCode) bCode.textContent = res.route_code || '';
+        if (bName) bName.textContent = '— ' + (res.route_name || '');
+        if (rCode) rCode.textContent = res.route_code || '';
+        if (rName) rName.textContent = res.route_name || '';
+        if (rArea) rArea.innerHTML = '<span class="material-symbols-outlined">location_on</span><span>' + escapeHtml(res.operational_area || 'Jaipur City') + '</span>';
+        if (rDesc) rDesc.textContent = res.description || 'No operational notes provided.';
+        if (rCreatedBy) rCreatedBy.textContent = res.created_by || 'admin';
+
+        if (rStatus) {
+          rStatus.className = 'rm-status-badge ' + (res.status || 'active');
+          rStatus.textContent = res.status || 'active';
+        }
+        if (rCount) rCount.textContent = stops.length;
+
+        // Populate staff card
+        var sAvatar = document.getElementById('rmDetailStaffAvatar');
+        var sName = document.getElementById('rmDetailStaffName');
+        var sCode = document.getElementById('rmDetailStaffCode');
+        var sPhone = document.getElementById('rmDetailStaffPhone');
+        var sDesig = document.getElementById('rmDetailStaffDesignation');
+        var sDcc = document.getElementById('rmDetailStaffDccEligibility');
+        var btnUnassign = document.getElementById('rmBtnUnassignStaff');
+
+        var staffObj = res.assignedStaff;
+        if (staffObj && staffObj.name) {
+          if (sAvatar) {
+            sAvatar.textContent = (staffObj.name || 'S').charAt(0).toUpperCase();
+            sAvatar.className = 'rm-staff-chip-avatar';
+          }
+          if (sName) sName.textContent = staffObj.name;
+          if (sCode) sCode.textContent = staffObj.staffCode || '';
+          if (sPhone) sPhone.textContent = staffObj.phone || '';
+          if (sDesig) sDesig.textContent = getStaffDesignationLabel(staffObj);
+          if (sDcc) {
+            var eligible = isStaffDccEligible(staffObj);
+            sDcc.className = eligible ? 'rm-dcc-badge' : 'rm-dcc-ineligible-badge';
+            sDcc.textContent = eligible ? 'DCC Authorized' : 'Ineligible for DCC';
+          }
+          if (btnUnassign) btnUnassign.style.display = 'inline-flex';
+        } else {
+          if (sAvatar) {
+            sAvatar.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">person_off</span>';
+            sAvatar.className = 'rm-staff-chip-avatar unassigned';
+          }
+          if (sName) sName.textContent = 'Unassigned Staff';
+          if (sCode) sCode.textContent = 'No cleaner linked';
+          if (sPhone) sPhone.textContent = 'Doorstep visits unallocated';
+          if (sDesig) sDesig.textContent = 'None';
+          if (sDcc) {
+            sDcc.className = 'rm-dcc-ineligible-badge';
+            sDcc.textContent = 'Unallocated';
+          }
+          if (btnUnassign) btnUnassign.style.display = 'none';
+        }
+
+        renderRouteStops(stops);
+      }, function(err) {
+        if (stopsContainer) {
+          stopsContainer.innerHTML = '<div class="rm-empty-state" style="border-color: var(--color-primitive-red-200); background: var(--color-primitive-red-50);">' +
+            '<span class="material-symbols-outlined rm-empty-state-icon" style="color: var(--color-primitive-red-600);">error</span>' +
+            '<h3 style="color: var(--color-primitive-red-700);">Failed to load route details</h3>' +
+            '<p style="color: var(--color-primitive-red-600);">' + escapeHtml((err && err.error) || String(err)) + '</p>' +
+            '<button type="button" class="rm-detail-back-btn" onclick="closeRouteDetailView()" style="margin-top: 10px;">Back to Routes</button>' +
+            '</div>';
+        }
+      });
+    }
+
+    function closeRouteDetailView() {
+      if (state.routeManagement.hasUnsavedSequenceChanges) {
+        if (!confirm('You have unsaved sequence changes. Are you sure you want to discard them and return to Routes Hub?')) {
+          return;
+        }
+      }
+      currentActiveRouteId = null;
+      state.routeManagement.hasUnsavedSequenceChanges = false;
+      switchRouteSubtab('routes', true);
+    }
+
+    function refreshCurrentRouteDetails() {
+      if (currentActiveRouteId) {
+        openRouteDetailView(currentActiveRouteId);
+      }
+    }
+
+    function renderRouteStops(stops) {
+      var container = document.getElementById('rmStopsList');
+      if (!container) return;
+
+      if (!stops || stops.length === 0) {
+        container.innerHTML = '<div class="rm-empty-state">' +
+          '<span class="material-symbols-outlined rm-empty-state-icon">directions_car</span>' +
+          '<h3>No doorstep stops on this route</h3>' +
+          '<p>Click "+ Add Stop" above or use the Unassigned Workbench to allocate vehicle stops.</p>' +
+          '</div>';
+        return;
+      }
+
+      var total = stops.length;
+      var html = '';
+
+      stops.forEach(function(s, idx) {
+        var seqNum = idx + 1;
+        var isFirst = (idx === 0);
+        var isLast = (idx === total - 1);
+        var regNo = (s.registration_no || 'CAR').toUpperCase();
+        var model = s.brand_or_model || s.car_make || 'Vehicle';
+        var color = s.car_color || '';
+        var pkg = s.package_name || 'Daily Car Cleaning';
+        var addr = s.address_text || s.location_name || 'Jaipur';
+        var parking = s.parking_details || '';
+
+        html += '<div class="rm-stop-item" data-stop-id="' + escapeHtml(s.id) + '" data-index="' + idx + '">' +
+          '<div class="rm-stop-drag-handle" title="Drag to reorder stop sequence">' +
+            '<span class="material-symbols-outlined">drag_indicator</span>' +
+          '</div>' +
+          '<div class="rm-stop-seq-badge">#' + seqNum + '</div>' +
+
+          '<div class="rm-stop-info-grid">' +
+            // Customer
+            '<div class="rm-stop-cust-block">' +
+              '<span class="rm-stop-cust-name">' + escapeHtml(s.customer_name || 'Customer') + '</span>' +
+              (s.customer_code ? '<span style="font-size: 11px; color: var(--color-text-muted); font-family: var(--font-mono);">' + escapeHtml(s.customer_code) + '</span>' : '') +
+              '<a href="tel:' + escapeHtml(s.customer_phone || '') + '" class="rm-stop-cust-phone" title="Call customer">' +
+                '<span class="material-symbols-outlined" style="font-size: 13px;">call</span>' +
+                '<span>' + escapeHtml(s.customer_phone || 'No phone') + '</span>' +
+              '</a>' +
+            '</div>' +
+
+            // Vehicle
+            '<div class="rm-stop-veh-block">' +
+              '<div class="rm-plate-badge">' +
+                '<span class="rm-plate-ind">IND</span>' +
+                '<span>' + escapeHtml(regNo) + '</span>' +
+              '</div>' +
+              '<div style="font-size: 12px; color: var(--color-text-secondary);">' +
+                '<strong>' + escapeHtml(model) + '</strong>' + (color ? (' • ' + escapeHtml(color)) : '') +
+              '</div>' +
+              '<div style="font-size: 11px; color: var(--color-primitive-blue-700); font-weight: 600;">' +
+                escapeHtml(pkg) +
+              '</div>' +
+            '</div>' +
+
+            // Location
+            '<div class="rm-stop-loc-block">' +
+              '<div class="rm-stop-address">' + escapeHtml(addr) + '</div>' +
+              (parking ? ('<div class="rm-stop-parking"><span class="material-symbols-outlined" style="font-size: 13px;">local_parking</span><span>' + escapeHtml(parking) + '</span></div>') : '') +
+              (s.notes ? ('<div style="font-size: 11px; color: var(--color-text-muted); font-style: italic; margin-top: 2px;">Note: ' + escapeHtml(s.notes) + '</div>') : '') +
+            '</div>' +
+          '</div>' +
+
+          // Controls
+          '<div class="rm-stop-controls">' +
+            '<button type="button" class="rm-btn-move" onclick="moveStopPosition(' + idx + ', \'up\')"' + (isFirst ? ' disabled' : '') + ' title="Move Up (Sequence #' + (seqNum - 1) + ')">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">arrow_upward</span>' +
+            '</button>' +
+            '<button type="button" class="rm-btn-move" onclick="moveStopPosition(' + idx + ', \'down\')"' + (isLast ? ' disabled' : '') + ' title="Move Down (Sequence #' + (seqNum + 1) + ')">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">arrow_downward</span>' +
+            '</button>' +
+            '<button type="button" class="rm-btn-move" onclick="moveStopPosition(' + idx + ', \'top\')"' + (isFirst ? ' disabled' : '') + ' title="Move to Top (#1)">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">vertical_align_top</span>' +
+            '</button>' +
+            '<button type="button" class="rm-btn-move" onclick="moveStopPosition(' + idx + ', \'bottom\')"' + (isLast ? ' disabled' : '') + ' title="Move to Bottom (#' + total + ')">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">vertical_align_bottom</span>' +
+            '</button>' +
+            '<button type="button" class="rm-btn-move" onclick="openTransferStopModal(\'' + escapeHtml(currentActiveRouteId) + '\', \'' + escapeHtml(s.id) + '\')" title="Transfer Stop to Another Route">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">alt_route</span>' +
+            '</button>' +
+            '<button type="button" class="rm-btn-move destructive" onclick="confirmRemoveStop(\'' + escapeHtml(currentActiveRouteId) + '\', \'' + escapeHtml(s.id) + '\')" title="Remove Stop from Route">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function moveStopPosition(index, direction) {
+      var stops = state.routeManagement.currentRouteStops;
+      if (!stops || stops.length === 0) return;
+      if (index < 0 || index >= stops.length) return;
+
+      var targetIndex = index;
+      if (direction === 'up') {
+        targetIndex = Math.max(0, index - 1);
+      } else if (direction === 'down') {
+        targetIndex = Math.min(stops.length - 1, index + 1);
+      } else if (direction === 'top') {
+        targetIndex = 0;
+      } else if (direction === 'bottom') {
+        targetIndex = stops.length - 1;
+      }
+
+      if (targetIndex === index) return;
+
+      var item = stops.splice(index, 1)[0];
+      stops.splice(targetIndex, 0, item);
+
+      // Re-assign sequence order
+      stops.forEach(function(s, idx) {
+        s.sequence_order = idx + 1;
+      });
+
+      state.routeManagement.hasUnsavedSequenceChanges = true;
+
+      var unsavedPill = document.getElementById('rmSeqUnsavedPill');
+      var saveBtn = document.getElementById('rmBtnSaveSequence');
+      if (unsavedPill) unsavedPill.style.display = 'inline-flex';
+      if (saveBtn) saveBtn.disabled = false;
+
+      renderRouteStops(stops);
+    }
+
+    function saveRouteSequenceChanges() {
+      if (!currentActiveRouteId) return;
+      var stops = state.routeManagement.currentRouteStops || [];
+      if (stops.length === 0) return;
+
+      var orderedStopIds = stops.map(function(s) { return s.id; });
+      var saveBtn = document.getElementById('rmBtnSaveSequence');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="material-symbols-outlined cwp-spinner">refresh</span><span>Saving Sequence...</span>';
+      }
+
+      apiCall('reorderRouteStops', {
+        routeId: currentActiveRouteId,
+        orderedStopIds: orderedStopIds
+      }, function(res) {
+        state.routeManagement.hasUnsavedSequenceChanges = false;
+        var unsavedPill = document.getElementById('rmSeqUnsavedPill');
+        if (unsavedPill) unsavedPill.style.display = 'none';
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = '<span class="material-symbols-outlined">check</span><span>Sequence Saved</span>';
+          setTimeout(function() {
+            if (saveBtn) {
+              saveBtn.innerHTML = '<span class="material-symbols-outlined">save</span><span>Save Sequence</span>';
+            }
+          }, 2500);
+        }
+        if (typeof showSeqAlert === 'function') {
+          showSeqAlert('Route stop sequence successfully reordered (1..' + orderedStopIds.length + ').', 'success');
+        }
+      }, function(err) {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '<span class="material-symbols-outlined">save</span><span>Save Sequence</span>';
+        }
+        alert('Failed to save sequence: ' + ((err && err.error) || String(err)));
+      });
+    }
+
+    // =========================================================================
+    // CREATE ROUTE WORKFLOW
+    // =========================================================================
+
+    function openCreateRouteModal() {
+      var modal = document.getElementById('rmCreateRouteModal');
+      var form = document.getElementById('rmCreateRouteForm');
+      var alertBox = document.getElementById('rmCreateRouteFormAlert');
+
+      if (form) form.reset();
+      if (alertBox) { alertBox.style.display = 'none'; alertBox.textContent = ''; }
+
+      // Hide inline errors
+      var errCode = document.getElementById('rmNewRouteCodeError');
+      var errName = document.getElementById('rmNewRouteNameError');
+      if (errCode) errCode.style.display = 'none';
+      if (errName) errName.style.display = 'none';
+
+      // Populate Staff Dropdown with DCC eligibility markers
+      populateStaffDropdownWithDccMarkers('rmNewAssignedStaff');
+
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeCreateRouteModal() {
+      var modal = document.getElementById('rmCreateRouteModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleCreateRouteSubmit(e) {
+      if (e) e.preventDefault();
+
+      var codeInput = document.getElementById('rmNewRouteCode');
+      var nameInput = document.getElementById('rmNewRouteName');
+      var areaInput = document.getElementById('rmNewOperationalArea');
+      var descInput = document.getElementById('rmNewDescription');
+      var staffSelect = document.getElementById('rmNewAssignedStaff');
+      var statusSelect = document.getElementById('rmNewRouteStatus');
+      var alertBox = document.getElementById('rmCreateRouteFormAlert');
+      var submitBtn = document.getElementById('rmBtnSubmitCreateRoute');
+
+      var code = (codeInput ? codeInput.value : '').trim().toUpperCase();
+      var name = (nameInput ? nameInput.value : '').trim();
+      var area = areaInput ? areaInput.value.trim() : '';
+      var desc = descInput ? descInput.value.trim() : '';
+      var staffId = staffSelect ? staffSelect.value : '';
+      var status = statusSelect ? statusSelect.value : 'active';
+
+      var hasErr = false;
+      if (!code) {
+        var errCode = document.getElementById('rmNewRouteCodeError');
+        if (errCode) { errCode.style.display = 'block'; errCode.textContent = 'Route code is required.'; }
+        hasErr = true;
+      }
+      if (!name) {
+        var errName = document.getElementById('rmNewRouteNameError');
+        if (errName) { errName.style.display = 'block'; errName.textContent = 'Route name is required.'; }
+        hasErr = true;
+      }
+      if (hasErr) return;
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined cwp-spinner">refresh</span><span>Creating...</span>';
+      }
+
+      apiCall('createRoute', {
+        routeCode: code,
+        routeName: name,
+        operationalArea: area || null,
+        description: desc || null,
+        assignedStaffId: staffId || null,
+        status: status
+      }, function(res) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-outlined">add_road</span><span>Create Route</span>';
+        }
+        closeCreateRouteModal();
+        refreshRouteManagementData(true);
+        if (typeof showSeqAlert === 'function') {
+          showSeqAlert('Route \'' + code + '\' created successfully.', 'success');
+        }
+      }, function(err) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-outlined">add_road</span><span>Create Route</span>';
+        }
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.textContent = (err && err.error) || 'Failed to create route: ' + String(err);
+        }
+      });
+    }
+
+    // =========================================================================
+    // EDIT ROUTE WORKFLOW
+    // =========================================================================
+
+    function openEditRouteModal(routeId) {
+      if (!routeId) return;
+      var route = (state.routeManagement.routes || []).find(function(r) { return r.id === routeId; });
+      if (!route && state.routeManagement.currentRouteDetails && state.routeManagement.currentRouteDetails.id === routeId) {
+        route = state.routeManagement.currentRouteDetails;
+      }
+      if (!route) return;
+
+      var modal = document.getElementById('rmEditRouteModal');
+      var idInput = document.getElementById('rmEditRouteId');
+      var codeInput = document.getElementById('rmEditRouteCode');
+      var nameInput = document.getElementById('rmEditRouteName');
+      var areaInput = document.getElementById('rmEditOperationalArea');
+      var descInput = document.getElementById('rmEditDescription');
+      var statusSelect = document.getElementById('rmEditRouteStatus');
+      var subTitle = document.getElementById('rmEditRouteSubtitle');
+      var alertBox = document.getElementById('rmEditRouteFormAlert');
+
+      if (idInput) idInput.value = route.id;
+      if (codeInput) codeInput.value = route.route_code || '';
+      if (nameInput) nameInput.value = route.route_name || '';
+      if (areaInput) areaInput.value = route.operational_area || '';
+      if (descInput) descInput.value = route.description || '';
+      if (statusSelect) statusSelect.value = route.status || 'active';
+      if (subTitle) subTitle.textContent = (route.route_code || '') + ' — ' + (route.route_name || '');
+      if (alertBox) alertBox.style.display = 'none';
+
+      populateStaffDropdownWithDccMarkers('rmEditAssignedStaff', route.assigned_staff_id);
+
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function openEditCurrentRouteModal() {
+      if (currentActiveRouteId) openEditRouteModal(currentActiveRouteId);
+    }
+
+    function closeEditRouteModal() {
+      var modal = document.getElementById('rmEditRouteModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleEditRouteSubmit(e) {
+      if (e) e.preventDefault();
+
+      var idInput = document.getElementById('rmEditRouteId');
+      var nameInput = document.getElementById('rmEditRouteName');
+      var areaInput = document.getElementById('rmEditOperationalArea');
+      var descInput = document.getElementById('rmEditDescription');
+      var staffSelect = document.getElementById('rmEditAssignedStaff');
+      var statusSelect = document.getElementById('rmEditRouteStatus');
+      var submitBtn = document.getElementById('rmBtnSubmitEditRoute');
+      var alertBox = document.getElementById('rmEditRouteFormAlert');
+
+      var routeId = idInput ? idInput.value : '';
+      var name = (nameInput ? nameInput.value : '').trim();
+      var area = areaInput ? areaInput.value.trim() : '';
+      var desc = descInput ? descInput.value.trim() : '';
+      var staffId = staffSelect ? staffSelect.value : null;
+      var status = statusSelect ? statusSelect.value : 'active';
+
+      if (!routeId || !name) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.textContent = 'Route name is required.';
+        }
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined cwp-spinner">refresh</span><span>Saving...</span>';
+      }
+
+      apiCall('updateRoute', {
+        routeId: routeId,
+        routeName: name,
+        operationalArea: area,
+        description: desc,
+        assignedStaffId: staffId || null,
+        status: status
+      }, function(res) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-outlined">save</span><span>Save Changes</span>';
+        }
+        closeEditRouteModal();
+        refreshRouteManagementData(true);
+        if (currentActiveRouteId === routeId) {
+          openRouteDetailView(routeId);
+        }
+      }, function(err) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-outlined">save</span><span>Save Changes</span>';
+        }
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.textContent = (err && err.error) || 'Failed to update route: ' + String(err);
+        }
+      });
+    }
+
+    // =========================================================================
+    // STAFF ASSIGNMENT EXPERIENCE (PHASE 2)
+    // =========================================================================
+
+    function populateStaffDropdownWithDccMarkers(selectId, selectedStaffId) {
+      var select = document.getElementById(selectId);
+      if (!select) return;
+
+      var staffList = (state.adminStaffList && state.adminStaffList.length > 0)
+        ? state.adminStaffList
+        : (state.staffList || []);
+
+      var currentRoutes = state.routeManagement.routes || [];
+      var staffRouteMap = {};
+      currentRoutes.forEach(function(r) {
+        if (r.assigned_staff_id) staffRouteMap[r.assigned_staff_id] = r.route_code;
+      });
+
+      var html = '<option value="">-- No Staff Assigned --</option>';
+      staffList.forEach(function(s) {
+        var isDcc = isStaffDccEligible(s);
+        var desig = getStaffDesignationLabel(s);
+        var activeRouteCode = staffRouteMap[s.id];
+        var isCurrent = (s.id === selectedStaffId);
+
+        var label = (s.name || 'Staff') + ' (' + (s.staff_code || '') + ' • ' + desig + ')';
+        if (isDcc) {
+          label = '✓ [DCC Eligible] ' + label;
+          if (activeRouteCode && !isCurrent) {
+            label += ' [On: ' + activeRouteCode + ']';
+          }
+          var sel = isCurrent ? ' selected' : '';
+          html += '<option value="' + escapeHtml(s.id) + '"' + sel + '>' + escapeHtml(label) + '</option>';
+        } else {
+          // Disabled with clear ineligible explanation
+          label = '✕ [Ineligible: ' + (s.work_type || 'Services Only') + '] ' + label;
+          html += '<option value="' + escapeHtml(s.id) + '" disabled style="color: var(--color-text-muted);">' + escapeHtml(label) + '</option>';
+        }
+      });
+
+      select.innerHTML = html;
+    }
+
+    function openAssignStaffModal(routeId) {
+      if (!routeId) return;
+      var route = (state.routeManagement.routes || []).find(function(r) { return r.id === routeId; });
+      if (!route && state.routeManagement.currentRouteDetails && state.routeManagement.currentRouteDetails.id === routeId) {
+        route = state.routeManagement.currentRouteDetails;
+      }
+      if (!route) return;
+
+      var modal = document.getElementById('rmAssignStaffModal');
+      var targetInput = document.getElementById('rmAssignTargetRouteId');
+      var subTitle = document.getElementById('rmAssignStaffSubtitle');
+      var previewCard = document.getElementById('rmStaffPreviewCard');
+      var confirmBtn = document.getElementById('rmBtnConfirmAssignStaff');
+      var alertBox = document.getElementById('rmAssignStaffAlert');
+
+      if (targetInput) targetInput.value = route.id;
+      if (subTitle) subTitle.textContent = (route.route_code || '') + ' — ' + (route.route_name || '');
+      if (previewCard) previewCard.style.display = 'none';
+      if (confirmBtn) confirmBtn.disabled = true;
+      if (alertBox) { alertBox.style.display = 'none'; alertBox.textContent = ''; }
+
+      populateStaffDropdownWithDccMarkers('rmSelectStaffForRoute', route.assigned_staff_id);
+
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeAssignStaffModal() {
+      var modal = document.getElementById('rmAssignStaffModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleAssignStaffSelectChange() {
+      var select = document.getElementById('rmSelectStaffForRoute');
+      var confirmBtn = document.getElementById('rmBtnConfirmAssignStaff');
+      var previewCard = document.getElementById('rmStaffPreviewCard');
+      var conflictWarning = document.getElementById('rmStaffConflictWarning');
+      var conflictText = document.getElementById('rmStaffConflictText');
+
+      var staffId = select ? select.value : '';
+      if (!staffId) {
+        if (confirmBtn) confirmBtn.disabled = true;
+        if (previewCard) previewCard.style.display = 'none';
+        return;
+      }
+
+      var staffList = (state.adminStaffList && state.adminStaffList.length > 0) ? state.adminStaffList : (state.staffList || []);
+      var staff = staffList.find(function(s) { return s.id === staffId; });
+      if (!staff) return;
+
+      if (confirmBtn) confirmBtn.disabled = false;
+      if (previewCard) previewCard.style.display = 'block';
+
+      var elAvatar = document.getElementById('rmStaffPreviewAvatar');
+      var elName = document.getElementById('rmStaffPreviewName');
+      var elCode = document.getElementById('rmStaffPreviewCode');
+      var elPhone = document.getElementById('rmStaffPreviewPhone');
+      var elDesig = document.getElementById('rmStaffPreviewDesignation');
+      var elDcc = document.getElementById('rmStaffPreviewDccBadge');
+
+      if (elAvatar) elAvatar.textContent = (staff.name || 'S').charAt(0).toUpperCase();
+      if (elName) elName.textContent = staff.name || 'Staff Member';
+      if (elCode) elCode.textContent = staff.staff_code || '';
+      if (elPhone) elPhone.textContent = staff.phone || '';
+      if (elDesig) elDesig.textContent = getStaffDesignationLabel(staff);
+      if (elDcc) {
+        var isDcc = isStaffDccEligible(staff);
+        elDcc.className = isDcc ? 'rm-dcc-badge' : 'rm-dcc-ineligible-badge';
+        elDcc.textContent = isDcc ? 'DCC Authorized' : 'Ineligible';
+      }
+
+      // Conflict Check: Is staff member on another active route?
+      var currentRouteId = (document.getElementById('rmAssignTargetRouteId') || {}).value;
+      var otherRoute = (state.routeManagement.routes || []).find(function(r) {
+        return r.assigned_staff_id === staff.id && r.id !== currentRouteId && r.status === 'active';
+      });
+
+      if (otherRoute && conflictWarning) {
+        conflictWarning.style.display = 'block';
+        if (conflictText) {
+          conflictText.textContent = staff.name + ' is currently assigned to route ' + otherRoute.route_code + ' (' + otherRoute.route_name + '). Assigning them here will transfer their assignment from ' + otherRoute.route_code + '.';
+        }
+      } else if (conflictWarning) {
+        conflictWarning.style.display = 'none';
+      }
+    }
+
+    function executeAssignStaffToRoute() {
+      var targetInput = document.getElementById('rmAssignTargetRouteId');
+      var select = document.getElementById('rmSelectStaffForRoute');
+      var confirmBtn = document.getElementById('rmBtnConfirmAssignStaff');
+      var alertBox = document.getElementById('rmAssignStaffAlert');
+
+      var routeId = targetInput ? targetInput.value : '';
+      var staffId = select ? select.value : '';
+
+      if (!routeId || !staffId) return;
+
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="material-symbols-outlined cwp-spinner">refresh</span><span>Assigning...</span>';
+      }
+
+      apiCall('assignStaffToRoute', {
+        routeId: routeId,
+        staffId: staffId
+      }, function(res) {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = '<span class="material-symbols-outlined">how_to_reg</span><span>Assign Staff</span>';
+        }
+        closeAssignStaffModal();
+        refreshRouteManagementData(true);
+        if (currentActiveRouteId === routeId) {
+          openRouteDetailView(routeId);
+        }
+        if (typeof showSeqAlert === 'function') {
+          showSeqAlert('Staff successfully assigned to route.', 'success');
+        }
+      }, function(err) {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = '<span class="material-symbols-outlined">how_to_reg</span><span>Assign Staff</span>';
+        }
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.textContent = (err && err.error) || 'Failed to assign staff: ' + String(err);
+        }
+      });
+    }
+
+    function confirmUnassignStaff(routeId) {
+      if (!routeId) return;
+      if (!confirm('Are you sure you want to unassign staff from this route? Route stops will remain intact.')) {
+        return;
+      }
+
+      apiCall('unassignStaffFromRoute', {
+        routeId: routeId,
+        reason: 'Admin unassignment'
+      }, function(res) {
+        refreshRouteManagementData(true);
+        if (currentActiveRouteId === routeId) {
+          openRouteDetailView(routeId);
+        }
+        if (typeof showSeqAlert === 'function') {
+          showSeqAlert('Staff unassigned from route successfully.', 'success');
+        }
+      }, function(err) {
+        alert('Failed to unassign staff: ' + ((err && err.error) || String(err)));
+      });
+    }
+
+    // =========================================================================
+    // ADD STOP TO ROUTE WORKFLOW
+    // =========================================================================
+
+    function openAddStopModal(routeId) {
+      if (!routeId) return;
+      var route = (state.routeManagement.routes || []).find(function(r) { return r.id === routeId; });
+      if (!route && state.routeManagement.currentRouteDetails && state.routeManagement.currentRouteDetails.id === routeId) {
+        route = state.routeManagement.currentRouteDetails;
+      }
+      if (!route) return;
+
+      var modal = document.getElementById('rmAddStopModal');
+      var routeInput = document.getElementById('rmAddStopRouteId');
+      var subTitle = document.getElementById('rmAddStopSubtitle');
+      var select = document.getElementById('rmAddStopCandidateSelect');
+      var previewCard = document.getElementById('rmCandidatePreviewCard');
+      var confirmBtn = document.getElementById('rmBtnConfirmAddStop');
+      var alertBox = document.getElementById('rmAddStopAlert');
+
+      if (routeInput) routeInput.value = route.id;
+      if (subTitle) subTitle.textContent = (route.route_code || '') + ' — ' + (route.route_name || '');
+      if (previewCard) previewCard.style.display = 'none';
+      if (confirmBtn) confirmBtn.disabled = true;
+      if (alertBox) { alertBox.style.display = 'none'; alertBox.textContent = ''; }
+
+      // Populate candidate unassigned vehicles
+      apiCall('getUnassignedDccVehicles', {}, function(res) {
+        var unassigned = (res && res.unassigned) ? res.unassigned : (Array.isArray(res) ? res : []);
+        state.routeManagement.unassigned = unassigned;
+
+        var html = '<option value="">Select an unassigned DCC vehicle (' + unassigned.length + ' available)...</option>';
+        unassigned.forEach(function(u) {
+          var label = (u.registration_no || 'Car').toUpperCase() + ' — ' + (u.customer_name || 'Customer') + ' (' + (u.brand_or_model || u.car_make || 'Vehicle') + ' • ' + (u.address_text || '') + ')';
+          html += '<option value="' + escapeHtml(u.subscription_id + '||' + (u.vehicle_id || '') + '||' + u.customer_id) + '">' + escapeHtml(label) + '</option>';
+        });
+        if (select) select.innerHTML = html;
+      });
+
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeAddStopModal() {
+      var modal = document.getElementById('rmAddStopModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleSearchEligibleStops(query) {
+      var q = (query || '').toLowerCase().trim();
+      var select = document.getElementById('rmAddStopCandidateSelect');
+      if (!select) return;
+
+      var unassigned = state.routeManagement.unassigned || [];
+      var filtered = unassigned.filter(function(u) {
+        if (!q) return true;
+        var inReg = (u.registration_no || '').toLowerCase().indexOf(q) !== -1;
+        var inName = (u.customer_name || '').toLowerCase().indexOf(q) !== -1;
+        var inPhone = (u.customer_phone || '').toLowerCase().indexOf(q) !== -1;
+        var inModel = (u.brand_or_model || u.car_make || '').toLowerCase().indexOf(q) !== -1;
+        var inAddr = (u.address_text || '').toLowerCase().indexOf(q) !== -1;
+        return inReg || inName || inPhone || inModel || inAddr;
+      });
+
+      var html = '<option value="">Select an unassigned DCC vehicle (' + filtered.length + ' found)...</option>';
+      filtered.forEach(function(u) {
+        var label = (u.registration_no || 'Car').toUpperCase() + ' — ' + (u.customer_name || 'Customer') + ' (' + (u.brand_or_model || u.car_make || 'Vehicle') + ' • ' + (u.address_text || '') + ')';
+        html += '<option value="' + escapeHtml(u.subscription_id + '||' + (u.vehicle_id || '') + '||' + u.customer_id) + '">' + escapeHtml(label) + '</option>';
+      });
+      select.innerHTML = html;
+    }
+
+    function handleAddStopCandidateChange() {
+      var select = document.getElementById('rmAddStopCandidateSelect');
+      var previewCard = document.getElementById('rmCandidatePreviewCard');
+      var confirmBtn = document.getElementById('rmBtnConfirmAddStop');
+
+      var val = select ? select.value : '';
+      if (!val) {
+        if (previewCard) previewCard.style.display = 'none';
+        if (confirmBtn) confirmBtn.disabled = true;
+        return;
+      }
+
+      var parts = val.split('||');
+      var subId = parts[0];
+      var vehId = parts[1];
+      var custId = parts[2];
+
+      var item = (state.routeManagement.unassigned || []).find(function(u) {
+        return u.subscription_id === subId && (u.vehicle_id === vehId || (!u.vehicle_id && !vehId));
+      });
+
+      if (!item) return;
+
+      if (confirmBtn) confirmBtn.disabled = false;
+      if (previewCard) previewCard.style.display = 'block';
+
+      var elName = document.getElementById('rmCandCustName');
+      var elPhone = document.getElementById('rmCandCustPhone');
+      var elPlate = document.getElementById('rmCandPlateText');
+      var elModel = document.getElementById('rmCandVehModel');
+      var elColor = document.getElementById('rmCandVehColor');
+      var elPkg = document.getElementById('rmCandPackageName');
+      var elAddr = document.getElementById('rmCandAddress');
+
+      if (elName) elName.textContent = item.customer_name || 'Customer';
+      if (elPhone) elPhone.textContent = item.customer_phone || '';
+      if (elPlate) elPlate.textContent = (item.registration_no || 'CAR').toUpperCase();
+      if (elModel) elModel.textContent = item.brand_or_model || item.car_make || 'Vehicle';
+      if (elColor) elColor.textContent = item.car_color || 'Default Color';
+      if (elPkg) elPkg.textContent = item.package_name || 'Daily Car Cleaning Standard';
+      if (elAddr) elAddr.textContent = item.address_text || item.parking_details || 'Jaipur';
+    }
+
+    function executeAddStopToRoute() {
+      var routeInput = document.getElementById('rmAddStopRouteId');
+      var select = document.getElementById('rmAddStopCandidateSelect');
+      var posSelect = document.getElementById('rmAddStopSequencePosition');
+      var notesInput = document.getElementById('rmAddStopNotes');
+      var confirmBtn = document.getElementById('rmBtnConfirmAddStop');
+      var alertBox = document.getElementById('rmAddStopAlert');
+
+      var routeId = routeInput ? routeInput.value : '';
+      var val = select ? select.value : '';
+      if (!routeId || !val) return;
+
+      var parts = val.split('||');
+      var subId = parts[0];
+      var vehId = parts[1] || null;
+      var custId = parts[2];
+      var pos = posSelect ? posSelect.value : 'end';
+      var notes = notesInput ? notesInput.value.trim() : null;
+
+      var candidateItem = (state.routeManagement.unassigned || []).find(function(u) {
+        return u.subscription_id === subId;
+      });
+
+      var currentStops = state.routeManagement.currentRouteStops || [];
+      var seqOrder = (pos === 'first') ? 1 : (currentStops.length + 1);
+
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="material-symbols-outlined cwp-spinner">refresh</span><span>Adding Stop...</span>';
+      }
+
+      apiCall('addStopToRoute', {
+        routeId: routeId,
+        subscriptionId: subId,
+        vehicleId: vehId,
+        customerId: custId,
+        locationId: candidateItem ? candidateItem.location_id : null,
+        sequenceOrder: seqOrder,
+        notes: notes
+      }, function(res) {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = '<span class="material-symbols-outlined">add_location</span><span>Add Stop to Route</span>';
+        }
+        closeAddStopModal();
+        openRouteDetailView(routeId);
+        refreshRouteManagementData(false);
+        if (typeof showSeqAlert === 'function') {
+          showSeqAlert('Stop added to route sequence at position #' + (res.sequence_order || seqOrder) + '.', 'success');
+        }
+      }, function(err) {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = '<span class="material-symbols-outlined">add_location</span><span>Add Stop to Route</span>';
+        }
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.textContent = (err && err.error) || 'Failed to add stop: ' + String(err);
+        }
+      });
+    }
+
+    // =========================================================================
+    // TRANSFER STOP TO ANOTHER ROUTE WORKFLOW
+    // =========================================================================
+
+    function openTransferStopModal(sourceRouteId, stopId) {
+      if (!sourceRouteId || !stopId) return;
+      var stops = state.routeManagement.currentRouteStops || [];
+      var stop = stops.find(function(s) { return s.id === stopId; });
+      if (!stop) return;
+
+      var modal = document.getElementById('rmTransferStopModal');
+      var srcInput = document.getElementById('rmTransferSourceRouteId');
+      var stopInput = document.getElementById('rmTransferStopId');
+      var custSpan = document.getElementById('rmTransferCustName');
+      var plateSpan = document.getElementById('rmTransferPlateBadge');
+      var srcCodeSpan = document.getElementById('rmTransferSourceRouteCode');
+      var targetSelect = document.getElementById('rmTransferTargetRouteSelect');
+      var alertBox = document.getElementById('rmTransferStopAlert');
+
+      if (srcInput) srcInput.value = sourceRouteId;
+      if (stopInput) stopInput.value = stopId;
+      if (custSpan) custSpan.textContent = stop.customer_name || 'Customer';
+      if (plateSpan) plateSpan.textContent = (stop.registration_no || 'CAR').toUpperCase();
+      if (srcCodeSpan) {
+        var srcRoute = (state.routeManagement.routes || []).find(function(r) { return r.id === sourceRouteId; });
+        srcCodeSpan.textContent = srcRoute ? srcRoute.route_code : 'Source Route';
+      }
+      if (alertBox) { alertBox.style.display = 'none'; alertBox.textContent = ''; }
+
+      // Populate other active routes
+      var html = '<option value="">Select active target route...</option>';
+      (state.routeManagement.allRoutesRaw || []).forEach(function(r) {
+        if (r.id !== sourceRouteId && r.status === 'active') {
+          html += '<option value="' + escapeHtml(r.id) + '">' + escapeHtml(r.route_code) + ' — ' + escapeHtml(r.route_name) + ' (' + (r.stop_count || 0) + ' stops)</option>';
+        }
+      });
+      if (targetSelect) targetSelect.innerHTML = html;
+
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeTransferStopModal() {
+      var modal = document.getElementById('rmTransferStopModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function executeTransferStop() {
+      var srcInput = document.getElementById('rmTransferSourceRouteId');
+      var stopInput = document.getElementById('rmTransferStopId');
+      var targetSelect = document.getElementById('rmTransferTargetRouteSelect');
+      var confirmBtn = document.getElementById('rmBtnConfirmTransferStop');
+      var alertBox = document.getElementById('rmTransferStopAlert');
+
+      var srcId = srcInput ? srcInput.value : '';
+      var stopId = stopInput ? stopInput.value : '';
+      var targetId = targetSelect ? targetSelect.value : '';
+
+      if (!srcId || !stopId || !targetId) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.textContent = 'Target route is required.';
+        }
+        return;
+      }
+
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="material-symbols-outlined cwp-spinner">refresh</span><span>Transferring...</span>';
+      }
+
+      apiCall('moveStopBetweenRoutes', {
+        sourceRouteId: srcId,
+        targetRouteId: targetId,
+        stopId: stopId
+      }, function(res) {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = '<span class="material-symbols-outlined">swap_horiz</span><span>Transfer Stop</span>';
+        }
+        closeTransferStopModal();
+        openRouteDetailView(srcId);
+        refreshRouteManagementData(false);
+        if (typeof showSeqAlert === 'function') {
+          showSeqAlert('Stop transferred successfully.', 'success');
+        }
+      }, function(err) {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = '<span class="material-symbols-outlined">swap_horiz</span><span>Transfer Stop</span>';
+        }
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.textContent = (err && err.error) || 'Failed to transfer stop: ' + String(err);
+        }
+      });
+    }
+
+    // =========================================================================
+    // REMOVE STOP WORKFLOW
+    // =========================================================================
+
+    function confirmRemoveStop(routeId, stopId) {
+      if (!routeId || !stopId) return;
+      var stops = state.routeManagement.currentRouteStops || [];
+      var stop = stops.find(function(s) { return s.id === stopId; });
+
+      var modal = document.getElementById('rmRemoveStopModal');
+      var routeInput = document.getElementById('rmRemoveStopRouteId');
+      var stopInput = document.getElementById('rmRemoveStopId');
+      var label = document.getElementById('rmRemoveStopTargetLabel');
+
+      if (routeInput) routeInput.value = routeId;
+      if (stopInput) stopInput.value = stopId;
+      if (label) {
+        var txt = stop ? ((stop.registration_no || 'Car').toUpperCase() + ' (' + (stop.customer_name || 'Customer') + ')') : 'selected stop';
+        label.textContent = txt;
+      }
+
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeRemoveStopModal() {
+      var modal = document.getElementById('rmRemoveStopModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function executeRemoveStopFromRoute() {
+      var routeInput = document.getElementById('rmRemoveStopRouteId');
+      var stopInput = document.getElementById('rmRemoveStopId');
+      var routeId = routeInput ? routeInput.value : '';
+      var stopId = stopInput ? stopInput.value : '';
+
+      if (!routeId || !stopId) return;
+
+      closeRemoveStopModal();
+
+      apiCall('removeStopFromRoute', {
+        routeId: routeId,
+        stopId: stopId,
+        reason: 'Stop removed by admin'
+      }, function(res) {
+        openRouteDetailView(routeId);
+        refreshRouteManagementData(false);
+        if (typeof showSeqAlert === 'function') {
+          showSeqAlert('Stop removed and route sequence compacted.', 'success');
+        }
+      }, function(err) {
+        alert('Failed to remove stop: ' + ((err && err.error) || String(err)));
+      });
+    }
+
+    // =========================================================================
+    // DELETE ROUTE WORKFLOW
+    // =========================================================================
+
+    function confirmDeleteRoute(routeId) {
+      if (!routeId) return;
+      var route = (state.routeManagement.routes || []).find(function(r) { return r.id === routeId; });
+      if (!route && state.routeManagement.currentRouteDetails && state.routeManagement.currentRouteDetails.id === routeId) {
+        route = state.routeManagement.currentRouteDetails;
+      }
+      if (!route) return;
+
+      var modal = document.getElementById('rmDeleteRouteModal');
+      var idInput = document.getElementById('rmDeleteRouteId');
+      var label = document.getElementById('rmDeleteRouteTargetCode');
+
+      if (idInput) idInput.value = route.id;
+      if (label) label.textContent = route.route_code + ' (' + route.route_name + ')';
+
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function confirmDeleteCurrentRoute() {
+      if (currentActiveRouteId) confirmDeleteRoute(currentActiveRouteId);
+    }
+
+    function closeDeleteRouteModal() {
+      var modal = document.getElementById('rmDeleteRouteModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function executeDeleteRoute() {
+      var idInput = document.getElementById('rmDeleteRouteId');
+      var routeId = idInput ? idInput.value : '';
+      if (!routeId) return;
+
+      closeDeleteRouteModal();
+
+      apiCall('deleteRoute', { routeId: routeId }, function(res) {
+        if (currentActiveRouteId === routeId) {
+          closeRouteDetailView();
+        }
+        refreshRouteManagementData(true);
+        if (typeof showSeqAlert === 'function') {
+          showSeqAlert('Route deleted successfully.', 'success');
+        }
+      }, function(err) {
+        alert('Failed to delete route: ' + ((err && err.error) || String(err)));
+      });
+    }
+
+    function toggleRouteStatus(routeId, currentStatus) {
+      if (!routeId) return;
+      var newStatus = (currentStatus === 'active') ? 'inactive' : 'active';
+      apiCall('setRouteStatus', {
+        routeId: routeId,
+        status: newStatus
+      }, function(res) {
+        refreshRouteManagementData(true);
+        if (currentActiveRouteId === routeId) {
+          openRouteDetailView(routeId);
+        }
+        if (typeof showSeqAlert === 'function') {
+          showSeqAlert('Route status updated to \'' + newStatus + '\'.', 'success');
+        }
+      }, function(err) {
+        alert('Failed to update route status: ' + ((err && err.error) || String(err)));
+      });
+    }
+
+    // =========================================================================
+    // UNASSIGNED DCC VEHICLE WORKBENCH (PHASE 3)
+    // =========================================================================
+
+    function loadUnassignedWorkbenchData(force) {
+      var tbody = document.getElementById('rmUnassignedTableBody');
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--color-text-muted);"><span class="cwp-spinner"></span> Loading unassigned DCC vehicles...</td></tr>';
+      }
+
+      state.routeManagement.selectedUnassignedIds.clear();
+      updateBatchBarState();
+
+      apiCall('getUnassignedDccVehicles', {}, function(res) {
+        var unassigned = (res && res.unassigned) ? res.unassigned : (Array.isArray(res) ? res : []);
+        state.routeManagement.unassigned = unassigned;
+
+        // Populate area filter
+        populateUnassignedAreaFilter(unassigned);
+
+        // Populate batch target routes select
+        populateBatchRouteSelect();
+
+        applyUnassignedFiltersAndRender();
+      }, function(err) {
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--color-primitive-red-600);">' +
+            'Failed to load unassigned vehicles: ' + escapeHtml((err && err.error) || String(err)) +
+            '</td></tr>';
+        }
+      });
+    }
+
+    function populateUnassignedAreaFilter(unassigned) {
+      var select = document.getElementById('rmUnassignedAreaFilter');
+      if (!select) return;
+
+      var currentVal = select.value || 'all';
+      var areas = new Set();
+      (unassigned || []).forEach(function(u) {
+        if (u.address_text && u.address_text.trim()) {
+          areas.add(u.address_text.trim().split(',')[0]);
+        }
+      });
+
+      var html = '<option value="all">All Locations / Areas</option>';
+      Array.from(areas).sort().forEach(function(a) {
+        var sel = (a === currentVal) ? ' selected' : '';
+        html += '<option value="' + escapeHtml(a) + '"' + sel + '>' + escapeHtml(a) + '</option>';
+      });
+      select.innerHTML = html;
+    }
+
+    function populateBatchRouteSelect() {
+      var select = document.getElementById('rmBatchRouteSelect');
+      if (!select) return;
+
+      var html = '<option value="">Select target active route...</option>';
+      (state.routeManagement.allRoutesRaw || []).forEach(function(r) {
+        if (r.status === 'active') {
+          html += '<option value="' + escapeHtml(r.id) + '">' + escapeHtml(r.route_code) + ' — ' + escapeHtml(r.route_name) + ' (' + (r.stop_count || 0) + ' stops)</option>';
+        }
+      });
+      select.innerHTML = html;
+    }
+
+    function handleUnassignedSearch(val) {
+      state.routeManagement.unassignedFilters.search = (val || '').trim().toLowerCase();
+      var clearBtn = document.getElementById('rmUnassignedSearchClearBtn');
+      if (clearBtn) clearBtn.style.display = val ? 'flex' : 'none';
+      applyUnassignedFiltersAndRender();
+    }
+
+    function clearUnassignedSearch() {
+      var input = document.getElementById('rmUnassignedSearchInput');
+      if (input) input.value = '';
+      handleUnassignedSearch('');
+    }
+
+    function handleUnassignedFilterChange() {
+      var aFilter = document.getElementById('rmUnassignedAreaFilter');
+      if (aFilter) state.routeManagement.unassignedFilters.area = aFilter.value;
+      applyUnassignedFiltersAndRender();
+    }
+
+    function applyUnassignedFiltersAndRender() {
+      var list = state.routeManagement.unassigned || [];
+      var f = state.routeManagement.unassignedFilters;
+
+      var filtered = list.filter(function(u) {
+        if (f.area && f.area !== 'all') {
+          var addr = (u.address_text || '');
+          if (addr.indexOf(f.area) === -1) return false;
+        }
+
+        if (f.search) {
+          var q = f.search;
+          var inReg = (u.registration_no || '').toLowerCase().indexOf(q) !== -1;
+          var inName = (u.customer_name || '').toLowerCase().indexOf(q) !== -1;
+          var inPhone = (u.customer_phone || '').toLowerCase().indexOf(q) !== -1;
+          var inModel = (u.brand_or_model || u.car_make || '').toLowerCase().indexOf(q) !== -1;
+          var inAddr = (u.address_text || '').toLowerCase().indexOf(q) !== -1;
+          if (!inReg && !inName && !inPhone && !inModel && !inAddr) return false;
+        }
+
+        return true;
+      });
+
+      renderUnassignedTable(filtered);
+    }
+
+    function renderUnassignedTable(items) {
+      var tbody = document.getElementById('rmUnassignedTableBody');
+      if (!tbody) return;
+
+      if (!items || items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 36px 20px; color: var(--color-text-secondary);">' +
+          '<span class="material-symbols-outlined" style="font-size: 36px; color: var(--color-primitive-green-600); display: block; margin-bottom: 8px;">task_alt</span>' +
+          '<strong>All eligible DCC vehicles are assigned to routes!</strong>' +
+          '<p style="font-size: 12.5px; color: var(--color-text-muted); margin: 4px 0 0 0;">Zero unallocated doorstep vehicle subscriptions pending.</p>' +
+          '</td></tr>';
+        return;
+      }
+
+      var html = '';
+      items.forEach(function(u) {
+        var key = u.subscription_id + '||' + (u.vehicle_id || '') + '||' + u.customer_id;
+        var isChecked = state.routeManagement.selectedUnassignedIds.has(key);
+        var regNo = (u.registration_no || 'CAR').toUpperCase();
+        var model = u.brand_or_model || u.car_make || 'Vehicle';
+        var color = u.car_color || '';
+
+        html += '<tr data-key="' + escapeHtml(key) + '">' +
+          '<td style="text-align: center;">' +
+            '<input type="checkbox" class="rm-checkbox unassigned-row-checkbox" value="' + escapeHtml(key) + '"' + (isChecked ? ' checked' : '') + ' onchange="toggleSelectUnassigned(\'' + escapeHtml(key) + '\', this.checked)">' +
+          '</td>' +
+          '<td>' +
+            '<div style="font-weight: 700; color: var(--color-text-primary);">' + escapeHtml(u.customer_name || 'Customer') + '</div>' +
+            (u.customer_code ? '<div style="font-size: 11px; color: var(--color-text-muted); font-family: var(--font-mono);">' + escapeHtml(u.customer_code) + '</div>' : '') +
+            '<a href="tel:' + escapeHtml(u.customer_phone || '') + '" style="font-size: 12px; color: var(--color-primitive-blue-700); font-weight: 600; text-decoration: none;">' + escapeHtml(u.customer_phone || '') + '</a>' +
+          '</td>' +
+          '<td>' +
+            '<div class="rm-plate-badge" style="margin-bottom: 3px;">' +
+              '<span class="rm-plate-ind">IND</span>' +
+              '<span>' + escapeHtml(regNo) + '</span>' +
+            '</div>' +
+            '<div style="font-size: 12px; color: var(--color-text-secondary);">' + escapeHtml(model) + (color ? (' • ' + escapeHtml(color)) : '') + '</div>' +
+          '</td>' +
+          '<td>' +
+            '<span class="rm-dcc-badge" style="margin-bottom: 2px;">' + escapeHtml(u.package_name || 'Daily Car Cleaning') + '</span>' +
+            (u.start_date ? '<div style="font-size: 11px; color: var(--color-text-muted);">Starts: ' + escapeHtml(u.start_date) + '</div>' : '') +
+          '</td>' +
+          '<td>' +
+            '<div style="font-size: 12.5px; color: var(--color-text-secondary);">' + escapeHtml(u.address_text || 'Jaipur') + '</div>' +
+            (u.parking_details ? '<div class="rm-stop-parking" style="font-size: 11px; margin-top: 2px;"><span class="material-symbols-outlined" style="font-size: 12px;">local_parking</span><span>' + escapeHtml(u.parking_details) + '</span></div>' : '') +
+          '</td>' +
+          '<td style="text-align: right;">' +
+            '<button type="button" class="btn-admin-action" onclick="quickAssignUnassigned(\'' + escapeHtml(key) + '\')" style="font-size: 12px; padding: 6px 12px; min-height: 36px;" title="Assign to route">' +
+              '<span class="material-symbols-outlined" style="font-size: 15px;">add_road</span>' +
+              '<span>Assign to Route</span>' +
+            '</button>' +
+          '</td>' +
+        '</tr>';
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function toggleSelectUnassigned(key, isChecked) {
+      if (isChecked) {
+        state.routeManagement.selectedUnassignedIds.add(key);
+      } else {
+        state.routeManagement.selectedUnassignedIds.delete(key);
+      }
+      updateBatchBarState();
+    }
+
+    function toggleSelectAllUnassigned(isChecked) {
+      var checkboxes = document.querySelectorAll('.unassigned-row-checkbox');
+      checkboxes.forEach(function(cb) {
+        cb.checked = isChecked;
+        if (isChecked) {
+          state.routeManagement.selectedUnassignedIds.add(cb.value);
+        } else {
+          state.routeManagement.selectedUnassignedIds.delete(cb.value);
+        }
+      });
+      updateBatchBarState();
+    }
+
+    function updateBatchBarState() {
+      var bar = document.getElementById('rmBatchBar');
+      var countSpan = document.getElementById('rmBatchSelectedCount');
+      var count = state.routeManagement.selectedUnassignedIds.size;
+
+      if (countSpan) countSpan.textContent = count;
+      if (bar) bar.style.display = (count > 0) ? 'flex' : 'none';
+
+      var selectAllCb = document.getElementById('rmSelectAllUnassigned');
+      if (selectAllCb) {
+        var visibleCheckboxes = document.querySelectorAll('.unassigned-row-checkbox');
+        selectAllCb.checked = (visibleCheckboxes.length > 0 && count === visibleCheckboxes.length);
+      }
+    }
+
+    function quickAssignUnassigned(key) {
+      var parts = key.split('||');
+      var subId = parts[0];
+      var vehId = parts[1] || null;
+      var custId = parts[2];
+
+      // Prompt for target route
+      var activeRoutes = (state.routeManagement.allRoutesRaw || []).filter(function(r) { return r.status === 'active'; });
+      if (activeRoutes.length === 0) {
+        alert('No active routes available. Please create or activate a route first.');
+        return;
+      }
+
+      var promptMsg = 'Select target route code to assign this vehicle:\n' +
+        activeRoutes.map(function(r, idx) { return (idx + 1) + '. ' + r.route_code + ' (' + r.route_name + ')'; }).join('\n');
+      var choice = prompt(promptMsg, activeRoutes[0].route_code);
+      if (!choice) return;
+
+      var targetRoute = activeRoutes.find(function(r) {
+        return r.route_code.toUpperCase() === choice.trim().toUpperCase() || r.id === choice.trim();
+      });
+
+      if (!targetRoute) {
+        alert('Route \'' + choice + '\' not found.');
+        return;
+      }
+
+      apiCall('addStopToRoute', {
+        routeId: targetRoute.id,
+        subscriptionId: subId,
+        vehicleId: vehId,
+        customerId: custId
+      }, function(res) {
+        loadUnassignedWorkbenchData(true);
+        refreshRouteManagementData(false);
+        if (typeof showSeqAlert === 'function') {
+          showSeqAlert('Vehicle assigned to route ' + targetRoute.route_code + ' at sequence position #' + (res.sequence_order || 'N') + '.', 'success');
+        }
+      }, function(err) {
+        alert('Failed to assign to route: ' + ((err && err.error) || String(err)));
+      });
+    }
+
+    function executeBatchAssignToRoute() {
+      var routeSelect = document.getElementById('rmBatchRouteSelect');
+      var targetRouteId = routeSelect ? routeSelect.value : '';
+      var executeBtn = document.getElementById('rmBtnExecuteBatchAssign');
+
+      if (!targetRouteId) {
+        alert('Please select a target route from the dropdown.');
+        return;
+      }
+
+      var selectedKeys = Array.from(state.routeManagement.selectedUnassignedIds);
+      if (selectedKeys.length === 0) return;
+
+      var targetRoute = (state.routeManagement.allRoutesRaw || []).find(function(r) { return r.id === targetRouteId; });
+      var targetName = targetRoute ? targetRoute.route_code : 'selected route';
+
+      if (!confirm('Assign ' + selectedKeys.length + ' vehicles to route \'' + targetName + '\'?')) {
+        return;
+      }
+
+      if (executeBtn) {
+        executeBtn.disabled = true;
+        executeBtn.innerHTML = '<span class="material-symbols-outlined cwp-spinner">refresh</span><span>Assigning ' + selectedKeys.length + ' vehicles...</span>';
+      }
+
+      var successCount = 0;
+      var failCount = 0;
+      var lastErr = '';
+
+      var assignNext = function(index) {
+        if (index >= selectedKeys.length) {
+          if (executeBtn) {
+            executeBtn.disabled = false;
+            executeBtn.innerHTML = '<span class="material-symbols-outlined">add_to_queue</span><span>Assign Selected</span>';
+          }
+          state.routeManagement.selectedUnassignedIds.clear();
+          loadUnassignedWorkbenchData(true);
+          refreshRouteManagementData(false);
+
+          var msg = 'Batch Assignment Complete: ' + successCount + ' vehicle(s) added to route \'' + targetName + '\'.';
+          if (failCount > 0) msg += ' (' + failCount + ' failed: ' + lastErr + ')';
+          alert(msg);
+          return;
+        }
+
+        var key = selectedKeys[index];
+        var parts = key.split('||');
+        var subId = parts[0];
+        var vehId = parts[1] || null;
+        var custId = parts[2];
+
+        apiCall('addStopToRoute', {
+          routeId: targetRouteId,
+          subscriptionId: subId,
+          vehicleId: vehId,
+          customerId: custId
+        }, function(res) {
+          successCount++;
+          assignNext(index + 1);
+        }, function(err) {
+          failCount++;
+          lastErr = (err && err.error) || String(err);
+          assignNext(index + 1);
+        });
+      };
+
+      assignNext(0);
+    }
+
+    // Export all Route Management handlers to global window
+    window.initAdminRouteManagement = initAdminRouteManagement;
+    window.switchRouteSubtab = switchRouteSubtab;
+    window.refreshRouteManagementData = refreshRouteManagementData;
+    window.handleRouteSearch = handleRouteSearch;
+    window.clearRouteSearch = clearRouteSearch;
+    window.handleRouteFilterChange = handleRouteFilterChange;
+    window.handleRouteSortChange = handleRouteSortChange;
+    window.resetRouteFilters = resetRouteFilters;
+    window.openRouteDetailView = openRouteDetailView;
+    window.closeRouteDetailView = closeRouteDetailView;
+    window.refreshCurrentRouteDetails = refreshCurrentRouteDetails;
+    window.moveStopPosition = moveStopPosition;
+    window.saveRouteSequenceChanges = saveRouteSequenceChanges;
+    window.openCreateRouteModal = openCreateRouteModal;
+    window.closeCreateRouteModal = closeCreateRouteModal;
+    window.handleCreateRouteSubmit = handleCreateRouteSubmit;
+    window.openEditRouteModal = openEditRouteModal;
+    window.openEditCurrentRouteModal = openEditCurrentRouteModal;
+    window.closeEditRouteModal = closeEditRouteModal;
+    window.handleEditRouteSubmit = handleEditRouteSubmit;
+    window.openAssignStaffModal = openAssignStaffModal;
+    window.closeAssignStaffModal = closeAssignStaffModal;
+    window.handleAssignStaffSelectChange = handleAssignStaffSelectChange;
+    window.executeAssignStaffToRoute = executeAssignStaffToRoute;
+    window.confirmUnassignStaff = confirmUnassignStaff;
+    window.openAddStopModal = openAddStopModal;
+    window.closeAddStopModal = closeAddStopModal;
+    window.handleSearchEligibleStops = handleSearchEligibleStops;
+    window.handleAddStopCandidateChange = handleAddStopCandidateChange;
+    window.executeAddStopToRoute = executeAddStopToRoute;
+    window.openTransferStopModal = openTransferStopModal;
+    window.closeTransferStopModal = closeTransferStopModal;
+    window.executeTransferStop = executeTransferStop;
+    window.confirmRemoveStop = confirmRemoveStop;
+    window.closeRemoveStopModal = closeRemoveStopModal;
+    window.executeRemoveStopFromRoute = executeRemoveStopFromRoute;
+    window.confirmDeleteRoute = confirmDeleteRoute;
+    window.confirmDeleteCurrentRoute = confirmDeleteCurrentRoute;
+    window.closeDeleteRouteModal = closeDeleteRouteModal;
+    window.executeDeleteRoute = executeDeleteRoute;
+    window.toggleRouteStatus = toggleRouteStatus;
+    window.loadUnassignedWorkbenchData = loadUnassignedWorkbenchData;
+    window.handleUnassignedSearch = handleUnassignedSearch;
+    window.clearUnassignedSearch = clearUnassignedSearch;
+    window.handleUnassignedFilterChange = handleUnassignedFilterChange;
+    window.toggleSelectUnassigned = toggleSelectUnassigned;
+    window.toggleSelectAllUnassigned = toggleSelectAllUnassigned;
+    window.executeBatchAssignToRoute = executeBatchAssignToRoute;
+    window.quickAssignUnassigned = quickAssignUnassigned;
+
 
     state.seqManagement = {
       currentStaffId: '',
