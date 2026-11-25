@@ -4185,7 +4185,7 @@ var state = {
           if (custSelect) {
             custSelect.value = custId;
           }
-          var searchInput = document.getElementById('dccSearchInput');
+          var searchInput = document.getElementById('dccRosterSearch') || document.getElementById('dccSearchInput');
           var nameEl = document.getElementById('editCustName');
           if (searchInput && nameEl && nameEl.value) {
             searchInput.value = nameEl.value.trim();
@@ -4324,25 +4324,73 @@ var state = {
       if (specialBadge) specialBadge.textContent = activeJobs.length;
 
       if (activeJobs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 28px; color: var(--text-muted);"><div class="empty-radar-wrap" style="width: 48px; height: 48px; margin: 0 auto 10px auto;"><div class="empty-radar-icon" style="font-size: 22px;">📋</div></div>No active assignments in queue. Use the dispatch form above to assign work.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 28px; color: var(--text-muted);"><div class="empty-radar-wrap" style="width: 48px; height: 48px; margin: 0 auto 10px auto;"><div class="empty-radar-icon" style="font-size: 22px;"><span class="material-symbols-outlined" style="font-size: 24px; vertical-align: middle;">assignment</span></div></div>No active assignments in queue. Use the dispatch form above to assign work.</td></tr>';
         return;
       }
 
       var html = '';
       activeJobs.forEach(function(j, idx) {
-        var dateStr = j.scheduled_date || j.assigned_at ? new Date(j.scheduled_date || j.assigned_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'Today';
+        var dateRaw = j.scheduledDate || j.scheduled_date || j.assignedAt || j.assigned_at;
+        var dateStr = 'Today';
+        if (dateRaw) {
+          var d = new Date(dateRaw);
+          if (!isNaN(d.getTime())) {
+            dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+          }
+        }
         var timeStr = j.scheduledTime || j.tentativeTime || j.scheduled_time || '';
         var seqStr = (j.sequenceOrder != null && j.sequenceOrder !== '') ? j.sequenceOrder : (j.sequence_order != null ? j.sequence_order : '');
-        var catLabel = (j.service_category || 'Job').replace(/_/g, ' ');
+
+        // Customer name mapping: check camelCase, snake_case, hindi name, customer code. No fake fallback label!
+        var rawCustName = (j.customerName || j.customer_name || j.name || '').trim();
+        var custName = rawCustName || (j.customerCode ? ('Customer #' + j.customerCode) : '—');
+        
+        // Vehicle or service site scope details
+        var vehicleMeta = (j.vehicle || j.vehicle_details || j.vehicle_num || j.siteDetails || j.site_details || '').trim();
+        if (!vehicleMeta && j.panelCount) {
+          vehicleMeta = j.panelCount + ' Solar Panels';
+        }
+
+        // Job/Service category mapping: human friendly label, no generic 'Job'
+        var rawCat = j.serviceCategory || j.service_category || j.serviceType || j.service_type || '';
+        var catLabel = '';
+        if (rawCat) {
+          catLabel = String(rawCat).replace(/_/g, ' ');
+          if (catLabel.toLowerCase() === 'solar cleaning') catLabel = 'Solar Cleaning';
+          else if (catLabel.toLowerCase() === 'car washing') catLabel = 'Car Wash';
+          else if (catLabel.toLowerCase() === 'daily car cleaning') catLabel = 'Daily Clean';
+          else if (catLabel.toLowerCase().indexOf('detailing') !== -1) catLabel = catLabel;
+        } else {
+          catLabel = 'On-Demand Service';
+        }
+
+        // Staff name mapping: camelCase, snake_case, code, or 'Unassigned'. No fake fallback label!
+        var rawStaffName = (j.staffName || j.staff_name || j.assigned_staff_name || '').trim();
+        var staffCode = (j.staffId || j.staff_code || j.assigned_staff_code || '').trim();
+        var staffDisplay = rawStaffName || (staffCode ? ('Staff #' + staffCode) : 'Unassigned');
+        var isUnassigned = (!rawStaffName && !staffCode) || staffDisplay.toLowerCase() === 'unassigned';
+        var staffInitial = isUnassigned ? '?' : (staffDisplay.replace(/[^a-zA-Z0-9]/g, '').charAt(0) || 'S').toUpperCase();
+
+        // Assignment status
+        var statusStr = (j.status || 'assigned').toLowerCase();
+        var statusBadgeClass = 'badge-active';
+        if (statusStr === 'in_progress' || statusStr === 'started') statusBadgeClass = 'badge-progress';
+        else if (statusStr === 'pending' || statusStr === 'assigned') statusBadgeClass = 'badge-active';
+        else if (statusStr === 'completed') statusBadgeClass = 'badge-completed';
+        else if (statusStr === 'cancelled') statusBadgeClass = 'badge-cancelled';
+
+        var statusDisplay = statusStr.replace(/_/g, ' ').toUpperCase();
+
+        var jobId = String(j.id || j.jobId || '');
 
         html += '<tr>';
         html += '  <td style="text-align: center;">' + (seqStr ? '<span class="special-route-seq-tag">#' + escapeHtml(String(seqStr)) + '</span>' : (idx + 1)) + '</td>';
-        html += '  <td><strong>' + dateStr + '</strong>' + (timeStr ? '<div style="font-size:11px; color:#d97706; font-weight:600; margin-top:2px;">⏰ ' + escapeHtml(timeStr) + '</div>' : '') + '</td>';
-        html += '  <td><div style="font-weight: 600;">' + escapeHtml(j.customer_name || 'Customer') + '</div><div style="font-size: 11px; color: var(--text-muted);">' + escapeHtml(j.vehicle_details || j.vehicle_num || '') + '</div></td>';
+        html += '  <td><strong>' + escapeHtml(dateStr) + '</strong>' + (timeStr ? '<div style="font-size:11px; color:#d97706; font-weight:600; margin-top:2px;">⏰ ' + escapeHtml(timeStr) + '</div>' : '') + '</td>';
+        html += '  <td><div style="font-weight: 600;">' + escapeHtml(custName) + '</div>' + (vehicleMeta ? '<div style="font-size: 11px; color: var(--text-muted);">' + escapeHtml(vehicleMeta) + '</div>' : '') + '</td>';
         html += '  <td><span class="m3-chip" style="font-size: 11px;">' + escapeHtml(catLabel) + '</span></td>';
-        html += '  <td><div class="staff-cell-pill"><span class="staff-avatar-dot">' + escapeHtml((j.staff_name || 'S').charAt(0).toUpperCase()) + '</span><span class="staff-cell-name">' + escapeHtml(j.staff_name || 'Staff') + '</span></div></td>';
-        html += '  <td style="text-align: center;"><span class="badge-status-pill badge-active">' + escapeHtml(j.status || 'assigned') + '</span></td>';
-        html += '  <td style="text-align: center;"><button type="button" class="btn-cell-action" onclick="openReassignJobModal(\'' + escapeHtml(j.id) + '\')" title="Reassign"><span class="material-symbols-outlined" style="font-size: 16px;">sync_alt</span></button></td>';
+        html += '  <td><div class="staff-cell-pill' + (isUnassigned ? ' staff-cell-unassigned' : '') + '"><span class="staff-avatar-dot' + (isUnassigned ? ' unassigned-dot' : '') + '">' + escapeHtml(staffInitial) + '</span><span class="staff-cell-name">' + escapeHtml(staffDisplay) + '</span></div></td>';
+        html += '  <td style="text-align: center;"><span class="badge-status-pill ' + statusBadgeClass + '">' + escapeHtml(statusDisplay) + '</span></td>';
+        html += '  <td style="text-align: center;"><button type="button" class="btn-cell-action" onclick="openReassignJobModal(\'' + escapeHtml(jobId) + '\')" title="Reassign Staff"><span class="material-symbols-outlined" style="font-size: 16px;">sync_alt</span></button></td>';
         html += '</tr>';
       });
 
@@ -12719,13 +12767,17 @@ function loadStaffCustomerData(staffId) {
     }
 
     function openSellPackageModalFromEditCustomer() {
-      var custId = document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value : '';
-      var rec = null;
-      if (state.currentEditCustomerIndex != null && state.adminRecords && state.adminRecords[state.currentEditCustomerIndex]) {
+      var optionalCust = arguments[0];
+      var custId = (typeof optionalCust === 'string' ? optionalCust : (optionalCust && (optionalCust.id || optionalCust.customerId))) || (document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value : '');
+      var rec = (typeof optionalCust === 'object' && optionalCust !== null) ? optionalCust : null;
+      if (!rec && state.currentEditCustomerIndex != null && state.adminRecords && state.adminRecords[state.currentEditCustomerIndex]) {
         rec = state.adminRecords[state.currentEditCustomerIndex];
       }
       if (!rec && custId && state.adminRecords) {
         rec = state.adminRecords.find(function(r) { return r.id === custId || r.customerId === custId; });
+      }
+      if (!rec && custId && typeof cachedRecords !== 'undefined' && Array.isArray(cachedRecords)) {
+        rec = cachedRecords.find(function(r) { return r.id === custId || r.customerId === custId; });
       }
 
       var name = (rec && (rec.customerName || rec.name)) || 'Customer';
@@ -12884,22 +12936,26 @@ function loadStaffCustomerData(staffId) {
     function handleSellPackageSubmit(e) {
       if (e) e.preventDefault();
 
-      var custId = document.getElementById('sellPkgCustomerId').value;
+      var custId = (document.getElementById('sellPkgCustomerId') || {}).value;
       if (!custId) {
         showToast('Customer ID missing', '❌');
         return;
       }
 
-      var category = document.getElementById('sellPkgCategory').value;
-      var templateCode = document.getElementById('sellPkgCatalogSelect').value;
-      var name = document.getElementById('sellPkgName').value.trim();
-      var qty = parseInt(document.getElementById('sellPkgTotalQuantity').value, 10);
-      var price = parseFloat(document.getElementById('sellPkgPrice').value) || 0;
-      var validity = parseInt(document.getElementById('sellPkgValidityMonths').value, 10) || 6;
-      var payStatus = document.getElementById('sellPkgPaymentStatus').value;
-      var assetId = document.getElementById('sellPkgAssetSelect').value;
-      var locationId = document.getElementById('sellPkgLocationSelect').value;
-      var notes = document.getElementById('sellPkgNotes').value.trim();
+      var category = (document.getElementById('sellPkgCategory') || {}).value || 'Car Washing';
+      var templateCode = (document.getElementById('sellPkgCatalogSelect') || document.getElementById('sellPkgSelect') || {}).value || 'CUSTOM';
+      var nameInp = document.getElementById('sellPkgName');
+      var name = nameInp ? nameInp.value.trim() : (templateCode !== 'CUSTOM' ? templateCode : 'Service Package');
+      var qtyInp = document.getElementById('sellPkgTotalQuantity') || document.getElementById('sellPkgQuantity');
+      var qty = parseInt(qtyInp ? qtyInp.value : '1', 10) || 1;
+      var priceInp = document.getElementById('sellPkgPrice');
+      var price = parseFloat(priceInp ? priceInp.value : '0') || 0;
+      var validityInp = document.getElementById('sellPkgValidityMonths');
+      var validity = parseInt(validityInp ? validityInp.value : '6', 10) || 6;
+      var payStatus = (document.getElementById('sellPkgPaymentStatus') || {}).value || 'paid';
+      var assetId = (document.getElementById('sellPkgAssetSelect') || {}).value || null;
+      var locationId = (document.getElementById('sellPkgLocationSelect') || {}).value || null;
+      var notes = (document.getElementById('sellPkgNotes') || {}).value ? document.getElementById('sellPkgNotes').value.trim() : '';
 
       if (!name) {
         showToast('Package name is required', '⚠️');
@@ -12910,7 +12966,7 @@ function loadStaffCustomerData(staffId) {
         return;
       }
 
-      var btn = document.getElementById('btnSubmitSellPackage');
+      var btn = document.getElementById('btnSubmitSellPackage') || document.getElementById('btnSubmitSellPkg');
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<span class="cwp-spinner"></span> Selling Package...';
@@ -12952,11 +13008,12 @@ function loadStaffCustomerData(staffId) {
     }
 
     function openRedeemPackageModal(packageId) {
-      var pkg = (state.customerPackages || []).find(function(p) { return p.id === packageId; });
+      var pkg = (typeof packageId === 'object' && packageId !== null) ? packageId : ((state.customerPackages || []).find(function(p) { return p.id === packageId || p.package_id === packageId; }) || (window.customerPackagesCache && window.customerPackagesCache[packageId]));
       if (!pkg) {
         showToast('Package record not found', '❌');
         return;
       }
+      var realPkgId = (typeof packageId === 'object' && packageId !== null) ? (pkg.id || pkg.package_id) : packageId;
 
       var total = pkg.total_quantity || pkg.totalQuantity || 0;
       var redeemed = pkg.redeemed_quantity || pkg.redeemedQuantity || 0;
@@ -12967,10 +13024,10 @@ function loadStaffCustomerData(staffId) {
         return;
       }
 
-      var idInput = document.getElementById('redeemPackageId');
+      var idInput = document.getElementById('redeemPackageId') || document.getElementById('redeemPkgId');
       if (idInput) idInput.value = packageId;
 
-      var nameEl = document.getElementById('redeemPkgNameDisplay');
+      var nameEl = document.getElementById('redeemPkgNameDisplay') || document.getElementById('redeemPkgTitle');
       if (nameEl) nameEl.textContent = pkg.package_name || pkg.packageName || 'Service Package';
 
       var rec = null;
@@ -12980,12 +13037,12 @@ function loadStaffCustomerData(staffId) {
       var custEl = document.getElementById('redeemPkgCustDisplay');
       if (custEl) custEl.textContent = 'Customer: ' + ((rec && (rec.customerName || rec.name)) || 'Selected Customer');
 
-      var remEl = document.getElementById('redeemPkgRemainingQty');
+      var remEl = document.getElementById('redeemPkgRemainingQty') || document.getElementById('redeemPkgRemaining');
       var totEl = document.getElementById('redeemPkgTotalQty');
       if (remEl) remEl.textContent = remaining;
       if (totEl) totEl.textContent = total;
 
-      var qtyInput = document.getElementById('redeemQuantity');
+      var qtyInput = document.getElementById('redeemQuantity') || document.getElementById('redeemPkgQuantity');
       if (qtyInput) {
         qtyInput.value = 1;
         qtyInput.max = remaining;
@@ -13047,17 +13104,18 @@ function loadStaffCustomerData(staffId) {
     function handleRedeemPackageSubmit(e) {
       if (e) e.preventDefault();
 
-      var packageId = document.getElementById('redeemPackageId').value;
+      var packageId = (document.getElementById('redeemPackageId') || document.getElementById('redeemPkgId') || {}).value;
       if (!packageId) {
         showToast('Package ID missing', '❌');
         return;
       }
 
-      var qty = parseInt(document.getElementById('redeemQuantity').value, 10) || 1;
-      var serviceDate = document.getElementById('redeemServiceDate').value || new Date().toISOString().slice(0, 10);
-      var assetId = document.getElementById('redeemAssetSelect').value;
-      var locationId = document.getElementById('redeemLocationSelect').value;
-      var notes = document.getElementById('redeemNotes').value.trim();
+      var qtyInp = document.getElementById('redeemQuantity') || document.getElementById('redeemPkgQuantity');
+      var qty = parseInt(qtyInp ? qtyInp.value : '1', 10) || 1;
+      var serviceDate = (document.getElementById('redeemServiceDate') || {}).value || new Date().toISOString().slice(0, 10);
+      var assetId = (document.getElementById('redeemAssetSelect') || {}).value || null;
+      var locationId = (document.getElementById('redeemLocationSelect') || {}).value || null;
+      var notes = (document.getElementById('redeemNotes') || document.getElementById('redeemPkgNotes') || {}).value ? (document.getElementById('redeemNotes') || document.getElementById('redeemPkgNotes')).value.trim() : '';
 
       var btn = document.getElementById('btnSubmitRedeemPackage');
       if (btn) {
@@ -13116,7 +13174,8 @@ function loadStaffCustomerData(staffId) {
     }
 
     function openPackageHistoryModal(packageId) {
-      var pkg = (state.customerPackages || []).find(function(p) { return p.id === packageId; });
+      var pkg = (typeof packageId === 'object' && packageId !== null) ? packageId : ((state.customerPackages || []).find(function(p) { return p.id === packageId || p.package_id === packageId; }) || (window.customerPackagesCache && window.customerPackagesCache[packageId]));
+      var realPkgId = (typeof packageId === 'object' && packageId !== null) ? (pkg ? (pkg.id || pkg.package_id) : '') : packageId;
       var titleEl = document.getElementById('pkgHistoryTitle');
       var metaEl = document.getElementById('pkgHistoryMeta');
       var container = document.getElementById('pkgHistoryListContainer');
@@ -13138,7 +13197,7 @@ function loadStaffCustomerData(staffId) {
       var modal = document.getElementById('packageHistoryModal');
       if (modal) modal.style.display = 'flex';
 
-      apiCall('getPackageRedemptionHistory', { packageId: packageId }, function(res) {
+      apiCall('getPackageRedemptionHistory', { packageId: realPkgId }, function(res) {
         var logs = (res && res.redemptions) || [];
         if (!container) return;
 
@@ -13458,22 +13517,78 @@ function loadStaffCustomerData(staffId) {
     }
 
     function openCreateBookingModalFromCustomer() {
-      var custId = document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value : '';
-      var custRec = null;
-      if (state.currentEditCustomerIndex != null && state.adminRecords && state.adminRecords[state.currentEditCustomerIndex]) {
+      var optionalCust = arguments[0];
+      var custId = (typeof optionalCust === 'string' ? optionalCust : (optionalCust && (optionalCust.id || optionalCust.customerId))) || (document.getElementById('editCustomerId') ? document.getElementById('editCustomerId').value : '');
+      var custRec = (typeof optionalCust === 'object' && optionalCust !== null) ? optionalCust : null;
+      if (!custRec && state.currentEditCustomerIndex != null && state.adminRecords && state.adminRecords[state.currentEditCustomerIndex]) {
         custRec = state.adminRecords[state.currentEditCustomerIndex];
         if (!custId) custId = custRec.id || custRec.customerId || custRec.customerCode || '';
       }
+      if (!custRec && custId && state.adminRecords) {
+        custRec = state.adminRecords.find(function(r) { return r.id === custId || r.customerId === custId; });
+      }
+      if (!custRec && custId && typeof cachedRecords !== 'undefined' && Array.isArray(cachedRecords)) {
+        custRec = cachedRecords.find(function(r) { return r.id === custId || r.customerId === custId; });
+      }
 
-      var custName = document.getElementById('editCustName') ? document.getElementById('editCustName').value : (custRec ? (custRec.customerName || custRec.name) : 'Customer');
-      var custPhone = document.getElementById('editCustMobile') ? document.getElementById('editCustMobile').value : (custRec ? (custRec.mobileNumber || custRec.phone) : '');
+      // DEF-03: Robust Customer Name & Phone Resolution with anti-stale protection
+      var editCustIdInput = document.getElementById('editCustomerId');
+      var currentEditId = (editCustIdInput && typeof editCustIdInput.value === 'string') ? editCustIdInput.value.trim() : '';
+      var isSameAsEditForm = Boolean(custId && currentEditId && String(custId).toLowerCase() === String(currentEditId).toLowerCase());
+
+      var editFormName = '';
+      var editNameInput = document.getElementById('editCustName');
+      if (editNameInput && typeof editNameInput.value === 'string' && editNameInput.value.trim()) {
+        editFormName = editNameInput.value.trim();
+      }
+
+      var editFormPhone = '';
+      var editPhoneInput = document.getElementById('editCustPhone') || document.getElementById('editCustMobile');
+      if (editPhoneInput && typeof editPhoneInput.value === 'string' && editPhoneInput.value.trim()) {
+        editFormPhone = editPhoneInput.value.trim();
+      }
+
+      var recName = '';
+      var recPhone = '';
+      if (custRec) {
+        recName = (custRec.customerName || custRec.customer_name || custRec.name || custRec.clientName || '').trim();
+        recPhone = (custRec.mobileNumber || custRec.phone || custRec.customerNumber || custRec.mobile || '').trim();
+      }
+
+      var custName = '';
+      // Priority 1: If current edit form matches this customer ID and has a non-empty name
+      if (isSameAsEditForm && editFormName) {
+        custName = editFormName;
+      } else if (recName) {
+        // Priority 2: Valid selected customer record name
+        custName = recName;
+      } else if (editFormName && !optionalCust) {
+        // Priority 3: Form name when opened directly without specific customer object
+        custName = editFormName;
+      } else if (custRec && (custRec.customerCode || custRec.customer_code)) {
+        // Priority 4: Customer Code
+        custName = 'Customer #' + (custRec.customerCode || custRec.customer_code);
+      } else if (custId) {
+        custName = 'Customer #' + custId;
+      } else {
+        custName = 'Customer';
+      }
+
+      var custPhone = '';
+      if (isSameAsEditForm && editFormPhone) {
+        custPhone = editFormPhone;
+      } else if (recPhone) {
+        custPhone = recPhone;
+      } else if (editFormPhone && !optionalCust) {
+        custPhone = editFormPhone;
+      }
 
       var dName = document.getElementById('bookingCustNameDisplay');
       var dPhone = document.getElementById('bookingCustPhoneDisplay');
       var dId = document.getElementById('bookingCustIdBadge');
       var inputCustId = document.getElementById('bookingCustomerId');
 
-      if (dName) dName.textContent = custName || 'Unknown Customer';
+      if (dName) dName.textContent = custName;
       if (dPhone) dPhone.textContent = custPhone ? ('+91 ' + custPhone) : 'No mobile registered';
       if (dId) dId.textContent = custId ? ('ID: ' + custId) : 'New';
       if (inputCustId) inputCustId.value = custId || '';
@@ -13600,6 +13715,11 @@ function loadStaffCustomerData(staffId) {
       if (!custId) {
         showToast('Customer ID is required for booking', '❌');
         return;
+      }
+      if (!serviceType && cat) {
+        serviceType = cat.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+        var sInp = document.getElementById('bookingServiceType');
+        if (sInp) sInp.value = serviceType;
       }
       if (!serviceType) {
         showToast('Please enter a service title / name', '⚠️');
@@ -17175,12 +17295,12 @@ function loadStaffCustomerData(staffId) {
 
       var progressEl = document.getElementById('routeProgressCount');
       if (progressEl) {
-        progressEl.textContent = cleanCount + ' / ' + total + ' सफाई पूर्ण';
+        progressEl.textContent = cleanCount + ' / ' + total;
       }
 
       var percentEl = document.getElementById('routeProgressPercent');
       if (percentEl) {
-        percentEl.textContent = cleanPercent + '% (विज़िट: ' + visitedCount + '/' + total + ', ' + visitPercent + '%)';
+        percentEl.textContent = cleanPercent + '%';
       }
 
       var barFill = document.getElementById('routeProgressBarFill');
@@ -17499,9 +17619,9 @@ function loadStaffCustomerData(staffId) {
 
     function openStartSpecialJobModal(jobId, triggerEl) {
       if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
-      currentStartJobId = jobId;
+      var job = (typeof jobId === 'object' && jobId !== null) ? jobId : ((state.customers || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }) || ((window.adminSpecialState && adminSpecialState.jobs) || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }));
+      currentStartJobId = (typeof jobId === 'object' && jobId !== null) ? (job.id || job.jobId) : jobId;
       startJobPhotos = [];
-      var job = (state.customers || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); });
       if (!job) {
         showToast('काम की जानकारी नहीं मिली।', '⚠️');
         return;
@@ -17661,9 +17781,9 @@ function loadStaffCustomerData(staffId) {
 
     function openCompleteSpecialJobModal(jobId, triggerEl) {
       if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
-      currentCompleteJobId = jobId;
+      var job = (typeof jobId === 'object' && jobId !== null) ? jobId : ((state.customers || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }) || ((window.adminSpecialState && adminSpecialState.jobs) || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }));
+      currentCompleteJobId = (typeof jobId === 'object' && jobId !== null) ? (job.id || job.jobId) : jobId;
       completeJobPhotos = [];
-      var job = (state.customers || []).find(function(c) { return (c.jobId || c.id) === jobId; });
       if (!job) {
         showToast('काम की जानकारी नहीं मिली।', '⚠️');
         return;
@@ -17795,8 +17915,8 @@ function loadStaffCustomerData(staffId) {
 
     function openCancelSpecialJobModal(jobId, triggerEl) {
       if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
-      currentCancelJobId = jobId;
-      var job = (state.customers || []).find(function(c) { return (c.jobId || c.id) === jobId; });
+      var job = (typeof jobId === 'object' && jobId !== null) ? jobId : ((state.customers || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }) || ((window.adminSpecialState && adminSpecialState.jobs) || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }));
+      currentCancelJobId = (typeof jobId === 'object' && jobId !== null) ? (job.id || job.jobId) : jobId;
       if (!job) {
         showToast('काम की जानकारी नहीं मिली।', '⚠️');
         return;
@@ -18311,15 +18431,34 @@ function loadStaffCustomerData(staffId) {
 
       var meta = '';
       if (job) {
-        var catName = job.serviceType || job.serviceCategoryId;
+        // DEF-02: Robust Service Category / Service Type Resolution
+        var rawCat = '';
+        if (typeof job.serviceCategory === 'string' && job.serviceCategory.trim()) {
+          rawCat = job.serviceCategory.trim();
+        } else if (typeof job.service_category === 'string' && job.service_category.trim()) {
+          rawCat = job.service_category.trim();
+        } else if (typeof job.serviceType === 'string' && job.serviceType.trim()) {
+          rawCat = job.serviceType.trim();
+        } else if (typeof job.service_type === 'string' && job.service_type.trim()) {
+          rawCat = job.service_type.trim();
+        } else if (typeof job.serviceCategoryId === 'string' && job.serviceCategoryId.trim()) {
+          rawCat = job.serviceCategoryId.trim();
+        } else if (typeof job.service_category_id === 'string' && job.service_category_id.trim()) {
+          rawCat = job.service_category_id.trim();
+        }
+
+        var catName = rawCat ? String(rawCat).replace(/_/g, ' ') : 'On-Demand Service';
+
         var scope = '';
         if (job.panelCount) {
-          scope = ' • ☀️ ' + job.panelCount + ' Panels';
+          scope = ' • ' + job.panelCount + ' Solar Panels';
         } else if (job.seaterType) {
-          scope = ' • ' + (job.seaterType === '5_plus_seater' ? '🚙 5+ Seater' : '🚗 5 Seater');
+          scope = ' • ' + (job.seaterType === '5_plus_seater' ? '5+ Seater' : '5 Seater');
         }
-        var pkg = job.packageDetails ? ' • ' + job.packageDetails : '';
-        meta = catName + scope + pkg;
+        var pkg = (job.packageDetails && typeof job.packageDetails === 'string' && job.packageDetails.trim())
+          ? ' • ' + job.packageDetails.trim()
+          : '';
+        meta = (catName + scope + pkg).trim();
       }
       if (metaEl) metaEl.textContent = meta || 'On-Demand Service Task';
 
@@ -19250,6 +19389,28 @@ function loadStaffCustomerData(staffId) {
       window.setAppThemeMode = setAppThemeMode;
       window.updateSettingsPrefButtons = updateSettingsPrefButtons;
       window.renderCustomerCards = renderCustomerCards;
+
+      // Packages and Bookings Modal & Workflow Controls
+      window.openSellPackageModalFromEditCustomer = openSellPackageModalFromEditCustomer;
+      window.openSellPackageModal = openSellPackageModalFromEditCustomer;
+      window.closeSellPackageModal = closeSellPackageModal;
+      window.handleSellPackageSubmit = handleSellPackageSubmit;
+      window.handleSellPackageCategoryChange = handleSellPackageCategoryChange;
+      window.handleSellPackageCatalogChange = handleSellPackageCatalogChange;
+
+      window.openRedeemPackageModal = openRedeemPackageModal;
+      window.closeRedeemPackageModal = closeRedeemPackageModal;
+      window.handleRedeemPackageSubmit = handleRedeemPackageSubmit;
+
+      window.openPackageHistoryModal = openPackageHistoryModal;
+      window.closePackageHistoryModal = closePackageHistoryModal;
+
+      window.openCreateBookingModalFromCustomer = openCreateBookingModalFromCustomer;
+      window.openCreateBookingModal = openCreateBookingModalFromCustomer;
+      window.closeCreateBookingModal = closeCreateBookingModal;
+      window.handleCreateBookingSubmit = handleCreateBookingSubmit;
+      window.handleBookingCategoryChange = handleBookingCategoryChange;
+      window.handleBookingPackageSelectChange = handleBookingPackageSelectChange;
       /* =========================================================================
        STAFF PWA REALTIME LOCATION TRACKING & ON-DEMAND PING CLIENT
        ========================================================================= */

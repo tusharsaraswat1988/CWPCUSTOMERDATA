@@ -1145,6 +1145,11 @@
       <option value="not_present">🚫 Car Not Present (कार नहीं थी)</option>
       </select>
       </div>
+      <div class="filter-select-wrapper">
+      <select id="reportRouteFilter" class="report-select-input" onchange="loadDailyCleanReports()">
+      <option value="all">All Routes (सभी रूट्स)</option>
+      </select>
+      </div>
       <div class="report-search-wrapper">
       <svg class="report-search-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"> <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/> </svg>
       <input type="text" id="reportSearchFilter" class="report-search-input" placeholder="Search customer, vehicle plate, phone, location..." oninput="debounceReportSearch()">
@@ -1550,6 +1555,21 @@
       </span>
      </div>
     </label>
+      </div>
+      <div id="cameraNonCompletionReasonBox" style="display: none; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 12px; margin: 10px 0 14px 0;">
+        <label for="cameraNonCompletionReasonSelect" style="display: block; font-size: 12.5px; font-weight: 700; color: #9f1239; margin-bottom: 6px;">
+          कारण चुनें (Select Non-Completion Reason) *
+        </label>
+        <select id="cameraNonCompletionReasonSelect" class="form-select" style="height: 38px; font-size: 12.5px; margin-bottom: 8px;">
+          <option value="car_not_present">Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)</option>
+          <option value="customer_absent">Customer absent (ग्राहक अनुपस्थित है)</option>
+          <option value="vehicle_not_available">Vehicle not available (गाड़ी उपलब्ध नहीं थी / गैराज बंद था)</option>
+          <option value="skipped">Skipped (सोसायटी या गेट प्रवेश अस्वीकृत)</option>
+        </select>
+        <label for="cameraNonCompletionNotes" style="display: block; font-size: 12px; font-weight: 600; color: #9f1239; margin-bottom: 4px;">
+          टिप्पणी / विवरण (Optional Remarks)
+        </label>
+        <input type="text" id="cameraNonCompletionNotes" class="form-input" placeholder="e.g. Guard refused entry / Car out of town" style="height: 36px; font-size: 12px;">
       </div>
       <div class="camera-review-actions">
     <button type="button" class="btn-review-retake" id="btnReviewRetake" onclick="retakeCleaningPhoto()">
@@ -2081,6 +2101,7 @@
       <input type="text" id="custSecAddressHi">
       <input type="text" id="custSecMaps">
       </div></div>
+      <label class="form-label" for="custVehicles" id="custVehicleLabel">Vehicle Number & Model *</label>
       <input type="text" id="custVehicles" class="form-input" placeholder="e.g. UP65 AB 1234">
       <input type="file" id="custPhotoFile" accept="image/*">
       <button type="button" id="custPhotoPlaceholder"></button>
@@ -2093,7 +2114,22 @@
       <label for="custCarColor"><span>Car Color</span> <span class="opt-tag">(Optional)</span></label>
       <input type="text" id="custCarColor" class="form-input" list="carColorDatalist">
       </div>
-      <input type="radio" name="custSeaterType" value="5_seater" checked style="display: none;">
+      <div class="form-group" id="custSeaterRow">
+        <label class="form-label">Vehicle Sizing (सीटर श्रेणी)</label>
+        <div class="seater-segmented-control" role="radiogroup">
+          <label class="seater-radio-btn active" id="labelCustSeater5" style="display: inline-flex; align-items: center; gap: 6px;">
+            <input type="radio" name="custSeaterType" value="5_seater" checked onchange="handleCustSeaterChange(this.value)">
+            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">directions_car</span>
+            <span>5 Seater</span>
+          </label>
+          <label class="seater-radio-btn" id="labelCustSeater5Plus" style="display: inline-flex; align-items: center; gap: 6px;">
+            <input type="radio" name="custSeaterType" value="5_plus_seater" onchange="handleCustSeaterChange(this.value)">
+            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">airport_shuttle</span>
+            <span>5+ Seater</span>
+          </label>
+        </div>
+        <input type="hidden" id="custSeaterTypeHidden" value="5_seater">
+      </div>
      </div>
      <div class="cwp-stepper-footer">
       <label class="cwp-lead-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 600; color: #b45309; background: rgba(245, 158, 11, 0.12); padding: 5px 10px; border-radius: 20px; border: 1px solid rgba(245, 158, 11, 0.3);">
@@ -2385,6 +2421,7 @@
       <input type="text" id="editCustSecAddressHi">
       <input type="text" id="editCustSecMaps">
       </div></div>
+     <label class="form-label" for="editCustVehicles" id="editCustVehiclesLabel">Vehicle Number & Model *</label>
      <input type="text" id="editCustVehicles" class="form-input">
      <input type="file" id="editCustPhotoFile" accept="image/*">
      <button type="button" id="btnEditUploadPhoto"></button>
@@ -2395,7 +2432,22 @@
       <input type="text" id="editCustCarMake" class="form-input">
       <input type="text" id="editCustCarColor" class="form-input">
      </div>
-     <input type="radio" name="editCustSeaterType" value="5_seater" checked style="display: none;">
+     <div class="form-group" id="editCustSeaterRow">
+        <label class="form-label">Vehicle Sizing (सीटर श्रेणी)</label>
+        <div class="seater-segmented-control" role="radiogroup">
+          <label class="seater-radio-btn active" id="labelEditCustSeater5" style="display: inline-flex; align-items: center; gap: 6px;">
+            <input type="radio" name="editCustSeaterType" value="5_seater" checked onchange="handleEditCustSeaterChange(this.value)">
+            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">directions_car</span>
+            <span>5 Seater</span>
+          </label>
+          <label class="seater-radio-btn" id="labelEditCustSeater5Plus" style="display: inline-flex; align-items: center; gap: 6px;">
+            <input type="radio" name="editCustSeaterType" value="5_plus_seater" onchange="handleEditCustSeaterChange(this.value)">
+            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">airport_shuttle</span>
+            <span>5+ Seater</span>
+          </label>
+        </div>
+        <input type="hidden" id="editCustSeaterTypeHidden" value="5_seater">
+      </div>
     </div>
     <div class="modal-card-footer" style="padding: 12px 0 0 0; margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
      <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteCustomerFromModal()" style="font-weight: 600;">
@@ -2579,7 +2631,35 @@
     <div style="font-size: 11px; color: var(--text-muted);">CWP Automotive Staff Record</div></div>
 
       <div style="background: var(--bg-surface); padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 14px;">
-    <div id="editStaffAvatarWrapper" onclick="var f=document.getElementById('editStaffPhotoFile'); if(f){f.value=''; f.click();}" title="Click to upload/change photo" style="position: relative; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: #e2e8f0; border: 2px solid var(--brand-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer;">
+    <div id="modalStaffLockedBanner" style="display: none; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; align-items: center; justify-content: space-between; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-outlined" style="color: #dc2626; font-size: 20px;" aria-hidden="true">lock_clock</span>
+          <div>
+            <div style="font-weight: 700; font-size: 13px; color: #991b1b;">Account Locked (अकाउंट लॉक है)</div>
+            <div id="modalStaffLockedReason" style="font-size: 11.5px; color: #b91c1c;">5 बार गलत पिन डालने के कारण अकाउंट लॉक है।</div>
+          </div>
+        </div>
+        <button type="button" class="btn-admin-action" onclick="handleUnlockStaffFromModal()" style="background: #dc2626; color: #fff; border-color: #dc2626; font-size: 11.5px; padding: 6px 12px; font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;">
+          <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">lock_open</span>
+          <span>Unlock Staff</span>
+        </button>
+      </div>
+
+      <div id="modalStaffActiveSessionBanner" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; align-items: center; justify-content: space-between; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-outlined" style="color: #16a34a; font-size: 20px;" aria-hidden="true">phonelink_lock</span>
+          <div>
+            <div style="font-weight: 700; font-size: 13px; color: #166534;">Active Mobile Session (सक्रिय मोबाइल)</div>
+            <div id="modalStaffActiveSessionInfo" style="font-size: 11.5px; color: #15803d;">स्टाफ एक फोन पर लॉग इन है। नया फोन लॉगिन करवाने के लिए रीसेट करें।</div>
+          </div>
+        </div>
+        <button type="button" class="btn-admin-action" onclick="handleResetStaffDeviceSessionFromModal()" style="background: #16a34a; color: #fff; border-color: #16a34a; font-size: 11.5px; padding: 6px 12px; font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;">
+          <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">devices</span>
+          <span>Reset Device</span>
+        </button>
+      </div>
+
+      <div id="editStaffAvatarWrapper" onclick="var f=document.getElementById('editStaffPhotoFile'); if(f){f.value=''; f.click();}" title="Click to upload/change photo" style="position: relative; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: #e2e8f0; border: 2px solid var(--brand-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer;">
      <img id="editStaffPhotoPreview" src="" alt="Staff Photo" style="width: 100%; height: 100%; object-fit: cover; display: none;">
      <span id="editStaffPhotoInitial" style="font-size: 24px; font-weight: 700; color: #475569;">S</span>
     </div>
@@ -3256,6 +3336,7 @@
       <input type="radio" name="convertSeaterType" value="5_plus_seater" onchange="handleConvertSeaterChange(this.value)">
       <span>🚙 5+ Seater</span>
      </label>
+     <input type="hidden" id="convertSeaterTypeHidden" value="5_seater">
     </div></div>
       <div class="form-group">
     <label class="form-label" for="convertStaffSelect">Assign Cleaner / Staff <span class="opt-tag">(Optional)</span></label>
@@ -3315,7 +3396,9 @@
   <div class="modal-card-box modal-card-box-lg" onclick="event.stopPropagation()" style="max-width: 600px; display: flex; flex-direction: column;">
     <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(217, 119, 6, 0.12), rgba(180, 83, 9, 0.05));">
       <div style="display: flex; align-items: center; gap: 10px;">
-    <div style="width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, #d97706, #b45309); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px;">⚡</div>
+    <div style="width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, #d97706, #b45309); color: #fff; display: flex; align-items: center; justify-content: center;">
+      <span class="material-symbols-outlined" style="font-size: 20px;" aria-hidden="true">bolt</span>
+    </div>
     <div>
      <h3 class="modal-card-title" id="assignSpecialJobModalTitle" style="margin-bottom: 0;">Assign On-Demand / Special Job</h3>
      <span style="font-size: 12px; color: var(--text-secondary);">Direct dispatch for Solar Panel Cleaning or Car Washing (Verbal request)</span>
@@ -3376,21 +3459,21 @@
       <div class="form-group">
       <label class="form-label" for="specialServiceCategory">Service Category <span class="req-star" style="color: #ef4444;">*</span></label>
       <select id="specialServiceCategory" class="form-select" onchange="handleSpecialCategoryChange(this.value)" required style="height: 40px;">
-      <option value="solar_cleaning" selected>☀️ Solar Panel Cleaning (सोलर सफाई)</option>
-      <option value="car_washing">🧼 Car Wash (कार वॉश)</option>
-      <option value="interior_detailing">✨ Interior Detailing (इंटीरियर डिटेलिंग)</option>
-      <option value="exterior_detailing">🛡️ Exterior Detailing (एक्सटीरियर डिटेलिंग)</option>
-      <option value="daily_car_cleaning">🚗 Daily Car Cleaning (दैनिक कार सफाई)</option>
+      <option value="solar_cleaning" selected>Solar Panel Cleaning (सोलर सफाई)</option>
+      <option value="car_washing">Car Wash (कार वॉश)</option>
+      <option value="interior_detailing">Interior Detailing (इंटीरियर डिटेलिंग)</option>
+      <option value="exterior_detailing">Exterior Detailing (एक्सटीरियर डिटेलिंग)</option>
+      <option value="daily_car_cleaning">Daily Car Cleaning (दैनिक कार सफाई)</option>
       </select>
       </div>
       <div class="form-group"><label class="form-label" for="specialScheduledDate">Scheduled Date <span class="req-star" style="color: #ef4444;">*</span></label><input type="date" id="specialScheduledDate" class="form-input" required style="height: 40px;"></div></div>
      <div class="form-row-2" style="margin-top: 10px;">
       <div class="form-group" style="margin-bottom: 0;">
       <label class="form-label" for="specialScheduledTime">
-      <span>⏰ Tentative Time / Time Slot (संभावित समय) <span class="req-star" style="color: #ef4444;">*</span></span>
+      <span>Tentative Time / Time Slot (संभावित समय) <span class="req-star" style="color: #ef4444;">*</span></span>
       </label>
       <div class="input-icon-wrap">
-      <span class="input-icon">🕒</span>
+      <span class="material-symbols-outlined input-icon" style="font-size: 18px;" aria-hidden="true">schedule</span>
       <input type="text" id="specialScheduledTime" class="form-input with-icon" list="tentativeTimePresets" placeholder="e.g. 09:00 AM or 11:00 AM - 12:30 PM" required style="height: 40px;">
       </div>
       <datalist id="tentativeTimePresets">
@@ -3415,7 +3498,7 @@
       </div></div>
       <div class="form-group" style="margin-bottom: 0;">
       <label class="form-label" for="specialSequenceOrder">
-      <span>🔢 Visit Sequence (विजिट का क्रम / Stop #)</span>
+      <span>Visit Sequence (विजिट का क्रम / Stop #)</span>
       </label>
       <div class="input-icon-wrap">
       <span class="input-icon">#</span>
@@ -3426,21 +3509,22 @@
      <div class="form-group" id="specialPackageTypeGroup" style="margin-top: 10px;"><label class="form-label" for="specialPackageType">Package / Service Option <span class="req-star" style="color: #ef4444;">*</span></label><select id="specialPackageType" class="form-select" style="height: 40px;" required></select></div>
      <div id="specialSolarDetailsBlock">
       <div class="form-row-2">
-      <div class="form-group"><label class="form-label" for="specialSolarPanelsCount">No. of Panels (पैनलों की संख्या) <span class="req-star" style="color: #ef4444;">*</span></label><div class="input-icon-wrap"><span class="input-icon">☀️</span><input type="number" id="specialSolarPanelsCount" class="form-input with-icon" min="1" max="5000" placeholder="e.g. 24" value="10"></div><span class="form-field-hint">Calculated on ₹ per panel basis</span></div>
+      <div class="form-group"><label class="form-label" for="specialSolarPanelsCount">No. of Panels (पैनलों की संख्या) <span class="req-star" style="color: #ef4444;">*</span></label><div class="input-icon-wrap"><span class="material-symbols-outlined input-icon" style="font-size: 18px;" aria-hidden="true">wb_sunny</span><input type="number" id="specialSolarPanelsCount" class="form-input with-icon" min="1" max="5000" placeholder="e.g. 24" value="10"></div><span class="form-field-hint">Calculated on ₹ per panel basis</span></div>
       <div class="form-group"><label class="form-label" for="specialSolarPanels">Roof Scope / Details</label><input type="text" id="specialSolarPanels" class="form-input" placeholder="e.g. 10KW Rooftop RCC, 3rd floor terrace"></div></div></div>
      <div id="specialCarWashDetailsBlock" style="display: none;">
       <div class="form-group">
-      <div class="form-group" style="margin-bottom: 8px;"><label class="form-label" for="specialCarVehicle">Vehicle Details (Car Number & Model)</label><div class="input-icon-wrap"><span class="input-icon">🚘</span><input type="text" id="specialCarVehicle" class="form-input with-icon" placeholder="e.g. UP65 AB 1234 (Creta)"></div></div>
-      <div class="form-group" style="margin-bottom: 8px;"><label class="form-label">Vehicle Sizing (सीटर श्रेणी)</label><div class="seater-segmented-control" role="radiogroup"><label class="seater-radio-btn active" id="labelSeater5"><input type="radio" name="specialSeaterType" value="5_seater" checked onchange="handleSpecialSeaterChange(this.value)"><span>🚗 5 Seater (Hatchback/Sedan)</span></label><label class="seater-radio-btn" id="labelSeater5Plus"><input type="radio" name="specialSeaterType" value="5_plus_seater" onchange="handleSpecialSeaterChange(this.value)"><span>🚙 5+ Seater (7 Seater / SUV / MPV)</span></label></div></div></div>
-      <div class="form-group" style="margin-bottom: 0;"><label class="form-label" for="specialInstructions">Special Instructions / Verbal Remarks</label><textarea id="specialInstructions" class="form-textarea form-textarea-compact" rows="2" placeholder="e.g. Customer verbally requested 2:30 PM slot. Terrace key with guard."></textarea></div></div>
+      <div class="form-group" style="margin-bottom: 8px;"><label class="form-label" for="specialCarVehicle">Vehicle Details (Car Number & Model)</label><div class="input-icon-wrap"><span class="material-symbols-outlined input-icon" style="font-size: 18px;" aria-hidden="true">directions_car</span><input type="text" id="specialCarVehicle" class="form-input with-icon" placeholder="e.g. UP65 AB 1234 (Creta)"></div></div>
+      <div class="form-group" style="margin-bottom: 8px;"><label class="form-label">Vehicle Sizing (सीटर श्रेणी)</label><div class="seater-segmented-control" role="radiogroup"><label class="seater-radio-btn active" id="labelSeater5" style="display: inline-flex; align-items: center; gap: 4px;"><input type="radio" name="specialSeaterType" value="5_seater" checked onchange="handleSpecialSeaterChange(this.value)"><span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">directions_car</span><span>5 Seater</span></label><label class="seater-radio-btn" id="labelSeater5Plus" style="display: inline-flex; align-items: center; gap: 4px;"><input type="radio" name="specialSeaterType" value="5_plus_seater" onchange="handleSpecialSeaterChange(this.value)"><span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">airport_shuttle</span><span>5+ Seater</span></label></div></div></div>
+      <div class="form-group" style="margin-bottom: 0;"><label class="form-label" for="specialInstructions">Special Instructions / Verbal Remarks</label><textarea id="specialInstructions" class="form-textarea form-textarea-compact" rows="2" placeholder="e.g. Customer verbally requested 2:30 PM slot. Terrace key with guard."></textarea></div></div></div>
      <div class="cwp-form-section-card">
       <div class="form-section-head"><span class="section-num-pill" style="background: #d97706;">3</span><div class="section-title-wrap"><span class="section-title-text">Staff Assignment</span><span class="section-subtitle-text">Assign to cleaner portal with real-time audio chime</span></div></div>
       <div class="form-group" style="margin-bottom: 0;"><label class="form-label" for="specialStaffSelect">Assign Cleaner / Staff <span class="req-star" style="color: #ef4444;">*</span></label><select id="specialStaffSelect" class="form-select" onchange="handleSpecialStaffChange()" required style="height: 40px;"><option value="">-- Choose Active Staff --</option></select><span class="form-field-hint">Staff will receive immediate audio chime, vibration alert and task in their app</span></div></div>
     <div id="assignSpecialJobError" style="display: none; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px;"></div>
     <div class="modal-card-footer" style="padding: 14px 0 0 0; margin-top: 12px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
      <button type="button" class="btn-cancel-form" onclick="closeAssignSpecialJobModal()">Cancel</button>
-     <button type="submit" id="btnSubmitAssignSpecial" class="btn-submit-main" style="background: linear-gradient(135deg, #d97706, #b45309); border-color: #b45309;">
-      <span>🚀</span> Assign & Dispatch Task
+     <button type="submit" id="btnSubmitAssignSpecial" class="btn-submit-main" style="background: linear-gradient(135deg, #d97706, #b45309); border-color: #b45309; display: inline-flex; align-items: center; gap: 6px;">
+      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">send</span>
+      <span>Assign & Dispatch Task</span>
      </button>
     </div>
       </form>
@@ -3449,7 +3533,9 @@
   <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 480px; width: 92%; display: flex; flex-direction: column;">
     <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(29, 78, 216, 0.05));">
       <div style="display: flex; align-items: center; gap: 10px;">
-    <div style="width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px;">🔁</div>
+    <div style="width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; display: flex; align-items: center; justify-content: center;">
+      <span class="material-symbols-outlined" style="font-size: 20px;" aria-hidden="true">sync_alt</span>
+    </div>
     <div>
      <h3 class="modal-card-title" id="reassignJobModalTitle" style="margin-bottom: 0;">Reassign Job to Staff</h3>
      <span style="font-size: 12px; color: var(--text-secondary);">काम दूसरे स्टाफ को सौंपें (Reassign Task)</span>
@@ -3462,22 +3548,23 @@
     <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;" id="reassignCustName">—</div>
     <div style="font-size: 12px; color: var(--text-secondary);" id="reassignServiceMeta">—</div>
     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">वर्तमान स्टाफ (Current Staff): <strong id="reassignCurrentStaff">—</strong></div></div>
-      <div class="form-group"><label class="form-label" for="reassignNewStaffSelect">Select New Staff (नया स्टाफ चुनें) <span class="req-star" style="color: #ef4444;">*</span></label><select id="reassignNewStaffSelect" name="reassignStaffSelect" class="form-select" required style="height: 42px;"><option value="">-- Choose New Staff --</option></select><span class="form-field-hint">New staff receives instant audio chime & task; removed from previous staff</span></div>
+      <div class="form-group"><label class="form-label" for="reassignNewStaffSelect">Select New Staff (नया स्टाफ चुनें) <span class="req-star" style="color: #ef4444;">*</span></label><select id="reassignNewStaffSelect" name="reassignNewStaffSelect" class="form-select" required style="height: 42px;"><option value="">-- Choose New Staff --</option></select><span class="form-field-hint">New staff receives instant audio chime & task; removed from previous staff</span></div>
       <div class="form-row-2" style="margin-bottom: 10px;">
     <div class="form-group" style="margin-bottom: 0;">
-     <label class="form-label" for="reassignScheduledTime">⏰ Tentative Time (संभावित समय)</label>
+     <label class="form-label" for="reassignScheduledTime">Tentative Time (संभावित समय)</label>
      <input type="text" id="reassignScheduledTime" list="tentativeTimePresets" class="form-input" placeholder="e.g. 10:00 AM">
     </div>
     <div class="form-group" style="margin-bottom: 0;">
-     <label class="form-label" for="reassignSequenceOrder">🔢 Visit Sequence (Stop #)</label>
+     <label class="form-label" for="reassignSequenceOrder">Visit Sequence (Stop #)</label>
      <input type="number" id="reassignSequenceOrder" class="form-input" min="1" max="50" placeholder="e.g. 1, 2, 3...">
     </div></div>
       <div class="form-group" style="margin-bottom: 0;"><label class="form-label" for="reassignReason">Reassignment Reason / Note <span class="opt-tag">(Optional)</span></label><input type="text" id="reassignReason" class="form-input" placeholder="e.g. Cleaner on leave, route adjustment"></div>
       <div id="reassignJobError" style="display: none; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px;"></div>
-      <div class="modal-card-footer" style="padding: 14px 0 0 0; margin-top: 14px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
+      <div class="modal-card-footer modal-footer-actions-responsive" style="padding: 14px 0 0 0; margin-top: 14px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
     <button type="button" class="btn-cancel-form" onclick="closeReassignJobModal()">Cancel</button>
-    <button type="submit" id="btnSubmitReassignJob" class="btn-submit-main" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); border-color: #1d4ed8;">
-     <span>🔁</span> Confirm Reassign
+    <button type="submit" id="btnSubmitReassignJob" class="btn-submit-main" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); border-color: #1d4ed8; display: inline-flex; align-items: center; gap: 6px;">
+     <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">sync_alt</span>
+     <span>Confirm Reassign</span>
     </button>
       </div>
     </form>
@@ -3739,20 +3826,47 @@
       </div>
       <form id="sellPackageForm" onsubmit="handleSellPackageSubmit(event)" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
         <input type="hidden" id="sellPkgCustomerId">
-        <div class="form-group">
-          <label class="form-label" for="sellPkgSelect">Select Package Template *</label>
-          <select id="sellPkgSelect" class="form-select" onchange="handleSellPkgTemplateChange(this.value)" required>
-            <option value="">-- Select Package --</option>
-          </select>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="modal-form-grid-2">
           <div class="form-group">
-            <label class="form-label" for="sellPkgQuantity">Total Service Units / Quantity *</label>
-            <input type="number" id="sellPkgQuantity" class="form-input" min="1" value="1" required>
+            <label class="form-label" for="sellPkgCategory">Service Category *</label>
+            <select id="sellPkgCategory" class="form-select" onchange="handleSellPackageCategoryChange(this.value)" required>
+              <option value="Car Washing" selected>Car Washing (कार वॉश)</option>
+              <option value="Solar Cleaning">Solar Cleaning (सोलर)</option>
+              <option value="Interior Detailing">Interior Detailing</option>
+              <option value="Exterior Detailing">Exterior Detailing</option>
+            </select>
           </div>
           <div class="form-group">
-            <label class="form-label" for="sellPkgPrice">Total Price (₹)</label>
-            <input type="number" id="sellPkgPrice" class="form-input" min="0" value="0">
+            <label class="form-label" for="sellPkgCatalogSelect">Package Template *</label>
+            <select id="sellPkgCatalogSelect" class="form-select" onchange="handleSellPackageCatalogChange(this.value)" required>
+              <option value="">-- Choose Template --</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sellPkgName">Package Name / Plan Title *</label>
+          <input type="text" id="sellPkgName" class="form-input" placeholder="e.g. Wash Subscription (4 Washes / 6 Months)" required>
+        </div>
+        <div class="modal-form-grid-4">
+          <div class="form-group">
+            <label class="form-label" for="sellPkgTotalQuantity">Units / Qty *</label>
+            <input type="number" id="sellPkgTotalQuantity" class="form-input" min="1" value="4" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sellPkgPrice">Price (₹)</label>
+            <input type="number" id="sellPkgPrice" class="form-input" min="0" value="1200">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sellPkgValidityMonths">Validity (Mo)</label>
+            <input type="number" id="sellPkgValidityMonths" class="form-input" min="1" max="60" value="6">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sellPkgPaymentStatus">Payment</label>
+            <select id="sellPkgPaymentStatus" class="form-select">
+              <option value="paid" selected>Paid</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="waived">Waived</option>
+            </select>
           </div>
         </div>
         <div class="form-group">
@@ -3771,9 +3885,9 @@
           <label class="form-label" for="sellPkgNotes">Admin Notes</label>
           <textarea id="sellPkgNotes" class="form-textarea" rows="2" placeholder="Optional package notes or invoice ref..."></textarea>
         </div>
-        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+        <div class="modal-footer-actions-responsive" style="margin-top: 8px;">
           <button type="button" class="btn-cancel-form" onclick="closeSellPackageModal()">Cancel</button>
-          <button type="submit" id="btnSubmitSellPkg" class="btn-admin-action" style="background: var(--brand-blue, #2563eb); color: #fff; border-color: var(--brand-blue, #2563eb); font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+          <button type="submit" id="btnSubmitSellPackage" class="btn-admin-action" style="background: var(--brand-blue, #2563eb); color: #fff; border-color: var(--brand-blue, #2563eb); font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
             <span class="material-symbols-outlined" style="font-size: 16px;">redeem</span>
             <span>Confirm & Sell Package</span>
           </button>
@@ -3784,7 +3898,7 @@
 
   <!-- Task 01.2: Redeem Package Modal -->
   <div id="redeemPackageModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="redeemPackageModalTitle" onclick="handleStaticBackdropClick('redeemPackageModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
-    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 500px; width: 90%; max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 520px; width: 92%; max-height: 88vh; display: flex; flex-direction: column;">
       <div class="modal-card-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span class="material-symbols-outlined" style="font-size: 22px; color: #16a34a;">redeem</span>
@@ -3792,23 +3906,49 @@
         </div>
         <button type="button" class="modal-close-x" onclick="closeRedeemPackageModal()" aria-label="Close dialog">✕</button>
       </div>
+      <div style="padding: 12px 18px; background: #f0fdf4; border-bottom: 1px solid #bbf7d0;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <div id="redeemPkgNameDisplay" style="font-weight: 700; font-size: 14px; color: #15803d;">Package Name</div>
+            <div id="redeemPkgCustDisplay" style="font-size: 12px; color: #166534; margin-top: 2px;">Customer: —</div>
+          </div>
+          <span class="badge-status-pill" style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-weight: 700;">
+            Balance: <span id="redeemPkgRemainingQty">0</span> / <span id="redeemPkgTotalQty">0</span>
+          </span>
+        </div>
+      </div>
       <form id="redeemPackageForm" onsubmit="handleRedeemPackageSubmit(event)" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
+        <input type="hidden" id="redeemPackageId">
         <input type="hidden" id="redeemPkgId">
-        <div style="padding: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
-          <div id="redeemPkgTitle" style="font-weight: 700; font-size: 14px; color: #15803d;">Package Name</div>
-          <div style="font-size: 12px; color: #166534; margin-top: 4px;">Remaining Balance: <span id="redeemPkgRemaining" style="font-weight: 700;">0</span> unit(s)</div>
+        <div class="modal-form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="redeemQuantity">Quantity to Redeem *</label>
+            <input type="number" id="redeemQuantity" class="form-input" min="1" value="1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="redeemServiceDate">Redemption Date *</label>
+            <input type="date" id="redeemServiceDate" class="form-input" required>
+          </div>
         </div>
         <div class="form-group">
-          <label class="form-label" for="redeemPkgQuantity">Quantity to Redeem *</label>
-          <input type="number" id="redeemPkgQuantity" class="form-input" min="1" value="1" required>
+          <label class="form-label" for="redeemAssetSelect">Service Vehicle (Optional)</label>
+          <select id="redeemAssetSelect" class="form-select">
+            <option value="">-- Customer Default Vehicle --</option>
+          </select>
         </div>
         <div class="form-group">
-          <label class="form-label" for="redeemPkgNotes">Redemption Notes</label>
-          <textarea id="redeemPkgNotes" class="form-textarea" rows="2" placeholder="Service completed or redemption reason..."></textarea>
+          <label class="form-label" for="redeemLocationSelect">Service Location (Optional)</label>
+          <select id="redeemLocationSelect" class="form-select">
+            <option value="">-- Customer Primary Location --</option>
+          </select>
         </div>
-        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+        <div class="form-group">
+          <label class="form-label" for="redeemNotes">Redemption Notes / Remarks</label>
+          <textarea id="redeemNotes" class="form-textarea" rows="2" placeholder="e.g. Wash completed at basement parking"></textarea>
+        </div>
+        <div class="modal-footer-actions-responsive" style="margin-top: 8px;">
           <button type="button" class="btn-cancel-form" onclick="closeRedeemPackageModal()">Cancel</button>
-          <button type="submit" id="btnSubmitRedeemPkg" class="btn-admin-action" style="background: #16a34a; color: #fff; border-color: #16a34a; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+          <button type="submit" id="btnSubmitRedeemPackage" class="btn-admin-action" style="background: #16a34a; color: #fff; border-color: #16a34a; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
             <span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span>
             <span>Confirm Redemption</span>
           </button>
@@ -3861,7 +4001,7 @@
       </div>
       <form id="createBookingForm" onsubmit="handleCreateBookingSubmit(event)" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
         <input type="hidden" id="bookingCustomerId">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="modal-form-grid-2">
           <div class="form-group">
             <label class="form-label" for="bookingCategorySelect">Service Category *</label>
             <select id="bookingCategorySelect" class="form-select" onchange="handleBookingCategoryChange(this.value)" required>
@@ -3874,12 +4014,36 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="bookingPackageSelect">Link Prepaid Package (Optional)</label>
-            <select id="bookingPackageSelect" class="form-select">
+            <select id="bookingPackageSelect" class="form-select" onchange="handleBookingPackageSelectChange()">
               <option value="">-- None / Pay Separately --</option>
             </select>
           </div>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="modal-form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="bookingServiceType">Service Title / Name *</label>
+            <input type="text" id="bookingServiceType" class="form-input" placeholder="e.g. Full Car Wash & Vacuum" value="Full Car Wash" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="bookingTimeSlot">Tentative Time Slot</label>
+            <input type="text" id="bookingTimeSlot" class="form-input" list="tentativeTimePresets" placeholder="e.g. 09:00 AM - 10:30 AM" value="09:00 AM - 10:30 AM">
+          </div>
+        </div>
+        <div class="modal-form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="bookingPrice">Price (₹)</label>
+            <input type="number" id="bookingPrice" class="form-input" min="0" value="350">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="bookingPaymentStatus">Payment Status</label>
+            <select id="bookingPaymentStatus" class="form-select">
+              <option value="unpaid" selected>Unpaid (Pay Later)</option>
+              <option value="paid">Paid (Immediate)</option>
+              <option value="waived">Waived (Covered by Package)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-form-grid-2">
           <div class="form-group">
             <label class="form-label" for="bookingVehicleSelect">Target Vehicle</label>
             <select id="bookingVehicleSelect" class="form-select">
@@ -3893,7 +4057,7 @@
             </select>
           </div>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="modal-form-grid-2">
           <div class="form-group">
             <label class="form-label" for="bookingScheduledDate">Scheduled Date *</label>
             <input type="date" id="bookingScheduledDate" class="form-input" required>
@@ -3909,7 +4073,7 @@
           <label class="form-label" for="bookingNotes">Special Instructions</label>
           <textarea id="bookingNotes" class="form-textarea" rows="2" placeholder="Gate pass, special cleaning focus or access notes..."></textarea>
         </div>
-        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+        <div class="modal-footer-actions-responsive" style="margin-top: 8px;">
           <button type="button" class="btn-cancel-form" onclick="closeCreateBookingModal()">Cancel</button>
           <button type="submit" id="btnSubmitCreateBooking" class="btn-admin-action" style="background: #7c3aed; color: #fff; border-color: #7c3aed; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
             <span class="material-symbols-outlined" style="font-size: 16px;">calendar_month</span>

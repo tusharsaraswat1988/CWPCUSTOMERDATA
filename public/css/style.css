@@ -19851,3 +19851,58 @@ body.theme-dark .dcc-context-item strong {
   flex-wrap: wrap;
 }
 
+/* ==========================================================================
+   TASK 01.10.2: RESPONSIVE MODAL GRIDS & SAFE-AREA ACTIONS (DEF-04 & DEF-05)
+   ========================================================================== */
+.modal-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 540px) {
+  .modal-form-grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
+
+.modal-form-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+@media (max-width: 640px) {
+  .modal-form-grid-4 {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+}
+@media (max-width: 380px) {
+  .modal-form-grid-4 {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+}
+
+.modal-footer-actions-responsive {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 12px;
+  padding: 10px 0 16px 0;
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .modal-footer-actions-responsive {
+    flex-direction: column-reverse;
+    gap: 8px;
+    padding-bottom: 24px;
+  }
+  .modal-footer-actions-responsive button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+

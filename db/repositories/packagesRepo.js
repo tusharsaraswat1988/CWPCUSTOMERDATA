@@ -85,18 +85,18 @@ async function findByCustomerId(customerId, {
   client = null
 } = {}) {
   const runner = client || db;
-  const conditions = ['customer_id = $1', 'deleted_at IS NULL'];
+  const conditions = ['cp.customer_id = $1', 'cp.deleted_at IS NULL'];
   const params = [customerId];
 
   if (status) {
     params.push(status);
-    conditions.push(`status = $${params.length}`);
+    conditions.push(`cp.status = $${params.length}`);
   } else {
     if (!includeExhausted) {
-      conditions.push("status != 'exhausted'");
+      conditions.push("cp.status != 'exhausted'");
     }
     if (!includeCancelled) {
-      conditions.push("status != 'cancelled'");
+      conditions.push("cp.status != 'cancelled'");
     }
   }
 

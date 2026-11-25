@@ -133,6 +133,11 @@ async function runTests() {
     // TEST 4: Staff Login & Session Issuance
     // -------------------------------------------------------------
     console.log('\n--- TEST 4: Staff PIN Login ---');
+    // Ensure clean staff session state before login test
+    await makeRequest('/api', 'POST', adminHeaders, {
+      action: 'unlockStaff',
+      staffId: 'STF01'
+    });
     const staffLoginRes = await makeRequest('/api', 'POST', {}, {
       action: 'verifyStaffPin',
       phone: '7054007733',
