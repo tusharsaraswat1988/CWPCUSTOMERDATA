@@ -3329,7 +3329,7 @@ var state = {
         var activeTab = getSavedAdminTab();
         refreshAllAdminBadges();
 
-        if (activeTab === 'specialJobs' && typeof loadAdminSpecialJobs === 'function') {
+        if ((activeTab === 'specialJobs' || activeTab === 'jobAssignment') && typeof loadAdminSpecialJobs === 'function') {
           loadAdminSpecialJobs(true);
         } else if (activeTab === 'cleanReports' && typeof loadDailyCleanReports === 'function') {
           loadDailyCleanReports(true);
@@ -3900,6 +3900,9 @@ var state = {
         }
         if (paneDaily) paneDaily.style.display = 'none';
         if (paneSpecial) paneSpecial.style.display = 'block';
+        if (typeof loadAdminSpecialJobs === 'function') {
+          loadAdminSpecialJobs(true);
+        }
         if (typeof renderJobAssignmentsLedger === 'function') renderJobAssignmentsLedger();
         syncAllStaffDropdowns();
         syncAllCustomerDropdowns();
@@ -4226,6 +4229,10 @@ var state = {
         loadDailyCleanRouteAssignments();
       }
 
+      if (typeof loadAdminSpecialJobs === 'function') {
+        loadAdminSpecialJobs(true);
+      }
+
       var dateInput = document.getElementById('jobAssignDate');
       if (dateInput && !dateInput.value) {
         var today = new Date().toISOString().split('T')[0];
@@ -4339,6 +4346,10 @@ var state = {
       if (specialBadge) specialBadge.textContent = activeJobs.length;
 
       if (activeJobs.length === 0) {
+        if (!window._specialJobsInitialLoaded && (!adminSpecialJobsCache || adminSpecialJobsCache.length === 0) && typeof loadAdminSpecialJobs === 'function') {
+          tbody.innerHTML = '<tr><td colspan="7" class="table-loading-cell"><span class="status-sync-spinner" style="display:inline-block; margin-right:8px;"></span> Loading active assignments queue...</td></tr>';
+          return;
+        }
         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 28px; color: var(--text-muted);"><div class="empty-radar-wrap" style="width: 48px; height: 48px; margin: 0 auto 10px auto;"><div class="empty-radar-icon" style="font-size: 22px;"><span class="material-symbols-outlined" style="font-size: 24px; vertical-align: middle;">assignment</span></div></div>No active assignments in queue. Use the dispatch form above to assign work.</td></tr>';
         return;
       }
@@ -11135,16 +11146,9 @@ function loadStaffCustomerData(staffId) {
 
         /* 8. Actions: Modern Action Cluster & Contextual Action Menu */
         var actionsHtml = '<div class="records-actions-cluster">' +
-          '<button type="button" class="btn-cell-action btn-service-record" onclick="openAssignServiceModal(' + origIndex + ')" title="Manage / Assign Service">' +
-            '<span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">local_car_wash</span>' +
-            '<span>Service</span>' +
-          '</button>' +
           '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="Edit customer details">' +
             '<span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">edit</span>' +
             '<span>Edit</span>' +
-          '</button>' +
-          '<button type="button" class="btn-cell-action btn-delete-record" onclick="handleDeleteCustomer(' + origIndex + ')" title="Delete customer record">' +
-            '<span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">delete</span>' +
           '</button>' +
           '<div class="cwp-action-menu-wrap">' +
             '<button type="button" class="cwp-action-menu-btn" onclick="toggleCustomerRowActionMenu(' + origIndex + ', event)" title="More options" aria-label="Customer actions menu">' +
@@ -11157,8 +11161,11 @@ function loadStaffCustomerData(staffId) {
               '<button type="button" class="cwp-action-menu-item" onclick="openAssignServiceModal(' + origIndex + ')">' +
                 '<span class="material-symbols-outlined">local_car_wash</span><span>Manage Service</span>' +
               '</button>' +
+              '<button type="button" class="cwp-action-menu-item" onclick="openAddressModal(' + origIndex + ')">' +
+                '<span class="material-symbols-outlined">location_on</span><span>View Location</span>' +
+              '</button>' +
               '<div class="cwp-action-menu-divider"></div>' +
-              '<button type="button" class="cwp-action-menu-item text-danger" onclick="handleDeleteCustomer(' + origIndex + ')">' +
+              '<button type="button" class="cwp-action-menu-item text-danger btn-delete-record" onclick="handleDeleteCustomer(' + origIndex + ')">' +
                 '<span class="material-symbols-outlined">delete</span><span>Delete Customer</span>' +
               '</button>' +
             '</div>' +
@@ -20841,15 +20848,21 @@ function loadStaffCustomerData(staffId) {
 
       apiCall('getSpecialJobs', {}, function(res) {
         if (res && res.success) {
+          window._specialJobsInitialLoaded = true;
           adminSpecialJobsCache = res.jobs || [];
           if (typeof adminSpecialState !== 'undefined' && adminSpecialState) adminSpecialState.allJobs = adminSpecialJobsCache;
           if (typeof window !== 'undefined' && window.adminSpecialState) window.adminSpecialState.allJobs = adminSpecialJobsCache;
           computeSpecialJobDatesFromPeriod();
           filterAdminSpecialJobs();
+          if (typeof renderJobAssignmentsLedger === 'function') {
+            renderJobAssignmentsLedger();
+          }
         } else {
+          window._specialJobsInitialLoaded = true;
           if (!silent && tbody && isSpecialTab) tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 36px; color: #b91c1c;">Failed to load jobs: ' + escapeHtml((res && res.error) || 'Unknown error') + '</td></tr>';
         }
       }, function(err) {
+        window._specialJobsInitialLoaded = true;
         if (!silent && tbody && isSpecialTab) tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 36px; color: #b91c1c;">Connection error: ' + escapeHtml(err.message) + '</td></tr>';
       });
     }

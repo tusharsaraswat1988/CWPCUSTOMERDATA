@@ -721,3 +721,536 @@ body.theme-dark {
   }
 }
 
+
+/* ==========================================================================
+   CWP UNIFIED ADMIN PORTAL DESIGN SYSTEM STYLES (M3 ENTERPRISE COMMAND)
+   Inspired by Reference Architectures:
+   - Modern Dispatch Board (Ref 1)
+   - Clean Modal Dialogs & Underline Tabs (Ref 2)
+   - HEMA Operations Command Hub (Ref 3)
+   - ProSales AI CRM Table & Contextual Menus (Ref 4)
+   ========================================================================== */
+
+/* --- 1. Admin Sidebar & Navigation (Ref 1 & 4) --- */
+.admin-sidebar {
+  background: var(--color-surface, #ffffff);
+  border-right: 1px solid var(--color-border-subtle, #e2e8f0);
+  box-shadow: none !important;
+}
+
+.sidebar-header-box {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+}
+
+.sidebar-brand-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+  letter-spacing: -0.01em;
+}
+
+.sidebar-brand-sub {
+  font-size: 11px;
+  color: var(--color-text-muted, #64748b);
+  font-weight: 500;
+}
+
+.sidebar-section-label {
+  padding: 14px 16px 6px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted, #94a3b8);
+  text-transform: uppercase;
+}
+
+.admin-tab-btn.sidebar-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  margin: 2px 0;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-secondary, #475569);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.admin-tab-btn.sidebar-nav-btn:hover {
+  background: var(--color-primitive-slate-100, #f1f5f9);
+  color: var(--color-text-primary, #0f172a);
+}
+
+.admin-tab-btn.sidebar-nav-btn.active {
+  background: var(--color-primitive-blue-50, #eff6ff) !important;
+  color: var(--color-action-primary, #2563eb) !important;
+  font-weight: 600;
+  border-color: rgba(37, 99, 235, 0.15);
+}
+
+.admin-tab-btn.sidebar-nav-btn.active .nav-symbol {
+  color: var(--color-action-primary, #2563eb) !important;
+}
+
+.sidebar-nav-btn .nav-symbol {
+  font-size: 20px;
+  margin-right: 10px;
+  color: var(--color-primitive-slate-400, #94a3b8);
+  transition: color 0.15s ease;
+}
+
+.admin-tab-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: var(--color-primitive-slate-100, #f1f5f9);
+  color: var(--color-text-secondary, #475569);
+  min-width: 20px;
+  text-align: center;
+}
+
+.admin-tab-btn.sidebar-nav-btn.active .admin-tab-badge {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--color-action-primary, #2563eb);
+}
+
+.sidebar-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-secondary, #475569);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-logout-btn:hover {
+  background: var(--color-primitive-red-50, #fef2f2);
+  color: var(--color-status-danger, #dc2626);
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+/* --- 2. Executive Operations Dashboard Hub (HEMA Ref 3) --- */
+.ops-dashboard-hub-header {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  border-radius: var(--radius-lg, 16px);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.ops-hub-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+  letter-spacing: -0.01em;
+}
+
+.ops-hub-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 4px;
+}
+
+.ops-kpi-deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.ops-kpi-tile {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.ops-kpi-tile:hover {
+  border-color: var(--color-primitive-slate-300, #cbd5e1);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.ops-tile-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-primitive-blue-50, #eff6ff);
+  color: var(--color-action-primary, #2563eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ops-tile-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.ops-tile-caption {
+  font-size: 12px;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+/* Intelligence Fulfillment Cards */
+.ops-intelligence-deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.ops-intel-card {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  padding: 16px;
+}
+
+.intel-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.intel-card-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-primary, #0f172a);
+}
+
+.intel-card-metric {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.intel-metric-big {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--color-text-primary, #0f172a);
+  letter-spacing: -0.02em;
+}
+
+/* --- 3. CRM Customer Records Workspace (ProSales AI Ref 4) --- */
+.records-executive-section {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  border-radius: var(--radius-lg, 16px);
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.records-hero-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+  letter-spacing: -0.01em;
+}
+
+.records-hero-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 3px;
+}
+
+.records-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border-subtle, #f1f5f9);
+  border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+  margin: 14px 0 16px 0;
+}
+
+.records-search-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+  flex: 1;
+  max-width: 380px;
+}
+
+.records-search-input {
+  width: 100%;
+  height: 38px;
+  padding: 8px 12px 8px 36px;
+  font-size: 13.5px;
+  border: 1px solid var(--color-border-subtle, #cbd5e1);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #0f172a);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.records-search-input:focus {
+  border-color: var(--color-action-primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.records-search-svg {
+  position: absolute;
+  left: 10px;
+  color: var(--color-primitive-slate-400, #94a3b8);
+  pointer-events: none;
+}
+
+.filter-select {
+  height: 38px;
+  padding: 0 30px 0 12px;
+  font-size: 13px;
+  border: 1px solid var(--color-border-subtle, #cbd5e1);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-secondary, #334155);
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+
+.filter-select:focus {
+  border-color: var(--color-action-primary, #2563eb);
+}
+
+/* Modern Clean Table */
+.records-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13.5px;
+}
+
+.records-table thead th {
+  background: var(--color-primitive-slate-50, #f8fafc);
+  color: var(--color-text-muted, #64748b);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border-subtle, #e2e8f0);
+  white-space: nowrap;
+}
+
+.records-table tbody tr {
+  transition: background 0.1s ease;
+}
+
+.records-table tbody tr:hover {
+  background: var(--color-primitive-slate-50, #f8fafc);
+}
+
+.records-table tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+  color: var(--color-text-primary, #1e293b);
+  vertical-align: middle;
+}
+
+/* Action button inside table */
+.btn-cell-action.btn-edit-record {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--color-border-subtle, #cbd5e1);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-secondary, #334155);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-cell-action.btn-edit-record:hover {
+  background: var(--color-primitive-blue-50, #eff6ff);
+  color: var(--color-action-primary, #2563eb);
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+/* --- 4. Modal Dialogs & Underline Tabs (Ref 2) --- */
+.modal-card-box {
+  background: var(--color-surface, #ffffff);
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  box-shadow: 0 12px 36px -4px rgba(15, 23, 42, 0.14);
+}
+
+.modal-card-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+}
+
+/* Underline Modal Tabs (Ref 2) */
+.cwp-tab-segmented-control.edit-modal-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border-subtle, #e2e8f0);
+  background: transparent;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.cwp-tab-segmented-control.edit-modal-tabs .cwp-segment-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--color-text-muted, #64748b);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.cwp-tab-segmented-control.edit-modal-tabs .cwp-segment-btn:hover {
+  color: var(--color-text-primary, #0f172a);
+}
+
+.cwp-tab-segmented-control.edit-modal-tabs .cwp-segment-btn.active {
+  color: var(--color-action-primary, #2563eb) !important;
+  border-bottom-color: var(--color-action-primary, #2563eb) !important;
+  font-weight: 600;
+  background: transparent !important;
+}
+
+/* Stepper Header for Add Customer */
+.cwp-stepper-header {
+  display: flex;
+  border-bottom: 1px solid var(--color-border-subtle, #e2e8f0);
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.cwp-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted, #64748b);
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  border-top: none; border-left: none; border-right: none;
+  cursor: pointer;
+}
+
+.cwp-step-indicator.active {
+  color: var(--color-action-primary, #2563eb);
+  border-bottom-color: var(--color-action-primary, #2563eb);
+  font-weight: 600;
+}
+
+.cwp-step-indicator .step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-primitive-slate-100, #f1f5f9);
+  color: var(--color-text-secondary, #475569);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.cwp-step-indicator.active .step-num {
+  background: var(--color-action-primary, #2563eb);
+  color: #ffffff;
+}
+
+/* --- 5. Dispatch Board (Job Assignment Ref 1) --- */
+.job-assign-card {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.job-assign-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.job-assign-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.form-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #334155);
+  margin-bottom: 5px;
+  display: block;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  border: 1px solid var(--color-border-subtle, #cbd5e1);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #0f172a);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.form-input:focus, .form-select:focus {
+  border-color: var(--color-action-primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
