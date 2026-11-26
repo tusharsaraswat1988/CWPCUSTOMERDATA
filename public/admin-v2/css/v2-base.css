@@ -1,0 +1,74 @@
+/**
+ * CWP Admin V2 Base Styles & Reset
+ * STRICTLY SCOPED to body.cwp-v2-body and .cwp-v2-root
+ * Zero leakage to V1 or public pages
+ */
+
+body.cwp-v2-body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--cwp-v2-sys-surface-ground);
+  color: var(--cwp-v2-sys-on-surface);
+  font-family: var(--cwp-v2-font-sans);
+  font-size: var(--cwp-v2-text-base);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+.cwp-v2-root {
+  box-sizing: border-box;
+}
+
+.cwp-v2-root *,
+.cwp-v2-root *::before,
+.cwp-v2-root *::after {
+  box-sizing: border-box;
+}
+
+/* Material Symbols Icon Sizing & Alignment */
+.cwp-v2-root .material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+}
+
+/* Base Typographic Hierarchy under V2 */
+.cwp-v2-root h1,
+.cwp-v2-root h2,
+.cwp-v2-root h3,
+.cwp-v2-root h4,
+.cwp-v2-root h5,
+.cwp-v2-root p {
+  margin: 0;
+}
+
+.cwp-v2-root a {
+  color: var(--cwp-v2-sys-primary);
+  text-decoration: none;
+}
+
+.cwp-v2-root a:hover {
+  text-decoration: underline;
+}
+
+.cwp-v2-root button,
+.cwp-v2-root input,
+.cwp-v2-root select,
+.cwp-v2-root textarea {
+  font-family: inherit;
+  font-size: inherit;
+}

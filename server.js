@@ -1970,6 +1970,8 @@ const server = http.createServer(async (req, res) => {
     pathname.startsWith('/staff/js/') ||
     pathname.startsWith('/admin/css/') ||
     pathname.startsWith('/admin/js/') ||
+    pathname.startsWith('/admin-v2/') ||
+    pathname.startsWith('/admin/v2/') ||
     pathname.endsWith('.css') ||
     pathname.endsWith('.js') ||
     pathname.endsWith('.svg') ||
@@ -1983,10 +1985,11 @@ const server = http.createServer(async (req, res) => {
     pathname.endsWith('.ttf')
   ) {
     let cleanPath = pathname;
-    if (cleanPath.startsWith('/staff/')) {
+    if (cleanPath.startsWith('/admin/v2/')) {
+      cleanPath = '/admin-v2/' + cleanPath.substring(10);
+    } else if (cleanPath.startsWith('/staff/')) {
       cleanPath = cleanPath.substring(6);
-    }
-    if (cleanPath.startsWith('/admin/')) {
+    } else if (cleanPath.startsWith('/admin/')) {
       cleanPath = cleanPath.substring(6);
     }
     if (cleanPath.startsWith('/public/')) {
@@ -6652,8 +6655,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   const normPath = parsedUrl.pathname.toLowerCase().replace(/\/+$/, '');
+  const isAdminV2Route = normPath === '/admin-v2' || normPath.startsWith('/admin-v2/') || normPath === '/admin/v2' || normPath.startsWith('/admin/v2/');
   const isStaffRoute = normPath === '/staff' || normPath.startsWith('/staff/');
-  const isAdminRoute = normPath === '/admin' || normPath.startsWith('/admin/');
+  const isAdminRoute = (normPath === '/admin' || normPath.startsWith('/admin/')) && !isAdminV2Route;
   const rawStaffParam = parsedUrl.searchParams.get('staff') || parsedUrl.searchParams.get('id') || '';
   const staffParam = /^[a-zA-Z0-9_-]{1,64}$/.test(rawStaffParam) ? rawStaffParam : '';
   const adminParam = parsedUrl.searchParams.get('admin');
@@ -6674,9 +6678,23 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // 1b. Admin V2 Isolated Portal Route (/admin-v2, /admin/v2)
+  if (isAdminV2Route) {
+    const adminV2Path = path.join(__dirname, 'public', 'admin-v2', 'index.html');
+    if (fs.existsSync(adminV2Path)) {
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      return fs.createReadStream(adminV2Path).pipe(res);
+    }
+  }
+
   // 2. Customer Homepage Route (/ and /home, /terms, /privacy, /refund)
   // Non-portal visitors at root receive the modern M3 Customer Homepage
-  const isInternalPortal = isStaffRoute || staffParam || isAdminRoute || adminParam !== null;
+  const isInternalPortal = isStaffRoute || staffParam || isAdminRoute || adminParam !== null || isAdminV2Route;
   if (!isInternalPortal && (normPath === '' || normPath === '/home' || normPath === '/terms' || normPath === '/privacy' || normPath === '/refund')) {
     const homePath = path.join(__dirname, 'public', 'home.html');
     if (fs.existsSync(homePath)) {

@@ -1,0 +1,303 @@
+/**
+ * CWP Admin V2 Design Tokens (CWP Aura / Material Design 3)
+ * STRICTLY SCOPED to :root, .cwp-v2-root, and .cwp-v2-body
+ * Namespace prefix: --cwp-v2-*
+ * Baseline Spec: CWP MINOR App Admin Design System Spec v1.1
+ */
+
+:root,
+.cwp-v2-root {
+  /* =========================================================================
+     1. Color Palette - Reference Swatches
+     ========================================================================= */
+  --cwp-v2-ref-navy-950: #07131f;
+  --cwp-v2-ref-navy-900: #0b1a2b;
+  --cwp-v2-ref-navy-800: #0f2942;
+  --cwp-v2-ref-navy-700: #163a5d;
+  --cwp-v2-ref-navy-600: #1e4d7b;
+
+  --cwp-v2-ref-blue-900: #1e3a8a;
+  --cwp-v2-ref-blue-800: #1e40af;
+  --cwp-v2-ref-blue-700: #1d4ed8;
+  --cwp-v2-ref-blue-600: #2563eb;
+  --cwp-v2-ref-blue-500: #3b82f6;
+  --cwp-v2-ref-blue-400: #60a5fa;
+  --cwp-v2-ref-blue-100: #dbeafe;
+  --cwp-v2-ref-blue-50:  #eff6ff;
+
+  --cwp-v2-ref-slate-900: #0f172a;
+  --cwp-v2-ref-slate-800: #1e293b;
+  --cwp-v2-ref-slate-700: #334155;
+  --cwp-v2-ref-slate-600: #475569;
+  --cwp-v2-ref-slate-500: #64748b;
+  --cwp-v2-ref-slate-400: #94a3b8;
+  --cwp-v2-ref-slate-300: #cbd5e1;
+  --cwp-v2-ref-slate-200: #e2e8f0;
+  --cwp-v2-ref-slate-100: #f1f5f9;
+  --cwp-v2-ref-slate-50:  #f8fafc;
+  --cwp-v2-ref-white:     #ffffff;
+
+  --cwp-v2-ref-emerald-600: #059669;
+  --cwp-v2-ref-emerald-500: #10b981;
+  --cwp-v2-ref-emerald-50:  #ecfdf5;
+
+  --cwp-v2-ref-amber-600: #d97706;
+  --cwp-v2-ref-amber-500: #f59e0b;
+  --cwp-v2-ref-amber-50:  #fffbeb;
+
+  --cwp-v2-ref-rose-600: #e11d48;
+  --cwp-v2-ref-rose-500: #f43f5e;
+  --cwp-v2-ref-rose-50:  #fff1f2;
+
+  --cwp-v2-ref-sky-600: #0284c7;
+  --cwp-v2-ref-sky-500: #0ea5e9;
+  --cwp-v2-ref-sky-50:  #f0f9ff;
+
+  /* =========================================================================
+     2. System Color Tokens (Semantic)
+     ========================================================================= */
+  --cwp-v2-sys-primary: var(--cwp-v2-ref-blue-600);
+  --cwp-v2-sys-primary-hover: var(--cwp-v2-ref-blue-700);
+  --cwp-v2-sys-primary-active: var(--cwp-v2-ref-blue-800);
+  --cwp-v2-sys-primary-container: var(--cwp-v2-ref-blue-50);
+  --cwp-v2-sys-on-primary-container: var(--cwp-v2-ref-blue-900);
+
+  --cwp-v2-sys-secondary: var(--cwp-v2-ref-slate-600);
+  --cwp-v2-sys-secondary-hover: var(--cwp-v2-ref-slate-700);
+  --cwp-v2-sys-secondary-container: var(--cwp-v2-ref-slate-100);
+  --cwp-v2-sys-on-secondary-container: var(--cwp-v2-ref-slate-900);
+
+  --cwp-v2-sys-surface: var(--cwp-v2-ref-white);
+  --cwp-v2-sys-surface-ground: var(--cwp-v2-ref-slate-50);
+  --cwp-v2-sys-surface-container: var(--cwp-v2-ref-white);
+  --cwp-v2-sys-surface-container-high: var(--cwp-v2-ref-slate-100);
+
+  --cwp-v2-sys-border: var(--cwp-v2-ref-slate-300);
+  --cwp-v2-sys-border-subtle: var(--cwp-v2-ref-slate-200);
+  --cwp-v2-sys-border-focus: var(--cwp-v2-ref-blue-600);
+
+  --cwp-v2-sys-on-surface: var(--cwp-v2-ref-slate-900);
+  --cwp-v2-sys-on-surface-variant: var(--cwp-v2-ref-slate-600);
+  --cwp-v2-sys-on-surface-muted: var(--cwp-v2-ref-slate-400);
+
+  /* Locked Decision #1: Modern Dark Sidebar */
+  --cwp-v2-sidebar-bg: var(--cwp-v2-ref-navy-900);
+  --cwp-v2-sidebar-surface: var(--cwp-v2-ref-navy-800);
+  --cwp-v2-sidebar-border: rgba(255, 255, 255, 0.08);
+  --cwp-v2-sidebar-text: #94a3b8;
+  --cwp-v2-sidebar-text-active: #ffffff;
+  --cwp-v2-sidebar-item-hover: rgba(255, 255, 255, 0.05);
+  --cwp-v2-sidebar-item-active: var(--cwp-v2-ref-blue-600);
+  --cwp-v2-sidebar-width: 250px;
+  --cwp-v2-sidebar-width-collapsed: 68px;
+
+  /* Locked Decision #2: Contextual Header */
+  --cwp-v2-header-height: 56px;
+  --cwp-v2-header-bg: var(--cwp-v2-ref-white);
+  --cwp-v2-header-border: var(--cwp-v2-ref-slate-200);
+
+  /* Feedback Colors (Locked Decision #8: Restrained status badges) */
+  --cwp-v2-status-success: var(--cwp-v2-ref-emerald-600);
+  --cwp-v2-status-success-bg: var(--cwp-v2-ref-emerald-50);
+  --cwp-v2-status-warning: var(--cwp-v2-ref-amber-600);
+  --cwp-v2-status-warning-bg: var(--cwp-v2-ref-amber-50);
+  --cwp-v2-status-danger: var(--cwp-v2-ref-rose-600);
+  --cwp-v2-status-danger-bg: var(--cwp-v2-ref-rose-50);
+  --cwp-v2-status-info: var(--cwp-v2-ref-sky-600);
+  --cwp-v2-status-info-bg: var(--cwp-v2-ref-sky-50);
+
+  /* =========================================================================
+     3. Typography Scale & Hierarchy Tokens
+     ========================================================================= */
+  --cwp-v2-font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --cwp-v2-font-mono: 'JetBrains Mono', monospace;
+
+  --cwp-v2-type-display-size: 2rem;      /* 32px */
+  --cwp-v2-type-display-line: 1.2;
+  --cwp-v2-type-display-weight: 700;
+
+  --cwp-v2-type-heading-size: 1.25rem;   /* 20px */
+  --cwp-v2-type-heading-line: 1.3;
+  --cwp-v2-type-heading-weight: 600;
+
+  --cwp-v2-type-title-size: 1rem;        /* 16px */
+  --cwp-v2-type-title-line: 1.4;
+  --cwp-v2-type-title-weight: 600;
+
+  --cwp-v2-type-body-size: 0.875rem;     /* 14px */
+  --cwp-v2-type-body-line: 1.5;
+  --cwp-v2-type-body-weight: 400;
+
+  --cwp-v2-type-label-size: 0.75rem;     /* 12px */
+  --cwp-v2-type-label-line: 1.2;
+  --cwp-v2-type-label-weight: 600;
+
+  --cwp-v2-type-supporting-size: 0.75rem; /* 12px */
+  --cwp-v2-type-supporting-line: 1.4;
+  --cwp-v2-type-supporting-weight: 400;
+
+  --cwp-v2-text-xs: 0.75rem;     /* 12px */
+  --cwp-v2-text-sm: 0.8125rem;   /* 13px */
+  --cwp-v2-text-base: 0.875rem;  /* 14px */
+  --cwp-v2-text-md: 0.9375rem;   /* 15px */
+  --cwp-v2-text-lg: 1.125rem;    /* 18px */
+  --cwp-v2-text-xl: 1.25rem;     /* 20px */
+
+  /* =========================================================================
+     4. High Information Density Spacing Scale (Locked Decision #9)
+     ========================================================================= */
+  --cwp-v2-space-1: 4px;
+  --cwp-v2-space-2: 8px;
+  --cwp-v2-space-3: 12px;
+  --cwp-v2-space-4: 16px;
+  --cwp-v2-space-5: 20px;
+  --cwp-v2-space-6: 24px;
+  --cwp-v2-space-8: 32px;
+
+  /* =========================================================================
+     5. Shapes & Radii (Locked Decision #5: Rounded buttons, M3 style)
+     ========================================================================= */
+  --cwp-v2-radius-none: 0px;
+  --cwp-v2-radius-sm: 4px;
+  --cwp-v2-radius-md: 8px;
+  --cwp-v2-radius-lg: 12px;
+  --cwp-v2-radius-full: 9999px;
+
+  /* =========================================================================
+     6. Elevation Levels (Restrained Shadows)
+     ========================================================================= */
+  --cwp-v2-elevation-0: none;
+  --cwp-v2-elevation-1: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+  --cwp-v2-elevation-2: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --cwp-v2-elevation-3: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+
+  /* =========================================================================
+     7. Button System Dimension Tokens (Task 01.1 Refined)
+     ========================================================================= */
+  --cwp-v2-btn-h-sm: 28px;
+  --cwp-v2-btn-pad-sm: 0 10px;
+  --cwp-v2-btn-font-sm: 0.75rem;
+  --cwp-v2-btn-icon-sm: 16px;
+  --cwp-v2-btn-gap-sm: 4px;
+
+  --cwp-v2-btn-h-md-legacy: 34px;
+  --cwp-v2-btn-pad-md-legacy: 0 12px;
+
+  --cwp-v2-btn-h-md: 36px;
+  --cwp-v2-btn-pad-md: 0 14px;
+  --cwp-v2-btn-font-md: 0.8125rem; /* 13px */
+  --cwp-v2-btn-icon-md: 18px;
+  --cwp-v2-btn-gap-md: 6px;
+
+  --cwp-v2-btn-h-lg: 40px;
+  --cwp-v2-btn-pad-lg: 0 18px;
+  --cwp-v2-btn-font-lg: 0.875rem; /* 14px */
+  --cwp-v2-btn-icon-lg: 20px;
+  --cwp-v2-btn-gap-lg: 8px;
+
+  /* =========================================================================
+     8. Input Field System Dimension Tokens (Task 02)
+     ========================================================================= */
+  /* Compact: 28px height (Dense tables, inline filter bars) */
+  --cwp-v2-input-h-sm: 28px;
+  --cwp-v2-input-pad-sm: 0 8px;
+  --cwp-v2-input-font-sm: 0.75rem; /* 12px */
+  --cwp-v2-input-icon-sm: 16px;
+
+  /* Standard: 36px height (Recommended operational default across forms) */
+  --cwp-v2-input-h-md: 36px;
+  --cwp-v2-input-pad-md: 0 10px;
+  --cwp-v2-input-font-md: 0.8125rem; /* 13px */
+  --cwp-v2-input-icon-md: 18px;
+
+  /* Comfortable: 42px height (Standalone modal hero forms) */
+  --cwp-v2-input-h-lg: 42px;
+  --cwp-v2-input-pad-lg: 0 12px;
+  --cwp-v2-input-font-lg: 0.875rem; /* 14px */
+  --cwp-v2-input-icon-lg: 20px;
+
+  /* =========================================================================
+     9. Table & Data Grid System Tokens (Task 03)
+     ========================================================================= */
+  /* Operational Table Row Height (Locked Decision #9: ~36px) */
+  --cwp-v2-table-row-height: 36px;
+  --cwp-v2-table-row-h-compact: 30px;
+  --cwp-v2-table-row-h-md: 36px;
+  --cwp-v2-table-row-h-lg: 46px;
+  --cwp-v2-table-header-h: 38px;
+  --cwp-v2-table-cell-pad-x: 12px;
+  --cwp-v2-table-cell-pad-x-compact: 8px;
+  --cwp-v2-table-header-bg: #f8fafc;
+  --cwp-v2-table-header-text: var(--cwp-v2-ref-slate-600);
+  --cwp-v2-table-row-hover-bg: #f8fafc;
+  --cwp-v2-table-row-selected-bg: #f0f7ff; /* Blue-50 restrained tint */
+  --cwp-v2-table-row-selected-border: #bfdbfe; /* Blue-200 subtle divider */
+
+  /* =========================================================================
+     10. Modal, Dialog & Drawer Overlay Tokens (Task 04)
+     ========================================================================= */
+  --cwp-v2-modal-w-sm: 420px; /* Confirmation dialogs */
+  --cwp-v2-modal-w-md: 540px; /* Standard form modal */
+  --cwp-v2-modal-w-lg: 820px; /* Large multi-column workflow modal */
+  --cwp-v2-drawer-w-md: 420px; /* Standard record detail drawer */
+  --cwp-v2-drawer-w-lg: 680px; /* Full-height operational drawer */
+  --cwp-v2-backdrop-bg: rgba(15, 23, 42, 0.45); /* Slate-900 restrained veil */
+  --cwp-v2-z-backdrop: 1000;
+  --cwp-v2-z-drawer: 1050;
+  --cwp-v2-z-modal: 1100;
+  --cwp-v2-z-nested-backdrop: 1200;
+  --cwp-v2-z-nested-modal: 1250;
+
+  /* =========================================================================
+     11. Form, Selection & Switch System Tokens (Task 05)
+     ========================================================================= */
+  --cwp-v2-switch-w: 38px;
+  --cwp-v2-switch-h: 22px;
+  --cwp-v2-switch-thumb: 16px;
+  --cwp-v2-switch-w-sm: 30px;
+  --cwp-v2-switch-h-sm: 18px;
+  --cwp-v2-switch-thumb-sm: 12px;
+  --cwp-v2-radio-size: 16px;
+  --cwp-v2-select-arrow-size: 18px;
+
+  /* =========================================================================
+     12. Selection Controls & Operational Filter System Tokens (Task 06)
+     ========================================================================= */
+  --cwp-v2-dropdown-bg: var(--cwp-v2-ref-white);
+  --cwp-v2-dropdown-border: var(--cwp-v2-ref-slate-300);
+  --cwp-v2-dropdown-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+  --cwp-v2-dropdown-radius: var(--cwp-v2-radius-md);
+  --cwp-v2-dropdown-z: 1060;
+  --cwp-v2-dropdown-max-h: 240px;
+  --cwp-v2-item-h: 34px;
+  --cwp-v2-item-h-sm: 28px;
+  --cwp-v2-item-hover-bg: var(--cwp-v2-ref-slate-100);
+  --cwp-v2-item-selected-bg: var(--cwp-v2-ref-blue-50);
+  --cwp-v2-item-selected-text: var(--cwp-v2-ref-blue-700);
+  --cwp-v2-chip-h: 28px;
+  --cwp-v2-chip-h-sm: 24px;
+  --cwp-v2-chip-radius: var(--cwp-v2-radius-full);
+  --cwp-v2-chip-bg: var(--cwp-v2-ref-slate-100);
+  --cwp-v2-chip-border: var(--cwp-v2-ref-slate-300);
+  --cwp-v2-chip-text: var(--cwp-v2-ref-slate-700);
+  --cwp-v2-chip-hover-bg: var(--cwp-v2-ref-slate-200);
+  --cwp-v2-chip-active-bg: var(--cwp-v2-ref-blue-50);
+  --cwp-v2-chip-active-border: var(--cwp-v2-ref-blue-400);
+  --cwp-v2-chip-active-text: var(--cwp-v2-ref-blue-700);
+  --cwp-v2-filterbar-bg: var(--cwp-v2-ref-white);
+  --cwp-v2-filterbar-border: var(--cwp-v2-ref-slate-200);
+
+  /* =========================================================================
+     13. Advanced Table & Data Grid System Tokens (Task 07)
+     ========================================================================= */
+  --cwp-v2-table-row-h-compact: 34px;
+  --cwp-v2-table-row-h-standard: 46px;
+  --cwp-v2-table-header-h-compact: 36px;
+  --cwp-v2-table-header-h-standard: 42px;
+  --cwp-v2-table-expand-bg: #f8fafc;
+  --cwp-v2-table-expand-border: #e2e8f0;
+  --cwp-v2-table-sticky-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
+  --cwp-v2-table-sticky-col-shadow: -4px 0 6px -1px rgba(15, 23, 42, 0.05);
+  --cwp-v2-table-bulk-bg: var(--cwp-v2-ref-navy-900);
+  --cwp-v2-table-bulk-text: #ffffff;
+}

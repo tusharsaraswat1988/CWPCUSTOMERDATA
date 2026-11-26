@@ -1,0 +1,3378 @@
+/**
+ * CWP Admin V2 Component Styles (CWP Aura / Material Design 3)
+ * STRICTLY SCOPED to .cwp-v2-root
+ * Refined under Task 01.1: Foundation & Button Usability Refinement
+ * Locked Decisions: #3 KPI Cards, #4 Compact Tables, #5 Rounded Buttons, #6 Outlined Inputs, #8 Status Badges, #10 Containers
+ */
+
+/* =========================================================================
+   1. Containers & Cards (Locked Decision #10)
+   ========================================================================= */
+.cwp-v2-card {
+  background-color: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border-radius: var(--cwp-v2-radius-md);
+  box-shadow: var(--cwp-v2-elevation-1);
+  padding: var(--cwp-v2-space-4);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cwp-v2-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--cwp-v2-space-3);
+  padding-bottom: var(--cwp-v2-space-2);
+  border-bottom: 1px solid var(--cwp-v2-sys-border-subtle);
+}
+
+.cwp-v2-card-title {
+  font-size: var(--cwp-v2-text-base);
+  font-weight: 600;
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-card-subtitle {
+  font-size: var(--cwp-v2-text-xs);
+  color: var(--cwp-v2-sys-on-surface-variant);
+  margin-top: 2px;
+}
+
+/* =========================================================================
+   2. Reusable Button Component System (Locked Decision #5: Rounded M3)
+   ========================================================================= */
+.cwp-v2-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-sizing: border-box;
+  font-family: var(--cwp-v2-font-sans);
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none !important;
+  white-space: nowrap;
+  vertical-align: middle;
+  border-radius: var(--cwp-v2-radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+
+  /* Default Size: Medium Refined (36px Height, 14px Pad) */
+  height: var(--cwp-v2-btn-h-md);
+  padding: var(--cwp-v2-btn-pad-md);
+  font-size: var(--cwp-v2-btn-font-md);
+  gap: var(--cwp-v2-btn-gap-md);
+}
+
+.cwp-v2-btn .material-symbols-outlined {
+  font-size: var(--cwp-v2-btn-icon-md);
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+/* Focus-visible State (Keyboard accessible) */
+.cwp-v2-btn:focus-visible {
+  outline: 2px solid var(--cwp-v2-sys-border-focus);
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+/* Active / Pressed State */
+.cwp-v2-btn:active:not(:disabled):not(.is-disabled):not(.is-loading) {
+  transform: translateY(1px);
+}
+
+/* Disabled State */
+.cwp-v2-btn:disabled,
+.cwp-v2-btn[disabled],
+.cwp-v2-btn.is-disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Loading State (Zero layout jump) */
+.cwp-v2-btn.is-loading {
+  pointer-events: none !important;
+  cursor: wait !important;
+}
+
+.cwp-v2-btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: cwpV2Spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes cwpV2Spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* -------------------------------------------------------------------------
+   Button Variants
+   ------------------------------------------------------------------------- */
+
+/* 1. Primary Variant (High emphasis) */
+.cwp-v2-btn-primary {
+  background-color: var(--cwp-v2-sys-primary);
+  border-color: var(--cwp-v2-sys-primary);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+
+.cwp-v2-btn-primary:hover:not(:disabled):not(.is-disabled) {
+  background-color: var(--cwp-v2-sys-primary-hover);
+  border-color: var(--cwp-v2-sys-primary-hover);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+}
+
+.cwp-v2-btn-primary:active:not(:disabled):not(.is-disabled) {
+  background-color: var(--cwp-v2-sys-primary-active);
+  border-color: var(--cwp-v2-sys-primary-active);
+}
+
+/* 2. Secondary / Outlined Variant (Medium emphasis) */
+.cwp-v2-btn-secondary {
+  background-color: var(--cwp-v2-sys-surface);
+  border-color: var(--cwp-v2-sys-border);
+  color: var(--cwp-v2-sys-on-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.cwp-v2-btn-secondary:hover:not(:disabled):not(.is-disabled) {
+  background-color: var(--cwp-v2-sys-secondary-container);
+  border-color: var(--cwp-v2-ref-slate-400);
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-btn-secondary:active:not(:disabled):not(.is-disabled) {
+  background-color: var(--cwp-v2-ref-slate-200);
+}
+
+/* 3. Tertiary / Text Variant (Low emphasis) */
+.cwp-v2-btn-tertiary {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--cwp-v2-sys-primary);
+  padding-left: var(--cwp-v2-space-2);
+  padding-right: var(--cwp-v2-space-2);
+}
+
+.cwp-v2-btn-tertiary:hover:not(:disabled):not(.is-disabled) {
+  background-color: var(--cwp-v2-sys-primary-container);
+  color: var(--cwp-v2-sys-primary-hover);
+}
+
+.cwp-v2-btn-tertiary:active:not(:disabled):not(.is-disabled) {
+  background-color: var(--cwp-v2-ref-blue-100);
+}
+
+/* 4. Tonal Variant (Soft Accent) */
+.cwp-v2-btn-tonal {
+  background-color: var(--cwp-v2-sys-primary-container);
+  border-color: rgba(37, 99, 235, 0.15);
+  color: var(--cwp-v2-sys-on-primary-container);
+}
+
+.cwp-v2-btn-tonal:hover:not(:disabled):not(.is-disabled) {
+  background-color: var(--cwp-v2-ref-blue-100);
+  border-color: rgba(37, 99, 235, 0.3);
+  color: var(--cwp-v2-ref-blue-900);
+}
+
+.cwp-v2-btn-tonal:active:not(:disabled):not(.is-disabled) {
+  background-color: #bfdbfe;
+}
+
+/* 5. Destructive Outlined (Secondary Destructive Action, e.g. Remove Stop, Discard) */
+.cwp-v2-btn-danger {
+  background-color: var(--cwp-v2-status-danger-bg);
+  border-color: #fecdd3;
+  color: var(--cwp-v2-status-danger);
+}
+
+.cwp-v2-btn-danger:hover:not(:disabled):not(.is-disabled) {
+  background-color: #ffe4e6;
+  border-color: #fda4af;
+  color: #be123c;
+}
+
+.cwp-v2-btn-danger:active:not(:disabled):not(.is-disabled) {
+  background-color: #fecdd3;
+}
+
+/* 5b. Danger Solid (Primary Destructive Action, e.g. Final Confirm Delete) */
+.cwp-v2-btn-danger-solid {
+  background-color: var(--cwp-v2-status-danger);
+  border-color: var(--cwp-v2-status-danger);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(225, 29, 72, 0.25);
+}
+
+.cwp-v2-btn-danger-solid:hover:not(:disabled):not(.is-disabled) {
+  background-color: #be123c;
+  border-color: #be123c;
+  box-shadow: 0 2px 4px rgba(225, 29, 72, 0.35);
+}
+
+.cwp-v2-btn-danger-solid:active:not(:disabled):not(.is-disabled) {
+  background-color: #9f1239;
+  border-color: #9f1239;
+}
+
+/* -------------------------------------------------------------------------
+   Button Sizes (High Density Operational Alignment)
+   ------------------------------------------------------------------------- */
+/* Small (28px height, retained for compact tables & tight filter bars) */
+.cwp-v2-btn-sm {
+  height: var(--cwp-v2-btn-h-sm);
+  padding: var(--cwp-v2-btn-pad-sm);
+  font-size: var(--cwp-v2-btn-font-sm);
+  gap: var(--cwp-v2-btn-gap-sm);
+  border-radius: var(--cwp-v2-radius-sm);
+}
+
+.cwp-v2-btn-sm .material-symbols-outlined {
+  font-size: var(--cwp-v2-btn-icon-sm);
+}
+
+.cwp-v2-btn-sm .cwp-v2-btn-spinner {
+  width: 12px;
+  height: 12px;
+}
+
+/* Medium Original Baseline (34px height, for direct side-by-side comparison) */
+.cwp-v2-btn-md-legacy {
+  height: var(--cwp-v2-btn-h-md-legacy) !important;
+  padding: var(--cwp-v2-btn-pad-md-legacy) !important;
+  font-size: var(--cwp-v2-btn-font-md) !important;
+}
+
+.cwp-v2-btn-md-legacy .material-symbols-outlined {
+  font-size: var(--cwp-v2-btn-icon-md);
+}
+
+/* Medium Proposed Refined Default (36px height, optimal operational ergonomics) */
+.cwp-v2-btn-md {
+  height: var(--cwp-v2-btn-h-md);
+  padding: var(--cwp-v2-btn-pad-md);
+  font-size: var(--cwp-v2-btn-font-md);
+  gap: var(--cwp-v2-btn-gap-md);
+}
+
+.cwp-v2-btn-md .material-symbols-outlined {
+  font-size: var(--cwp-v2-btn-icon-md);
+}
+
+/* Large (40px height, reserved for dialog confirmations & hero CTAs) */
+.cwp-v2-btn-lg {
+  height: var(--cwp-v2-btn-h-lg);
+  padding: var(--cwp-v2-btn-pad-lg);
+  font-size: var(--cwp-v2-btn-font-lg);
+  gap: var(--cwp-v2-btn-gap-lg);
+}
+
+.cwp-v2-btn-lg .material-symbols-outlined {
+  font-size: var(--cwp-v2-btn-icon-lg);
+}
+
+.cwp-v2-btn-lg .cwp-v2-btn-spinner {
+  width: 16px;
+  height: 16px;
+}
+
+/* -------------------------------------------------------------------------
+   Icon-Only Buttons & Hit Area Refinement
+   ------------------------------------------------------------------------- */
+.cwp-v2-btn-icon {
+  width: var(--cwp-v2-btn-h-md);  /* 36px default */
+  height: var(--cwp-v2-btn-h-md); /* 36px default */
+  padding: 0 !important;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cwp-v2-btn-icon.cwp-v2-btn-sm {
+  width: var(--cwp-v2-btn-h-sm);  /* 28px */
+  height: var(--cwp-v2-btn-h-sm); /* 28px */
+}
+
+.cwp-v2-btn-icon.cwp-v2-btn-md-legacy {
+  width: var(--cwp-v2-btn-h-md-legacy) !important;  /* 34px */
+  height: var(--cwp-v2-btn-h-md-legacy) !important; /* 34px */
+}
+
+.cwp-v2-btn-icon.cwp-v2-btn-lg {
+  width: var(--cwp-v2-btn-h-lg);  /* 40px */
+  height: var(--cwp-v2-btn-h-lg); /* 40px */
+}
+
+.cwp-v2-btn-icon-subtle {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--cwp-v2-sys-on-surface-variant);
+}
+
+.cwp-v2-btn-icon-subtle:hover:not(:disabled):not(.is-disabled) {
+  background-color: var(--cwp-v2-sys-secondary-container);
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-btn-icon-danger {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--cwp-v2-status-danger);
+}
+
+.cwp-v2-btn-icon-danger:hover:not(:disabled):not(.is-disabled) {
+  background-color: var(--cwp-v2-status-danger-bg);
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+/* Hit Area Inspector Demo Styles */
+.cwp-v2-hit-area-visible .cwp-v2-btn-icon {
+  box-shadow: 0 0 0 1px #2563eb, 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
+}
+
+.cwp-v2-hit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-family: var(--cwp-v2-font-mono);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--cwp-v2-ref-slate-100);
+  color: var(--cwp-v2-sys-on-surface-variant);
+}
+
+/* =========================================================================
+   3. CWP Aura Input Field Component System (Task 02)
+   Strictly Scoped & Tokenized &bull; Rounded M3 &bull; High Information Density
+   ========================================================================= */
+
+/* Field Container (Vertical Stack by default) */
+.cwp-v2-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cwp-v2-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.cwp-v2-field-inline .cwp-v2-field-label {
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+/* Field Label & Indicators */
+.cwp-v2-field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--cwp-v2-text-xs); /* 12px */
+  font-weight: 600;
+  color: var(--cwp-v2-sys-on-surface);
+  line-height: 1.2;
+  user-select: none;
+}
+
+.cwp-v2-field-label-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cwp-v2-req-star {
+  color: var(--cwp-v2-status-danger);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.cwp-v2-optional-text {
+  color: var(--cwp-v2-sys-on-surface-muted);
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: auto;
+}
+
+/* Input Box Wrapper (Composite interactive container) */
+.cwp-v2-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-md);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  overflow: hidden;
+
+  /* Standard Default Size (36px Height, aligns with 36px buttons) */
+  height: var(--cwp-v2-input-h-md);
+  padding: var(--cwp-v2-input-pad-md);
+  font-size: var(--cwp-v2-input-font-md);
+}
+
+/* Hover State */
+.cwp-v2-input-box:hover:not(.is-disabled):not(.is-readonly):not(.has-error) {
+  border-color: var(--cwp-v2-ref-slate-400);
+}
+
+/* Focus-within State (Accessible 2px Focus Ring) */
+.cwp-v2-input-box:focus-within:not(.has-error):not(.is-disabled) {
+  border-color: var(--cwp-v2-sys-border-focus);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Error State */
+.cwp-v2-input-box.has-error {
+  border-color: var(--cwp-v2-status-danger);
+  background-color: #fffafb;
+}
+
+.cwp-v2-input-box.has-error:focus-within {
+  border-color: var(--cwp-v2-status-danger);
+  box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.2);
+}
+
+/* Success State */
+.cwp-v2-input-box.has-success {
+  border-color: var(--cwp-v2-status-success);
+}
+
+.cwp-v2-input-box.has-success:focus-within {
+  border-color: var(--cwp-v2-status-success);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+}
+
+/* Disabled State */
+.cwp-v2-input-box.is-disabled,
+.cwp-v2-input-box:has(input:disabled) {
+  background-color: var(--cwp-v2-ref-slate-50);
+  border-color: var(--cwp-v2-sys-border-subtle);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Readonly State */
+.cwp-v2-input-box.is-readonly,
+.cwp-v2-input-box:has(input:read-only) {
+  background-color: var(--cwp-v2-ref-slate-50);
+  border-color: var(--cwp-v2-sys-border-subtle);
+  cursor: default;
+}
+
+/* Inner Input Element */
+.cwp-v2-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-family: var(--cwp-v2-font-sans);
+  font-size: inherit;
+  color: var(--cwp-v2-sys-on-surface);
+  line-height: 1.4;
+}
+
+.cwp-v2-input::placeholder {
+  color: var(--cwp-v2-sys-on-surface-muted);
+}
+
+.cwp-v2-input:disabled {
+  cursor: not-allowed;
+  color: var(--cwp-v2-sys-on-surface-muted);
+}
+
+.cwp-v2-input:read-only {
+  cursor: default;
+  color: var(--cwp-v2-sys-on-surface-variant);
+}
+
+/* Number Input spinner polish */
+.cwp-v2-input[type="number"]::-webkit-inner-spin-button,
+.cwp-v2-input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+/* Sizing Options */
+/* Compact: 28px height (Tables, compact filters) */
+.cwp-v2-input-box.cwp-v2-input-sm {
+  height: var(--cwp-v2-input-h-sm);
+  padding: var(--cwp-v2-input-pad-sm);
+  font-size: var(--cwp-v2-input-font-sm);
+  border-radius: var(--cwp-v2-radius-sm);
+}
+
+.cwp-v2-input-box.cwp-v2-input-sm .cwp-v2-input-leading-icon,
+.cwp-v2-input-box.cwp-v2-input-sm .cwp-v2-input-trailing-icon {
+  font-size: var(--cwp-v2-input-icon-sm);
+}
+
+/* Standard: 36px height (Default across Admin V2 forms) */
+.cwp-v2-input-box.cwp-v2-input-md {
+  height: var(--cwp-v2-input-h-md);
+  padding: var(--cwp-v2-input-pad-md);
+  font-size: var(--cwp-v2-input-font-md);
+}
+
+/* Comfortable: 42px height (Standalone hero forms, login) */
+.cwp-v2-input-box.cwp-v2-input-lg {
+  height: var(--cwp-v2-input-h-lg);
+  padding: var(--cwp-v2-input-pad-lg);
+  font-size: var(--cwp-v2-input-font-lg);
+}
+
+.cwp-v2-input-box.cwp-v2-input-lg .cwp-v2-input-leading-icon,
+.cwp-v2-input-box.cwp-v2-input-lg .cwp-v2-input-trailing-icon {
+  font-size: var(--cwp-v2-input-icon-lg);
+}
+
+/* Leading & Trailing Icons */
+.cwp-v2-input-leading-icon {
+  color: var(--cwp-v2-sys-on-surface-variant);
+  font-size: var(--cwp-v2-input-icon-md);
+  margin-right: 8px;
+  flex-shrink: 0;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+}
+
+.cwp-v2-input-trailing-icon {
+  color: var(--cwp-v2-sys-on-surface-variant);
+  font-size: var(--cwp-v2-input-icon-md);
+  margin-left: 8px;
+  flex-shrink: 0;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Input Action Button (Clear / Eye Toggle) */
+.cwp-v2-input-action-btn {
+  border: none;
+  background: transparent;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  cursor: pointer;
+  padding: 2px 4px;
+  margin-left: 6px;
+  border-radius: var(--cwp-v2-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.cwp-v2-input-action-btn:hover {
+  color: var(--cwp-v2-sys-on-surface);
+  background-color: var(--cwp-v2-ref-slate-100);
+}
+
+.cwp-v2-input-action-btn:focus-visible {
+  outline: 2px solid var(--cwp-v2-sys-primary);
+}
+
+.cwp-v2-input-action-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* Prefix & Suffix Addons */
+.cwp-v2-input-prefix,
+.cwp-v2-input-suffix {
+  background-color: var(--cwp-v2-ref-slate-100);
+  color: var(--cwp-v2-sys-on-surface-variant);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 10px;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.cwp-v2-input-prefix {
+  border-right: 1px solid var(--cwp-v2-sys-border);
+  margin-left: -10px;
+  margin-right: 8px;
+}
+
+.cwp-v2-input-suffix {
+  border-left: 1px solid var(--cwp-v2-sys-border);
+  margin-right: -10px;
+  margin-left: 8px;
+}
+
+.cwp-v2-input-prefix-seamless {
+  color: var(--cwp-v2-sys-on-surface-variant);
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: 6px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.cwp-v2-input-suffix-seamless {
+  color: var(--cwp-v2-sys-on-surface-muted);
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 6px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* Textarea Field */
+.cwp-v2-textarea-wrap {
+  width: 100%;
+  position: relative;
+}
+
+.cwp-v2-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 8px 10px;
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-md);
+  background-color: var(--cwp-v2-sys-surface);
+  font-family: var(--cwp-v2-font-sans);
+  font-size: var(--cwp-v2-text-sm);
+  color: var(--cwp-v2-sys-on-surface);
+  line-height: 1.45;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cwp-v2-textarea:hover:not(:disabled):not(:read-only):not(.has-error) {
+  border-color: var(--cwp-v2-ref-slate-400);
+}
+
+.cwp-v2-textarea:focus:not(.has-error) {
+  border-color: var(--cwp-v2-sys-border-focus);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.cwp-v2-textarea.has-error {
+  border-color: var(--cwp-v2-status-danger);
+  background-color: #fffafb;
+}
+
+.cwp-v2-textarea.has-error:focus {
+  border-color: var(--cwp-v2-status-danger);
+  box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.2);
+}
+
+.cwp-v2-textarea:disabled {
+  background-color: var(--cwp-v2-ref-slate-50);
+  border-color: var(--cwp-v2-sys-border-subtle);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.cwp-v2-textarea:read-only {
+  background-color: var(--cwp-v2-ref-slate-50);
+  border-color: var(--cwp-v2-sys-border-subtle);
+  cursor: default;
+}
+
+/* Field Footer (Helper text, Error message, Counter) */
+.cwp-v2-field-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 16px;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.cwp-v2-field-helper {
+  color: var(--cwp-v2-sys-on-surface-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cwp-v2-field-error {
+  color: var(--cwp-v2-status-danger);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cwp-v2-field-success {
+  color: var(--cwp-v2-status-success);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cwp-v2-field-counter {
+  color: var(--cwp-v2-sys-on-surface-muted);
+  font-family: var(--cwp-v2-font-mono);
+  font-size: 10.5px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.cwp-v2-field-counter.is-limit {
+  color: var(--cwp-v2-status-danger);
+  font-weight: 600;
+}
+
+/* Input Showcase Grid Layout */
+.cwp-v2-input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--cwp-v2-space-4);
+}
+
+/* =========================================================================
+   4. KPI Cards (Locked Decision #3: Branded Accent)
+   ========================================================================= */
+.cwp-v2-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--cwp-v2-space-3);
+  margin-bottom: var(--cwp-v2-space-4);
+}
+
+.cwp-v2-kpi-card {
+  background: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border-radius: var(--cwp-v2-radius-md);
+  padding: var(--cwp-v2-space-3) var(--cwp-v2-space-4);
+  box-shadow: var(--cwp-v2-elevation-1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.cwp-v2-kpi-card.has-accent-edge {
+  border-left: 3px solid var(--cwp-v2-ref-blue-600);
+}
+
+.cwp-v2-kpi-label {
+  font-size: var(--cwp-v2-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  margin-bottom: var(--cwp-v2-space-1);
+}
+
+.cwp-v2-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cwp-v2-sys-on-surface);
+  line-height: 1.2;
+}
+
+.cwp-v2-kpi-meta {
+  font-size: var(--cwp-v2-text-xs);
+  color: var(--cwp-v2-sys-on-surface-muted);
+  margin-top: 4px;
+}
+
+/* =========================================================================
+   5. Compact Tables & Data Grid System (Task 03)
+   ========================================================================= */
+
+/* Main Data Grid Shell */
+.cwp-v2-data-grid {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-md);
+  box-shadow: var(--cwp-v2-elevation-1);
+  overflow: hidden;
+}
+
+/* 1. Table Toolbar (Search, Filter, Density, Actions) */
+.cwp-v2-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cwp-v2-space-3);
+  padding: 10px 14px;
+  background-color: var(--cwp-v2-sys-surface);
+  border-bottom: 1px solid var(--cwp-v2-sys-border-subtle);
+  flex-wrap: wrap;
+}
+
+.cwp-v2-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.cwp-v2-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 2. Bulk Action Bar (Animated banner when rows are selected) */
+.cwp-v2-bulk-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background-color: var(--cwp-v2-ref-blue-50);
+  border-bottom: 1px solid #bfdbfe;
+  color: var(--cwp-v2-ref-blue-900);
+  font-size: 12.5px;
+  animation: cwpV2FadeIn 0.15s ease-out;
+}
+
+.cwp-v2-bulk-bar.is-active {
+  display: flex;
+}
+
+.cwp-v2-bulk-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.cwp-v2-bulk-count-pill {
+  background-color: var(--cwp-v2-ref-blue-600);
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: var(--cwp-v2-radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cwp-v2-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 3. Table Container (Horizontal overflow & Sticky Header) */
+.cwp-v2-table-container {
+  width: 100%;
+  overflow-x: auto;
+  position: relative;
+  background-color: var(--cwp-v2-sys-surface);
+}
+
+.cwp-v2-table-container.has-sticky-header {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+/* 4. Table Base */
+.cwp-v2-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--cwp-v2-text-sm);
+  text-align: left;
+  line-height: 1.35;
+}
+
+/* 5. Headers */
+.cwp-v2-table th {
+  background-color: var(--cwp-v2-table-header-bg);
+  color: var(--cwp-v2-table-header-text);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px var(--cwp-v2-table-cell-pad-x);
+  border-bottom: 1px solid var(--cwp-v2-sys-border);
+  white-space: nowrap;
+  user-select: none;
+  height: var(--cwp-v2-table-header-h);
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+/* Sticky Header on scroll */
+.cwp-v2-table-container.has-sticky-header th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: inset 0 -1px 0 var(--cwp-v2-sys-border);
+}
+
+/* Sortable Headers */
+.cwp-v2-table th.is-sortable {
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.cwp-v2-table th.is-sortable:hover {
+  background-color: var(--cwp-v2-ref-slate-100);
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-th-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cwp-v2-sort-icon {
+  font-size: 14px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  transition: color 0.12s ease, transform 0.12s ease;
+}
+
+.cwp-v2-table th.is-sortable:hover .cwp-v2-sort-icon {
+  color: var(--cwp-v2-sys-on-surface-variant);
+}
+
+.cwp-v2-table th.is-sorted .cwp-v2-sort-icon {
+  color: var(--cwp-v2-sys-primary);
+  font-weight: 700;
+}
+
+/* 6. Alignment & Utility Column Widths */
+.cwp-v2-table th.is-numeric,
+.cwp-v2-table td.is-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cwp-v2-table th.is-center,
+.cwp-v2-table td.is-center {
+  text-align: center;
+}
+
+.cwp-v2-col-select {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  text-align: center;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+.cwp-v2-col-actions {
+  width: 100px;
+  min-width: 100px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 7. Cells & Rows */
+.cwp-v2-table td {
+  padding: 6px var(--cwp-v2-table-cell-pad-x);
+  height: var(--cwp-v2-table-row-h-md);
+  border-bottom: 1px solid var(--cwp-v2-sys-border-subtle);
+  color: var(--cwp-v2-sys-on-surface);
+  vertical-align: middle;
+  box-sizing: border-box;
+  background-color: var(--cwp-v2-sys-surface);
+  transition: background-color 0.1s ease;
+}
+
+/* Row Hover */
+.cwp-v2-table tbody tr:hover td {
+  background-color: var(--cwp-v2-table-row-hover-bg);
+}
+
+/* Selected Row (Restrained blue-50 tint, avoids saturated full blue) */
+.cwp-v2-table tbody tr.is-selected td {
+  background-color: var(--cwp-v2-table-row-selected-bg);
+  border-bottom-color: var(--cwp-v2-table-row-selected-border);
+}
+
+.cwp-v2-table tbody tr.is-selected:hover td {
+  background-color: #e6f0fd;
+}
+
+/* Disabled Row */
+.cwp-v2-table tbody tr.is-disabled td {
+  opacity: 0.55;
+  background-color: #fcfcfd;
+}
+
+/* Striped Variant */
+.cwp-v2-table-striped tbody tr:nth-child(even):not(.is-selected):not(:hover) td {
+  background-color: #fbfcfe;
+}
+
+/* 8. Table Density Scale */
+/* Compact Density (30px row height for ultra-dense logs and tables) */
+.cwp-v2-table.is-compact th {
+  height: 32px;
+  padding: 4px var(--cwp-v2-table-cell-pad-x-compact);
+  font-size: 10.5px;
+}
+
+.cwp-v2-table.is-compact td {
+  height: var(--cwp-v2-table-row-h-compact);
+  padding: 3px var(--cwp-v2-table-cell-pad-x-compact);
+  font-size: 12px;
+}
+
+/* Standard Density (36px row height - Locked Decision #9 operational default) */
+.cwp-v2-table.is-standard td {
+  height: var(--cwp-v2-table-row-h-md);
+  padding: 6px var(--cwp-v2-table-cell-pad-x);
+  font-size: 13px;
+}
+
+/* Comfortable Density (46px row height for dual-line text or avatars) */
+.cwp-v2-table.is-comfortable th {
+  height: 42px;
+  padding: 10px 14px;
+}
+
+.cwp-v2-table.is-comfortable td {
+  height: var(--cwp-v2-table-row-h-lg);
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+
+/* 9. Cell Typography & Hierarchy */
+.cwp-v2-cell-primary {
+  font-weight: 500;
+  color: var(--cwp-v2-sys-on-surface);
+  display: block;
+}
+
+.cwp-v2-cell-secondary {
+  font-size: 11px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  display: block;
+  margin-top: 1px;
+}
+
+.cwp-v2-cell-mono {
+  font-family: var(--cwp-v2-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  letter-spacing: -0.01em;
+}
+
+.cwp-v2-cell-flex {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cwp-v2-cell-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--cwp-v2-radius-full);
+  background-color: var(--cwp-v2-ref-slate-200);
+  color: var(--cwp-v2-ref-slate-700);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 10. Row Actions */
+.cwp-v2-row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+/* 11. Accessible Styled Table Checkbox */
+.cwp-v2-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--cwp-v2-ref-slate-400);
+  border-radius: 3px;
+  background-color: var(--cwp-v2-sys-surface);
+  cursor: pointer;
+  display: inline-grid;
+  place-content: center;
+  vertical-align: middle;
+  transition: border-color 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.cwp-v2-checkbox:hover:not(:disabled) {
+  border-color: var(--cwp-v2-sys-primary);
+}
+
+.cwp-v2-checkbox:focus-visible {
+  outline: 2px solid var(--cwp-v2-sys-primary);
+  outline-offset: 1px;
+}
+
+.cwp-v2-checkbox:checked {
+  background-color: var(--cwp-v2-sys-primary);
+  border-color: var(--cwp-v2-sys-primary);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 0 1 0 1.414l-5 5a1 1 0 0 1-1.414 0l-2.5-2.5a1 1 0 0 1 1.414-1.414L6.5 9.086l4.293-4.293a1 1 0 0 1 1.414 0z'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 14px 14px;
+}
+
+.cwp-v2-checkbox:indeterminate {
+  background-color: var(--cwp-v2-sys-primary);
+  border-color: var(--cwp-v2-sys-primary);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' d='M4 8a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1z'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 14px 14px;
+}
+
+.cwp-v2-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background-color: var(--cwp-v2-ref-slate-100);
+}
+
+/* 12. Table Pagination Footer */
+.cwp-v2-table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background-color: var(--cwp-v2-sys-surface);
+  border-top: 1px solid var(--cwp-v2-sys-border-subtle);
+  font-size: 12px;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  flex-wrap: wrap;
+}
+
+.cwp-v2-pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cwp-v2-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cwp-v2-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cwp-v2-page-size-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+}
+
+.cwp-v2-select-compact {
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-sm);
+  background-color: var(--cwp-v2-sys-surface);
+  font-size: 11.5px;
+  font-family: inherit;
+  color: var(--cwp-v2-sys-on-surface);
+  cursor: pointer;
+  outline: none;
+}
+
+.cwp-v2-select-compact:focus {
+  border-color: var(--cwp-v2-sys-border-focus);
+}
+
+/* 13. State Presentations (Loading, Empty, No Results, Error) */
+.cwp-v2-table-state-box {
+  padding: 40px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.cwp-v2-state-icon {
+  font-size: 36px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  line-height: 1;
+}
+
+.cwp-v2-state-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-state-desc {
+  font-size: 12px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  max-width: 380px;
+  line-height: 1.45;
+}
+
+/* Skeleton Loading Shimmer */
+.cwp-v2-skeleton-cell {
+  height: 14px;
+  border-radius: var(--cwp-v2-radius-sm);
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: cwpV2Shimmer 1.5s infinite linear;
+}
+
+@keyframes cwpV2Shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes cwpV2FadeIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================================
+   6. Status Badges (Locked Decision #8)
+   ========================================================================= */
+.cwp-v2-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--cwp-v2-radius-full);
+  font-size: var(--cwp-v2-text-xs);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.cwp-v2-badge-success { background-color: var(--cwp-v2-status-success-bg); color: var(--cwp-v2-status-success); }
+.cwp-v2-badge-warning { background-color: var(--cwp-v2-status-warning-bg); color: var(--cwp-v2-status-warning); }
+.cwp-v2-badge-danger  { background-color: var(--cwp-v2-status-danger-bg);  color: var(--cwp-v2-status-danger);  }
+.cwp-v2-badge-info    { background-color: var(--cwp-v2-status-info-bg);    color: var(--cwp-v2-status-info);    }
+
+.cwp-v2-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.cwp-v2-status-dot.dot-success { background-color: var(--cwp-v2-status-success); }
+.cwp-v2-status-dot.dot-warning { background-color: var(--cwp-v2-status-warning); }
+.cwp-v2-status-dot.dot-danger  { background-color: var(--cwp-v2-status-danger);  }
+.cwp-v2-status-dot.dot-info    { background-color: var(--cwp-v2-status-info);    }
+
+/* =========================================================================
+   7. UI Playground Dedicated Showcase Components (Task 01.1 Polish)
+   ========================================================================= */
+.cwp-v2-playground-section {
+  margin-bottom: var(--cwp-v2-space-5); /* Consistent 20px rhythm */
+}
+
+.cwp-v2-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--cwp-v2-space-3);
+}
+
+.cwp-v2-section-heading h2 {
+  font-size: var(--cwp-v2-type-heading-size);
+  font-weight: 600;
+  color: var(--cwp-v2-sys-on-surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cwp-v2-section-tag {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: var(--cwp-v2-radius-full);
+  background: var(--cwp-v2-ref-slate-100);
+  color: var(--cwp-v2-sys-on-surface-variant);
+}
+
+/* Swatch Grid (Task 01.1 Refined Readability) */
+.cwp-v2-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--cwp-v2-space-3);
+}
+
+.cwp-v2-swatch-card {
+  background: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border-radius: var(--cwp-v2-radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: var(--cwp-v2-elevation-1);
+  transition: border-color 0.15s ease;
+}
+
+.cwp-v2-swatch-card:hover {
+  border-color: var(--cwp-v2-sys-border);
+}
+
+.cwp-v2-swatch-box {
+  width: 100%;
+  height: 38px;
+  border-radius: var(--cwp-v2-radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.cwp-v2-swatch-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--cwp-v2-font-mono);
+  color: var(--cwp-v2-sys-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cwp-v2-swatch-val {
+  font-size: 11px;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  font-family: var(--cwp-v2-font-mono);
+  background: var(--cwp-v2-ref-slate-100);
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.cwp-v2-swatch-role {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--cwp-v2-sys-on-surface-variant);
+}
+
+/* Spacing scale bars */
+.cwp-v2-spacing-row {
+  display: flex;
+  align-items: center;
+  gap: var(--cwp-v2-space-3);
+  margin-bottom: var(--cwp-v2-space-2);
+  font-size: var(--cwp-v2-text-xs);
+}
+
+.cwp-v2-spacing-label {
+  width: 150px;
+  font-family: var(--cwp-v2-font-mono);
+  font-weight: 500;
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-spacing-bar-wrap {
+  flex: 1;
+  background: var(--cwp-v2-ref-slate-100);
+  border-radius: var(--cwp-v2-radius-sm);
+  height: 24px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.cwp-v2-spacing-bar {
+  background: var(--cwp-v2-ref-blue-500);
+  height: 16px;
+  border-radius: 2px;
+}
+
+/* Radius display (Task 01.1 Refined: Neutral CWP Aura Borders, Visible Curvature) */
+.cwp-v2-radius-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--cwp-v2-space-3);
+}
+
+.cwp-v2-radius-box {
+  background: var(--cwp-v2-sys-surface);
+  border: 1.5px solid var(--cwp-v2-sys-border);
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.cwp-v2-radius-box:hover {
+  border-color: var(--cwp-v2-ref-slate-400);
+  background-color: var(--cwp-v2-ref-slate-50);
+}
+
+.cwp-v2-radius-box strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-radius-box span {
+  font-size: 11px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+}
+
+/* Elevation display */
+.cwp-v2-elevation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--cwp-v2-space-4);
+}
+
+.cwp-v2-elevation-box {
+  background: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border-radius: var(--cwp-v2-radius-md);
+  padding: var(--cwp-v2-space-4);
+  text-align: center;
+}
+
+/* Showcase cluster row */
+.cwp-v2-button-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cwp-v2-space-3);
+  padding: var(--cwp-v2-space-3);
+  background: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border-radius: var(--cwp-v2-radius-md);
+}
+
+.cwp-v2-interactive-sandbox-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--cwp-v2-ref-blue-50);
+  border: 1px solid var(--cwp-v2-ref-blue-100);
+  border-radius: var(--cwp-v2-radius-md);
+  padding: var(--cwp-v2-space-3) var(--cwp-v2-space-4);
+  margin-bottom: var(--cwp-v2-space-4);
+  font-size: var(--cwp-v2-text-sm);
+}
+
+.cwp-v2-size-comparison-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--cwp-v2-ref-slate-50);
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border-radius: var(--cwp-v2-radius-md);
+  width: 100%;
+}
+
+/* =========================================================================
+   11. Modal, Dialog & Drawer Overlay System (Task 04)
+   ========================================================================= */
+
+/* Body scroll lock when overlay is open */
+body.cwp-v2-modal-open {
+  overflow: hidden !important;
+}
+
+/* Base Modal Backdrop */
+.cwp-v2-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: var(--cwp-v2-backdrop-bg);
+  backdrop-filter: blur(2px);
+  z-index: var(--cwp-v2-z-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: cwpV2FadeIn 0.18s ease-out;
+}
+
+/* Nested Backdrop (When dialog opened on top of another modal/drawer) */
+.cwp-v2-overlay-backdrop.is-nested {
+  z-index: var(--cwp-v2-z-nested-backdrop);
+  background-color: rgba(15, 23, 42, 0.35);
+}
+
+/* Modal Window Container */
+.cwp-v2-modal {
+  position: relative;
+  background-color: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-lg);
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 36px);
+  width: 100%;
+  animation: cwpV2ModalPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  z-index: var(--cwp-v2-z-modal);
+}
+
+.cwp-v2-modal.is-nested {
+  z-index: var(--cwp-v2-z-nested-modal);
+}
+
+/* Modal Sizing Variants */
+.cwp-v2-modal-sm {
+  max-width: var(--cwp-v2-modal-w-sm); /* 420px */
+}
+
+.cwp-v2-modal-md {
+  max-width: var(--cwp-v2-modal-w-md); /* 540px */
+}
+
+.cwp-v2-modal-lg {
+  max-width: var(--cwp-v2-modal-w-lg); /* 820px */
+}
+
+/* Modal Anatomy: Header */
+.cwp-v2-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cwp-v2-sys-border-subtle);
+  background-color: var(--cwp-v2-sys-surface);
+  flex-shrink: 0;
+}
+
+.cwp-v2-modal-header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.cwp-v2-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cwp-v2-sys-on-surface);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.cwp-v2-modal-subtitle {
+  font-size: 11.5px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  margin-top: 2px;
+}
+
+/* Modal Anatomy: Body */
+.cwp-v2-modal-body {
+  padding: 18px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+/* Modal Anatomy: Footer */
+.cwp-v2-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--cwp-v2-sys-border-subtle);
+  background-color: var(--cwp-v2-ref-slate-50);
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+  flex-shrink: 0;
+}
+
+/* Confirmation & Destructive Dialog Content Elements */
+.cwp-v2-dialog-layout {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.cwp-v2-dialog-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--cwp-v2-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cwp-v2-dialog-icon .material-symbols-outlined {
+  font-size: 22px;
+}
+
+.cwp-v2-dialog-icon-info {
+  background-color: var(--cwp-v2-ref-blue-50);
+  color: var(--cwp-v2-sys-primary);
+}
+
+.cwp-v2-dialog-icon-warning {
+  background-color: #fffbeb;
+  color: #d97706;
+}
+
+.cwp-v2-dialog-icon-danger {
+  background-color: #fff1f2;
+  color: var(--cwp-v2-status-danger);
+}
+
+.cwp-v2-dialog-text {
+  flex: 1;
+}
+
+.cwp-v2-dialog-message {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  margin-top: 4px;
+}
+
+.cwp-v2-consequence-box {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background-color: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: var(--cwp-v2-radius-sm);
+  font-size: 11.5px;
+  color: #9f1239;
+  line-height: 1.45;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* =========================================================================
+   Drawer Overlay Variants (Right-side sliding panel)
+   ========================================================================= */
+
+.cwp-v2-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: var(--cwp-v2-backdrop-bg);
+  backdrop-filter: blur(2px);
+  z-index: var(--cwp-v2-z-drawer);
+  display: flex;
+  justify-content: flex-end;
+  animation: cwpV2FadeIn 0.18s ease-out;
+}
+
+.cwp-v2-drawer {
+  height: 100vh;
+  background-color: var(--cwp-v2-sys-surface);
+  border-left: 1px solid var(--cwp-v2-sys-border);
+  box-shadow: -10px 0 25px -5px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  animation: cwpV2DrawerSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.cwp-v2-drawer-md {
+  max-width: var(--cwp-v2-drawer-w-md); /* 420px */
+}
+
+.cwp-v2-drawer-lg {
+  max-width: var(--cwp-v2-drawer-w-lg); /* 680px */
+}
+
+.cwp-v2-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cwp-v2-sys-border-subtle);
+  background-color: var(--cwp-v2-sys-surface);
+  flex-shrink: 0;
+}
+
+.cwp-v2-drawer-body {
+  padding: 18px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cwp-v2-drawer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--cwp-v2-sys-border-subtle);
+  background-color: var(--cwp-v2-ref-slate-50);
+  flex-shrink: 0;
+}
+
+@keyframes cwpV2ModalPopIn {
+  from {
+    transform: scale(0.96) translateY(6px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes cwpV2DrawerSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .cwp-v2-modal-sm,
+  .cwp-v2-modal-md,
+  .cwp-v2-modal-lg,
+  .cwp-v2-drawer-md,
+  .cwp-v2-drawer-lg {
+    max-width: 100vw;
+  }
+}
+
+/* =========================================================================
+   12. Form, Selection Controls & Specialized Inputs System (Task 05)
+   ========================================================================= */
+
+/* 1. Native Select / Dropdown */
+.cwp-v2-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+  height: var(--cwp-v2-input-h-md); /* 36px default */
+  padding: 0 32px 0 10px;
+  background-color: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-md);
+  font-family: var(--cwp-v2-font-sans);
+  font-size: var(--cwp-v2-input-font-md);
+  color: var(--cwp-v2-sys-on-surface);
+  cursor: pointer;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: var(--cwp-v2-select-arrow-size);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.cwp-v2-select:hover:not(:disabled):not(.has-error) {
+  border-color: var(--cwp-v2-ref-slate-400);
+}
+
+.cwp-v2-select:focus:not(.has-error) {
+  border-color: var(--cwp-v2-sys-border-focus);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.cwp-v2-select.has-error {
+  border-color: var(--cwp-v2-status-danger);
+  background-color: #fffafb;
+}
+
+.cwp-v2-select.has-error:focus {
+  border-color: var(--cwp-v2-status-danger);
+  box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.2);
+}
+
+.cwp-v2-select.has-success {
+  border-color: var(--cwp-v2-status-success);
+}
+
+.cwp-v2-select:disabled {
+  background-color: var(--cwp-v2-ref-slate-50);
+  border-color: var(--cwp-v2-sys-border-subtle);
+  color: var(--cwp-v2-sys-on-surface-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Select Dimensions */
+.cwp-v2-select.cwp-v2-select-sm {
+  height: var(--cwp-v2-input-h-sm); /* 28px */
+  padding: 0 26px 0 8px;
+  font-size: var(--cwp-v2-input-font-sm);
+  background-position: right 6px center;
+  background-size: 16px;
+}
+
+.cwp-v2-select.cwp-v2-select-lg {
+  height: var(--cwp-v2-input-h-lg); /* 42px */
+  padding: 0 36px 0 12px;
+  font-size: var(--cwp-v2-input-font-lg);
+  background-position: right 10px center;
+  background-size: 20px;
+}
+
+/* Select with leading icon box */
+.cwp-v2-select-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.cwp-v2-select-box .cwp-v2-input-leading-icon {
+  position: absolute;
+  left: 10px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cwp-v2-select-box .cwp-v2-select {
+  padding-left: 34px;
+}
+
+/* 2. Custom M3 Radio Buttons */
+.cwp-v2-radio {
+  appearance: none;
+  -webkit-appearance: none;
+  width: var(--cwp-v2-radio-size);
+  height: var(--cwp-v2-radio-size);
+  margin: 0;
+  border: 1.5px solid var(--cwp-v2-ref-slate-400);
+  border-radius: 50%;
+  background-color: var(--cwp-v2-sys-surface);
+  cursor: pointer;
+  outline: none;
+  vertical-align: middle;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, border-width 0.12s ease;
+}
+
+.cwp-v2-radio:hover:not(:disabled) {
+  border-color: var(--cwp-v2-sys-primary);
+}
+
+.cwp-v2-radio:focus-visible {
+  outline: 2px solid var(--cwp-v2-sys-primary);
+  outline-offset: 2px;
+}
+
+.cwp-v2-radio:checked {
+  border-color: var(--cwp-v2-sys-primary);
+  border-width: 5px;
+  background-color: #ffffff;
+}
+
+.cwp-v2-radio:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  border-color: var(--cwp-v2-ref-slate-300);
+}
+
+/* Radio & Checkbox Groups */
+.cwp-v2-choice-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cwp-v2-choice-group-inline {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cwp-v2-choice-label {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--cwp-v2-sys-on-surface);
+  user-select: none;
+  line-height: 1.35;
+}
+
+.cwp-v2-choice-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.cwp-v2-choice-subtext {
+  font-size: 11px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  margin-top: 2px;
+}
+
+/* 3. Accessible Toggle Switch */
+.cwp-v2-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cwp-v2-switch-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.cwp-v2-switch-track {
+  width: var(--cwp-v2-switch-w);
+  height: var(--cwp-v2-switch-h);
+  border-radius: var(--cwp-v2-radius-full);
+  background-color: var(--cwp-v2-ref-slate-300);
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.cwp-v2-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: var(--cwp-v2-switch-thumb);
+  height: var(--cwp-v2-switch-thumb);
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cwp-v2-switch-input:checked + .cwp-v2-switch-track {
+  background-color: var(--cwp-v2-sys-primary);
+}
+
+.cwp-v2-switch-input:checked + .cwp-v2-switch-track .cwp-v2-switch-thumb {
+  transform: translateX(16px);
+}
+
+.cwp-v2-switch-input:focus-visible + .cwp-v2-switch-track {
+  outline: 2px solid var(--cwp-v2-sys-primary);
+  outline-offset: 2px;
+}
+
+.cwp-v2-switch-input:disabled + .cwp-v2-switch-track {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Compact Switch */
+.cwp-v2-switch.cwp-v2-switch-sm .cwp-v2-switch-track {
+  width: var(--cwp-v2-switch-w-sm);
+  height: var(--cwp-v2-switch-h-sm);
+}
+
+.cwp-v2-switch.cwp-v2-switch-sm .cwp-v2-switch-thumb {
+  width: var(--cwp-v2-switch-thumb-sm);
+  height: var(--cwp-v2-switch-thumb-sm);
+}
+
+.cwp-v2-switch.cwp-v2-switch-sm .cwp-v2-switch-input:checked + .cwp-v2-switch-track .cwp-v2-switch-thumb {
+  transform: translateX(12px);
+}
+
+.cwp-v2-switch-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.cwp-v2-switch-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-switch-desc {
+  font-size: 11px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+}
+
+/* 4. Specialized: Date & Time Inputs */
+.cwp-v2-input[type="date"],
+.cwp-v2-input[type="time"],
+.cwp-v2-input[type="datetime-local"] {
+  font-family: var(--cwp-v2-font-sans);
+  color: var(--cwp-v2-sys-on-surface);
+  cursor: pointer;
+}
+
+.cwp-v2-input[type="date"]::-webkit-calendar-picker-indicator,
+.cwp-v2-input[type="time"]::-webkit-calendar-picker-indicator,
+.cwp-v2-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+  filter: invert(0.4);
+}
+
+.cwp-v2-input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.cwp-v2-input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* 5. Specialized: Numeric Stepper */
+.cwp-v2-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-md);
+  background-color: var(--cwp-v2-sys-surface);
+  overflow: hidden;
+  height: var(--cwp-v2-input-h-md);
+}
+
+.cwp-v2-stepper-btn {
+  width: 32px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.cwp-v2-stepper-btn:hover:not(:disabled) {
+  background-color: var(--cwp-v2-ref-slate-100);
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cwp-v2-stepper-input {
+  width: 50px;
+  text-align: center;
+  border: none;
+  background: transparent;
+  font-family: var(--cwp-v2-font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.cwp-v2-stepper-input::-webkit-inner-spin-button,
+.cwp-v2-stepper-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* 6. Specialized: File Upload / Dropzone */
+.cwp-v2-file-dropzone {
+  border: 1.5px dashed var(--cwp-v2-ref-slate-300);
+  border-radius: var(--cwp-v2-radius-md);
+  background-color: #fafbfd;
+  padding: 16px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.cwp-v2-file-dropzone:hover,
+.cwp-v2-file-dropzone.is-dragover {
+  border-color: var(--cwp-v2-sys-primary);
+  background-color: var(--cwp-v2-ref-blue-50);
+}
+
+.cwp-v2-file-dropzone-icon {
+  font-size: 28px;
+  color: var(--cwp-v2-sys-primary);
+  line-height: 1;
+}
+
+.cwp-v2-file-preview-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: var(--cwp-v2-ref-slate-100);
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-full);
+  font-size: 12px;
+  color: var(--cwp-v2-sys-on-surface);
+  margin-top: 8px;
+}
+
+/* 7. Form Layout Systems */
+.cwp-v2-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.cwp-v2-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.cwp-v2-form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.cwp-v2-form-section {
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border-radius: var(--cwp-v2-radius-md);
+  padding: 16px;
+  background-color: var(--cwp-v2-sys-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cwp-v2-form-section-header {
+  border-bottom: 1px solid var(--cwp-v2-sys-border-subtle);
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+.cwp-v2-form-section-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--cwp-v2-sys-on-surface);
+  margin: 0;
+}
+
+.cwp-v2-form-section-desc {
+  font-size: 11.5px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  margin-top: 2px;
+}
+
+.cwp-v2-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.cwp-v2-form-alert {
+  padding: 10px 14px;
+  border-radius: var(--cwp-v2-radius-md);
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.cwp-v2-form-alert.is-error {
+  background-color: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #9f1239;
+}
+
+.cwp-v2-form-alert.is-success {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+/* =========================================================================
+   14. Selection Controls, Dropdown & Operational Filter System (Task 06)
+   STRICTLY SCOPED & ISOLATED
+   ========================================================================= */
+
+/* 1. Custom Dropdown Wrapper & Trigger */
+.cwp-v2-dropdown {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.cwp-v2-dropdown-trigger {
+  width: 100%;
+  height: var(--cwp-v2-input-h-md);
+  padding: 0 10px;
+  background-color: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-md);
+  color: var(--cwp-v2-sys-on-surface);
+  font-family: var(--cwp-v2-font-sans);
+  font-size: var(--cwp-v2-input-font-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.cwp-v2-dropdown-trigger:hover:not(:disabled):not(.is-disabled) {
+  border-color: var(--cwp-v2-ref-slate-400);
+  background-color: var(--cwp-v2-ref-slate-50);
+}
+
+.cwp-v2-dropdown-trigger:focus-visible,
+.cwp-v2-dropdown.is-open .cwp-v2-dropdown-trigger {
+  border-color: var(--cwp-v2-sys-border-focus);
+  outline: 2px solid var(--cwp-v2-ref-blue-100);
+  outline-offset: 0;
+  background-color: var(--cwp-v2-sys-surface);
+}
+
+.cwp-v2-dropdown-trigger:disabled,
+.cwp-v2-dropdown-trigger.is-disabled {
+  background-color: var(--cwp-v2-ref-slate-100);
+  border-color: var(--cwp-v2-sys-border-subtle);
+  color: var(--cwp-v2-sys-on-surface-muted);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.cwp-v2-dropdown.has-error .cwp-v2-dropdown-trigger {
+  border-color: var(--cwp-v2-status-danger);
+  background-color: #fffbfa;
+}
+
+.cwp-v2-dropdown.has-error .cwp-v2-dropdown-trigger:focus-visible,
+.cwp-v2-dropdown.has-error.is-open .cwp-v2-dropdown-trigger {
+  outline-color: var(--cwp-v2-ref-rose-50);
+}
+
+/* Sizing Options */
+.cwp-v2-dropdown-sm .cwp-v2-dropdown-trigger,
+.cwp-v2-dropdown-trigger.cwp-v2-dropdown-sm {
+  height: var(--cwp-v2-input-h-sm);
+  padding: 0 8px;
+  font-size: var(--cwp-v2-input-font-sm);
+  border-radius: var(--cwp-v2-radius-sm);
+}
+
+.cwp-v2-dropdown-lg .cwp-v2-dropdown-trigger,
+.cwp-v2-dropdown-trigger.cwp-v2-dropdown-lg {
+  height: var(--cwp-v2-input-h-lg);
+  padding: 0 12px;
+  font-size: var(--cwp-v2-input-font-lg);
+}
+
+/* Trigger content slots */
+.cwp-v2-dropdown-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cwp-v2-dropdown-placeholder {
+  color: var(--cwp-v2-sys-on-surface-muted);
+}
+
+.cwp-v2-dropdown-trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cwp-v2-dropdown-chevron {
+  font-size: 18px;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  transition: transform 0.2s ease;
+  line-height: 1;
+}
+
+.cwp-v2-dropdown.is-open .cwp-v2-dropdown-chevron {
+  transform: rotate(180deg);
+  color: var(--cwp-v2-sys-primary);
+}
+
+.cwp-v2-dropdown-clear-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.cwp-v2-dropdown-clear-btn:hover {
+  background-color: var(--cwp-v2-ref-slate-200);
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-dropdown.has-selection .cwp-v2-dropdown-clear-btn {
+  display: inline-flex;
+}
+
+/* 2. Dropdown Floating Menu */
+.cwp-v2-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  min-width: 220px;
+  background-color: var(--cwp-v2-dropdown-bg);
+  border: 1px solid var(--cwp-v2-dropdown-border);
+  border-radius: var(--cwp-v2-dropdown-radius);
+  box-shadow: var(--cwp-v2-dropdown-shadow);
+  z-index: var(--cwp-v2-dropdown-z);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: cwpV2DropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cwp-v2-dropdown.is-open .cwp-v2-dropdown-menu {
+  display: flex;
+}
+
+.cwp-v2-dropdown-menu-right {
+  left: auto;
+  right: 0;
+}
+
+@keyframes cwpV2DropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 3. Search Field in Dropdown */
+.cwp-v2-dropdown-search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background-color: var(--cwp-v2-ref-slate-50);
+  border-bottom: 1px solid var(--cwp-v2-sys-border-subtle);
+  position: relative;
+}
+
+.cwp-v2-dropdown-search-input {
+  width: 100%;
+  height: 28px;
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-sm);
+  padding: 0 24px 0 28px;
+  font-family: var(--cwp-v2-font-sans);
+  font-size: 12px;
+  color: var(--cwp-v2-sys-on-surface);
+  background-color: var(--cwp-v2-sys-surface);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cwp-v2-dropdown-search-input:focus {
+  border-color: var(--cwp-v2-sys-primary);
+  box-shadow: 0 0 0 2px var(--cwp-v2-ref-blue-100);
+}
+
+.cwp-v2-dropdown-search-icon {
+  position: absolute;
+  left: 18px;
+  font-size: 15px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  pointer-events: none;
+}
+
+.cwp-v2-dropdown-search-clear {
+  position: absolute;
+  right: 16px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  cursor: pointer;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.cwp-v2-dropdown-search-clear:hover {
+  background-color: var(--cwp-v2-ref-slate-200);
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+/* 4. Dropdown List & Items */
+.cwp-v2-dropdown-list {
+  max-height: var(--cwp-v2-dropdown-max-h);
+  overflow-y: auto;
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+}
+
+.cwp-v2-dropdown-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.cwp-v2-dropdown-list::-webkit-scrollbar-thumb {
+  background-color: var(--cwp-v2-ref-slate-300);
+  border-radius: 4px;
+}
+
+.cwp-v2-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  min-height: var(--cwp-v2-item-h);
+  font-size: 13px;
+  color: var(--cwp-v2-sys-on-surface);
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.cwp-v2-dropdown-sm .cwp-v2-dropdown-item {
+  min-height: var(--cwp-v2-item-h-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.cwp-v2-dropdown-item:hover,
+.cwp-v2-dropdown-item.is-highlighted {
+  background-color: var(--cwp-v2-dropdown-item-hover, var(--cwp-v2-ref-slate-100));
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-dropdown-item.is-selected {
+  background-color: var(--cwp-v2-dropdown-item-active, var(--cwp-v2-ref-blue-50));
+  color: var(--cwp-v2-dropdown-item-active-text, var(--cwp-v2-ref-blue-700));
+  font-weight: 600;
+}
+
+.cwp-v2-dropdown-item.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  background-color: transparent !important;
+}
+
+.cwp-v2-dropdown-item-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cwp-v2-dropdown-item-icon {
+  font-size: 16px;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cwp-v2-dropdown-item.is-selected .cwp-v2-dropdown-item-icon {
+  color: var(--cwp-v2-sys-primary);
+}
+
+.cwp-v2-dropdown-item-check {
+  font-size: 16px;
+  color: var(--cwp-v2-sys-primary);
+  line-height: 1;
+  display: none;
+  flex-shrink: 0;
+}
+
+.cwp-v2-dropdown-item.is-selected .cwp-v2-dropdown-item-check {
+  display: inline-block;
+}
+
+.cwp-v2-dropdown-item-subtext {
+  font-size: 11px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  margin-left: 4px;
+}
+
+/* 5. Multi-Select Specifics */
+.cwp-v2-multi-select-chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.cwp-v2-select-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+  background-color: var(--cwp-v2-ref-blue-50);
+  border: 1px solid var(--cwp-v2-ref-blue-200);
+  border-radius: var(--cwp-v2-radius-sm);
+  color: var(--cwp-v2-ref-blue-700);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cwp-v2-select-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: transparent;
+  color: var(--cwp-v2-ref-blue-700);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  border-radius: 50%;
+}
+
+.cwp-v2-select-chip-remove:hover {
+  background-color: var(--cwp-v2-ref-blue-200);
+}
+
+.cwp-v2-select-chip-overflow {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 5px;
+  background-color: var(--cwp-v2-ref-slate-200);
+  border-radius: var(--cwp-v2-radius-sm);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-dropdown-item-checkbox {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  border: 1.5px solid var(--cwp-v2-sys-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  flex-shrink: 0;
+  background-color: var(--cwp-v2-sys-surface);
+  transition: all 0.15s ease;
+}
+
+.cwp-v2-dropdown-item.is-selected .cwp-v2-dropdown-item-checkbox {
+  background-color: var(--cwp-v2-sys-primary);
+  border-color: var(--cwp-v2-sys-primary);
+}
+
+.cwp-v2-dropdown-item.is-selected .cwp-v2-dropdown-item-checkbox::after {
+  content: '';
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-top: -2px;
+}
+
+.cwp-v2-dropdown-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-top: 1px solid var(--cwp-v2-sys-border-subtle);
+  background-color: var(--cwp-v2-ref-slate-50);
+}
+
+.cwp-v2-dropdown-action-link {
+  background: none;
+  border: none;
+  color: var(--cwp-v2-sys-primary);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.cwp-v2-dropdown-action-link:hover {
+  background-color: var(--cwp-v2-ref-blue-50);
+  text-decoration: underline;
+}
+
+/* 6. Filter Chips System */
+.cwp-v2-chip-cluster {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cwp-v2-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--cwp-v2-chip-h);
+  padding: 0 12px;
+  border-radius: var(--cwp-v2-chip-radius);
+  border: 1px solid var(--cwp-v2-chip-border);
+  background-color: var(--cwp-v2-chip-bg);
+  color: var(--cwp-v2-chip-text);
+  font-family: var(--cwp-v2-font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.cwp-v2-filter-chip:hover:not(:disabled):not(.is-disabled) {
+  background-color: var(--cwp-v2-chip-hover-bg);
+  border-color: var(--cwp-v2-ref-slate-400);
+}
+
+.cwp-v2-filter-chip:focus-visible {
+  outline: 2px solid var(--cwp-v2-sys-border-focus);
+  outline-offset: 1px;
+}
+
+.cwp-v2-filter-chip.is-active {
+  background-color: var(--cwp-v2-chip-active-bg);
+  border-color: var(--cwp-v2-chip-active-border);
+  color: var(--cwp-v2-chip-active-text);
+  font-weight: 600;
+}
+
+.cwp-v2-filter-chip-sm {
+  height: var(--cwp-v2-chip-h-sm);
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.cwp-v2-filter-chip:disabled,
+.cwp-v2-filter-chip.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Chip Count Badge */
+.cwp-v2-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background-color: rgba(15, 23, 42, 0.08);
+  color: inherit;
+  margin-left: 2px;
+}
+
+.cwp-v2-filter-chip.is-active .cwp-v2-chip-count {
+  background-color: var(--cwp-v2-sys-primary);
+  color: #ffffff;
+}
+
+/* Removable Chip */
+.cwp-v2-chip-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  line-height: 1;
+}
+
+.cwp-v2-chip-remove-btn:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Semantic Chip Colors */
+.cwp-v2-chip-success.is-active {
+  background-color: var(--cwp-v2-status-success-bg);
+  border-color: var(--cwp-v2-ref-emerald-500);
+  color: var(--cwp-v2-status-success);
+}
+.cwp-v2-chip-success.is-active .cwp-v2-chip-count {
+  background-color: var(--cwp-v2-status-success);
+  color: #ffffff;
+}
+
+.cwp-v2-chip-warning.is-active {
+  background-color: var(--cwp-v2-status-warning-bg);
+  border-color: var(--cwp-v2-ref-amber-500);
+  color: var(--cwp-v2-status-warning);
+}
+.cwp-v2-chip-warning.is-active .cwp-v2-chip-count {
+  background-color: var(--cwp-v2-status-warning);
+  color: #ffffff;
+}
+
+.cwp-v2-chip-info.is-active {
+  background-color: var(--cwp-v2-status-info-bg);
+  border-color: var(--cwp-v2-ref-sky-500);
+  color: var(--cwp-v2-status-info);
+}
+.cwp-v2-chip-info.is-active .cwp-v2-chip-count {
+  background-color: var(--cwp-v2-status-info);
+  color: #ffffff;
+}
+
+/* 7. Operational Filter Bar System */
+.cwp-v2-filter-bar {
+  background-color: var(--cwp-v2-filterbar-bg);
+  border: 1px solid var(--cwp-v2-filterbar-border);
+  border-radius: var(--cwp-v2-radius-md);
+  padding: 10px 14px;
+  box-shadow: var(--cwp-v2-elevation-1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: var(--cwp-v2-space-4);
+}
+
+.cwp-v2-filter-bar-primary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cwp-v2-filter-bar-search {
+  flex: 1 1 200px;
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.cwp-v2-filter-item {
+  flex: 0 1 auto;
+  min-width: 120px;
+}
+
+.cwp-v2-filter-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.cwp-v2-filter-drawer {
+  display: none;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--cwp-v2-sys-border-subtle);
+  animation: cwpV2DrawerSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cwp-v2-filter-drawer.is-open {
+  display: grid;
+}
+
+@keyframes cwpV2DrawerSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 8. Date & Date-Range Selection Patterns */
+.cwp-v2-date-range-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cwp-v2-date-range-box {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-md);
+  background-color: var(--cwp-v2-sys-surface);
+  height: var(--cwp-v2-input-h-md);
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+.cwp-v2-date-range-box:focus-within {
+  border-color: var(--cwp-v2-sys-primary);
+  box-shadow: 0 0 0 2px var(--cwp-v2-ref-blue-100);
+}
+
+.cwp-v2-date-range-input {
+  border: none;
+  background: transparent;
+  font-family: var(--cwp-v2-font-sans);
+  font-size: 12.5px;
+  color: var(--cwp-v2-sys-on-surface);
+  outline: none;
+  width: 120px;
+  cursor: pointer;
+}
+
+.cwp-v2-date-range-sep {
+  font-size: 12px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  padding: 0 4px;
+  user-select: none;
+}
+
+.cwp-v2-date-presets {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cwp-v2-date-preset-pill {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--cwp-v2-radius-full);
+  border: 1px solid var(--cwp-v2-sys-border);
+  background-color: var(--cwp-v2-sys-surface);
+  color: var(--cwp-v2-sys-on-surface-variant);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.cwp-v2-date-preset-pill:hover {
+  background-color: var(--cwp-v2-ref-slate-100);
+  border-color: var(--cwp-v2-ref-slate-400);
+}
+
+.cwp-v2-date-preset-pill.is-active {
+  background-color: var(--cwp-v2-ref-blue-50);
+  border-color: var(--cwp-v2-ref-blue-500);
+  color: var(--cwp-v2-ref-blue-700);
+  font-weight: 600;
+}
+
+/* 9. Selection Summary & Clear Actions */
+.cwp-v2-selection-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--cwp-v2-ref-slate-50);
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border-radius: var(--cwp-v2-radius-md);
+  margin-top: 6px;
+}
+
+.cwp-v2-selection-summary-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cwp-v2-active-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--cwp-v2-sys-on-surface);
+  margin-right: 4px;
+}
+
+.cwp-v2-active-filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  background-color: var(--cwp-v2-ref-white);
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-sm);
+  font-size: 11px;
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-active-filter-tag-remove {
+  border: none;
+  background: transparent;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.cwp-v2-active-filter-tag-remove:hover {
+  color: var(--cwp-v2-status-danger);
+}
+
+/* 10. Empty & No-Results States */
+.cwp-v2-empty-state-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+  background-color: var(--cwp-v2-ref-slate-50);
+  border: 1px dashed var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-md);
+  min-height: 180px;
+}
+
+.cwp-v2-empty-state-icon {
+  font-size: 36px;
+  color: var(--cwp-v2-ref-slate-400);
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.cwp-v2-empty-state-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cwp-v2-sys-on-surface);
+  margin-bottom: 4px;
+}
+
+.cwp-v2-empty-state-desc {
+  font-size: 12px;
+  color: var(--cwp-v2-sys-on-surface-muted);
+  max-width: 340px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.cwp-v2-empty-state-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid var(--cwp-v2-ref-blue-200);
+  border-top-color: var(--cwp-v2-sys-primary);
+  border-radius: 50%;
+  animation: cwpV2Spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+/* =========================================================================
+   15. Advanced Table & Data Grid Component System (Task 07)
+   STRICTLY SCOPED & ISOLATED
+   ========================================================================= */
+
+/* 1. Expandable Row Architecture */
+.cwp-v2-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  border-radius: var(--cwp-v2-radius-sm);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease, background-color 0.15s ease;
+  line-height: 1;
+}
+
+.cwp-v2-expand-btn:hover {
+  background-color: var(--cwp-v2-ref-slate-200);
+  color: var(--cwp-v2-sys-on-surface);
+}
+
+.cwp-v2-expand-btn.is-expanded {
+  transform: rotate(90deg);
+  color: var(--cwp-v2-sys-primary);
+}
+
+.cwp-v2-expanded-row {
+  display: none;
+  background-color: var(--cwp-v2-table-expand-bg, #f8fafc);
+}
+
+.cwp-v2-expanded-row.is-expanded {
+  display: table-row;
+}
+
+.cwp-v2-expanded-panel {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cwp-v2-sys-border-subtle);
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  animation: cwpV2FadeIn 0.2s ease;
+}
+
+@keyframes cwpV2FadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cwp-v2-expanded-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  font-size: 12px;
+}
+
+.cwp-v2-expanded-card {
+  background-color: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border-radius: var(--cwp-v2-radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cwp-v2-expanded-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--cwp-v2-sys-border-subtle);
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+}
+
+/* 2. Sticky Action Column Support */
+.cwp-v2-table th.is-sticky-action,
+.cwp-v2-table td.is-sticky-action {
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  background-color: var(--cwp-v2-sys-surface);
+  box-shadow: -4px 0 6px -2px rgba(15, 23, 42, 0.06);
+}
+
+.cwp-v2-table tbody tr:hover td.is-sticky-action {
+  background-color: var(--cwp-v2-table-row-hover-bg, #f8fafc);
+}
+
+.cwp-v2-table tbody tr.is-selected td.is-sticky-action {
+  background-color: var(--cwp-v2-table-row-selected-bg, #f0f7ff);
+}
+
+/* 3. Row Action Hierarchy & Overflow Menu */
+.cwp-v2-row-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--cwp-v2-sys-on-surface-variant);
+  border-radius: var(--cwp-v2-radius-sm);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.12s ease;
+  line-height: 1;
+}
+
+.cwp-v2-row-action-btn:hover {
+  background-color: var(--cwp-v2-ref-slate-200);
+  color: var(--cwp-v2-sys-on-surface);
+  border-color: var(--cwp-v2-sys-border);
+}
+
+.cwp-v2-row-menu-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.cwp-v2-table-overflow-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 160px;
+  background-color: var(--cwp-v2-sys-surface);
+  border: 1px solid var(--cwp-v2-sys-border);
+  border-radius: var(--cwp-v2-radius-md);
+  box-shadow: var(--cwp-v2-elevation-3);
+  z-index: 1070;
+  display: none;
+  flex-direction: column;
+  padding: 4px 0;
+  margin-top: 4px;
+}
+
+.cwp-v2-table-overflow-menu.is-open {
+  display: flex;
+}
+
+.cwp-v2-table-overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--cwp-v2-sys-on-surface);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.1s ease;
+}
+
+.cwp-v2-table-overflow-item:hover {
+  background-color: var(--cwp-v2-ref-slate-100);
+}
+
+.cwp-v2-table-overflow-item.is-danger {
+  color: var(--cwp-v2-status-danger);
+}
+
+.cwp-v2-table-overflow-item.is-danger:hover {
+  background-color: var(--cwp-v2-ref-rose-50);
+}
+
+/* 4. Operational Cell Patterns */
+/* Priority Badges */
+.cwp-v2-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--cwp-v2-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.cwp-v2-priority-high {
+  background-color: var(--cwp-v2-ref-rose-50);
+  color: var(--cwp-v2-status-danger);
+  border: 1px solid var(--cwp-v2-ref-rose-500);
+}
+
+.cwp-v2-priority-medium {
+  background-color: var(--cwp-v2-ref-amber-50);
+  color: var(--cwp-v2-status-warning);
+  border: 1px solid var(--cwp-v2-ref-amber-500);
+}
+
+.cwp-v2-priority-normal {
+  background-color: var(--cwp-v2-ref-slate-100);
+  color: var(--cwp-v2-sys-on-surface-variant);
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+}
+
+/* Progress Cell */
+.cwp-v2-progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.cwp-v2-progress-track {
+  flex: 1;
+  max-width: 60px;
+  height: 6px;
+  background-color: var(--cwp-v2-ref-slate-200);
+  border-radius: var(--cwp-v2-radius-full);
+  overflow: hidden;
+}
+
+.cwp-v2-progress-fill {
+  height: 100%;
+  background-color: var(--cwp-v2-sys-primary);
+  border-radius: var(--cwp-v2-radius-full);
+  transition: width 0.3s ease;
+}
+
+.cwp-v2-progress-fill.is-complete {
+  background-color: var(--cwp-v2-status-success);
+}
+
+.cwp-v2-progress-text {
+  font-size: 11px;
+  font-family: var(--cwp-v2-font-mono);
+  font-weight: 600;
+  color: var(--cwp-v2-sys-on-surface);
+  width: 32px;
+}
+
+/* Boolean Guard State Pill */
+.cwp-v2-bool-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--cwp-v2-radius-sm);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.cwp-v2-bool-pill.is-true {
+  background-color: var(--cwp-v2-ref-emerald-50);
+  color: var(--cwp-v2-status-success);
+  border: 1px solid #a7f3d0;
+}
+
+.cwp-v2-bool-pill.is-false {
+  background-color: var(--cwp-v2-ref-slate-100);
+  color: var(--cwp-v2-sys-on-surface-muted);
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+}
+
+/* 5. Skeleton Loading Shimmer */
+.cwp-v2-skeleton-bar {
+  display: inline-block;
+  height: 12px;
+  border-radius: var(--cwp-v2-radius-sm);
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: cwpV2Shimmer 1.5s infinite;
+}
+
+@keyframes cwpV2Shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 6. Density Variant Overrides */
+.cwp-v2-table.is-compact-mode th {
+  height: var(--cwp-v2-table-header-h-compact, 36px);
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.cwp-v2-table.is-compact-mode td {
+  height: var(--cwp-v2-table-row-h-compact, 34px);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.cwp-v2-table.is-standard-mode th {
+  height: var(--cwp-v2-table-header-h-standard, 42px);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.cwp-v2-table.is-standard-mode td {
+  height: var(--cwp-v2-table-row-h-standard, 46px);
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+

@@ -1,0 +1,292 @@
+/**
+ * CWP Admin V2 Layout Styles
+ * STRICTLY SCOPED to .cwp-v2-root
+ * Locked Decisions: #1 Modern Dark Sidebar, #2 Contextual Header, #9 High Density, #11 Light Workspace
+ */
+
+.cwp-v2-app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: var(--cwp-v2-sys-surface-ground);
+}
+
+/* =========================================================================
+   1. Modern Dark Sidebar (Locked Decision #1)
+   ========================================================================= */
+.cwp-v2-sidebar {
+  width: var(--cwp-v2-sidebar-width);
+  min-width: var(--cwp-v2-sidebar-width);
+  background-color: var(--cwp-v2-sidebar-bg);
+  color: var(--cwp-v2-sidebar-text);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--cwp-v2-sidebar-border);
+  z-index: 50;
+  user-select: none;
+}
+
+.cwp-v2-sidebar-header {
+  height: var(--cwp-v2-header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--cwp-v2-space-4);
+  gap: var(--cwp-v2-space-3);
+  border-bottom: 1px solid var(--cwp-v2-sidebar-border);
+}
+
+.cwp-v2-sidebar-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--cwp-v2-radius-md);
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.cwp-v2-sidebar-brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.cwp-v2-brand-name {
+  color: #ffffff;
+  font-size: var(--cwp-v2-text-sm);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.cwp-v2-brand-subtitle {
+  color: var(--cwp-v2-ref-slate-400);
+  font-size: var(--cwp-v2-text-xs);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cwp-v2-version-pill {
+  background: rgba(37, 99, 235, 0.25);
+  color: #93c5fd;
+  padding: 1px 6px;
+  border-radius: var(--cwp-v2-radius-full);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(147, 197, 253, 0.3);
+}
+
+/* Sidebar Navigation */
+.cwp-v2-sidebar-nav {
+  flex: 1;
+  padding: var(--cwp-v2-space-3) var(--cwp-v2-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.cwp-v2-nav-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cwp-v2-ref-slate-500);
+  padding: var(--cwp-v2-space-3) var(--cwp-v2-space-3) var(--cwp-v2-space-1);
+}
+
+.cwp-v2-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--cwp-v2-space-3);
+  padding: var(--cwp-v2-space-2) var(--cwp-v2-space-3);
+  border-radius: var(--cwp-v2-radius-md);
+  color: var(--cwp-v2-sidebar-text);
+  font-size: var(--cwp-v2-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  border: 1px solid transparent;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.cwp-v2-nav-item:hover {
+  background-color: var(--cwp-v2-sidebar-item-hover);
+  color: #ffffff;
+}
+
+.cwp-v2-nav-item.is-active {
+  background-color: var(--cwp-v2-sidebar-item-active);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.4);
+}
+
+.cwp-v2-nav-item .material-symbols-outlined {
+  font-size: 20px;
+  color: inherit;
+}
+
+.cwp-v2-nav-badge {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: var(--cwp-v2-radius-full);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Sidebar Footer / Switcher */
+.cwp-v2-sidebar-footer {
+  padding: var(--cwp-v2-space-3);
+  border-top: 1px solid var(--cwp-v2-sidebar-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cwp-v2-space-2);
+}
+
+.cwp-v2-v1-switch-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--cwp-v2-radius-md);
+  padding: var(--cwp-v2-space-2) var(--cwp-v2-space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cwp-v2-v1-switch-card .text-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.cwp-v2-v1-switch-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.cwp-v2-v1-switch-sub {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.cwp-v2-v1-switch-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: var(--cwp-v2-radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  text-decoration: none !important;
+}
+
+.cwp-v2-v1-switch-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* =========================================================================
+   2. Main Workspace Layout
+   ========================================================================= */
+.cwp-v2-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Contextual Header (Locked Decision #2) */
+.cwp-v2-header {
+  height: var(--cwp-v2-header-height);
+  background-color: var(--cwp-v2-header-bg);
+  border-bottom: 1px solid var(--cwp-v2-header-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--cwp-v2-space-5);
+  z-index: 40;
+}
+
+.cwp-v2-header-context {
+  display: flex;
+  align-items: center;
+  gap: var(--cwp-v2-space-3);
+}
+
+.cwp-v2-header-title {
+  font-size: var(--cwp-v2-text-md);
+  font-weight: 600;
+  color: var(--cwp-v2-sys-on-surface);
+  letter-spacing: -0.01em;
+}
+
+.cwp-v2-header-badge {
+  background-color: var(--cwp-v2-ref-blue-50);
+  border: 1px solid var(--cwp-v2-ref-blue-100);
+  color: var(--cwp-v2-ref-blue-700);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--cwp-v2-radius-full);
+}
+
+.cwp-v2-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--cwp-v2-space-3);
+}
+
+.cwp-v2-live-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--cwp-v2-ref-emerald-50);
+  border: 1px solid #d1fae5;
+  color: var(--cwp-v2-ref-emerald-600);
+  font-size: var(--cwp-v2-text-xs);
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--cwp-v2-radius-full);
+}
+
+.cwp-v2-live-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--cwp-v2-ref-emerald-500);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.cwp-v2-workspace {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--cwp-v2-space-5);
+  background-color: var(--cwp-v2-sys-surface-ground);
+}
+
+/* View Containers */
+.cwp-v2-view {
+  display: none;
+}
+
+.cwp-v2-view.is-active {
+  display: block;
+  animation: cwpV2FadeIn 0.15s ease-in-out;
+}
+
+@keyframes cwpV2FadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
