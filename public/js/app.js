@@ -1,6 +1,6 @@
 /* Application Launch Parameters */
     var initialStaffId = '';
-    var initialMode = 'admin';
+    var initialMode = 'staff';
     var webAppBaseUrl = '';
 
     /* Global Application State */
@@ -1159,113 +1159,31 @@ var state = {
 
     function updateHeaderAccountStatus() {
       var staffHeader = document.getElementById('staffHeader');
-      var adminHeader = document.getElementById('adminHeader');
-      var accountTrigger = document.getElementById('headerAccountTrigger');
-      var accountWrap = document.getElementById('accountDropdownWrap');
-      var avatarInitial = document.getElementById('headerAccountInitial');
-      var accountName = document.getElementById('headerAccountName');
-      var accountRole = document.getElementById('headerAccountRole');
-      var panelAvatar = document.getElementById('menuPanelAvatar');
-      var panelName = document.getElementById('menuPanelName');
-      var panelSub = document.getElementById('menuPanelSub');
       var staffLogout = document.getElementById('staffLogoutBtn') || document.getElementById('btnStaffSettingsLogout');
-      var adminLogout = document.getElementById('adminLogoutBtn');
       var contextChip = document.getElementById('headerContextChip');
       var mainTitle = document.getElementById('pageMainTitle');
-      var adminTitle = document.getElementById('adminHeaderTitle');
       var liveBadge = document.getElementById('staffLiveBadge');
 
       var isHi = (typeof state !== 'undefined' && state.lang !== 'en');
-      var mode = (typeof state !== 'undefined' && state.currentView) || 'staff';
 
-      if (mode === 'staff') {
-        // Enforce Staff Header Active, Admin Header strictly Hidden
-        if (staffHeader) staffHeader.style.setProperty('display', 'block', 'important');
-        if (adminHeader) adminHeader.style.setProperty('display', 'none', 'important');
-        if (contextChip) {
-          contextChip.style.setProperty('display', 'none', 'important');
-          contextChip.textContent = '';
-        }
-        if (mainTitle) mainTitle.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
-        if (liveBadge) liveBadge.style.setProperty('display', 'none', 'important');
+      if (staffHeader) staffHeader.style.setProperty('display', 'block', 'important');
+      if (contextChip) {
+        contextChip.style.setProperty('display', 'none', 'important');
+        contextChip.textContent = '';
+      }
+      if (mainTitle) mainTitle.textContent = isHi ? 'स्टाफ पोर्टल' : 'Staff Portal';
+      if (liveBadge) liveBadge.style.setProperty('display', 'none', 'important');
 
-        // Strictly hide Admin Account Trigger / Menu in Staff Mode
-        if (accountWrap) {
-          accountWrap.style.setProperty('display', 'none', 'important');
-          accountWrap.classList.add('is-hidden');
-        }
-        if (accountTrigger) {
-          accountTrigger.style.setProperty('display', 'none', 'important');
-          accountTrigger.classList.add('is-hidden');
-        }
-        if (adminLogout) {
-          adminLogout.style.setProperty('display', 'none', 'important');
-          adminLogout.classList.add('is-hidden');
-        }
-
-        var isAuth = isUserStaffAuthenticated(state.activeStaffId);
-        if (isAuth) {
-          if (staffLogout) {
-            staffLogout.style.setProperty('display', 'flex', 'important');
-            staffLogout.classList.remove('is-hidden');
-          }
-        } else {
-          if (staffLogout) {
-            staffLogout.style.setProperty('display', 'none', 'important');
-            staffLogout.classList.add('is-hidden');
-          }
+      var isAuth = isUserStaffAuthenticated(state.activeStaffId);
+      if (isAuth) {
+        if (staffLogout) {
+          staffLogout.style.setProperty('display', 'flex', 'important');
+          staffLogout.classList.remove('is-hidden');
         }
       } else {
-        // Admin Mode: Enforce Admin Header Active, Staff Header strictly Hidden
-        if (adminHeader) adminHeader.style.setProperty('display', 'block', 'important');
-        if (staffHeader) staffHeader.style.setProperty('display', 'none', 'important');
-        if (contextChip) {
-          contextChip.style.setProperty('display', 'inline-flex', 'important');
-          contextChip.textContent = 'ADMIN';
-        }
-        if (adminTitle) adminTitle.textContent = 'Admin Portal';
-        if (liveBadge) liveBadge.style.setProperty('display', 'inline-flex', 'important');
-
-        var isAuth = isUserAdminAuthenticated();
-        if (isAuth) {
-          // Admin is authenticated: show Admin Profile & Logout options
-          if (accountWrap) {
-            accountWrap.style.removeProperty('display');
-            accountWrap.style.setProperty('display', 'inline-flex', 'important');
-            accountWrap.classList.remove('is-hidden');
-          }
-          if (accountTrigger) {
-            accountTrigger.style.removeProperty('display');
-            accountTrigger.style.setProperty('display', 'inline-flex', 'important');
-            accountTrigger.classList.remove('is-hidden');
-          }
-          if (adminLogout) {
-            // Top header logout suppressed; logout is exclusively in the sidebar footer
-            adminLogout.style.setProperty('display', 'none', 'important');
-            adminLogout.classList.add('is-hidden');
-          }
-
-          if (avatarInitial) avatarInitial.textContent = 'A';
-          if (accountName) accountName.textContent = 'Admin';
-          if (accountRole) accountRole.textContent = 'SUPER ADMIN';
-
-          if (panelAvatar) panelAvatar.textContent = '🛡️';
-          if (panelName) panelName.textContent = 'Super Administrator';
-          if (panelSub) panelSub.textContent = 'Full Access • Enterprise Management';
-        } else {
-          // Admin Gate / Sign in page: STRICTLY HIDE account menu!
-          if (accountWrap) {
-            accountWrap.style.setProperty('display', 'none', 'important');
-            accountWrap.classList.add('is-hidden');
-          }
-          if (accountTrigger) {
-            accountTrigger.style.setProperty('display', 'none', 'important');
-            accountTrigger.classList.add('is-hidden');
-          }
-          if (adminLogout) {
-            adminLogout.style.setProperty('display', 'none', 'important');
-            adminLogout.classList.add('is-hidden');
-          }
+        if (staffLogout) {
+          staffLogout.style.setProperty('display', 'none', 'important');
+          staffLogout.classList.add('is-hidden');
         }
       }
     }
@@ -1865,154 +1783,78 @@ var state = {
       initLanguage();
       initAllPhoneFormatters();
       initStaffPinDots();
-      initAdminAutoLogin();
       syncBrandLogos();
       setupIndicInputListeners();
       initStaffBottomNavKeyboardHandling();
-      if (typeof initDesktopSidebarState === 'function') initDesktopSidebarState();
-      var editPhotoInp = document.getElementById('editStaffPhotoFile');
-      if (editPhotoInp) {
-        editPhotoInp.addEventListener('change', function(e) { handleStaffPhotoSelect(e, 'edit'); });
-      }
-      var newPhotoInp = document.getElementById('newStaffPhotoFile');
-      if (newPhotoInp) {
-        newPhotoInp.addEventListener('change', function(e) { handleStaffPhotoSelect(e, 'new'); });
-      }
       var urlParams = new URLSearchParams(window.location.search);
       var paramStaff = urlParams.get('staff') || urlParams.get('id') || '';
-      var paramAdmin = urlParams.get('admin');
-      var path = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
-      var isStaffPath = path === '/staff' || path.startsWith('/staff/');
-      var isAdminPath = path === '/admin' || path.startsWith('/admin/');
 
-      var savedRole = '';
-      try {
-        savedRole = sessionStorage.getItem('cwp_user_role') || '';
-      } catch (e) {}
-
-      /* Decide view mode: Decoupled strict logic with role persistence */
-      if (isAdminPath || (paramAdmin !== null && paramAdmin !== undefined)) {
-        state.currentView = 'admin';
-      } else if (isStaffPath || (paramStaff && paramStaff.trim() !== '')) {
-        state.currentView = 'staff';
-        if (paramStaff) state.activeStaffId = paramStaff.trim();
-      } else if (savedRole === 'admin') {
-        state.currentView = 'admin';
-      } else if (savedRole === 'staff') {
-        state.currentView = 'staff';
-      } else if (initialMode === 'admin') {
-        state.currentView = 'admin';
-      } else if (initialMode === 'staff') {
-        state.currentView = 'staff';
-        if (initialStaffId) state.activeStaffId = initialStaffId;
-      } else if (isUserAdminAuthenticated()) {
-        state.currentView = 'admin';
-      } else {
-        /* Default fallback */
-        state.currentView = 'staff';
+      state.currentView = 'staff';
+      if (paramStaff && paramStaff.trim() !== '') {
+        state.activeStaffId = paramStaff.trim();
+      } else if (initialStaffId) {
+        state.activeStaffId = initialStaffId;
       }
 
-      applyViewMode(state.currentView, true);
+      applyViewMode('staff', true);
     });
 
-    /* Apply View Mode: Completely separates Staff and Admin UI */
+    /* Apply View Mode: Staff Portal */
     function applyViewMode(mode, isInitial) {
-      state.currentView = mode;
+      state.currentView = 'staff';
       var staffEl = document.getElementById('staffView');
-      var adminEl = document.getElementById('adminView');
       var staffControls = document.getElementById('staffHeaderControls');
       var liveBadge = document.getElementById('staffLiveBadge');
-      var staffLogout = document.getElementById('staffLogoutBtn');
-      var adminControls = document.getElementById('adminHeaderControls');
       var titleEl = document.getElementById('pageMainTitle');
       var mainContainer = document.querySelector('.main-container');
       var headerInner = document.querySelector('.header-inner');
 
       try {
-        sessionStorage.setItem('cwp_user_role', mode);
+        sessionStorage.setItem('cwp_user_role', 'staff');
       } catch (e) {}
 
-      // Sync clean browser URL (/staff or /admin) without page reload
+      // Sync clean browser URL (/staff) without page reload
       if (window.history && (window.history.replaceState || window.history.pushState)) {
         var currentPath = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
-        var targetPath = mode === 'staff' ? '/staff' : '/admin';
+        var targetPath = '/staff';
         var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
         if (!isGas && currentPath !== targetPath) {
           var targetSearch = window.location.search || '';
           if (isInitial && window.history.replaceState) {
-            window.history.replaceState({ mode: mode }, '', targetPath + targetSearch);
+            window.history.replaceState({ mode: 'staff' }, '', targetPath + targetSearch);
           } else if (window.history.pushState) {
-            window.history.pushState({ mode: mode }, '', targetPath + targetSearch);
+            window.history.pushState({ mode: 'staff' }, '', targetPath + targetSearch);
           }
         }
       }
 
       var staffHeader = document.getElementById('staffHeader');
-      var adminHeader = document.getElementById('adminHeader');
-
-      if (mode === 'staff') {
-        document.documentElement.classList.remove('admin-login-lock');
-        document.body.classList.remove('admin-login-lock');
-        document.body.classList.remove('admin-mode-active');
-        document.body.classList.add('staff-mode-active');
-        if (mainContainer) mainContainer.classList.remove('admin-mode-active');
-        if (headerInner) headerInner.classList.remove('admin-mode-active');
-        if (staffHeader) staffHeader.style.setProperty('display', 'block', 'important');
-        if (adminHeader) adminHeader.style.setProperty('display', 'none', 'important');
-        if (staffEl) staffEl.style.display = 'block';
-        if (adminEl) adminEl.style.display = 'none';
-        if (staffControls) staffControls.style.display = 'flex';
-        if (liveBadge) liveBadge.style.display = 'none';
-        if (adminControls) adminControls.style.display = 'none';
-        var langWrap = document.getElementById('langDropdownWrap');
-        if (langWrap) langWrap.style.setProperty('display', 'none', 'important');
-        var themeBtn = document.getElementById('btnThemeToggle');
-        if (themeBtn) themeBtn.style.setProperty('display', 'none', 'important');
-        var accWrap = document.getElementById('accountDropdownWrap');
-        if (accWrap) accWrap.style.setProperty('display', 'none', 'important');
-        var chipEl = document.getElementById('headerContextChip');
-        if (chipEl) {
-          chipEl.style.setProperty('display', 'none', 'important');
-          chipEl.textContent = '';
-        }
-        if (titleEl) titleEl.textContent = state.lang === 'en' ? 'Staff Portal' : 'स्टाफ पोर्टल';
-        checkStaffAuthStatus(state.activeStaffId);
-        syncBrandLogos();
-        if (typeof updatePwaInstallState === 'function') updatePwaInstallState();
-        if (typeof updateSettingsPrefButtons === 'function') updateSettingsPrefButtons();
-      } else {
-        document.body.classList.add('admin-mode-active');
-        document.body.classList.remove('staff-mode-active');
-        if (mainContainer) mainContainer.classList.add('admin-mode-active');
-        if (headerInner) headerInner.classList.add('admin-mode-active');
-        if (adminHeader) {
-          if (isUserAdminAuthenticated()) {
-            adminHeader.style.setProperty('display', 'block', 'important');
-          } else {
-            adminHeader.style.setProperty('display', 'none', 'important');
-          }
-        }
-        if (staffHeader) staffHeader.style.setProperty('display', 'none', 'important');
-        if (staffEl) staffEl.style.display = 'none';
-        if (adminEl) adminEl.style.display = 'block';
-        if (staffControls) staffControls.style.display = 'none';
-        if (adminControls) adminControls.style.display = 'flex';
-        var langWrap = document.getElementById('langDropdownWrap');
-        if (langWrap) langWrap.style.removeProperty('display');
-        var themeBtn = document.getElementById('btnThemeToggle');
-        if (themeBtn) themeBtn.style.removeProperty('display');
-        var accWrap = document.getElementById('accountDropdownWrap');
-        if (accWrap) accWrap.style.removeProperty('display');
-        var chipEl = document.getElementById('headerContextChip');
-        if (chipEl) {
-          chipEl.style.setProperty('display', 'inline-flex', 'important');
-          chipEl.textContent = 'ADMIN';
-        }
-        if (titleEl) titleEl.textContent = 'Admin Portal';
-        checkAdminAuthStatus();
-        syncBrandLogos();
-        if (typeof hidePwaUi === 'function') hidePwaUi();
+      document.documentElement.classList.remove('admin-login-lock');
+      document.body.classList.remove('admin-login-lock');
+      document.body.classList.remove('admin-mode-active');
+      document.body.classList.add('staff-mode-active');
+      if (mainContainer) mainContainer.classList.remove('admin-mode-active');
+      if (headerInner) headerInner.classList.remove('admin-mode-active');
+      if (staffHeader) staffHeader.style.setProperty('display', 'block', 'important');
+      if (staffEl) staffEl.style.display = 'block';
+      if (staffControls) staffControls.style.display = 'flex';
+      if (liveBadge) liveBadge.style.display = 'none';
+      var langWrap = document.getElementById('langDropdownWrap');
+      if (langWrap) langWrap.style.setProperty('display', 'none', 'important');
+      var themeBtn = document.getElementById('btnThemeToggle');
+      if (themeBtn) themeBtn.style.setProperty('display', 'none', 'important');
+      var accWrap = document.getElementById('accountDropdownWrap');
+      if (accWrap) accWrap.style.setProperty('display', 'none', 'important');
+      var chipEl = document.getElementById('headerContextChip');
+      if (chipEl) {
+        chipEl.style.setProperty('display', 'none', 'important');
+        chipEl.textContent = '';
       }
+      if (titleEl) titleEl.textContent = state.lang === 'en' ? 'Staff Portal' : 'स्टाफ पोर्टल';
+      checkStaffAuthStatus(state.activeStaffId);
+      syncBrandLogos();
+      if (typeof updatePwaInstallState === 'function') updatePwaInstallState();
+      if (typeof updateSettingsPrefButtons === 'function') updateSettingsPrefButtons();
       if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
     }
 
@@ -2553,39 +2395,6 @@ var state = {
       if (promptView) promptView.style.display = 'none';
       if (progressView) progressView.style.display = 'block';
 
-      if (state.pendingLogoutType === 'admin') {
-        if (progressTitle) progressTitle.textContent = 'Admin Session Closing...';
-        if (progressDesc) progressDesc.textContent = 'Clearing admin access tokens and locking portal...';
-        if (spinnerIcon) spinnerIcon.textContent = '🔒';
-
-        var aToken = getAdminToken();
-        var doneAdmin = false;
-        function finishAdminLogout() {
-          if (doneAdmin) return;
-          doneAdmin = true;
-          clearAdminTokens();
-          try {
-            sessionStorage.setItem('cwp_user_role', 'admin');
-          } catch (e) {}
-          if (window.history && window.history.replaceState) {
-            var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
-            window.history.replaceState({ mode: 'admin' }, '', isGas ? '?admin=1' : '/admin');
-          }
-          if (progressTitle) progressTitle.textContent = '✓ Admin Logged Out Successfully!';
-          if (spinnerIcon) spinnerIcon.textContent = '✓';
-          setTimeout(function() {
-            closeLogoutModal();
-            showToast('Admin portal locked securely.', '🔒');
-            checkAdminAuthStatus();
-          }, 350);
-        }
-        if (aToken) {
-          apiCall('logoutAdmin', { adminToken: aToken }, finishAdminLogout, finishAdminLogout);
-          setTimeout(finishAdminLogout, 1200);
-        } else {
-          finishAdminLogout();
-        }
-      } else {
         if (progressTitle) progressTitle.textContent = isHi ? 'सत्र सुरक्षित रूप से समाप्त हो रहा है...' : 'Ending Shift Session...';
         if (progressDesc) progressDesc.textContent = isHi ? 'CWP क्लाउड से टोकन व कैशे सुरक्षित रूप से हटाए जा रहे हैं...' : 'Clearing session credentials and sync workers...';
         if (spinnerIcon) spinnerIcon.textContent = '🚪';
@@ -2629,284 +2438,10 @@ var state = {
         } else {
           finishStaffLogout();
         }
-      }
     }
 
     function handleStaffLogout() {
       openLogoutModal('staff');
-    }
-
-    /* Admin Authentication & Security Logic */
-    function getAdminToken() {
-      return sessionStorage.getItem('cwp_admin_token') || localStorage.getItem('cwp_admin_token') || '';
-    }
-
-    /* Standard Valid Admin Tabs Constant (M3 Redesign: Dedicated Dashboard & Job Assignment & Staff Live Tracking) */
-    var ADMIN_VALID_TABS = ['dashboard', 'records', 'serviceAssign', 'leads', 'washSolar', 'specialJobs', 'sequence', 'staff', 'cleanReports', 'jobAssignment', 'staffTracking', 'addCust'];
-
-    function clearAdminTokens() {
-      sessionStorage.removeItem('cwp_admin_token');
-      localStorage.removeItem('cwp_admin_token');
-      sessionStorage.removeItem('cwp_admin_auth');
-      localStorage.removeItem('cwp_admin_auth');
-      try {
-        localStorage.removeItem('cwp_admin_active_tab');
-      } catch (e) {}
-      if (typeof stopDailyCleanReportsAutoSync === 'function') {
-        stopDailyCleanReportsAutoSync();
-      }
-      if (typeof stopAdminRealtimeStream === 'function') {
-        stopAdminRealtimeStream();
-      }
-    }
-
-    function isUserAdminAuthenticated() {
-      return !!getAdminToken();
-    }
-
-    /* Get Saved Admin Tab (Persisted across browser refresh, defaults to Active Members list) */
-    function getSavedAdminTab() {
-      try {
-        var urlParams = new URLSearchParams(window.location.search);
-        var urlTab = urlParams.get('tab');
-        var hash = window.location.hash || '';
-        if (!urlTab && hash.indexOf('#admin/') === 0) {
-          urlTab = hash.replace(/^#admin\/?/, '');
-        }
-        if (urlTab === 'dashboard') return 'dashboard';
-        if (urlTab === 'washSolar') urlTab = 'specialJobs';
-        if (urlTab && ADMIN_VALID_TABS.indexOf(urlTab) !== -1) {
-          return urlTab;
-        }
-        var localTab = localStorage.getItem('cwp_admin_active_tab');
-        if (localTab === 'dashboard') return 'dashboard';
-        if (localTab === 'washSolar') localTab = 'specialJobs';
-        if (localTab && ADMIN_VALID_TABS.indexOf(localTab) !== -1) {
-          return localTab;
-        }
-      } catch (e) {
-        console.warn('Error reading admin tab:', e);
-      }
-      return 'records'; // User requirement: Active members list first!
-    }
-
-    function checkAdminAuthStatus() {
-      var authGate = document.getElementById('adminAuthGate');
-      var unlocked = document.getElementById('adminUnlockedContent');
-      var logoutBtn = document.getElementById('adminLogoutBtn');
-      var adminHeader = document.getElementById('adminHeader');
-
-      if (isUserAdminAuthenticated()) {
-        document.documentElement.classList.remove('admin-login-lock');
-        document.body.classList.remove('admin-login-lock');
-        if (adminHeader) adminHeader.style.setProperty('display', 'block', 'important');
-        if (authGate) {
-          authGate.classList.add('is-hidden');
-          authGate.setAttribute('hidden', 'true');
-          authGate.style.setProperty('display', 'none', 'important');
-        }
-        if (unlocked) {
-          unlocked.classList.remove('is-hidden');
-          unlocked.removeAttribute('hidden');
-          unlocked.style.setProperty('display', 'block', 'important');
-        }
-        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
-        
-        loadStaffListForAdmin();
-        loadAdminRecords();
-        initCustomerAutoDraft();
-        if (typeof refreshAllAdminBadges === 'function') refreshAllAdminBadges();
-        if (typeof initAdminRealtimeStream === 'function') initAdminRealtimeStream();
-
-        // Restore current active tab (keeps same panel on refresh, or records on login)
-        var currentTab = getSavedAdminTab();
-        switchAdminTab(currentTab, true);
-        if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
-        if (window.CwpNeuralCore && typeof window.CwpNeuralCore.reset === 'function') {
-          window.CwpNeuralCore.reset();
-        }
-      } else {
-        document.documentElement.classList.add('admin-login-lock');
-        document.body.classList.add('admin-login-lock');
-        // User explicitly requested: no header on admin login screen
-        if (adminHeader) adminHeader.style.setProperty('display', 'none', 'important');
-        if (authGate) {
-          authGate.classList.remove('is-hidden');
-          authGate.removeAttribute('hidden');
-          authGate.style.removeProperty('display');
-          authGate.style.display = 'flex';
-        }
-        if (unlocked) {
-          unlocked.classList.add('is-hidden');
-          unlocked.setAttribute('hidden', 'true');
-          unlocked.style.setProperty('display', 'none', 'important');
-        }
-        if (logoutBtn) logoutBtn.style.display = 'none';
-        if (typeof updateHeaderAccountStatus === 'function') updateHeaderAccountStatus();
-        if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
-          window.CwpNeuralCore.setStage('intro');
-        }
-        setTimeout(function() {
-          var input = document.getElementById('adminPasswordInput');
-          initAdminAutoLogin();
-          if (input && window.CwpNeuralCore && window.CwpNeuralCore.getStage() === 'passwordPrompt') {
-            input.focus();
-          }
-        }, 150);
-      }
-    }
-
-    var adminAutoLoginTimer = null;
-    var isAdminAuthSubmitting = false;
-
-    function initAdminAutoLogin() {
-      var input = document.getElementById('adminPasswordInput');
-      if (!input || input.__adminAutoLoginBound) return;
-      input.__adminAutoLoginBound = true;
-
-      function onAdminPasswordInput() {
-        if (isAdminAuthSubmitting) return;
-        var pass = (input.value || '').trim();
-        if (adminAutoLoginTimer) clearTimeout(adminAutoLoginTimer);
-
-        var errBox = document.getElementById('adminAuthError');
-        if (errBox && pass.length > 0) {
-          errBox.style.display = 'none';
-        }
-
-        if (pass.length >= 4) {
-          adminAutoLoginTimer = setTimeout(function() {
-            if (!isAdminAuthSubmitting && (input.value || '').trim().length >= 4) {
-              handleAdminAuth(null, true);
-            }
-          }, 450);
-        }
-      }
-
-      input.addEventListener('input', onAdminPasswordInput);
-      input.addEventListener('paste', function() {
-        setTimeout(onAdminPasswordInput, 50);
-      });
-    }
-
-    function handleAdminAuth(e) {
-      var isAuto = arguments[1];
-      if (e && e.preventDefault) e.preventDefault();
-      if (adminAutoLoginTimer) clearTimeout(adminAutoLoginTimer);
-      if (isAdminAuthSubmitting) return;
-
-      var input = document.getElementById('adminPasswordInput');
-      var password = (input ? input.value || '' : '').trim();
-      var errBox = document.getElementById('adminAuthError');
-      var errText = document.getElementById('adminAuthErrorText');
-      var btn = document.getElementById('btnAdminLogin');
-      var pwBox = document.getElementById('cwpCorePasswordBox');
-      var coreWrapper = document.querySelector('.cwp-core-wrapper');
-
-      if (!password) {
-        if (!isAuto) {
-          if (input) triggerInputShake(input);
-          if (pwBox) triggerInputShake(pwBox);
-        }
-        return;
-      }
-
-      isAdminAuthSubmitting = true;
-
-      if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
-        window.CwpNeuralCore.setStage('authenticating');
-      }
-
-      if (btn) btn.disabled = true;
-      if (errBox) errBox.style.display = 'none';
-
-      apiCall('verifyAdminPassword', { password: password, isAuto: !!isAuto }, function(res) {
-        isAdminAuthSubmitting = false;
-        if (btn) btn.disabled = false;
-        if (res && res.success) {
-          var rememberEl = document.getElementById('rememberAdminDevice');
-          var remember = rememberEl ? rememberEl.checked : true;
-          var token = res.token || 'authenticated';
-          sessionStorage.setItem('cwp_admin_token', token);
-          sessionStorage.setItem('cwp_admin_auth', token);
-          if (remember) {
-            localStorage.setItem('cwp_admin_token', token);
-            localStorage.setItem('cwp_admin_auth', token);
-          }
-          var authGate = document.getElementById('adminAuthGate');
-          var unlocked = document.getElementById('adminUnlockedContent');
-          if (authGate) {
-            authGate.classList.add('is-hidden');
-            authGate.setAttribute('hidden', 'true');
-            authGate.style.setProperty('display', 'none', 'important');
-          }
-          if (unlocked) {
-            unlocked.classList.remove('is-hidden');
-            unlocked.removeAttribute('hidden');
-            unlocked.style.setProperty('display', 'block', 'important');
-          }
-          if (window.CwpNeuralCore && typeof window.CwpNeuralCore.reset === 'function') {
-            window.CwpNeuralCore.reset();
-          }
-          // On fresh login: Active members list opens first as requested!
-          var urlParams = new URLSearchParams(window.location.search);
-          if (!urlParams.get('tab')) {
-            try {
-              localStorage.setItem('cwp_admin_active_tab', 'records');
-            } catch (e) {}
-          }
-          if (input) input.value = '';
-          showToast('Login successful!', '✓');
-          checkAdminAuthStatus();
-        } else {
-          // WRONG ADMIN PASSWORD ANIMATION
-          if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
-            window.CwpNeuralCore.setStage('passwordPrompt');
-          }
-          var errMsg = (res && res.error) ? res.error : 'Incorrect password! Please enter the correct password.';
-          if (errText) {
-            errText.textContent = errMsg;
-          } else if (errBox) {
-            errBox.textContent = '❌ ' + errMsg;
-          }
-          if (errBox) errBox.style.display = 'flex';
-
-          if (input) {
-            triggerInputShake(input);
-            input.select();
-          }
-          if (pwBox) {
-            triggerInputShake(pwBox);
-          }
-          if (coreWrapper) {
-            triggerInputShake(coreWrapper);
-          }
-          showToast('गलत पासवर्ड! कृपया सही एडमिन पासवर्ड दर्ज करें।', 'error');
-        }
-      }, function(err) {
-        isAdminAuthSubmitting = false;
-        if (btn) btn.disabled = false;
-        if (window.CwpNeuralCore && typeof window.CwpNeuralCore.setStage === 'function') {
-          window.CwpNeuralCore.setStage('passwordPrompt');
-        }
-        var errMsg = (err && err.message) ? err.message : 'Verification failed';
-        if (errText) {
-          errText.textContent = errMsg;
-        } else if (errBox) {
-          errBox.textContent = '❌ ' + errMsg;
-        }
-        if (errBox) errBox.style.display = 'flex';
-        if (input) {
-          triggerInputShake(input);
-          input.focus();
-        }
-        if (pwBox) triggerInputShake(pwBox);
-        if (coreWrapper) triggerInputShake(coreWrapper);
-      });
-    }
-
-    function handleAdminLogout() {
-      openLogoutModal('admin');
     }
 
     function togglePasswordVisibility(inputId, btnEl) {
@@ -3253,251 +2788,6 @@ var state = {
       }
     }
     window.refreshOperationsDashboard = refreshOperationsDashboard;
-
-    /* =========================================================================
-       ADMIN REALTIME SSE CLIENT & UNIFIED OPERATIONS STREAM
-       ========================================================================= */
-    var adminRealtimeEventSource = null;
-    var adminRealtimeReconnectTimer = null;
-    var adminRealtimePulseTimer = null;
-
-    function refreshAllAdminBadges() {
-      if (!isUserAdminAuthenticated()) return;
-      if (typeof loadAdminSpecialJobs === 'function') {
-        loadAdminSpecialJobs(true);
-      }
-      if (typeof loadDailyCleanReports === 'function') {
-        loadDailyCleanReports(true);
-      }
-      if (typeof refreshLeadsBadgeCount === 'function') {
-        refreshLeadsBadgeCount();
-      }
-    }
-    window.refreshAllAdminBadges = refreshAllAdminBadges;
-
-    function initAdminRealtimeStream() {
-      if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
-      if (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.indexOf('Headless') !== -1) return;
-      if (!isUserAdminAuthenticated()) return;
-
-      if (adminRealtimeEventSource) {
-        try { adminRealtimeEventSource.close(); } catch(e) {}
-        adminRealtimeEventSource = null;
-      }
-
-      var token = getAdminToken();
-      if (!token) return;
-
-      var streamUrl = '/api/admin-realtime-stream?token=' + encodeURIComponent(token);
-      try {
-        adminRealtimeEventSource = new EventSource(streamUrl);
-
-        adminRealtimeEventSource.onopen = function() {
-          updateRealtimeConnectionUi(true);
-        };
-
-        adminRealtimeEventSource.onmessage = function(event) {
-          if (!event || !event.data) return;
-          try {
-            var payload = JSON.parse(event.data);
-            handleAdminRealtimeEvent(payload);
-          } catch(err) {
-            console.warn('[Admin SSE] Error parsing realtime event:', err);
-          }
-        };
-
-        adminRealtimeEventSource.onerror = function() {
-          updateRealtimeConnectionUi(false);
-          if (adminRealtimeEventSource) {
-            try { adminRealtimeEventSource.close(); } catch(e) {}
-            adminRealtimeEventSource = null;
-          }
-          if (adminRealtimeReconnectTimer) clearTimeout(adminRealtimeReconnectTimer);
-          adminRealtimeReconnectTimer = setTimeout(function() {
-            if (isUserAdminAuthenticated()) {
-              initAdminRealtimeStream();
-            }
-          }, 5000);
-        };
-      } catch(err) {
-        console.warn('[Admin SSE] Connection failed:', err.message);
-      }
-
-      startAdminRealtimePulse();
-    }
-    window.initAdminRealtimeStream = initAdminRealtimeStream;
-
-    function handleAdminRealtimeEvent(payload) {
-      if (!payload || !payload.type) return;
-      var activeTab = getSavedAdminTab();
-
-      if (payload.type === 'SPECIAL_JOB_CHANGED') {
-        if (typeof loadAdminSpecialJobs === 'function') {
-          loadAdminSpecialJobs(true);
-        }
-        if (payload.data && payload.data.action === 'completed') {
-          if (typeof playTaskCompletedChime === 'function') playTaskCompletedChime();
-        } else if (payload.data && payload.data.action === 'assigned') {
-          if (typeof playNewTaskChime === 'function') playNewTaskChime();
-        }
-      } else if (payload.type === 'DAILY_CLEAN_CHANGED') {
-        if (typeof loadDailyCleanReports === 'function') {
-          loadDailyCleanReports(true);
-        }
-      } else if (payload.type === 'LEAD_CHANGED') {
-        if (typeof refreshLeadsBadgeCount === 'function') {
-          refreshLeadsBadgeCount();
-        }
-        if (activeTab === 'leads' && typeof loadAdminLeads === 'function') {
-          loadAdminLeads(true);
-        }
-      } else if (payload.type === 'CUSTOMERS_CHANGED' || payload.type === 'CUSTOMER_ASSIGNMENT_CHANGED') {
-        if (activeTab === 'records' && typeof loadAdminRecords === 'function') {
-          loadAdminRecords(true);
-        }
-        if (typeof refreshAllAdminBadges === 'function') {
-          refreshAllAdminBadges();
-        }
-      } else if (payload.type === 'PING') {
-        updateRealtimeConnectionUi(true);
-      }
-    }
-    window.handleAdminRealtimeEvent = handleAdminRealtimeEvent;
-
-    function updateRealtimeConnectionUi(isLive) {
-      var syncDot = document.getElementById('staffSyncDot');
-      var syncText = document.getElementById('staffSyncText');
-      var liveBadge = document.getElementById('staffLiveBadge');
-      var rDot = document.getElementById('reportsLiveDot');
-      var rText = document.getElementById('reportsLiveSyncText');
-      var rTime = document.getElementById('reportsLastSyncTime');
-
-      if (isLive) {
-        if (syncDot) syncDot.style.color = '#10b981';
-        if (syncText) syncText.textContent = 'Live SSE';
-        if (liveBadge) liveBadge.classList.add('status-live');
-        if (rDot) rDot.style.display = 'inline-block';
-        if (rText) rText.textContent = 'LIVE AUDIT';
-        if (rTime) {
-          var now = new Date();
-          var timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          rTime.textContent = 'Realtime SSE Active • ' + timeStr;
-        }
-      }
-    }
-
-    function startAdminRealtimePulse() {
-      if (adminRealtimePulseTimer) clearInterval(adminRealtimePulseTimer);
-      adminRealtimePulseTimer = setInterval(function() {
-        if (!isUserAdminAuthenticated() || state.currentView !== 'admin') return;
-        if (document.visibilityState !== 'visible' || navigator.onLine === false) return;
-
-        var activeTab = getSavedAdminTab();
-        refreshAllAdminBadges();
-
-        if ((activeTab === 'specialJobs' || activeTab === 'jobAssignment') && typeof loadAdminSpecialJobs === 'function') {
-          loadAdminSpecialJobs(true);
-        } else if (activeTab === 'cleanReports' && typeof loadDailyCleanReports === 'function') {
-          loadDailyCleanReports(true);
-        } else if (activeTab === 'dashboard' && typeof refreshOperationsDashboard === 'function') {
-          refreshOperationsDashboard();
-        }
-      }, 15000);
-    }
-
-    function stopAdminRealtimeStream() {
-      if (adminRealtimeEventSource) {
-        try { adminRealtimeEventSource.close(); } catch(e) {}
-        adminRealtimeEventSource = null;
-      }
-      if (adminRealtimeReconnectTimer) {
-        clearTimeout(adminRealtimeReconnectTimer);
-        adminRealtimeReconnectTimer = null;
-      }
-      if (adminRealtimePulseTimer) {
-        clearInterval(adminRealtimePulseTimer);
-        adminRealtimePulseTimer = null;
-      }
-    }
-    window.stopAdminRealtimeStream = stopAdminRealtimeStream;
-
-    /* =========================================================================
-       SIDEBAR RAIL COLLAPSE CONTROLLER (R1 / Material Design 3)
-       ========================================================================= */
-    function toggleDesktopSidebarCollapse() {
-      var sidebar = document.getElementById('adminSidebar');
-      if (!sidebar) return;
-      var isCollapsed = sidebar.classList.toggle('rail-mode');
-      sidebar.classList.toggle('collapsed', isCollapsed);
-      try {
-        localStorage.setItem('cwp_admin_sidebar_collapsed', isCollapsed ? 'true' : 'false');
-      } catch (e) {}
-      var collapseIcon = document.getElementById('sidebarCollapseIcon');
-      if (collapseIcon) {
-        collapseIcon.textContent = isCollapsed ? 'chevron_right' : 'menu_open';
-      }
-      var collapseBtn = document.getElementById('adminSidebarCollapseBtn');
-      if (collapseBtn) {
-        collapseBtn.setAttribute('title', isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar');
-        collapseBtn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-      }
-    }
-    window.toggleDesktopSidebarCollapse = toggleDesktopSidebarCollapse;
-
-    function initDesktopSidebarState() {
-      try {
-        var isCollapsed = localStorage.getItem('cwp_admin_sidebar_collapsed') === 'true';
-        var sidebar = document.getElementById('adminSidebar');
-        if (sidebar && isCollapsed && window.innerWidth > 1024) {
-          sidebar.classList.add('rail-mode', 'collapsed');
-          var collapseIcon = document.getElementById('sidebarCollapseIcon');
-          if (collapseIcon) {
-            collapseIcon.textContent = 'chevron_right';
-          }
-          var collapseBtn = document.getElementById('adminSidebarCollapseBtn');
-          if (collapseBtn) {
-            collapseBtn.setAttribute('title', 'Expand Sidebar');
-            collapseBtn.setAttribute('aria-expanded', 'false');
-          }
-        }
-      } catch (e) {}
-    }
-    window.initDesktopSidebarState = initDesktopSidebarState;
-
-    function toggleSidebarUnified() {
-      if (window.innerWidth <= 1024) {
-        toggleAdminSidebar();
-      } else {
-        toggleDesktopSidebarCollapse();
-      }
-    }
-    window.toggleSidebarUnified = toggleSidebarUnified;
-
-    // Responsive window resize and escape listener for adaptive sidebar
-    window.addEventListener('resize', function() {
-      var sidebar = document.getElementById('adminSidebar');
-      var backdrop = document.getElementById('adminSidebarBackdrop');
-      if (!sidebar) return;
-      if (window.innerWidth <= 1024) {
-        sidebar.classList.remove('collapsed', 'rail-mode');
-      } else {
-        sidebar.classList.remove('sidebar-open');
-        if (backdrop) backdrop.classList.remove('active');
-        document.body.style.overflow = '';
-        if (typeof initDesktopSidebarState === 'function') {
-          initDesktopSidebarState();
-        }
-      }
-    });
-
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        var sidebar = document.getElementById('adminSidebar');
-        if (sidebar && sidebar.classList.contains('sidebar-open')) {
-          closeAdminSidebar();
-        }
-      }
-    });
 
     /* =========================================================================
        UNIFIED DASHBOARD SVG CHARTS & VISUAL ANALYTICS CONTROLLER (R2)
@@ -5708,63 +4998,30 @@ var state = {
         setTimeout(function() { _isPoppingHistoryForModal = false; }, 80);
         return; // Intercepted: closed topmost modal, app stays open!
       }
-
-      if (state.currentView === 'admin' && isUserAdminAuthenticated()) {
-        var urlParams = new URLSearchParams(window.location.search);
-        var t = urlParams.get('tab') || 'records';
-        switchAdminTab(t, false);
-      }
-    });
-
-    // Deep Linking: Listen to URL hash change to switch admin tab
-    window.addEventListener('hashchange', function() {
-      if (window.location.hash && window.location.hash.indexOf('#admin/') === 0) {
-        var tabFromHash = window.location.hash.substring('#admin/'.length);
-        if (tabFromHash && typeof switchAdminTab === 'function') {
-          switchAdminTab(tabFromHash, false);
-        }
-      }
     });
 
     /* =========================================================================
        API CLIENT (Neon PostgreSQL Backend via /api)
        ========================================================================= */
     function apiCall(action, payload, onSuccess, onFailure) {
-      var isStaffOp = (state.currentView === 'staff' ||
-                       action === 'getStaffData' ||
-                       action === 'logoutStaff' ||
-                       action === 'verifyStaffPin');
-      var isAdminOp = (state.currentView === 'admin' ||
-                       action === 'verifyAdminPassword' ||
-                       action === 'logoutAdmin' ||
-                       action === 'updateAdminPassword');
-
-      var adminToken = getAdminToken();
       var targetStaffId = (payload && payload.staffId) || state.activeStaffId || (typeof getActiveStaffId === 'function' ? getActiveStaffId() : '');
       var staffToken = (payload && payload.staffToken) || getStaffToken(targetStaffId);
-      var effectiveToken = isStaffOp ? staffToken : (adminToken || staffToken);
 
       var reqPayload = Object.assign({}, payload || {});
       reqPayload.action = action;
-      if (!isStaffOp && adminToken && !reqPayload.adminToken) reqPayload.adminToken = adminToken;
       if (staffToken && !reqPayload.staffToken) reqPayload.staffToken = staffToken;
-      if (effectiveToken && !reqPayload.token) reqPayload.token = effectiveToken;
+      if (staffToken && !reqPayload.token) reqPayload.token = staffToken;
 
       if (action === 'verifyStaffPin') {
         // Staff PIN verification sends phone + pin; no previous tokens
         delete reqPayload.token;
-        delete reqPayload.adminToken;
         delete reqPayload.staffToken;
-      } else if (action === 'verifyAdminPassword') {
-        // Admin verification sends password; no previous tokens
-        delete reqPayload.token;
-        delete reqPayload.adminToken;
       }
 
       /* Neon PostgreSQL API Client */
       var headers = { 'Content-Type': 'application/json' };
-      if (effectiveToken && action !== 'verifyStaffPin' && action !== 'verifyAdminPassword') {
-        headers['Authorization'] = 'Bearer ' + effectiveToken;
+      if (staffToken && action !== 'verifyStaffPin') {
+        headers['Authorization'] = 'Bearer ' + staffToken;
       }
 
       fetch('/api', {
@@ -5825,34 +5082,21 @@ var state = {
     }
 
     function handleUnauthorizedResponse(resData) {
-      if (state.currentView === 'admin') {
-        clearAdminTokens();
-        try {
-          sessionStorage.setItem('cwp_user_role', 'admin');
-        } catch (e) {}
-        if (window.history && window.history.replaceState) {
-          var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
-          window.history.replaceState({ mode: 'admin' }, '', isGas ? '?admin=1' : '/admin');
-        }
-        checkAdminAuthStatus();
-        showToast('🔒 Admin session expired or invalid. Please log in again.', '⚠️');
-      } else {
-        var prevId = state.activeStaffId || (typeof getActiveStaffId === 'function' ? getActiveStaffId() : '');
-        clearStaffTokens(prevId);
-        sessionStorage.removeItem('cwp_last_staff_id');
-        state.activeStaffId = '';
-        try {
-          sessionStorage.setItem('cwp_user_role', 'staff');
-        } catch (e) {}
-        var pinInput = document.getElementById('staffPinInput');
-        if (pinInput) pinInput.value = '';
-        if (window.history && window.history.replaceState) {
-          var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
-          window.history.replaceState({ mode: 'staff' }, '', isGas ? '?staff=' : '/staff');
-        }
-        checkStaffAuthStatus('');
-        showToast('🔒 स्टाफ सत्र समाप्त या अमान्य है। कृपया पुनः 6-डिजिट पिन डालकर लॉगिन करें।', '⚠️');
+      var prevId = state.activeStaffId || (typeof getActiveStaffId === 'function' ? getActiveStaffId() : '');
+      clearStaffTokens(prevId);
+      sessionStorage.removeItem('cwp_last_staff_id');
+      state.activeStaffId = '';
+      try {
+        sessionStorage.setItem('cwp_user_role', 'staff');
+      } catch (e) {}
+      var pinInput = document.getElementById('staffPinInput');
+      if (pinInput) pinInput.value = '';
+      if (window.history && window.history.replaceState) {
+        var isGas = (window.location.pathname || '').indexOf('/exec') !== -1;
+        window.history.replaceState({ mode: 'staff' }, '', isGas ? '?staff=' : '/staff');
       }
+      checkStaffAuthStatus('');
+      showToast('🔒 स्टाफ सत्र समाप्त या अमान्य है। कृपया पुनः 6-डिजिट पिन डालकर लॉगिन करें।', '⚠️');
     }
 
     /* =========================================================================
@@ -9747,628 +8991,6 @@ function loadStaffCustomerData(staffId) {
       if (!silent) showToast('Edit draft discarded', '🗑️');
     }
 
-
-    /* =========================================================================
-       PHOTO CROPPER & ROTATION (DEGREE-WISE) SYSTEM
-       ========================================================================= */
-    var cropperInstance = null;
-    var cropperTargetContext = 'add'; /* 'add' or 'edit' */
-    var cropperCurrentDegree = 0;
-    var cropperScaleX = 1;
-    var cropperScaleY = 1;
-
-    function triggerCustPhotoSelect() {
-      if (!state.selectedPhotoBase64) {
-        var fileInput = document.getElementById('custPhotoFile');
-        if (fileInput) fileInput.click();
-      }
-    }
-
-    function openCropperModal(imageSrc, context, triggerEl) {
-      if (!imageSrc) return;
-      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
-      cropperTargetContext = context || 'add';
-
-      var modal = document.getElementById('cwpPhotoCropperModal');
-      if (modal) {
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-      }
-
-      /* Destroy existing instance if any */
-      if (cropperInstance) {
-        try { cropperInstance.destroy(); } catch (e) {}
-        cropperInstance = null;
-      }
-
-      cropperCurrentDegree = 0;
-      cropperScaleX = 1;
-      cropperScaleY = 1;
-
-      var slider = document.getElementById('cropperAngleSlider');
-      if (slider) slider.value = 0;
-      var badge = document.getElementById('cropperAngleBadge');
-      if (badge) badge.innerText = '0.0°';
-
-      var img = document.getElementById('cwpCropperSourceImg');
-      if (!img) return;
-
-      img.crossOrigin = 'anonymous';
-      img.onload = function() {
-        if (typeof Cropper === 'undefined') {
-          showToast('Cropper library failed to load', '❌');
-          return;
-        }
-
-        if (cropperInstance) {
-          try { cropperInstance.destroy(); } catch (e) {}
-          cropperInstance = null;
-        }
-
-        cropperInstance = new Cropper(img, {
-          viewMode: 0,
-          dragMode: 'crop',
-          aspectRatio: NaN,
-          autoCropArea: 0.95,
-          responsive: true,
-          restore: false,
-          guides: true,
-          center: true,
-          highlight: false,
-          cropBoxMovable: true,
-          cropBoxResizable: true,
-          toggleDragModeOnDblclick: false,
-          rotatable: true,
-          scalable: true,
-          zoomable: true,
-          checkOrientation: true,
-          ready: function() {
-            cropperSetActiveAspectBtn('free');
-            cropperSetDragMode('crop');
-          }
-        });
-      };
-      img.src = imageSrc;
-    }
-
-    function closeCropperModal() {
-      var modal = document.getElementById('cwpPhotoCropperModal');
-      if (modal) modal.style.display = 'none';
-      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
-        document.body.style.overflow = '';
-      }
-      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
-
-      if (cropperInstance) {
-        try { cropperInstance.destroy(); } catch (e) {}
-        cropperInstance = null;
-      }
-
-      /* If user cancelled without applying and had no prior photo, reset inputs */
-      if (cropperTargetContext === 'add' && !state.selectedPhotoBase64) {
-        var fileInput = document.getElementById('custPhotoFile');
-        if (fileInput) fileInput.value = '';
-        var prev = document.getElementById('custPhotoPreview');
-        if (prev) prev.style.display = 'none';
-        var ph = document.getElementById('custPhotoPlaceholder');
-        if (ph) ph.style.display = 'block';
-      } else if (cropperTargetContext === 'edit' && !state.editPhotoBase64) {
-        var editFileInput = document.getElementById('editCustPhotoFile');
-        if (editFileInput) editFileInput.value = '';
-      }
-    }
-
-    function cropperHandleOverlayClick(event) {
-      if (event.target && event.target.id === 'cwpPhotoCropperModal') {
-        closeCropperModal();
-      }
-    }
-
-    function cropperOnSliderInput(val) {
-      var deg = parseFloat(val) || 0;
-      cropperCurrentDegree = deg;
-      var badge = document.getElementById('cropperAngleBadge');
-      if (badge) {
-        badge.innerText = (deg > 0 ? '+' : '') + deg.toFixed(1) + '°';
-      }
-      if (cropperInstance) {
-        cropperInstance.rotateTo(deg);
-      }
-    }
-
-    function cropperNudgeAngle(delta) {
-      var newDeg = cropperCurrentDegree + delta;
-      if (newDeg > 180) newDeg -= 360;
-      if (newDeg < -180) newDeg += 360;
-      newDeg = Math.round(newDeg * 10) / 10;
-      var slider = document.getElementById('cropperAngleSlider');
-      if (slider) slider.value = newDeg;
-      cropperOnSliderInput(newDeg);
-    }
-
-    function cropperStepRotate(delta) {
-      cropperNudgeAngle(delta);
-    }
-
-    function cropperResetAngle() {
-      cropperCurrentDegree = 0;
-      var slider = document.getElementById('cropperAngleSlider');
-      if (slider) slider.value = 0;
-      cropperOnSliderInput(0);
-    }
-
-    function cropperFlipH() {
-      if (!cropperInstance) return;
-      cropperScaleX = -cropperScaleX;
-      cropperInstance.scaleX(cropperScaleX);
-    }
-
-    function cropperFlipV() {
-      if (!cropperInstance) return;
-      cropperScaleY = -cropperScaleY;
-      cropperInstance.scaleY(cropperScaleY);
-    }
-
-    function cropperSetAspectRatio(ratio, btnKey) {
-      if (!cropperInstance) return;
-      cropperInstance.setAspectRatio(ratio);
-      cropperSetActiveAspectBtn(btnKey);
-    }
-
-    function cropperSetActiveAspectBtn(key) {
-      var btnIds = ['btnAspectFree', 'btnAspect1_1', 'btnAspect4_3', 'btnAspect16_9', 'btnAspect3_4'];
-      for (var i = 0; i < btnIds.length; i++) {
-        var el = document.getElementById(btnIds[i]);
-        if (el) el.classList.remove('active');
-      }
-      var targetId = 'btnAspectFree';
-      if (key === '1_1') targetId = 'btnAspect1_1';
-      else if (key === '4_3') targetId = 'btnAspect4_3';
-      else if (key === '16_9') targetId = 'btnAspect16_9';
-      else if (key === '3_4') targetId = 'btnAspect3_4';
-      var activeEl = document.getElementById(targetId);
-      if (activeEl) activeEl.classList.add('active');
-    }
-
-    function cropperSetDragMode(mode) {
-      if (!cropperInstance) return;
-      cropperInstance.setDragMode(mode);
-      var moveBtn = document.getElementById('cropperBtnModeMove');
-      var cropBtn = document.getElementById('cropperBtnModeCrop');
-      if (moveBtn && cropBtn) {
-        if (mode === 'move') {
-          moveBtn.classList.add('active');
-          cropBtn.classList.remove('active');
-        } else {
-          cropBtn.classList.add('active');
-          moveBtn.classList.remove('active');
-        }
-      }
-    }
-
-    function cropperZoom(ratio) {
-      if (!cropperInstance) return;
-      cropperInstance.zoom(ratio);
-    }
-
-    function cropperResetAll() {
-      if (!cropperInstance) return;
-      cropperInstance.reset();
-      cropperCurrentDegree = 0;
-      cropperScaleX = 1;
-      cropperScaleY = 1;
-      var slider = document.getElementById('cropperAngleSlider');
-      if (slider) slider.value = 0;
-      var badge = document.getElementById('cropperAngleBadge');
-      if (badge) badge.innerText = '0.0°';
-      cropperSetAspectRatio(NaN, 'free');
-      cropperSetDragMode('crop');
-    }
-
-    function applyCroppedPhoto() {
-      if (!cropperInstance) return;
-
-      var canvas = cropperInstance.getCroppedCanvas({
-        maxWidth: 1600,
-        maxHeight: 1600,
-        fillColor: '#ffffff',
-        imageSmoothingEnabled: true,
-        imageSmoothingQuality: 'high'
-      });
-
-      if (!canvas) {
-        showToast('Error cropping photo!', '❌');
-        return;
-      }
-
-      var croppedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
-      var commaIdx = croppedDataUrl.indexOf(',');
-      var base64 = commaIdx !== -1 ? croppedDataUrl.slice(commaIdx + 1) : croppedDataUrl;
-
-      if (cropperTargetContext === 'add') {
-        state.selectedPhotoBase64 = base64;
-        state.selectedPhotoType = 'image/jpeg';
-        if (!state.selectedPhotoName) {
-          state.selectedPhotoName = 'customer_photo.jpg';
-        } else {
-          state.selectedPhotoName = state.selectedPhotoName.replace(/\.[^/.]+$/, "") + ".jpg";
-        }
-
-        var preview = document.getElementById('custPhotoPreview');
-        if (preview) {
-          preview.src = croppedDataUrl;
-          preview.style.display = 'block';
-        }
-
-        var ph = document.getElementById('custPhotoPlaceholder');
-        if (ph) ph.style.display = 'none';
-
-        var actionsWrap = document.getElementById('custPhotoActionsWrap');
-        if (actionsWrap) actionsWrap.style.display = 'flex';
-
-        triggerCustomerAutoDraft();
-        showToast('Photo straightened and cropped! ✓', '✂️');
-      } else if (cropperTargetContext === 'edit') {
-        state.editPhotoBase64 = base64;
-        state.editPhotoType = 'image/jpeg';
-        if (!state.editPhotoName) {
-          state.editPhotoName = 'customer_edit_photo.jpg';
-        } else {
-          state.editPhotoName = state.editPhotoName.replace(/\.[^/.]+$/, "") + ".jpg";
-        }
-
-        var thumb = document.getElementById('editPhotoThumb');
-        if (thumb) {
-          thumb.src = croppedDataUrl;
-          thumb.style.display = 'block';
-        }
-
-        var btnUpload = document.getElementById('btnEditUploadPhoto');
-        if (btnUpload) btnUpload.style.display = 'none';
-
-        var editActionsWrap = document.getElementById('editPhotoActionsWrap');
-        if (editActionsWrap) editActionsWrap.style.display = 'flex';
-
-        triggerEditAutoDraft();
-        showToast('Photo straightened and cropped! ✓', '✂️');
-      }
-
-      closeCropperModal();
-    }
-
-    function openExistingCustPhotoCropper() {
-      var src = state.rawSelectedPhotoDataUrl;
-      if (!src) {
-        var prev = document.getElementById('custPhotoPreview');
-        if (prev && prev.src) src = prev.src;
-      }
-      if (src) {
-        openCropperModal(src, 'add');
-      } else {
-        var fileInput = document.getElementById('custPhotoFile');
-        if (fileInput) fileInput.click();
-      }
-    }
-
-    function openExistingEditPhotoCropper() {
-      var src = state.rawEditPhotoDataUrl;
-      if (!src) {
-        var thumb = document.getElementById('editPhotoThumb');
-        if (thumb && thumb.src) src = thumb.src;
-      }
-      if (!src) {
-        var origUrl = document.getElementById('editPhotoUrl') ? document.getElementById('editPhotoUrl').value : '';
-        if (origUrl) src = origUrl;
-      }
-      if (src) {
-        openCropperModal(src, 'edit');
-      } else {
-        var fileInput = document.getElementById('editCustPhotoFile');
-        if (fileInput) fileInput.click();
-      }
-    }
-
-    function removeCustPhoto(e) {
-      if (e) e.stopPropagation();
-      state.selectedPhotoBase64 = '';
-      state.selectedPhotoName = '';
-      state.selectedPhotoType = '';
-      state.rawSelectedPhotoDataUrl = '';
-      var preview = document.getElementById('custPhotoPreview');
-      if (preview) {
-        preview.src = '';
-        preview.style.display = 'none';
-      }
-      var ph = document.getElementById('custPhotoPlaceholder');
-      if (ph) ph.style.display = 'inline-flex';
-      var fileInput = document.getElementById('custPhotoFile');
-      if (fileInput) fileInput.value = '';
-      var actionsWrap = document.getElementById('custPhotoActionsWrap');
-      if (actionsWrap) actionsWrap.style.display = 'none';
-      triggerCustomerAutoDraft();
-      showToast('Photo removed', '🗑️');
-    }
-
-    function removeEditCustPhoto(e) {
-      if (e) e.stopPropagation();
-      state.editPhotoBase64 = '';
-      state.editPhotoName = '';
-      state.editPhotoType = '';
-      state.rawEditPhotoDataUrl = '';
-      var fileInput = document.getElementById('editCustPhotoFile');
-      if (fileInput) fileInput.value = '';
-      var thumb = document.getElementById('editPhotoThumb');
-      var origUrl = document.getElementById('editPhotoUrl') ? document.getElementById('editPhotoUrl').value : '';
-      if (origUrl) {
-        if (thumb) thumb.src = origUrl;
-      } else {
-        if (thumb) {
-          thumb.src = '';
-          thumb.style.display = 'none';
-        }
-        var btnUpload = document.getElementById('btnEditUploadPhoto');
-        if (btnUpload) btnUpload.style.display = 'flex';
-        var editActionsWrap = document.getElementById('editPhotoActionsWrap');
-        if (editActionsWrap) editActionsWrap.style.display = 'none';
-      }
-      triggerEditAutoDraft();
-      showToast('Photo removed', '🗑️');
-    }
-
-    function handlePhotoSelect(e) {
-      var file = e.target.files && e.target.files[0];
-      if (!file) return;
-
-      var pWrap = document.getElementById('custPhotoProgressWrap');
-      var pFill = document.getElementById('custPhotoProgressFill');
-      if (pWrap && pFill) {
-        pWrap.style.display = 'block';
-        pFill.style.width = '30%';
-      }
-
-      state.selectedPhotoName = file.name;
-      state.selectedPhotoType = file.type || 'image/jpeg';
-
-      var reader = new FileReader();
-      reader.onprogress = function(pe) {
-        if (pe.lengthComputable && pFill) {
-          var pct = Math.round((pe.loaded / pe.total) * 90);
-          pFill.style.width = pct + '%';
-        }
-      };
-      reader.onload = function(evt) {
-        if (pFill) pFill.style.width = '100%';
-        setTimeout(function() {
-          if (pWrap) pWrap.style.display = 'none';
-          if (pFill) pFill.style.width = '0%';
-        }, 300);
-
-        var dataUrl = evt.target.result;
-        state.rawSelectedPhotoDataUrl = dataUrl;
-
-        /* Open Crop & Rotation modal immediately */
-        openCropperModal(dataUrl, 'add');
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function handleCustomerSubmit(e) {
-      e.preventDefault();
-      var btn = document.getElementById('btnSaveCust');
-      btn.disabled = true;
-      var hasPhoto = !!state.selectedPhotoBase64;
-      btn.innerHTML = '<span class="cwp-spinner"></span> ' + (hasPhoto ? 'Uploading photo & saving...' : 'Saving customer...');
-
-      var phoneEl = document.getElementById('custPhone');
-      var normCustPhone = normalizeIndianMobile(phoneEl ? phoneEl.value : '');
-      if (!isValidIndianMobile(normCustPhone)) {
-        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
-        if (phoneEl) phoneEl.focus();
-        btn.disabled = false;
-        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Customer';
-        return;
-      }
-
-      var staffSelect = document.getElementById('custStaffSelect');
-      var rawStaffVal = staffSelect ? staffSelect.value.trim() : '';
-      var staffName = '';
-      var staffId = '';
-      if (rawStaffVal && rawStaffVal.toLowerCase() !== 'unassigned' && rawStaffVal.toLowerCase() !== 'none') {
-        var foundStaff = (state.staffList || []).find(function(s) {
-          return (s.name && s.name.trim().toLowerCase() === rawStaffVal.toLowerCase()) ||
-                 (s.id && s.id.trim().toLowerCase() === rawStaffVal.toLowerCase());
-        });
-        if (foundStaff) {
-          staffName = foundStaff.name;
-          staffId = foundStaff.id || '';
-        } else {
-          staffName = rawStaffVal;
-        }
-      }
-
-      var catEl = document.getElementById('custCategory');
-      var category = catEl ? catEl.value : 'none';
-      var hasService = Boolean(category && category.toLowerCase() !== 'none' && category !== 'No Service');
-      var isDaily = hasService && (category === 'Daily Car Cleaning');
-      var isSolar = hasService && (category === 'Solar Panel Cleaning');
-      var isCarWash = hasService && (category === 'Car Washing');
-
-      var photoPayload = state.selectedPhotoBase64 ? {
-        base64: state.selectedPhotoBase64,
-        mimeType: state.selectedPhotoType,
-        fileName: state.selectedPhotoName
-      } : null;
-
-      var pkgEl = document.getElementById('custPkgType');
-      var pkgVal = pkgEl ? pkgEl.value : '';
-      if (pkgVal === 'OTHER') {
-        var custOtherEl = document.getElementById('custPkgTypeCustom');
-        var custOther = (custOtherEl ? custOtherEl.value : '').trim();
-        if (custOther) pkgVal = 'OTHER (' + custOther + ')';
-      }
-
-      var vehEl = document.getElementById('custVehicles');
-      var vehText = vehEl ? vehEl.value.trim() : '';
-      var carMakeVal = (document.getElementById('custCarMake') ? document.getElementById('custCarMake').value : '').trim();
-      var carColorVal = (document.getElementById('custCarColor') ? document.getElementById('custCarColor').value : '').trim();
-
-      var isLeadCheck = document.getElementById('custIsLeadCheck');
-      var isLeadMarked = isLeadCheck && isLeadCheck.checked;
-
-      var panelInput = document.getElementById('custSolarPanelsCount') || document.getElementById('custPanelCount');
-      var panelCountVal = isSolar ? (parseInt(panelInput ? panelInput.value : '', 10) || null) : null;
-      var seaterTypeVal = isSolar ? null : (document.getElementById('custSeaterTypeHidden') ? document.getElementById('custSeaterTypeHidden').value : '5_seater');
-      var resolvedServiceType = hasService
-        ? (isSolar ? 'Solar Panel Cleaning' : (isCarWash ? 'Car Washing' : (category === 'Interior Detailing' ? 'Interior Detailing' : (category === 'Exterior Detailing' ? 'Exterior Detailing' : 'Daily Car Cleaning'))))
-        : 'None';
-
-      var customerLocationsList = (typeof collectCustomerLocations === 'function') ? collectCustomerLocations('add') : [];
-      var primaryLoc = customerLocationsList.find(function(l) { return l.isPrimary; }) || customerLocationsList[0];
-      var resolvedAddress = (primaryLoc && primaryLoc.addressText) ? primaryLoc.addressText : (document.getElementById('custAddress') ? document.getElementById('custAddress').value.trim() : '');
-      var resolvedAddressHi = (primaryLoc && primaryLoc.addressTextHi) ? primaryLoc.addressTextHi : (document.getElementById('custAddressHi') ? document.getElementById('custAddressHi').value.trim() : '');
-      var resolvedMapsUrl = (primaryLoc && primaryLoc.googleMapsUrl) ? primaryLoc.googleMapsUrl : (document.getElementById('custMapsUrl') ? document.getElementById('custMapsUrl').value.trim() : '');
-
-      var customerData = {
-        isLead: Boolean(isLeadMarked),
-        tag: isLeadMarked ? 'lead' : 'customer',
-        leadStatus: isLeadMarked ? 'open' : 'converted',
-        sheetName: isLeadMarked ? 'Leads' : (isDaily ? 'Daily Clean' : (hasService ? 'All Other Work' : 'None')),
-        serviceCategory: hasService ? category : 'None',
-        serviceType: resolvedServiceType,
-        hasService: hasService,
-        noService: !hasService,
-        panelCount: panelCountVal,
-        panel_count: panelCountVal,
-        seaterType: seaterTypeVal,
-        seater_type: seaterTypeVal,
-        staffId: staffId,
-        staffName: staffName,
-        customerName: document.getElementById('custName').value.trim(),
-        nameHi: document.getElementById('custNameHi') ? document.getElementById('custNameHi').value.trim() : '',
-        customerNumber: normalizeIndianMobile(document.getElementById('custPhone').value),
-        address: resolvedAddress,
-        addressHi: resolvedAddressHi,
-        googleMapsUrl: resolvedMapsUrl,
-        locations: customerLocationsList,
-        staffNotes: document.getElementById('custNotes').value.trim(),
-        active: 'Yes',
-        packageType: pkgVal || (hasService ? 'Standard' : 'None'),
-        packageDetails: pkgVal || (hasService ? 'Standard' : 'None'),
-        packagesPurchased: '1',
-        vehicleNumbers: vehText,
-        vehicleOrSite: vehText,
-        vehicle: vehText,
-        carMake: carMakeVal,
-        car_make: carMakeVal,
-        carColor: carColorVal,
-        car_color: carColorVal,
-        secondaryAddress: isDaily && document.getElementById('custSecAddress') ? document.getElementById('custSecAddress').value.trim() : '',
-        secondaryAddressHi: isDaily && document.getElementById('custSecAddressHi') ? document.getElementById('custSecAddressHi').value.trim() : '',
-        secondaryMapsUrl: isDaily && document.getElementById('custSecMaps') ? document.getElementById('custSecMaps').value.trim() : '',
-        photoFile: photoPayload,
-        photoData: photoPayload
-      };
-
-      apiCall('saveCustomer', { customerData: customerData }, function(res) {
-        btn.disabled = false;
-        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Customer';
-        if (res && res.error) {
-          showToast('Error: ' + res.error, '❌');
-        } else {
-          if (isLeadMarked) {
-            showToast('Lead saved successfully and stored in Leads section!', '🎯');
-          } else if (!hasService) {
-            showToast('Customer saved successfully! You can assign services anytime from Records.', '✓');
-          } else {
-            showToast('Customer saved successfully and added to Active Records!', '✓');
-          }
-          document.getElementById('addCustomerForm').reset();
-          var leadChk = document.getElementById('custIsLeadCheck');
-          if (leadChk) leadChk.checked = false;
-          handleCustIsLeadToggle(false);
-          toggleCustMap(false);
-          toggleCustSecLocation(false);
-          var prev = document.getElementById('custPhotoPreview');
-          if (prev) { prev.src = ''; prev.style.display = 'none'; }
-          var ph = document.getElementById('custPhotoPlaceholder');
-          if (ph) ph.style.display = 'inline-flex';
-          var act = document.getElementById('custPhotoActionsWrap');
-          if (act) act.style.display = 'none';
-          state.selectedPhotoBase64 = '';
-          state.selectedPhotoName = '';
-          state.selectedPhotoType = '';
-          state.rawSelectedPhotoDataUrl = '';
-          discardCustomerDraft(true);
-          if (document.getElementById('custCategory') && typeof toggleCategoryFields === 'function') {
-            toggleCategoryFields(document.getElementById('custCategory').value);
-          }
-          closeAddCustomerModal();
-
-          if (isLeadMarked) {
-            switchAdminTab('leads');
-            loadAdminLeads(true);
-          } else {
-            switchAdminTab('records');
-            loadAdminRecords();
-          }
-
-          setTimeout(function() {
-            var recCard = document.getElementById('adminTabRecords');
-            if (recCard) {
-              recCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }, 150);
-        }
-      }, function(err) {
-        btn.disabled = false;
-        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Customer';
-        showToast('Error saving customer: ' + (err.message || err), '❌');
-      });
-    }
-
-    /* Admin Active Records Filter & Search System */
-    var adminFilterState = {
-      onlyPhoto: false,
-      onlyMap: false
-    };
-
-    function renderAdminTableSkeletons(rowCount) {
-      var count = rowCount || 6;
-      var html = '';
-      for (var i = 0; i < count; i++) {
-        html += '<tr class="skeleton-tr">' +
-          '<td style="text-align:center;"><div class="skeleton-shimmer" style="width:22px; height:18px; margin:0 auto; border-radius:4px;"></div></td>' +
-          '<td>' +
-            '<div class="skeleton-shimmer" style="width:80%; height:15px; margin-bottom:4px; border-radius:4px;"></div>' +
-          '</td>' +
-          '<td>' +
-            '<div class="skeleton-shimmer" style="width:85px; height:14px; border-radius:4px;"></div>' +
-          '</td>' +
-          '<td>' +
-            '<div class="skeleton-shimmer" style="width:78px; height:18px; border-radius:10px;"></div>' +
-          '</td>' +
-          '<td>' +
-            '<div class="skeleton-shimmer" style="width:90px; height:20px; border-radius:4px;"></div>' +
-          '</td>' +
-          '<td>' +
-            '<div class="skeleton-shimmer" style="width:90%; height:14px; border-radius:4px;"></div>' +
-          '</td>' +
-          '<td style="text-align:center;">' +
-            '<div class="skeleton-shimmer" style="width:50px; height:20px; margin:0 auto; border-radius:4px;"></div>' +
-          '</td>' +
-          '<td style="text-align:center;">' +
-            '<div class="skeleton-shimmer" style="width:44px; height:20px; margin:0 auto; border-radius:12px;"></div>' +
-          '</td>' +
-          '<td style="text-align:center;">' +
-            '<div class="skeleton-shimmer" style="width:70px; height:20px; margin:0 auto; border-radius:10px;"></div>' +
-          '</td>' +
-          '<td style="text-align:center;">' +
-            '<div class="skeleton-shimmer" style="width:54px; height:24px; margin:0 auto; border-radius:6px;"></div>' +
-          '</td>' +
-        '</tr>';
-      }
-      return html;
-    }
 
     /* =========================================================================
        MODERN INTELLIGENT CUSTOMER UI/UX FORMATTERS & KPI LOGIC
@@ -15717,26 +14339,6 @@ function loadStaffCustomerData(staffId) {
           closeImageModal();
           return;
         }
-        var cropperModal = document.getElementById('cwpPhotoCropperModal');
-        if (cropperModal && cropperModal.style.display === 'flex') {
-          closeCropperModal();
-          return;
-        }
-        var editCust = document.getElementById('editCustomerModal');
-        if (editCust && editCust.style.display === 'flex') {
-          closeEditCustomerModal();
-          return;
-        }
-        var addCust = document.getElementById('addCustomerModal');
-        if (addCust && addCust.style.display === 'flex') {
-          closeAddCustomerModal();
-          return;
-        }
-        var editStaff = document.getElementById('staffEditModal');
-        if (editStaff && editStaff.style.display === 'flex') {
-          closeEditStaffModal();
-          return;
-        }
       }
     });
 
@@ -20181,210 +18783,6 @@ function loadStaffCustomerData(staffId) {
       document.body.removeChild(a);
     }
 
-    /* =========================================================================
-       ADMIN CLEAN REPORT STATUS & REASON ACTIONS
-       ========================================================================= */
-    function openEditReportStatusModal(reportId, targetStatus) {
-      if (!reportId) return;
-      var record = null;
-      if (adminCleanReportsState && adminCleanReportsState.records) {
-        record = adminCleanReportsState.records.find(function(r) { return String(r.id) === String(reportId); });
-      }
-
-      var modal = document.getElementById('editCleanReportModal');
-      var idInput = document.getElementById('editReportIdInput');
-      var custEl = document.getElementById('editReportCustomerName');
-      var plateEl = document.getElementById('editReportPlateNumber');
-      var staffEl = document.getElementById('editReportStaffName');
-      var reasonInput = document.getElementById('editReportReasonText');
-      var radioCompleted = document.getElementById('radioStatusCompleted');
-      var radioCnp = document.getElementById('radioStatusCnp');
-
-      if (idInput) idInput.value = reportId;
-      if (custEl) custEl.textContent = record ? (record.customer_name || 'Customer') : 'Customer';
-      if (plateEl) plateEl.textContent = record ? (record.registration_no || 'Car') : 'Car';
-      if (staffEl) staffEl.textContent = record ? (record.staff_name || record.staff_code || 'Staff') : 'Staff';
-
-      var statusToSet = targetStatus || (record && (record.car_not_present || record.status === 'car_not_present') ? 'completed' : 'car_not_present');
-      if (statusToSet === 'completed' && radioCompleted) {
-        radioCompleted.checked = true;
-      } else if (radioCnp) {
-        radioCnp.checked = true;
-      }
-
-      // Pre-fill reason if existing admin_notes, or clear
-      if (reasonInput) {
-        reasonInput.value = (record && record.admin_notes) ? record.admin_notes : '';
-      }
-
-      if (modal) {
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-      }
-      if (typeof pushModalHistory === 'function') pushModalHistory('editCleanReportModal');
-    }
-    window.openEditReportStatusModal = openEditReportStatusModal;
-
-    function closeEditReportStatusModal() {
-      var modal = document.getElementById('editCleanReportModal');
-      if (modal) {
-        modal.style.display = 'none';
-        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
-          document.body.style.overflow = '';
-        }
-      }
-      if (typeof popModalHistory === 'function') popModalHistory('editCleanReportModal');
-    }
-    window.closeEditReportStatusModal = closeEditReportStatusModal;
-
-    function applyEditReasonChip(text) {
-      var input = document.getElementById('editReportReasonText');
-      if (input) {
-        input.value = text;
-        input.focus();
-      }
-    }
-    window.applyEditReasonChip = applyEditReasonChip;
-
-    function submitEditReportStatus() {
-      var reportId = (document.getElementById('editReportIdInput') || {}).value;
-      if (!reportId) {
-        showToast('त्रुटि: रिपोर्ट ID नहीं मिली', 'error');
-        return;
-      }
-
-      var selectedRadio = document.querySelector('input[name="editReportStatusRadio"]:checked');
-      var radioCompleted = document.getElementById('radioStatusCompleted');
-      var newStatus = selectedRadio ? selectedRadio.value : ((radioCompleted && radioCompleted.checked) ? 'completed' : 'car_not_present');
-      var reason = ((document.getElementById('editReportReasonText') || {}).value || '').trim();
-
-      if (!reason) {
-        showToast('कृपया स्थिति सुधारने का कारण दर्ज करें (Reason is required)', 'warning');
-        var reasonIn = document.getElementById('editReportReasonText');
-        if (reasonIn) {
-          reasonIn.focus();
-          reasonIn.style.borderColor = '#ef4444';
-          setTimeout(function() { reasonIn.style.borderColor = ''; }, 2000);
-        }
-        return;
-      }
-
-      var btn = document.getElementById('btnSubmitEditReportStatus');
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'सेव हो रहा है...';
-      }
-
-      apiCall('updateDailyCleanReportStatus', {
-        reportId: reportId,
-        status: newStatus,
-        reason: reason
-      }, function(res) {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = '✓ स्थिति अपडेट करें (Save)';
-        }
-        closeEditReportStatusModal();
-        closeReportPhotoLightbox();
-        showToast('✓ रिपोर्ट की स्थिति सफलतापूर्वक ठीक कर दी गई!', 'success');
-        loadDailyCleanReports(false);
-      }, function(err) {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = '✓ स्थिति अपडेट करें (Save)';
-        }
-        showToast('सुधार विफल: ' + (err.error || err.message || err), 'error');
-      });
-    }
-    window.submitEditReportStatus = submitEditReportStatus;
-
-    function confirmDeleteCleanReport(reportId, regNo, custName) {
-      if (!reportId) return;
-      var idInput = document.getElementById('deleteReportIdInput');
-      var infoEl = document.getElementById('deleteReportTargetInfo');
-      var reasonInput = document.getElementById('deleteReportReasonText');
-
-      if (idInput) idInput.value = reportId;
-      if (infoEl) infoEl.textContent = (regNo || 'गाड़ी') + (custName ? ' (' + custName + ')' : '');
-      if (reasonInput) reasonInput.value = '';
-
-      var modal = document.getElementById('deleteCleanReportModal');
-      if (modal) {
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-      }
-      if (typeof pushModalHistory === 'function') pushModalHistory('deleteCleanReportModal');
-    }
-    window.confirmDeleteCleanReport = confirmDeleteCleanReport;
-
-    function closeDeleteReportModal() {
-      var modal = document.getElementById('deleteCleanReportModal');
-      if (modal) {
-        modal.style.display = 'none';
-        if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
-          document.body.style.overflow = '';
-        }
-      }
-      if (typeof popModalHistory === 'function') popModalHistory('deleteCleanReportModal');
-    }
-    window.closeDeleteReportModal = closeDeleteReportModal;
-
-    function applyDeleteReasonChip(text) {
-      var input = document.getElementById('deleteReportReasonText');
-      if (input) {
-        input.value = text;
-        input.focus();
-      }
-    }
-    window.applyDeleteReasonChip = applyDeleteReasonChip;
-
-    function submitDeleteReport() {
-      var reportId = (document.getElementById('deleteReportIdInput') || {}).value;
-      if (!reportId) {
-        showToast('त्रुटि: रिपोर्ट ID नहीं मिली', 'error');
-        return;
-      }
-
-      var reason = ((document.getElementById('deleteReportReasonText') || {}).value || '').trim();
-      if (!reason) {
-        showToast('कृपया हटाने का कारण दर्ज करें (Reason is required)', 'warning');
-        var rIn = document.getElementById('deleteReportReasonText');
-        if (rIn) {
-          rIn.focus();
-          rIn.style.borderColor = '#ef4444';
-          setTimeout(function() { rIn.style.borderColor = ''; }, 2000);
-        }
-        return;
-      }
-
-      var btn = document.getElementById('btnConfirmDeleteReport');
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'हटाया जा रहा है...';
-      }
-
-      apiCall('deleteDailyCleanReport', {
-        reportId: reportId,
-        reason: reason
-      }, function(res) {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = '🗑️ डिलीट करें (Confirm Delete)';
-        }
-        closeDeleteReportModal();
-        closeReportPhotoLightbox();
-        showToast('🗑️ रिपोर्ट हटा दी गई! स्टाफ अब दोबारा फ्रेश पंच कर सकता है।', 'success');
-        loadDailyCleanReports(false);
-      }, function(err) {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = '🗑️ डिलीट करें (Confirm Delete)';
-        }
-        showToast('हटाना विफल: ' + (err.error || err.message || err), 'error');
-      });
-    }
-    window.submitDeleteReport = submitDeleteReport;
-
     function forwardPhotoFromLightbox() {
       if (!currentLightboxPhotoUrl) return;
       var message = 'Hello,\nHere is the photo proof of your vehicle cleaning by CWP Detailers & Motors:\n' + currentLightboxPhotoUrl + '\n\nThank you for choosing CWP Detailers!';
@@ -22512,16 +20910,6 @@ function loadStaffCustomerData(staffId) {
       window.setReportPeriodChip = setReportPeriodChip;
       window.openReportPhotoLightbox = openReportPhotoLightbox;
       window.closeReportPhotoLightbox = closeReportPhotoLightbox;
-      window.openEditReportStatusModal = openEditReportStatusModal;
-      window.closeEditReportStatusModal = closeEditReportStatusModal;
-      window.applyEditReasonChip = applyEditReasonChip;
-      window.submitEditReportStatus = submitEditReportStatus;
-      window.confirmDeleteCleanReport = confirmDeleteCleanReport;
-      window.closeDeleteReportModal = closeDeleteReportModal;
-      window.applyDeleteReasonChip = applyDeleteReasonChip;
-      window.submitDeleteReport = submitDeleteReport;
-      window.triggerEditStatusFromLightbox = triggerEditStatusFromLightbox;
-      window.triggerDeleteFromLightbox = triggerDeleteFromLightbox;
       window.exportDailyCleanReportsCSV = exportDailyCleanReportsCSV;
       window.getCustomerCompletionData = getCustomerCompletionData;
       window.openStaffWhatsAppGroupModal = openStaffWhatsAppGroupModal;
@@ -22591,9 +20979,6 @@ function loadStaffCustomerData(staffId) {
       window.computeSpecialJobDatesFromPeriod = computeSpecialJobDatesFromPeriod;
       window.getJobEffectiveDateKey = getJobEffectiveDateKey;
       window.adminSpecialState = adminSpecialState;
-      window.refreshAllAdminBadges = refreshAllAdminBadges;
-      window.initAdminRealtimeStream = initAdminRealtimeStream;
-      window.stopAdminRealtimeStream = stopAdminRealtimeStream;
       window.handleAdminSpecialSearch = handleAdminSpecialSearch;
       window.renderAdminSpecialJobsTable = renderAdminSpecialJobsTable;
       window.deleteAdminSpecialJob = deleteAdminSpecialJob;
@@ -22900,7 +21285,7 @@ function loadStaffCustomerData(staffId) {
       }
 
       try {
-        var token = getStaffToken(staffId) || getAdminToken() || '';
+        var token = getStaffToken(staffId) || '';
         var sseUrl = '/api/staff-ping-stream?staffId=' + encodeURIComponent(staffId) + (token ? '&token=' + encodeURIComponent(token) : '');
         staffPingEventSource = new EventSource(sseUrl);
         staffPingEventSource.onmessage = function(event) {

@@ -7270,9 +7270,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   const normPath = parsedUrl.pathname.toLowerCase().replace(/\/+$/, '');
-  const isAdminV2Route = normPath === '/admin-v2' || normPath.startsWith('/admin-v2/') || normPath === '/admin/v2' || normPath.startsWith('/admin/v2/');
+  const isLegacyAdminV2Route = normPath === '/admin-v2' || normPath.startsWith('/admin-v2/') || normPath === '/admin/v2' || normPath.startsWith('/admin/v2/');
   const isStaffRoute = normPath === '/staff' || normPath.startsWith('/staff/');
-  const isAdminRoute = (normPath === '/admin' || normPath.startsWith('/admin/')) && !isAdminV2Route;
+  const isAdminRoute = (normPath === '/admin' || normPath.startsWith('/admin/')) && !isLegacyAdminV2Route;
   const rawStaffParam = parsedUrl.searchParams.get('staff') || parsedUrl.searchParams.get('id') || '';
   const staffParam = /^[a-zA-Z0-9_-]{1,64}$/.test(rawStaffParam) ? rawStaffParam : '';
   const adminParam = parsedUrl.searchParams.get('admin');
@@ -7293,12 +7293,14 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // 1b. Admin V1 Retirement: Redirect /admin, /admin/* (non-asset), and ?admin=... to /admin-v2
-  if (isAdminRoute || adminParam !== null) {
+  // 1b. Canonical Admin Redirects: Redirect legacy /admin-v2, /admin-v2/*, /admin/v2/*, and ?admin=... to /admin
+  if (isLegacyAdminV2Route || adminParam !== null) {
     const redirectParams = new URLSearchParams(parsedUrl.searchParams || '');
     redirectParams.delete('admin');
     const qs = redirectParams.toString();
-    const targetUrl = qs ? `/admin-v2?${qs}` : '/admin-v2';
+    const isUiLabSubpath = normPath === '/admin-v2/ui-lab' || normPath.startsWith('/admin-v2/ui-lab/') || normPath === '/admin/v2/ui-lab' || normPath.startsWith('/admin/v2/ui-lab/');
+    const targetBase = isUiLabSubpath ? '/admin/ui-lab' : '/admin';
+    const targetUrl = qs ? `${targetBase}?${qs}` : targetBase;
     res.writeHead(302, {
       'Location': targetUrl,
       'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
@@ -7306,8 +7308,8 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  // 1c. Admin V2 Isolated Portal Route (/admin-v2, /admin/v2)
-  if (isAdminV2Route) {
+  // 1c. Canonical Admin Portal Route (/admin serves Admin V2 directly)
+  if (isAdminRoute) {
     const adminV2Path = path.join(__dirname, 'public', 'admin-v2', 'index.html');
     if (fs.existsSync(adminV2Path)) {
       res.writeHead(200, {
@@ -7322,7 +7324,7 @@ const server = http.createServer(async (req, res) => {
 
   // 2. Customer Homepage Route (/ and /home, /terms, /privacy, /refund)
   // Non-portal visitors at root receive the modern M3 Customer Homepage
-  const isInternalPortal = isStaffRoute || staffParam || isAdminV2Route;
+  const isInternalPortal = isStaffRoute || staffParam || isAdminRoute;
   if (!isInternalPortal && (normPath === '' || normPath === '/home' || normPath === '/terms' || normPath === '/privacy' || normPath === '/refund')) {
     const homePath = path.join(__dirname, 'public', 'home.html');
     if (fs.existsSync(homePath)) {

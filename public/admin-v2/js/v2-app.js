@@ -164,7 +164,7 @@
     }
 
     try {
-      const basePath = window.location.pathname.startsWith('/admin/v2') ? '/admin/v2' : '/admin-v2';
+      const basePath = '/admin';
       window.history.replaceState({}, '', basePath);
     } catch (e) {}
 

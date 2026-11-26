@@ -177,7 +177,7 @@
   }
 
   function getRouteUrlForTab(tabName) {
-    const basePath = window.location.pathname.startsWith('/admin/v2') ? '/admin/v2' : '/admin-v2';
+    const basePath = '/admin';
     if (tabName === 'ui-lab') {
       return `${basePath}/ui-lab#ui-lab`;
     }

@@ -51,15 +51,15 @@ async function runVerification() {
   });
 
   try {
-    // 1. Verify Admin V2 Route & UI Lab Route
-    const resV2 = await request('/admin-v2');
-    assert(resV2.status === 200, 'GET /admin-v2 returns HTTP 200');
-    assert(resV2.body.includes('cwp-v2-root'), 'GET /admin-v2 serves V2 HTML with cwp-v2-root');
-    assert(resV2.body.includes('UI Playground'), 'GET /admin-v2 includes UI Playground navigation');
+    // 1. Verify Canonical Admin Route & UI Lab Route
+    const resV2 = await request('/admin');
+    assert(resV2.status === 200, 'GET /admin returns HTTP 200');
+    assert(resV2.body.includes('cwp-v2-root'), 'GET /admin serves V2 HTML with cwp-v2-root');
+    assert(resV2.body.includes('UI Playground'), 'GET /admin includes UI Playground navigation');
 
-    const resUiLab = await request('/admin-v2/ui-lab');
-    assert(resUiLab.status === 200, 'GET /admin-v2/ui-lab returns HTTP 200');
-    assert(resUiLab.body.includes('v2View_ui-lab'), 'GET /admin-v2/ui-lab serves UI Lab section');
+    const resUiLab = await request('/admin/ui-lab');
+    assert(resUiLab.status === 200, 'GET /admin/ui-lab returns HTTP 200');
+    assert(resUiLab.body.includes('v2View_ui-lab'), 'GET /admin/ui-lab serves UI Lab section');
     assert(resUiLab.body.includes('v2ToggleHitAreaBtn'), 'UI Lab includes Hit Area inspector button');
     assert(resUiLab.body.includes('cwp-v2-btn-md-legacy'), 'UI Lab includes 34px vs 36px size comparison');
     assert(resUiLab.body.includes('v2-sec-inputs'), 'UI Lab includes Task 02 Section 10 Input Components');
@@ -237,10 +237,26 @@ async function runVerification() {
     assert(resPlaygroundJs.body.includes('bindFormPlayground'), 'v2-playground.js supports Task 05 Form interactive handlers');
     assert(resPlaygroundJs.body.includes('handleFileSelected'), 'v2-playground.js supports file upload dropzone handling');
 
-    // 4. Verify Admin V1 is retired and /admin redirects to /admin-v2
-    const resV1 = await request('/admin');
-    assert(resV1.status === 302, 'GET /admin returns HTTP 302 redirect to Admin V2');
-    assert(resV1.headers.location === '/admin-v2', 'GET /admin redirects Location to /admin-v2');
+    // 4. Verify Canonical Admin Routing (/admin serves V2 directly, /admin-v2 and ?admin=1 redirect to /admin)
+    const resAdmin = await request('/admin');
+    assert(resAdmin.status === 200, 'GET /admin returns HTTP 200 directly');
+    assert(resAdmin.body.includes('cwp-v2-root'), 'GET /admin serves Admin V2 directly');
+
+    const resAdminSlash = await request('/admin/');
+    assert(resAdminSlash.status === 200, 'GET /admin/ returns HTTP 200 without duplication');
+    assert(resAdminSlash.body.includes('cwp-v2-root'), 'GET /admin/ serves Admin V2');
+
+    const resLegacyV2 = await request('/admin-v2');
+    assert(resLegacyV2.status === 302, 'GET /admin-v2 returns HTTP 302 redirect');
+    assert(resLegacyV2.headers.location === '/admin', 'GET /admin-v2 redirects Location to /admin');
+
+    const resLegacyV2Slash = await request('/admin-v2/');
+    assert(resLegacyV2Slash.status === 302, 'GET /admin-v2/ returns HTTP 302 redirect');
+    assert(resLegacyV2Slash.headers.location === '/admin', 'GET /admin-v2/ redirects Location to /admin');
+
+    const resAdminParam = await request('/?admin=1');
+    assert(resAdminParam.status === 302, 'GET /?admin=1 returns HTTP 302 redirect');
+    assert(resAdminParam.headers.location === '/admin', 'GET /?admin=1 redirects Location to /admin');
 
     // 5. Verify Staff Portal remains untouched
     const resStaff = await request('/staff');

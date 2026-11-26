@@ -21,7 +21,6 @@ const PRECACHE_ASSETS = [
   '/css/staff-m3.css',
   '/fonts/material-symbols-outlined.woff2',
   '/js/app.js',
-  '/js/cropper.min.js',
   '/favicon.ico',
   '/icons/favicon.ico',
   '/icons/icon-72x72.png',
@@ -85,14 +84,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Public customer pages (Homepage & Careers) must ALWAYS bypass Service Worker
+  // Public customer pages (Homepage & Careers) and Admin V2 must ALWAYS bypass Service Worker
   if (
     url.pathname === '/' ||
     url.pathname === '/home' ||
     url.pathname === '/careers' ||
     url.pathname === '/career' ||
     url.pathname === '/jobs' ||
-    url.pathname === '/job'
+    url.pathname === '/job' ||
+    url.pathname === '/admin' ||
+    url.pathname.startsWith('/admin/') ||
+    url.pathname === '/admin-v2' ||
+    url.pathname.startsWith('/admin-v2/')
   ) {
     return;
   }
