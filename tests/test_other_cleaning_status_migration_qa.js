@@ -459,12 +459,19 @@ async function runTests() {
       await sleep(250);
     }
 
-    // 3a. Initial state, English-only, KPI counts, service-aware presentation
+    // 3a. Initial state, English-only, KPI counts, badge stability, no visible DB IDs
     const initCheck = await cdp.evaluate(`
       const view = document.getElementById('v2View_specialJobs');
       const split = document.getElementById('v2SjSplitView');
       const rows = document.querySelectorAll('#v2SjTableBody tr');
       const tableText = document.getElementById('v2SjTableBody').innerText;
+      const badgeBefore = document.getElementById('v2BadgeSpecialJobs')?.textContent;
+      if (window.CWP_ADMIN_V2?.notifications?.refreshBadges) {
+        await window.CWP_ADMIN_V2.notifications.refreshBadges();
+      }
+      const badgeAfterNotif = document.getElementById('v2BadgeSpecialJobs')?.textContent;
+      const hasRawJobId = /job_\\d+|job_sj_/.test(view.innerText);
+      const hasJobIdHeader = /JOB\\s*ID/i.test(document.getElementById('v2SjTable').querySelector('thead').innerText);
       return {
         isActive: view?.classList.contains('is-active'),
         detailClosed: split?.classList.contains('is-detail-closed'),
@@ -474,6 +481,10 @@ async function runTests() {
         kpiAssigned: document.getElementById('v2SjKpiAssigned')?.textContent,
         kpiInProgress: document.getElementById('v2SjKpiInProgress')?.textContent,
         kpiCompleted: document.getElementById('v2SjKpiCompleted')?.textContent,
+        badgeBefore,
+        badgeAfterNotif,
+        hasRawJobId,
+        hasJobIdHeader,
         hasSolarPanels: tableText.includes('16 Panels'),
         hasVehicleReg: tableText.includes('UP32 YY 2222'),
         hasHindi: /[\\u0900-\\u097F]/.test(view.innerText),
@@ -488,6 +499,10 @@ async function runTests() {
     assert.strictEqual(initCheck.kpiAssigned, '1', 'Assigned KPI must be 1');
     assert.strictEqual(initCheck.kpiInProgress, '1', 'In Progress KPI must be 1');
     assert.strictEqual(initCheck.kpiCompleted, '1', 'Completed KPI must be 1');
+    assert.strictEqual(initCheck.badgeBefore, '4', 'Sidebar badge must match Today jobs count (4)');
+    assert.strictEqual(initCheck.badgeAfterNotif, '4', 'Sidebar badge must not fluctuate after notifications.refreshBadges()');
+    assert.strictEqual(initCheck.hasRawJobId, false, 'No internal DB/job IDs may be visible in the UI');
+    assert.strictEqual(initCheck.hasJobIdHeader, false, 'Table header must not show Job ID column');
     assert.strictEqual(initCheck.hasSolarPanels, true, 'Solar row must display panel count');
     assert.strictEqual(initCheck.hasVehicleReg, true, 'Car wash row must display vehicle registration');
     assert.strictEqual(initCheck.hasHindi, false, 'UI must be English-only');

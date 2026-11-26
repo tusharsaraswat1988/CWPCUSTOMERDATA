@@ -142,17 +142,50 @@
         ? cleanData.summary.totalCleaned
         : (Array.isArray(cleanData.records) ? cleanData.records.length : 0);
       setNavBadge('v2BadgeCleanReports', String(totalCleaned));
+      const crBadgeEl = document.getElementById('v2BadgeCleanReports');
+      if (crBadgeEl) crBadgeEl.title = `${totalCleaned} daily cleans completed today`;
     }
 
     if (results[4].status === 'fulfilled' && results[4].value) {
       const jobsData = results[4].value;
       const jobs = Array.isArray(jobsData.jobs) ? jobsData.jobs : (Array.isArray(jobsData) ? jobsData : []);
       state.snapshots.specialJobs = jobs;
-      const activeJobs = jobs.filter(j => {
-        const st = String(j.status || '').toLowerCase();
-        return st !== 'completed' && st !== 'cancelled';
+      const getIstKey = (dt) => {
+        try {
+          if (!dt) return '';
+          const d = new Date(dt);
+          if (isNaN(d.getTime())) return '';
+          const parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).formatToParts(d);
+          const y = parts.find(p => p.type === 'year')?.value;
+          const m = parts.find(p => p.type === 'month')?.value;
+          const day = parts.find(p => p.type === 'day')?.value;
+          return y && m && day ? `${y}-${m}-${day}` : '';
+        } catch (e) {
+          return '';
+        }
+      };
+      const todayKey = getIstKey(new Date());
+      const todayJobs = jobs.filter(j => {
+        const sDate = j.scheduledDate || j.scheduled_date;
+        let key = '';
+        if (sDate) {
+          key = (typeof sDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sDate.trim()))
+            ? sDate.trim()
+            : getIstKey(sDate);
+        }
+        if (!key) {
+          key = getIstKey(j.assignedAt || j.assigned_at || j.createdAt || j.created_at);
+        }
+        return key === todayKey;
       }).length;
-      setNavBadge('v2BadgeSpecialJobs', String(activeJobs));
+      setNavBadge('v2BadgeSpecialJobs', String(todayJobs));
+      const sjBadgeEl = document.getElementById('v2BadgeSpecialJobs');
+      if (sjBadgeEl) sjBadgeEl.title = `${todayJobs} service jobs for Today`;
     }
 
     if (results[5].status === 'fulfilled' && results[5].value) {

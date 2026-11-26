@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="/admin-v2/css/v2-clean-reports.css?v=2.1.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-special-jobs.css?v=2.1.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-assign-jobs.css?v=2.1.0">
+  <link rel="stylesheet" href="/admin-v2/css/v2-dashboard.css?v=2.1.0">
 </head>
 <body class="cwp-v2-body">
   <div id="cwpV2App" class="cwp-v2-root">
@@ -4377,15 +4378,157 @@
           <!-- PRODUCTION VIEWS: OPERATIONS (6 TABS)                         -->
           <!-- ============================================================= -->
           <section id="v2View_dashboard" class="cwp-v2-view" aria-label="Dashboard">
-            <div class="cwp-v2-kpi-strip" data-v2-live-summary></div>
-            <div class="cwp-v2-card">
-              <div class="cwp-v2-card-header">
-                <span class="cwp-v2-card-title">Operations Dashboard</span>
-                <span class="cwp-v2-badge cwp-v2-badge-success">Live SSE Connected</span>
+            <!-- Section A: Compact Operational Header -->
+            <div class="cwp-v2-dash-header">
+              <div class="cwp-v2-dash-header-left">
+                <span id="v2DashOpDate" class="cwp-v2-dash-date-pill">
+                  <span class="material-symbols-outlined" aria-hidden="true" style="font-size:15px;">calendar_today</span>
+                  <span>Today (IST)</span>
+                </span>
+                <span id="v2DashLastUpdated" class="cwp-v2-dash-meta-text">Not synced yet</span>
               </div>
-              <p style="font-size:13px; color:var(--cwp-v2-sys-on-surface-variant);">
-                Live operational metrics above are synchronized from <code>getDailyCleanReports</code>, <code>getSpecialJobs</code>, <code>getAllCustomers</code>, and <code>getStaffTrackingSummary</code>.
-              </p>
+              <div class="cwp-v2-dash-header-actions">
+                <button type="button" id="v2DashRefreshBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" title="Refresh dashboard operational data">
+                  <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Partial Error Banner -->
+            <div id="v2DashPartialBanner" class="cwp-v2-dash-partial-banner" role="alert" hidden>
+              <div class="cwp-v2-dash-partial-msg">
+                <span class="material-symbols-outlined" aria-hidden="true" style="font-size:18px;">warning</span>
+                <span id="v2DashPartialText">Some operational sources failed to load.</span>
+              </div>
+              <button type="button" id="v2DashPartialRetryBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm">
+                <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+                <span>Retry</span>
+              </button>
+            </div>
+
+            <!-- Section B: Primary Business KPI Strip -->
+            <div id="v2DashKpiGrid" class="cwp-v2-dash-kpi-grid" role="region" aria-label="Primary business KPIs"></div>
+
+            <!-- Section H: Quick Actions -->
+            <div class="cwp-v2-dash-quick-bar" role="region" aria-label="Quick actions">
+              <span class="cwp-v2-dash-quick-label">
+                <span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px; color:var(--cwp-v2-sys-primary);">bolt</span>
+                <span>Quick Actions</span>
+              </span>
+              <div class="cwp-v2-dash-quick-actions">
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-dash-quick-action="createBooking">
+                  <span class="material-symbols-outlined" aria-hidden="true">add_circle</span>
+                  <span>Create Booking</span>
+                </button>
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-dash-quick-action="addCustomer">
+                  <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
+                  <span>Add Customer</span>
+                </button>
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-dash-quick-action="assignJobs">
+                  <span class="material-symbols-outlined" aria-hidden="true">assignment_add</span>
+                  <span>Assign Jobs</span>
+                </button>
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-dash-quick-action="viewLeads">
+                  <span class="material-symbols-outlined" aria-hidden="true">contact_mail</span>
+                  <span>View Leads</span>
+                </button>
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-dash-quick-action="addStaff">
+                  <span class="material-symbols-outlined" aria-hidden="true">badge</span>
+                  <span>Add Staff</span>
+                </button>
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-dash-quick-action="trackStaff">
+                  <span class="material-symbols-outlined" aria-hidden="true">near_me</span>
+                  <span>Track Staff</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Section C: Today's Operational Overview -->
+            <div>
+              <div class="cwp-v2-dash-section-head">
+                <h2 class="cwp-v2-dash-section-title">
+                  <span class="material-symbols-outlined" aria-hidden="true">monitoring</span>
+                  <span>Today's Operational Overview</span>
+                </h2>
+              </div>
+              <div id="v2DashOpsOverview" class="cwp-v2-dash-grid-3col"></div>
+            </div>
+
+            <!-- Section D & E: Attention Required / Exceptions + Staff & Workload Overview -->
+            <div class="cwp-v2-dash-grid-2col">
+              <div class="cwp-v2-card">
+                <div class="cwp-v2-card-header">
+                  <span class="cwp-v2-card-title" style="display:inline-flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-outlined" aria-hidden="true" style="font-size:18px; color:var(--cwp-v2-status-warning);">notification_important</span>
+                    <span>Attention Required</span>
+                  </span>
+                  <span id="v2DashExceptionsBadge" class="cwp-v2-badge cwp-v2-badge-warning">0</span>
+                </div>
+                <div id="v2DashExceptionsList" class="cwp-v2-dash-exceptions-list"></div>
+              </div>
+
+              <div class="cwp-v2-card">
+                <div class="cwp-v2-card-header">
+                  <span class="cwp-v2-card-title" style="display:inline-flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-outlined" aria-hidden="true" style="font-size:18px; color:var(--cwp-v2-sys-primary);">groups</span>
+                    <span>Staff &amp; Workload Overview</span>
+                  </span>
+                  <div style="display:inline-flex; gap:6px;">
+                    <button type="button" id="v2DashTrackStaffBtn" class="cwp-v2-btn cwp-v2-btn-tertiary cwp-v2-btn-sm">Track</button>
+                    <button type="button" id="v2DashViewStaffBtn" class="cwp-v2-btn cwp-v2-btn-tertiary cwp-v2-btn-sm">Staff</button>
+                  </div>
+                </div>
+                <div id="v2DashStaffPills" class="cwp-v2-dash-staff-summary-pills"></div>
+                <div class="cwp-v2-dash-table-wrap">
+                  <table class="cwp-v2-dash-table" aria-label="Staff workload summary">
+                    <thead>
+                      <tr>
+                        <th>Staff Name</th>
+                        <th>Account</th>
+                        <th>DCC Route</th>
+                        <th>Cleaned Today</th>
+                        <th>Open Jobs</th>
+                      </tr>
+                    </thead>
+                    <tbody id="v2DashStaffTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section G & F: Live Service Breakdowns + Recent Operations -->
+            <div class="cwp-v2-dash-grid-equal">
+              <div class="cwp-v2-card">
+                <div class="cwp-v2-card-header">
+                  <span class="cwp-v2-card-title" style="display:inline-flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-outlined" aria-hidden="true" style="font-size:18px; color:var(--cwp-v2-sys-primary);">bar_chart</span>
+                    <span>Live Service Breakdown</span>
+                  </span>
+                  <span class="cwp-v2-dash-meta-text">Verified live counts</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                  <div>
+                    <div style="font-size:12px; font-weight:600; color:var(--cwp-v2-sys-on-surface-variant); margin-bottom:6px;">Daily Cleaning Today (IST)</div>
+                    <div id="v2DashCleanBreakdown"></div>
+                  </div>
+                  <div>
+                    <div style="font-size:12px; font-weight:600; color:var(--cwp-v2-sys-on-surface-variant); margin-bottom:6px;">Service Jobs by Category</div>
+                    <div id="v2DashJobsBreakdown"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cwp-v2-card">
+                <div class="cwp-v2-card-header">
+                  <span class="cwp-v2-card-title" style="display:inline-flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-outlined" aria-hidden="true" style="font-size:18px; color:var(--cwp-v2-sys-primary);">history</span>
+                    <span>Recent Operations</span>
+                  </span>
+                  <span class="cwp-v2-dash-meta-text">Latest recorded events</span>
+                </div>
+                <div id="v2DashActivityList" class="cwp-v2-dash-activity-list"></div>
+              </div>
             </div>
           </section>
 
@@ -4712,13 +4855,18 @@
                 <span>Exterior Detailing</span>
                 <span class="cwp-v2-sj-cat-count" id="v2SjCatExterior">0</span>
               </button>
+              <button type="button" class="cwp-v2-sj-cat-chip" data-cat="daily_car_cleaning" id="v2SjCatDailyChip" hidden>
+                <span class="material-symbols-outlined" aria-hidden="true">directions_car</span>
+                <span>Daily Clean</span>
+                <span class="cwp-v2-sj-cat-count" id="v2SjCatDaily">0</span>
+              </button>
             </div>
 
             <!-- Search & Primary Filter Toolbar -->
             <div class="cwp-v2-sj-toolbar">
               <div class="cwp-v2-sj-search-box">
                 <span class="material-symbols-outlined" style="font-size:17px; color:#64748b;" aria-hidden="true">search</span>
-                <input type="text" id="v2SjSearchInput" class="cwp-v2-sj-search-input" placeholder="Search customer, phone, job ID, vehicle, service, staff, area..." aria-label="Search service jobs" autocomplete="off">
+                <input type="text" id="v2SjSearchInput" class="cwp-v2-sj-search-input" placeholder="Search customer, phone, vehicle, service, staff, area..." aria-label="Search service jobs" autocomplete="off">
                 <button type="button" id="v2SjSearchClear" class="cwp-v2-sj-search-clear" aria-label="Clear search">
                   <span class="material-symbols-outlined" style="font-size:15px;">close</span>
                 </button>
@@ -4779,9 +4927,7 @@
                   <table class="cwp-v2-sj-table" id="v2SjTable" aria-label="Other Cleaning Status Operations Table">
                     <thead>
                       <tr>
-                        <th class="is-sortable" data-sort-col="id" scope="col">
-                          <span class="cwp-v2-sj-th-inner">Job ID <span class="material-symbols-outlined cwp-v2-sj-sort-icon">unfold_more</span></span>
-                        </th>
+                        <th scope="col" style="width:44px; text-align:center;">#</th>
                         <th class="is-sortable" data-sort-col="customer" scope="col">
                           <span class="cwp-v2-sj-th-inner">Customer <span class="material-symbols-outlined cwp-v2-sj-sort-icon">unfold_more</span></span>
                         </th>
@@ -7696,6 +7842,7 @@
   <script src="/admin-v2/js/v2-clean-reports.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-special-jobs.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-assign-jobs.js?v=2.1.0"></script>
+  <script src="/admin-v2/js/v2-dashboard.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-app.js?v=2.1.0"></script>
 
   <!-- Lazy UI Playground Loader: loads v2-playground.js ONLY when /admin-v2/ui-lab or ui-lab view is active -->

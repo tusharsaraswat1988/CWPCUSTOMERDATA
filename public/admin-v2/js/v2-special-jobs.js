@@ -431,20 +431,31 @@
     setVal('v2SjKpiCompleted', completed);
     setVal('v2SjKpiExceptions', exceptions);
 
+    const dailyCount = jobs.filter(j => getCategoryMeta(j.serviceCategoryId).id === 'daily_car_cleaning').length;
+
     setVal('v2SjCatAll', total);
     setVal('v2SjCatSolar', jobs.filter(j => getCategoryMeta(j.serviceCategoryId).id === 'solar_cleaning').length);
     setVal('v2SjCatCarWash', jobs.filter(j => getCategoryMeta(j.serviceCategoryId).id === 'car_washing').length);
     setVal('v2SjCatInterior', jobs.filter(j => getCategoryMeta(j.serviceCategoryId).id === 'interior_detailing').length);
     setVal('v2SjCatExterior', jobs.filter(j => getCategoryMeta(j.serviceCategoryId).id === 'exterior_detailing').length);
+    setVal('v2SjCatDaily', dailyCount);
+
+    const dailyChip = document.getElementById('v2SjCatDailyChip');
+    if (dailyChip) {
+      dailyChip.hidden = dailyCount === 0 && state.categoryFilter !== 'daily_car_cleaning';
+    }
 
     const headerCount = document.getElementById('v2SjHeaderCount');
     if (headerCount) {
       headerCount.textContent = `${state.filteredJobs.length} / ${total} jobs`;
     }
 
+    const todayKey = getIstDateKey(new Date());
+    const todayJobsCount = state.allJobs.filter(j => getJobEffectiveDateKey(j) === todayKey).length;
     const navBadge = document.getElementById('v2BadgeSpecialJobs');
     if (navBadge) {
-      navBadge.textContent = String(state.allJobs.length);
+      navBadge.textContent = String(todayJobsCount);
+      navBadge.title = `${todayJobsCount} service jobs for Today`;
     }
   }
 
@@ -498,9 +509,9 @@
 
       if (q) {
         const hay = [
-          j.id, j.jobId, j.customerName, j.customerPhone, j.customerCode,
+          j.customerName, j.customerPhone, j.customerCode,
           j.vehicle, j.registrationNo, j.brandOrModel, j.serviceType,
-          j.serviceCategory, j.packageDetails, j.staffName, j.staffId,
+          j.serviceCategory, j.packageDetails, j.staffName,
           j.address, j.areaText, j.routeName, j.specialInstructions, j.completionNotes
         ].filter(Boolean).join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
@@ -514,10 +525,7 @@
       const col = state.sort.column;
       let va = '';
       let vb = '';
-      if (col === 'id') {
-        va = String(a.id || '');
-        vb = String(b.id || '');
-      } else if (col === 'customer') {
+      if (col === 'customer') {
         va = String(a.customerName || '').toLowerCase();
         vb = String(b.customerName || '').toLowerCase();
       } else if (col === 'service') {
@@ -592,9 +600,19 @@
     const total = state.filteredJobs.length;
     if (total === 0) {
       const showAllTimeHint = state.period === 'today' && state.allJobs.length > 0;
+      const activeOpen = state.allJobs.filter(j => {
+        const st = String(j.status || '').toLowerCase();
+        return st !== 'completed' && st !== 'cancelled' && st !== 'unable_to_complete';
+      }).length;
+      const titleMsg = showAllTimeHint
+        ? 'No service jobs scheduled for Today'
+        : 'No service jobs match your current filters';
+      const subMsg = showAllTimeHint
+        ? `${activeOpen} active open job${activeOpen === 1 ? '' : 's'} (${state.allJobs.length} total) in All Time.`
+        : 'Try adjusting the date period, category, or search query.';
       tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:36px 16px; color:#64748b;">
-        <div style="font-weight:600; color:#334155; margin-bottom:4px;">No service jobs match your current filters</div>
-        <div style="font-size:12px; margin-bottom:10px;">Try adjusting the date period, category, or search query.</div>
+        <div style="font-weight:600; color:#334155; margin-bottom:4px;">${titleMsg}</div>
+        <div style="font-size:12px; margin-bottom:10px;">${subMsg}</div>
         ${showAllTimeHint ? '<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" id="v2SjEmptyAllTimeBtn">Show All Time Jobs</button>' : ''}
       </td></tr>`;
       return;
@@ -604,9 +622,9 @@
     const pageRows = state.filteredJobs.slice(startIdx, startIdx + state.pagination.pageSize);
 
     let html = '';
-    pageRows.forEach(j => {
+    pageRows.forEach((j, idx) => {
       const id = String(j.id);
-      const shortId = id.length > 12 ? `${id.slice(0, 8)}…` : id;
+      const rowNum = startIdx + idx + 1;
       const isSelected = state.selectedJobId === id;
       const cat = getCategoryMeta(j.serviceCategoryId);
       const stMeta = getStatusMeta(j);
@@ -637,9 +655,7 @@
       }
 
       html += `<tr data-sj-row="${escapeHtml(id)}" class="${isSelected ? 'is-selected-row' : ''}">
-        <td>
-          <div class="cwp-v2-sj-cell-primary">${escapeHtml(cat.label)}</div>
-        </td>
+        <td style="text-align:center; color:#64748b; font-weight:600; font-size:11.5px;">${rowNum}</td>
         <td>
           <div class="cwp-v2-sj-cell-primary" title="${escapeHtml(j.customerName || 'Customer')}">${escapeHtml(j.customerName || 'Customer')}</div>
           <div class="cwp-v2-sj-cell-sub">${escapeHtml(j.customerPhone || '—')}</div>

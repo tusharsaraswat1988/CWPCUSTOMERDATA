@@ -207,18 +207,7 @@
     if (!statusBox) return;
 
     let cards = [];
-    if (tabName === 'dashboard') {
-      const cleanSum = (snaps.cleanReports && snaps.cleanReports.summary) || {};
-      const jobs = Array.isArray(snaps.specialJobs) ? snaps.specialJobs : [];
-      const custs = Array.isArray(snaps.customers) ? snaps.customers : [];
-      const track = (snaps.tracking && snaps.tracking.kpis) || {};
-      cards = [
-        { label: 'Daily Cleans Today', value: cleanSum.totalCleaned ?? '—', meta: `Photo rate: ${cleanSum.photoRate ?? 0}%` },
-        { label: 'Special Jobs', value: jobs.length || (snaps.specialJobs ? 0 : '—'), meta: 'Live operational jobs' },
-        { label: 'Active Customers', value: custs.length || (snaps.customers ? 0 : '—'), meta: 'Customer directory records' },
-        { label: 'Active Field Crew', value: track.activeStaffCount ?? '—', meta: 'Live GPS / shift tracking' }
-      ];
-    } else if (tabName === 'records') {
+    if (tabName === 'records') {
       const custs = Array.isArray(snaps.customers) ? snaps.customers : null;
       const activeCount = custs ? custs.filter(c => c.active !== false && c.active !== 'No').length : '—';
       cards = [
