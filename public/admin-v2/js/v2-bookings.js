@@ -635,7 +635,7 @@
       <div style="min-width:0;">
         <div style="font-size:14.5px; font-weight:700; color:#0f172a;">${escapeHtml(b.customerName || 'Customer')}</div>
         <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
-          ${escapeHtml(b.customerCode || b.id || '')} &bull;
+          ${b.customerPhone || b.phone ? `${escapeHtml(b.customerPhone || b.phone)} &bull; ` : ''}
           <span class="cwp-v2-bk-status ${stMeta.cls}">${escapeHtml(stMeta.label)}</span>
         </div>
       </div>

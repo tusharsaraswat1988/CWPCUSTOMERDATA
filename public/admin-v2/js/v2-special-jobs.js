@@ -638,8 +638,7 @@
 
       html += `<tr data-sj-row="${escapeHtml(id)}" class="${isSelected ? 'is-selected-row' : ''}">
         <td>
-          <div class="cwp-v2-sj-cell-primary" style="font-family:monospace; font-size:11.5px;" title="${escapeHtml(id)}">${escapeHtml(shortId)}</div>
-          ${j.customerCode ? `<div class="cwp-v2-sj-cell-sub">${escapeHtml(j.customerCode)}</div>` : ''}
+          <div class="cwp-v2-sj-cell-primary">${escapeHtml(cat.label)}</div>
         </td>
         <td>
           <div class="cwp-v2-sj-cell-primary" title="${escapeHtml(j.customerName || 'Customer')}">${escapeHtml(j.customerName || 'Customer')}</div>
@@ -784,7 +783,7 @@
     header.innerHTML = `
       <div style="min-width:0;">
         <div style="font-size:14px; font-weight:700; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(j.customerName || 'Customer')}</div>
-        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Job ${escapeHtml(j.id)} • ${escapeHtml(cat.label)}</div>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">${escapeHtml(cat.label)}${j.serviceType ? ` • ${escapeHtml(j.serviceType)}` : ''}</div>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
         <span class="cwp-v2-sj-status-pill ${stMeta.cls}">${escapeHtml(stMeta.label)}</span>
@@ -1188,7 +1187,7 @@
     if (err) { err.hidden = true; err.textContent = ''; }
     if (reasonInp) reasonInp.value = '';
     if (notesInp) notesInp.value = '';
-    if (summary) summary.textContent = `${j.customerName || 'Customer'} • ${getCategoryMeta(j.serviceCategoryId).label} (${j.id})`;
+    if (summary) summary.textContent = `${j.customerName || 'Customer'} • ${getCategoryMeta(j.serviceCategoryId).label}`;
 
     if (mode === 'start') {
       if (title) title.textContent = 'Start Service Job';

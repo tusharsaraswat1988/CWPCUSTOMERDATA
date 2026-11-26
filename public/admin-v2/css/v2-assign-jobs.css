@@ -140,14 +140,18 @@
 }
 
 .cwp-v2-aj-unassigned-quick-btn.has-pending {
-  border-color: #fde68a;
-  background: #fffbeb;
-  color: #b45309;
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #92400e;
+}
+
+.cwp-v2-aj-unassigned-quick-btn.has-pending .material-symbols-outlined {
+  color: #d97706;
 }
 
 .cwp-v2-aj-unassigned-quick-btn.is-active {
   border-color: #d97706;
-  background: #fef3c7;
+  background: #fffbeb;
   color: #92400e;
 }
 
@@ -183,8 +187,12 @@
 }
 
 .cwp-v2-aj-kpi-card.is-warn:not(.is-active) {
-  border-color: #fde68a;
-  background: #fffbeb;
+  border-color: #e2e8f0;
+  background: #ffffff;
+}
+
+.cwp-v2-aj-kpi-card.is-warn:not(.is-active) .cwp-v2-aj-kpi-value {
+  color: #b45309;
 }
 
 .cwp-v2-aj-kpi-top {
@@ -399,6 +407,7 @@
 
 .cwp-v2-aj-table tbody tr {
   border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
   transition: background-color 0.1s ease;
 }
 
@@ -406,18 +415,33 @@
   background: #f8fafc;
 }
 
-.cwp-v2-aj-table tbody tr.is-unassigned {
-  background: #fffdf5;
-}
-
-.cwp-v2-aj-table tbody tr.is-unassigned:hover {
-  background: #fef9e7;
-}
-
 .cwp-v2-aj-table tbody td {
-  padding: 6px 10px;
+  padding: 5px 10px;
   vertical-align: middle;
-  min-height: 38px;
+  min-height: 36px;
+}
+
+.cwp-v2-aj-seq-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cwp-v2-aj-loc-missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #b45309;
+  font-size: 11.5px;
+  font-weight: 600;
 }
 
 .cwp-v2-aj-seq-pill {
@@ -547,9 +571,9 @@
 }
 
 .cwp-v2-aj-status-badge.is-assigned {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
 }
 
 .cwp-v2-aj-status-badge.is-unassigned {
@@ -593,13 +617,15 @@
 }
 
 .cwp-v2-aj-btn-sm.is-primary {
-  background: var(--cwp-v2-sys-primary, #2563eb);
-  border-color: var(--cwp-v2-sys-primary, #2563eb);
-  color: #ffffff;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
 }
 
 .cwp-v2-aj-btn-sm.is-primary:hover {
-  background: var(--cwp-v2-sys-primary-hover, #1d4ed8);
+  background: var(--cwp-v2-sys-primary, #2563eb);
+  border-color: var(--cwp-v2-sys-primary, #2563eb);
+  color: #ffffff;
 }
 
 .cwp-v2-aj-btn-sm.is-danger {

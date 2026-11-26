@@ -289,7 +289,7 @@
     const coverage = total > 0 ? Math.round((assigned / total) * 100) : 0;
 
     const totalPill = document.getElementById('v2AjTotalPill');
-    if (totalPill) totalPill.textContent = `${total} Subscribers`;
+    if (totalPill) totalPill.textContent = `${total} Daily Subscribers`;
 
     const kpiTotal = document.getElementById('v2AjKpiTotal');
     const kpiAssigned = document.getElementById('v2AjKpiAssigned');
@@ -473,19 +473,26 @@
     const html = pageRows.map((row) => {
       const exc = getRowExceptions(row);
       const isInactiveStaff = exc.includes('inactive_staff');
-      const seqHtml = row.sequenceOrder != null
-        ? `<span class="cwp-v2-aj-seq-pill">#${escapeHtml(row.sequenceOrder)}</span>`
-        : '<span class="cwp-v2-aj-seq-empty">--</span>';
+      const isMissingSeq = exc.includes('missing_sequence');
+      const isMissingAddr = exc.includes('missing_address');
+
+      let seqHtml = '<span class="cwp-v2-aj-seq-empty">--</span>';
+      if (row.sequenceOrder != null) {
+        seqHtml = `<span class="cwp-v2-aj-seq-pill">#${escapeHtml(row.sequenceOrder)}</span>`;
+      } else if (isMissingSeq) {
+        seqHtml = '<span class="cwp-v2-aj-seq-warn" title="Assigned without route stop order"><span class="material-symbols-outlined" style="font-size:12px;" aria-hidden="true">warning</span>No stop</span>';
+      }
 
       let staffHtml = '<span class="cwp-v2-aj-status-badge is-unassigned">Unassigned</span>';
       if (row.isAssigned) {
         const initial = String(row.staffName || 'S').trim().charAt(0).toUpperCase() || 'S';
+        const opCode = row.staffCode && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(row.staffCode) ? row.staffCode : '';
         staffHtml = `
           <div class="cwp-v2-aj-staff-pill">
             <span class="cwp-v2-aj-staff-avatar ${isInactiveStaff ? 'is-warn' : ''}">${escapeHtml(initial)}</span>
             <div>
               <div class="cwp-v2-aj-staff-name">${escapeHtml(row.staffName || 'Staff')}</div>
-              ${row.staffCode ? `<div class="cwp-v2-aj-staff-code">${escapeHtml(row.staffCode)}</div>` : ''}
+              ${opCode ? `<div class="cwp-v2-aj-staff-code">${escapeHtml(opCode)}</div>` : ''}
             </div>
           </div>
         `;
@@ -498,10 +505,13 @@
         statusHtml = '<span class="cwp-v2-aj-status-badge is-exception">Staff Inactive</span>';
       }
 
-      const addrText = row.locality || row.address || 'Address not set';
+      const addrText = row.locality || row.address || '';
       const mapsLink = row.googleMapsUrl
         ? `<a href="${escapeHtml(row.googleMapsUrl)}" target="_blank" rel="noopener" class="cwp-v2-aj-maps-link" title="Open in Google Maps" aria-label="Open in Google Maps"><span class="material-symbols-outlined" style="font-size:15px;">location_on</span></a>`
         : '';
+      const addrHtml = isMissingAddr
+        ? '<div class="cwp-v2-aj-loc-missing"><span class="material-symbols-outlined" style="font-size:13px;" aria-hidden="true">location_off</span><span>Missing address</span></div>'
+        : `<div class="cwp-v2-aj-loc-addr" title="${escapeHtml(addrText)}">${escapeHtml(addrText)}</div>`;
 
       const actionsHtml = row.isAssigned
         ? `
@@ -521,14 +531,11 @@
         `;
 
       return `
-        <tr class="${row.isAssigned ? '' : 'is-unassigned'}" data-customer-id="${escapeHtml(row.customerId)}">
+        <tr data-customer-id="${escapeHtml(row.customerId)}">
           <td>${seqHtml}</td>
           <td>
             <div class="cwp-v2-aj-cust-name">${escapeHtml(row.customerName || 'Subscriber')}</div>
-            <div class="cwp-v2-aj-cust-sub">
-              <span>${escapeHtml(row.phone || '--')}</span>
-              ${row.customerCode ? `<span>• ${escapeHtml(row.customerCode)}</span>` : ''}
-            </div>
+            ${row.phone ? `<div class="cwp-v2-aj-cust-sub"><span>${escapeHtml(row.phone)}</span></div>` : ''}
           </td>
           <td>
             <div class="cwp-v2-aj-veh-plate">${escapeHtml(row.vehicleNumber || 'Unregistered')}</div>
@@ -539,7 +546,7 @@
               ${row.locationName ? `<span class="cwp-v2-aj-loc-badge">${escapeHtml(row.locationName)}</span>` : ''}
               ${mapsLink}
             </div>
-            <div class="cwp-v2-aj-loc-addr" title="${escapeHtml(addrText)}">${escapeHtml(addrText)}</div>
+            ${addrHtml}
           </td>
           <td>${staffHtml}</td>
           <td>${statusHtml}</td>
@@ -607,7 +614,7 @@
       const code = String(s.id || s.staffCode || '').toLowerCase();
       const specToday = state.todaySpecialCounts[code] || state.todaySpecialCounts[dbId] || 0;
 
-      let availBadge = '<span class="cwp-v2-aj-status-badge is-assigned">Available</span>';
+      let availBadge = '<span class="cwp-v2-aj-status-badge is-assigned">Active</span>';
       if (!active) {
         availBadge = '<span class="cwp-v2-aj-status-badge is-exception">Inactive</span>';
       } else if (s.isLocked) {

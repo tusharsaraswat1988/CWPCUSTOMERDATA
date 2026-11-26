@@ -594,7 +594,7 @@
           <span class="cwp-v2-ld-stage-badge ${stageMeta.cls}">${escapeHtml(stageMeta.label)}</span>
         </div>
         <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
-          ${escapeHtml(lead.customerCode || id)} • Created ${escapeHtml(formatDateDisplay(lead.createdAt))}
+          ${lead.phone ? `${escapeHtml(lead.phone)} • ` : ''}Created ${escapeHtml(formatDateDisplay(lead.createdAt))}
         </div>
       </div>
       <button type="button" id="v2LeadsDetailCloseBtn" class="cwp-v2-modal-close-btn" aria-label="Close lead detail panel">

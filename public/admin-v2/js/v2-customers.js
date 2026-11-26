@@ -782,8 +782,8 @@
       <!-- 8.2 Customer Summary -->
       <div class="cwp-v2-cust-summary-grid">
         <div class="cwp-v2-cust-summary-item">
-          <span class="cwp-v2-cust-summary-label">Account Code</span>
-          <span class="cwp-v2-cust-summary-val" style="font-family:monospace; font-size:11px;">${escapeHtml(cust.customerCode || cust.id.slice(0, 8))}</span>
+          <span class="cwp-v2-cust-summary-label">Phone</span>
+          <span class="cwp-v2-cust-summary-val">${escapeHtml(cust.phone || '—')}</span>
         </div>
         <div class="cwp-v2-cust-summary-item">
           <span class="cwp-v2-cust-summary-label">Customer Since</span>

@@ -596,7 +596,7 @@
         <tr data-cr-row="${esc(r.id)}" class="${isSelected ? 'is-selected-row' : ''}">
           <td>
             <div class="cwp-v2-cr-cell-primary" title="${esc(r.customerName)}">${esc(r.customerName)}</div>
-            <div class="cwp-v2-cr-cell-sub">${esc(r.customerPhone || r.customerCode || '—')}</div>
+            <div class="cwp-v2-cr-cell-sub">${esc(r.customerPhone || '—')}</div>
           </td>
           <td>
             <div><span class="cwp-v2-cr-plate-badge">${esc(r.registrationNo || 'Unregistered')}</span></div>

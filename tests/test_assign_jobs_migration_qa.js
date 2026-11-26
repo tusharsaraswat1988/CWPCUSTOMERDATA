@@ -120,7 +120,22 @@ async function runStaticChecks() {
   const ajIds = idMatches.filter(id => id.startsWith('v2Aj') || id.startsWith('v2ModalAj'));
   assert.strictEqual(new Set(ajIds).size, ajIds.length, 'All v2Aj* DOM IDs must be unique');
 
-  console.log('PASS 1: Static isolation, placeholder removal, CSS scoping, unique IDs, English-only & Material Symbols verified.');
+  // Global DB ID display ban checks across Admin V2 modules
+  const bkJs = fs.readFileSync(path.join(ROOT, 'public/admin-v2/js/v2-bookings.js'), 'utf8');
+  const crJs = fs.readFileSync(path.join(ROOT, 'public/admin-v2/js/v2-clean-reports.js'), 'utf8');
+  const custJs = fs.readFileSync(path.join(ROOT, 'public/admin-v2/js/v2-customers.js'), 'utf8');
+  const ldJs = fs.readFileSync(path.join(ROOT, 'public/admin-v2/js/v2-leads.js'), 'utf8');
+  const sjJs = fs.readFileSync(path.join(ROOT, 'public/admin-v2/js/v2-special-jobs.js'), 'utf8');
+
+  assert.ok(!ajJs.includes('${escapeHtml(row.customerCode)'), 'v2-assign-jobs.js must not render customerCode');
+  assert.ok(!bkJs.includes('b.customerCode || b.id'), 'v2-bookings.js must not render customerCode or raw id in detail header');
+  assert.ok(!crJs.includes('r.customerCode'), 'v2-clean-reports.js must not render customerCode');
+  assert.ok(!custJs.includes('cust.customerCode || cust.id.slice'), 'v2-customers.js must not render Account Code / customerCode / raw id');
+  assert.ok(!ldJs.includes('lead.customerCode || id'), 'v2-leads.js must not render customerCode or raw id in detail header');
+  assert.ok(!sjJs.includes('Job ${escapeHtml(j.id)}'), 'v2-special-jobs.js must not render raw job UUID in detail header');
+  assert.ok(!sjJs.includes('escapeHtml(j.customerCode)'), 'v2-special-jobs.js must not render customerCode');
+
+  console.log('PASS 1: Static isolation, placeholder removal, CSS scoping, unique IDs, English-only & DB-ID display ban verified.');
 }
 
 async function runTests() {
@@ -238,7 +253,23 @@ async function runTests() {
     assert.strictEqual(dataCheck.kpiUnassigned, String(dataCheck.unassigned), 'KPI Unassigned must match summary.unassigned');
     assert.strictEqual(dataCheck.hasHindi, false, 'UI must be English-only');
     assert.strictEqual(dataCheck.hasEmoji, false, 'UI must contain zero emojis');
-    console.log(`PASS 2: Real data loaded (${dataCheck.total} subscribers, ${dataCheck.assigned} assigned, ${dataCheck.unassigned} unassigned, ${dataCheck.staffLen} staff).`);
+
+    // PASS 2b: Live DOM DB ID Display Ban & Polish Verification
+    const dbIdBanCheck = await cdp.evaluate(`
+      const tableText = document.getElementById('v2AjTableBody')?.innerText || '';
+      const hasCustDc = /CUST_[A-Z]+_\\d+/.test(tableText);
+      const hasUuid = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(tableText);
+      const staffKpiLabel = document.querySelector('[data-aj-kpi="staff_view"] .cwp-v2-aj-kpi-label')?.textContent?.trim();
+      const firstRowBg = document.querySelector('#v2AjTableBody tr') ? getComputedStyle(document.querySelector('#v2AjTableBody tr')).backgroundColor : '';
+      const st = window.CWP_ADMIN_V2.assignJobs.getState();
+      const hasInternalIds = Boolean(st.assignments[0]?.customerId && st.assignments[0]?.subscriptionId);
+      return { hasCustDc, hasUuid, staffKpiLabel, firstRowBg, hasInternalIds };
+    `);
+    assert.strictEqual(dbIdBanCheck.hasCustDc, false, 'Table must never display CUST_* internal codes');
+    assert.strictEqual(dbIdBanCheck.hasUuid, false, 'Table must never display raw UUIDs');
+    assert.strictEqual(dbIdBanCheck.staffKpiLabel, 'Active Staff', 'Staff KPI must use accurate Active Staff label');
+    assert.strictEqual(dbIdBanCheck.hasInternalIds, true, 'Internal IDs must remain preserved in state');
+    console.log(`PASS 2: Real data loaded (${dataCheck.total} subscribers, ${dataCheck.assigned} assigned, ${dataCheck.unassigned} unassigned, ${dataCheck.staffLen} staff) & zero DB IDs exposed.`);
 
     // PASS 3: Search, Filters & Staff Workload View
     const filterCheck = await cdp.evaluate(`
