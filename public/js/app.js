@@ -927,6 +927,69 @@ var state = {
       var logoutProceedBtn = document.querySelector('#btnLogoutProceed .btn-text');
       if (logoutProceedBtn) logoutProceedBtn.textContent = isHi ? 'हाँ, लॉगआउट करें' : 'Yes, Sign Out';
 
+      // Admin Customer Directory bilingual synchronization
+      var adminHeroTitle = document.querySelector('#adminTabRecords .cwp-dir-title') || document.querySelector('#adminTabRecords .records-hero-title');
+      if (adminHeroTitle) {
+        adminHeroTitle.textContent = isHi ? 'ग्राहक डायरेक्टरी' : 'Customer Directory';
+      }
+      var searchInpAdmin = document.getElementById('adminRecordSearch');
+      if (searchInpAdmin) {
+        searchInpAdmin.placeholder = isHi ? 'ग्राहक का नाम, मोबाइल नंबर, गाड़ी नंबर या पता खोजें...' : 'Search customer, phone, vehicle plate, address...';
+      }
+      var dirSubtitle = document.querySelector('#adminTabRecords .cwp-dir-subtitle');
+      if (dirSubtitle) {
+        var filtCount = document.getElementById('filteredRecordsCount');
+        var totCount = document.getElementById('totalRecordsCount');
+        var fVal = filtCount ? filtCount.textContent : '0';
+        var tVal = totCount ? totCount.textContent : '0';
+        dirSubtitle.innerHTML = '<span id="filteredRecordsCount">' + fVal + '</span> / <span id="totalRecordsCount">' + tVal + '</span> ' + (isHi ? 'ग्राहक खाते' : 'customer accounts');
+      }
+
+      // Update Segment Pills text
+      var pillAll = document.querySelector('#kpiTileAll .seg-title');
+      if (pillAll) pillAll.textContent = isHi ? 'सभी' : 'All';
+      var pillDailyClean = document.querySelector('#kpiTileDaily .seg-title');
+      if (pillDailyClean) pillDailyClean.textContent = isHi ? 'दैनिक सफाई' : 'Daily Clean';
+      var pillCarWash = document.querySelector('#kpiTileWash .seg-title');
+      if (pillCarWash) pillCarWash.textContent = isHi ? 'कार वॉश' : 'Car Wash';
+      var pillSolar = document.querySelector('#kpiTileSolar .seg-title');
+      if (pillSolar) pillSolar.textContent = isHi ? 'सोलर' : 'Solar';
+      var pillUnassigned = document.querySelector('#kpiTileUnassigned .seg-title');
+      if (pillUnassigned) pillUnassigned.textContent = isHi ? 'कोई प्लान नहीं' : 'No Active Plan';
+
+      // Update Table Headers (Pure Decoupled CRM)
+      var thCust = document.getElementById('thColCustomer');
+      if (thCust) thCust.textContent = isHi ? 'ग्राहक' : 'Customer';
+      var thVeh = document.getElementById('thColVehicle');
+      if (thVeh) thVeh.textContent = isHi ? 'रजिस्टर्ड एसेट्स' : 'Registered Assets';
+      var thLoc = document.getElementById('thColLocation');
+      if (thLoc) thLoc.textContent = isHi ? 'प्राथमिक पता' : 'Primary Location';
+      var thServ = document.getElementById('thColService');
+      if (thServ) thServ.textContent = isHi ? 'सर्विस स्टेटस' : 'Service Status';
+      var thAct = document.getElementById('thColActions');
+      if (thAct) thAct.textContent = isHi ? 'कार्रवाई' : 'Actions';
+      var thStf = document.getElementById('thColStaff');
+      if (thStf) thStf.textContent = isHi ? 'असाइन स्टाफ' : 'Assigned Staff';
+
+      // Update Action Buttons
+      var btnAddCust = document.querySelector('#adminTabRecords .cwp-btn-solid-primary .btn-text') || document.querySelector('#adminTabRecords .btn-admin-primary');
+      if (btnAddCust) {
+        if (btnAddCust.classList && btnAddCust.classList.contains('btn-text')) {
+          btnAddCust.textContent = isHi ? 'नया ग्राहक' : 'Add Customer';
+        } else {
+          btnAddCust.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">add</span><span>' + (isHi ? 'नया ग्राहक' : 'Add Customer') + '</span>';
+        }
+      }
+      var btnExportText = document.querySelector('#adminTabRecords button[onclick="exportAdminRecordsCSV()"] .btn-text');
+      if (btnExportText) {
+        btnExportText.textContent = isHi ? 'एक्सपोर्ट' : 'Export';
+      }
+
+      // Re-render Admin Records table immediately if loaded
+      if (state.adminRecords && state.adminRecords.length > 0 && typeof filterAdminRecords === 'function') {
+        filterAdminRecords();
+      }
+
       // Re-render customer cards if already loaded
       if (state.currentStaffFilteredList && state.currentStaffFilteredList.length > 0) {
         renderCustomerCards(state.currentStaffFilteredList);
@@ -2579,7 +2642,7 @@ var state = {
     }
 
     /* Standard Valid Admin Tabs Constant (M3 Redesign: Dedicated Dashboard & Job Assignment & Staff Live Tracking) */
-    var ADMIN_VALID_TABS = ['dashboard', 'records', 'leads', 'washSolar', 'specialJobs', 'sequence', 'staff', 'cleanReports', 'jobAssignment', 'staffTracking', 'addCust'];
+    var ADMIN_VALID_TABS = ['dashboard', 'records', 'serviceAssign', 'leads', 'washSolar', 'specialJobs', 'sequence', 'staff', 'cleanReports', 'jobAssignment', 'staffTracking', 'addCust'];
 
     function clearAdminTokens() {
       sessionStorage.removeItem('cwp_admin_token');
@@ -2892,6 +2955,7 @@ var state = {
         tabName = 'records';
       }
 
+      if (tabName === 'serviceAssign' && typeof renderServiceAssignTable === 'function') renderServiceAssignTable();
       ADMIN_VALID_TABS.forEach(function(t) {
         var pane = document.getElementById('adminTab' + t.charAt(0).toUpperCase() + t.slice(1));
         var btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
@@ -2920,15 +2984,16 @@ var state = {
       var mobileActivePane = document.getElementById('adminMobileActivePane');
       if (mobileActivePane) {
         var titles = {
-          dashboard: 'Operations Dashboard',
-          records: 'Customer Records',
-          leads: 'Leads Pipeline',
-          sequence: 'Route Sequence',
-          staff: 'Staff Management',
-          cleanReports: 'Operations: Daily Cleans',
-          specialJobs: 'Operations: Wash & Solar',
-          jobAssignment: 'Job Assignment & Dispatch',
-          staffTracking: 'Staff Live Tracking'
+          dashboard: 'Dashboard',
+          records: 'Customers',
+          serviceAssign: 'Assign Booking',
+          leads: 'Leads',
+          sequence: 'DCC Route Plan',
+          staff: 'Staff',
+          cleanReports: 'Daily Cleaning Status',
+          specialJobs: 'Other Cleaning Status',
+          jobAssignment: 'Assign Jobs',
+          staffTracking: 'Track Staff'
         };
         mobileActivePane.textContent = titles[tabName] || 'Admin Portal';
       }
@@ -3212,6 +3277,7 @@ var state = {
 
     function initAdminRealtimeStream() {
       if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
+      if (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.indexOf('Headless') !== -1) return;
       if (!isUserAdminAuthenticated()) return;
 
       if (adminRealtimeEventSource) {
@@ -3687,6 +3753,23 @@ var state = {
         if (prevJobStaffVal) jobStaffSelect.value = prevJobStaffVal;
       }
 
+      // 2b. Unified Job Assign Staff Select (#uniJobStaffSelect)
+      var uniStaffSelect = document.getElementById('uniJobStaffSelect');
+      if (uniStaffSelect) {
+        var prevUniStaffVal = uniStaffSelect.value;
+        uniStaffSelect.innerHTML = '<option value="">-- Select Field Staff --</option>';
+        list.forEach(function(s) {
+          var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+          if (isAct) {
+            var opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = (s.name || s.id) + ' (' + (s.role || 'Staff') + ')';
+            uniStaffSelect.appendChild(opt);
+          }
+        });
+        if (prevUniStaffVal) uniStaffSelect.value = prevUniStaffVal;
+      }
+
       // 3. Daily Clean Roster Staff Filter (#dccRosterStaffFilter or #dccFilterStaff)
       var filterStaffSelect = document.getElementById('dccRosterStaffFilter') || document.getElementById('dccFilterStaff');
       if (filterStaffSelect) {
@@ -3762,6 +3845,23 @@ var state = {
         populateStaffFilterDropdown();
       }
 
+      // 8b. Unified Assignments Ledger Route/Staff Filter (#uniAssignmentsStaffFilter)
+      var uniStaffFilterEl = document.getElementById('uniAssignmentsStaffFilter');
+      if (uniStaffFilterEl) {
+        var prevUniStaffVal = uniStaffFilterEl.value;
+        uniStaffFilterEl.innerHTML = '<option value="">All Field Staff & Routes</option><option value="unassigned">⚠️ Unassigned Only</option>';
+        list.forEach(function(s) {
+          var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+          if (isAct) {
+            var opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = '👤 ' + (s.name || s.id) + ' (Route & Jobs)';
+            uniStaffFilterEl.appendChild(opt);
+          }
+        });
+        if (prevUniStaffVal) uniStaffFilterEl.value = prevUniStaffVal;
+      }
+
       // 9. Staff Count Badges
       var staffBadge = document.getElementById('tabStaffCount');
       if (staffBadge) staffBadge.textContent = list.length;
@@ -3779,6 +3879,11 @@ var state = {
         state.adminRecords = list;
       }
 
+      // Cache active customers for fast modal search filtering
+      window._allUniJobCustomerList = list.filter(function(c) {
+        return c.status !== 'inactive' && c.active !== 'No';
+      });
+
       // 1. On-Demand Job Customer Select (#jobAssignCustomerSelect)
       var jobCustSelect = document.getElementById('jobAssignCustomerSelect');
       if (jobCustSelect) {
@@ -3794,6 +3899,30 @@ var state = {
           }
         });
         if (prevJobCustVal) jobCustSelect.value = prevJobCustVal;
+      }
+
+      // 1b. Unified Job Customer Select (#uniJobCustomerSelect)
+      var uniCustSelect = document.getElementById('uniJobCustomerSelect');
+      if (uniCustSelect) {
+        var prevUniCustVal = uniCustSelect.value;
+        uniCustSelect.innerHTML = '<option value="">-- Choose Customer Account --</option>';
+        list.forEach(function(c) {
+          if (c.status !== 'inactive' && c.active !== 'No') {
+            var opt = document.createElement('option');
+            opt.value = c.id || c.customerId || c.customerCode || '';
+            opt.textContent = c.customerName || c.name || 'Customer';
+            uniCustSelect.appendChild(opt);
+          }
+        });
+        if (prevUniCustVal) {
+          uniCustSelect.value = prevUniCustVal;
+          var foundPrev = list.find(function(c) { return (c.id === prevUniCustVal || c.customerId === prevUniCustVal || c.customerCode === prevUniCustVal); });
+          var dispLabel = document.getElementById('uniJobCustomerDisplayLabel');
+          if (dispLabel && foundPrev) {
+            dispLabel.textContent = foundPrev.customerName || foundPrev.name || 'Customer';
+            dispLabel.classList.remove('placeholder');
+          }
+        }
       }
 
       // 2. Wash & Solar Existing Customer Select (#specialExistingCustSelect)
@@ -3867,6 +3996,171 @@ var state = {
       }
     }
     window.syncAllCustomerDropdowns = syncAllCustomerDropdowns;
+
+    /* Live Searchable Customer Filter for Unified Job Assign Modal */
+    /* =========================================================================
+       MODERN SEARCHABLE CUSTOMER COMBOBOX (IN-DROPDOWN SEARCH & CLEAN NAME LIST)
+       ========================================================================= */
+    function toggleUniJobCustomerCombobox(event) {
+      if (event && event.stopPropagation) event.stopPropagation();
+      var panel = document.getElementById('uniJobCustomerPanel');
+      var trigger = document.getElementById('uniJobCustomerTrigger');
+      if (!panel || !trigger) return;
+
+      var isOpen = (panel.style.display === 'block');
+      if (isOpen) {
+        closeUniJobCustomerCombobox();
+      } else {
+        panel.style.display = 'block';
+        trigger.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        var searchInput = document.getElementById('uniJobComboboxSearchInput');
+        if (searchInput) {
+          searchInput.value = '';
+          filterUniJobComboboxList('');
+          setTimeout(function() {
+            searchInput.focus();
+          }, 60);
+        }
+      }
+    }
+    window.toggleUniJobCustomerCombobox = toggleUniJobCustomerCombobox;
+
+    function closeUniJobCustomerCombobox() {
+      var panel = document.getElementById('uniJobCustomerPanel');
+      var trigger = document.getElementById('uniJobCustomerTrigger');
+      if (panel) panel.style.display = 'none';
+      if (trigger) {
+        trigger.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    }
+    window.closeUniJobCustomerCombobox = closeUniJobCustomerCombobox;
+
+    // Auto-close combobox when clicking outside
+    if (typeof document !== 'undefined') {
+      document.addEventListener('click', function(e) {
+        var wrap = document.getElementById('uniJobCustomerComboboxWrap');
+        if (wrap && !wrap.contains(e.target)) {
+          closeUniJobCustomerCombobox();
+        }
+      });
+    }
+
+    function filterUniJobComboboxList(query) {
+      var listEl = document.getElementById('uniJobComboboxOptionsList');
+      var clearBtn = document.getElementById('btnUniJobComboboxClear');
+      if (!listEl) return;
+
+      var q = (query || '').toLowerCase().trim();
+      if (clearBtn) clearBtn.style.display = q ? 'inline-block' : 'none';
+
+      var list = (Array.isArray(window._allUniJobCustomerList) && window._allUniJobCustomerList.length > 0)
+        ? window._allUniJobCustomerList
+        : ((state && (state.adminRecords || state.customers)) || []);
+
+      var select = document.getElementById('uniJobCustomerSelect');
+      var currentVal = select ? select.value : '';
+
+      var filtered = list.filter(function(c) {
+        if (!q) return true;
+        var name = String(c.customerName || c.name || '').toLowerCase();
+        var hName = String(c.hindiName || c.hindi_name || '').toLowerCase();
+        var phone = String(c.customerNumber || c.phone || c.mobile || '').toLowerCase();
+        var veh = String(c.vehicle || c.vehicleNumbers || c.registration_no || c.vehicle_num || '').toLowerCase();
+        var loc = String(c.locality || c.address || '').toLowerCase();
+        return (name.indexOf(q) !== -1 || hName.indexOf(q) !== -1 || phone.indexOf(q) !== -1 || veh.indexOf(q) !== -1 || loc.indexOf(q) !== -1);
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="cwp-combobox-empty">No customers found matching "' + escapeHtml(q) + '"</div>';
+        return;
+      }
+
+      var html = '';
+      filtered.forEach(function(c) {
+        var cId = c.id || c.customerId || c.customerCode || '';
+        var custName = c.customerName || c.name || 'Customer';
+        var isSelected = (cId && cId === currentVal);
+
+        // If matched by phone or vehicle plate during search, display a subtle tag next to customer name
+        var matchHint = '';
+        if (q) {
+          var phone = String(c.customerNumber || c.phone || c.mobile || '');
+          var plate = String(c.vehicle || c.vehicleNumbers || c.registration_no || '');
+          if (phone && phone.toLowerCase().indexOf(q) !== -1) {
+            matchHint = '<span class="item-matched-hint">📞 ' + escapeHtml(phone) + '</span>';
+          } else if (plate && plate.toLowerCase().indexOf(q) !== -1) {
+            matchHint = '<span class="item-matched-hint">🚗 ' + escapeHtml(plate) + '</span>';
+          }
+        }
+
+        html += '<div class="cwp-combobox-item' + (isSelected ? ' is-selected' : '') + '" onclick="selectUniJobCustomerItem(\'' + escapeHtml(cId) + '\', event)" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '">' +
+                  '<span class="item-cust-name">' + escapeHtml(custName) + '</span>' +
+                  matchHint +
+                '</div>';
+      });
+
+      listEl.innerHTML = html;
+    }
+    window.filterUniJobComboboxList = filterUniJobComboboxList;
+
+    function selectUniJobCustomerItem(custId, event) {
+      if (event && event.stopPropagation) event.stopPropagation();
+      var select = document.getElementById('uniJobCustomerSelect');
+      var label = document.getElementById('uniJobCustomerDisplayLabel');
+
+      var list = (Array.isArray(window._allUniJobCustomerList) && window._allUniJobCustomerList.length > 0)
+        ? window._allUniJobCustomerList
+        : ((state && (state.adminRecords || state.customers)) || []);
+
+      var found = list.find(function(c) {
+        return (c.id === custId || c.customerId === custId || c.customerCode === custId);
+      });
+
+      if (found) {
+        var custName = found.customerName || found.name || 'Customer';
+        if (label) {
+          label.textContent = custName;
+          label.classList.remove('placeholder');
+        }
+        if (select) {
+          select.value = custId;
+        }
+        if (typeof handleUniJobCustomerChange === 'function') {
+          handleUniJobCustomerChange(custId);
+        }
+      } else {
+        if (label) {
+          label.textContent = '-- Choose Customer Account --';
+          label.classList.add('placeholder');
+        }
+        if (select) {
+          select.value = '';
+        }
+        if (typeof handleUniJobCustomerChange === 'function') {
+          handleUniJobCustomerChange('');
+        }
+      }
+
+      closeUniJobCustomerCombobox();
+    }
+    window.selectUniJobCustomerItem = selectUniJobCustomerItem;
+
+    function clearUniJobComboboxInput(event) {
+      if (event && event.stopPropagation) event.stopPropagation();
+      var inp = document.getElementById('uniJobComboboxSearchInput');
+      if (inp) {
+        inp.value = '';
+        inp.focus();
+      }
+      filterUniJobComboboxList('');
+    }
+    window.clearUniJobComboboxInput = clearUniJobComboboxInput;
+
+    // Backward-compatibility aliases
+    window.filterUniJobCustomerOptions = function(q) { filterUniJobComboboxList(q); };
+    window.clearUniJobCustomerSearch = function() { clearUniJobComboboxInput(); };
 
     function switchJobAssignSubTab(subTab) {
       dccActiveSubTab = subTab || 'daily';
@@ -3950,11 +4244,8 @@ var state = {
           badge.style.display = unassignedCount > 0 ? 'inline-flex' : 'none';
         }
         if (banner) {
-          banner.style.display = unassignedCount > 0 ? 'flex' : 'none';
-          var titleEl = document.getElementById('dccUnassignedBannerTitle');
-          if (titleEl) {
-            titleEl.textContent = unassignedCount + ' Daily Clean customer' + (unassignedCount > 1 ? 's' : '') + ' need a cleaner assigned!';
-          }
+          // Banner explicitly hidden per UX audit requirement
+          banner.style.display = 'none';
         }
 
         if (totalChip) totalChip.textContent = data.length + ' Active Subscribers';
@@ -3963,6 +4254,8 @@ var state = {
         syncAllCustomerDropdowns();
 
         renderDccRouteRosterTable();
+        if (typeof renderUnifiedAssignmentsLedger === 'function') renderUnifiedAssignmentsLedger();
+        if (typeof renderStaffWorkloadAndPerformance === 'function') renderStaffWorkloadAndPerformance();
       }, function(err) {
         if (tbody) {
           tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #dc2626;">Failed to load assignments: ' + escapeHtml((err && err.message) || 'Unknown server error') + '</td></tr>';
@@ -4197,6 +4490,7 @@ var state = {
           if (searchInput && nameEl && nameEl.value) {
             searchInput.value = nameEl.value.trim();
             renderDccRouteRosterTable();
+        if (typeof renderStaffWorkloadAndPerformance === 'function') renderStaffWorkloadAndPerformance();
           }
         }, 400);
       }
@@ -4221,7 +4515,10 @@ var state = {
       // 3. Background check for fresh staff list
       if (!state.staffList || state.staffList.length === 0) {
         apiCall('getStaffList', {}, function(list) {
+          state.staffList = list || [];
+          state.adminStaffList = list || [];
           syncAllStaffDropdowns(list);
+          if (typeof renderStaffWorkloadAndPerformance === 'function') renderStaffWorkloadAndPerformance();
         });
       }
 
@@ -4240,6 +4537,8 @@ var state = {
       }
 
       renderJobAssignmentsLedger();
+      if (typeof renderUnifiedAssignmentsLedger === 'function') renderUnifiedAssignmentsLedger();
+      if (typeof renderStaffWorkloadAndPerformance === 'function') renderStaffWorkloadAndPerformance();
     }
     window.loadJobAssignmentView = loadJobAssignmentView;
 
@@ -4440,8 +4739,869 @@ var state = {
       });
 
       tbody.innerHTML = html;
+      if (typeof renderUnifiedAssignmentsLedger === 'function') renderUnifiedAssignmentsLedger();
     }
     window.renderJobAssignmentsLedger = renderJobAssignmentsLedger;
+
+    /* =========================================================================
+       UNIFIED ASSIGNMENTS LEDGER & SERVICE TYPE FILTER CONTROLLER
+       ========================================================================= */
+    var uniServiceFilter = 'all';
+    var uniStaffFilter = '';
+    var uniSearchQuery = '';
+
+    function handleUniServiceFilterClick(cat) {
+      uniServiceFilter = cat || 'all';
+      var chips = document.querySelectorAll('.cwp-service-filter-chips .cwp-filter-chip');
+      chips.forEach(function(chip) {
+        if (chip.getAttribute('data-service-filter') === uniServiceFilter) {
+          chip.classList.add('active');
+        } else {
+          chip.classList.remove('active');
+        }
+      });
+      renderUnifiedAssignmentsLedger();
+    }
+    window.handleUniServiceFilterClick = handleUniServiceFilterClick;
+
+    function handleUniAssignmentsFilterChange(val) {
+      uniStaffFilter = val || '';
+      renderUnifiedAssignmentsLedger();
+    }
+    window.handleUniAssignmentsFilterChange = handleUniAssignmentsFilterChange;
+
+    function handleUniAssignmentsSearch(val) {
+      uniSearchQuery = (val || '').toLowerCase().trim();
+      renderUnifiedAssignmentsLedger();
+    }
+    window.handleUniAssignmentsSearch = handleUniAssignmentsSearch;
+
+    function renderUnifiedAssignmentsLedger() {
+      var tbody = document.getElementById('unifiedAssignmentsTableBody');
+      var totalChip = document.getElementById('uniAssignmentsTotalChip');
+      var activeCountEl = document.getElementById('jobAssignmentActiveCount');
+
+      // 1. Gather Daily Clean Subscribers from Cache
+      var dailyList = Array.isArray(dccRosterCache) ? dccRosterCache : [];
+      var dailyMapped = dailyList.map(function(row) {
+        var isAssigned = !!row.isAssigned;
+        var staffId = row.staffId || null;
+        var staffName = row.staffName || '';
+        var seqStr = row.sequenceOrder ? ('#' + row.sequenceOrder) : '';
+        return {
+          source: 'daily',
+          id: row.customerId,
+          customerId: row.customerId,
+          customerName: row.customerName || 'Subscriber',
+          phone: row.phone || '',
+          serviceCategory: 'daily_clean',
+          serviceName: 'Daily Clean',
+          serviceBadge: '<span class="m3-chip" style="background: rgba(37, 99, 235, 0.1); color: #1d4ed8; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px;"><span class="material-symbols-outlined" style="font-size: 15px;">directions_car</span> Daily Clean</span>',
+          vehicleMeta: row.vehicleNumber || 'No Plate',
+          packageType: row.packageType || 'Daily Morning Clean',
+          address: row.locality || row.address || 'Address not set',
+          locationName: row.locationName || '',
+          googleMapsUrl: row.googleMapsUrl || '',
+          isAssigned: isAssigned,
+          staffId: staffId,
+          staffName: staffName,
+          sequenceOrder: row.sequenceOrder || null,
+          scheduleDisplay: 'Daily Morning' + (seqStr ? ' <span style="font-weight:700; color:#3730a3; background:#e0e7ff; padding:1px 5px; border-radius:4px; font-size:11px;">' + seqStr + '</span>' : ''),
+          status: isAssigned ? 'assigned' : 'unassigned',
+          statusBadgeClass: isAssigned ? 'badge-active' : 'badge-unassigned',
+          statusDisplay: isAssigned ? 'ACTIVE ROUTE' : 'UNASSIGNED'
+        };
+      });
+
+      // 2. Gather On-Demand Jobs from Cache
+      var specialState = (typeof adminSpecialJobsState !== 'undefined' && adminSpecialJobsState)
+        ? adminSpecialJobsState
+        : ((typeof adminSpecialState !== 'undefined' && adminSpecialState) ? adminSpecialState : (window.adminSpecialState || null));
+      var jobs = (specialState && Array.isArray(specialState.allJobs))
+        ? specialState.allJobs
+        : ((typeof adminSpecialJobsCache !== 'undefined' && Array.isArray(adminSpecialJobsCache))
+            ? adminSpecialJobsCache
+            : ((typeof window !== 'undefined' && Array.isArray(window.adminSpecialJobsCache)) ? window.adminSpecialJobsCache : []));
+      var activeJobs = jobs.filter(function(j) { return j.status !== 'completed' && j.status !== 'cancelled'; });
+
+      var specialMapped = activeJobs.map(function(j) {
+        var rawCat = String(j.serviceCategory || j.service_category || j.serviceType || j.service_type || '').toLowerCase();
+        var catSlug = 'car_washing';
+        var catName = 'Car Wash';
+        var catIcon = 'local_car_wash';
+        var catBg = 'rgba(2, 132, 199, 0.1)';
+        var catColor = '#0284c7';
+
+        if (rawCat.indexOf('solar') !== -1) {
+          catSlug = 'solar_cleaning';
+          catName = 'Solar Clean';
+          catIcon = 'solar_power';
+          catBg = 'rgba(217, 119, 6, 0.1)';
+          catColor = '#b45309';
+        } else if (rawCat.indexOf('detail') !== -1) {
+          catSlug = 'detailing';
+          catName = 'Detailing';
+          catIcon = 'auto_awesome';
+          catBg = 'rgba(124, 58, 237, 0.1)';
+          catColor = '#7c3aed';
+        }
+
+        var badgeHtml = '<span class="m3-chip" style="background: ' + catBg + '; color: ' + catColor + '; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px;"><span class="material-symbols-outlined" style="font-size: 15px;">' + catIcon + '</span> ' + escapeHtml(catName) + '</span>';
+
+        // Vehicle or Scope
+        var vehicleMeta = '';
+        if (typeof j.vehicle === 'string' && j.vehicle.trim()) vehicleMeta = j.vehicle.trim();
+        else if (typeof j.vehicle_num === 'string' && j.vehicle_num.trim()) vehicleMeta = j.vehicle_num.trim();
+        else if (j.vehicle_details) {
+          if (typeof j.vehicle_details === 'string') vehicleMeta = j.vehicle_details.trim();
+          else if (typeof j.vehicle_details === 'object') vehicleMeta = String(j.vehicle_details.vehicle || j.vehicle_details.registrationNo || '').trim();
+        }
+        if (!vehicleMeta && j.panelCount) vehicleMeta = j.panelCount + ' Solar Panels';
+        else if (!vehicleMeta && j.siteDetails) vehicleMeta = typeof j.siteDetails === 'object' ? (j.siteDetails.panelCount + ' Panels') : String(j.siteDetails);
+        if (!vehicleMeta) vehicleMeta = 'On-Demand Task';
+
+        // Schedule
+        var dateRaw = j.scheduledDate || j.scheduled_date || j.assignedAt;
+        var dateStr = 'Today';
+        if (dateRaw) {
+          var d = new Date(dateRaw);
+          if (!isNaN(d.getTime())) dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+        }
+        var timeStr = j.scheduledTime || j.tentativeTime || '';
+        var schedDisplay = dateStr + (timeStr ? '<div style="font-size:11px; color:#d97706; font-weight:600;">⏰ ' + escapeHtml(timeStr) + '</div>' : '');
+
+        // Staff
+        var rawStaffName = String(j.staffName || j.staff_name || j.assigned_staff_name || '').trim();
+        var staffCode = String(j.staffId || j.staff_code || j.assigned_staff_code || '').trim();
+        var isUnassigned = (!rawStaffName && !staffCode) || rawStaffName.toLowerCase() === 'unassigned';
+        var staffDisplay = rawStaffName || (staffCode ? ('Staff #' + staffCode) : 'Unassigned');
+
+        // Status
+        var statusStr = (j.status || 'assigned').toLowerCase();
+        var statusBadgeClass = 'badge-active';
+        if (statusStr === 'in_progress' || statusStr === 'started') statusBadgeClass = 'badge-progress';
+        else if (statusStr === 'pending' || statusStr === 'assigned') statusBadgeClass = 'badge-active';
+        else if (statusStr === 'completed') statusBadgeClass = 'badge-completed';
+        else if (statusStr === 'cancelled') statusBadgeClass = 'badge-cancelled';
+
+        return {
+          source: 'special',
+          id: String(j.id || j.jobId || ''),
+          customerId: j.customerId || j.customer_id || '',
+          customerName: String(j.customerName || j.customer_name || j.name || 'Customer').trim(),
+          phone: j.phone || j.customerNumber || '',
+          serviceCategory: catSlug,
+          serviceName: catName,
+          serviceBadge: badgeHtml,
+          vehicleMeta: vehicleMeta,
+          packageType: j.packageDetails || '',
+          address: j.address || j.locality || 'Area not specified',
+          locationName: '',
+          googleMapsUrl: j.googleMapsUrl || '',
+          isAssigned: !isUnassigned,
+          staffId: isUnassigned ? null : (staffCode || staffDisplay),
+          staffName: staffDisplay,
+          sequenceOrder: j.sequenceOrder != null ? j.sequenceOrder : null,
+          scheduleDisplay: schedDisplay,
+          status: statusStr,
+          statusBadgeClass: statusBadgeClass,
+          statusDisplay: statusStr.replace(/_/g, ' ').toUpperCase()
+        };
+      });
+
+      // 3. Combined List
+      var allItems = dailyMapped.concat(specialMapped);
+
+      // 4. Update Header Counts
+      var countAll = allItems.length;
+      var countDaily = dailyMapped.length;
+      var countWash = specialMapped.filter(function(i) { return i.serviceCategory === 'car_washing'; }).length;
+      var countSolar = specialMapped.filter(function(i) { return i.serviceCategory === 'solar_cleaning'; }).length;
+      var countDetail = specialMapped.filter(function(i) { return i.serviceCategory === 'detailing'; }).length;
+      var countUnassigned = allItems.filter(function(i) { return !i.isAssigned; }).length;
+
+      var elCountAll = document.getElementById('uniCountAll');
+      var elCountDaily = document.getElementById('uniCountDaily');
+      var elCountWash = document.getElementById('uniCountWash');
+      var elCountSolar = document.getElementById('uniCountSolar');
+      var elCountDetail = document.getElementById('uniCountDetailing');
+      var elCountUnassigned = document.getElementById('uniCountUnassigned');
+
+      if (elCountAll) elCountAll.textContent = countAll;
+      if (elCountDaily) elCountDaily.textContent = countDaily;
+      if (elCountWash) elCountWash.textContent = countWash;
+      if (elCountSolar) elCountSolar.textContent = countSolar;
+      if (elCountDetail) elCountDetail.textContent = countDetail;
+      if (elCountUnassigned) elCountUnassigned.textContent = countUnassigned;
+
+      if (totalChip) totalChip.textContent = countAll + ' Active Assignments';
+      if (activeCountEl) activeCountEl.textContent = countAll;
+
+      // 5. Filter List
+      var filtered = allItems.filter(function(item) {
+        // Category filter
+        if (uniServiceFilter === 'daily_clean') {
+          if (item.serviceCategory !== 'daily_clean') return false;
+        } else if (uniServiceFilter === 'car_washing') {
+          if (item.serviceCategory !== 'car_washing') return false;
+        } else if (uniServiceFilter === 'solar_cleaning') {
+          if (item.serviceCategory !== 'solar_cleaning') return false;
+        } else if (uniServiceFilter === 'detailing') {
+          if (item.serviceCategory !== 'detailing') return false;
+        } else if (uniServiceFilter === 'unassigned') {
+          if (item.isAssigned) return false;
+        }
+
+        // Staff / Route filter
+        if (uniStaffFilter === 'unassigned') {
+          if (item.isAssigned) return false;
+        } else if (uniStaffFilter) {
+          if (!item.staffId || item.staffId !== uniStaffFilter) return false;
+        }
+
+        // Search text filter
+        if (uniSearchQuery) {
+          var matchCust = (item.customerName || '').toLowerCase().indexOf(uniSearchQuery) !== -1;
+          var matchPhone = (item.phone || '').toLowerCase().indexOf(uniSearchQuery) !== -1;
+          var matchVeh = (item.vehicleMeta || '').toLowerCase().indexOf(uniSearchQuery) !== -1;
+          var matchAddr = (item.address || '').toLowerCase().indexOf(uniSearchQuery) !== -1;
+          var matchStaff = (item.staffName || '').toLowerCase().indexOf(uniSearchQuery) !== -1;
+          if (!matchCust && !matchPhone && !matchVeh && !matchAddr && !matchStaff) return false;
+        }
+
+        return true;
+      });
+
+      if (!tbody) return;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 36px 20px; color: #64748b;"><div class="empty-radar-wrap" style="width: 48px; height: 48px; margin: 0 auto 10px auto;"><span class="material-symbols-outlined" style="font-size: 28px; color: #94a3b8; vertical-align: middle;">manage_search</span></div>No assignments found matching the selected filters.</td></tr>';
+        return;
+      }
+
+      var html = '';
+      filtered.forEach(function(item, idx) {
+        var seqBadge = item.sequenceOrder ? ('#' + item.sequenceOrder) : (idx + 1);
+
+        var staffCell = '';
+        if (item.isAssigned) {
+          var initial = (item.staffName || 'S').replace(/[^a-zA-Z0-9]/g, '').charAt(0).toUpperCase() || 'S';
+          staffCell = '<div class="staff-cell-pill">' +
+            '<span class="staff-avatar-dot" style="background: #2563eb; color: #fff;">' + escapeHtml(initial) + '</span>' +
+            '<span class="staff-cell-name" style="font-weight: 600;">' + escapeHtml(item.staffName) + '</span>' +
+            '</div>';
+        } else {
+          staffCell = '<span class="badge-status-pill badge-unassigned" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a;">⚠️ Unassigned</span>';
+        }
+
+        var mapsBtn = item.googleMapsUrl ? (' <a href="' + escapeHtml(item.googleMapsUrl) + '" target="_blank" rel="noopener" style="color: #2563eb; text-decoration: none; font-size: 11px;" title="Open in Maps">🗺️</a>') : '';
+        var locBadge = item.locationName ? ('<span class="m3-chip" style="font-size: 10.5px; font-weight: 700; background: #f1f5f9; color: #475569; padding: 1px 6px; border-radius: 4px; margin-right: 4px;">📍 ' + escapeHtml(item.locationName) + '</span>') : '';
+
+        // Single clean reassign button
+        var actionBtn = '<button type="button" class="cwp-action-pill-btn" onclick="openUnifiedReassignModal(\'' + escapeHtml(item.source) + '\', \'' + escapeHtml(item.id) + '\', this)" title="Reassign Staff & Sequence">' +
+          '<span class="material-symbols-outlined" style="font-size: 15px;">sync_alt</span>' +
+          '<span>Reassign</span>' +
+          '</button>';
+
+        html += '<tr>' +
+          '  <td style="text-align: center; font-weight: 600; color: #64748b;">' + seqBadge + '</td>' +
+          '  <td>' +
+          '    <div style="font-weight: 600; color: #0f172a;">' + escapeHtml(item.customerName) + '</div>' +
+          '    <div style="font-size: 11.5px; color: #64748b;">📞 ' + escapeHtml(item.phone || '--') + '</div>' +
+          '  </td>' +
+          '  <td>' + item.serviceBadge + '</td>' +
+          '  <td>' +
+          '    <div style="font-weight: 700; font-family: monospace; color: #0f172a; font-size: 12.5px;">' + escapeHtml(item.vehicleMeta) + '</div>' +
+          (item.packageType ? '<div style="font-size: 11px; color: #64748b;">' + escapeHtml(item.packageType) + '</div>' : '') +
+          '  </td>' +
+          '  <td>' +
+          '    <div style="margin-bottom: 2px;">' + locBadge + mapsBtn + '</div>' +
+          '    <div style="font-size: 12px; color: #334155;">' + escapeHtml(item.address) + '</div>' +
+          '  </td>' +
+          '  <td>' + staffCell + '</td>' +
+          '  <td style="text-align: center;">' +
+          '    <div>' + item.scheduleDisplay + '</div>' +
+          '    <div style="margin-top: 3px;"><span class="badge-status-pill ' + item.statusBadgeClass + '">' + escapeHtml(item.statusDisplay) + '</span></div>' +
+          '  </td>' +
+          '  <td style="text-align: center; white-space: nowrap;">' + actionBtn + '</td>' +
+          '</tr>';
+      });
+
+      tbody.innerHTML = html;
+    }
+    window.renderUnifiedAssignmentsLedger = renderUnifiedAssignmentsLedger;
+
+    /* Single Reassign Dialog Controller for both Daily Clean and On-Demand Jobs */
+    function openUnifiedReassignModal(source, id, triggerEl) {
+      if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
+      var modal = document.getElementById('reassignJobModal');
+      if (!modal) return;
+
+      var targetInput = document.getElementById('reassignJobTargetId');
+      var typeInput = document.getElementById('reassignJobTargetType');
+      var nameEl = document.getElementById('reassignCustName');
+      var metaEl = document.getElementById('reassignServiceMeta');
+      var staffEl = document.getElementById('reassignCurrentStaff');
+      var select = document.getElementById('reassignStaffSelect') || document.getElementById('reassignNewStaffSelect');
+      var reasonInput = document.getElementById('reassignReason');
+      var reassignTimeInp = document.getElementById('reassignScheduledTime');
+      var reassignSeqInp = document.getElementById('reassignSequenceOrder');
+      var unassignBtn = document.getElementById('btnReassignModalUnassign');
+      var err = document.getElementById('reassignJobError');
+
+      if (err) err.style.display = 'none';
+      if (reasonInput) reasonInput.value = '';
+      if (targetInput) targetInput.value = id;
+      if (typeInput) typeInput.value = source || 'special';
+
+      var currentStaffCode = '';
+      var currentStaffName = '';
+      var isAssigned = false;
+
+      if (source === 'daily') {
+        var sub = (dccRosterCache || []).find(function(r) { return r.customerId === id; });
+        if (nameEl) nameEl.textContent = sub ? (sub.customerName || 'Subscriber') : 'Customer #' + id;
+        if (metaEl) metaEl.textContent = 'Daily Car Cleaning (दैनिक कार सफाई) • ' + (sub ? (sub.vehicleNumber || 'Car') : 'Route Stop');
+        isAssigned = !!(sub && sub.isAssigned);
+        currentStaffCode = (sub && sub.staffId) || '';
+        currentStaffName = (sub && sub.staffName) || '';
+        if (staffEl) staffEl.textContent = isAssigned ? (currentStaffName + (currentStaffCode ? ' (' + currentStaffCode + ')' : '')) : '⚠️ Unassigned';
+        if (reassignTimeInp) {
+          reassignTimeInp.value = '';
+          if (reassignTimeInp.closest('.form-group')) reassignTimeInp.closest('.form-group').style.display = 'none';
+        }
+        if (reassignSeqInp) {
+          reassignSeqInp.value = (sub && sub.sequenceOrder) ? sub.sequenceOrder : '';
+          if (reassignSeqInp.closest('.form-group')) reassignSeqInp.closest('.form-group').style.display = 'block';
+        }
+      } else {
+        var job = (adminSpecialJobsCache || []).find(function(j) { return (j.id === id || j.jobId === id); });
+        if (nameEl) nameEl.textContent = job ? (job.customerName || 'Customer') : 'Job #' + id;
+        var rawCat = job ? (job.serviceCategory || job.serviceType || 'On-Demand Service') : 'On-Demand Service';
+        var catName = String(rawCat).replace(/_/g, ' ');
+        if (metaEl) metaEl.textContent = catName + (job && job.panelCount ? (' • ' + job.panelCount + ' Panels') : '');
+        currentStaffCode = (job ? (job.staffId || job.staffCode || '') : '').toLowerCase();
+        currentStaffName = (job ? (job.staffName || '') : '').toLowerCase();
+        isAssigned = (!currentStaffName && !currentStaffCode) ? false : (currentStaffName !== 'unassigned');
+        if (staffEl) staffEl.textContent = isAssigned ? (job.staffName + (job.staffId ? ' (' + job.staffId + ')' : '')) : '⚠️ Unassigned';
+        if (reassignTimeInp) {
+          reassignTimeInp.value = job ? (job.scheduledTime || job.tentativeTime || '') : '';
+          if (reassignTimeInp.closest('.form-group')) reassignTimeInp.closest('.form-group').style.display = 'block';
+        }
+        if (reassignSeqInp) {
+          reassignSeqInp.value = (job && job.sequenceOrder != null) ? job.sequenceOrder : '';
+          if (reassignSeqInp.closest('.form-group')) reassignSeqInp.closest('.form-group').style.display = 'block';
+        }
+      }
+
+      // Show Unassign button inside dialog
+      if (unassignBtn) {
+        unassignBtn.style.display = isAssigned ? 'inline-flex' : 'none';
+      }
+
+      // Populate Staff Dropdown
+      function populateOptions(staffList) {
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Choose New Staff --</option>';
+        (staffList || []).filter(function(s) {
+          var code = (s.id || s.staffCode || s.staff_code || '').toLowerCase();
+          var name = (s.name || '').toLowerCase();
+          var isCurrent = (currentStaffCode && code === currentStaffCode.toLowerCase()) || (currentStaffName && name === currentStaffName.toLowerCase());
+          return s.active !== false && s.isActive !== false && !isCurrent;
+        }).forEach(function(s) {
+          var code = s.id || s.staffCode || s.staff_code;
+          select.innerHTML += '<option value="' + escapeHtml(code) + '">' + escapeHtml(s.name) + ' (' + escapeHtml(code) + ')</option>';
+        });
+      }
+
+      if (!state.staffList || state.staffList.length === 0) {
+        apiCall('getStaffList', {}, function(list) {
+          state.staffList = list || [];
+          populateOptions(state.staffList);
+        });
+      } else {
+        populateOptions(state.staffList);
+      }
+
+      var submitBtn = document.getElementById('btnSubmitReassignJob');
+      if (submitBtn) submitBtn.disabled = false;
+
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      if (typeof pushModalHistory === 'function') pushModalHistory('reassignJobModal');
+    }
+    window.openUnifiedReassignModal = openUnifiedReassignModal;
+
+    function handleUnifiedModalUnassign() {
+      var targetId = (document.getElementById('reassignJobTargetId') || {}).value;
+      var targetType = (document.getElementById('reassignJobTargetType') || {}).value || 'special';
+      var reason = (document.getElementById('reassignReason') || {}).value || 'Admin unassigned from modal';
+      var unassignBtn = document.getElementById('btnReassignModalUnassign');
+
+      if (!targetId) return;
+
+      var conf = confirm('Are you sure you want to unassign this cleaner from this job/route?');
+      if (!conf) return;
+
+      if (unassignBtn) {
+        unassignBtn.disabled = true;
+        unassignBtn.innerHTML = '<span class="status-sync-spinner" style="width:14px; height:14px; display:inline-block;"></span> Unassigning...';
+      }
+
+      if (targetType === 'daily') {
+        apiCall('unassignDailyCleanCustomer', {
+          customerId: targetId,
+          reason: reason
+        }, function(res) {
+          if (unassignBtn) unassignBtn.disabled = false;
+          if (typeof showToast === 'function') showToast('Customer unassigned from daily clean route.', 'success');
+          closeReassignJobModal();
+          loadDailyCleanRouteAssignments();
+          renderUnifiedAssignmentsLedger();
+        }, function(err) {
+          if (unassignBtn) unassignBtn.disabled = false;
+          if (typeof showToast === 'function') showToast('Error unassigning: ' + ((err && err.message) || 'Server error'), 'error');
+        });
+      } else {
+        apiCall('reassignSpecialJob', {
+          jobId: targetId,
+          newStaffId: 'unassigned',
+          unassign: true,
+          reason: reason
+        }, function(res) {
+          if (unassignBtn) unassignBtn.disabled = false;
+          if (typeof showToast === 'function') showToast('Job unassigned from staff.', 'success');
+          closeReassignJobModal();
+          if (typeof loadAdminSpecialJobs === 'function') loadAdminSpecialJobs(true);
+          renderUnifiedAssignmentsLedger();
+        }, function(err) {
+          if (unassignBtn) unassignBtn.disabled = false;
+          if (typeof showToast === 'function') showToast('Error unassigning job: ' + ((err && err.message) || 'Server error'), 'error');
+        });
+      }
+    }
+    window.handleUnifiedModalUnassign = handleUnifiedModalUnassign;
+
+    /* =========================================================================
+       UNIFIED JOB ASSIGNMENT & DISPATCH MODAL CONTROLLER
+       ========================================================================= */
+    function openUnifiedJobAssignModal(prefillType, prefillStaffId, prefillCustId) {
+      var modal = document.getElementById('unifiedJobAssignModal');
+      if (!modal) return;
+
+      if (typeof syncAllCustomerDropdowns === 'function') syncAllCustomerDropdowns();
+      if (typeof syncAllStaffDropdowns === 'function') syncAllStaffDropdowns();
+
+      closeUniJobCustomerCombobox();
+      var comboboxSearchInp = document.getElementById('uniJobComboboxSearchInput');
+      if (comboboxSearchInp) comboboxSearchInp.value = '';
+
+      handleUniJobTypeSelect(prefillType || 'Daily Car Cleaning');
+
+      if (prefillStaffId) {
+        var staffSel = document.getElementById('uniJobStaffSelect');
+        if (staffSel) staffSel.value = prefillStaffId;
+      }
+
+      if (prefillCustId) {
+        selectUniJobCustomerItem(prefillCustId);
+      } else {
+        var label = document.getElementById('uniJobCustomerDisplayLabel');
+        if (label) {
+          label.textContent = '-- Choose Customer Account --';
+          label.classList.add('placeholder');
+        }
+        var custSel = document.getElementById('uniJobCustomerSelect');
+        if (custSel) custSel.value = '';
+        var contextStrip = document.getElementById('uniJobCustomerContext');
+        if (contextStrip) contextStrip.style.display = 'none';
+      }
+
+      var dateInput = document.getElementById('uniJobDate');
+      if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+      }
+
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      if (typeof pushModalHistory === 'function') pushModalHistory('unifiedJobAssignModal');
+    }
+    window.openUnifiedJobAssignModal = openUnifiedJobAssignModal;
+
+    function closeUnifiedJobAssignModal() {
+      if (typeof closeUniJobCustomerCombobox === 'function') closeUniJobCustomerCombobox();
+      var modal = document.getElementById('unifiedJobAssignModal');
+      if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
+    }
+    window.closeUnifiedJobAssignModal = closeUnifiedJobAssignModal;
+
+    function handleUniJobTypeSelect(type) {
+      var cards = document.querySelectorAll('.uni-job-type-card');
+      cards.forEach(function(c) {
+        var radio = c.querySelector('input[type="radio"]');
+        if (radio) {
+          if (radio.value === type) {
+            radio.checked = true;
+            c.classList.add('active');
+          } else {
+            radio.checked = false;
+            c.classList.remove('active');
+          }
+        }
+      });
+
+      var dailyFields = document.getElementById('uniJobDailyFields');
+      var specialFields = document.getElementById('uniJobSpecialFields');
+      var schedTitle = document.getElementById('uniJobScheduleTitle');
+
+      if (type === 'Daily Car Cleaning') {
+        if (dailyFields) dailyFields.style.display = 'block';
+        if (specialFields) specialFields.style.display = 'none';
+        if (schedTitle) schedTitle.textContent = 'Morning Route Sequence';
+      } else {
+        if (dailyFields) dailyFields.style.display = 'none';
+        if (specialFields) specialFields.style.display = 'block';
+        if (schedTitle) schedTitle.textContent = 'Scheduled Date & Time Slot';
+      }
+    }
+    window.handleUniJobTypeSelect = handleUniJobTypeSelect;
+
+    function handleUniJobCustomerChange(custId) {
+      var contextStrip = document.getElementById('uniJobCustomerContext');
+      if (!contextStrip) return;
+      if (!custId) {
+        contextStrip.style.display = 'none';
+        return;
+      }
+
+      var list = (state && (state.adminRecords || state.customers)) || [];
+      var found = list.find(function(c) {
+        return (c.id === custId || c.customerId === custId || c.customerCode === custId);
+      });
+
+      if (!found) {
+        contextStrip.style.display = 'none';
+        return;
+      }
+
+      var phoneEl = document.getElementById('uniJobCustPhone');
+      var plateEl = document.getElementById('uniJobCustPlate');
+      var addrEl = document.getElementById('uniJobCustAddress');
+
+      if (phoneEl) phoneEl.textContent = (found.customerName || found.name || 'Customer') + ' • ' + (found.customerNumber || found.phone || '');
+      if (plateEl) plateEl.textContent = found.vehicle || found.vehicleNumbers || found.registration_no || 'Car';
+      if (addrEl) addrEl.textContent = found.address || found.locality || 'No address provided';
+
+      contextStrip.style.display = 'block';
+    }
+    window.handleUniJobCustomerChange = handleUniJobCustomerChange;
+
+    function handleUnifiedJobAssignSubmit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+
+      var custId = (document.getElementById('uniJobCustomerSelect') || {}).value;
+      var staffId = (document.getElementById('uniJobStaffSelect') || {}).value;
+      var jobTypeRadio = document.querySelector('input[name="uniJobType"]:checked');
+      var jobType = jobTypeRadio ? jobTypeRadio.value : 'Daily Car Cleaning';
+      var notes = (document.getElementById('uniJobNotes') || {}).value || '';
+
+      if (!custId || !staffId) {
+        if (typeof showToast === 'function') {
+          showToast('Please select both a Customer and a Field Staff cleaner.', 'warning');
+        } else {
+          alert('Please select both a Customer and a Field Staff cleaner.');
+        }
+        return;
+      }
+
+      var btnSubmit = document.getElementById('btnSubmitUnifiedJobAssign');
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<span class="cwp-spinner"></span> Dispatching...';
+      }
+
+      var staff = (state.staffList || []).find(function(s) { return s.id === staffId; });
+      var staffName = staff ? staff.name : staffId;
+
+      if (jobType === 'Daily Car Cleaning') {
+        var seqOrder = (document.getElementById('uniJobRouteOrder') || {}).value;
+        apiCall('assignDailyCleanCustomer', {
+          customerId: custId,
+          staffId: staffId,
+          sequenceOrder: seqOrder ? parseInt(seqOrder, 10) : null
+        }, function(res) {
+          if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">check</span><span>Dispatch & Confirm Assignment</span>';
+          }
+          if (typeof showToast === 'function') showToast('Customer successfully allocated to ' + staffName + '\'s daily route!', 'success');
+          closeUnifiedJobAssignModal();
+          if (typeof loadDailyCleanRouteAssignments === 'function') loadDailyCleanRouteAssignments();
+          if (typeof renderStaffWorkloadAndPerformance === 'function') renderStaffWorkloadAndPerformance();
+        }, function(err) {
+          if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">check</span><span>Dispatch & Confirm Assignment</span>';
+          }
+          if (typeof showToast === 'function') showToast('Error allocating daily clean: ' + ((err && err.message) || 'Server error'), 'error');
+        });
+      } else {
+        var schedDate = (document.getElementById('uniJobDate') || {}).value || new Date().toISOString().split('T')[0];
+        var jobTime = (document.getElementById('uniJobTime') || {}).value || '';
+        var customer = (state.adminRecords || state.customers || []).find(function(c) {
+          return (c.id === custId || c.customerId === custId || c.customerCode === custId);
+        });
+        var custVeh = customer ? (customer.vehicle || customer.vehicleNumbers || customer.registration_no || '') : '';
+
+        var workTypeMap = {
+          'Car Washing': 'car_washing',
+          'Solar Panel Cleaning': 'solar_cleaning',
+          'Interior Detailing': 'interior_detailing',
+          'Exterior Detailing': 'exterior_detailing'
+        };
+
+        var payload = {
+          action: 'assignSpecialJob',
+          customerId: custId,
+          customerName: customer ? (customer.customerName || customer.name) : 'Customer',
+          customerPhone: customer ? (customer.customerNumber || customer.phone) : '',
+          customerAddress: customer ? (customer.address || customer.locality) : '',
+          vehicleNum: custVeh,
+          vehicleDetails: custVeh,
+          serviceCategoryId: workTypeMap[jobType] || 'car_washing',
+          serviceCategory: jobType,
+          serviceType: jobType,
+          scheduledDate: schedDate,
+          scheduledTime: jobTime.trim() || null,
+          tentativeTime: jobTime.trim() || null,
+          staffId: staffId,
+          staffName: staffName,
+          specialInstructions: notes,
+          instructions: notes,
+          status: 'assigned'
+        };
+
+        apiCall('assignSpecialJob', payload, function(res) {
+          if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">check</span><span>Dispatch & Confirm Assignment</span>';
+          }
+          if (typeof showToast === 'function') showToast(jobType + ' job dispatched to ' + staffName + ' successfully!', 'success');
+          closeUnifiedJobAssignModal();
+          if (typeof loadAdminSpecialJobs === 'function') loadAdminSpecialJobs(true);
+          if (typeof renderJobAssignmentsLedger === 'function') renderJobAssignmentsLedger();
+          if (typeof renderStaffWorkloadAndPerformance === 'function') renderStaffWorkloadAndPerformance();
+        }, function(err) {
+          if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">check</span><span>Dispatch & Confirm Assignment</span>';
+          }
+          if (typeof showToast === 'function') showToast('Error dispatching job: ' + ((err && err.message) || 'Server error'), 'error');
+        });
+      }
+    }
+    window.handleUnifiedJobAssignSubmit = handleUnifiedJobAssignSubmit;
+
+    /* =========================================================================
+       STAFF WORKLOAD & REALTIME PERFORMANCE ANALYSIS CONTROLLER
+       ========================================================================= */
+    function renderStaffWorkloadAndPerformance() {
+      var grid = document.getElementById('jobAssignStaffPerformanceGrid');
+      if (!grid) return;
+
+      var staffList = (state && (state.staffList || state.adminStaffList)) || [];
+      if (!Array.isArray(staffList) || staffList.length === 0) {
+        if (typeof apiCall === 'function') {
+          apiCall('getStaffList', {}, function(list) {
+            if (state) {
+              state.staffList = list || [];
+              state.adminStaffList = list || [];
+            }
+            renderStaffWorkloadAndPerformance();
+          });
+        }
+        grid.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 13px;"><span class="status-sync-spinner" style="display:inline-block; margin-right:8px;"></span> Loading staff workload & status...</div>';
+        return;
+      }
+
+      var todayKey = (typeof getTodayDateString === 'function') ? getTodayDateString() : new Date().toISOString().slice(0, 10);
+
+      // 1. Daily Clean assignments per staff from dccRosterCache
+      var dailyCounts = {};
+      var roster = (typeof dccRosterCache !== 'undefined' && Array.isArray(dccRosterCache)) ? dccRosterCache : [];
+      roster.forEach(function(r) {
+        var sId = r.staff_id || r.staffId || '';
+        var sName = r.staff_name || r.staffName || '';
+        var sCode = r.staff_code || r.staffCode || '';
+        if (sId) dailyCounts[sId] = (dailyCounts[sId] || 0) + 1;
+        if (sName) dailyCounts[sName.toLowerCase()] = (dailyCounts[sName.toLowerCase()] || 0) + 1;
+        if (sCode) dailyCounts[sCode.toLowerCase()] = (dailyCounts[sCode.toLowerCase()] || 0) + 1;
+      });
+
+      // 2. Special / On-Demand jobs scheduled strictly for TODAY
+      var todaySpecCounts = {};
+      var todaySpecDone = {};
+      var specJobs = (typeof adminSpecialJobsCache !== 'undefined' && Array.isArray(adminSpecialJobsCache)) ? adminSpecialJobsCache : [];
+      specJobs.forEach(function(j) {
+        if (j.status !== 'cancelled') {
+          var jDate = (typeof getJobEffectiveDateKey === 'function') ? getJobEffectiveDateKey(j) : (j.scheduledDate || j.scheduled_date || '');
+          // Count only jobs scheduled for today or active in-progress jobs today
+          if (jDate === todayKey || j.status === 'in_progress') {
+            var sId = j.staffId || j.staff_id || '';
+            var sName = j.staffName || j.staff_name || '';
+            var sCode = j.staffCode || j.staff_code || '';
+            var isDone = (j.status === 'completed');
+            if (sId) {
+              todaySpecCounts[sId] = (todaySpecCounts[sId] || 0) + 1;
+              if (isDone) todaySpecDone[sId] = (todaySpecDone[sId] || 0) + 1;
+            }
+            if (sName) {
+              todaySpecCounts[sName.toLowerCase()] = (todaySpecCounts[sName.toLowerCase()] || 0) + 1;
+              if (isDone) todaySpecDone[sName.toLowerCase()] = (todaySpecDone[sName.toLowerCase()] || 0) + 1;
+            }
+            if (sCode) {
+              todaySpecCounts[sCode.toLowerCase()] = (todaySpecCounts[sCode.toLowerCase()] || 0) + 1;
+              if (isDone) todaySpecDone[sCode.toLowerCase()] = (todaySpecDone[sCode.toLowerCase()] || 0) + 1;
+            }
+          }
+        }
+      });
+
+      // 3. Today's Cleaned Cars per staff from cleanReports
+      var cleansDoneToday = {};
+      var cleanReports = (state && Array.isArray(state.cleanReports)) ? state.cleanReports : [];
+      cleanReports.forEach(function(c) {
+        var cDate = c.cleanDate || c.clean_date || c.date || (c.completedAt ? c.completedAt.slice(0, 10) : (c.createdAt ? c.createdAt.slice(0, 10) : ''));
+        if (!cDate || cDate === todayKey) {
+          var sId = c.staffId || c.staff_id || '';
+          var sName = c.staffName || c.staff_name || '';
+          var sCode = c.staffCode || c.staff_code || '';
+          if (sId) cleansDoneToday[sId] = (cleansDoneToday[sId] || 0) + 1;
+          if (sName) cleansDoneToday[sName.toLowerCase()] = (cleansDoneToday[sName.toLowerCase()] || 0) + 1;
+          if (sCode) cleansDoneToday[sCode.toLowerCase()] = (cleansDoneToday[sCode.toLowerCase()] || 0) + 1;
+        }
+      });
+
+      var html = '';
+      staffList.forEach(function(s) {
+        var isAct = s.active !== undefined ? (s.active === true || s.active === 'Yes' || s.active === 'yes' || s.active === 'Active') : true;
+        if (!isAct) return;
+
+        var sId = s.id || '';
+        var sName = s.name || s.id || 'Cleaner';
+        var sPhone = s.phone || s.mobile || '';
+        var initials = sName.split(' ').map(function(n) { return n.charAt(0); }).join('').toUpperCase().slice(0, 2);
+
+        var dailyCount = dailyCounts[sId] || (s.staff_code && dailyCounts[s.staff_code.toLowerCase()]) || (sName && dailyCounts[sName.toLowerCase()]) || 0;
+        var specCount = todaySpecCounts[sId] || (s.staff_code && todaySpecCounts[s.staff_code.toLowerCase()]) || (sName && todaySpecCounts[sName.toLowerCase()]) || 0;
+        var specDone = todaySpecDone[sId] || (s.staff_code && todaySpecDone[s.staff_code.toLowerCase()]) || (sName && todaySpecDone[sName.toLowerCase()]) || 0;
+        var cleansDone = cleansDoneToday[sId] || (s.staff_code && cleansDoneToday[s.staff_code.toLowerCase()]) || (sName && cleansDoneToday[sName.toLowerCase()]) || 0;
+
+        var totalAssigned = dailyCount + specCount;
+        var totalDone = cleansDone + specDone;
+        var pct = totalAssigned > 0 ? Math.min(100, Math.round((totalDone / totalAssigned) * 100)) : 0;
+
+        var loadBadge = '';
+        if (dailyCount >= 18) {
+          loadBadge = '<span class="cwp-staff-perf-load-badge" style="background: #fef3c7; color: #b45309;">⚠️ High Route (' + dailyCount + ' cars)</span>';
+        } else if (dailyCount >= 1) {
+          loadBadge = '<span class="cwp-staff-perf-load-badge" style="background: #dcfce7; color: #15803d;">✓ Optimal (' + dailyCount + ' cars)</span>';
+        } else {
+          loadBadge = '<span class="cwp-staff-perf-load-badge" style="background: #eff6ff; color: #1d4ed8;">Route Available</span>';
+        }
+
+        html += '<div class="cwp-staff-perf-card">' +
+          '<div class="cwp-staff-perf-header">' +
+            '<div class="cwp-staff-perf-left">' +
+              '<div class="cwp-staff-perf-avatar">' + escapeHtml(initials) + '</div>' +
+              '<div>' +
+                '<div class="cwp-staff-perf-name">' + escapeHtml(sName) + '</div>' +
+                '<div class="cwp-staff-perf-role">' +
+                  '<span class="material-symbols-outlined" style="font-size: 13px; color: #16a34a;">fiber_manual_record</span>' +
+                  '<span>' + escapeHtml(s.role || 'Field Cleaner') + '</span>' +
+                  (sPhone ? ' • <span style="color: #64748b;">' + escapeHtml(sPhone) + '</span>' : '') +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            loadBadge +
+          '</div>' +
+
+          '<div class="cwp-staff-perf-metrics">' +
+            '<div>' +
+              '<div class="cwp-staff-perf-metric-val">' + dailyCount + '</div>' +
+              '<div class="cwp-staff-perf-metric-lbl">Route Cars</div>' +
+            '</div>' +
+            '<div>' +
+              '<div class="cwp-staff-perf-metric-val">' + specCount + '</div>' +
+              '<div class="cwp-staff-perf-metric-lbl">Today\'s Special Jobs</div>' +
+            '</div>' +
+            '<div>' +
+              '<div class="cwp-staff-perf-metric-val" style="color: #16a34a;">' + totalDone + ' / ' + totalAssigned + '</div>' +
+              '<div class="cwp-staff-perf-metric-lbl">Done Today</div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="cwp-staff-perf-progress-wrap">' +
+            '<div class="cwp-staff-perf-progress-labels">' +
+              '<span>Today\'s Progress</span>' +
+              '<strong>' + pct + '%</strong>' +
+            '</div>' +
+            '<div class="cwp-staff-perf-bar-track">' +
+              '<div class="cwp-staff-perf-bar-fill" style="width: ' + pct + '%;"></div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="cwp-staff-perf-actions">' +
+            '<button type="button" class="cwp-staff-perf-btn" onclick="filterJobLedgerByStaffName(\'' + escapeHtml(sName) + '\')" title="Filter ledger table above for this staff member">' +
+              '<span class="material-symbols-outlined" style="font-size: 15px;">filter_alt</span>' +
+              '<span>Filter Table for ' + escapeHtml(sName.split(' ')[0]) + '</span>' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      });
+
+      grid.innerHTML = html || '<div style="text-align: center; padding: 20px; color: #64748b; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">No active staff records found.</div>';
+    }
+    window.renderStaffWorkloadAndPerformance = renderStaffWorkloadAndPerformance;
+
+    function filterJobLedgerByStaffName(name) {
+      var staffFilter = document.getElementById('unifiedFilterStaff') || document.getElementById('dccRosterStaffFilter');
+      if (staffFilter) {
+        // Try to match option
+        for (var i = 0; i < staffFilter.options.length; i++) {
+          if (staffFilter.options[i].text.toLowerCase().indexOf(name.toLowerCase()) !== -1 || staffFilter.options[i].value.toLowerCase().indexOf(name.toLowerCase()) !== -1) {
+            staffFilter.selectedIndex = i;
+            break;
+          }
+        }
+        if (typeof renderUnifiedAssignmentsLedger === 'function') renderUnifiedAssignmentsLedger();
+        if (typeof filterDccRosterTable === 'function') filterDccRosterTable();
+        var tableWrap = document.getElementById('unifiedAssignmentsTableWrap') || document.getElementById('dccRosterTableWrap');
+        if (tableWrap) tableWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    window.filterJobLedgerByStaffName = filterJobLedgerByStaffName;
+
+    function toggleStaffPerformanceSection() {
+      var grid = document.getElementById('jobAssignStaffPerformanceGrid');
+      var btnText = document.getElementById('staffPerfToggleText');
+      var btnIcon = document.getElementById('staffPerfToggleIcon');
+      if (!grid) return;
+      if (grid.style.display === 'none') {
+        grid.style.display = 'grid';
+        if (btnText) btnText.textContent = 'Collapse';
+        if (btnIcon) btnIcon.textContent = 'expand_less';
+      } else {
+        grid.style.display = 'none';
+        if (btnText) btnText.textContent = 'Expand Overview';
+        if (btnIcon) btnIcon.textContent = 'expand_more';
+      }
+    }
+    window.toggleStaffPerformanceSection = toggleStaffPerformanceSection;
 
     /* Time tracking contract functions */
     function calculateConsecutiveTimes(logs) {
@@ -9005,7 +10165,7 @@ function loadStaffCustomerData(staffId) {
         alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
         if (phoneEl) phoneEl.focus();
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> Save Customer';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Customer';
         return;
       }
 
@@ -9111,7 +10271,7 @@ function loadStaffCustomerData(staffId) {
 
       apiCall('saveCustomer', { customerData: customerData }, function(res) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> Save Customer';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Customer';
         if (res && res.error) {
           showToast('Error: ' + res.error, '❌');
         } else {
@@ -9161,7 +10321,7 @@ function loadStaffCustomerData(staffId) {
         }
       }, function(err) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> Save Customer';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Customer';
         showToast('Error saving customer: ' + (err.message || err), '❌');
       });
     }
@@ -9246,10 +10406,9 @@ function loadStaffCustomerData(staffId) {
     function renderModernNumberPlate(plateText) {
       if (!plateText || !plateText.trim()) return '<span class="cell-empty-dash">—</span>';
       var clean = plateText.trim();
-      return '<div class="hsrp-plate-wrap">' +
-        '<div class="hsrp-plate" title="' + escapeHtml(clean) + '">' +
-          '<div class="hsrp-ind-strip"><span class="hsrp-ind-code">IND</span></div>' +
-          '<span class="hsrp-number">' + escapeHtml(clean) + '</span>' +
+      return '<div class="cwp-veh-plate-wrap">' +
+        '<div class="cwp-veh-plate" title="' + escapeHtml(clean) + '">' +
+          '<span class="cwp-veh-plate-reg">' + escapeHtml(clean) + '</span>' +
         '</div>' +
       '</div>';
     }
@@ -9560,7 +10719,7 @@ function loadStaffCustomerData(staffId) {
         btn.innerHTML = '<span>🎯</span> Save as Lead';
         btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
       } else {
-        btn.innerHTML = '<span>💾</span> Save Customer';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Customer';
         btn.style.background = '';
       }
     }
@@ -9576,7 +10735,7 @@ function loadStaffCustomerData(staffId) {
       var subEl = document.getElementById('addLeadModalSubtitle');
       if (subEl) subEl.textContent = 'Capture prospect inquiry, vehicle info & initial remarks';
       var btn = document.getElementById('btnSaveLead');
-      if (btn) btn.innerHTML = '<span>💾</span> Save Lead';
+      if (btn) btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Lead';
       var stageEl = document.getElementById('leadStage');
       if (stageEl) stageEl.value = 'open';
       removeLeadPhoto();
@@ -9610,7 +10769,7 @@ function loadStaffCustomerData(staffId) {
       var subEl = document.getElementById('addLeadModalSubtitle');
       if (subEl) subEl.textContent = 'Update prospect contact, vehicle info & inquiry details';
       var btn = document.getElementById('btnSaveLead');
-      if (btn) btn.innerHTML = '<span>💾</span> Update Lead';
+      if (btn) btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Update Lead';
 
       var nameEl = document.getElementById('leadName');
       if (nameEl) nameEl.value = lead.customerName || lead.name || '';
@@ -9863,7 +11022,7 @@ function loadStaffCustomerData(staffId) {
         apiCall('updateLead', { leadId: leadEditId, leadData: leadData }, function(res) {
           if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<span>💾</span> Update Lead';
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Update Lead';
           }
           if (res && res.error) {
             showToast('Error: ' + res.error, '❌');
@@ -9909,7 +11068,7 @@ function loadStaffCustomerData(staffId) {
         }, function(err) {
           if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<span>💾</span> Update Lead';
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Update Lead';
           }
           showToast('Error: ' + (err.message || err), '❌');
         });
@@ -9919,7 +11078,7 @@ function loadStaffCustomerData(staffId) {
       apiCall('saveLead', { customerData: leadData }, function(res) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span>💾</span> Save Lead';
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Lead';
         }
         if (res && res.error) {
           showToast('Error: ' + res.error, '❌');
@@ -9935,7 +11094,7 @@ function loadStaffCustomerData(staffId) {
       }, function(err) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span>💾</span> Save Lead';
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Lead';
         }
         showToast('Error: ' + (err.message || err), '❌');
       });
@@ -10947,242 +12106,123 @@ function loadStaffCustomerData(staffId) {
       if (!tbody) return;
 
       var paginationContainer = document.getElementById('adminTablePagination');
+      var currentLang = (typeof state !== 'undefined' && state.lang) || localStorage.getItem('cwp_lang') || 'en';
+      var isHi = (currentLang === 'hi');
 
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
-          '<div style="margin-bottom: 10px;"><span class="material-symbols-outlined" style="font-size: 40px; color: var(--color-primitive-slate-400, #94a3b8);">search_off</span></div>' +
-          '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">No customer records match your filter</div>' +
-          '<div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">Try adjusting your search criteria, staff assignment or category filters</div>' +
-          '<button type="button" class="btn-admin-secondary" onclick="resetAllAdminFilters()" style="margin: 0 auto; display: inline-flex;">Reset all filters</button>' +
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">' +
+          '<div style="margin-bottom: 8px;"><span class="material-symbols-outlined" style="font-size: 36px; color: #94a3b8;">search_off</span></div>' +
+          '<div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-bottom: 4px;">' + (isHi ? 'कोई ग्राहक रिकॉर्ड नहीं मिला' : 'No customer records match your filter') + '</div>' +
+          '<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">' + (isHi ? 'खोज बदलकर पुनः प्रयास करें' : 'Try adjusting your search criteria') + '</div>' +
+          '<button type="button" class="cwp-btn-subtle" onclick="resetAllAdminFilters()" style="margin: 0 auto; display: inline-flex;">' + (isHi ? 'सभी फ़िल्टर रीसेट करें' : 'Reset all filters') + '</button>' +
           '</td></tr>';
-        if (paginationContainer) {
-          paginationContainer.innerHTML = '';
-          paginationContainer.style.display = 'none';
-        }
+        if (paginationContainer) paginationContainer.innerHTML = '';
         return;
       }
 
-      var totalCount = records ? records.length : 0;
-      var pageSize = adminPagination ? adminPagination.pageSize : 25;
-      var currentPage = adminPagination ? adminPagination.page : 1;
-      var totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 1;
-      if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
-      if (adminPagination) adminPagination.page = currentPage;
+      var totalCount = records.length;
+      var pageSize = (typeof adminPagination !== 'undefined' && adminPagination.pageSize) || 25;
+      var currentPage = (typeof adminPagination !== 'undefined' && adminPagination.page) || 1;
+      var totalPages = Math.ceil(totalCount / pageSize);
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
 
-      var startIndex = pageSize > 0 ? (currentPage - 1) * pageSize : 0;
-      var endIndex = pageSize > 0 ? Math.min(startIndex + pageSize, totalCount) : totalCount;
-      var pageRecords = pageSize > 0 ? records.slice(startIndex, endIndex) : records;
+      var startIndex = (currentPage - 1) * pageSize;
+      var endIndex = Math.min(startIndex + pageSize, totalCount);
+      var pagedRecords = records.slice(startIndex, endIndex);
 
       var html = '';
-      pageRecords.forEach(function(r, index) {
-        var sNo = startIndex + index + 1;
-        var origIndex = r._origIndex !== undefined ? r._origIndex : (startIndex + index);
-        var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
+      pagedRecords.forEach(function(r, index) {
+        var serialNumber = startIndex + index + 1;
+        var sNoHtml = '<span class="cwp-sno">' + serialNumber + '</span>';
+        var origIndex = (typeof r._origIndex === 'number') ? r._origIndex : index;
 
-        /* 1. Serial Number Cell */
-        var sNoHtml = '<span class="sno-badge">' + sNo + '</span>';
-
-        /* 2. Customer Name Cell (Dedicated column: name only, natural display & tooltip) */
-        var avatarHtml = renderCustomerAvatar(r.customerName || 'Customer');
-        var hiName = (r.nameHi || r.name_hi || '').trim();
-        var nameDisplayHtml = escapeHtml(r.customerName || 'Unknown Customer');
-        if (hiName && hiName !== r.customerName) {
-          nameDisplayHtml += ' <span class="table-hi-sub" title="हिन्दी: ' + escapeHtml(hiName) + '">(' + escapeHtml(hiName) + ')</span>';
-        }
-        var custNameHtml = '<div class="cust-name-cell-modern">' +
-          avatarHtml +
-          '<div class="cust-name-wrap">' +
-            '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + nameDisplayHtml + '</span>' +
-          '</div>' +
+        /* 1. Customer Name (Pure text, NO avatar icon, NO Customer ID, Single-language) */
+        var enName = (r.customerName || '').trim();
+        var hiName = (r.nameHi || r.name_hi || '').trim(); /* table-hi-sub */
+        var displayName = isHi ? (hiName || enName || 'अज्ञात ग्राहक') : (enName || hiName || 'Unknown Customer');
+        var custNameHtml = '<div class="cwp-cust-name-cell">' +
+          '<span class="cwp-cust-name-text" onclick="openEditCustomerModal(' + origIndex + ')" title="' + escapeHtml(displayName) + '">' + escapeHtml(displayName) + '</span>' +
         '</div>';
 
-        /* 2b. Mobile Number Cell (Dedicated column: phone link + WhatsApp action) */
-        var phoneHtml = '';
+        /* 2. Mobile Number (Click-to-call link with clean formatting, NO WhatsApp icon) */
+        var phoneHtml = '<span class="cwp-cell-empty">—</span>';
         if (r.customerNumber) {
           var nPhone = normalizeIndianMobile(r.customerNumber);
           var formattedPhone = formatIndianMobile(nPhone);
-          phoneHtml = '<div class="table-phone-cell">' +
-            '<a href="' + getIndianPhoneLink(nPhone) + '" class="cust-phone-link" title="Call: ' + escapeHtml(formattedPhone) + '">' +
-              '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 4V3z"/></svg> ' +
-              '<span class="phone-digits-text">' + escapeHtml(formattedPhone) + '</span>' +
-            '</a>' +
-            '<a href="https://wa.me/91' + escapeHtml(nPhone) + '" target="_blank" rel="noopener noreferrer" class="cust-wa-pill" title="WhatsApp ' + escapeHtml(r.customerName || '') + '" onclick="event.stopPropagation();">' +
-              '<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z"/></svg>' +
-            '</a>' +
-          '</div>';
-        } else {
-          phoneHtml = '<span class="cell-empty-dash" title="No phone number">—</span>';
+          phoneHtml = '<a href="' + getIndianPhoneLink(nPhone) + '" class="cwp-cust-phone" title="' + (isHi ? 'कॉल करें: ' : 'Call: ') + escapeHtml(formattedPhone) + '">' +
+            '<span class="material-symbols-outlined phone-icon">call</span>' +
+            '<span>' + escapeHtml(formattedPhone) + '</span>' +
+          '</a>';
         }
-
-        /* 2c. Service Category & Plan Cell (Dedicated column) */
-        var serviceHtml = '';
-        if (r.isStopped) {
-          serviceHtml = '<div class="table-service-cell">' +
-            '<span class="cust-sheet-tag" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;"><span class="tag-status-dot" style="background:#ef4444;"></span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">cancel</span>Stopped (काम रुका)</span>';
-          if (r.stoppedReason) {
-            serviceHtml += '<div style="font-size:10.5px; color:#991b1b; margin-top:2px; font-weight:500;">' + escapeHtml(r.stoppedReason) + '</div>';
-          }
-          serviceHtml += '<div class="table-pkg-badge-wrap" style="margin-top:3px;"><button type="button" onclick="openAssignServiceModal(' + origIndex + ')" style="padding:2px 7px; font-size:11px; font-weight:600; border-radius:4px; background:#fff; border:1px solid #f87171; color:#b91c1c; cursor:pointer;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle; margin-right:2px;">tune</span>Manage Service</button></div>' +
-          '</div>';
-        } else if (!r.hasService) {
-          serviceHtml = '<div class="table-service-cell">' +
-            '<span class="cust-sheet-tag" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"><span class="tag-status-dot" style="background:#94a3b8;"></span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">radio_button_unchecked</span>No Service</span>' +
-            '<div class="table-pkg-badge-wrap" style="margin-top:4px;"><button type="button" onclick="openAssignServiceModal(' + origIndex + ')" style="padding:2px 8px; font-size:11px; font-weight:600; border-radius:4px; background:#eff6ff; border:1px solid #93c5fd; color:#1d4ed8; cursor:pointer;">+ Assign Service</button></div>' +
-          '</div>';
-        } else {
-          var catName = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
-          var tagClass = 'tag-daily';
-          if (catName === 'Car Washing') tagClass = 'tag-wash';
-          else if (catName === 'Solar Panel Cleaning') tagClass = 'tag-solar';
-          else if (catName === 'Interior Detailing') tagClass = 'tag-interior';
-          else if (catName === 'Exterior Detailing') tagClass = 'tag-exterior';
-          var pkgLabel = (r.packageType || r.serviceType || '').trim();
-
-          serviceHtml = '<div class="table-service-cell">' +
-            '<span class="cust-sheet-tag ' + tagClass + '"><span class="tag-status-dot"></span>' + escapeHtml(catName) + '</span>';
-          if (pkgLabel) {
-            serviceHtml += '<div class="table-pkg-badge-wrap">' + renderModernPackageBadge(pkgLabel) + '</div>';
-          }
-          serviceHtml += '</div>';
-        }
-
-        /* 2d. Vehicle / Site Cell + Photo Micro-Thumb (Dedicated column) */
-        var carText = formatVehiclePlateOrSummary(r, '');
-        var carHtml = '<div class="vehicle-cell-wrap-modern">';
-        if (carText) {
-          if (catName === 'Solar Panel Cleaning') {
-            carHtml += '<span class="solar-site-badge" style="font-size:11.5px;" title="' + escapeHtml(carText) + '"><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">solar_power</span>' + escapeHtml(carText) + '</span>';
-          } else {
-            carHtml += renderModernNumberPlate(carText);
-          }
-        } else {
-          carHtml += '<span class="cell-empty-dash">—</span>';
-        }
-        var rowMake = String(r.carMake || r.car_make || '').trim();
-        var rowColor = String(r.carColor || r.car_color || '').trim();
-        if (catName !== 'Solar Panel Cleaning' && (rowMake || rowColor)) {
-          var makeColorDisplay = [rowMake, rowColor].filter(Boolean).join(' • ');
-          carHtml += '<div class="table-vehicle-make-color" title="Car Make & Color: ' + escapeHtml(makeColorDisplay) + '">' +
-            '<span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">directions_car</span>' + escapeHtml(makeColorDisplay) + '</span>' +
-          '</div>';
-        }
-        if (r.photoUrl && r.photoUrl.trim()) {
-          var aThumb = r.photoUrl.indexOf('res.cloudinary.com') !== -1 && r.photoUrl.indexOf('/upload/') !== -1 ? r.photoUrl.replace('/upload/', '/upload/w_80,h_80,c_fill,q_auto,f_auto/') : r.photoUrl;
-          carHtml += '<div style="margin-top: 3px;">' +
-            '<button type="button" class="vehicle-photo-thumb-btn-modern" onclick="openAdminPhotoModal(' + origIndex + ')" title="View vehicle photo">' +
-              '<img src="' + escapeHtml(aThumb) + '" class="vehicle-micro-thumb" alt="Photo">' +
-              '<span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:2px;">photo_camera</span>Photo</span>' +
-            '</button>' +
-          '</div>';
-        }
-        carHtml += '</div>';
 
         /* 3. Primary Address Cell */
-        var addrText = (r.address != null ? String(r.address) : '').trim();
-        var primaryAddrHtml = '<div class="table-addr-col-wrap">';
-        if (isLocationLinkOnly(addrText)) {
-          primaryAddrHtml += '<div class="geo-verified-pill" onclick="openAddressModal(' + origIndex + ')" title="GPS Pin Coordinates Linked • Click to view">' +
-            '<span class="geo-pulse-dot"></span>' +
-            '<span>GPS Linked Pin</span>' +
-          '</div>';
-        } else if (addrText) {
-          primaryAddrHtml += '<div class="table-addr-text" onclick="openAddressModal(' + origIndex + ')" title="Click to view full address & details">' +
-            '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11" class="addr-pin-icon"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg> ' +
-            escapeHtml(addrText) +
-          '</div>';
-        } else {
-          primaryAddrHtml += '<span class="cell-empty-dash" title="Primary address not provided">—</span>';
-        }
-        primaryAddrHtml += '</div>';
-
         /* 4. Primary Map Location Cell */
-        var primaryMapsUrl = formatGoogleMapsUrl(r.googleMapsUrl, addrText);
-        var primaryMapHtml = '<div style="text-align: center;">';
-        if (primaryMapsUrl) {
-          primaryMapHtml += '<a href="' + escapeHtml(primaryMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="table-inline-map-btn smart-map-btn" onclick="event.stopPropagation();" title="Open primary location in Google Maps">' +
-            '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>' +
-            '<span>Map ↗</span>' +
-          '</a>';
-        } else {
-          primaryMapHtml += '<span class="cell-empty-dash" title="No primary map link">—</span>';
-        }
-        primaryMapHtml += '</div>';
-
         /* 5. Secondary Address Cell */
         /* 6. Secondary Map Location Cell */
+        var rawAddr = (r.address != null ? String(r.address) : '').trim();
+        var hiAddr = (r.addressHi || r.address_hi != null ? String(r.addressHi || r.address_hi) : '').trim();
+        var addrText = (isHi && hiAddr) ? hiAddr : rawAddr;
+        var primaryAddrHtml = '<span class="cwp-cell-empty">—</span>';
+        if (isLocationLinkOnly(addrText)) {
+          primaryAddrHtml = '<span class="cwp-addr-link-only" onclick="openAddressModal(' + origIndex + ')">GPS Location Attached</span>';
+        } else if (addrText) {
+          primaryAddrHtml = '<span class="cwp-addr-text" onclick="openAddressModal(' + origIndex + ')" title="' + escapeHtml(addrText) + '">' + escapeHtml(addrText) + '</span>';
+        }
+
+        /* 4. Location & GPS Cell (Subtle Map Link & 2nd Location link) */
+        var primaryMapsUrl = r.mapsUrl || (isLocationLinkOnly(addrText) ? addrText : '');
         var secAddrText = (r.secondaryAddress != null ? String(r.secondaryAddress) : '').trim();
-        var secMapsUrl = formatGoogleMapsUrl(r.secondaryMapsUrl, secAddrText);
-        var secLocHtml = '<div style="text-align: center;">';
+        var secMapsUrl = (r.secondaryMapsUrl != null ? String(r.secondaryMapsUrl) : '').trim();
+
+        var mapColParts = [];
+        if (primaryMapsUrl) {
+          mapColParts.push('<a href="' + escapeHtml(primaryMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="cwp-map-quiet-link table-inline-map-btn smart-map-btn" onclick="event.stopPropagation();">' +
+            '<span>Map ↗</span>' +
+          '</a>');
+        }
         if (secAddrText || secMapsUrl) {
-          secLocHtml += '<button type="button" class="btn-sec-loc-circle" onclick="openAddressModal(' + origIndex + ')" title="2nd Location: ' + escapeHtml(secAddrText || 'Map Available') + ' • Click to view full details">' +
-            '<span class="sec-loc-circle-dot">✓</span> ' +
-            '<span class="sec-loc-circle-text">Yes</span>' +
-          '</button>';
-        } else {
-          secLocHtml += '<span class="cell-empty-dash" title="No secondary location">—</span>';
+          mapColParts.push('<button type="button" class="cwp-alt-loc-quiet-link btn-sec-loc-circle badge-sec-tag table-inline-map-sec-btn" onclick="openAddressModal(' + origIndex + ')" title="' + (isHi ? 'दूसरा पता: ' : '2nd Location: ') + escapeHtml(secAddrText || 'Map Available') + '">' +
+            '<span>' + (isHi ? 'दूसरा पता' : '2nd Location') + '</span>' +
+          '</button>');
         }
-        secLocHtml += '</div>';
+        var mapColHtml = mapColParts.length > 0 ? ('<div class="cwp-loc-links-wrap">' + mapColParts.join(' · ') + '</div>') : '<span class="cwp-cell-empty">—</span>';
 
-        /* 7. Staff Assigned Name or Unassigned Badge */
-        var staffName = (r.staffName || '').trim();
-        var staffHtml = '<div style="text-align: center;">';
-        if (staffName && staffName.toLowerCase() !== 'none' && staffName.toLowerCase() !== 'unassigned') {
-          var matchedStaff = (state.staffList || []).find(function(s) {
-            return (s.name && s.name.toLowerCase() === staffName.toLowerCase()) ||
-                   (s.id && r.staffId && s.id.toUpperCase() === r.staffId.toUpperCase());
-          });
-          var matchedPhoto = matchedStaff ? (matchedStaff.photoUrl || matchedStaff.photo_url || '') : '';
-          staffHtml += '<span class="staff-assigned-chip" title="Assigned: ' + escapeHtml(staffName) + '">';
-          if (matchedPhoto) {
-            staffHtml += '<img src="' + escapeHtml(matchedPhoto) + '" class="staff-avatar-mini" alt="' + escapeHtml(staffName) + '">';
-          } else {
-            staffHtml += '<span class="staff-avatar-mini-initials">' + escapeHtml(staffName.slice(0, 2).toUpperCase()) + '</span>';
-          }
-          staffHtml += '<span class="staff-chip-name">' + escapeHtml(staffName) + '</span></span>';
-        } else {
-          staffHtml += '<span class="staff-none-badge" title="No staff assigned">Unassigned</span>';
-        }
-        staffHtml += '</div>';
-
-        /* 8. Actions: Modern Action Cluster & Contextual Action Menu */
-        var actionsHtml = '<div class="records-actions-cluster">' +
-          '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="Edit customer details">' +
-            '<span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">edit</span>' +
-            '<span>Edit</span>' +
+        /* 5. Actions (Direct Edit + Contextual Menu) */
+        var actionsHtml = '<div class="cwp-row-actions">' +
+          '<button type="button" class="cwp-action-edit-btn" onclick="openEditCustomerModal(' + origIndex + ')" title="' + (isHi ? 'ग्राहक संपादित करें' : 'Edit Customer') + '">' +
+            '<span>' + (isHi ? 'एडिट' : 'Edit') + '</span>' +
           '</button>' +
-          '<div class="cwp-action-menu-wrap">' +
-            '<button type="button" class="cwp-action-menu-btn" onclick="toggleCustomerRowActionMenu(' + origIndex + ', event)" title="More options" aria-label="Customer actions menu">' +
-              '<span class="material-symbols-outlined" style="font-size: 18px;">more_vert</span>' +
+          '<div class="cwp-action-menu-wrapper">' +
+            '<button type="button" class="cwp-action-more-btn" onclick="toggleCustomerRowActionMenu(' + origIndex + ', event)" title="' + (isHi ? 'अधिक विकल्प' : 'More options') + '" aria-label="More options">' +
+              '<span class="material-symbols-outlined" style="font-size: 16px;">more_vert</span>' +
             '</button>' +
             '<div id="custRowMenu_' + origIndex + '" class="cwp-action-menu-dropdown">' +
               '<button type="button" class="cwp-action-menu-item" onclick="openEditCustomerModal(' + origIndex + ')">' +
-                '<span class="material-symbols-outlined">edit</span><span>Edit Customer</span>' +
-              '</button>' +
-              '<button type="button" class="cwp-action-menu-item" onclick="openAssignServiceModal(' + origIndex + ')">' +
-                '<span class="material-symbols-outlined">local_car_wash</span><span>Manage Service</span>' +
+                '<span class="material-symbols-outlined">edit</span><span>' + (isHi ? 'ग्राहक संपादित करें' : 'Edit Customer') + '</span>' +
               '</button>' +
               '<button type="button" class="cwp-action-menu-item" onclick="openAddressModal(' + origIndex + ')">' +
-                '<span class="material-symbols-outlined">location_on</span><span>View Location</span>' +
+                '<span class="material-symbols-outlined">location_on</span><span>' + (isHi ? 'स्थान व मैप देखें' : 'View Location Details') + '</span>' +
+              '</button>' +
+              '<button type="button" class="cwp-action-menu-item" onclick="switchAdminTab(\'serviceAssign\')">' +
+                '<span class="material-symbols-outlined">assignment</span><span>' + (isHi ? 'सर्विस व एसेट देखें' : 'View Service & Asset') + '</span>' +
               '</button>' +
               '<div class="cwp-action-menu-divider"></div>' +
               '<button type="button" class="cwp-action-menu-item text-danger btn-delete-record" onclick="handleDeleteCustomer(' + origIndex + ')">' +
-                '<span class="material-symbols-outlined">delete</span><span>Delete Customer</span>' +
+                '<span class="material-symbols-outlined">delete</span><span>' + (isHi ? 'ग्राहक हटाएं' : 'Delete Customer') + '</span>' +
               '</button>' +
             '</div>' +
           '</div>' +
         '</div>';
 
-        html += '<tr>';
-        html += '  <td style="text-align: center;">' + sNoHtml + '</td>';
+        /* 100% PURE CUSTOMER ROW: # | Customer Name | Mobile | Address | Map | Actions */
+        html += '<tr class="cwp-cust-row">';
+        html += '  <td class="td-sno" style="text-align: center;">' + sNoHtml + '</td>';
         html += '  <td class="td-cust-name">' + custNameHtml + '</td>';
-        html += '  <td>' + phoneHtml + '</td>';
-        html += '  <td>' + serviceHtml + '</td>';
-        html += '  <td>' + carHtml + '</td>';
-        html += '  <td>' + primaryAddrHtml + '</td>';
-        html += '  <td style="text-align: center;">' + primaryMapHtml + '</td>';
-        html += '  <td style="text-align: center;">' + secLocHtml + '</td>';
-        html += '  <td style="text-align: center;">' + staffHtml + '</td>';
-        html += '  <td style="text-align: center;" class="td-actions">' + actionsHtml + '</td>';
+        html += '  <td class="td-cust-phone">' + phoneHtml + '</td>';
+        html += '  <td class="td-cust-address">' + primaryAddrHtml + '</td>';
+        html += '  <td class="td-cust-map" style="text-align: center;">' + mapColHtml + '</td>';
+        html += '  <td class="td-actions" style="text-align: right;">' + actionsHtml + '</td>';
         html += '</tr>';
       });
 
@@ -11193,7 +12233,7 @@ function loadStaffCustomerData(staffId) {
       renderAdminPaginationControls(totalCount, startIndex, endIndex, currentPage, totalPages, pageSize);
     }
 
-    /* Shared Contextual Action Menu Controller */
+        /* Shared Contextual Action Menu Controller */
     function toggleCustomerRowActionMenu(index, event) {
       if (event) {
         event.stopPropagation();
@@ -12342,7 +13382,7 @@ function loadStaffCustomerData(staffId) {
 
       var metaEl = document.getElementById('assignServiceCustMeta');
       if (metaEl) {
-        var phoneStr = r.customerNumber ? ('+91 ' + formatIndianMobile(normalizeIndianMobile(r.customerNumber))) : 'No Phone';
+        var phoneStr = r.customerNumber ? formatIndianMobile(normalizeIndianMobile(r.customerNumber)) : 'No Phone';
         var addrStr = r.address || '';
         metaEl.textContent = [phoneStr, addrStr].filter(Boolean).join(' • ');
       }
@@ -12687,7 +13727,7 @@ function loadStaffCustomerData(staffId) {
 
       apiCall('assignCustomerService', { serviceData: payload }, function(res) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> Save & Activate Service';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save & Activate Service';
         if (res && res.error) {
           showToast('Error: ' + res.error, '❌');
         } else {
@@ -12700,7 +13740,7 @@ function loadStaffCustomerData(staffId) {
         }
       }, function(err) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> Save & Activate Service';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save & Activate Service';
         showToast('Failed to assign service: ' + (err.message || err), '❌');
       });
     }
@@ -14137,7 +15177,7 @@ function loadStaffCustomerData(staffId) {
         alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
         if (editPhoneEl) editPhoneEl.focus();
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> Save Changes';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Changes';
         return;
       }
 
@@ -14244,7 +15284,7 @@ function loadStaffCustomerData(staffId) {
 
       apiCall('updateCustomer', { customerData: updatedData }, function(res) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> Save Changes';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Changes';
         if (res && res.error) {
           showToast('Error: ' + res.error, '❌');
         } else {
@@ -14258,7 +15298,7 @@ function loadStaffCustomerData(staffId) {
         }
       }, function(err) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> Save Changes';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">check</span>Save Changes';
         showToast('Update error: ' + (err.message || err), '❌');
       });
     }
@@ -18786,16 +19826,17 @@ function loadStaffCustomerData(staffId) {
       // 3. Render Table Rows
       var tbody = document.getElementById('adminCleanReportsTableBody');
       if (!tbody) return;
+      var isHi = (typeof state !== 'undefined' && state.lang === 'hi');
 
       if (!records || records.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9">' +
-          '<div class="reports-empty-state">' +
-          '  <div class="empty-radar-wrap"><div class="empty-radar-pulse"></div><div class="empty-radar-icon">📋</div></div>' +
-          '  <h3 class="empty-state-title">इस अवधि में कोई सफाई रिकॉर्ड नहीं मिला (No Records Found)</h3>' +
-          '  <p class="empty-state-subtitle">चुनी गई तारीख या फ़िल्टर में कोई गाड़ी सफाई लॉग नहीं मिली। ऊपर से तारीख बदलें या रीसेट करें।</p>' +
+          '<div class="reports-empty-card">' +
+          '  <div class="empty-icon-wrap"><span class="material-symbols-outlined" style="font-size: 32px; color: #94a3b8;">event_busy</span></div>' +
+          '  <div class="empty-state-title">' + (isHi ? 'इस अवधि में कोई सफाई रिकॉर्ड नहीं मिला' : 'No vehicle cleaning punches recorded for this period') + '</div>' +
+          '  <div class="empty-state-subtitle">' + (isHi ? 'स्टाफ के सुबह के राउंड आमतौर पर 06:00 AM IST से शुरू होते हैं। तारीख बदलकर या फ़िल्टर रीसेट करके देखें।' : 'Staff rounds typically start at 06:00 AM IST. Try selecting a different date range or resetting filters.') + '</div>' +
           '  <div class="empty-state-actions">' +
-          '    <button type="button" class="btn-report-action" onclick="setReportPeriodChip(\'today\')">Today (आज)</button>' +
-          '    <button type="button" class="btn-filter-reset" onclick="resetReportFilters()">✕ Reset Filters</button>' +
+          '    <button type="button" class="cwp-btn-subtle" onclick="setReportPeriodChip(\'today\')">' + (isHi ? 'आज का देखें' : 'View Today') + '</button>' +
+          '    <button type="button" class="cwp-btn-subtle" onclick="resetReportFilters()">' + (isHi ? 'फ़िल्टर रीसेट' : 'Reset Filters') + '</button>' +
           '  </div>' +
           '</div>' +
           '</td></tr>';
@@ -20549,6 +21590,7 @@ function loadStaffCustomerData(staffId) {
       var err = document.getElementById('reassignJobError');
       if (err) err.style.display = 'none';
 
+      var targetType = (document.getElementById('reassignJobTargetType') || {}).value || 'special';
       var jobId = document.getElementById('reassignJobTargetId')?.value;
       var newStaffId = (document.getElementById('reassignStaffSelect') || document.getElementById('reassignNewStaffSelect'))?.value;
       var reason = document.getElementById('reassignReason')?.value.trim();
@@ -20563,7 +21605,35 @@ function loadStaffCustomerData(staffId) {
       var btn = document.getElementById('btnSubmitReassignJob');
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span>⏳ Reassigning...</span>';
+        btn.innerHTML = '<span>⏳ Saving...</span>';
+      }
+
+      if (targetType === 'daily') {
+        apiCall('assignDailyCleanCustomer', {
+          customerId: jobId,
+          staffId: newStaffId,
+          sequenceOrder: reassignSeq ? parseInt(reassignSeq, 10) : null
+        }, function(res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">sync_alt</span><span>Save Assignment</span>';
+          }
+          if (res && res.success) {
+            showToast('⚡ ग्राहक को सफलतापूर्वक नए स्टाफ (' + escapeHtml(res.staffName || newStaffId) + ') के रूट पर सेट कर दिया गया!', '✅');
+            closeReassignJobModal();
+            loadDailyCleanRouteAssignments();
+            if (typeof renderUnifiedAssignmentsLedger === 'function') renderUnifiedAssignmentsLedger();
+          } else {
+            if (err) { err.textContent = (res && res.error) || 'पुनर्निर्धारण में त्रुटि'; err.style.display = 'block'; }
+          }
+        }, function(netErr) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">sync_alt</span><span>Save Assignment</span>';
+          }
+          if (err) { err.textContent = 'Error: ' + netErr.message; err.style.display = 'block'; }
+        });
+        return;
       }
 
       apiCall('reassignSpecialJob', {
@@ -20576,19 +21646,20 @@ function loadStaffCustomerData(staffId) {
       }, function(res) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span>🔁</span> Confirm Reassign';
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">sync_alt</span><span>Save Assignment</span>';
         }
         if (res && res.success) {
           showToast('⚡ काम सफलतापूर्वक नए स्टाफ (' + escapeHtml(res.newStaffName || newStaffId) + ') को सौंप दिया गया!', '✅');
           closeReassignJobModal();
           loadAdminSpecialJobs();
+          if (typeof renderUnifiedAssignmentsLedger === 'function') renderUnifiedAssignmentsLedger();
         } else {
           if (err) { err.textContent = (res && res.error) || 'पुनर्निर्धारण में त्रुटि'; err.style.display = 'block'; }
         }
       }, function(netErr) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span>🔁</span> Confirm Reassign';
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">sync_alt</span><span>Save Assignment</span>';
         }
         if (err) { err.textContent = 'Error: ' + netErr.message; err.style.display = 'block'; }
       });
@@ -21385,6 +22456,9 @@ function loadStaffCustomerData(staffId) {
       window.setOtherJobsSubFilter = setOtherJobsSubFilter;
       window.handleAssignSpecialJobSubmit = handleAssignSpecialJobSubmit;
       window.openReassignJobModal = openReassignJobModal;
+      window.openUnifiedReassignModal = openUnifiedReassignModal;
+      window.handleUnifiedModalUnassign = handleUnifiedModalUnassign;
+      window.renderUnifiedAssignmentsLedger = renderUnifiedAssignmentsLedger;
       window.closeReassignJobModal = closeReassignJobModal;
       window.handleReassignJobSubmit = handleReassignJobSubmit;
       window.loadAdminSpecialJobs = loadAdminSpecialJobs;
@@ -21673,6 +22747,7 @@ function loadStaffCustomerData(staffId) {
 
     function listenToStaffLocationPingStream(staffId) {
       if (typeof EventSource === 'undefined') return;
+      if (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.indexOf('Headless') !== -1) return;
       if (staffPingEventSource) {
         try { staffPingEventSource.close(); } catch(e) {}
       }
@@ -22492,3 +23567,155 @@ function loadStaffCustomerData(staffId) {
     window.formatVehiclePlateOrSummary = formatVehiclePlateOrSummary;
     }
 
+
+
+    /* =========================================================================
+       SERVICE & ASSET ASSIGNMENT CONTROLLER (PORTION 2)
+       ========================================================================= */
+    var serviceAssignFilter = 'all';
+
+    function renderServiceAssignTable() {
+      var tbody = document.getElementById('serviceAssignTableBody');
+      if (!tbody) return;
+
+      var records = state.adminRecords || [];
+      var q = (document.getElementById('serviceAssignSearch') ? document.getElementById('serviceAssignSearch').value : '').trim().toLowerCase();
+
+      var filtered = records.filter(function(r) {
+        var cat = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
+        if (serviceAssignFilter === 'none') {
+          if (r.hasService) return false;
+        } else if (serviceAssignFilter !== 'all') {
+          if (cat !== serviceAssignFilter) return false;
+        }
+
+        if (q) {
+          var name = (r.customerName || '').toLowerCase();
+          var phone = (r.customerNumber || '').toLowerCase();
+          var veh = formatVehiclePlateOrSummary(r, '').toLowerCase();
+          var staff = (r.assignedStaff || r.cleaner || '').toLowerCase();
+          return name.includes(q) || phone.includes(q) || veh.includes(q) || staff.includes(q);
+        }
+        return true;
+      });
+
+      var countEl = document.getElementById('serviceAssignCount');
+      if (countEl) countEl.textContent = filtered.length;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 36px; color: var(--text-muted);">' +
+          '<div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">No service assignments found</div>' +
+          '<div style="font-size: 12px; color: var(--text-secondary);">Try changing filter or search query</div>' +
+          '</td></tr>';
+        return;
+      }
+
+      var html = '';
+      filtered.forEach(function(r, idx) {
+        var origIndex = (typeof r._origIndex === 'number') ? r._origIndex : idx;
+        var cat = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
+        var isDaily = (cat === 'Daily Car Cleaning' || r.sheetName === 'Daily Clean');
+        var pkg = (r.packageType || r.serviceType || 'Standard').trim();
+
+        // Asset details
+        var rawCar = formatVehiclePlateOrSummary(r, '');
+        var purePlate = rawCar ? rawCar.replace(/\s*\([^)]*\)/g, '').trim() : '';
+        var rowMake = (r.carMake || '').trim();
+        var rowColor = (r.carColor || '').trim();
+        var modelColorText = [rowMake, rowColor].filter(Boolean).join(' • ');
+
+        var assetHtml = '';
+        if (cat === 'Solar Panel Cleaning' || r.solarPanels) {
+          assetHtml = '<div style="font-weight: 600; font-size: 12.5px; color: #0284c7;">☀️ ' + (r.solarPanels || 'Solar') + ' Panels</div>';
+        } else if (purePlate) {
+          assetHtml = '<div style="font-family: monospace; font-weight: 600; font-size: 12.5px; color: #0f172a;">' + escapeHtml(purePlate) + '</div>' +
+            (modelColorText ? ('<div class="table-vehicle-make-color" style="font-size: 11.5px; color: #64748b;">' + escapeHtml(modelColorText) + '</div>') : '');
+        } else {
+          assetHtml = '<span style="color: #94a3b8;">—</span>';
+        }
+
+        // Service & Plan nature
+        var natureHtml = isDaily ? 
+          '<span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Daily Recurring</span>' :
+          '<span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">One-Time Job</span>';
+
+        var staffName = (r.staffName || r.assignedStaff || r.cleaner || '').trim();
+        if (!staffName && r.staffId && state.staffList) {
+          var matched = state.staffList.find(function(s) {
+            return (s.id && s.id.toLowerCase() === r.staffId.toLowerCase()) ||
+                   (s.staffCode && s.staffCode.toLowerCase() === r.staffId.toLowerCase());
+          });
+          if (matched) staffName = matched.name;
+        }
+        var staffHtml = (staffName && staffName.toLowerCase() !== 'none' && staffName.toLowerCase() !== 'unassigned') ?
+          '<span style="font-weight: 500; font-size: 12.5px; color: #0f172a;">' + escapeHtml(staffName) + '</span>' :
+          '<span class="staff-none-badge" title="No staff assigned">Unassigned</span>';
+
+        html += '<tr class="cwp-cust-row">' +
+          '<td style="text-align: center;" class="cwp-sno">' + (idx + 1) + '</td>' +
+          '<td><div style="font-weight: 600; font-size: 13px;">' + escapeHtml(r.customerName || 'Customer') + '</div><div style="font-size: 11.5px; color: #64748b;">' + escapeHtml(r.customerNumber || '') + '</div></td>' +
+          '<td>' + assetHtml + '</td>' +
+          '<td><div style="font-weight: 600; font-size: 12.5px; color: #0f172a;">' + escapeHtml(cat) + '</div><div style="font-size: 11.5px; color: #64748b;">' + escapeHtml(pkg) + '</div></td>' +
+          '<td>' + natureHtml + '</td>' +
+          '<td>' + staffHtml + '</td>' +
+          '<td style="text-align: right;"><button type="button" class="cwp-action-edit-btn" onclick="openAssignServiceModal(' + origIndex + ')">Manage</button></td>' +
+        '</tr>';
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function filterServiceAssign(category) {
+      if (category !== undefined) {
+        serviceAssignFilter = category;
+        ['assignTabAll', 'assignTabDaily', 'assignTabWash', 'assignTabSolar', 'assignTabNoPlan'].forEach(function(id) {
+          var b = document.getElementById(id);
+          if (b) b.classList.remove('active');
+        });
+        if (category === 'all') {
+          var b = document.getElementById('assignTabAll'); if (b) b.classList.add('active');
+        } else if (category === 'Daily Car Cleaning') {
+          var b = document.getElementById('assignTabDaily'); if (b) b.classList.add('active');
+        } else if (category === 'Car Washing') {
+          var b = document.getElementById('assignTabWash'); if (b) b.classList.add('active');
+        } else if (category === 'Solar Panel Cleaning') {
+          var b = document.getElementById('assignTabSolar'); if (b) b.classList.add('active');
+        } else if (category === 'none') {
+          var b = document.getElementById('assignTabNoPlan'); if (b) b.classList.add('active');
+        }
+      }
+      renderServiceAssignTable();
+    }
+    window.filterServiceAssign = filterServiceAssign;
+    window.renderServiceAssignTable = renderServiceAssignTable;
+
+
+    /* Asset Type Mode Switcher for Modern Customer Modal */
+    function setAssetTypeMode(mode) {
+      var btnCar = document.getElementById('btnAssetTypeCar');
+      var btnSolar = document.getElementById('btnAssetTypeSolar');
+      var carFields = document.getElementById('custCarAssetFields');
+      var solarFields = document.getElementById('custSolarAssetFields');
+      var catSelect = document.getElementById('custCategory');
+      var vehLabel = document.getElementById('custVehicleLabel');
+      var vehInput = document.getElementById('custVehicles');
+
+      if (mode === 'solar') {
+        if (btnCar) btnCar.classList.remove('active');
+        if (btnSolar) btnSolar.classList.add('active');
+        if (carFields) carFields.style.display = 'none';
+        if (solarFields) solarFields.style.display = 'block';
+        if (catSelect) catSelect.value = 'Solar Panel Cleaning';
+        if (vehLabel) vehLabel.textContent = 'Rooftop Solar Site Details';
+        if (vehInput) { vehInput.required = false; vehInput.value = vehInput.value || 'Solar Site'; }
+      } else {
+        if (btnSolar) btnSolar.classList.remove('active');
+        if (btnCar) btnCar.classList.add('active');
+        if (solarFields) solarFields.style.display = 'none';
+        if (carFields) carFields.style.display = 'block';
+        if (catSelect) catSelect.value = 'Daily Car Cleaning';
+        if (vehLabel) vehLabel.textContent = 'Registered Vehicle Details';
+        if (vehInput) { vehInput.required = true; if (vehInput.value === 'Solar Site') vehInput.value = ''; }
+      }
+    }
+    window.setAssetTypeMode = setAssetTypeMode;

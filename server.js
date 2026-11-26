@@ -5452,9 +5452,22 @@ const server = http.createServer(async (req, res) => {
               return res.end(JSON.stringify(result));
             }
             // Local fallback
-            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'reassigned' });
+            const cachedJobs = (typeof localSpecialJobsStore !== 'undefined' && Array.isArray(localSpecialJobsStore)) ? localSpecialJobsStore : [];
+            const cachedJob = cachedJobs.find(j => j.id === payload.jobId);
+            if (cachedJob) {
+              if (payload.newStaffId === 'unassigned' || payload.unassign) {
+                cachedJob.staffId = null;
+                cachedJob.staffName = 'Unassigned';
+                cachedJob.status = 'pending';
+              } else {
+                cachedJob.staffId = payload.newStaffId;
+                const staffObj = ((typeof localStaffStore !== 'undefined' && Array.isArray(localStaffStore)) ? localStaffStore : []).find(s => s.id === payload.newStaffId);
+                cachedJob.staffName = staffObj ? staffObj.name : payload.newStaffId;
+              }
+            }
+            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: (payload.newStaffId === 'unassigned' || payload.unassign) ? 'unassigned' : 'reassigned' });
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: true, message: 'Reassigned successfully (local mode)' }));
+            return res.end(JSON.stringify({ success: true, message: (payload.newStaffId === 'unassigned' || payload.unassign) ? 'Job unassigned successfully (local mode)' : 'Reassigned successfully (local mode)' }));
           } catch (err) {
             console.error('reassignSpecialJob error:', err.message);
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -6704,8 +6717,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Force latest asset version cache-buster across ALL routes
-    const APP_ASSET_VERSION = '3.4.0';
-    const ACTIVE_ASSET_REV = '3.4.0';
+    const APP_ASSET_VERSION = '3.5.1';
+    const ACTIVE_ASSET_REV = '3.5.6';
     content = content.replace(/\/js\/app\.js(?:\?v=[^"'\s>]+)?/g, `/js/app.js?v=${ACTIVE_ASSET_REV}`);
     content = content.replace(/\/css\/style\.css(?:\?v=[^"'\s>]+)?/g, `/css/style.css?v=${ACTIVE_ASSET_REV}`);
 

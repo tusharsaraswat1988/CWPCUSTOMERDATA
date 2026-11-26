@@ -285,10 +285,10 @@ async function runBrowserVerificationSuite() {
     // Verify Sidebar Tab Button
     const tabBtnExists = await cdp.evaluate(`
       const btn = document.getElementById('tabBtnStaffTracking');
-      return btn !== null && btn.textContent.includes('Staff Live Tracking');
+      return btn !== null && (btn.textContent.includes('Track Staff') || btn.textContent.includes('Staff Live Tracking'));
     `);
     assert.strictEqual(tabBtnExists, true, 'Sidebar tab button #tabBtnStaffTracking missing or invalid');
-    pass('Admin sidebar tab button #tabBtnStaffTracking exists with "Staff Live Tracking" label');
+    pass('Admin sidebar tab button #tabBtnStaffTracking exists with "Track Staff" label');
 
     // Verify LIVE indicator badge
     const liveBadgeExists = await cdp.evaluate(`

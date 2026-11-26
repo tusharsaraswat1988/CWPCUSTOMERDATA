@@ -2633,10 +2633,12 @@ async function reassignSpecialJob(params = {}, maybeAdminUser = null) {
   const staffTarget = params.newStaffId || params.toStaffId || params.targetStaffId;
   const reason = params.reason || null;
   const adminUser = maybeAdminUser || params.adminUser || 'admin';
+  const isUnassignRequest = (staffTarget === 'unassigned' || params.unassign === true);
+
   if (!jobId) {
     return { success: false, error: 'Job ID is required for reassignment.' };
   }
-  if (!staffTarget) {
+  if (!staffTarget && !isUnassignRequest) {
     return { success: false, error: 'Target staff member is required for reassignment.' };
   }
 
@@ -2648,6 +2650,31 @@ async function reassignSpecialJob(params = {}, maybeAdminUser = null) {
     }
     if (job.status === 'completed') {
       return { success: false, error: 'Cannot reassign a job that is already completed.' };
+    }
+
+    // 1b. Handle Unassignment if requested
+    if (isUnassignRequest) {
+      if (repos.staffAssignments && repos.staffAssignments.unassignJob) {
+        await repos.staffAssignments.unassignJob({
+          jobId: job.id,
+          unassignedBy: adminUser,
+          reason: reason || 'Unassigned by admin'
+        }, client);
+      }
+      await client.query(`UPDATE public.service_jobs SET status = 'pending' WHERE id = $1`, [job.id]);
+      await repos.auditLogs.logChange({
+        action: 'JOB_UNASSIGNED',
+        entityType: 'service_job',
+        entityId: job.id,
+        changedBy: adminUser,
+        details: { jobId: job.id, reason: reason || 'Unassigned by admin' }
+      }, client);
+      return {
+        success: true,
+        message: 'Job unassigned successfully.',
+        unassigned: true,
+        jobId: job.id
+      };
     }
 
     // 2. Resolve new staff

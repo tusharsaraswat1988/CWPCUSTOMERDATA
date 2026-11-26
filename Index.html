@@ -29,9 +29,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=3.3.9">
-  <link rel="stylesheet" href="/css/m3-tokens.css?v=3.3.9">
-  <link rel="stylesheet" href="/css/staff-m3.css?v=3.3.9">
+  <link rel="stylesheet" href="/css/style.css?v=3.5.5">
+  <link rel="stylesheet" href="/css/m3-tokens.css?v=3.5.5">
+  <link rel="stylesheet" href="/css/staff-m3.css?v=3.5.5">
   <link rel="stylesheet" href="/css/cwp-neural-login.css?v=1.0.0">
   <style>
   .is-hidden, [hidden], .header-dropdown-wrap.is-hidden, .header-account-trigger.is-hidden { display: none !important; }
@@ -190,7 +190,7 @@
     <form id="staffAuthForm" onsubmit="handleStaffAuthSubmit(event)">
     <div class="auth-field-wrapper">
     <div class="auth-input-group">
-    <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
+    <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag-text">+91</span></span>
     <input type="tel" id="staffPhoneInput" class="auth-field-input cwp-phone-input" placeholder="मोबाइल नंबर दर्ज करें" maxlength="14" inputmode="numeric" autocomplete="tel" required>
     </div></div>
     <div class="auth-field-wrapper">
@@ -560,61 +560,69 @@
     <span class="tab-text">Dashboard</span>
     </div>
     </button>
-    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnCleanReports" role="tab" onclick="switchAdminTab('cleanReports')" title="Daily Car Cleaning Reports & Proof of Work">
+    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnCleanReports" role="tab" onclick="switchAdminTab('cleanReports')" title="Daily Cleaning Status & Proof of Work">
     <div class="nav-btn-left">
     <span class="material-symbols-outlined nav-symbol">directions_car</span>
-    <span class="tab-text">Daily Reports</span>
+    <span class="tab-text">Daily Cleaning Status</span>
     </div>
     <span class="admin-tab-badge" id="tabCleanReportsCount">0</span>
     </button>
-    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnSpecialJobs" role="tab" onclick="switchAdminTab('specialJobs')" title="Wash & Solar Hub (Solar Panel Cleaning, Car Washing)">
+    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnSpecialJobs" role="tab" onclick="switchAdminTab('specialJobs')" title="Other Cleaning Status (Wash & Solar, Detailing)">
     <div class="nav-btn-left">
     <span class="material-symbols-outlined nav-symbol">solar_power</span>
-    <span class="tab-text">Wash & Solar</span>
+    <span class="tab-text">Other Cleaning Status</span>
     </div>
+    <!-- Wash & Solar Reports -->
     <span class="admin-tab-badge badge-amber" id="tabSpecialJobsCount" style="background: rgba(217, 119, 6, 0.16); color: #78350f; border: 1px solid rgba(180, 83, 9, 0.45); font-weight: 700;">0</span>
     </button>
-    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnJobAssignment" role="tab" onclick="switchAdminTab('jobAssignment')" title="Job Assignment & Cleaner Dispatch">
+    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnJobAssignment" role="tab" onclick="switchAdminTab('jobAssignment')" title="Assign Jobs & Cleaner Dispatch">
     <div class="nav-btn-left">
     <span class="material-symbols-outlined nav-symbol">assignment_add</span>
-    <span class="tab-text">Job Assignment</span>
+    <span class="tab-text">Assign Jobs</span>
     </div>
     <span class="admin-tab-badge badge-sky" id="tabJobAssignmentBadge">Dispatch</span>
     </button>
-    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnStaffTracking" role="tab" onclick="switchAdminTab('staffTracking')" title="Realtime Field Staff Location & Movement Tracking">
+    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnStaffTracking" role="tab" onclick="switchAdminTab('staffTracking')" title="Track Staff & Realtime Movement">
     <div class="nav-btn-left">
     <span class="material-symbols-outlined nav-symbol">near_me</span>
-    <span class="tab-text">Staff Live Tracking</span>
+    <span class="tab-text">Track Staff</span>
     </div>
     <span class="hub-live-badge"><span class="hub-live-dot"></span>LIVE</span>
     </button>
-    <button type="button" id="sideNavDashboard" onclick="switchAdminTab('dashboard')" style="display: none !important;" hidden></button>
-    <div class="sidebar-section-label"><span>MANAGEMENT</span></div>
-    <button type="button" class="admin-tab-btn sidebar-nav-btn active" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')" title="Customer Profiles & Directory">
-    <div class="nav-btn-left">
-    <span class="material-symbols-outlined nav-symbol">folder_shared</span>
-    <span class="tab-text">Customer Profiles</span>
-    </div>
-    <span class="admin-tab-badge" id="tabRecordsCount">0</span>
-    </button>
-    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnLeads" role="tab" onclick="switchAdminTab('leads')" title="Manage prospective customer inquiries and leads">
-    <div class="nav-btn-left">
-    <span class="material-symbols-outlined nav-symbol">contact_mail</span>
-    <span class="tab-text">Leads Pipeline</span>
-    </div>
-    <span class="admin-tab-badge badge-amber" id="tabLeadsCount" style="background: rgba(245, 158, 11, 0.16); color: #78350f; border: 1px solid rgba(180, 83, 9, 0.45); font-weight: 700;">0</span>
-    </button>
-    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnSequence" role="tab" onclick="switchAdminTab('sequence')" title="Daily car cleaning route sequence management">
+    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnSequence" role="tab" onclick="switchAdminTab('sequence')" title="DCC Route Plan & Cleaning Sequence">
     <div class="nav-btn-left">
     <span class="material-symbols-outlined nav-symbol">route</span>
-    <span class="tab-text">Route Sequence</span>
+    <span class="tab-text">DCC Route Plan</span>
     </div>
     <span class="admin-tab-badge badge-sky" id="tabSequenceBadge">Route</span>
     </button>
-    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')" title="Staff management & team status">
+    <button type="button" id="sideNavDashboard" onclick="switchAdminTab('dashboard')" style="display: none !important;" hidden></button>
+    <div class="sidebar-section-label"><span>MANAGEMENT</span></div>
+    <button type="button" class="admin-tab-btn sidebar-nav-btn active" id="tabBtnRecords" role="tab" onclick="switchAdminTab('records')" title="Customers Directory & Profiles">
+    <div class="nav-btn-left">
+    <span class="material-symbols-outlined nav-symbol">folder_shared</span>
+    <span class="tab-text">Customers</span>
+    </div>
+    <span class="admin-tab-badge" id="tabRecordsCount">0</span>
+    </button>
+    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnServiceAssign" role="tab" onclick="switchAdminTab('serviceAssign')" title="Assign Booking & Subscription Plans">
+    <div class="nav-btn-left">
+    <span class="material-symbols-outlined nav-symbol">assignment_turned_in</span>
+    <span class="tab-text">Assign Booking</span>
+    </div>
+    <span class="admin-tab-badge badge-sky" id="tabServiceAssignCount">Plans</span>
+    </button>
+    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnLeads" role="tab" onclick="switchAdminTab('leads')" title="Leads & Inquiries Pipeline">
+    <div class="nav-btn-left">
+    <span class="material-symbols-outlined nav-symbol">contact_mail</span>
+    <span class="tab-text">Leads</span>
+    </div>
+    <span class="admin-tab-badge badge-amber" id="tabLeadsCount" style="background: rgba(245, 158, 11, 0.16); color: #78350f; border: 1px solid rgba(180, 83, 9, 0.45); font-weight: 700;">0</span>
+    </button>
+    <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')" title="Staff Team & Status">
     <div class="nav-btn-left">
     <span class="material-symbols-outlined nav-symbol">badge</span>
-    <span class="tab-text">Staff Management</span>
+    <span class="tab-text">Staff</span>
     </div>
     <span class="admin-tab-badge" id="tabStaffCount">0</span>
     </button>
@@ -677,7 +685,6 @@
     <div class="skeleton-feed" style="padding: 24px; text-align: center; color: var(--text-muted);"><span class="cwp-spinner"></span> Loading leads...</div></div></div></div>
     <div id="adminTabSequence" class="admin-tab-pane" style="display: none;">
     <div class="admin-card-section rm-card-section">
-    <!-- Route Management Hero Header -->
     <div class="rm-hero-header">
     <div class="rm-hero-title-group">
     <div class="rm-hero-icon-box" aria-hidden="true"><span class="material-symbols-outlined">route</span></div>
@@ -691,13 +698,11 @@
     <button type="button" class="rm-btn-create" onclick="openCreateRouteModal()" title="Create New Route"><span class="material-symbols-outlined">add_road</span><span>Create Route</span></button>
     </div>
     </div>
-    <!-- Segmented Sub-Navigation Bar -->
     <div class="rm-nav-bar" role="tablist" aria-label="Route Management Subtabs">
     <button type="button" class="rm-nav-item active" id="rmSubtabRoutesBtn" role="tab" aria-selected="true" onclick="switchRouteSubtab('routes')"><span class="material-symbols-outlined">alt_route</span><span>Routes Hub</span><span class="rm-nav-badge" id="rmRoutesCountBadge">0</span></button>
     <button type="button" class="rm-nav-item" id="rmSubtabUnassignedBtn" role="tab" aria-selected="false" onclick="switchRouteSubtab('unassigned')"><span class="material-symbols-outlined">pending_actions</span><span>Unassigned Workbench</span><span class="rm-nav-badge rm-badge-amber" id="rmUnassignedCountBadge">0</span></button>
     <button type="button" class="rm-nav-item" id="rmSubtabLegacyBtn" role="tab" aria-selected="false" onclick="switchRouteSubtab('legacy')"><span class="material-symbols-outlined">format_list_numbered</span><span>Staff Sequence View</span></button>
     </div>
-    <!-- SUBTAB 1: ROUTES HUB -->
     <div id="rmRoutesView" class="rm-subview-pane">
     <div class="rm-kpi-grid">
     <div class="rm-kpi-card" id="kpiCardTotalRoutes"><div class="rm-kpi-top"><span class="rm-kpi-label">Total Routes</span><div class="rm-kpi-icon blue"><span class="material-symbols-outlined">route</span></div></div><div class="rm-kpi-value" id="rmKpiTotalRoutes">0</div><div class="rm-kpi-sub">Total master routes</div></div>
@@ -723,7 +728,6 @@
     </div>
     <div id="rmRoutesGrid" class="rm-routes-grid"><div class="rm-empty-state"><span class="material-symbols-outlined rm-empty-state-icon">alt_route</span><h3>Loading routes...</h3><p>Fetching active operational routes and sequences.</p></div></div>
     </div>
-    <!-- SUBTAB 2: UNASSIGNED DCC WORKBENCH -->
     <div id="rmUnassignedView" class="rm-subview-pane" style="display:none;">
     <div class="rm-workbench-header">
     <div><h3 style="font-size:17px;font-weight:700;color:var(--color-text-primary,#0f172a);margin:0 0 2px 0;">Unassigned DCC Vehicles Workbench</h3><p style="font-size:12.5px;color:var(--color-text-secondary,#475569);margin:0;">Active daily cleaning subscriptions requiring operational route allocation.</p></div>
@@ -747,7 +751,6 @@
     </table>
     </div>
     </div>
-    <!-- DEDICATED ROUTE DETAIL & SEQUENCE VIEW (Opened on Route Selection) -->
     <div id="rmRouteDetailView" class="rm-subview-pane" style="display:none;">
     <div class="rm-detail-container">
     <div class="rm-detail-breadcrumb-bar">
@@ -805,7 +808,6 @@
     <div id="rmStopsList" class="rm-stops-list"><div class="rm-empty-state"><span class="material-symbols-outlined rm-empty-state-icon">directions_car</span><h3>No stops assigned to this route</h3><p>Click "Add Stop" or use the Unassigned Workbench to add customer vehicle visits.</p></div></div>
     </div>
     </div>
-    <!-- SUBTAB 3: LEGACY STAFF SEQUENCE VIEW (100% Backward Compatibility) -->
     <div id="rmLegacySeqView" class="rm-subview-pane" style="display: none;">
     <div class="seq-header-bar">
     <div>
@@ -924,127 +926,102 @@
     </form>
     </div></div></div>
     <div id="adminTabRecords" class="admin-tab-pane">
-    <div class="admin-card-section records-executive-section">
-    <div class="records-hero-strip">
-    <div class="records-hero-left">
-    <div class="records-brand-icon">
-    <span class="material-symbols-outlined" style="font-size: 22px;">contacts</span>
-    </div>
-    <div>
-    <div class="records-title-row">
-    <h2 class="records-hero-title">Customer Records & Directory</h2>
-    <span id="adminRecordsSourceBadge"></span>
-    <span class="records-count-chip"><span id="filteredRecordsCount">0</span> / <span id="totalRecordsCount">0</span> clients</span>
-    </div>
-    <p class="records-hero-subtitle">Unified client registry, live detailing subscriptions, route locations & staff assignments</p>
-    </div></div>
-    <div class="records-hero-actions">
-    <button type="button" class="btn-admin-secondary" onclick="openAddLeadModal()" style="border-color: #f59e0b; color: #b45309;" title="Quick capture new prospect lead">
-    <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle;">person_add</span>
-    <span>+ Lead</span>
-    </button>
-    <button type="button" class="btn-admin-primary" onclick="openAddCustomerModal()" title="Open form to add a new customer">
-    <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle;">add</span>
-    <span>New Customer</span>
-    </button>
-    <button type="button" class="btn-admin-secondary btn-admin-indic" id="btnAdminBackfillHindi" onclick="handleBackfillHindi()" title="Auto-generate Hindi Name & Address for records using Google Indic">
-    <span class="btn-admin-icon-text"><span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle;">translate</span>Auto Indic</span>
-    </button>
-    <button type="button" class="btn-admin-secondary" onclick="exportAdminRecordsCSV()" title="Export filtered records to CSV">
-    <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle;">download</span>
-    <span>Export CSV</span>
-    </button>
-    <button type="button" class="btn-admin-icon-only" id="btnAdminRefreshRecords" onclick="loadAdminRecords(true)" title="Refresh data from database">
-    <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">refresh</span>
-    </button>
-    </div></div>
-    <div class="records-kpi-grid">
-    <div class="records-kpi-tile tile-kpi-all active" id="kpiTileAll" onclick="setKpiCategoryFilter('all')" title="Filter: All Customers">
-    <div class="kpi-tile-icon icon-all">
-    <span class="material-symbols-outlined" style="font-size: 20px;">grid_view</span>
-    </div>
-    <div class="kpi-tile-data">
-    <span class="kpi-tile-num" id="kpiCountTotal">0</span>
-    <span class="kpi-tile-label">All Clients</span>
-    </div></div>
-    <div class="records-kpi-tile tile-kpi-daily" id="kpiTileDaily" onclick="setKpiCategoryFilter('Daily Car Cleaning')" title="Filter: Daily Car Cleaning">
-    <div class="kpi-tile-icon icon-daily">
-    <span class="material-symbols-outlined" style="font-size: 20px;">directions_car</span>
-    </div>
-    <div class="kpi-tile-data">
-    <span class="kpi-tile-num" id="kpiCountDaily">0</span>
-    <span class="kpi-tile-label">Daily Cleaning</span>
-    </div></div>
-    <div class="records-kpi-tile tile-kpi-wash" id="kpiTileWash" onclick="setKpiCategoryFilter('Car Washing')" title="Filter: Car Washing">
-    <div class="kpi-tile-icon icon-wash">
-    <span class="material-symbols-outlined" style="font-size: 20px;">water_drop</span>
-    </div>
-    <div class="kpi-tile-data">
-    <span class="kpi-tile-num" id="kpiCountWash">0</span>
-    <span class="kpi-tile-label">Car Washing</span>
-    </div></div>
-    <div class="records-kpi-tile tile-kpi-solar" id="kpiTileSolar" onclick="setKpiCategoryFilter('Solar Panel Cleaning')" title="Filter: Solar Panel Cleaning">
-    <div class="kpi-tile-icon icon-solar">
-    <span class="material-symbols-outlined" style="font-size: 20px;">solar_power</span>
-    </div>
-    <div class="kpi-tile-data">
-    <span class="kpi-tile-num" id="kpiCountSolar">0</span>
-    <span class="kpi-tile-label">Solar Cleaning</span>
-    </div></div>
-    <div class="records-kpi-tile tile-kpi-unassigned" id="kpiTileUnassigned" onclick="setKpiStaffFilter('none')" title="Filter: Unassigned Staff">
-    <div class="kpi-tile-icon icon-unassigned">
-    <span class="material-symbols-outlined" style="font-size: 20px;">warning</span>
-    </div>
-    <div class="kpi-tile-data">
-    <span class="kpi-tile-num" id="kpiCountUnassigned">0</span>
-    <span class="kpi-tile-label">Unassigned</span>
-    </div></div></div>
-    <div class="records-toolbar">
-    <div class="records-search-wrapper">
-    <span class="material-symbols-outlined records-search-svg" style="font-size: 16px;">search</span>
-    <input type="text" id="adminRecordSearch" class="records-search-input" placeholder="Search customer, vehicle plate, phone, address..." oninput="handleAdminSearchInput()" onkeydown="if(event.key==='Enter') filterAdminRecords()">
-    <div class="search-kbd-hint">/</div>
-    <button type="button" class="btn-search-clear-inline" id="btnAdminSearchClear" onclick="clearAdminSearch()" style="display: none;" title="Clear search">✕</button>
-    </div>
-    <div class="records-filters-group">
-    <div class="filter-select-wrapper">
-    <select id="filterAdminCategory" class="filter-select" onchange="filterAdminRecords()" title="Service Category">
-    <option value="all">All Categories</option>
-    <option value="Daily Car Cleaning">Daily Car Cleaning</option>
-    <option value="Car Washing">Car Washing</option>
-    <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
-    <option value="Interior Detailing">Interior Detailing</option>
-    <option value="Exterior Detailing">Exterior Detailing</option>
-    </select>
-    </div>
-    <div class="filter-select-wrapper">
-    <select id="filterAdminStatus" class="filter-select" onchange="filterAdminRecords()" title="Active Status">
-    <option value="all">All Status</option>
-    <option value="yes">Active</option>
-    <option value="no">Inactive</option>
-    </select>
-    </div>
-    <div class="filter-select-wrapper">
-    <select id="filterAdminStaff" class="filter-select" onchange="filterAdminRecords()" title="Assigned Staff">
-    <option value="all">All Staff</option>
-    <option value="unassigned">Unassigned</option>
-    </select>
-    </div>
-    <button type="button" class="filter-pill-check" id="toggleFilterPhoto" onclick="toggleQuickFilter('photo')" title="Show only records with photo">
-    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-    <span>Photo</span>
-    </button>
-    <button type="button" class="filter-pill-check" id="toggleFilterMap" onclick="toggleQuickFilter('map')" title="Show only records with map/GPS">
-    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
-    <span>Map GPS</span>
-    </button>
-    <div id="filterActiveNotice" style="display: none;">
-    <button type="button" class="btn-reset-filters" onclick="resetAllAdminFilters()" title="Reset all filters">
-    ✕ Reset
-    </button>
-    </div></div></div>
-    <div class="records-table-wrapper">
-    <table class="records-table" id="adminRecordsTable">
+    <div class="cwp-directory-wrap">
+      <div class="cwp-dir-header">
+        <div class="cwp-dir-header-title-block">
+          <h2 class="cwp-dir-title">Customer Directory</h2>
+          <p class="cwp-dir-subtitle"><span id="filteredRecordsCount">0</span> of <span id="totalRecordsCount">0</span> customer accounts</p>
+          <span id="adminRecordsSourceBadge" style="display: none;"></span>
+        </div>
+        <div class="cwp-dir-header-actions">
+          <button type="button" class="cwp-btn-icon-ghost" id="btnAdminRefreshRecords" onclick="loadAdminRecords(true)" title="Refresh data">
+            <span class="material-symbols-outlined">refresh</span>
+          </button>
+          <button type="button" class="cwp-btn-subtle" onclick="exportAdminRecordsCSV()" title="Export filtered records to CSV">
+            <span class="material-symbols-outlined">download</span>
+            <span class="btn-text">Export</span>
+          </button>
+          <button type="button" class="cwp-btn-subtle btn-admin-indic" id="btnAdminBackfillHindi" onclick="handleBackfillHindi()" title="Auto-generate Hindi Name & Address" style="display: none;">
+            <span class="material-symbols-outlined">translate</span>
+            <span class="btn-text">Auto Indic</span>
+          </button>
+          <button type="button" class="cwp-btn-subtle" onclick="openAddLeadModal()" title="Add a prospective customer lead">
+            <span class="material-symbols-outlined">person_add</span>
+            <span class="btn-text">+ Lead</span>
+          </button>
+          <button type="button" class="cwp-btn-solid-primary" onclick="openAddCustomerModal()" title="Add a new customer">
+            <span class="material-symbols-outlined">add</span>
+            <span class="btn-text">Add Customer</span>
+          </button>
+        </div>
+      </div>
+      <div class="records-toolbar">
+        <div class="cwp-seg-nav" role="tablist" style="display: none !important;">
+          <button type="button" class="cwp-seg-btn active" id="kpiTileAll" onclick="setKpiCategoryFilter('all')">
+            <span class="seg-title">All</span><span class="seg-badge" id="kpiCountTotal">0</span>
+          </button>
+          <button type="button" class="cwp-seg-btn" id="kpiTileDaily" onclick="setKpiCategoryFilter('Daily Car Cleaning')">
+            <span class="seg-title">Daily Clean</span><span class="seg-badge" id="kpiCountDaily">0</span>
+          </button>
+          <button type="button" class="cwp-seg-btn" id="kpiTileWash" onclick="setKpiCategoryFilter('Car Washing')">
+            <span class="seg-title">Car Wash</span><span class="seg-badge" id="kpiCountWash">0</span>
+          </button>
+          <button type="button" class="cwp-seg-btn" id="kpiTileSolar" onclick="setKpiCategoryFilter('Solar Panel Cleaning')">
+            <span class="seg-title">Solar</span><span class="seg-badge" id="kpiCountSolar">0</span>
+          </button>
+          <button type="button" class="cwp-seg-btn" id="kpiTileUnassigned" onclick="setKpiStaffFilter('none')">
+            <span class="seg-title">No Active Plan</span><span class="seg-badge" id="kpiCountUnassigned">0</span>
+          </button>
+        </div>
+        <div class="cwp-search-toolbar">
+          <div class="cwp-search-box">
+            <span class="material-symbols-outlined search-mag-icon">search</span>
+            <input type="text" id="adminRecordSearch" class="cwp-search-input-field" placeholder="Search customer, phone, vehicle plate, address..." oninput="handleAdminSearchInput()" onkeydown="if(event.key==='Enter') filterAdminRecords()">
+            <div class="search-key-badge">/</div>
+            <button type="button" class="search-btn-clear" id="btnAdminSearchClear" onclick="clearAdminSearch()" style="display: none;" title="Clear search">✕</button>
+          </div>
+          <select id="filterAdminCategory" onchange="filterAdminRecords()" style="display: none;">
+            <option value="all">All Categories</option>
+            <option value="Daily Car Cleaning">Daily Car Cleaning</option>
+            <option value="Car Washing">Car Washing</option>
+            <option value="Solar Panel Cleaning">Solar Panel Cleaning</option>
+            <option value="Interior Detailing">Interior Detailing</option>
+            <option value="Exterior Detailing">Exterior Detailing</option>
+          </select>
+          <div class="cwp-toolbar-selects">
+            <div class="cwp-select-box" style="display: none;">
+              <select id="filterAdminStaff" class="cwp-custom-select" onchange="filterAdminRecords()" title="Assigned Staff">
+                <option value="all">All Staff</option>
+                <option value="unassigned">Unassigned</option>
+              </select>
+            </div>
+            <div class="cwp-select-box">
+              <select id="filterAdminStatus" class="cwp-custom-select" onchange="filterAdminRecords()" title="Active Status">
+                <option value="all">All Status</option>
+                <option value="yes">Active</option>
+                <option value="no">Inactive</option>
+              </select>
+            </div>
+            <button type="button" class="cwp-filter-chip" id="toggleFilterPhoto" onclick="toggleQuickFilter('photo')" title="Filter customers with vehicle photo">
+              <span class="material-symbols-outlined chip-icon">photo_camera</span>
+              <span>Photo</span>
+            </button>
+            <button type="button" class="cwp-filter-chip" id="toggleFilterMap" onclick="toggleQuickFilter('map')" title="Filter customers with GPS map pin">
+              <span class="material-symbols-outlined chip-icon">location_on</span>
+              <span>GPS</span>
+            </button>
+            <div id="filterActiveNotice" style="display: none;">
+              <button type="button" class="cwp-reset-chip" onclick="resetAllAdminFilters()" title="Reset all filters">
+                <span class="material-symbols-outlined" style="font-size: 13px;">close</span>
+                <span>Reset</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cwp-dir-table-card">
+        <div class="records-table-wrapper">
+          <table class="records-table" id="adminRecordsTable">
     <thead>
     <tr>
     <th style="width: 38px; text-align: center;">#</th>
@@ -1063,8 +1040,78 @@
     <tr><td colspan="10" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading customer records...</td></tr>
     </tbody>
     </table>
+        </div>
+        <div id="adminTablePagination" class="admin-table-pagination-bar"></div>
+      </div>
     </div>
-    <div id="adminTablePagination" class="admin-table-pagination-bar"></div></div></div>
+    </div>
+    <div id="adminTabServiceAssign" class="admin-tab-pane" style="display: none;">
+      <div class="cwp-dir-card">
+        <div class="cwp-dir-header">
+          <div class="cwp-dir-title-group">
+            <h1 class="cwp-dir-title">Service & Asset Assignment</h1>
+            <div class="cwp-dir-subtitle">
+              <span id="serviceAssignCount">0</span> active service assignments • Daily recurring subscriptions & one-time jobs
+            </div>
+          </div>
+          <div class="cwp-dir-actions">
+            <button type="button" class="cwp-btn-subtle" onclick="exportAdminRecordsCSV()" title="Export CSV">
+              <span class="material-symbols-outlined">download</span>
+              <span class="btn-text">Export</span>
+            </button>
+            <button type="button" class="cwp-btn-solid-primary" onclick="openAssignServiceModal(0)" title="Assign Service to Customer">
+              <span class="material-symbols-outlined">assignment_add</span>
+              <span class="btn-text">+ Assign Service</span>
+            </button>
+          </div>
+        </div>
+        <div class="cwp-dir-controls-card">
+          <div class="cwp-seg-nav" role="tablist">
+            <button type="button" class="cwp-seg-btn active" id="assignTabAll" onclick="filterServiceAssign('all')">
+              <span class="seg-title">All Assignments</span>
+            </button>
+            <button type="button" class="cwp-seg-btn" id="assignTabDaily" onclick="filterServiceAssign('Daily Car Cleaning')">
+              <span class="seg-title">🚗 Daily Clean (Recurring)</span>
+            </button>
+            <button type="button" class="cwp-seg-btn" id="assignTabWash" onclick="filterServiceAssign('Car Washing')">
+              <span class="seg-title">🧼 Car Wash (One-Time)</span>
+            </button>
+            <button type="button" class="cwp-seg-btn" id="assignTabSolar" onclick="filterServiceAssign('Solar Panel Cleaning')">
+              <span class="seg-title">☀️ Solar Cleaning</span>
+            </button>
+            <button type="button" class="cwp-seg-btn" id="assignTabNoPlan" onclick="filterServiceAssign('none')">
+              <span class="seg-title">⚠️ No Active Plan</span>
+            </button>
+          </div>
+          <div class="cwp-search-toolbar">
+            <div class="cwp-search-box">
+              <span class="material-symbols-outlined search-mag-icon">search</span>
+              <input type="text" id="serviceAssignSearch" class="cwp-search-input-field" placeholder="Search customer, vehicle plate, plan or staff..." oninput="filterServiceAssign()">
+            </div>
+          </div>
+        </div>
+        <div class="cwp-dir-table-card">
+          <div class="records-table-wrapper">
+            <table class="records-table" id="serviceAssignTable">
+              <thead>
+                <tr>
+                  <th style="width: 44px; text-align: center;">#</th>
+                  <th style="min-width: 180px;">Customer</th>
+                  <th style="min-width: 170px;">Registered Asset</th>
+                  <th style="min-width: 180px;">Service & Plan</th>
+                  <th style="width: 130px;">Plan Nature</th>
+                  <th style="width: 150px;">Assigned Staff</th>
+                  <th style="width: 100px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="serviceAssignTableBody">
+                <tr><td colspan="7" style="text-align: center; padding: 36px; color: var(--text-muted);">Loading service assignments...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
     <div id="adminTabDashboard" class="admin-tab-pane" style="display: none;">
     <div id="adminOpsDashboardHub" class="ops-dashboard-hub-header">
     <div class="ops-hub-top-row">
@@ -2411,7 +2458,6 @@
     <label class="form-label" for="editCustNotes">Staff Notes & Instructions</label>
     <textarea id="editCustNotes" class="form-textarea form-textarea-compact" rows="2" placeholder="Cleaning instructions..."></textarea>
     </div></div></div>
-    <!-- Tab Pane: Packages & Entitlements -->
     <div id="editTabPanePackages" class="edit-tab-pane">
     <div class="cwp-form-section-card">
     <div class="form-section-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -2427,7 +2473,6 @@
     <span>Sell Package</span>
     </button>
     </div>
-    <!-- Filter Pills -->
     <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
     <button type="button" id="pkgFilterAll" class="m3-filter-pill active" onclick="filterCustomerPackagesUI('all')" style="padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--border-color); background: #2563eb; color: #fff; cursor: pointer;">
     All (<span id="pkgCountAll">0</span>)
@@ -2443,11 +2488,9 @@
     </button>
     </div>
     <div id="custPackagesListContainer" style="display: flex; flex-direction: column; gap: 8px;">
-    <!-- Rendered dynamically -->
     </div>
     </div>
     </div>
-    <!-- Tab Pane: Service Bookings & Jobs -->
     <div id="editTabPaneBookings" class="edit-tab-pane">
     <div class="cwp-form-section-card">
     <div class="form-section-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -2463,7 +2506,6 @@
     <span>New Booking</span>
     </button>
     </div>
-    <!-- Filter Pills -->
     <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
     <button type="button" id="bookingFilterAll" class="m3-filter-pill active" onclick="filterCustomerBookingsUI('all')" style="padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--border-color); background: #7c3aed; color: #fff; cursor: pointer;">
     All (<span id="bookingCountAll">0</span>)
@@ -2479,7 +2521,6 @@
     </button>
     </div>
     <div id="custBookingsListContainer" style="display: flex; flex-direction: column; gap: 8px;">
-    <!-- Rendered dynamically -->
     </div>
     </div>
     </div>
@@ -2776,7 +2817,6 @@
     <option value="false">🚫 Inactive (Login Disabled)</option>
     </select>
     </div></div></div>
-    <!-- Task 01.9: Designation, Hierarchy & Operational Authority -->
     <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; background: var(--bg-card, #ffffff); margin-bottom: 12px;">
     <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
     <div style="display: flex; align-items: center; gap: 6px;">
@@ -2815,18 +2855,15 @@
     <input type="text" id="editStaffOperationalScope" class="form-input" placeholder="e.g. Sector 50-62 Cluster, Indirapuram Zone">
     </div>
     </div>
-    <!-- Authorities Granted Preview -->
     <div style="background: var(--bg-surface, #f8fafc); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 10px;">
     <div style="font-size: 11px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
     <span class="material-symbols-outlined" style="font-size: 14px; color: #16a34a;">verified_user</span>
     <span>Granted Operational Authorities (प्राप्त परिचालन अधिकार):</span>
     </div>
     <div id="editStaffAuthoritiesContainer" style="display: flex; gap: 6px; flex-wrap: wrap;">
-    <!-- Populated dynamically -->
     </div>
     </div>
     </div>
-    <!-- Task 01.8: Work-Type & Service Capabilities -->
     <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; background: var(--bg-card, #ffffff); margin-bottom: 12px;">
     <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
     <div style="display: flex; align-items: center; gap: 6px;">
@@ -2851,31 +2888,26 @@
     Authorized Service Capabilities (अधिकृत सेवाएँ):
     </div>
     <div id="editStaffCapabilitiesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
-    <!-- DCC -->
     <label class="capability-checkbox-card" id="capCard_edit_daily_car_cleaning" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); cursor: pointer; user-select: none;">
     <input type="checkbox" id="capCheck_edit_daily_car_cleaning" value="daily_car_cleaning" checked disabled onchange="window.handleStaffCapabilityToggle('edit')" style="accent-color: #2563eb; width: 16px; height: 16px;">
     <span class="material-symbols-outlined" style="font-size: 18px; color: #2563eb;">directions_car</span>
     <span style="font-size: 12px; font-weight: 600;">Daily Clean (DCC)</span>
     </label>
-    <!-- Car Wash -->
     <label class="capability-checkbox-card" id="capCard_edit_car_washing" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); cursor: pointer; user-select: none;">
     <input type="checkbox" id="capCheck_edit_car_washing" value="car_washing" disabled onchange="window.handleStaffCapabilityToggle('edit')" style="accent-color: #0284c7; width: 16px; height: 16px;">
     <span class="material-symbols-outlined" style="font-size: 18px; color: #0284c7;">local_car_wash</span>
     <span style="font-size: 12px; font-weight: 600;">Car Wash</span>
     </label>
-    <!-- Solar Cleaning -->
     <label class="capability-checkbox-card" id="capCard_edit_solar_cleaning" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); cursor: pointer; user-select: none;">
     <input type="checkbox" id="capCheck_edit_solar_cleaning" value="solar_cleaning" disabled onchange="window.handleStaffCapabilityToggle('edit')" style="accent-color: #d97706; width: 16px; height: 16px;">
     <span class="material-symbols-outlined" style="font-size: 18px; color: #d97706;">solar_power</span>
     <span style="font-size: 12px; font-weight: 600;">Solar Cleaning</span>
     </label>
-    <!-- Interior Detailing -->
     <label class="capability-checkbox-card" id="capCard_edit_interior_detailing" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); cursor: pointer; user-select: none;">
     <input type="checkbox" id="capCheck_edit_interior_detailing" value="interior_detailing" disabled onchange="window.handleStaffCapabilityToggle('edit')" style="accent-color: #7c3aed; width: 16px; height: 16px;">
     <span class="material-symbols-outlined" style="font-size: 18px; color: #7c3aed;">auto_awesome</span>
     <span style="font-size: 12px; font-weight: 600;">Interior Detailing</span>
     </label>
-    <!-- Exterior Detailing -->
     <label class="capability-checkbox-card" id="capCard_edit_exterior_detailing" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); cursor: pointer; user-select: none;">
     <input type="checkbox" id="capCheck_edit_exterior_detailing" value="exterior_detailing" disabled onchange="window.handleStaffCapabilityToggle('edit')" style="accent-color: #059669; width: 16px; height: 16px;">
     <span class="material-symbols-outlined" style="font-size: 18px; color: #059669;">shield</span>
@@ -3775,7 +3807,6 @@
     <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">block</span><span id="btnSubmitCancelJobText">रद्द दर्ज करें</span>
     </button>
     </div></div></div></div>
-    <!-- Task 01.9: Designation & Operational Authority Management Modal -->
   <div id="designationManagementModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="designationModalTitle" onclick="handleStaticBackdropClick('designationManagementModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 820px; width: 94%; max-height: 88vh; display: flex; flex-direction: column;">
     <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(3, 105, 161, 0.05)); display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-color);">
@@ -3797,7 +3828,6 @@
     </div>
     </div>
     <div class="modal-card-body" style="padding: 16px; overflow-y: auto; flex: 1;">
-    <!-- Add Custom Designation Form Container (Collapsible) -->
     <div id="addDesignationFormContainer" style="display: none; background: var(--bg-surface, #f8fafc); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
     <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
     <span class="material-symbols-outlined" style="font-size: 16px; color: var(--brand-blue);">add_circle</span>
@@ -3881,7 +3911,6 @@
     </div>
     </form>
     </div>
-    <!-- Designations Table Container -->
     <div id="designationsTableContainer">
     <div class="empty-state-box">Loading designations...</div>
     </div>
@@ -3894,7 +3923,6 @@
     </div>
     </div>
   </div>
-  <!-- Task 01.2: Sell Package Modal -->
   <div id="sellPackageModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sellPackageModalTitle" onclick="handleStaticBackdropClick('sellPackageModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 600px; width: 92%; max-height: 90vh; display: flex; flex-direction: column;">
     <div class="modal-card-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
@@ -3979,7 +4007,6 @@
     </form>
     </div>
   </div>
-  <!-- Task 01.2: Redeem Package Modal -->
   <div id="redeemPackageModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="redeemPackageModalTitle" onclick="handleStaticBackdropClick('redeemPackageModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 520px; width: 92%; max-height: 88vh; display: flex; flex-direction: column;">
     <div class="modal-card-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
@@ -4039,7 +4066,6 @@
     </form>
     </div>
   </div>
-  <!-- Task 01.2: Package History Modal -->
   <div id="packageHistoryModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="packageHistoryModalTitle" onclick="handleStaticBackdropClick('packageHistoryModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 650px; width: 92%; max-height: 85vh; display: flex; flex-direction: column;">
     <div class="modal-card-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
@@ -4063,7 +4089,6 @@
     </div>
     </div>
   </div>
-  <!-- Task 01.3: Create Booking Modal -->
   <div id="createBookingModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="createBookingModalTitle" onclick="handleStaticBackdropClick('createBookingModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 650px; width: 92%; max-height: 90vh; display: flex; flex-direction: column;">
     <div class="modal-card-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
@@ -4164,7 +4189,6 @@
     </form>
     </div>
   </div>
-  <!-- Task 01.9: Organizational Hierarchy Tree Modal -->
   <div id="staffHierarchyModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="staffHierarchyModalTitle" onclick="handleStaticBackdropClick('staffHierarchyModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
     <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 900px; width: 94%; max-height: 88vh; display: flex; flex-direction: column;">
     <div class="modal-card-header" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(109, 40, 217, 0.05)); display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-color);">
@@ -4187,7 +4211,6 @@
     </div>
     <div class="modal-card-body" style="padding: 16px; overflow-y: auto; flex: 1;">
     <div id="staffHierarchySummaryChips" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
-    <!-- Populated dynamically -->
     </div>
     <div id="staffHierarchyTreeContainer">
     <div class="empty-state-box">Loading hierarchy tree...</div>
@@ -4198,7 +4221,6 @@
     </div>
     </div>
   </div>
-  <!-- Route Management: Create Route Modal -->
   <div id="rmCreateRouteModal" class="image-modal-overlay rm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rmCreateRouteModalTitle" onclick="handleStaticBackdropClick('rmCreateRouteModal')" style="display: none;">
     <div class="modal-card-box rm-modal-box" onclick="event.stopPropagation()">
     <div class="rm-modal-header">
@@ -4248,7 +4270,6 @@
     </form>
     </div>
   </div>
-  <!-- Route Management: Edit Route Modal -->
   <div id="rmEditRouteModal" class="image-modal-overlay rm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rmEditRouteModalTitle" onclick="handleStaticBackdropClick('rmEditRouteModal')" style="display: none;">
     <div class="modal-card-box rm-modal-box" onclick="event.stopPropagation()">
     <div class="rm-modal-header">
@@ -4297,7 +4318,6 @@
     </form>
     </div>
   </div>
-  <!-- Route Management: Assign Staff Modal -->
   <div id="rmAssignStaffModal" class="image-modal-overlay rm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rmAssignStaffModalTitle" onclick="handleStaticBackdropClick('rmAssignStaffModal')" style="display: none;">
     <div class="modal-card-box rm-modal-box" onclick="event.stopPropagation()">
     <div class="rm-modal-header">
@@ -4340,7 +4360,6 @@
     </div>
     </div>
   </div>
-  <!-- Route Management: Add Stop to Route Modal -->
   <div id="rmAddStopModal" class="image-modal-overlay rm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rmAddStopModalTitle" onclick="handleStaticBackdropClick('rmAddStopModal')" style="display: none;">
     <div class="modal-card-box rm-modal-box" onclick="event.stopPropagation()" style="max-width:680px;">
     <div class="rm-modal-header">
@@ -4389,7 +4408,6 @@
     </div>
     </div>
   </div>
-  <!-- Route Management: Transfer Stop Modal -->
   <div id="rmTransferStopModal" class="image-modal-overlay rm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rmTransferStopModalTitle" onclick="handleStaticBackdropClick('rmTransferStopModal')" style="display: none;">
     <div class="modal-card-box rm-modal-box" onclick="event.stopPropagation()">
     <div class="rm-modal-header">
@@ -4419,7 +4437,6 @@
     </div>
     </div>
   </div>
-  <!-- Route Management: Delete Route Confirmation Modal -->
   <div id="rmDeleteRouteModal" class="image-modal-overlay rm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rmDeleteRouteModalTitle" onclick="closeDeleteRouteModal()" style="display: none; z-index:2300;">
     <div class="logout-confirm-box rm-danger-box" onclick="event.stopPropagation()">
     <div class="rm-danger-icon-circle"><span class="material-symbols-outlined" style="font-size:28px;">delete_forever</span></div>
@@ -4432,7 +4449,6 @@
     </div>
     </div>
   </div>
-  <!-- Route Management: Remove Stop Confirmation Modal -->
   <div id="rmRemoveStopModal" class="image-modal-overlay rm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rmRemoveStopModalTitle" onclick="closeRemoveStopModal()" style="display: none; z-index:2300;">
     <div class="logout-confirm-box rm-danger-box" onclick="event.stopPropagation()">
     <div class="rm-danger-icon-circle"><span class="material-symbols-outlined" style="font-size:28px;">remove_circle_outline</span></div>
@@ -4453,7 +4469,7 @@
   </script>
   <script src="/js/cropper.min.js"></script>
   <script src="/js/cwp-neural-core.js?v=1.0.0"></script>
-  <script src="/js/app.js?v=3.3.9" defer></script>
+  <script src="/js/app.js?v=3.5.5" defer></script>
   <script>
   // Failsafe listener for staff photo selection
   document.addEventListener('change', function(e) {

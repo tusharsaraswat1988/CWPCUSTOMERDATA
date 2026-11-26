@@ -658,66 +658,18 @@ body.theme-dark {
   background: var(--color-surface-hover, #f8fafc);
 }
 
-/* Tablet & Mobile Card Transformation (< 768px) */
+/* Tablet & Mobile Table Wrapper (< 768px) */
 @media (max-width: 768px) {
   .records-table-wrapper {
-    border: none;
-    background: transparent;
-    overflow-x: visible;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--color-border-subtle, #e2e8f0);
+    border-radius: var(--radius-md, 12px);
+    background: #ffffff;
   }
 
   .records-table {
-    display: block;
-    width: 100%;
-  }
-
-  .records-table thead {
-    display: none;
-  }
-
-  .records-table tbody {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-  }
-
-  .records-table tbody tr {
-    display: flex;
-    flex-direction: column;
-    background: var(--color-surface, #ffffff);
-    border: 1px solid var(--color-border-subtle, #e2e8f0);
-    border-radius: var(--radius-md, 12px);
-    padding: 14px;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
-    position: relative;
-    gap: 8px;
-  }
-
-  .records-table tbody td {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 2px 0;
-    border: none;
-    font-size: 13.5px;
-    width: 100%;
-  }
-
-  .records-table tbody td:first-child {
-    display: none; /* Hide S.No column on mobile card */
-  }
-
-  .records-table tbody td.td-cust-name {
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
-  }
-
-  .records-table tbody td.td-actions {
-    margin-top: 6px;
-    padding-top: 8px;
-    border-top: 1px solid var(--color-border-subtle, #f1f5f9);
-    justify-content: flex-end;
+    min-width: 780px;
   }
 }
 
@@ -1253,4 +1205,717 @@ body.theme-dark {
 .form-input:focus, .form-select:focus {
   border-color: var(--color-action-primary, #2563eb);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* ==========================================================================
+   CUSTOMER DIRECTORY - MODERN SCANNABLE ENTERPRISE CRM WORKSPACE
+   Inspired by Enterprise References (Tareq Rahman Dribbble & HEMA)
+   ========================================================================== */
+
+/* 1. Header Bar */
+.records-header-clean {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-border-subtle, #e2e8f0);
+}
+
+.records-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.records-title-main {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.records-count-discrete {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-text-muted, #64748b);
+}
+
+.records-count-discrete strong {
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+}
+
+/* 2. Sleek Segmented Filter Pills Bar */
+.records-segment-pills-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-border-subtle, #e2e8f0);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.records-segment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-text-secondary, #475569);
+  background: var(--color-surface-container-low, #f8fafc);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  border-radius: var(--radius-full, 9999px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.records-segment-pill:hover {
+  background: var(--color-surface-container, #f1f5f9);
+  color: var(--color-text-primary, #0f172a);
+  border-color: #cbd5e1;
+}
+
+.records-segment-pill.active {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.records-segment-pill .pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.07);
+  color: inherit;
+}
+
+.records-segment-pill.active .pill-count {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* 3. Table Workspace & 48px Compact Rows */
+.records-table-container {
+  padding: 16px 20px;
+  background: var(--color-surface-canvas, #f8fafc);
+}
+
+.records-table-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.records-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.records-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+@media (min-width: 769px) {
+  .records-table tbody tr {
+    height: 48px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.12s ease;
+  }
+}
+
+.records-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.records-table tbody td {
+  padding: 8px 14px;
+  vertical-align: middle;
+  font-size: 13px;
+  color: var(--color-text-primary, #0f172a);
+}
+
+/* Serial Number */
+.sno-badge {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+}
+
+/* Customer Name Cell */
+.cust-name-cell-modern {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cust-name-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cust-name-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.table-hi-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-muted, #64748b);
+  margin-left: 4px;
+}
+
+/* Phone Cell */
+.table-phone-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.cust-phone-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-text-secondary, #334155);
+  text-decoration: none;
+}
+
+.cust-phone-link:hover {
+  color: var(--color-action-primary, #2563eb);
+}
+
+.cust-wa-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: #dcfce7;
+  color: #15803d;
+  text-decoration: none;
+}
+
+.cust-wa-pill:hover {
+  background: #bbf7d0;
+}
+
+/* Service Category & Plan */
+.table-service-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.cust-sheet-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.cust-sheet-tag.tag-daily {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.cust-sheet-tag.tag-wash {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.cust-sheet-tag.tag-solar {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.cust-sheet-tag.tag-stopped {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  cursor: pointer;
+}
+
+.cust-sheet-tag.tag-noservice {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+}
+
+.tag-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.table-pkg-badge-inline {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary, #475569);
+  padding: 1px 6px;
+  background: var(--color-surface-container-low, #f8fafc);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  border-radius: 4px;
+}
+
+/* Vehicle / Site Cell */
+.vehicle-cell-wrap-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vehicle-plate-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vehicle-photo-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.vehicle-photo-icon-btn:hover {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #93c5fd;
+}
+
+.table-vehicle-make-color {
+  font-size: 11px;
+  color: var(--color-text-muted, #64748b);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+/* Address Single-Line Truncation */
+.table-addr-col-wrap {
+  max-width: 190px;
+}
+
+.table-addr-text {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12.5px;
+  color: var(--color-text-secondary, #334155);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-addr-text:hover {
+  color: var(--color-action-primary, #2563eb);
+}
+
+.addr-text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Map direct link */
+.table-inline-map-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  text-decoration: none;
+}
+
+.table-inline-map-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* 2nd Location circle */
+.btn-sec-loc-circle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  cursor: pointer;
+}
+
+/* Staff assigned */
+.staff-assigned-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 4px;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.staff-avatar-mini, .staff-avatar-mini-initials {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 9.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #cbd5e1;
+  color: #1e293b;
+}
+
+.staff-none-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  white-space: nowrap;
+}
+
+/* Actions cluster & menu */
+.records-actions-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+
+.btn-edit-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-edit-record:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.cwp-action-menu-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.cwp-action-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cwp-action-menu-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.cwp-action-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+  min-width: 160px;
+  z-index: 1000;
+  display: none;
+  padding: 4px;
+}
+
+.cwp-action-menu-dropdown.is-open {
+  display: block;
+}
+
+.cwp-action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.cwp-action-menu-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.cwp-action-menu-item .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.cwp-action-menu-item.text-danger {
+  color: #dc2626;
+}
+
+.cwp-action-menu-item.text-danger:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.cwp-action-menu-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+
+/* ==========================================================================
+   DISPATCH HUB & M3 FILTER CHIPS SPECIFICATION
+   ========================================================================== */
+.cwp-dir-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+  margin-bottom: 20px !important;
+  padding: 4px 0 !important;
+}
+
+.cwp-dir-header-title-block {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.cwp-dir-title {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: var(--color-text-primary, #0f172a) !important;
+  margin: 0 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.cwp-dir-subtitle {
+  font-size: 13px !important;
+  color: var(--color-text-secondary, #64748b) !important;
+  margin: 0 !important;
+}
+
+.cwp-dir-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.cwp-btn-hero-primary {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: 42px !important;
+  padding: 0 20px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  border: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-decoration: none !important;
+}
+
+.cwp-btn-hero-primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.cwp-btn-hero-primary:active {
+  transform: translateY(0) !important;
+}
+
+.cwp-service-filter-chips {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  padding: 4px 0 !important;
+}
+
+.cwp-service-filter-chips::-webkit-scrollbar {
+  display: none !important;
+}
+
+.cwp-service-filter-chips .cwp-filter-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  height: 34px !important;
+  padding: 0 14px !important;
+  border-radius: 9999px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.cwp-service-filter-chips .cwp-filter-chip:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.cwp-service-filter-chips .cwp-filter-chip.active {
+  background: #eff6ff !important;
+  border-color: #3b82f6 !important;
+  color: #1d4ed8 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15) !important;
+}
+
+.cwp-service-filter-chips .cwp-filter-chip .chip-count {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  padding: 0 6px !important;
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  margin-left: 2px !important;
+}
+
+.cwp-service-filter-chips .cwp-filter-chip.active .chip-count {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.cwp-service-filter-chips .cwp-filter-chip.chip-unassigned {
+  border-color: #fed7aa !important;
+  background: #fffbf5 !important;
+  color: #c2410c !important;
+}
+
+.cwp-service-filter-chips .cwp-filter-chip.chip-unassigned.active {
+  background: #fff7ed !important;
+  border-color: #ea580c !important;
+  color: #9a3412 !important;
+}
+
+.cwp-service-filter-chips .cwp-filter-chip.chip-unassigned .chip-count {
+  background: #ffedd5 !important;
+  color: #c2410c !important;
+}
+
+.cwp-service-filter-chips .cwp-filter-chip.chip-unassigned.active .chip-count {
+  background: #ea580c !important;
+  color: #ffffff !important;
 }
