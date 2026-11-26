@@ -2,7 +2,7 @@
  * CWP Admin V2 Overlay Controller (Modals, Confirmation Dialogs & Drawers)
  * STRICTLY SCOPED to window.CWP_ADMIN_V2.overlay
  * Implements accessible focus management, stack tracking, backdrop dismiss, ESC handling,
- * and nested dialog support.
+ * nested dialog support, role="dialog"/aria-modal="true" enforcement, and popstate bridge.
  */
 
 (function (window) {
@@ -12,12 +12,41 @@
 
   const overlayStack = [];
   let isGlobalKeybound = false;
+  let isTriggerBound = false;
+  let isPopstateBound = false;
+  let suppressPopstateCount = 0;
+  let suppressResetTimer = null;
+
+  function suppressNextPopstate() {
+    suppressPopstateCount += 1;
+    if (suppressResetTimer) clearTimeout(suppressResetTimer);
+    suppressResetTimer = setTimeout(() => {
+      suppressPopstateCount = 0;
+      suppressResetTimer = null;
+    }, 500);
+  }
 
   function init() {
-    bindTriggerAttributes();
+    if (!isTriggerBound) {
+      bindTriggerAttributes();
+      isTriggerBound = true;
+    }
     if (!isGlobalKeybound) {
       window.addEventListener('keydown', handleGlobalKeydown);
       isGlobalKeybound = true;
+    }
+    if (!isPopstateBound) {
+      window.addEventListener('popstate', function (e) {
+        if (suppressPopstateCount > 0) {
+          suppressPopstateCount -= 1;
+          if (suppressPopstateCount === 0 && suppressResetTimer) {
+            clearTimeout(suppressResetTimer);
+            suppressResetTimer = null;
+          }
+          e.stopImmediatePropagation();
+        }
+      }, true);
+      isPopstateBound = true;
     }
   }
 
@@ -28,20 +57,36 @@
       return null;
     }
 
-    const triggerEl = document.activeElement;
+    // Prevent duplicate stacking of same overlay
+    const existingIdx = overlayStack.findIndex(item => item.id === overlayId);
+    if (existingIdx !== -1) {
+      return overlayEl;
+    }
+
+    const triggerEl = options.triggerEl || document.activeElement;
     const isNested = overlayStack.length > 0;
 
-    // Configuration
     const config = {
       backdropClose: options.backdropClose !== false,
       escapeClose: options.escapeClose !== false,
+      pushHistory: options.pushHistory !== false,
       initialFocus: options.initialFocus || null,
       onClose: options.onClose || null,
       triggerEl: triggerEl
     };
 
-    // Store in stack
-    overlayStack.push({ id: overlayId, el: overlayEl, config, isNested });
+    const item = { id: overlayId, el: overlayEl, config, isNested, historyPushed: false };
+    overlayStack.push(item);
+
+    // Enforce dialog ARIA semantics
+    const innerCard = overlayEl.querySelector('.cwp-v2-modal, .cwp-v2-drawer');
+    if (innerCard) {
+      if (!innerCard.getAttribute('role')) innerCard.setAttribute('role', 'dialog');
+      innerCard.setAttribute('aria-modal', 'true');
+    } else {
+      if (!overlayEl.getAttribute('role')) overlayEl.setAttribute('role', 'dialog');
+      overlayEl.setAttribute('aria-modal', 'true');
+    }
 
     // Show backdrop
     overlayEl.style.display = 'flex';
@@ -49,12 +94,26 @@
 
     if (isNested) {
       overlayEl.classList.add('is-nested');
-      const innerCard = overlayEl.querySelector('.cwp-v2-modal, .cwp-v2-drawer');
       if (innerCard) innerCard.classList.add('is-nested');
     }
 
     // Lock body scroll
     document.body.classList.add('cwp-v2-modal-open');
+
+    // Push browser history state for Back button LIFO dismissal
+    if (config.pushHistory && window.history && typeof window.history.pushState === 'function') {
+      try {
+        const curState = (window.history.state && typeof window.history.state === 'object') ? window.history.state : {};
+        window.history.pushState(
+          Object.assign({}, curState, { cwpV2Overlay: overlayId }),
+          '',
+          window.location.href
+        );
+        item.historyPushed = true;
+      } catch (err) {
+        // Ignore restricted history state
+      }
+    }
 
     // Manage Focus
     setTimeout(() => {
@@ -66,9 +125,8 @@
       }
 
       if (!focusTarget) {
-        // Find first focusable input or button
-        focusTarget = overlayEl.querySelector('input:not([disabled]), button:not([disabled]):not(.cwp-v2-modal-close-btn), textarea:not([disabled]), select:not([disabled])')
-          || overlayEl.querySelector('.cwp-v2-modal-close-btn');
+        focusTarget = overlayEl.querySelector('input:not([disabled]):not([type="hidden"]), button:not([disabled]):not(.cwp-v2-modal-close-btn), textarea:not([disabled]), select:not([disabled])')
+          || overlayEl.querySelector('.cwp-v2-modal-close-btn, [data-overlay-close]');
       }
 
       if (focusTarget && typeof focusTarget.focus === 'function') {
@@ -76,24 +134,21 @@
       }
     }, 40);
 
-    // Bind click handlers if not already bound
     bindBackdropClick(overlayEl, config);
-
     return overlayEl;
   }
 
-  function close(overlayId) {
-    if (overlayStack.length === 0) return;
+  function close(overlayId, opts = {}) {
+    if (overlayStack.length === 0) return false;
 
     let itemIndex = -1;
     if (overlayId) {
       itemIndex = overlayStack.findIndex(item => item.id === overlayId);
     } else {
-      // Default: close topmost overlay
       itemIndex = overlayStack.length - 1;
     }
 
-    if (itemIndex === -1) return;
+    if (itemIndex === -1) return false;
 
     const [item] = overlayStack.splice(itemIndex, 1);
     const { el: overlayEl, config } = item;
@@ -104,29 +159,54 @@
     const innerCard = overlayEl.querySelector('.cwp-v2-modal, .cwp-v2-drawer');
     if (innerCard) innerCard.classList.remove('is-nested');
 
-    // Unlock body scroll if no more overlays are open
     if (overlayStack.length === 0) {
       document.body.classList.remove('cwp-v2-modal-open');
     }
 
-    // Return focus to triggering element
-    if (config.triggerEl && typeof config.triggerEl.focus === 'function') {
+    // Pop the pushed overlay history entry on manual close (not via popstate)
+    if (!opts.fromPopstate && !opts.skipHistoryBack && item.historyPushed && window.history && window.history.state && window.history.state.cwpV2Overlay === item.id) {
       try {
-        config.triggerEl.focus();
-      } catch (err) {
-        // Trigger might have been removed
-      }
+        suppressNextPopstate();
+        window.history.back();
+      } catch (err) {}
     }
 
-    // Call callback if provided
+    if (config.triggerEl && document.contains(config.triggerEl) && typeof config.triggerEl.focus === 'function') {
+      try {
+        config.triggerEl.focus();
+      } catch (err) {}
+    }
+
     if (typeof config.onClose === 'function') {
       config.onClose();
     }
+
+    return true;
   }
 
-  function closeAll() {
+  function closeAll(opts = {}) {
+    if (opts.fromPopstate || opts.skipHistoryBack) {
+      while (overlayStack.length > 0) {
+        close(undefined, opts);
+      }
+      return;
+    }
+
+    let popCount = 0;
+    for (let i = overlayStack.length - 1; i >= 0; i--) {
+      if (overlayStack[i].historyPushed) popCount += 1;
+      else break;
+    }
+
     while (overlayStack.length > 0) {
-      close();
+      close(undefined, Object.assign({}, opts, { skipHistoryBack: true }));
+    }
+
+    if (popCount > 0 && window.history && window.history.state && window.history.state.cwpV2Overlay) {
+      try {
+        suppressNextPopstate();
+        window.history.go(-popCount);
+      } catch (err) {}
     }
   }
 
@@ -141,7 +221,6 @@
       }
     }
 
-    // Tab trap inside topmost modal
     if (e.key === 'Tab' && overlayStack.length > 0) {
       const topItem = overlayStack[overlayStack.length - 1];
       trapTabFocus(e, topItem.el);
@@ -150,7 +229,7 @@
 
   function trapTabFocus(e, containerEl) {
     const focusables = containerEl.querySelectorAll(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
     );
     if (focusables.length === 0) return;
 
@@ -158,12 +237,12 @@
     const last = focusables[focusables.length - 1];
 
     if (e.shiftKey) {
-      if (document.activeElement === first) {
+      if (document.activeElement === first || !containerEl.contains(document.activeElement)) {
         e.preventDefault();
         last.focus();
       }
     } else {
-      if (document.activeElement === last) {
+      if (document.activeElement === last || !containerEl.contains(document.activeElement)) {
         e.preventDefault();
         first.focus();
       }
@@ -175,15 +254,15 @@
     overlayEl._cwpBackdropBound = true;
 
     overlayEl.addEventListener('click', function (e) {
-      // Backdrop click only if target is the backdrop itself
       if (e.target === overlayEl) {
-        if (config.backdropClose) {
+        const item = overlayStack.find(x => x.id === overlayEl.id);
+        const allowBackdrop = item ? item.config.backdropClose : config.backdropClose;
+        if (allowBackdrop) {
           close(overlayEl.id);
         }
       }
     });
 
-    // Close buttons inside
     overlayEl.querySelectorAll('[data-overlay-close], .cwp-v2-modal-close-btn').forEach(btn => {
       btn.addEventListener('click', function (e) {
         e.preventDefault();
@@ -206,7 +285,8 @@
       open(targetId, {
         backdropClose,
         escapeClose,
-        initialFocus
+        initialFocus,
+        triggerEl: trigger
       });
     });
   }
@@ -217,10 +297,11 @@
     close,
     closeAll,
     getTopmost: () => (overlayStack.length > 0 ? overlayStack[overlayStack.length - 1] : null),
-    getStackDepth: () => overlayStack.length
+    getStackDepth: () => overlayStack.length,
+    trapTabFocus,
+    handleGlobalKeydown
   };
 
-  // Auto-init when DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

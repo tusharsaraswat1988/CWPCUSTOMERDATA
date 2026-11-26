@@ -2664,9 +2664,11 @@ const server = http.createServer(async (req, res) => {
               });
               if (authRes && authRes.success) {
                 clearRateLimit(clientIp, 'admin');
+                const adminUsername = (authRes.admin && authRes.admin.username) || authRes.username || 'admin';
+                const adminRole = (authRes.admin && authRes.admin.role) || authRes.role || 'superadmin';
                 recordAdminSession(authRes.token, {
-                  username: (authRes.admin && authRes.admin.username) || authRes.username || 'admin',
-                  role: (authRes.admin && authRes.admin.role) || authRes.role || 'superadmin',
+                  username: adminUsername,
+                  role: adminRole,
                   createdAt: Date.now(),
                   expiresAt: Date.now() + SESSION_TTL_MS
                 });
@@ -2674,7 +2676,12 @@ const server = http.createServer(async (req, res) => {
                 return res.end(JSON.stringify({
                   success: true,
                   token: authRes.token,
-                  expiresIn: SESSION_TTL_MS / 1000
+                  expiresIn: SESSION_TTL_MS / 1000,
+                  user: {
+                    username: adminUsername,
+                    role: adminRole,
+                    userType: 'admin'
+                  }
                 }));
               } else if (authRes && authRes.rateLimited) {
                 if (!isAuto) recordFailedLogin(clientIp, 'admin');
@@ -2691,11 +2698,17 @@ const server = http.createServer(async (req, res) => {
           if (isMatch) {
             clearRateLimit(clientIp, 'admin');
             const sessionToken = createAdminSession();
+            const sessObj = adminSessions.get(sessionToken) || {};
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: true,
               token: sessionToken,
-              expiresIn: SESSION_TTL_MS / 1000
+              expiresIn: SESSION_TTL_MS / 1000,
+              user: {
+                username: sessObj.username || 'admin',
+                role: sessObj.role || 'superadmin',
+                userType: 'admin'
+              }
             }));
           }
 
@@ -3036,6 +3049,7 @@ const server = http.createServer(async (req, res) => {
         // PROTECTED ADMIN OPERATIONS (REQUIRE VALID ADMIN SESSION TOKEN)
         // =====================================================================
         const adminProtectedActions = [
+          'verifyAdminSession',
           'getAllCustomers',
           'getLeads',
           'convertLead',
@@ -3116,6 +3130,26 @@ const server = http.createServer(async (req, res) => {
               success: false,
               error: 'Unauthorized: Valid Admin session required for operation: ' + payload.action,
               unauthorized: true
+            }));
+          }
+
+          if (payload.action === 'verifyAdminSession') {
+            const memSess = adminSessions.get(token) || (appState.adminSessions && appState.adminSessions[token]) || {};
+            const neonActive = isNeonPrimaryActive();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: true,
+              valid: true,
+              capabilities: {
+                auditLogs: neonActive
+              },
+              user: {
+                username: adminSess.adminUsername || adminSess.username || memSess.username || 'admin',
+                role: adminSess.adminRole || adminSess.role || memSess.role || 'superadmin',
+                userType: 'admin',
+                expiresAt: adminSess.expiresAt || memSess.expiresAt || null,
+                storageMode: neonActive ? 'neon' : 'local'
+              }
             }));
           }
         }
@@ -5123,7 +5157,13 @@ const server = http.createServer(async (req, res) => {
                 batteryLevel: payload.batteryLevel,
                 isCharging: payload.isCharging,
                 triggerType: payload.triggerType || payload.trigger || 'heartbeat',
-                capturedAt: payload.capturedAt || new Date().toISOString()
+                capturedAt: payload.capturedAt || new Date().toISOString(),
+                clientEventId: payload.clientEventId || null,
+                deviceId: payload.deviceId || null,
+                appVersion: payload.appVersion || null,
+                networkType: payload.networkType || null,
+                connectivityStatus: payload.connectivityStatus || null,
+                permissionStatus: payload.permissionStatus || null
               });
 
               res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -5346,6 +5386,52 @@ const server = http.createServer(async (req, res) => {
             success: true,
             googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || ''
           }));
+        }
+
+        // 8. Admin: Acknowledge Operational Tracking Alert
+        if (payload.action === 'acknowledgeTrackingAlert') {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin privileges required' }));
+          }
+          if (!payload.eventId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'eventId is required' }));
+          }
+          if (isNeonConfigured()) {
+            try {
+              const ackRes = await repos.staffTracking.acknowledgeTrackingAlert(payload.eventId, adminSess.username || 'admin');
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(ackRes));
+            } catch (ackErr) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: ackErr.message }));
+            }
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, alert: { id: payload.eventId, acknowledgedAt: new Date().toISOString() } }));
+        }
+
+        // 9. Admin: Get Tracking Events / Alerts History
+        if (payload.action === 'getStaffTrackingEvents') {
+          const adminSess = await resolveAdminSession(token);
+          if (!adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin privileges required' }));
+          }
+          if (isNeonConfigured()) {
+            try {
+              const evRes = await repos.staffTracking.getStaffTrackingEvents(payload.staffId || null, payload.date || null);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify(evRes));
+            } catch (evErr) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: evErr.message }));
+            }
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, events: [] }));
         }
 
         // =====================================================================

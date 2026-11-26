@@ -22687,6 +22687,10 @@ function loadStaffCustomerData(staffId) {
             capturedAt: capturedAt
           };
 
+          var netType = (navigator.connection && navigator.connection.effectiveType) ? navigator.connection.effectiveType : null;
+          var devId = typeof getOrCreateDeviceId === 'function' ? getOrCreateDeviceId() : null;
+          var clientEvId = 'hb_' + staffId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+
           var heartbeatPayload = {
             action: 'recordStaffHeartbeat',
             staffId: staffId,
@@ -22699,7 +22703,12 @@ function loadStaffCustomerData(staffId) {
             batteryLevel: battery.level,
             isCharging: battery.charging,
             triggerType: triggerReason || 'heartbeat',
-            capturedAt: capturedAt
+            capturedAt: capturedAt,
+            clientEventId: clientEvId,
+            deviceId: devId,
+            appVersion: '3.2.1-pwa',
+            networkType: netType,
+            connectivityStatus: navigator.onLine === false ? 'offline' : 'online'
           };
 
           lastStaffHeartbeatTimestamp = Date.now();
@@ -22735,12 +22744,23 @@ function loadStaffCustomerData(staffId) {
       });
     }
 
+    function getPendingHeartbeatQueueKey(staffId) {
+      var sid = staffId || (typeof state !== 'undefined' && state.activeStaffId) || 'anon';
+      return 'cwp_pending_heartbeats_' + String(sid);
+    }
+
     function queuePendingHeartbeat(payload) {
       try {
-        var queue = JSON.parse(localStorage.getItem('cwp_pending_heartbeats') || '[]');
+        var key = getPendingHeartbeatQueueKey(payload && payload.staffId);
+        var queue = JSON.parse(localStorage.getItem(key) || '[]');
+        if (!Array.isArray(queue)) queue = [];
+        // Deduplicate by clientEventId if present
+        if (payload && payload.clientEventId && queue.some(function(x) { return x.clientEventId === payload.clientEventId; })) {
+          return;
+        }
         queue.push(payload);
         if (queue.length > 50) queue.shift();
-        localStorage.setItem('cwp_pending_heartbeats', JSON.stringify(queue));
+        localStorage.setItem(key, JSON.stringify(queue));
       } catch (e) {}
     }
 
@@ -22748,8 +22768,11 @@ function loadStaffCustomerData(staffId) {
 
     function flushPendingHeartbeats() {
       if (isFlushingPendingHeartbeats) return;
+      var activeId = (typeof state !== 'undefined' && state.activeStaffId) ? state.activeStaffId : null;
+      if (!activeId) return;
+      var key = getPendingHeartbeatQueueKey(activeId);
       try {
-        var raw = localStorage.getItem('cwp_pending_heartbeats');
+        var raw = localStorage.getItem(key);
         if (!raw) return;
         var queue = JSON.parse(raw);
         if (!Array.isArray(queue) || queue.length === 0) return;
@@ -22766,27 +22789,29 @@ function loadStaffCustomerData(staffId) {
         // Drain sequentially to eliminate concurrency race conditions
         function processNext(idx) {
           if (idx >= queue.length) {
-            try { localStorage.removeItem('cwp_pending_heartbeats'); } catch (e) {}
+            try { localStorage.removeItem(key); } catch (e) {}
             isFlushingPendingHeartbeats = false;
             return;
           }
           var item = queue[idx];
+          if (item.staffId && String(item.staffId) !== String(activeId)) {
+            processNext(idx + 1);
+            return;
+          }
           apiCall('recordStaffHeartbeat', item, function() {
-            // Update remaining queue in localStorage in case of mid-flight drop
             try {
               var remaining = queue.slice(idx + 1);
               if (remaining.length > 0) {
-                localStorage.setItem('cwp_pending_heartbeats', JSON.stringify(remaining));
+                localStorage.setItem(key, JSON.stringify(remaining));
               } else {
-                localStorage.removeItem('cwp_pending_heartbeats');
+                localStorage.removeItem(key);
               }
             } catch (e) {}
             processNext(idx + 1);
           }, function() {
-            // On network failure, preserve remaining items from this index onwards
             try {
               var remaining = queue.slice(idx);
-              localStorage.setItem('cwp_pending_heartbeats', JSON.stringify(remaining));
+              localStorage.setItem(key, JSON.stringify(remaining));
             } catch (e) {}
             isFlushingPendingHeartbeats = false;
           });

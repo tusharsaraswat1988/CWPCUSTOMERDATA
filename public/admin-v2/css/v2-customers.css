@@ -1,0 +1,1124 @@
+/**
+ * =========================================================================
+ * CWP ADMIN V2 — CUSTOMER MODULE SCOPED STYLES
+ * =========================================================================
+ * Strictly isolated to #v2View_records and .cwp-v2-cust-* namespaces.
+ * Aura Design System: Light theme, High-density operational split-view,
+ * Material Symbols, outlined inputs, compact data table (34-36px),
+ * Rich Vehicle Cards, 5-step Add Wizard, and Tabbed Edit Form.
+ */
+
+/* -------------------------------------------------------------------------
+ * 1. WORKSPACE & TOP TOOLBAR
+ * ------------------------------------------------------------------------- */
+#v2View_records.is-active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cwp-v2-space-md, 16px);
+  width: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cwp-v2-cust-header-bar,
+.cwp-v2-cust-kpi-grid,
+.cwp-v2-cust-filter-toolbar {
+  flex-shrink: 0;
+}
+
+.cwp-v2-cust-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.cwp-v2-cust-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cwp-v2-cust-title {
+  margin: 0;
+  font-size: var(--cwp-v2-font-xl, 20px);
+  font-weight: 700;
+  color: var(--cwp-v2-sys-on-surface, #1e293b);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cwp-v2-cust-subtitle {
+  font-size: var(--cwp-v2-font-xs, 12px);
+  color: var(--cwp-v2-sys-on-surface-variant, #64748b);
+  margin: 0;
+}
+
+.cwp-v2-cust-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* -------------------------------------------------------------------------
+ * 2. CUSTOMER KPI STRIP
+ * ------------------------------------------------------------------------- */
+.cwp-v2-cust-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--cwp-v2-space-sm, 12px);
+}
+
+.cwp-v2-cust-kpi-card {
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #e2e8f0);
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.cwp-v2-cust-kpi-card:hover {
+  border-color: var(--cwp-v2-sys-primary, #1e40af);
+  box-shadow: var(--cwp-v2-shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+  transform: translateY(-1px);
+}
+
+.cwp-v2-cust-kpi-card.is-active {
+  border-color: var(--cwp-v2-sys-primary, #1e40af);
+  background: var(--cwp-v2-sys-primary-container, #eff6ff);
+}
+
+.cwp-v2-cust-kpi-card.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--cwp-v2-sys-primary, #1e40af);
+}
+
+.cwp-v2-cust-kpi-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cwp-v2-cust-kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cwp-v2-sys-on-surface-variant, #64748b);
+}
+
+.cwp-v2-cust-kpi-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cwp-v2-sys-on-surface, #1e293b);
+  line-height: 1.2;
+}
+
+.cwp-v2-cust-kpi-meta {
+  font-size: 11px;
+  color: var(--cwp-v2-sys-on-surface-variant, #64748b);
+}
+
+.cwp-v2-cust-kpi-icon {
+  font-size: 24px;
+  color: var(--cwp-v2-sys-on-surface-variant, #94a3b8);
+}
+
+.cwp-v2-cust-kpi-card.is-active .cwp-v2-cust-kpi-icon {
+  color: var(--cwp-v2-sys-primary, #1e40af);
+}
+
+/* -------------------------------------------------------------------------
+ * 3. SEARCH & FILTERS BAR
+ * ------------------------------------------------------------------------- */
+.cwp-v2-cust-filter-toolbar {
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #e2e8f0);
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cwp-v2-cust-filter-primary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cwp-v2-cust-search-box {
+  position: relative;
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.cwp-v2-cust-search-box .material-symbols-outlined {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--cwp-v2-sys-on-surface-variant, #94a3b8);
+  pointer-events: none;
+}
+
+.cwp-v2-cust-search-input {
+  width: 100%;
+  height: 32px;
+  padding: 4px 28px 4px 32px;
+  font-size: 12.5px;
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #cbd5e1);
+  border-radius: var(--cwp-v2-radius-sm, 6px);
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  color: var(--cwp-v2-sys-on-surface, #1e293b);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.cwp-v2-cust-search-input:focus {
+  border-color: var(--cwp-v2-sys-primary, #1e40af);
+  box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.15);
+}
+
+.cwp-v2-cust-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--cwp-v2-sys-on-surface-variant, #94a3b8);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px;
+  display: none;
+}
+
+.cwp-v2-cust-search-clear.is-visible {
+  display: block;
+}
+
+.cwp-v2-cust-filter-select {
+  height: 32px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #cbd5e1);
+  border-radius: var(--cwp-v2-radius-sm, 6px);
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  color: var(--cwp-v2-sys-on-surface, #1e293b);
+  outline: none;
+  cursor: pointer;
+}
+
+.cwp-v2-cust-filter-select:focus {
+  border-color: var(--cwp-v2-sys-primary, #1e40af);
+}
+
+.cwp-v2-cust-secondary-filters {
+  display: none;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--cwp-v2-sys-outline-variant, #e2e8f0);
+}
+
+.cwp-v2-cust-secondary-filters.is-open {
+  display: flex;
+}
+
+/* -------------------------------------------------------------------------
+ * 4. SPLIT-VIEW WORKSPACE (DIRECTORY + DISMISSIBLE DETAIL)
+ * ------------------------------------------------------------------------- */
+.cwp-v2-cust-split-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: var(--cwp-v2-space-md, 16px);
+  align-items: stretch;
+  width: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.cwp-v2-cust-split-view.is-detail-closed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cwp-v2-cust-split-view.is-detail-closed .cwp-v2-cust-detail-panel {
+  display: none;
+}
+
+/* LEFT: Customer Directory */
+.cwp-v2-cust-directory {
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #e2e8f0);
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.cwp-v2-cust-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1 1 0%;
+  min-height: 0;
+  position: relative;
+}
+
+.cwp-v2-cust-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  text-align: left;
+}
+
+.cwp-v2-cust-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 9px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.cwp-v2-cust-table th.is-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.cwp-v2-cust-table th.is-sortable:hover {
+  background: #f1f5f9;
+  color: var(--cwp-v2-sys-primary, #1e40af);
+}
+
+.cwp-v2-cust-table th .cwp-v2-sort-icon {
+  font-size: 14px;
+  vertical-align: middle;
+  margin-left: 2px;
+  color: #94a3b8;
+}
+
+.cwp-v2-cust-table th.is-sorted .cwp-v2-sort-icon {
+  color: var(--cwp-v2-sys-primary, #1e40af);
+}
+
+.cwp-v2-cust-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.cwp-v2-cust-table tbody tr td {
+  padding: 4px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  color: #334155;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+
+/* Permanent high-density compact table row height (~36px) */
+.cwp-v2-cust-table.is-compact tbody tr {
+  height: 36px;
+}
+
+.cwp-v2-cust-table.is-compact tbody tr td {
+  padding: 3px 10px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.cwp-v2-cust-table tbody tr:hover td {
+  background: #f8fafc;
+}
+
+.cwp-v2-cust-table tbody tr.is-selected td {
+  background: #eff6ff !important;
+  color: #1e3a8a;
+  border-bottom-color: #dbeafe;
+}
+
+.cwp-v2-cust-table tbody tr.is-selected td:first-child {
+  box-shadow: inset 3px 0 0 #1e40af;
+}
+
+/* Cell specifics */
+.cwp-v2-cust-cell-name {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cwp-v2-cust-name-main {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.cwp-v2-cust-name-sub {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cwp-v2-cust-cell-phone {
+  font-family: monospace;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.cwp-v2-cust-cell-vehicle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cwp-v2-cust-vehicle-badge {
+  font-size: 11px;
+  padding: 1px 5px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-weight: 500;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cwp-v2-cust-vehicle-count {
+  font-size: 10px;
+  padding: 1px 4px;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* Action icons inside row */
+.cwp-v2-cust-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.cwp-v2-cust-action-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
+  text-decoration: none;
+}
+
+.cwp-v2-cust-action-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.cwp-v2-cust-action-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* Directory Pagination Bar */
+.cwp-v2-cust-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #64748b;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cwp-v2-cust-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cwp-v2-cust-page-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cwp-v2-cust-page-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.cwp-v2-cust-page-btn.is-active {
+  background: #1e40af;
+  color: #ffffff;
+  border-color: #1e40af;
+  font-weight: 600;
+}
+
+.cwp-v2-cust-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* -------------------------------------------------------------------------
+ * 5. RIGHT PANE: CUSTOMER DETAIL PANEL
+ * ------------------------------------------------------------------------- */
+.cwp-v2-cust-detail-panel {
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #e2e8f0);
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+}
+
+.cwp-v2-cust-detail-scroll {
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+/* 8.1 Customer Header */
+.cwp-v2-cust-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cwp-v2-cust-detail-title-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cwp-v2-cust-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e0e7ff;
+  color: #3730a3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.cwp-v2-cust-detail-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cwp-v2-cust-detail-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.cwp-v2-cust-detail-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cwp-v2-cust-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 8.2 Customer Summary Grid */
+.cwp-v2-cust-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  background: #f8fafc;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+}
+
+.cwp-v2-cust-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cwp-v2-cust-summary-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.cwp-v2-cust-summary-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+/* 8.3 Rich Vehicle Cards */
+.cwp-v2-cust-section-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.cwp-v2-cust-vehicles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cwp-v2-cust-rich-vehicle-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.cwp-v2-cust-rich-vehicle-card:hover {
+  border-color: #cbd5e1;
+}
+
+.cwp-v2-cust-rvc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cwp-v2-cust-rvc-plate {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+}
+
+.cwp-v2-cust-rvc-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.cwp-v2-cust-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.15);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.cwp-v2-cust-rvc-extra {
+  font-size: 11px;
+  color: #64748b;
+  background: #f8fafc;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px dashed #e2e8f0;
+}
+
+/* 8.4 Service Schedule */
+.cwp-v2-cust-schedule-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cwp-v2-cust-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cwp-v2-cust-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.cwp-v2-cust-progress-bar {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.cwp-v2-cust-progress-fill {
+  height: 100%;
+  background: #16a34a;
+  border-radius: 3px;
+}
+
+/* 8.5 Activity List */
+.cwp-v2-cust-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cwp-v2-cust-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11.5px;
+  padding: 4px 0;
+  border-bottom: 1px dotted #f1f5f9;
+}
+
+.cwp-v2-cust-activity-icon {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.cwp-v2-cust-activity-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cwp-v2-cust-activity-title {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.cwp-v2-cust-activity-time {
+  font-size: 10.5px;
+  color: #94a3b8;
+}
+
+/* 8.6 Persistent Quick Actions (4 Buttons) */
+.cwp-v2-cust-quick-actions-bar {
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.cwp-v2-cust-qa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cwp-v2-cust-qa-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.cwp-v2-cust-qa-btn.is-primary {
+  background: #1e40af;
+  color: #ffffff;
+  border-color: #1e40af;
+}
+
+.cwp-v2-cust-qa-btn.is-primary:hover {
+  background: #1d4ed8;
+}
+
+.cwp-v2-cust-qa-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* -------------------------------------------------------------------------
+ * 6. WIZARD & MODAL SPECIFICS
+ * ------------------------------------------------------------------------- */
+.cwp-v2-wizard-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+}
+
+.cwp-v2-wizard-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cwp-v2-wizard-step.is-active {
+  color: #1e40af;
+  font-weight: 700;
+}
+
+.cwp-v2-wizard-step.is-completed {
+  color: #16a34a;
+}
+
+.cwp-v2-wizard-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cwp-v2-wizard-step.is-active .cwp-v2-wizard-step-num {
+  background: #1e40af;
+  color: #ffffff;
+}
+
+.cwp-v2-wizard-step.is-completed .cwp-v2-wizard-step-num {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.cwp-v2-wizard-divider {
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+  margin: 0 8px;
+  min-width: 16px;
+}
+
+.cwp-v2-wizard-pane {
+  display: none;
+  padding: 16px;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cwp-v2-wizard-pane.is-active {
+  display: flex;
+}
+
+.cwp-v2-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.cwp-v2-form-col-full {
+  grid-column: 1 / -1;
+}
+
+.cwp-v2-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cwp-v2-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.cwp-v2-field .is-required::after {
+  content: ' *';
+  color: #ef4444;
+}
+
+.cwp-v2-field-error {
+  font-size: 11px;
+  color: #ef4444;
+  display: none;
+}
+
+.cwp-v2-field.has-error .cwp-v2-field-error {
+  display: block;
+}
+
+.cwp-v2-field.has-error .cwp-v2-input,
+.cwp-v2-field.has-error .cwp-v2-select,
+.cwp-v2-field.has-error .cwp-v2-input-box {
+  border-color: var(--cwp-v2-status-danger, #e11d48) !important;
+  background-color: #fffafb !important;
+}
+
+/* Aura Outlined Inputs inside Customer Modals (Overrides transparent inner rule when standalone) */
+#v2ModalAddCustomer .cwp-v2-input,
+#v2ModalEditCustomer .cwp-v2-input,
+#v2ModalAssignJob .cwp-v2-input,
+#v2ModalLogService .cwp-v2-input,
+#v2ModalAddVehicle .cwp-v2-input,
+#v2ModalUpdatePlan .cwp-v2-input,
+#v2ModalAddCustomer .cwp-v2-select,
+#v2ModalEditCustomer .cwp-v2-select,
+#v2ModalAssignJob .cwp-v2-select,
+#v2ModalLogService .cwp-v2-select,
+#v2ModalAddVehicle .cwp-v2-select,
+#v2ModalUpdatePlan .cwp-v2-select {
+  width: 100%;
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 10px !important;
+  background-color: var(--cwp-v2-sys-surface, #ffffff) !important;
+  border: 1px solid var(--cwp-v2-sys-border, #cbd5e1) !important;
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  font-size: 13px;
+  color: var(--cwp-v2-sys-on-surface, #0f172a);
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#v2ModalAddCustomer textarea.cwp-v2-input,
+#v2ModalEditCustomer textarea.cwp-v2-input,
+#v2ModalAssignJob textarea.cwp-v2-input,
+#v2ModalLogService textarea.cwp-v2-input {
+  height: auto;
+  min-height: 64px;
+  padding: 8px 10px !important;
+  resize: vertical;
+}
+
+#v2ModalAddCustomer .cwp-v2-input:hover,
+#v2ModalEditCustomer .cwp-v2-input:hover,
+#v2ModalAssignJob .cwp-v2-input:hover,
+#v2ModalLogService .cwp-v2-input:hover,
+#v2ModalAddVehicle .cwp-v2-input:hover,
+#v2ModalUpdatePlan .cwp-v2-input:hover,
+#v2ModalAddCustomer .cwp-v2-select:hover,
+#v2ModalEditCustomer .cwp-v2-select:hover,
+#v2ModalAssignJob .cwp-v2-select:hover,
+#v2ModalLogService .cwp-v2-select:hover,
+#v2ModalAddVehicle .cwp-v2-select:hover,
+#v2ModalUpdatePlan .cwp-v2-select:hover {
+  border-color: var(--cwp-v2-ref-slate-400, #94a3b8) !important;
+}
+
+#v2ModalAddCustomer .cwp-v2-input:focus,
+#v2ModalEditCustomer .cwp-v2-input:focus,
+#v2ModalAssignJob .cwp-v2-input:focus,
+#v2ModalLogService .cwp-v2-input:focus,
+#v2ModalAddVehicle .cwp-v2-input:focus,
+#v2ModalUpdatePlan .cwp-v2-input:focus,
+#v2ModalAddCustomer .cwp-v2-select:focus,
+#v2ModalEditCustomer .cwp-v2-select:focus,
+#v2ModalAssignJob .cwp-v2-select:focus,
+#v2ModalLogService .cwp-v2-select:focus,
+#v2ModalAddVehicle .cwp-v2-select:focus,
+#v2ModalUpdatePlan .cwp-v2-select:focus {
+  border-color: var(--cwp-v2-sys-border-focus, #2563eb) !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Edit Customer Tabs */
+.cwp-v2-edit-tabs-bar {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 0 16px;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.cwp-v2-edit-tab-btn {
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cwp-v2-edit-tab-btn:hover {
+  color: #0f172a;
+}
+
+.cwp-v2-edit-tab-btn.is-active {
+  color: #1e40af;
+}
+
+.cwp-v2-edit-tab-btn.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #1e40af;
+}
+
+.cwp-v2-edit-tab-pane {
+  display: none;
+  padding: 16px;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cwp-v2-edit-tab-pane.is-active {
+  display: flex;
+}
+
+/* -------------------------------------------------------------------------
+ * 7. RESPONSIVE BEHAVIOR
+ * ------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  #v2View_records.is-active {
+    flex: none;
+    overflow: visible;
+  }
+  .cwp-v2-cust-split-view {
+    grid-template-columns: 1fr 340px;
+    gap: 12px;
+    flex: none;
+  }
+  .cwp-v2-cust-directory {
+    height: auto;
+  }
+  .cwp-v2-cust-table-wrap {
+    flex: none;
+    overflow-y: visible;
+    max-height: none;
+  }
+  .cwp-v2-cust-detail-panel {
+    height: auto;
+    max-height: none;
+  }
+  .cwp-v2-cust-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .cwp-v2-cust-split-view {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cwp-v2-cust-detail-panel {
+    position: static;
+    max-height: none;
+    width: 100%;
+  }
+
+  .cwp-v2-cust-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cwp-v2-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cwp-v2-cust-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cwp-v2-cust-top-actions {
+    justify-content: flex-end;
+  }
+}

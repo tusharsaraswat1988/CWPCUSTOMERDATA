@@ -1,0 +1,767 @@
+/**
+ * =========================================================================
+ * CWP ADMIN V2 — STAFF MANAGEMENT MODULE SCOPED STYLES
+ * =========================================================================
+ * Strictly isolated to #v2View_staff, .cwp-v2-staff-*, and #v2Modal*Staff*.
+ * Aura Design System: Light theme, High-density split-view, permanent
+ * 36px compact rows, dismissible detail panel, Material Symbols only.
+ */
+
+/* 1. MODULE CONTAINER (Strict Isolation) */
+#v2View_staff.is-active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cwp-v2-space-md, 16px);
+  width: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cwp-v2-staff-header-bar,
+.cwp-v2-staff-kpi-grid,
+.cwp-v2-staff-filter-toolbar {
+  flex-shrink: 0;
+}
+
+.cwp-v2-staff-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.cwp-v2-staff-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cwp-v2-staff-title {
+  margin: 0;
+  font-size: var(--cwp-v2-font-xl, 20px);
+  font-weight: 700;
+  color: var(--cwp-v2-sys-on-surface, #1e293b);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cwp-v2-staff-subtitle {
+  font-size: var(--cwp-v2-font-xs, 12px);
+  color: var(--cwp-v2-sys-on-surface-variant, #64748b);
+  margin: 0;
+}
+
+.cwp-v2-staff-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 2. COMPACT KPI STRIP */
+.cwp-v2-staff-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--cwp-v2-space-sm, 12px);
+}
+
+.cwp-v2-staff-kpi-card {
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #e2e8f0);
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.cwp-v2-staff-kpi-card:hover {
+  border-color: var(--cwp-v2-sys-primary, #1e40af);
+  box-shadow: var(--cwp-v2-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+  transform: translateY(-1px);
+}
+
+.cwp-v2-staff-kpi-card.is-active {
+  border-color: var(--cwp-v2-sys-primary, #1e40af);
+  background: var(--cwp-v2-sys-primary-container, #eff6ff);
+}
+
+.cwp-v2-staff-kpi-card.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--cwp-v2-sys-primary, #1e40af);
+}
+
+.cwp-v2-staff-kpi-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cwp-v2-staff-kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cwp-v2-sys-on-surface-variant, #64748b);
+}
+
+.cwp-v2-staff-kpi-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cwp-v2-sys-on-surface, #1e293b);
+  line-height: 1.2;
+}
+
+.cwp-v2-staff-kpi-meta {
+  font-size: 11px;
+  color: var(--cwp-v2-sys-on-surface-variant, #64748b);
+}
+
+.cwp-v2-staff-kpi-icon {
+  font-size: 24px;
+  color: var(--cwp-v2-sys-on-surface-variant, #94a3b8);
+}
+
+/* 3. SEARCH & FILTERS TOOLBAR */
+.cwp-v2-staff-filter-toolbar {
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #e2e8f0);
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cwp-v2-staff-search-box {
+  position: relative;
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.cwp-v2-staff-search-box .material-symbols-outlined {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--cwp-v2-sys-on-surface-variant, #94a3b8);
+  pointer-events: none;
+}
+
+.cwp-v2-staff-search-input {
+  width: 100%;
+  height: 32px;
+  padding: 4px 28px 4px 32px;
+  font-size: 12.5px;
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #cbd5e1);
+  border-radius: var(--cwp-v2-radius-sm, 6px);
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  color: var(--cwp-v2-sys-on-surface, #1e293b);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.cwp-v2-staff-search-input:focus {
+  border-color: var(--cwp-v2-sys-primary, #1e40af);
+  box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.15);
+}
+
+.cwp-v2-staff-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.cwp-v2-staff-search-clear.is-visible {
+  display: inline-flex;
+}
+
+.cwp-v2-staff-filter-select {
+  height: 32px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #cbd5e1);
+  border-radius: var(--cwp-v2-radius-sm, 6px);
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  color: var(--cwp-v2-sys-on-surface, #1e293b);
+  outline: none;
+  cursor: pointer;
+}
+
+/* 4. SPLIT-VIEW WORKSPACE (DIRECTORY + DISMISSIBLE DETAIL PANEL) */
+.cwp-v2-staff-split-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: var(--cwp-v2-space-md, 16px);
+  align-items: stretch;
+  width: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.cwp-v2-staff-split-view.is-detail-closed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cwp-v2-staff-split-view.is-detail-closed .cwp-v2-staff-detail-panel {
+  display: none;
+}
+
+.cwp-v2-staff-directory {
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #e2e8f0);
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.cwp-v2-staff-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1 1 0%;
+  min-height: 0;
+  position: relative;
+}
+
+.cwp-v2-staff-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  text-align: left;
+}
+
+.cwp-v2-staff-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 9px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.cwp-v2-staff-table th.is-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.cwp-v2-staff-table th.is-sortable:hover {
+  background: #f1f5f9;
+  color: var(--cwp-v2-sys-primary, #1e40af);
+}
+
+.cwp-v2-staff-table th .cwp-v2-sort-icon {
+  font-size: 14px;
+  vertical-align: middle;
+  margin-left: 2px;
+  color: #94a3b8;
+}
+
+.cwp-v2-staff-table th.is-sorted .cwp-v2-sort-icon {
+  color: var(--cwp-v2-sys-primary, #1e40af);
+}
+
+.cwp-v2-staff-table tbody tr {
+  cursor: pointer;
+  height: 36px;
+  transition: background-color 0.1s ease;
+}
+
+.cwp-v2-staff-table tbody tr td {
+  padding: 3px 10px;
+  height: 36px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  color: #334155;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+
+.cwp-v2-staff-table tbody tr:hover td {
+  background: #f8fafc;
+}
+
+.cwp-v2-staff-table tbody tr.is-selected td {
+  background: #eff6ff !important;
+  color: #1e3a8a;
+  border-bottom-color: #dbeafe;
+}
+
+.cwp-v2-staff-table tbody tr.is-selected td:first-child {
+  box-shadow: inset 3px 0 0 #1e40af;
+}
+
+.cwp-v2-staff-cell-name {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cwp-v2-staff-name-main {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #0f172a;
+}
+
+.cwp-v2-staff-name-sub {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.cwp-v2-staff-code-pill {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #1e293b;
+}
+
+.cwp-v2-staff-mini-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cwp-v2-staff-mini-bar {
+  width: 48px;
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.cwp-v2-staff-mini-fill {
+  height: 100%;
+  background: #16a34a;
+  border-radius: 3px;
+}
+
+.cwp-v2-staff-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.cwp-v2-staff-action-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
+  text-decoration: none;
+}
+
+.cwp-v2-staff-action-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.cwp-v2-staff-action-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.cwp-v2-staff-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #64748b;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cwp-v2-staff-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cwp-v2-staff-page-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cwp-v2-staff-page-btn.is-active {
+  background: #1e40af;
+  color: #ffffff;
+  border-color: #1e40af;
+  font-weight: 600;
+}
+
+.cwp-v2-staff-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 5. STAFF DETAIL PANEL & TABS */
+.cwp-v2-staff-detail-panel {
+  background: var(--cwp-v2-sys-surface, #ffffff);
+  border: 1px solid var(--cwp-v2-sys-outline-variant, #e2e8f0);
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+}
+
+.cwp-v2-staff-detail-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cwp-v2-staff-detail-title-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cwp-v2-staff-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1e40af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.cwp-v2-staff-detail-name {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cwp-v2-staff-detail-sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.cwp-v2-staff-detail-tabs {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 0 10px;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.cwp-v2-staff-detail-tab-btn {
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+}
+
+.cwp-v2-staff-detail-tab-btn:hover {
+  color: #0f172a;
+}
+
+.cwp-v2-staff-detail-tab-btn.is-active {
+  color: #1e40af;
+}
+
+.cwp-v2-staff-detail-tab-btn.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #1e40af;
+}
+
+.cwp-v2-staff-detail-scroll {
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.cwp-v2-staff-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  background: #f8fafc;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+}
+
+.cwp-v2-staff-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cwp-v2-staff-summary-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.cwp-v2-staff-summary-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.cwp-v2-staff-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.cwp-v2-staff-quick-actions-bar {
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.cwp-v2-staff-qa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cwp-v2-staff-qa-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.cwp-v2-staff-qa-btn.is-primary {
+  background: #1e40af;
+  color: #ffffff;
+  border-color: #1e40af;
+}
+
+.cwp-v2-staff-qa-btn.is-primary:hover {
+  background: #1d4ed8;
+}
+
+.cwp-v2-staff-qa-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* 6. WIZARD, TABS & AURA OUTLINED INPUTS IN STAFF MODALS */
+#v2ModalAddStaff .cwp-v2-input,
+#v2ModalEditStaff .cwp-v2-input,
+#v2ModalStaffAssignJob .cwp-v2-input,
+#v2ModalStaffChangeRoute .cwp-v2-input,
+#v2ModalStaffResetPin .cwp-v2-input,
+#v2ModalAddStaff .cwp-v2-select,
+#v2ModalEditStaff .cwp-v2-select,
+#v2ModalStaffAssignJob .cwp-v2-select,
+#v2ModalStaffChangeRoute .cwp-v2-select,
+#v2ModalStaffResetPin .cwp-v2-select {
+  width: 100%;
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 10px !important;
+  background-color: var(--cwp-v2-sys-surface, #ffffff) !important;
+  border: 1px solid var(--cwp-v2-sys-border, #cbd5e1) !important;
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  font-size: 13px;
+  color: var(--cwp-v2-sys-on-surface, #0f172a);
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#v2ModalAddStaff .cwp-v2-input:hover,
+#v2ModalEditStaff .cwp-v2-input:hover,
+#v2ModalStaffAssignJob .cwp-v2-input:hover,
+#v2ModalStaffChangeRoute .cwp-v2-input:hover,
+#v2ModalStaffResetPin .cwp-v2-input:hover,
+#v2ModalAddStaff .cwp-v2-select:hover,
+#v2ModalEditStaff .cwp-v2-select:hover,
+#v2ModalStaffAssignJob .cwp-v2-select:hover,
+#v2ModalStaffChangeRoute .cwp-v2-select:hover {
+  border-color: var(--cwp-v2-ref-slate-400, #94a3b8) !important;
+}
+
+#v2ModalAddStaff .cwp-v2-input:focus,
+#v2ModalEditStaff .cwp-v2-input:focus,
+#v2ModalStaffAssignJob .cwp-v2-input:focus,
+#v2ModalStaffChangeRoute .cwp-v2-input:focus,
+#v2ModalStaffResetPin .cwp-v2-input:focus,
+#v2ModalAddStaff .cwp-v2-select:focus,
+#v2ModalEditStaff .cwp-v2-select:focus,
+#v2ModalStaffAssignJob .cwp-v2-select:focus,
+#v2ModalStaffChangeRoute .cwp-v2-select:focus {
+  border-color: var(--cwp-v2-sys-border-focus, #2563eb) !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+}
+
+.cwp-v2-staff-cap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.cwp-v2-staff-cap-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #f8fafc;
+}
+
+/* 7. RESPONSIVE */
+@media (max-width: 1023px) {
+  #v2View_staff.is-active {
+    flex: none;
+    overflow: visible;
+  }
+  .cwp-v2-staff-split-view {
+    grid-template-columns: 1fr 350px;
+    gap: 12px;
+    flex: none;
+  }
+  .cwp-v2-staff-directory {
+    height: auto;
+  }
+  .cwp-v2-staff-table-wrap {
+    flex: none;
+    overflow-y: visible;
+    max-height: none;
+  }
+  .cwp-v2-staff-detail-panel {
+    height: auto;
+    max-height: none;
+  }
+  .cwp-v2-staff-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .cwp-v2-staff-split-view {
+    display: flex;
+    flex-direction: column;
+  }
+  .cwp-v2-staff-detail-panel {
+    position: static;
+    max-height: none;
+    width: 100%;
+  }
+  .cwp-v2-staff-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .cwp-v2-staff-cap-grid {
+    grid-template-columns: 1fr;
+  }
+}
