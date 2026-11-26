@@ -110,6 +110,9 @@
     if (window.CWP_ADMIN_V2.specialJobs) {
       window.CWP_ADMIN_V2.specialJobs.init();
     }
+    if (window.CWP_ADMIN_V2.assignJobs) {
+      window.CWP_ADMIN_V2.assignJobs.init();
+    }
   }
 
   async function performLogout() {

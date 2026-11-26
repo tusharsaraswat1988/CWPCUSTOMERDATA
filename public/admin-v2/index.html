@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/admin-v2/css/v2-track-staff.css?v=2.1.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-clean-reports.css?v=2.1.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-special-jobs.css?v=2.1.0">
+  <link rel="stylesheet" href="/admin-v2/css/v2-assign-jobs.css?v=2.1.0">
 </head>
 <body class="cwp-v2-body">
   <div id="cwpV2App" class="cwp-v2-root">
@@ -4835,14 +4836,168 @@
           </section>
 
           <section id="v2View_jobAssignment" class="cwp-v2-view" aria-label="Assign Jobs">
-            <div class="cwp-v2-kpi-strip" data-v2-live-summary></div>
-            <div class="cwp-v2-card">
-              <div class="cwp-v2-card-header">
-                <span class="cwp-v2-card-title">Assign Jobs</span>
+            <!-- Contextual Header Bar -->
+            <div class="cwp-v2-aj-header-bar">
+              <div class="cwp-v2-aj-title-group">
+                <h2 class="cwp-v2-aj-title">
+                  <span class="material-symbols-outlined" aria-hidden="true">assignment_ind</span>
+                  <span>Assign Jobs</span>
+                  <span id="v2AjTotalPill" class="cwp-v2-aj-count-pill">0 Subscribers</span>
+                </h2>
+                <p class="cwp-v2-aj-subtitle">Daily cleaning dispatch, staff allocation &amp; route coverage</p>
               </div>
-              <p style="font-size:13px; color:var(--cwp-v2-sys-on-surface-variant);">
-                Job assignment workspace ready. Live counts are hydrated from <code>getDailyCleanAssignments</code>.
-              </p>
+              <div class="cwp-v2-aj-top-actions">
+                <div class="cwp-v2-aj-view-switch" role="tablist" aria-label="Assignment View Mode">
+                  <button type="button" id="v2AjTabRoster" class="cwp-v2-aj-view-btn is-active" role="tab" aria-selected="true" data-aj-view="roster">
+                    <span class="material-symbols-outlined" style="font-size:15px;" aria-hidden="true">table_rows</span>
+                    <span>Customer Roster</span>
+                  </button>
+                  <button type="button" id="v2AjTabStaff" class="cwp-v2-aj-view-btn" role="tab" aria-selected="false" data-aj-view="staff">
+                    <span class="material-symbols-outlined" style="font-size:15px;" aria-hidden="true">groups</span>
+                    <span>Staff Workload</span>
+                  </button>
+                </div>
+                <button type="button" id="v2AjBtnUnassignedQuick" class="cwp-v2-aj-unassigned-quick-btn">
+                  <span class="material-symbols-outlined" style="font-size:15px;" aria-hidden="true">person_off</span>
+                  <span>Unassigned: <strong id="v2AjUnassignedQuickCount">0</strong></span>
+                </button>
+                <button type="button" id="v2AjBtnRefresh" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm">
+                  <span class="material-symbols-outlined" style="font-size:15px;" aria-hidden="true">refresh</span>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Compact Operational KPI Strip -->
+            <div class="cwp-v2-aj-kpi-strip" id="v2AjKpiStrip" role="region" aria-label="Daily Assignment Summary">
+              <button type="button" class="cwp-v2-aj-kpi-card is-active" data-aj-kpi="all">
+                <div class="cwp-v2-aj-kpi-top">
+                  <span class="cwp-v2-aj-kpi-label">Daily Customers</span>
+                  <span class="material-symbols-outlined cwp-v2-aj-kpi-icon" aria-hidden="true">directions_car</span>
+                </div>
+                <div class="cwp-v2-aj-kpi-value" id="v2AjKpiTotal">—</div>
+                <div class="cwp-v2-aj-kpi-meta" id="v2AjKpiTotalMeta">Active subscribers</div>
+              </button>
+              <button type="button" class="cwp-v2-aj-kpi-card" data-aj-kpi="assigned">
+                <div class="cwp-v2-aj-kpi-top">
+                  <span class="cwp-v2-aj-kpi-label">Assigned</span>
+                  <span class="material-symbols-outlined cwp-v2-aj-kpi-icon" style="color:#059669;" aria-hidden="true">task_alt</span>
+                </div>
+                <div class="cwp-v2-aj-kpi-value" id="v2AjKpiAssigned">—</div>
+                <div class="cwp-v2-aj-kpi-meta" id="v2AjKpiAssignedMeta">Allocated to staff</div>
+              </button>
+              <button type="button" class="cwp-v2-aj-kpi-card" id="v2AjKpiCardUnassigned" data-aj-kpi="unassigned">
+                <div class="cwp-v2-aj-kpi-top">
+                  <span class="cwp-v2-aj-kpi-label">Unassigned</span>
+                  <span class="material-symbols-outlined cwp-v2-aj-kpi-icon" style="color:#d97706;" aria-hidden="true">warning</span>
+                </div>
+                <div class="cwp-v2-aj-kpi-value" id="v2AjKpiUnassigned">—</div>
+                <div class="cwp-v2-aj-kpi-meta" id="v2AjKpiUnassignedMeta">Needs cleaner</div>
+              </button>
+              <button type="button" class="cwp-v2-aj-kpi-card" data-aj-kpi="staff_view">
+                <div class="cwp-v2-aj-kpi-top">
+                  <span class="cwp-v2-aj-kpi-label">Available Staff</span>
+                  <span class="material-symbols-outlined cwp-v2-aj-kpi-icon" style="color:#2563eb;" aria-hidden="true">badge</span>
+                </div>
+                <div class="cwp-v2-aj-kpi-value" id="v2AjKpiStaff">—</div>
+                <div class="cwp-v2-aj-kpi-meta" id="v2AjKpiStaffMeta">Active unlocked crew</div>
+              </button>
+              <button type="button" class="cwp-v2-aj-kpi-card" data-aj-kpi="all">
+                <div class="cwp-v2-aj-kpi-top">
+                  <span class="cwp-v2-aj-kpi-label">Coverage</span>
+                  <span class="material-symbols-outlined cwp-v2-aj-kpi-icon" style="color:#0284c7;" aria-hidden="true">donut_large</span>
+                </div>
+                <div class="cwp-v2-aj-kpi-value" id="v2AjKpiCoverage">—</div>
+                <div class="cwp-v2-aj-kpi-meta" id="v2AjKpiCoverageMeta">Route allocation rate</div>
+              </button>
+            </div>
+
+            <!-- Operational Exceptions Bar (hidden when zero real exceptions) -->
+            <div id="v2AjExceptionsBar" class="cwp-v2-aj-exceptions-bar" hidden role="region" aria-label="Operational Exceptions"></div>
+
+            <!-- Search & Filter Toolbar -->
+            <div class="cwp-v2-aj-toolbar" id="v2AjToolbar">
+              <div class="cwp-v2-aj-search-box">
+                <span class="material-symbols-outlined" style="font-size:16px; color:#64748b;" aria-hidden="true">search</span>
+                <input type="text" id="v2AjSearchInput" class="cwp-v2-aj-search-input" placeholder="Search customer, phone, vehicle, area, or staff..." aria-label="Search daily assignments" autocomplete="off">
+                <button type="button" id="v2AjSearchClear" class="cwp-v2-aj-search-clear" aria-label="Clear search">
+                  <span class="material-symbols-outlined" style="font-size:15px;">close</span>
+                </button>
+              </div>
+              <select id="v2AjFilterStatus" class="cwp-v2-aj-filter-select" aria-label="Filter by assignment status">
+                <option value="all">Status: All</option>
+                <option value="assigned">Assigned Only</option>
+                <option value="unassigned">Unassigned Only</option>
+                <option value="exceptions">Exceptions Only</option>
+              </select>
+              <select id="v2AjFilterStaff" class="cwp-v2-aj-filter-select" aria-label="Filter by assigned staff">
+                <option value="all">Staff: All</option>
+              </select>
+              <select id="v2AjFilterLocation" class="cwp-v2-aj-filter-select" aria-label="Filter by location or area">
+                <option value="all">Area / Location: All</option>
+              </select>
+              <button type="button" id="v2AjResetFilters" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-sm" style="height:32px; color:#dc2626;">
+                <span class="material-symbols-outlined" style="font-size:16px;" aria-hidden="true">restart_alt</span>
+                <span>Reset</span>
+              </button>
+            </div>
+
+            <!-- Primary Workstation Table Card -->
+            <div class="cwp-v2-aj-main-card" id="v2AjRosterCard">
+              <div class="cwp-v2-aj-table-wrap">
+                <table class="cwp-v2-aj-table" id="v2AjTable" aria-label="Daily Cleaning Customer Assignments">
+                  <thead>
+                    <tr>
+                      <th scope="col" style="width:54px;">Stop</th>
+                      <th scope="col">Customer</th>
+                      <th scope="col">Vehicle &amp; Plan</th>
+                      <th scope="col">Location / Area</th>
+                      <th scope="col">Assigned Staff</th>
+                      <th scope="col" style="width:120px;">Status</th>
+                      <th scope="col" style="text-align:right; width:175px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="v2AjTableBody"></tbody>
+                </table>
+              </div>
+              <div class="cwp-v2-aj-pagination" id="v2AjPagination">
+                <span id="v2AjPageInfo">Showing 0–0 of 0 assignments</span>
+                <div class="cwp-v2-aj-page-controls">
+                  <label for="v2AjPageSize" style="font-size:11.5px; color:#64748b; margin-right:4px;">Rows:</label>
+                  <select id="v2AjPageSize" class="cwp-v2-aj-filter-select" style="height:28px; padding:2px 6px;">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <button type="button" id="v2AjPagePrev" class="cwp-v2-aj-page-btn" aria-label="Previous page" disabled>
+                    <span class="material-symbols-outlined" style="font-size:16px;">chevron_left</span>
+                  </button>
+                  <div id="v2AjPageNumbers" style="display:flex; gap:2px;"></div>
+                  <button type="button" id="v2AjPageNext" class="cwp-v2-aj-page-btn" aria-label="Next page" disabled>
+                    <span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Staff Workload View Card -->
+            <div class="cwp-v2-aj-main-card" id="v2AjStaffCard" hidden>
+              <div class="cwp-v2-aj-table-wrap">
+                <table class="cwp-v2-aj-table" id="v2AjStaffTable" aria-label="Staff Daily Cleaning Workload">
+                  <thead>
+                    <tr>
+                      <th scope="col">Staff Member</th>
+                      <th scope="col">Designation</th>
+                      <th scope="col">Availability</th>
+                      <th scope="col">Daily Route Cars</th>
+                      <th scope="col">Today On-Demand</th>
+                      <th scope="col" style="text-align:right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="v2AjStaffTableBody"></tbody>
+                </table>
+              </div>
             </div>
           </section>
 
@@ -6087,6 +6242,79 @@
           <div class="cwp-v2-modal-footer">
             <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
             <button type="button" class="cwp-v2-btn cwp-v2-btn-primary" id="v2BtnSubmitAssignJob">Assign Staff</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Assign Jobs V2: Assign / Reassign Daily Cleaner Modal -->
+    <div id="v2ModalAjAssign" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2AjModalTitle">
+        <div class="cwp-v2-modal-header">
+          <div>
+            <h2 id="v2AjModalTitle" class="cwp-v2-modal-title">Assign Daily Cleaner</h2>
+            <div id="v2AjModalSubtitle" style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">Allocate customer to a cleaner's daily route</div>
+          </div>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close dialog">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <form id="v2AjAssignForm" onsubmit="return false;">
+          <input type="hidden" id="v2AjModalCustomerId" />
+          <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:12px;">
+            <div class="cwp-v2-aj-modal-summary" id="v2AjModalSummary"></div>
+            <div class="cwp-v2-field">
+              <label class="is-required" for="v2AjModalStaffSelect">Select Eligible Staff Cleaner</label>
+              <select id="v2AjModalStaffSelect" class="cwp-v2-select" required></select>
+            </div>
+            <div id="v2AjModalError" class="cwp-v2-aj-modal-error" role="alert" hidden></div>
+          </div>
+          <div class="cwp-v2-modal-footer" style="justify-content:space-between;">
+            <div>
+              <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" id="v2AjModalBtnUnassign" style="color:#dc2626; border-color:#fecaca;" hidden>
+                <span class="material-symbols-outlined" style="font-size:16px;" aria-hidden="true">person_remove</span>
+                <span>Unassign</span>
+              </button>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+              <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary" id="v2AjModalBtnSubmit">
+                <span class="material-symbols-outlined" style="font-size:16px;" aria-hidden="true">check</span>
+                <span>Confirm Assignment</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Assign Jobs V2: Confirm Unassign Modal -->
+    <div id="v2ModalAjUnassign" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2AjUnassignTitle">
+        <div class="cwp-v2-modal-header">
+          <div>
+            <h2 id="v2AjUnassignTitle" class="cwp-v2-modal-title">Unassign Daily Cleaner</h2>
+            <div style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">Remove customer from active cleaner route</div>
+          </div>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close dialog">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <form id="v2AjUnassignForm" onsubmit="return false;">
+          <input type="hidden" id="v2AjUnassignCustId" />
+          <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:10px;">
+            <p id="v2AjUnassignPrompt" style="margin:0; font-size:13px; color:#334155;"></p>
+            <div class="cwp-v2-field">
+              <label for="v2AjUnassignReason">Reason (Optional)</label>
+              <input type="text" id="v2AjUnassignReason" class="cwp-v2-input" placeholder="e.g. Route re-balancing or staff leave">
+            </div>
+            <div id="v2AjUnassignError" class="cwp-v2-aj-modal-error" role="alert" hidden></div>
+          </div>
+          <div class="cwp-v2-modal-footer">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+            <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary" id="v2AjUnassignBtnConfirm" style="background:#dc2626; border-color:#dc2626;">
+              <span>Unassign Customer</span>
+            </button>
           </div>
         </form>
       </div>
@@ -7467,6 +7695,7 @@
   <script src="/admin-v2/js/v2-track-staff.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-clean-reports.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-special-jobs.js?v=2.1.0"></script>
+  <script src="/admin-v2/js/v2-assign-jobs.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-app.js?v=2.1.0"></script>
 
   <!-- Lazy UI Playground Loader: loads v2-playground.js ONLY when /admin-v2/ui-lab or ui-lab view is active -->
