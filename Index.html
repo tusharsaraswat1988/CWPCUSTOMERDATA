@@ -962,15 +962,15 @@
     </div></div>
     <div class="records-hero-actions">
     <button type="button" class="btn-admin-secondary" onclick="openAddLeadModal()" style="border-color: #f59e0b; color: #b45309;" title="Quick capture new prospect lead">
-    <span>🎯</span>
+    <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle;">person_add</span>
     <span>+ Lead</span>
     </button>
     <button type="button" class="btn-admin-primary" onclick="openAddCustomerModal()" title="Open form to add a new customer">
-    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15"> <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/> </svg>
+    <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle;">add</span>
     <span>New Customer</span>
     </button>
     <button type="button" class="btn-admin-secondary btn-admin-indic" id="btnAdminBackfillHindi" onclick="handleBackfillHindi()" title="Auto-generate Hindi Name & Address for records using Google Indic">
-    <span class="btn-admin-icon-text">🌐 Auto Indic</span>
+    <span class="btn-admin-icon-text"><span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle;">translate</span>Auto Indic</span>
     </button>
     <button type="button" class="btn-admin-secondary" onclick="exportAdminRecordsCSV()" title="Export filtered records to CSV">
     <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"> <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/> </svg>
@@ -1091,7 +1091,7 @@
     <div id="adminOpsDashboardHub" class="ops-dashboard-hub-header">
     <div class="ops-hub-top-row">
     <div class="ops-hub-title-group">
-    <div class="ops-hub-icon">📊</div>
+    <div class="ops-hub-icon"><span class="material-symbols-outlined" style="font-size: 20px;">analytics</span></div>
     <div>
     <div class="ops-hub-title-row">
     <h2 class="ops-hub-title">Operations & Field Analytics Dashboard</h2>
@@ -1106,15 +1106,15 @@
     <button type="button" class="btn-report-action" onclick="printDailyCleanReports()" title="Print Summary"><span class="material-symbols-outlined" style="font-size: 16px;">print</span><span>Print</span></button>
     </div></div>
     <div class="ops-kpi-deck">
-    <div class="ops-kpi-tile ops-tile-cleans" onclick="switchAdminTab('cleanReports')" title="View Daily Clean Reports"><div class="ops-tile-icon">🚗</div><div class="ops-tile-body"><div class="ops-tile-num"><span id="dashTotalDailyCleans">0</span> Cars</div><div class="ops-tile-caption">Daily Cleans Today (<span id="dashDailyPhotoRate">0%</span> verified)</div></div></div>
-    <div class="ops-kpi-tile ops-tile-special" onclick="switchAdminTab('specialJobs')" title="View Wash & Solar Hub"><div class="ops-tile-icon">☀️</div><div class="ops-tile-body"><div class="ops-tile-num"><span id="dashTotalSpecialJobs">0</span> Tasks</div><div class="ops-tile-caption">Wash & Solar (<span id="dashSpecialCompleted">0</span> Done • <span id="dashSpecialPending">0</span> Active)</div></div></div>
-    <div class="ops-kpi-tile ops-tile-crew"><div class="ops-kpi-icon">👥</div><div class="ops-tile-body"><div class="ops-tile-num"><span id="dashActiveCrew">0</span> Staff</div><div class="ops-tile-caption">Active Field Crew on Route</div></div></div>
-    <div class="ops-kpi-tile ops-tile-punch"><div class="ops-kpi-icon">⏱️</div><div class="ops-tile-body"><div class="ops-tile-num"><span id="dashLatestActivity">--:--</span></div><div class="ops-tile-caption">Latest Field Activity Logged</div></div></div></div>
+    <div class="ops-kpi-tile ops-tile-cleans" onclick="switchAdminTab('cleanReports')" title="View Daily Clean Reports"><div class="ops-tile-icon"><span class="material-symbols-outlined" style="font-size: 20px;">directions_car</span></div><div class="ops-tile-body"><div class="ops-tile-num"><span id="dashTotalDailyCleans">0</span> Cars</div><div class="ops-tile-caption">Daily Cleans Today (<span id="dashDailyPhotoRate">0%</span> verified)</div></div></div>
+    <div class="ops-kpi-tile ops-tile-special" onclick="switchAdminTab('specialJobs')" title="View Wash & Solar Hub"><div class="ops-tile-icon"><span class="material-symbols-outlined" style="font-size: 20px;">solar_power</span></div><div class="ops-tile-body"><div class="ops-tile-num"><span id="dashTotalSpecialJobs">0</span> Tasks</div><div class="ops-tile-caption">Wash & Solar (<span id="dashSpecialCompleted">0</span> Done • <span id="dashSpecialPending">0</span> Active)</div></div></div>
+    <div class="ops-kpi-tile ops-tile-crew"><div class="ops-kpi-icon"><span class="material-symbols-outlined" style="font-size: 20px;">group</span></div><div class="ops-tile-body"><div class="ops-tile-num"><span id="dashActiveCrew">0</span> Staff</div><div class="ops-tile-caption">Active Field Crew on Route</div></div></div>
+    <div class="ops-kpi-tile ops-tile-punch"><div class="ops-kpi-icon"><span class="material-symbols-outlined" style="font-size: 20px;">schedule</span></div><div class="ops-tile-body"><div class="ops-tile-num"><span id="dashLatestActivity">--:--</span></div><div class="ops-tile-caption">Latest Field Activity Logged</div></div></div></div>
     <div class="ops-intelligence-deck" id="dashOpsIntelligenceDeck">
     <div class="ops-intel-card intel-card-workload">
     <div class="intel-card-header">
     <div class="intel-card-title-group">
-    <span class="intel-card-icon">⚡</span>
+    <span class="intel-card-icon"><span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-action-primary, #1d4ed8);">bolt</span></span>
     <span class="intel-card-title">Combined Operations Fulfillment</span>
     </div>
     <span class="intel-badge badge-blue" id="dashCombinedRateBadge">0% Fulfilled</span>
@@ -1128,14 +1128,14 @@
     <div class="intel-progress-bar bar-cleans" id="dashBarCleans" style="width: 0%;" title="Daily Cleans Done"></div>
     <div class="intel-progress-bar bar-special" id="dashBarSpecial" style="width: 0%;" title="Wash & Solar Closed"></div></div>
     <div class="intel-chips-row">
-    <span class="intel-chip chip-cleans">🚗 <strong id="dashCombCleansDone">0</strong> Daily Cleans</span>
-    <span class="intel-chip chip-special">☀️ <strong id="dashCombSpecDone">0</strong> Special Done</span>
-    <span class="intel-chip chip-pending">⏳ <strong id="dashCombPending">0</strong> Active/Queue</span>
+    <span class="intel-chip chip-cleans"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">directions_car</span> <strong id="dashCombCleansDone">0</strong> Daily Cleans</span>
+    <span class="intel-chip chip-special"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">solar_power</span> <strong id="dashCombSpecDone">0</strong> Special Done</span>
+    <span class="intel-chip chip-pending"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">hourglass_empty</span> <strong id="dashCombPending">0</strong> Active/Queue</span>
     </div></div>
     <div class="ops-intel-card intel-card-quality">
     <div class="intel-card-header">
     <div class="intel-card-title-group">
-    <span class="intel-card-icon">🛡️</span>
+    <span class="intel-card-icon"><span class="material-symbols-outlined" style="font-size: 18px;">verified_user</span></span>
     <span class="intel-card-title">Proof-of-Work & Quality Audit</span>
     </div>
     <span class="intel-badge badge-green" id="dashAuditStatusBadge">Audit Passed</span>
@@ -1147,14 +1147,14 @@
     <div class="intel-progress-track">
     <div class="intel-progress-bar bar-audit" id="dashAuditProgressBar" style="width: 100%;" title="Verified Photo Audit"></div></div>
     <div class="intel-chips-row">
-    <span class="intel-chip chip-verified">📸 <strong id="dashAuditPhotoCount">0</strong> Photos Uploaded</span>
-    <span class="intel-chip chip-pass">✅ <strong>0</strong> Flagged Logs</span>
-    <span class="intel-chip chip-tamper">🔒 <strong>100%</strong> Audit-Ready</span>
+    <span class="intel-chip chip-verified"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">photo_camera</span> <strong id="dashAuditPhotoCount">0</strong> Photos Uploaded</span>
+    <span class="intel-chip chip-pass"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span> <strong>0</strong> Flagged Logs</span>
+    <span class="intel-chip chip-tamper"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">lock</span> <strong>100%</strong> Audit-Ready</span>
     </div></div>
     <div class="ops-intel-card intel-card-velocity">
     <div class="intel-card-header">
     <div class="intel-card-title-group">
-    <span class="intel-card-icon">👥</span>
+    <span class="intel-card-icon"><span class="material-symbols-outlined" style="font-size: 18px;">group</span></span>
     <span class="intel-card-title">Route Velocity & Crew Status</span>
     </div>
     <span class="intel-badge badge-amber" id="dashCrewStatusBadge">Active On-Ground</span>

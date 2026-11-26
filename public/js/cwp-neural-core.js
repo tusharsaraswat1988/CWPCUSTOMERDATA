@@ -612,7 +612,25 @@
         e.preventDefault();
         activateCore();
       });
+      introBtn.addEventListener('focus', function () {
+        activateCore();
+      });
+      introBtn.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activateCore();
+        }
+      });
     }
+
+    document.addEventListener('keydown', function (e) {
+      var root = document.getElementById('adminAuthGate');
+      if (root && !root.hidden && root.style.display !== 'none' && state.stage === 'intro') {
+        if (e.key !== 'Escape' && e.key !== 'Shift' && e.key !== 'Control' && e.key !== 'Alt') {
+          activateCore();
+        }
+      }
+    });
 
     if (pwInput) {
       pwInput.addEventListener('input', function () {

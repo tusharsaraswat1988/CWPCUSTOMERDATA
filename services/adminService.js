@@ -2353,12 +2353,13 @@ async function assignSpecialJob(params, adminUser = 'admin') {
     locationId = null
   } = params;
 
-  if (!serviceCategoryId) {
+  const rawCat = serviceCategoryId || params.serviceCategory || params.category || params.workType;
+  if (!rawCat) {
     return { success: false, error: 'Service category is required.' };
   }
 
   // Canonical category resolution
-  const normCat = String(serviceCategoryId).toLowerCase().trim().replace(/[\s-]+/g, '_');
+  const normCat = String(rawCat).toLowerCase().trim().replace(/[\s-]+/g, '_');
   let catId = 'car_washing';
   if (normCat === 'solar_panel_cleaning' || normCat === 'solar_cleaning' || normCat === 'solar') {
     catId = 'solar_cleaning';
@@ -2457,6 +2458,8 @@ async function assignSpecialJob(params, adminUser = 'admin') {
         ? vehicleDetails
         : (vehicleDetails && (vehicleDetails.vehicle || vehicleDetails.registrationNo || vehicleDetails.reg))
           || params.vehicle
+          || params.vehicleNum
+          || params.vehicleNumber
           || '';
       const parsed = parseVehicleString(rawVehStr);
 
@@ -2540,6 +2543,8 @@ async function assignSpecialJob(params, adminUser = 'admin') {
       ? parseInt(sequenceOrder, 10)
       : (params.sequence_order != null && !isNaN(parseInt(params.sequence_order, 10)) ? parseInt(params.sequence_order, 10) : null);
 
+    const finalInstructions = (specialInstructions || params.instructions || params.notes || '').trim() || null;
+
     // 7. Create Service Job
     const job = await repos.serviceJobs.createJob({
       customerId: targetCustomer.id,
@@ -2556,7 +2561,7 @@ async function assignSpecialJob(params, adminUser = 'admin') {
       scheduledTime: finalScheduledTime,
       sequenceOrder: finalSequenceOrder,
       status: 'assigned',
-      specialInstructions: specialInstructions ? specialInstructions.trim() : null
+      specialInstructions: finalInstructions
     }, client);
 
     // 8. Assign Staff to Job in staff_assignments ledger

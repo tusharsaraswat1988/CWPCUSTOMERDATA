@@ -531,3 +531,193 @@ body.theme-dark {
   gap: var(--md-sys-spacing-2);
   margin-top: var(--md-sys-spacing-6);
 }
+
+/* ==========================================================================
+   CWP UNIFIED COMPONENT STANDARDS — PHASE 2 & 3 FOUNDATIONS
+   ========================================================================== */
+
+/* --- 1. Shared Contextual Action Menu (more_vert) --- */
+.cwp-action-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cwp-action-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-secondary, #475569);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  padding: 0;
+}
+
+.cwp-action-menu-btn:hover,
+.cwp-action-menu-btn:focus-visible {
+  background: var(--color-surface-hover, #f8fafc);
+  color: var(--color-text-primary, #0f172a);
+  border-color: var(--color-border-focus, #3b82f6);
+  outline: none;
+}
+
+.cwp-action-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  box-shadow: var(--elevation-level-2, 0 4px 12px rgba(15, 23, 42, 0.12));
+  padding: 6px;
+  z-index: 999;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cwp-action-menu-dropdown.is-open {
+  display: flex;
+  animation: cwpMenuFadeIn 0.12s ease-out;
+}
+
+@keyframes cwpMenuFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cwp-action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--color-text-primary, #0f172a);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  text-decoration: none;
+}
+
+.cwp-action-menu-item:hover,
+.cwp-action-menu-item:focus-visible {
+  background: var(--color-surface-hover, #f1f5f9);
+  color: var(--color-action-primary, #1d4ed8);
+  outline: none;
+}
+
+.cwp-action-menu-item.text-danger {
+  color: var(--color-status-error, #dc2626);
+}
+
+.cwp-action-menu-item.text-danger:hover {
+  background: var(--color-primitive-red-50, #fef2f2);
+  color: var(--color-primitive-red-700, #b91c1c);
+}
+
+.cwp-action-menu-item .material-symbols-outlined {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.cwp-action-menu-divider {
+  height: 1px;
+  background: var(--color-border-subtle, #e2e8f0);
+  margin: 4px 0;
+}
+
+/* --- 2. Clean Modernized Records Table & Responsive Card Transformation --- */
+.records-table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #475569);
+  background: var(--color-primitive-slate-50, #f8fafc);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border-subtle, #e2e8f0);
+  white-space: nowrap;
+}
+
+.records-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+}
+
+.records-table tr:hover td {
+  background: var(--color-surface-hover, #f8fafc);
+}
+
+/* Tablet & Mobile Card Transformation (< 768px) */
+@media (max-width: 768px) {
+  .records-table-wrapper {
+    border: none;
+    background: transparent;
+    overflow-x: visible;
+  }
+
+  .records-table {
+    display: block;
+    width: 100%;
+  }
+
+  .records-table thead {
+    display: none;
+  }
+
+  .records-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .records-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface, #ffffff);
+    border: 1px solid var(--color-border-subtle, #e2e8f0);
+    border-radius: var(--radius-md, 12px);
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    position: relative;
+    gap: 8px;
+  }
+
+  .records-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 0;
+    border: none;
+    font-size: 13.5px;
+    width: 100%;
+  }
+
+  .records-table tbody td:first-child {
+    display: none; /* Hide S.No column on mobile card */
+  }
+
+  .records-table tbody td.td-cust-name {
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+  }
+
+  .records-table tbody td.td-actions {
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border-subtle, #f1f5f9);
+    justify-content: flex-end;
+  }
+}
+

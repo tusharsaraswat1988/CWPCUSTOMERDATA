@@ -4269,20 +4269,31 @@ var state = {
         return s.id === staffId;
       });
 
+      var workTypeSelect = document.getElementById('jobAssignWorkType');
+      var selectedWorkTypeText = workTypeSelect && workTypeSelect.selectedIndex >= 0
+        ? workTypeSelect.options[workTypeSelect.selectedIndex].text.replace(/^[^\w\s]+\s*/, '')
+        : workType;
+
+      var custVeh = customer ? (customer.vehicleNum || customer.registration_no || customer.vehicle || '') : '';
+
       var payload = {
         action: 'assignSpecialJob',
         customerId: custId,
         customerName: customer ? customer.name : 'Customer',
         customerPhone: customer ? customer.phone : '',
         customerAddress: customer ? (customer.address || customer.locality) : '',
-        vehicleNum: customer ? (customer.vehicleNum || customer.registration_no || '') : '',
+        vehicleNum: custVeh,
+        vehicleDetails: custVeh,
+        serviceCategoryId: workType,
         serviceCategory: workType,
+        serviceType: selectedWorkTypeText,
         scheduledDate: schedDate,
         scheduledTime: jobTime.trim() || null,
         tentativeTime: jobTime.trim() || null,
         sequenceOrder: jobSeq ? parseInt(jobSeq, 10) : null,
         staffId: staffId,
         staffName: staff ? staff.name : staffId,
+        specialInstructions: notes,
         instructions: notes,
         status: 'assigned'
       };
@@ -10835,7 +10846,7 @@ function loadStaffCustomerData(staffId) {
 
       if (!records || records.length === 0) {
         tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
-          '<div style="font-size: 32px; margin-bottom: 10px;">🔍</div>' +
+          '<div style="margin-bottom: 10px;"><span class="material-symbols-outlined" style="font-size: 40px; color: var(--color-primitive-slate-400, #94a3b8);">search_off</span></div>' +
           '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">No customer records match your filter</div>' +
           '<div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">Try adjusting your search criteria, staff assignment or category filters</div>' +
           '<button type="button" class="btn-admin-secondary" onclick="resetAllAdminFilters()" style="margin: 0 auto; display: inline-flex;">Reset all filters</button>' +
@@ -10903,15 +10914,15 @@ function loadStaffCustomerData(staffId) {
         var serviceHtml = '';
         if (r.isStopped) {
           serviceHtml = '<div class="table-service-cell">' +
-            '<span class="cust-sheet-tag" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;"><span class="tag-status-dot" style="background:#ef4444;"></span>🛑 Stopped (काम रुका)</span>';
+            '<span class="cust-sheet-tag" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;"><span class="tag-status-dot" style="background:#ef4444;"></span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">cancel</span>Stopped (काम रुका)</span>';
           if (r.stoppedReason) {
             serviceHtml += '<div style="font-size:10.5px; color:#991b1b; margin-top:2px; font-weight:500;">' + escapeHtml(r.stoppedReason) + '</div>';
           }
-          serviceHtml += '<div class="table-pkg-badge-wrap" style="margin-top:3px;"><button type="button" onclick="openAssignServiceModal(' + origIndex + ')" style="padding:2px 7px; font-size:11px; font-weight:600; border-radius:4px; background:#fff; border:1px solid #f87171; color:#b91c1c; cursor:pointer;">⚙️ Manage Service</button></div>' +
+          serviceHtml += '<div class="table-pkg-badge-wrap" style="margin-top:3px;"><button type="button" onclick="openAssignServiceModal(' + origIndex + ')" style="padding:2px 7px; font-size:11px; font-weight:600; border-radius:4px; background:#fff; border:1px solid #f87171; color:#b91c1c; cursor:pointer;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle; margin-right:2px;">tune</span>Manage Service</button></div>' +
           '</div>';
         } else if (!r.hasService) {
           serviceHtml = '<div class="table-service-cell">' +
-            '<span class="cust-sheet-tag" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"><span class="tag-status-dot" style="background:#94a3b8;"></span>⚪ No Service</span>' +
+            '<span class="cust-sheet-tag" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"><span class="tag-status-dot" style="background:#94a3b8;"></span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">radio_button_unchecked</span>No Service</span>' +
             '<div class="table-pkg-badge-wrap" style="margin-top:4px;"><button type="button" onclick="openAssignServiceModal(' + origIndex + ')" style="padding:2px 8px; font-size:11px; font-weight:600; border-radius:4px; background:#eff6ff; border:1px solid #93c5fd; color:#1d4ed8; cursor:pointer;">+ Assign Service</button></div>' +
           '</div>';
         } else {
@@ -10936,7 +10947,7 @@ function loadStaffCustomerData(staffId) {
         var carHtml = '<div class="vehicle-cell-wrap-modern">';
         if (carText) {
           if (catName === 'Solar Panel Cleaning') {
-            carHtml += '<span class="solar-site-badge" style="font-size:11.5px;" title="' + escapeHtml(carText) + '">☀️ ' + escapeHtml(carText) + '</span>';
+            carHtml += '<span class="solar-site-badge" style="font-size:11.5px;" title="' + escapeHtml(carText) + '"><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">solar_power</span>' + escapeHtml(carText) + '</span>';
           } else {
             carHtml += renderModernNumberPlate(carText);
           }
@@ -10948,7 +10959,7 @@ function loadStaffCustomerData(staffId) {
         if (catName !== 'Solar Panel Cleaning' && (rowMake || rowColor)) {
           var makeColorDisplay = [rowMake, rowColor].filter(Boolean).join(' • ');
           carHtml += '<div class="table-vehicle-make-color" title="Car Make & Color: ' + escapeHtml(makeColorDisplay) + '">' +
-            '<span>🚘 ' + escapeHtml(makeColorDisplay) + '</span>' +
+            '<span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">directions_car</span>' + escapeHtml(makeColorDisplay) + '</span>' +
           '</div>';
         }
         if (r.photoUrl && r.photoUrl.trim()) {
@@ -10956,7 +10967,7 @@ function loadStaffCustomerData(staffId) {
           carHtml += '<div style="margin-top: 3px;">' +
             '<button type="button" class="vehicle-photo-thumb-btn-modern" onclick="openAdminPhotoModal(' + origIndex + ')" title="View vehicle photo">' +
               '<img src="' + escapeHtml(aThumb) + '" class="vehicle-micro-thumb" alt="Photo">' +
-              '<span>📷 Photo</span>' +
+              '<span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:2px;">photo_camera</span>Photo</span>' +
             '</button>' +
           '</div>';
         }
@@ -11029,23 +11040,41 @@ function loadStaffCustomerData(staffId) {
         }
         staffHtml += '</div>';
 
-        /* 8. Actions: Service, Edit and Delete Buttons */
+        /* 8. Actions: Modern Action Cluster & Contextual Action Menu */
         var actionsHtml = '<div class="records-actions-cluster">' +
           '<button type="button" class="btn-cell-action btn-service-record" onclick="openAssignServiceModal(' + origIndex + ')" title="Manage / Assign Service">' +
-            '<span>🚗 Service</span>' +
+            '<span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">local_car_wash</span>' +
+            '<span>Service</span>' +
           '</button>' +
           '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="Edit customer details">' +
-            '<svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>' +
+            '<span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">edit</span>' +
             '<span>Edit</span>' +
           '</button>' +
           '<button type="button" class="btn-cell-action btn-delete-record" onclick="handleDeleteCustomer(' + origIndex + ')" title="Delete customer record">' +
-            '<svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>' +
+            '<span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">delete</span>' +
           '</button>' +
+          '<div class="cwp-action-menu-wrap">' +
+            '<button type="button" class="cwp-action-menu-btn" onclick="toggleCustomerRowActionMenu(' + origIndex + ', event)" title="More options" aria-label="Customer actions menu">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">more_vert</span>' +
+            '</button>' +
+            '<div id="custRowMenu_' + origIndex + '" class="cwp-action-menu-dropdown">' +
+              '<button type="button" class="cwp-action-menu-item" onclick="openEditCustomerModal(' + origIndex + ')">' +
+                '<span class="material-symbols-outlined">edit</span><span>Edit Customer</span>' +
+              '</button>' +
+              '<button type="button" class="cwp-action-menu-item" onclick="openAssignServiceModal(' + origIndex + ')">' +
+                '<span class="material-symbols-outlined">local_car_wash</span><span>Manage Service</span>' +
+              '</button>' +
+              '<div class="cwp-action-menu-divider"></div>' +
+              '<button type="button" class="cwp-action-menu-item text-danger" onclick="handleDeleteCustomer(' + origIndex + ')">' +
+                '<span class="material-symbols-outlined">delete</span><span>Delete Customer</span>' +
+              '</button>' +
+            '</div>' +
+          '</div>' +
         '</div>';
 
         html += '<tr>';
         html += '  <td style="text-align: center;">' + sNoHtml + '</td>';
-        html += '  <td>' + custNameHtml + '</td>';
+        html += '  <td class="td-cust-name">' + custNameHtml + '</td>';
         html += '  <td>' + phoneHtml + '</td>';
         html += '  <td>' + serviceHtml + '</td>';
         html += '  <td>' + carHtml + '</td>';
@@ -11053,7 +11082,7 @@ function loadStaffCustomerData(staffId) {
         html += '  <td style="text-align: center;">' + primaryMapHtml + '</td>';
         html += '  <td style="text-align: center;">' + secLocHtml + '</td>';
         html += '  <td style="text-align: center;">' + staffHtml + '</td>';
-        html += '  <td style="text-align: center;">' + actionsHtml + '</td>';
+        html += '  <td style="text-align: center;" class="td-actions">' + actionsHtml + '</td>';
         html += '</tr>';
       });
 
@@ -11063,6 +11092,36 @@ function loadStaffCustomerData(staffId) {
       }
       renderAdminPaginationControls(totalCount, startIndex, endIndex, currentPage, totalPages, pageSize);
     }
+
+    /* Shared Contextual Action Menu Controller */
+    function toggleCustomerRowActionMenu(index, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      var targetMenu = document.getElementById('custRowMenu_' + index);
+      var wasOpen = targetMenu && targetMenu.classList.contains('is-open');
+      var allMenus = document.querySelectorAll('.cwp-action-menu-dropdown');
+      allMenus.forEach(function(m) { m.classList.remove('is-open'); });
+      if (targetMenu && !wasOpen) {
+        targetMenu.classList.add('is-open');
+      }
+    }
+    window.toggleCustomerRowActionMenu = toggleCustomerRowActionMenu;
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.cwp-action-menu-wrap')) {
+        var openMenus = document.querySelectorAll('.cwp-action-menu-dropdown.is-open');
+        openMenus.forEach(function(m) { m.classList.remove('is-open'); });
+      }
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var openMenus = document.querySelectorAll('.cwp-action-menu-dropdown.is-open');
+        openMenus.forEach(function(m) { m.classList.remove('is-open'); });
+      }
+    });
 
     /* Edit Customer Modal Handlers */
     function openEditCustomerModal(index, triggerEl) {
@@ -14464,8 +14523,18 @@ function loadStaffCustomerData(staffId) {
       t.classList.remove('toast-success', 'toast-error', 'toast-warning', 'toast-info');
       t.classList.add('toast-' + toastType);
 
+      var symbolMap = {
+        'error': 'error',
+        'warning': 'warning',
+        'info': 'info',
+        'success': 'check_circle'
+      };
+      var symbol = symbolMap[toastType] || 'check_circle';
+
       if (msgEl) msgEl.textContent = msg;
-      if (iconEl) iconEl.textContent = icon;
+      if (iconEl) {
+        iconEl.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">' + symbol + '</span>';
+      }
       t.classList.add('show');
 
       if (toastTimer) clearTimeout(toastTimer);
