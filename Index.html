@@ -1301,9 +1301,9 @@
     </div></div>
     <div class="special-kpi-grid">
     <div class="special-kpi-card kpi-card-total active" onclick="filterAdminSpecialByStatus('all')" title="Click to view all jobs" role="button" tabindex="0"><div class="kpi-icon-wrap"><span class="material-symbols-outlined">assignment</span></div><div class="kpi-content"><div class="kpi-label">Total Assigned Jobs</div><div class="kpi-value" id="kpiSpecialTotal">0</div><div class="kpi-subtext">All active & completed</div></div></div>
-    <div class="special-kpi-card kpi-card-assigned" onclick="filterAdminSpecialByStatus('assigned')" title="Click to filter by Pending/Assigned" role="button" tabindex="0"><div class="kpi-icon-wrap"><span class="material-symbols-outlined">pending_actions</span></div><div class="kpi-content"><div class="kpi-label">📋 Assigned (Pending)</div><div class="kpi-value" id="kpiSpecialAssigned">0</div><div class="kpi-subtext">Awaiting cleaner start</div></div></div>
-    <div class="special-kpi-card kpi-card-progress" onclick="filterAdminSpecialByStatus('in_progress')" title="Click to filter by In Progress" role="button" tabindex="0"><div class="kpi-icon-wrap"><span class="material-symbols-outlined">play_circle</span></div><div class="kpi-content"><div class="kpi-label">⏳ In Progress (Started)</div><div class="kpi-value" id="kpiSpecialInProgress">0</div><div class="kpi-subtext">Active on-site cleaning</div></div></div>
-    <div class="special-kpi-card kpi-card-completed" onclick="filterAdminSpecialByStatus('completed')" title="Click to filter by Completed" role="button" tabindex="0"><div class="kpi-icon-wrap"><span class="material-symbols-outlined">check_circle</span></div><div class="kpi-content"><div class="kpi-label">✅ Completed (Done)</div><div class="kpi-value" id="kpiSpecialCompleted">0</div><div class="kpi-subtext">Verified with photos</div></div></div></div>
+    <div class="special-kpi-card kpi-card-assigned" onclick="filterAdminSpecialByStatus('assigned')" title="Click to filter by Pending/Assigned" role="button" tabindex="0"><div class="kpi-icon-wrap"><span class="material-symbols-outlined">pending_actions</span></div><div class="kpi-content"><div class="kpi-label">Assigned (Pending)</div><div class="kpi-value" id="kpiSpecialAssigned">0</div><div class="kpi-subtext">Awaiting cleaner start</div></div></div>
+    <div class="special-kpi-card kpi-card-progress" onclick="filterAdminSpecialByStatus('in_progress')" title="Click to filter by In Progress" role="button" tabindex="0"><div class="kpi-icon-wrap"><span class="material-symbols-outlined">play_circle</span></div><div class="kpi-content"><div class="kpi-label">In Progress (Started)</div><div class="kpi-value" id="kpiSpecialInProgress">0</div><div class="kpi-subtext">Active on-site cleaning</div></div></div>
+    <div class="special-kpi-card kpi-card-completed" onclick="filterAdminSpecialByStatus('completed')" title="Click to filter by Completed" role="button" tabindex="0"><div class="kpi-icon-wrap"><span class="material-symbols-outlined">check_circle</span></div><div class="kpi-content"><div class="kpi-label">Completed (Done)</div><div class="kpi-value" id="kpiSpecialCompleted">0</div><div class="kpi-subtext">Verified with photos</div></div></div></div>
     <div class="reports-filter-bar special-period-bar" style="margin-bottom: 10px;">
     <div class="date-range-group">
     <div class="period-label-wrap">
@@ -1316,7 +1316,7 @@
     <button type="button" class="btn-quick-chip" id="chipSpecialPeriod7Days" onclick="setSpecialPeriodChip('7days')">Last 7 Days</button>
     <button type="button" class="btn-quick-chip" id="chipSpecialPeriodMonth" onclick="setSpecialPeriodChip('month')">This Month</button>
     <button type="button" class="btn-quick-chip" id="chipSpecialPeriodAll" onclick="setSpecialPeriodChip('all')">All Time (सभी)</button>
-    <button type="button" class="btn-quick-chip" id="chipSpecialPeriodCustom" onclick="setSpecialPeriodChip('custom')">Custom 📅</button>
+    <button type="button" class="btn-quick-chip" id="chipSpecialPeriodCustom" onclick="setSpecialPeriodChip('custom')">Custom Range</button>
     </div>
     <div id="specialCustomDateRangeBox" class="custom-date-box" style="display: none;">
     <div class="date-input-wrap">
@@ -1345,19 +1345,19 @@
     <div class="filter-dropdown-wrap">
     <select id="adminSpecialCategoryFilter" class="form-select filter-select" onchange="handleAdminSpecialCategorySelect(this.value)" aria-label="Work Type Filter">
     <option value="all">All Work Types</option>
-    <option value="solar_cleaning">☀️ Solar Clean</option>
-    <option value="interior_detailing">✨ Interior Detailing</option>
-    <option value="exterior_detailing">🛡️ Exterior Detailing</option>
-    <option value="car_washing">🧼 Car Wash</option>
-    <option value="daily_car_cleaning">🚗 Daily Clean</option>
+    <option value="solar_cleaning">Solar Clean</option>
+    <option value="interior_detailing">Interior Detailing</option>
+    <option value="exterior_detailing">Exterior Detailing</option>
+    <option value="car_washing">Car Wash</option>
+    <option value="daily_car_cleaning">Daily Clean</option>
     </select>
     </div>
     <div class="filter-dropdown-wrap">
     <select id="adminSpecialStatusFilter" class="form-select filter-select" onchange="handleAdminSpecialStatusSelect(this.value)" aria-label="Status Filter">
     <option value="all">All Statuses</option>
-    <option value="assigned">📋 Assigned</option>
-    <option value="in_progress">⏳ In Progress</option>
-    <option value="completed">✅ Completed</option>
+    <option value="assigned">Assigned</option>
+    <option value="in_progress">In Progress</option>
+    <option value="completed">Completed</option>
     </select>
     </div>
     <div class="filter-dropdown-wrap">

@@ -4357,13 +4357,32 @@ var state = {
         var seqStr = (j.sequenceOrder != null && j.sequenceOrder !== '') ? j.sequenceOrder : (j.sequence_order != null ? j.sequence_order : '');
 
         // Customer name mapping: check camelCase, snake_case, hindi name, customer code. No fake fallback label!
-        var rawCustName = (j.customerName || j.customer_name || j.name || '').trim();
+        var rawCustName = String(j.customerName || j.customer_name || j.name || '').trim();
         var custName = rawCustName || (j.customerCode ? ('Customer #' + j.customerCode) : '—');
         
-        // Vehicle or service site scope details
-        var vehicleMeta = (j.vehicle || j.vehicle_details || j.vehicle_num || j.siteDetails || j.site_details || '').trim();
+        // Vehicle or service site scope details (safe type resolution for strings vs objects)
+        var vehicleMeta = '';
+        if (typeof j.vehicle === 'string' && j.vehicle.trim()) {
+          vehicleMeta = j.vehicle.trim();
+        } else if (typeof j.vehicle_num === 'string' && j.vehicle_num.trim()) {
+          vehicleMeta = j.vehicle_num.trim();
+        } else if (j.vehicle_details) {
+          if (typeof j.vehicle_details === 'string' && j.vehicle_details.trim()) {
+            vehicleMeta = j.vehicle_details.trim();
+          } else if (typeof j.vehicle_details === 'object') {
+            vehicleMeta = String(j.vehicle_details.vehicle || j.vehicle_details.registrationNo || j.vehicle_details.reg || '').trim();
+          }
+        }
+
         if (!vehicleMeta && j.panelCount) {
           vehicleMeta = j.panelCount + ' Solar Panels';
+        } else if (!vehicleMeta && (j.siteDetails || j.site_details)) {
+          var site = j.siteDetails || j.site_details;
+          if (typeof site === 'string' && site.trim()) {
+            vehicleMeta = site.trim();
+          } else if (typeof site === 'object') {
+            vehicleMeta = site.panelCount ? (site.panelCount + ' Solar Panels') : (site.roofScope || site.panelScope || 'Solar Cleaning');
+          }
         }
 
         // Job/Service category mapping: human friendly label, no generic 'Job'
@@ -4380,8 +4399,8 @@ var state = {
         }
 
         // Staff name mapping: camelCase, snake_case, code, or 'Unassigned'. No fake fallback label!
-        var rawStaffName = (j.staffName || j.staff_name || j.assigned_staff_name || '').trim();
-        var staffCode = (j.staffId || j.staff_code || j.assigned_staff_code || '').trim();
+        var rawStaffName = String(j.staffName || j.staff_name || j.assigned_staff_name || '').trim();
+        var staffCode = String(j.staffId || j.staff_code || j.assigned_staff_code || '').trim();
         var staffDisplay = rawStaffName || (staffCode ? ('Staff #' + staffCode) : 'Unassigned');
         var isUnassigned = (!rawStaffName && !staffCode) || staffDisplay.toLowerCase() === 'unassigned';
         var staffInitial = isUnassigned ? '?' : (staffDisplay.replace(/[^a-zA-Z0-9]/g, '').charAt(0) || 'S').toUpperCase();
@@ -4621,7 +4640,11 @@ var state = {
           if (onFailure) onFailure(new Error(resData.error));
           else showToast('Error: ' + resData.error, '❌');
         } else {
-          if (onSuccess) onSuccess(resData);
+          try {
+            if (onSuccess) onSuccess(resData);
+          } catch (callbackErr) {
+            console.error('Unhandled UI rendering error in apiCall onSuccess handler for action ' + action + ':', callbackErr);
+          }
         }
       })
       .catch(function(err) {
@@ -7110,8 +7133,8 @@ function loadStaffCustomerData(staffId) {
           cardsHtml += '        </button>';
         }
         cardsHtml += '        <div class="cwp-action-menu-divider"></div>';
-        cardsHtml += '        <button type="button" class="cwp-action-menu-item text-danger" onclick="handleDeleteStaff(\'' + escapeHtml(s.id) + '\')">';
-        cardsHtml += '          <span class="material-symbols-outlined">delete</span><span>🗑️ Delete</span>';
+        cardsHtml += '        <button type="button" class="cwp-action-menu-item text-danger" data-label="🗑️ Delete" onclick="handleDeleteStaff(\'' + escapeHtml(s.id) + '\')">';
+        cardsHtml += '          <span class="material-symbols-outlined">delete</span><span>Delete</span>';
         cardsHtml += '        </button>';
         cardsHtml += '      </div>';
         cardsHtml += '    </div>';
@@ -11180,7 +11203,7 @@ function loadStaffCustomerData(staffId) {
     window.toggleCustomerRowActionMenu = toggleCustomerRowActionMenu;
 
     document.addEventListener('click', function(e) {
-      if (!e.target.closest('.cwp-action-menu-wrap')) {
+      if (e.target.closest('.cwp-action-menu-item') || !e.target.closest('.cwp-action-menu-wrap')) {
         var openMenus = document.querySelectorAll('.cwp-action-menu-dropdown.is-open');
         openMenus.forEach(function(m) { m.classList.remove('is-open'); });
       }
@@ -20992,7 +21015,7 @@ function loadStaffCustomerData(staffId) {
 
       if (!jobs || jobs.length === 0) {
         tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 48px; color: var(--text-muted);">' +
-          '<div style="font-size: 32px; margin-bottom: 10px;">☀️</div>' +
+          '<div style="margin-bottom: 10px;"><span class="material-symbols-outlined" style="font-size: 36px; color: var(--text-muted);">solar_power</span></div>' +
           '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary);">No on-demand jobs found matching filters</div>' +
           '<div style="font-size: 12.5px; margin-top: 6px; color: var(--text-secondary);">Assign a new job using "+ Assign Wash & Solar" button above.</div>' +
         '</td></tr>';
@@ -21005,30 +21028,30 @@ function loadStaffCustomerData(staffId) {
         var catIcon = '';
         if (j.serviceCategoryId === 'solar_cleaning') {
           catIcon = '<span class="material-symbols-outlined cat-m3-icon" aria-hidden="true">solar_power</span>';
-          catBadge = '<span class="m3-service-chip chip-solar badge-cat-solar">' + catIcon + '<span>☀️ Solar Clean</span></span>';
+          catBadge = '<span class="m3-service-chip chip-solar badge-cat-solar">' + catIcon + '<span>Solar Clean</span></span>';
         } else if (j.serviceCategoryId === 'car_washing') {
           catIcon = '<span class="material-symbols-outlined cat-m3-icon" aria-hidden="true">local_car_wash</span>';
-          catBadge = '<span class="m3-service-chip chip-carwash badge-cat-carwash">' + catIcon + '<span>🧼 Car Wash</span></span>';
+          catBadge = '<span class="m3-service-chip chip-carwash badge-cat-carwash">' + catIcon + '<span>Car Wash</span></span>';
         } else if (j.serviceCategoryId === 'interior_detailing') {
           catIcon = '<span class="material-symbols-outlined cat-m3-icon" aria-hidden="true">auto_awesome</span>';
-          catBadge = '<span class="m3-service-chip chip-interior badge-cat-interior">' + catIcon + '<span>✨ Interior Detail</span></span>';
+          catBadge = '<span class="m3-service-chip chip-interior badge-cat-interior">' + catIcon + '<span>Interior Detail</span></span>';
         } else if (j.serviceCategoryId === 'exterior_detailing') {
           catIcon = '<span class="material-symbols-outlined cat-m3-icon" aria-hidden="true">shield</span>';
-          catBadge = '<span class="m3-service-chip chip-exterior badge-cat-exterior">' + catIcon + '<span>🛡️ Exterior Detail</span></span>';
+          catBadge = '<span class="m3-service-chip chip-exterior badge-cat-exterior">' + catIcon + '<span>Exterior Detail</span></span>';
         } else {
           catIcon = '<span class="material-symbols-outlined cat-m3-icon" aria-hidden="true">directions_car</span>';
-          catBadge = '<span class="m3-service-chip chip-daily badge-cat-daily">' + catIcon + '<span>🚗 Daily Clean</span></span>';
+          catBadge = '<span class="m3-service-chip chip-daily badge-cat-daily">' + catIcon + '<span>Daily Clean</span></span>';
         }
 
         var workTypeColHtml = '<div class="service-cell-block">' + catBadge + '</div>';
 
         var scopePills = '';
         if (j.panelCount) {
-          scopePills += '<span class="scope-pill scope-solar"><span class="material-symbols-outlined">solar_power</span> ☀️ ' + escapeHtml(String(j.panelCount)) + ' Panels</span>';
+          scopePills += '<span class="scope-pill scope-solar"><span class="material-symbols-outlined">solar_power</span> ' + escapeHtml(String(j.panelCount)) + ' Panels</span>';
         }
         if (j.seaterType) {
           var is5Plus = (j.seaterType === '5_plus_seater');
-          scopePills += '<span class="scope-pill scope-vehicle"><span class="material-symbols-outlined">' + (is5Plus ? 'airport_shuttle' : 'directions_car') + '</span> ' + (is5Plus ? '🚙 5+ Seater' : '🚗 5 Seater') + '</span>';
+          scopePills += '<span class="scope-pill scope-vehicle"><span class="material-symbols-outlined">' + (is5Plus ? 'airport_shuttle' : 'directions_car') + '</span> ' + (is5Plus ? '5+ Seater' : '5 Seater') + '</span>';
         }
         if (j.registrationNo) {
           scopePills += '<span class="scope-pill" style="font-family:monospace; font-weight:700;">' + escapeHtml(j.registrationNo) + '</span>';
@@ -21038,7 +21061,7 @@ function loadStaffCustomerData(staffId) {
 
         var timeLabel = j.scheduledTime || j.tentativeTime || j.scheduled_time || '';
         var seqVal = (j.sequenceOrder != null && j.sequenceOrder !== '') ? j.sequenceOrder : (j.sequence_order != null ? j.sequence_order : '');
-        var timeBadgeHtml = timeLabel ? '<span class="scope-pill" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; font-weight:700;">⏰ ' + escapeHtml(timeLabel) + (seqVal ? ' (Stop #' + escapeHtml(String(seqVal)) + ')' : '') + '</span>' : (seqVal ? '<span class="scope-pill">Stop #' + escapeHtml(String(seqVal)) + '</span>' : '');
+        var timeBadgeHtml = timeLabel ? '<span class="scope-pill" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; font-weight:700;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">schedule</span> ' + escapeHtml(timeLabel) + (seqVal ? ' (Stop #' + escapeHtml(String(seqVal)) + ')' : '') + '</span>' : (seqVal ? '<span class="scope-pill">Stop #' + escapeHtml(String(seqVal)) + '</span>' : '');
 
         var scopeColHtml = '<div class="scope-cell-block">' +
           (scopePills ? '<div style="display:flex; gap:4px; flex-wrap:wrap;">' + scopePills + '</div>' : '<span style="color:var(--text-muted); font-size:12px;">Standard</span>') +
@@ -21117,9 +21140,9 @@ function loadStaffCustomerData(staffId) {
         } else if (j.status === 'assigned') {
           if (assignIso) {
             var waitMin = Math.max(0, Math.round((Date.now() - new Date(assignIso).getTime()) / 60000));
-            startText = '<span class="step-wait">⏳ Waiting (' + waitMin + 'm)</span>';
+            startText = '<span class="step-wait"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">schedule</span> Waiting (' + waitMin + 'm)</span>';
           } else {
-            startText = '<span class="step-wait">⏳ Pending</span>';
+            startText = '<span class="step-wait"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">schedule</span> Pending</span>';
           }
         }
 
@@ -21170,11 +21193,11 @@ function loadStaffCustomerData(staffId) {
 
         var statusColHtml = '';
         if (j.status === 'in_progress') {
-          statusColHtml = '<span class="m3-status-chip status-badge status-in-progress" title="Cleaner is actively working"><span class="status-pulse-dot"></span><span>⏳ Active</span></span>';
+          statusColHtml = '<span class="m3-status-chip status-badge status-in-progress" title="Cleaner is actively working"><span class="status-pulse-dot"></span><span>Active</span></span>';
         } else if (j.status === 'completed') {
-          statusColHtml = '<span class="m3-status-chip status-badge status-completed" title="Job verified completed"><span class="material-symbols-outlined status-icon">check_circle</span><span>✅ Done</span></span>';
+          statusColHtml = '<span class="m3-status-chip status-badge status-completed" title="Job verified completed"><span class="material-symbols-outlined status-icon">check_circle</span><span>Done</span></span>';
         } else {
-          statusColHtml = '<span class="m3-status-chip status-badge status-assigned" title="Dispatched and assigned to staff"><span class="material-symbols-outlined status-icon">schedule</span><span>📋 Assigned</span></span>';
+          statusColHtml = '<span class="m3-status-chip status-badge status-assigned" title="Dispatched and assigned to staff"><span class="material-symbols-outlined status-icon">schedule</span><span>Assigned</span></span>';
         }
 
         var bList = Array.isArray(j.beforePhotos) ? j.beforePhotos : [];

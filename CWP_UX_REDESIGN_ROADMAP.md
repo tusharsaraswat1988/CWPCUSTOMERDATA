@@ -58,8 +58,8 @@ Status Labels:
 | **Staff Management (`staff`)** | Ops, Owner | Audited | Design Defined | Verified | Verified | Batch 4 |
 | **Designations & Org Hierarchy** | Super Admin | Audited | Design Defined | Verified | Verified | Batch 4 |
 | **Route Sequence & Hub (`sequence`)**| Ops, Dispatch | Audited | Design Defined | Verified (T01.11)| Verified | Batch 5 |
-| **Job Assignment (`jobAssignment`)** | Dispatch, Ops | Audited | Design Defined | Design Defined | QA Pending | Batch 5 |
-| **Wash & Solar Hub (`specialJobs`)** | Dispatch, Solar | Audited | Design Defined | Design Defined | QA Pending | Batch 5 |
+| **Job Assignment (`jobAssignment`)** | Dispatch, Ops | Audited | Design Defined | Verified | Verified | Batch 5 |
+| **Wash & Solar Hub (`specialJobs`)** | Dispatch, Solar | Audited | Design Defined | Verified | Verified | Batch 5 |
 | **Leads Pipeline & Kanban (`leads`)** | Sales, Ops | Audited | Design Defined | Design Defined | QA Pending | Batch 6 |
 | **Staff Live Tracking (`staffTracking`)**| Ops, Zone Sup | Audited | Design Defined | Design Defined | QA Pending | Batch 6 |
 | **Staff Login Gate (`/staff`)** | Cleaner, Tech | Audited | Design Defined | Design Defined | QA Pending | Batch 7 |
@@ -107,12 +107,13 @@ Status Labels:
 - **Safety Gate:** Run `tests/test_staff_pin_reveal_qa.js` and `tests/test_staff_extended_fields_qa.js`.
 
 ### Batch 5: Job Assignment & Wash & Solar Hub
-- **Objective:** Streamline morning cleaner dispatch and on-demand job tracking.
+- **Objective:** Streamline morning cleaner dispatch and on-demand job tracking with zero-emoji compliance.
 - **Key Tasks:**
-  1. Consolidate the 5 stacked filter tiers in Wash & Solar Hub into a unified tabbed toolbar.
+  1. Consolidate the 5 stacked filter tiers in Wash & Solar Hub into a unified tabbed toolbar with Material Symbols Outlined.
   2. Clearly differentiate vehicle wash cards (`5_seater` vs `5_plus_seater`) from rooftop solar arrays (`panel_count`).
-  3. Verify seamless integration with the Task 01.11 Route Management Hub.
+  3. Verify seamless integration with the Task 01.11 Route Management Hub and Job Assignment Ledger.
 - **Safety Gate:** Run `tests/test_service_catalog_and_reassignment_qa.js` and `tests/test_route_management_ui_first_qa.js`.
+- **Status:** Verified (All 56 test suites passing, zero emojis across status and category badges).
 
 ### Batch 6: Leads Pipeline & Staff Live Tracking
 - **Objective:** Modernize lead conversion workflows and real-time GPS field tracking.

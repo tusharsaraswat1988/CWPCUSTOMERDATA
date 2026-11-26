@@ -89,6 +89,31 @@ function runLedgerTests() {
     }
   ];
 
+  // Test Fixture 4: Real Neon PostgreSQL JSONB objects in siteDetails and vehicle_details
+  const fixtureJsonbObjects = [
+    {
+      id: 'job-uuid-4',
+      customerName: 'Vaibhav Srivastava',
+      vehicle: '',
+      siteDetails: { panelCount: 24, roofScope: 'Rooftop Solar Array' },
+      serviceCategory: 'solar_cleaning',
+      staffName: 'Gaurav Kr Gupta',
+      staffId: 'STF02',
+      status: 'assigned',
+      scheduledDate: '2026-11-26'
+    },
+    {
+      id: 'job-uuid-5',
+      customerName: 'Rahul Verma',
+      vehicle_details: { vehicle: 'UP65FR9699 (Creta)', seaterType: '5_seater' },
+      serviceCategory: 'car_washing',
+      staffName: 'Gaurav Kr Gupta',
+      staffId: 'STF02',
+      status: 'assigned',
+      scheduledDate: '2026-11-26'
+    }
+  ];
+
   // Evaluate the ledger rendering logic on fixture 1
   let adminSpecialJobsCache = fixtureCamelCase;
   let adminSpecialJobsState = { allJobs: fixtureCamelCase };
@@ -112,12 +137,31 @@ function runLedgerTests() {
       var timeStr = j.scheduledTime || j.tentativeTime || j.scheduled_time || '';
       var seqStr = (j.sequenceOrder != null && j.sequenceOrder !== '') ? j.sequenceOrder : (j.sequence_order != null ? j.sequence_order : '');
 
-      var rawCustName = (j.customerName || j.customer_name || j.name || '').trim();
+      var rawCustName = (typeof j.customerName === 'string' ? j.customerName : (typeof j.customer_name === 'string' ? j.customer_name : (typeof j.name === 'string' ? j.name : ''))).trim();
       var custName = rawCustName || (j.customerCode ? ('Customer #' + j.customerCode) : '—');
       
-      var vehicleMeta = (j.vehicle || j.vehicle_details || j.vehicle_num || j.siteDetails || j.site_details || '').trim();
+      var vehicleMeta = '';
+      if (typeof j.vehicle === 'string' && j.vehicle.trim()) {
+        vehicleMeta = j.vehicle.trim();
+      } else if (typeof j.vehicle_num === 'string' && j.vehicle_num.trim()) {
+        vehicleMeta = j.vehicle_num.trim();
+      } else if (j.vehicle_details) {
+        if (typeof j.vehicle_details === 'string' && j.vehicle_details.trim()) {
+          vehicleMeta = j.vehicle_details.trim();
+        } else if (typeof j.vehicle_details === 'object') {
+          vehicleMeta = String(j.vehicle_details.vehicle || j.vehicle_details.registrationNo || j.vehicle_details.reg || '').trim();
+        }
+      }
+
       if (!vehicleMeta && j.panelCount) {
         vehicleMeta = '☀️ ' + j.panelCount + ' Solar Panels';
+      } else if (!vehicleMeta && (j.siteDetails || j.site_details)) {
+        var site = j.siteDetails || j.site_details;
+        if (typeof site === 'string' && site.trim()) {
+          vehicleMeta = site.trim();
+        } else if (typeof site === 'object') {
+          vehicleMeta = site.panelCount ? ('☀️ ' + site.panelCount + ' Solar Panels') : (site.roofScope || site.panelScope || 'Solar Cleaning');
+        }
       }
 
       var rawCat = j.serviceCategory || j.service_category || j.serviceType || j.service_type || '';
@@ -132,8 +176,8 @@ function runLedgerTests() {
         catLabel = 'On-Demand Service';
       }
 
-      var rawStaffName = (j.staffName || j.staff_name || j.assigned_staff_name || '').trim();
-      var staffCode = (j.staffId || j.staff_code || j.assigned_staff_code || '').trim();
+      var rawStaffName = (typeof j.staffName === 'string' ? j.staffName : (typeof j.staff_name === 'string' ? j.staff_name : (typeof j.assigned_staff_name === 'string' ? j.assigned_staff_name : ''))).trim();
+      var staffCode = (typeof j.staffId === 'string' ? j.staffId : (typeof j.staff_code === 'string' ? j.staff_code : (typeof j.assigned_staff_code === 'string' ? j.assigned_staff_code : ''))).trim();
       var staffDisplay = rawStaffName || (staffCode ? ('Staff #' + staffCode) : 'Unassigned');
       var isUnassigned = (!rawStaffName && !staffCode) || staffDisplay.toLowerCase() === 'unassigned';
       var staffInitial = isUnassigned ? '?' : (staffDisplay.replace(/[^a-zA-Z0-9]/g, '').charAt(0) || 'S').toUpperCase();
@@ -189,6 +233,17 @@ function runLedgerTests() {
   assert.strictEqual(mockCount.textContent, 0);
   assert.strictEqual(mockBadge.textContent, 0);
   console.log('✅ PASS: Empty queue count and badge properly set to 0');
+
+  // Verification 4: Type-safety with JSONB siteDetails & vehicle_details objects
+  assert.doesNotThrow(() => {
+    testRender(fixtureJsonbObjects);
+  }, 'MUST NOT throw TypeError when siteDetails or vehicle_details are JSONB objects');
+  const out4 = mockTableBody.innerHTML;
+  assert.ok(out4.includes('Vaibhav Srivastava'), 'Renders customer name: Vaibhav Srivastava');
+  assert.ok(out4.includes('☀️ 24 Solar Panels'), 'Renders solar panels from JSONB siteDetails object');
+  assert.ok(out4.includes('UP65FR9699 (Creta)'), 'Renders vehicle from JSONB vehicle_details object');
+  assert.ok(out4.includes('Gaurav Kr Gupta'), 'Renders staff name: Gaurav Kr Gupta');
+  console.log('✅ PASS: JSONB siteDetails & vehicle_details objects parsed safely without TypeError');
 
   console.log('\n🎉 ALL P0-4 SPECIAL JOBS LEDGER TESTS PASSED!');
 }
