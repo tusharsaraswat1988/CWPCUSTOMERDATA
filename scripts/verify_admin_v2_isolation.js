@@ -237,12 +237,10 @@ async function runVerification() {
     assert(resPlaygroundJs.body.includes('bindFormPlayground'), 'v2-playground.js supports Task 05 Form interactive handlers');
     assert(resPlaygroundJs.body.includes('handleFileSelected'), 'v2-playground.js supports file upload dropzone handling');
 
-    // 4. Verify Admin V1 remains 100% frozen and untouched
+    // 4. Verify Admin V1 is retired and /admin redirects to /admin-v2
     const resV1 = await request('/admin');
-    assert(resV1.status === 200, 'GET /admin (V1) returns HTTP 200');
-    assert(resV1.body.includes('admin-mode-active'), 'GET /admin serves Index.html with admin-mode-active');
-    assert(resV1.body.includes('/css/style.css'), 'GET /admin loads V1 style.css');
-    assert(!resV1.body.includes('cwp-v2-root'), 'GET /admin contains zero V2 markup');
+    assert(resV1.status === 302, 'GET /admin returns HTTP 302 redirect to Admin V2');
+    assert(resV1.headers.location === '/admin-v2', 'GET /admin redirects Location to /admin-v2');
 
     // 5. Verify Staff Portal remains untouched
     const resStaff = await request('/staff');
