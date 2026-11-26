@@ -572,8 +572,7 @@
     <span class="material-symbols-outlined nav-symbol">solar_power</span>
     <span class="tab-text">Other Cleaning Status</span>
     </div>
-    <!-- Wash & Solar Reports -->
-    <span class="admin-tab-badge badge-amber" id="tabSpecialJobsCount" style="background: rgba(217, 119, 6, 0.16); color: #78350f; border: 1px solid rgba(180, 83, 9, 0.45); font-weight: 700;">0</span>
+    <span class="admin-tab-badge badge-amber" id="tabSpecialJobsCount">0</span>
     </button>
     <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnJobAssignment" role="tab" onclick="switchAdminTab('jobAssignment')" title="Assign Jobs & Cleaner Dispatch">
     <div class="nav-btn-left">
@@ -617,7 +616,7 @@
     <span class="material-symbols-outlined nav-symbol">contact_mail</span>
     <span class="tab-text">Leads</span>
     </div>
-    <span class="admin-tab-badge badge-amber" id="tabLeadsCount" style="background: rgba(245, 158, 11, 0.16); color: #78350f; border: 1px solid rgba(180, 83, 9, 0.45); font-weight: 700;">0</span>
+    <span class="admin-tab-badge badge-amber" id="tabLeadsCount">0</span>
     </button>
     <button type="button" class="admin-tab-btn sidebar-nav-btn" id="tabBtnStaff" role="tab" onclick="switchAdminTab('staff')" title="Staff Team & Status">
     <div class="nav-btn-left">
@@ -977,7 +976,6 @@
           <div class="cwp-search-box">
             <span class="material-symbols-outlined search-mag-icon">search</span>
             <input type="text" id="adminRecordSearch" class="cwp-search-input-field" placeholder="Search customer, phone, vehicle plate, address..." oninput="handleAdminSearchInput()" onkeydown="if(event.key==='Enter') filterAdminRecords()">
-            <div class="search-key-badge">/</div>
             <button type="button" class="search-btn-clear" id="btnAdminSearchClear" onclick="clearAdminSearch()" style="display: none;" title="Clear search">✕</button>
           </div>
           <select id="filterAdminCategory" onchange="filterAdminRecords()" style="display: none;">

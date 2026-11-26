@@ -10360,6 +10360,9 @@ function loadStaffCustomerData(staffId) {
             '<div class="skeleton-shimmer" style="width:44px; height:20px; margin:0 auto; border-radius:12px;"></div>' +
           '</td>' +
           '<td style="text-align:center;">' +
+            '<div class="skeleton-shimmer" style="width:70px; height:20px; margin:0 auto; border-radius:10px;"></div>' +
+          '</td>' +
+          '<td style="text-align:center;">' +
             '<div class="skeleton-shimmer" style="width:54px; height:24px; margin:0 auto; border-radius:6px;"></div>' +
           '</td>' +
         '</tr>';
@@ -12106,123 +12109,242 @@ function loadStaffCustomerData(staffId) {
       if (!tbody) return;
 
       var paginationContainer = document.getElementById('adminTablePagination');
-      var currentLang = (typeof state !== 'undefined' && state.lang) || localStorage.getItem('cwp_lang') || 'en';
-      var isHi = (currentLang === 'hi');
 
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">' +
-          '<div style="margin-bottom: 8px;"><span class="material-symbols-outlined" style="font-size: 36px; color: #94a3b8;">search_off</span></div>' +
-          '<div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-bottom: 4px;">' + (isHi ? 'कोई ग्राहक रिकॉर्ड नहीं मिला' : 'No customer records match your filter') + '</div>' +
-          '<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">' + (isHi ? 'खोज बदलकर पुनः प्रयास करें' : 'Try adjusting your search criteria') + '</div>' +
-          '<button type="button" class="cwp-btn-subtle" onclick="resetAllAdminFilters()" style="margin: 0 auto; display: inline-flex;">' + (isHi ? 'सभी फ़िल्टर रीसेट करें' : 'Reset all filters') + '</button>' +
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">' +
+          '<div style="margin-bottom: 10px;"><span class="material-symbols-outlined" style="font-size: 40px; color: var(--color-primitive-slate-400, #94a3b8);">search_off</span></div>' +
+          '<div style="font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">No customer records match your filter</div>' +
+          '<div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">Try adjusting your search criteria, staff assignment or category filters</div>' +
+          '<button type="button" class="btn-admin-secondary" onclick="resetAllAdminFilters()" style="margin: 0 auto; display: inline-flex;">Reset all filters</button>' +
           '</td></tr>';
-        if (paginationContainer) paginationContainer.innerHTML = '';
+        if (paginationContainer) {
+          paginationContainer.innerHTML = '';
+          paginationContainer.style.display = 'none';
+        }
         return;
       }
 
-      var totalCount = records.length;
-      var pageSize = (typeof adminPagination !== 'undefined' && adminPagination.pageSize) || 25;
-      var currentPage = (typeof adminPagination !== 'undefined' && adminPagination.page) || 1;
-      var totalPages = Math.ceil(totalCount / pageSize);
-      if (currentPage > totalPages) currentPage = totalPages;
-      if (currentPage < 1) currentPage = 1;
+      var totalCount = records ? records.length : 0;
+      var pageSize = adminPagination ? adminPagination.pageSize : 25;
+      var currentPage = adminPagination ? adminPagination.page : 1;
+      var totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 1;
+      if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+      if (adminPagination) adminPagination.page = currentPage;
 
-      var startIndex = (currentPage - 1) * pageSize;
-      var endIndex = Math.min(startIndex + pageSize, totalCount);
-      var pagedRecords = records.slice(startIndex, endIndex);
+      var startIndex = pageSize > 0 ? (currentPage - 1) * pageSize : 0;
+      var endIndex = pageSize > 0 ? Math.min(startIndex + pageSize, totalCount) : totalCount;
+      var pageRecords = pageSize > 0 ? records.slice(startIndex, endIndex) : records;
 
       var html = '';
-      pagedRecords.forEach(function(r, index) {
-        var serialNumber = startIndex + index + 1;
-        var sNoHtml = '<span class="cwp-sno">' + serialNumber + '</span>';
-        var origIndex = (typeof r._origIndex === 'number') ? r._origIndex : index;
+      pageRecords.forEach(function(r, index) {
+        var sNo = startIndex + index + 1;
+        var origIndex = r._origIndex !== undefined ? r._origIndex : (startIndex + index);
+        var isActive = (r.active || 'Yes').toLowerCase() === 'yes';
 
-        /* 1. Customer Name (Pure text, NO avatar icon, NO Customer ID, Single-language) */
-        var enName = (r.customerName || '').trim();
-        var hiName = (r.nameHi || r.name_hi || '').trim(); /* table-hi-sub */
-        var displayName = isHi ? (hiName || enName || 'अज्ञात ग्राहक') : (enName || hiName || 'Unknown Customer');
-        var custNameHtml = '<div class="cwp-cust-name-cell">' +
-          '<span class="cwp-cust-name-text" onclick="openEditCustomerModal(' + origIndex + ')" title="' + escapeHtml(displayName) + '">' + escapeHtml(displayName) + '</span>' +
+        /* 1. Serial Number Cell */
+        var sNoHtml = '<span class="sno-badge">' + sNo + '</span>';
+
+        /* 2. Customer Name Cell (Dedicated column: name only, natural display & tooltip) */
+        var avatarHtml = renderCustomerAvatar(r.customerName || 'Customer');
+        var hiName = (r.nameHi || r.name_hi || '').trim();
+        var nameDisplayHtml = escapeHtml(r.customerName || 'Unknown Customer');
+        if (hiName && hiName !== r.customerName) {
+          nameDisplayHtml += ' <span class="table-hi-sub" title="हिन्दी: ' + escapeHtml(hiName) + '">(' + escapeHtml(hiName) + ')</span>';
+        }
+        var custNameHtml = '<div class="cust-name-cell-modern">' +
+          avatarHtml +
+          '<div class="cust-name-wrap">' +
+            '<span class="cust-name-text" title="' + escapeHtml(r.customerName || '') + '">' + nameDisplayHtml + '</span>' +
+          '</div>' +
         '</div>';
 
-        /* 2. Mobile Number (Click-to-call link with clean formatting, NO WhatsApp icon) */
-        var phoneHtml = '<span class="cwp-cell-empty">—</span>';
+        /* 2b. Mobile Number Cell (Dedicated column: phone link + WhatsApp action) */
+        var phoneHtml = '';
         if (r.customerNumber) {
           var nPhone = normalizeIndianMobile(r.customerNumber);
           var formattedPhone = formatIndianMobile(nPhone);
-          phoneHtml = '<a href="' + getIndianPhoneLink(nPhone) + '" class="cwp-cust-phone" title="' + (isHi ? 'कॉल करें: ' : 'Call: ') + escapeHtml(formattedPhone) + '">' +
-            '<span class="material-symbols-outlined phone-icon">call</span>' +
-            '<span>' + escapeHtml(formattedPhone) + '</span>' +
-          '</a>';
+          phoneHtml = '<div class="table-phone-cell">' +
+            '<a href="' + getIndianPhoneLink(nPhone) + '" class="cust-phone-link" title="Call: ' + escapeHtml(formattedPhone) + '">' +
+              '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 4V3z"/></svg> ' +
+              '<span class="phone-digits-text">' + escapeHtml(formattedPhone) + '</span>' +
+            '</a>' +
+            '<a href="https://wa.me/91' + escapeHtml(nPhone) + '" target="_blank" rel="noopener noreferrer" class="cust-wa-pill" title="WhatsApp ' + escapeHtml(r.customerName || '') + '" onclick="event.stopPropagation();">' +
+              '<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z"/></svg>' +
+            '</a>' +
+          '</div>';
+        } else {
+          phoneHtml = '<span class="cell-empty-dash" title="No phone number">—</span>';
         }
+
+        /* 2c. Service Category & Plan Cell (Dedicated column) */
+        var serviceHtml = '';
+        if (r.isStopped) {
+          serviceHtml = '<div class="table-service-cell">' +
+            '<span class="cust-sheet-tag" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;"><span class="tag-status-dot" style="background:#ef4444;"></span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">cancel</span>Stopped (काम रुका)</span>';
+          if (r.stoppedReason) {
+            serviceHtml += '<div style="font-size:10.5px; color:#991b1b; margin-top:2px; font-weight:500;">' + escapeHtml(r.stoppedReason) + '</div>';
+          }
+          serviceHtml += '<div class="table-pkg-badge-wrap" style="margin-top:3px;"><button type="button" onclick="openAssignServiceModal(' + origIndex + ')" style="padding:2px 7px; font-size:11px; font-weight:600; border-radius:4px; background:#fff; border:1px solid #f87171; color:#b91c1c; cursor:pointer;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle; margin-right:2px;">tune</span>Manage Service</button></div>' +
+          '</div>';
+        } else if (!r.hasService) {
+          serviceHtml = '<div class="table-service-cell">' +
+            '<span class="cust-sheet-tag" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"><span class="tag-status-dot" style="background:#94a3b8;"></span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">radio_button_unchecked</span>No Service</span>' +
+            '<div class="table-pkg-badge-wrap" style="margin-top:4px;"><button type="button" onclick="openAssignServiceModal(' + origIndex + ')" style="padding:2px 8px; font-size:11px; font-weight:600; border-radius:4px; background:#eff6ff; border:1px solid #93c5fd; color:#1d4ed8; cursor:pointer;">+ Assign Service</button></div>' +
+          '</div>';
+        } else {
+          var catName = r.serviceCategory || (r.sheetName === 'Daily Clean' ? 'Daily Car Cleaning' : 'Car Washing');
+          var tagClass = 'tag-daily';
+          if (catName === 'Car Washing') tagClass = 'tag-wash';
+          else if (catName === 'Solar Panel Cleaning') tagClass = 'tag-solar';
+          else if (catName === 'Interior Detailing') tagClass = 'tag-interior';
+          else if (catName === 'Exterior Detailing') tagClass = 'tag-exterior';
+          var pkgLabel = (r.packageType || r.serviceType || '').trim();
+
+          serviceHtml = '<div class="table-service-cell">' +
+            '<span class="cust-sheet-tag ' + tagClass + '"><span class="tag-status-dot"></span>' + escapeHtml(catName) + '</span>';
+          if (pkgLabel) {
+            serviceHtml += '<div class="table-pkg-badge-wrap">' + renderModernPackageBadge(pkgLabel) + '</div>';
+          }
+          serviceHtml += '</div>';
+        }
+
+        /* 2d. Vehicle / Site Cell + Photo Micro-Thumb (Dedicated column) */
+        var carText = formatVehiclePlateOrSummary(r, '');
+        var carHtml = '<div class="vehicle-cell-wrap-modern">';
+        if (carText) {
+          if (catName === 'Solar Panel Cleaning') {
+            carHtml += '<span class="solar-site-badge" style="font-size:11.5px;" title="' + escapeHtml(carText) + '"><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">solar_power</span>' + escapeHtml(carText) + '</span>';
+          } else {
+            carHtml += renderModernNumberPlate(carText);
+          }
+        } else {
+          carHtml += '<span class="cell-empty-dash">—</span>';
+        }
+        var rowMake = String(r.carMake || r.car_make || '').trim();
+        var rowColor = String(r.carColor || r.car_color || '').trim();
+        if (catName !== 'Solar Panel Cleaning' && (rowMake || rowColor)) {
+          var makeColorDisplay = [rowMake, rowColor].filter(Boolean).join(' • ');
+          carHtml += '<div class="table-vehicle-make-color" title="Car Make & Color: ' + escapeHtml(makeColorDisplay) + '">' +
+            '<span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:3px;">directions_car</span>' + escapeHtml(makeColorDisplay) + '</span>' +
+          '</div>';
+        }
+        if (r.photoUrl && r.photoUrl.trim()) {
+          var aThumb = r.photoUrl.indexOf('res.cloudinary.com') !== -1 && r.photoUrl.indexOf('/upload/') !== -1 ? r.photoUrl.replace('/upload/', '/upload/w_80,h_80,c_fill,q_auto,f_auto/') : r.photoUrl;
+          carHtml += '<div style="margin-top: 3px;">' +
+            '<button type="button" class="vehicle-photo-thumb-btn-modern" onclick="openAdminPhotoModal(' + origIndex + ')" title="View vehicle photo">' +
+              '<img src="' + escapeHtml(aThumb) + '" class="vehicle-micro-thumb" alt="Photo">' +
+              '<span><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:2px;">photo_camera</span>Photo</span>' +
+            '</button>' +
+          '</div>';
+        }
+        carHtml += '</div>';
 
         /* 3. Primary Address Cell */
+        var addrText = (r.address != null ? String(r.address) : '').trim();
+        var primaryAddrHtml = '<div class="table-addr-col-wrap">';
+        if (isLocationLinkOnly(addrText)) {
+          primaryAddrHtml += '<div class="geo-verified-pill" onclick="openAddressModal(' + origIndex + ')" title="GPS Pin Coordinates Linked • Click to view">' +
+            '<span class="geo-pulse-dot"></span>' +
+            '<span>GPS Linked Pin</span>' +
+          '</div>';
+        } else if (addrText) {
+          primaryAddrHtml += '<div class="table-addr-text" onclick="openAddressModal(' + origIndex + ')" title="Click to view full address & details">' +
+            '<svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11" class="addr-pin-icon"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg> ' +
+            escapeHtml(addrText) +
+          '</div>';
+        } else {
+          primaryAddrHtml += '<span class="cell-empty-dash" title="Primary address not provided">—</span>';
+        }
+        primaryAddrHtml += '</div>';
+
         /* 4. Primary Map Location Cell */
+        var primaryMapsUrl = formatGoogleMapsUrl(r.googleMapsUrl, addrText);
+        var primaryMapHtml = '<div style="text-align: center;">';
+        if (primaryMapsUrl) {
+          primaryMapHtml += '<a href="' + escapeHtml(primaryMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="table-inline-map-btn smart-map-btn" onclick="event.stopPropagation();" title="Open primary location in Google Maps">' +
+            '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>' +
+            '<span>Map ↗</span>' +
+          '</a>';
+        } else {
+          primaryMapHtml += '<span class="cell-empty-dash" title="No primary map link">—</span>';
+        }
+        primaryMapHtml += '</div>';
+
         /* 5. Secondary Address Cell */
         /* 6. Secondary Map Location Cell */
-        var rawAddr = (r.address != null ? String(r.address) : '').trim();
-        var hiAddr = (r.addressHi || r.address_hi != null ? String(r.addressHi || r.address_hi) : '').trim();
-        var addrText = (isHi && hiAddr) ? hiAddr : rawAddr;
-        var primaryAddrHtml = '<span class="cwp-cell-empty">—</span>';
-        if (isLocationLinkOnly(addrText)) {
-          primaryAddrHtml = '<span class="cwp-addr-link-only" onclick="openAddressModal(' + origIndex + ')">GPS Location Attached</span>';
-        } else if (addrText) {
-          primaryAddrHtml = '<span class="cwp-addr-text" onclick="openAddressModal(' + origIndex + ')" title="' + escapeHtml(addrText) + '">' + escapeHtml(addrText) + '</span>';
-        }
-
-        /* 4. Location & GPS Cell (Subtle Map Link & 2nd Location link) */
-        var primaryMapsUrl = r.mapsUrl || (isLocationLinkOnly(addrText) ? addrText : '');
         var secAddrText = (r.secondaryAddress != null ? String(r.secondaryAddress) : '').trim();
-        var secMapsUrl = (r.secondaryMapsUrl != null ? String(r.secondaryMapsUrl) : '').trim();
-
-        var mapColParts = [];
-        if (primaryMapsUrl) {
-          mapColParts.push('<a href="' + escapeHtml(primaryMapsUrl) + '" target="_blank" rel="noopener noreferrer" class="cwp-map-quiet-link table-inline-map-btn smart-map-btn" onclick="event.stopPropagation();">' +
-            '<span>Map ↗</span>' +
-          '</a>');
-        }
+        var secMapsUrl = formatGoogleMapsUrl(r.secondaryMapsUrl, secAddrText);
+        var secLocHtml = '<div style="text-align: center;">';
         if (secAddrText || secMapsUrl) {
-          mapColParts.push('<button type="button" class="cwp-alt-loc-quiet-link btn-sec-loc-circle badge-sec-tag table-inline-map-sec-btn" onclick="openAddressModal(' + origIndex + ')" title="' + (isHi ? 'दूसरा पता: ' : '2nd Location: ') + escapeHtml(secAddrText || 'Map Available') + '">' +
-            '<span>' + (isHi ? 'दूसरा पता' : '2nd Location') + '</span>' +
-          '</button>');
+          secLocHtml += '<button type="button" class="btn-sec-loc-circle" onclick="openAddressModal(' + origIndex + ')" title="2nd Location: ' + escapeHtml(secAddrText || 'Map Available') + ' • Click to view full details">' +
+            '<span class="sec-loc-circle-dot">✓</span> ' +
+            '<span class="sec-loc-circle-text">Yes</span>' +
+          '</button>';
+        } else {
+          secLocHtml += '<span class="cell-empty-dash" title="No secondary location">—</span>';
         }
-        var mapColHtml = mapColParts.length > 0 ? ('<div class="cwp-loc-links-wrap">' + mapColParts.join(' · ') + '</div>') : '<span class="cwp-cell-empty">—</span>';
+        secLocHtml += '</div>';
 
-        /* 5. Actions (Direct Edit + Contextual Menu) */
-        var actionsHtml = '<div class="cwp-row-actions">' +
-          '<button type="button" class="cwp-action-edit-btn" onclick="openEditCustomerModal(' + origIndex + ')" title="' + (isHi ? 'ग्राहक संपादित करें' : 'Edit Customer') + '">' +
-            '<span>' + (isHi ? 'एडिट' : 'Edit') + '</span>' +
+        /* 7. Staff Assigned Name or Unassigned Badge */
+        var staffName = (r.staffName || '').trim();
+        var staffHtml = '<div style="text-align: center;">';
+        if (staffName && staffName.toLowerCase() !== 'none' && staffName.toLowerCase() !== 'unassigned') {
+          var matchedStaff = (state.staffList || []).find(function(s) {
+            return (s.name && s.name.toLowerCase() === staffName.toLowerCase()) ||
+                   (s.id && r.staffId && s.id.toUpperCase() === r.staffId.toUpperCase());
+          });
+          var matchedPhoto = matchedStaff ? (matchedStaff.photoUrl || matchedStaff.photo_url || '') : '';
+          staffHtml += '<span class="staff-assigned-chip" title="Assigned: ' + escapeHtml(staffName) + '">';
+          if (matchedPhoto) {
+            staffHtml += '<img src="' + escapeHtml(matchedPhoto) + '" class="staff-avatar-mini" alt="' + escapeHtml(staffName) + '">';
+          } else {
+            staffHtml += '<span class="staff-avatar-mini-initials">' + escapeHtml(staffName.slice(0, 2).toUpperCase()) + '</span>';
+          }
+          staffHtml += '<span class="staff-chip-name">' + escapeHtml(staffName) + '</span></span>';
+        } else {
+          staffHtml += '<span class="staff-none-badge" title="No staff assigned">Unassigned</span>';
+        }
+        staffHtml += '</div>';
+
+        /* 8. Actions: Edit and Delete Buttons */
+        var actionsHtml = '<div class="records-actions-cluster">' +
+          '<button type="button" class="btn-cell-action btn-edit-record" onclick="openEditCustomerModal(' + origIndex + ')" title="Edit customer details">' +
+            '<span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">edit</span>' +
+            '<span>Edit</span>' +
           '</button>' +
-          '<div class="cwp-action-menu-wrapper">' +
-            '<button type="button" class="cwp-action-more-btn" onclick="toggleCustomerRowActionMenu(' + origIndex + ', event)" title="' + (isHi ? 'अधिक विकल्प' : 'More options') + '" aria-label="More options">' +
-              '<span class="material-symbols-outlined" style="font-size: 16px;">more_vert</span>' +
+          '<div class="cwp-action-menu-wrap">' +
+            '<button type="button" class="cwp-action-menu-btn" onclick="toggleCustomerRowActionMenu(' + origIndex + ', event)" title="More options" aria-label="Customer actions menu">' +
+              '<span class="material-symbols-outlined" style="font-size: 18px;">more_vert</span>' +
             '</button>' +
             '<div id="custRowMenu_' + origIndex + '" class="cwp-action-menu-dropdown">' +
               '<button type="button" class="cwp-action-menu-item" onclick="openEditCustomerModal(' + origIndex + ')">' +
-                '<span class="material-symbols-outlined">edit</span><span>' + (isHi ? 'ग्राहक संपादित करें' : 'Edit Customer') + '</span>' +
+                '<span class="material-symbols-outlined">edit</span><span>Edit Customer</span>' +
+              '</button>' +
+              '<button type="button" class="cwp-action-menu-item" onclick="openAssignServiceModal(' + origIndex + ')">' +
+                '<span class="material-symbols-outlined">local_car_wash</span><span>Manage Service</span>' +
               '</button>' +
               '<button type="button" class="cwp-action-menu-item" onclick="openAddressModal(' + origIndex + ')">' +
-                '<span class="material-symbols-outlined">location_on</span><span>' + (isHi ? 'स्थान व मैप देखें' : 'View Location Details') + '</span>' +
-              '</button>' +
-              '<button type="button" class="cwp-action-menu-item" onclick="switchAdminTab(\'serviceAssign\')">' +
-                '<span class="material-symbols-outlined">assignment</span><span>' + (isHi ? 'सर्विस व एसेट देखें' : 'View Service & Asset') + '</span>' +
+                '<span class="material-symbols-outlined">location_on</span><span>View Location</span>' +
               '</button>' +
               '<div class="cwp-action-menu-divider"></div>' +
               '<button type="button" class="cwp-action-menu-item text-danger btn-delete-record" onclick="handleDeleteCustomer(' + origIndex + ')">' +
-                '<span class="material-symbols-outlined">delete</span><span>' + (isHi ? 'ग्राहक हटाएं' : 'Delete Customer') + '</span>' +
+                '<span class="material-symbols-outlined">delete</span><span>Delete Customer</span>' +
               '</button>' +
             '</div>' +
           '</div>' +
         '</div>';
 
-        /* 100% PURE CUSTOMER ROW: # | Customer Name | Mobile | Address | Map | Actions */
-        html += '<tr class="cwp-cust-row">';
-        html += '  <td class="td-sno" style="text-align: center;">' + sNoHtml + '</td>';
+        html += '<tr>';
+        html += '  <td style="text-align: center;">' + sNoHtml + '</td>';
         html += '  <td class="td-cust-name">' + custNameHtml + '</td>';
-        html += '  <td class="td-cust-phone">' + phoneHtml + '</td>';
-        html += '  <td class="td-cust-address">' + primaryAddrHtml + '</td>';
-        html += '  <td class="td-cust-map" style="text-align: center;">' + mapColHtml + '</td>';
-        html += '  <td class="td-actions" style="text-align: right;">' + actionsHtml + '</td>';
+        html += '  <td>' + phoneHtml + '</td>';
+        html += '  <td>' + serviceHtml + '</td>';
+        html += '  <td>' + carHtml + '</td>';
+        html += '  <td>' + primaryAddrHtml + '</td>';
+        html += '  <td style="text-align: center;">' + primaryMapHtml + '</td>';
+        html += '  <td style="text-align: center;">' + secLocHtml + '</td>';
+        html += '  <td style="text-align: center;">' + staffHtml + '</td>';
+        html += '  <td style="text-align: center;" class="td-actions">' + actionsHtml + '</td>';
         html += '</tr>';
       });
 
