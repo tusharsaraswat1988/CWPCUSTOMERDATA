@@ -884,64 +884,43 @@
     </div>
     <div id="adminTabStaff" class="admin-tab-pane" style="display: none;">
     <div class="admin-card-section">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-    <h2 class="admin-card-title" style="margin: 0;">Staff Management</h2>
+    <div class="records-hero-strip" style="margin-bottom: 14px;">
+    <div class="records-hero-left">
+    <div class="records-hero-icon" style="background: rgba(37, 99, 235, 0.1); color: var(--brand-blue, #1d4ed8);">
+    <span class="material-symbols-outlined" style="font-size: 22px;">badge</span>
+    </div>
+    <div>
+    <div class="records-title-row">
+    <h2 class="records-hero-title">Staff Management & Roster</h2>
+    <span class="records-count-chip"><span id="adminStaffTotalCount">0</span> field crew</span>
+    </div>
+    <p class="records-hero-subtitle">Operational field personnel, roles, designations, daily cleaning routes & access PIN security</p>
+    </div></div>
+    <div class="records-hero-actions">
     <button type="button" class="btn-admin-action" onclick="openDesignationManagementModal()" title="Manage Staff Designations & Operational Authorities" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 12px;">
     <span class="material-symbols-outlined" style="font-size: 16px; color: var(--md-sys-color-primary, #1d4ed8);">badge</span>
-    <span>Designations & Authorities</span>
+    <span>Designations</span>
     </button>
     <button type="button" class="btn-admin-action" onclick="openStaffHierarchyView()" title="View Organizational Hierarchy & Reporting Lines" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 12px;">
     <span class="material-symbols-outlined" style="font-size: 16px; color: #7c3aed;">account_tree</span>
-    <span>Org Hierarchy</span>
+    <span>Hierarchy</span>
     </button>
-    </div>
-    </div>
-    <form onsubmit="handleAddStaff(event)" style="margin-bottom: 16px;">
-    <div id="addStaffFormGrid" style="display: grid; grid-template-columns: auto 2fr 1.3fr 0.9fr 1.2fr 1.2fr auto; gap: 8px; align-items: center;">
-    <div class="new-staff-photo-btn-wrap" style="position: relative;">
-    <button type="button" class="btn-admin-action" id="btnAddNewStaffPhoto" onclick="var f=document.getElementById('newStaffPhotoFile'); if(f){f.value=''; f.click();}" title="Staff Photo (Optional)" style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; font-size: 12px; height: 38px; border-radius: var(--radius-md); border: 1px dashed var(--border-color); background: var(--bg-surface);">
-    <span id="newStaffPhotoPreview" style="display: none; width: 22px; height: 22px; border-radius: 50%; overflow: hidden; flex-shrink: 0;"><img id="newStaffPhotoPreviewImg" src="" style="width: 100%; height: 100%; object-fit: cover;"></span>
-    <span id="newStaffPhotoIcon">📷</span>
-    <span id="newStaffPhotoText" style="white-space: nowrap; font-weight: 600;">Photo</span>
+    <button type="button" class="btn-primary-smart" id="btnOpenAddStaffModal" onclick="openAddStaffModal()" title="Add a new staff team member" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 14px;">
+    <span class="material-symbols-outlined" style="font-size: 16px;">person_add</span>
+    <span>+ Add New Staff</span>
     </button>
-    <button type="button" id="btnClearNewStaffPhoto" onclick="clearNewStaffPhoto(event)" style="display: none; position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: #ef4444; color: #fff; border-radius: 50%; border: 1px solid #fff; font-size: 10px; cursor: pointer; align-items: center; justify-content: center; line-height: 1; z-index: 2;" title="Remove Photo">✕</button>
-    <input type="file" id="newStaffPhotoFile" accept="image/*" style="display: none;" onchange="handleStaffPhotoSelect(event, 'new')">
-    </div>
-    <input type="text" id="newStaffName" class="form-input" placeholder="Full Name (e.g. Ramesh Kumar)" required>
-    <div class="cwp-phone-group">
-    <span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span>
-    <input type="tel" id="newStaffPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required>
-    </div>
-    <input type="text" id="newStaffPin" class="form-input" placeholder="6-digit PIN" maxlength="6" pattern="[0-9]{6}" required title="6-digit password for Staff Portal login">
-    <select id="newStaffWorkType" class="form-select" style="font-size: 12px; height: 38px;" title="Work Type (कार्य प्रकार)">
-    <option value="dcc_only">DCC Only (दैनिक सफाई)</option>
-    <option value="dcc_and_services">DCC + Services (सफाई व अन्य)</option>
-    <option value="services_only">Services Only (केवल ऑन-डिमांड)</option>
-    </select>
-    <select id="newStaffDesignation" class="form-select" style="font-size: 12px; height: 38px;" title="Designation (पद / भूमिका)">
-    <option value="cleaner">Cleaner (Level 1)</option>
-    <option value="service_specialist">Service Specialist (Level 1)</option>
-    <option value="senior_cleaner">Senior Cleaner (Level 2)</option>
-    <option value="team_leader">Team Leader (Level 3)</option>
-    <option value="supervisor">Supervisor (Level 4)</option>
-    <option value="zone_manager">Zone Manager (Level 5)</option>
-    <option value="operations_manager">Operations Manager (Level 6)</option>
-    </select>
-    <input type="hidden" id="newStaffId" value="">
-    <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
-    + Add New Staff
-    </button>
-    </div>
-    </form>
+    </div></div>
     <div id="adminStaffList">
     <div class="empty-state-box">Loading staff list...</div></div>
     <div style="margin-top: 24px; border-top: 1px dashed var(--border-color); padding-top: 16px;">
-    <h3 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Change Admin Password</h3>
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+    <span class="material-symbols-outlined" style="font-size: 18px; color: var(--brand-blue, #1d4ed8);">lock_reset</span>
+    <h3 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0;">Change Admin Password</h3>
+    </div>
     <form onsubmit="handleUpdateAdminPassword(event)" style="display: flex; gap: 8px; flex-wrap: wrap;">
     <input type="password" id="newAdminPasswordInput" class="form-input" style="flex: 2; min-width: 180px;" placeholder="New password (minimum 4 characters)" minlength="4" required>
     <button type="submit" class="btn-admin-action" style="background: var(--brand-blue); color: #ffffff; border-color: var(--brand-blue); font-weight: 700; white-space: nowrap;">
-    💾 Change Password
+    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">save</span> Change Password
     </button>
     </form>
     </div></div></div>
@@ -950,7 +929,7 @@
     <div class="records-hero-strip">
     <div class="records-hero-left">
     <div class="records-brand-icon">
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"> <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path> <circle cx="9" cy="7" r="4"></circle> <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path> <path d="M16 3.13a4 4 0 0 1 0 7.75"></path> </svg>
+    <span class="material-symbols-outlined" style="font-size: 22px;">contacts</span>
     </div>
     <div>
     <div class="records-title-row">
@@ -973,17 +952,17 @@
     <span class="btn-admin-icon-text"><span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle;">translate</span>Auto Indic</span>
     </button>
     <button type="button" class="btn-admin-secondary" onclick="exportAdminRecordsCSV()" title="Export filtered records to CSV">
-    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"> <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/> </svg>
+    <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle;">download</span>
     <span>Export CSV</span>
     </button>
     <button type="button" class="btn-admin-icon-only" id="btnAdminRefreshRecords" onclick="loadAdminRecords(true)" title="Refresh data from database">
-    <svg class="admin-btn-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"> <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/> </svg>
+    <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">refresh</span>
     </button>
     </div></div>
     <div class="records-kpi-grid">
     <div class="records-kpi-tile tile-kpi-all active" id="kpiTileAll" onclick="setKpiCategoryFilter('all')" title="Filter: All Customers">
     <div class="kpi-tile-icon icon-all">
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"> <rect x="3" y="3" width="7" height="7"></rect> <rect x="14" y="3" width="7" height="7"></rect> <rect x="14" y="14" width="7" height="7"></rect> <rect x="3" y="14" width="7" height="7"></rect> </svg>
+    <span class="material-symbols-outlined" style="font-size: 20px;">grid_view</span>
     </div>
     <div class="kpi-tile-data">
     <span class="kpi-tile-num" id="kpiCountTotal">0</span>
@@ -991,7 +970,7 @@
     </div></div>
     <div class="records-kpi-tile tile-kpi-daily" id="kpiTileDaily" onclick="setKpiCategoryFilter('Daily Car Cleaning')" title="Filter: Daily Car Cleaning">
     <div class="kpi-tile-icon icon-daily">
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"> <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/> <circle cx="7" cy="17" r="2"/> <path d="M9 17h6"/> <circle cx="17" cy="17" r="2"/> </svg>
+    <span class="material-symbols-outlined" style="font-size: 20px;">directions_car</span>
     </div>
     <div class="kpi-tile-data">
     <span class="kpi-tile-num" id="kpiCountDaily">0</span>
@@ -999,7 +978,7 @@
     </div></div>
     <div class="records-kpi-tile tile-kpi-wash" id="kpiTileWash" onclick="setKpiCategoryFilter('Car Washing')" title="Filter: Car Washing">
     <div class="kpi-tile-icon icon-wash">
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path> </svg>
+    <span class="material-symbols-outlined" style="font-size: 20px;">water_drop</span>
     </div>
     <div class="kpi-tile-data">
     <span class="kpi-tile-num" id="kpiCountWash">0</span>
@@ -1007,7 +986,7 @@
     </div></div>
     <div class="records-kpi-tile tile-kpi-solar" id="kpiTileSolar" onclick="setKpiCategoryFilter('Solar Panel Cleaning')" title="Filter: Solar Panel Cleaning">
     <div class="kpi-tile-icon icon-solar">
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg>
+    <span class="material-symbols-outlined" style="font-size: 20px;">solar_power</span>
     </div>
     <div class="kpi-tile-data">
     <span class="kpi-tile-num" id="kpiCountSolar">0</span>
@@ -1015,7 +994,7 @@
     </div></div>
     <div class="records-kpi-tile tile-kpi-unassigned" id="kpiTileUnassigned" onclick="setKpiStaffFilter('none')" title="Filter: Unassigned Staff">
     <div class="kpi-tile-icon icon-unassigned">
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path> <line x1="12" y1="9" x2="12" y2="13"></line> <line x1="12" y1="17" x2="12.01" y2="17"></line> </svg>
+    <span class="material-symbols-outlined" style="font-size: 20px;">warning</span>
     </div>
     <div class="kpi-tile-data">
     <span class="kpi-tile-num" id="kpiCountUnassigned">0</span>
@@ -1023,7 +1002,7 @@
     </div></div></div>
     <div class="records-toolbar">
     <div class="records-search-wrapper">
-    <svg class="records-search-svg" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"> <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/> </svg>
+    <span class="material-symbols-outlined records-search-svg" style="font-size: 16px;">search</span>
     <input type="text" id="adminRecordSearch" class="records-search-input" placeholder="Search customer, vehicle plate, phone, address..." oninput="handleAdminSearchInput()" onkeydown="if(event.key==='Enter') filterAdminRecords()">
     <div class="search-kbd-hint">/</div>
     <button type="button" class="btn-search-clear-inline" id="btnAdminSearchClear" onclick="clearAdminSearch()" style="display: none;" title="Clear search">✕</button>
@@ -1168,9 +1147,9 @@
     <span class="heartbeat-text">Live transit sync active (15s pulse)</span>
     </div>
     <div class="intel-chips-row">
-    <span class="intel-chip chip-time">⏱️ Last Log: <strong id="dashLastPunchTime">--:--</strong></span>
-    <span class="intel-chip chip-route">📍 Route: <strong>Active</strong></span>
-    <span class="intel-chip chip-sla">⚡ SLA: <strong>On Track</strong></span>
+    <span class="intel-chip chip-time"><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle;">schedule</span> Last Log: <strong id="dashLastPunchTime">--:--</strong></span>
+    <span class="intel-chip chip-route"><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle;">near_me</span> Route: <strong>Active</strong></span>
+    <span class="intel-chip chip-sla"><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle;">bolt</span> SLA: <strong>On Track</strong></span>
     </div></div></div></div>
     <div class="dashboard-charts-grid">
     <div class="m3-chart-card">
@@ -1222,7 +1201,7 @@
     <div class="admin-card-section reports-executive-section">
     <h2 class="clean-reports-h2" style="display: none;">Daily Clean Reports & Proof of Work</h2>
     <div id="reportsIntelligenceBanner" class="reports-intel-banner">
-    <div class="intel-banner-icon">✨</div>
+    <div class="intel-banner-icon"><span class="material-symbols-outlined" style="font-size: 20px; color: #1d4ed8;">auto_awesome</span></div>
     <div class="intel-banner-content">
     <span class="intel-banner-title">Operations Intelligence</span>
     <span id="intelBannerMessage" class="intel-banner-text">Loading realtime cleaning metrics & crew performance...</span>
@@ -1242,7 +1221,7 @@
     <div class="reports-filter-panel">
     <div class="reports-filter-tier">
     <div class="filter-tier-label">
-    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">calendar_month</span>
     <span>PERIOD:</span>
     </div>
     <div class="quick-chip-group">
@@ -1250,7 +1229,7 @@
     <button type="button" class="btn-quick-chip" id="chipPeriodYesterday" onclick="setReportPeriodChip('yesterday')">Yesterday (कल)</button>
     <button type="button" class="btn-quick-chip" id="chipPeriod7Days" onclick="setReportPeriodChip('7days')">Last 7 Days</button>
     <button type="button" class="btn-quick-chip" id="chipPeriodMonth" onclick="setReportPeriodChip('month')">This Month</button>
-    <button type="button" class="btn-quick-chip" id="chipPeriodCustom" onclick="setReportPeriodChip('custom')">Custom 📅</button>
+    <button type="button" class="btn-quick-chip" id="chipPeriodCustom" onclick="setReportPeriodChip('custom')">Custom <span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle;">calendar_month</span></button>
     </div>
     <div id="customDateRangeBox" class="custom-date-box" style="display: none;">
     <div class="date-input-wrap">
@@ -1264,15 +1243,15 @@
     <div class="reports-filter-tier reports-filter-slice-row">
     <div class="filter-select-wrapper">
     <select id="reportStaffFilter" class="report-select-input" onchange="loadDailyCleanReports()">
-    <option value="all">👥 All Staff Members (सभी स्टाफ)</option>
+    <option value="all">All Staff Members (सभी स्टाफ)</option>
     </select>
     </div>
     <div class="filter-select-wrapper">
     <select id="reportPhotoFilter" class="report-select-input" onchange="loadDailyCleanReports()">
-    <option value="all">📑 All Records (सभी रिकॉर्ड)</option>
-    <option value="yes">📷 With Photo Proof Only</option>
-    <option value="no">⚠️ Without Photo Proof</option>
-    <option value="not_present">🚫 Car Not Present (कार नहीं थी)</option>
+    <option value="all">All Records (सभी रिकॉर्ड)</option>
+    <option value="yes">With Photo Proof Only</option>
+    <option value="no">Without Photo Proof</option>
+    <option value="not_present">Car Not Present (कार नहीं थी)</option>
     </select>
     </div>
     <div class="filter-select-wrapper">
@@ -1281,11 +1260,11 @@
     </select>
     </div>
     <div class="report-search-wrapper">
-    <svg class="report-search-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"> <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/> </svg>
+    <span class="material-symbols-outlined report-search-icon" style="font-size: 16px;">search</span>
     <input type="text" id="reportSearchFilter" class="report-search-input" placeholder="Search customer, vehicle plate, phone, location..." oninput="debounceReportSearch()">
     </div>
     <button type="button" class="btn-filter-reset" onclick="resetReportFilters()" title="Reset all filters">
-    ✕ Reset
+    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">refresh</span> Reset
     </button>
     </div></div>
     <div class="records-table-wrapper reports-table-card">
@@ -1509,7 +1488,7 @@
     <form id="jobAssignForm" onsubmit="handleJobAssignmentSubmit(event)">
     <div class="job-assign-grid">
     <div class="form-group"><label class="form-label" for="jobAssignCustomerSelect">Customer *</label><select id="jobAssignCustomerSelect" class="form-select" onchange="handleJobAssignCustomerChange()" required><option value="">-- Select Customer --</option></select></div>
-    <div class="form-group"><label class="form-label" for="jobAssignWorkType">Work Type *</label><select id="jobAssignWorkType" class="form-select" onchange="handleJobAssignWorkTypeChange()" required><option value="daily_car_cleaning">🚗 Daily Car Cleaning</option><option value="car_washing">🧼 Car Wash & Foam</option><option value="solar_cleaning">☀️ Solar Panel Cleaning</option><option value="interior_detailing">✨ Interior Detailing</option><option value="exterior_detailing">🛡️ Exterior Detailing</option></select></div>
+    <div class="form-group"><label class="form-label" for="jobAssignWorkType">Work Type *</label><select id="jobAssignWorkType" class="form-select" onchange="handleJobAssignWorkTypeChange()" required><option value="car_washing">🧼 Car Wash & Foam</option><option value="solar_cleaning">☀️ Solar Panel Cleaning</option><option value="interior_detailing">✨ Interior Detailing</option><option value="exterior_detailing">🛡️ Exterior Detailing</option></select></div>
     <div class="form-group"><label class="form-label" for="jobAssignDate">Scheduled Date *</label><input type="date" id="jobAssignDate" class="form-input" required></div>
     <div class="form-group"><label class="form-label" for="jobAssignStaff">Assign Staff Cleaner *</label><select id="jobAssignStaff" class="form-select" required><option value="">-- Select Staff Cleaner --</option></select></div>
     <div class="form-group"><label class="form-label" for="jobAssignTime">Tentative Time (संभावित समय)</label><input type="text" id="jobAssignTime" list="tentativeTimePresets" class="form-input" placeholder="e.g. 10:00 AM"></div>
@@ -1708,14 +1687,14 @@
   <div class="image-modal-content" onclick="event.stopPropagation()" style="max-width: 720px;">
     <div class="image-modal-header">
     <div class="image-modal-title" id="lightboxModalTitle">
-    <span>🚗</span> Cleaned Vehicle Photo Proof
+    <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-action-primary, #1d4ed8); vertical-align: middle; margin-right: 6px;">directions_car</span> Cleaned Vehicle Photo Proof
     </div>
     <div class="image-modal-actions">
     <button type="button" class="image-modal-btn" onclick="downloadCurrentReportPhoto()" title="Download Photo">
-    ⬇️ Download
+    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">download</span> Download
     </button>
     <a id="lightboxOpenNewTab" href="" target="_blank" class="image-modal-btn" title="Open full resolution in new tab">
-    ↗ Full Size
+    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">open_in_new</span> Full Size
     </a>
     <button type="button" class="image-modal-close-icon" onclick="closeReportPhotoLightbox()" title="Close (ESC)" aria-label="Close dialog">✕</button>
     </div></div>
@@ -1728,17 +1707,17 @@
     <span id="lightboxMetaDetails" style="color: var(--text-muted); font-size: 11.5px;">Staff: Ramesh • Time: 09:15 AM</span>
     </div>
     <div id="lightboxAdminActionsWrap" style="display: flex; gap: 8px; align-items: center;">
-    <button type="button" class="btn-table-action btn-action-fix" id="btnLightboxEditStatus" onclick="triggerEditStatusFromLightbox()" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"><span>✏️</span> Status सुधारें</button>
-    <button type="button" class="btn-table-action btn-action-delete" id="btnLightboxDelete" onclick="triggerDeleteFromLightbox()" style="padding: 6px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"><span>🗑️</span> हटाएं</button>
+    <button type="button" class="btn-table-action btn-action-fix" id="btnLightboxEditStatus" onclick="triggerEditStatusFromLightbox()" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">edit</span> Status सुधारें</button>
+    <button type="button" class="btn-table-action btn-action-delete" id="btnLightboxDelete" onclick="triggerDeleteFromLightbox()" style="padding: 6px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">delete</span> हटाएं</button>
     </div>
     <button type="button" class="btn-primary-compact is-staff-only" id="btnLightboxSendWhatsApp" onclick="forwardPhotoFromLightbox()" style="display: none !important;" hidden>
-    💬 Forward to Customer on WhatsApp
+    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">chat</span> Forward to Customer on WhatsApp
     </button>
     </div></div></div>
   <div id="staffWhatsAppGroupModal" class="camera-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="staffWhatsAppGroupModalTitle">
   <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 440px; width: 94%;">
     <div class="modal-card-header">
-    <h3 class="modal-card-title" id="staffWhatsAppGroupModalTitle">📱 Team WhatsApp Group Settings</h3>
+    <h3 class="modal-card-title" id="staffWhatsAppGroupModalTitle" style="display: flex; align-items: center; gap: 6px;"><span class="material-symbols-outlined" style="font-size: 18px; color: #2563eb;">groups</span> Team WhatsApp Group Settings</h3>
     <button type="button" class="modal-close-x" onclick="closeStaffWhatsAppGroupModal()" aria-label="Close dialog">✕</button>
     </div>
     <div style="padding: 16px;">
@@ -3056,6 +3035,53 @@
     </div></div>
     </form>
   </div></div></div>
+  <div id="addStaffModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addStaffModalTitle" onclick="handleStaticBackdropClick('addStaffModal')" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+  <div class="modal-card-box" onclick="event.stopPropagation()" style="max-width: 580px; width: 94%; display: flex; flex-direction: column;">
+    <div class="modal-card-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="material-symbols-outlined" style="color: var(--brand-blue, #2563eb); font-size: 20px;">person_add</span>
+        <h3 class="modal-card-title" id="addStaffModalTitle">Add New Field Staff</h3>
+      </div>
+      <button type="button" class="modal-close-x" onclick="closeAddStaffModal()" aria-label="Close dialog">✕</button>
+    </div>
+    <form id="addStaffModalForm" onsubmit="handleAddStaff(event)" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 14px; background: var(--bg-surface); padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <div class="new-staff-photo-btn-wrap" style="position: relative;">
+          <button type="button" class="btn-admin-action" id="btnAddNewStaffPhoto" onclick="var f=document.getElementById('newStaffPhotoFile'); if(f){f.value=''; f.click();}" title="Staff Photo (Optional)" style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; font-size: 12px; height: 42px; border-radius: var(--radius-md); border: 1px dashed var(--border-color); background: var(--bg-surface);"><span id="newStaffPhotoPreview" style="display: none; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; flex-shrink: 0;"><img id="newStaffPhotoPreviewImg" src="" style="width: 100%; height: 100%; object-fit: cover;"></span><span id="newStaffPhotoIcon"><span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-muted);">photo_camera</span></span><span id="newStaffPhotoText" style="white-space: nowrap; font-weight: 600;">Upload Photo</span></button>
+          <button type="button" id="btnClearNewStaffPhoto" onclick="clearNewStaffPhoto(event)" style="display: none; position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: #ef4444; color: #fff; border-radius: 50%; border: 1px solid #fff; font-size: 10px; cursor: pointer; align-items: center; justify-content: center; line-height: 1; z-index: 2;" title="Remove Photo">✕</button>
+          <input type="file" id="newStaffPhotoFile" accept="image/*" style="display: none;" onchange="handleStaffPhotoSelect(event, 'new')">
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">Optional profile picture for staff identification on cleaning routes and verification.</div>
+      </div>
+      <div id="addStaffFormGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0;">
+          <label class="form-label" for="newStaffName">Full Name (पूरा नाम) *</label>
+          <input type="text" id="newStaffName" class="form-input" placeholder="e.g. Ramesh Kumar" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="newStaffPhone">Mobile Number (मोबाइल नंबर) *</label>
+          <div class="cwp-phone-group"><span class="cwp-phone-prefix" title="India (+91)"><span class="phone-flag">🇮🇳</span> +91</span><input type="tel" id="newStaffPhone" class="form-input cwp-phone-input" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel" required></div>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="newStaffPin">Login PIN (6-Digit) *</label>
+          <input type="text" id="newStaffPin" class="form-input" placeholder="6-digit PIN" maxlength="6" pattern="[0-9]{6}" required title="6-digit password for Staff Portal login">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="newStaffWorkType">Primary Work Type *</label>
+          <select id="newStaffWorkType" class="form-select" title="Work Type (कार्य प्रकार)"><option value="dcc_only">DCC Only (दैनिक सफाई)</option><option value="dcc_and_services">DCC + Services (सफाई व अन्य)</option><option value="services_only">Services Only (केवल ऑन-डिमांड)</option></select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="newStaffDesignation">Designation (पद / भूमिका) *</label>
+          <select id="newStaffDesignation" class="form-select" title="Designation (पद / भूमिका)"><option value="cleaner">Cleaner (Level 1)</option><option value="service_specialist">Service Specialist (Level 1)</option><option value="senior_cleaner">Senior Cleaner (Level 2)</option><option value="team_leader">Team Leader (Level 3)</option><option value="supervisor">Supervisor (Level 4)</option><option value="zone_manager">Zone Manager (Level 5)</option><option value="operations_manager">Operations Manager (Level 6)</option></select>
+        </div>
+      </div>
+      <input type="hidden" id="newStaffId" value="">
+      <div class="modal-card-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding-top: 12px; margin-top: 4px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="btn-admin-action" onclick="closeAddStaffModal()">Cancel</button>
+        <button type="submit" class="btn-primary-smart" id="btnSubmitAddStaff" style="padding: 9px 18px;"><span class="material-symbols-outlined" style="font-size: 16px;">person_add</span><span>+ Add New Staff</span></button>
+      </div>
+    </form>
+  </div></div>
   <div id="cwpPhotoCropperModal" class="image-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="cwpPhotoCropperModalTitle" style="display: none; align-items: center; justify-content: center; z-index: 1200;" onclick="cropperHandleOverlayClick(event)">
   <div class="cropper-modal-card" onclick="event.stopPropagation()">
     <div class="cropper-modal-header">
@@ -3530,7 +3556,6 @@
     <option value="car_washing">Car Wash (कार वॉश)</option>
     <option value="interior_detailing">Interior Detailing (इंटीरियर डिटेलिंग)</option>
     <option value="exterior_detailing">Exterior Detailing (एक्सटीरियर डिटेलिंग)</option>
-    <option value="daily_car_cleaning">Daily Car Cleaning (दैनिक कार सफाई)</option>
     </select>
     </div>
     <div class="form-group"><label class="form-label" for="specialScheduledDate">Scheduled Date <span class="req-star" style="color: #ef4444;">*</span></label><input type="date" id="specialScheduledDate" class="form-input" required style="height: 40px;"></div></div>

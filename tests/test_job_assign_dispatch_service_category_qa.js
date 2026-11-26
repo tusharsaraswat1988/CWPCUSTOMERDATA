@@ -76,6 +76,33 @@ const adminService = require('../services/adminService');
   await testPassesCategoryValidation({ serviceCategoryId: 'car_washing' });
 
   console.log('✅ PASS 3: Category validation successfully accepts all field alias variants.\n');
+
+  // 4. Verify Index.html On-Demand Work Type Dropdowns exclude Daily Car Cleaning
+  console.log('--- Test 4: Verify On-Demand Dropdowns strictly exclude Daily Car Cleaning ---');
+  const indexHtmlPath = path.join(__dirname, '..', 'Index.html');
+  const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+
+  const workTypeMatch = indexHtml.match(/<select id="jobAssignWorkType"[^>]*>([\s\S]*?)<\/select>/);
+  assert.ok(workTypeMatch, 'jobAssignWorkType select must exist');
+  assert.strictEqual(
+    workTypeMatch[1].includes('daily_car_cleaning'),
+    false,
+    'jobAssignWorkType must NOT contain daily_car_cleaning'
+  );
+  assert.ok(workTypeMatch[1].includes('car_washing'), 'jobAssignWorkType must contain car_washing');
+  assert.ok(workTypeMatch[1].includes('solar_cleaning'), 'jobAssignWorkType must contain solar_cleaning');
+  assert.ok(workTypeMatch[1].includes('interior_detailing'), 'jobAssignWorkType must contain interior_detailing');
+  assert.ok(workTypeMatch[1].includes('exterior_detailing'), 'jobAssignWorkType must contain exterior_detailing');
+
+  const specCatMatch = indexHtml.match(/<select id="specialServiceCategory"[^>]*>([\s\S]*?)<\/select>/);
+  assert.ok(specCatMatch, 'specialServiceCategory select must exist');
+  assert.strictEqual(
+    specCatMatch[1].includes('daily_car_cleaning'),
+    false,
+    'specialServiceCategory must NOT contain daily_car_cleaning'
+  );
+  console.log('✅ PASS 4: On-demand dispatch dropdowns strictly contain only on-demand services (no daily clean).\n');
+
   console.log('===============================================================');
   console.log('🎉 ALL JOB ASSIGNMENT & DISPATCH SERVICE CATEGORY TESTS PASSED!');
   console.log('===============================================================');

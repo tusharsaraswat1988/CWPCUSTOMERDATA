@@ -1318,6 +1318,7 @@ var state = {
           { id: 'addressViewModal', closer: function() { if (typeof closeAddressModal === 'function') closeAddressModal(); }, zIndex: 1050 },
           { id: 'addCustomerModal', closer: function() { if (typeof closeAddCustomerModal === 'function') closeAddCustomerModal(); }, zIndex: 1000 },
           { id: 'editCustomerModal', closer: function() { if (typeof closeEditCustomerModal === 'function') closeEditCustomerModal(); }, zIndex: 1000 },
+          { id: 'addStaffModal', closer: function() { if (typeof closeAddStaffModal === 'function') closeAddStaffModal(); }, zIndex: 1000 },
           { id: 'staffEditModal', closer: function() { if (typeof closeEditStaffModal === 'function') closeEditStaffModal(); }, zIndex: 1000 },
           { id: 'addLeadModal', closer: function() { if (typeof closeAddLeadModal === 'function') closeAddLeadModal(); }, zIndex: 1000 },
           { id: 'convertLeadModal', closer: function() { if (typeof closeConvertLeadModal === 'function') closeConvertLeadModal(); }, zIndex: 1000 },
@@ -6964,6 +6965,9 @@ function loadStaffCustomerData(staffId) {
         return true;
       });
 
+      var countEl = document.getElementById('adminStaffTotalCount');
+      if (countEl) countEl.textContent = uniqueStaff.length;
+
       var cardsHtml = '';
       uniqueStaff.forEach(function(s) {
         var staffUrl = getUniqueStaffUrl(s.id);
@@ -6990,14 +6994,15 @@ function loadStaffCustomerData(staffId) {
           cardsHtml += '    <div style="width:100%; height:100%; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; font-size:18px; font-weight:700; display:flex; align-items:center; justify-content:center;">' + escapeHtml(s.name.charAt(0).toUpperCase()) + '</div>';
         }
         cardsHtml += '  </div>';
-        cardsHtml += '  <div class="staff-admin-info" style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">';        cardsHtml += '    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">';
+        cardsHtml += '  <div class="staff-admin-info" style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">';
+        cardsHtml += '    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">';
         var sWt = s.workType || s.work_type || 'dcc_only';
         if (sWt === 'dcc_only') {
-          cardsHtml += '      <span class="badge-status-pill" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:10.5px; font-weight:700;">🚗 DCC Only</span>';
+          cardsHtml += '      <span class="badge-status-pill" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; gap:3px;"><span class="material-symbols-outlined" style="font-size:12px;">directions_car</span> DCC Only</span>';
         } else if (sWt === 'dcc_and_services') {
-          cardsHtml += '      <span class="badge-status-pill" style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; font-size:10.5px; font-weight:700;">✨ DCC + Services</span>';
+          cardsHtml += '      <span class="badge-status-pill" style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; gap:3px;"><span class="material-symbols-outlined" style="font-size:12px;">auto_awesome</span> DCC + Services</span>';
         } else if (sWt === 'services_only') {
-          cardsHtml += '      <span class="badge-status-pill" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:10.5px; font-weight:700;">🛠️ Services Only</span>';
+          cardsHtml += '      <span class="badge-status-pill" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; gap:3px;"><span class="material-symbols-outlined" style="font-size:12px;">build</span> Services Only</span>';
         }
         var desigName = s.designationName || 'Cleaner';
         var isSup = Boolean(s.isSupervisory);
@@ -7011,33 +7016,33 @@ function loadStaffCustomerData(staffId) {
         cardsHtml += '        ' + (isActive ? '● Active' : '○ Inactive');
         cardsHtml += '      </button>';
         if (s.hasActiveSession) {
-          cardsHtml += '      <span class="badge-status-pill" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:600;" title="Currently logged in on a mobile device">📱 Logged In</span>';
+          cardsHtml += '      <span class="badge-status-pill" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:600; display:inline-flex; align-items:center; gap:3px;" title="Currently logged in on a mobile device"><span class="material-symbols-outlined" style="font-size:12px;">phone_android</span> Logged In</span>';
         }
         if (isLocked) {
-          cardsHtml += '      <span class="badge-status-pill" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Account locked due to failed attempts">🔒 Locked</span>';
+          cardsHtml += '      <span class="badge-status-pill" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Account locked due to failed attempts"><span class="material-symbols-outlined" style="font-size:12px;">lock</span> Locked</span>';
         }
         cardsHtml += '    </div>';
         cardsHtml += '    <div class="staff-admin-id" style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted); align-items: center;">';
         cardsHtml += '      <span>ID: <b style="color: var(--text-primary);">' + escapeHtml(s.id) + '</b></span>';
-        cardsHtml += '      <span>📱 <b>' + (formattedPhone ? escapeHtml(formattedPhone) : '<span style="color:var(--text-muted); font-weight:normal;">Not provided</span>') + '</b></span>';
+        cardsHtml += '      <span style="display: inline-flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size:13px; color:var(--text-muted);">call</span> <b>' + (formattedPhone ? escapeHtml(formattedPhone) : '<span style="color:var(--text-muted); font-weight:normal;">Not provided</span>') + '</b></span>';
         cardsHtml += '      <span style="display: inline-flex; align-items: center; gap: 6px;">';
-        cardsHtml += '        <span>🔑 PIN:</span>';
+        cardsHtml += '        <span style="display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size:13px; color:var(--text-muted);">key</span> PIN:</span>';
         if (s.hasPin === false && !sPin) {
           cardsHtml += '        <b style="color: var(--text-muted);">Not Set</b>';
         } else {
           cardsHtml += '        <b id="staffPinVal_' + escapeHtml(s.id) + '" class="staff-pin-val masked" data-pin="' + escapeHtml(sPin) + '" data-masked="true">●●●●●●</b>';
-          cardsHtml += '        <button type="button" class="btn-toggle-pin" id="btnTogglePin_' + escapeHtml(s.id) + '" onclick="toggleStaffPinDisplay(\'' + escapeHtml(s.id) + '\')" title="Show / Hide PIN">👁️ Show</button>';
+          cardsHtml += '        <button type="button" class="btn-toggle-pin" id="btnTogglePin_' + escapeHtml(s.id) + '" onclick="toggleStaffPinDisplay(\'' + escapeHtml(s.id) + '\')" title="Show / Hide PIN"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">visibility</span> Show</button>';
         }
         cardsHtml += '      </span>';
         cardsHtml += '    </div>';
 
         var extraDetails = [];
         var wOff = s.weeklyOff || s.weekly_off;
-        if (wOff) extraDetails.push('<span>🗓️ Off: <b style="color:var(--brand-blue);">' + escapeHtml(wOff) + '</b></span>');
+        if (wOff) extraDetails.push('<span style="display:inline-flex; align-items:center; gap:3px;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">event_busy</span> Off: <b style="color:var(--brand-blue);">' + escapeHtml(wOff) + '</b></span>');
         var doj = s.dateOfJoining || s.date_of_joining;
-        if (doj) extraDetails.push('<span>📅 Joined: <b>' + escapeHtml(String(doj).split('T')[0]) + '</b></span>');
+        if (doj) extraDetails.push('<span style="display:inline-flex; align-items:center; gap:3px;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">calendar_today</span> Joined: <b>' + escapeHtml(String(doj).split('T')[0]) + '</b></span>');
         var sal = s.salary;
-        if (sal !== undefined && sal !== null && sal !== '') extraDetails.push('<span>💰 <b>₹' + escapeHtml(Number(sal).toLocaleString('en-IN')) + '</b></span>');
+        if (sal !== undefined && sal !== null && sal !== '') extraDetails.push('<span style="display:inline-flex; align-items:center; gap:3px;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">payments</span> <b>₹' + escapeHtml(Number(sal).toLocaleString('en-IN')) + '</b></span>');
 
         var docChips = [];
         if (s.aadharNumber || s.aadharFrontUrl || s.aadhar_front_url || s.aadharBackUrl || s.aadhar_back_url) docChips.push('Aadhar');
@@ -7045,7 +7050,7 @@ function loadStaffCustomerData(staffId) {
         if (s.drivingLicenseNumber || s.driving_license_number || s.drivingLicenseUrl || s.driving_license_url) docChips.push('DL');
         if (s.bankPassbookUrl || s.bank_passbook_url) docChips.push('Bank');
         if (docChips.length > 0) {
-          extraDetails.push('<span style="color:#059669; font-weight:600;">🪪 KYC: ' + escapeHtml(docChips.join(', ')) + '</span>');
+          extraDetails.push('<span style="color:#059669; font-weight:600; display:inline-flex; align-items:center; gap:3px;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">verified_user</span> KYC: ' + escapeHtml(docChips.join(', ')) + '</span>');
         }
         var sCaps = s.serviceCapabilities || s.service_capabilities;
         if (Array.isArray(sCaps) && sCaps.length > 0) {
@@ -7057,7 +7062,7 @@ function loadStaffCustomerData(staffId) {
             if (c === 'exterior_detailing') return 'Exterior';
             return c;
           });
-          extraDetails.push('<span style="color:#6d28d9; font-weight:600;">🛠️ Caps: ' + escapeHtml(capNames.join(', ')) + '</span>');
+          extraDetails.push('<span style="color:#6d28d9; font-weight:600; display:inline-flex; align-items:center; gap:3px;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">handyman</span> Caps: ' + escapeHtml(capNames.join(', ')) + '</span>');
         }
         if (s.reportsToName) {
           extraDetails.push('<span style="color:#0284c7; font-weight:600;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">account_tree</span> Reports to: <b>' + escapeHtml(s.reportsToName) + '</b></span>');
@@ -7075,14 +7080,7 @@ function loadStaffCustomerData(staffId) {
           cardsHtml += '    </div>';
         }
         cardsHtml += '  </div>';
-        cardsHtml += '  <div class="staff-admin-actions">';
-        if (isLocked) {
-          cardsHtml += '    <button type="button" class="btn-admin-action" onclick="handleUnlockStaff(\'' + escapeHtml(s.id) + '\')" title="Unlock account immediately" style="background:#fef2f2; border-color:#fca5a5; color:#b91c1c; font-weight:700;">🔓 Unlock</button>';
-        }
-        if (s.hasActiveSession) {
-          cardsHtml += '    <button type="button" class="btn-admin-action" onclick="handleResetStaffDeviceSession(\'' + escapeHtml(s.id) + '\')" title="Force logout active phone & allow new login" style="background:#fffbeb; border-color:#fde68a; color:#b45309; font-weight:600;">🔄 Reset Device</button>';
-        }
-        cardsHtml += '    <button type="button" class="btn-admin-action" onclick="openEditStaffModal(\'' + escapeHtml(s.id) + '\')">✏️ Edit</button>';
+        cardsHtml += '  <div class="staff-admin-actions" style="display: flex; align-items: center; gap: 6px;">';
         if (isActive) {
           cardsHtml += '    <button type="button" class="btn-admin-action btn-staff-status-toggle is-active" onclick="toggleStaffActiveStatus(\'' + escapeHtml(s.id) + '\', false)" title="Active • Click to make Inactive" aria-label="Mark ' + escapeHtml(s.name) + ' as Inactive">';
           cardsHtml += '      <span class="staff-toggle-dot dot-active"></span> <span>Active</span>';
@@ -7092,8 +7090,31 @@ function loadStaffCustomerData(staffId) {
           cardsHtml += '      <span class="staff-toggle-dot dot-inactive"></span> <span>Inactive</span>';
           cardsHtml += '    </button>';
         }
-        cardsHtml += '    <a href="' + escapeHtml(staffUrl) + '" target="_blank" class="btn-admin-action">👁️ Open</a>';
-        cardsHtml += '    <button type="button" class="btn-admin-action btn-admin-danger" onclick="handleDeleteStaff(\'' + escapeHtml(s.id) + '\')" title="Delete staff member">🗑️ Delete</button>';
+        cardsHtml += '    <button type="button" class="btn-admin-action btn-edit-staff-action" onclick="openEditStaffModal(\'' + escapeHtml(s.id) + '\')" title="Edit Staff Profile & Capabilities"><span class="material-symbols-outlined" style="font-size: 15px; vertical-align: middle; margin-right: 3px;">edit</span><span>Edit</span></button>';
+        cardsHtml += '    <div class="cwp-action-menu-wrap" style="position: relative; display: inline-block;">';
+        cardsHtml += '      <button type="button" class="btn-admin-action cwp-action-menu-btn" onclick="toggleStaffRowActionMenu(\'' + escapeHtml(s.id) + '\', event)" title="More staff actions" aria-label="More actions for ' + escapeHtml(s.name) + '">';
+        cardsHtml += '        <span class="material-symbols-outlined" style="font-size: 16px;">more_vert</span>';
+        cardsHtml += '      </button>';
+        cardsHtml += '      <div id="staffRowMenu_' + escapeHtml(s.id) + '" class="cwp-action-menu-dropdown">';
+        cardsHtml += '        <a href="' + escapeHtml(staffUrl) + '" target="_blank" class="cwp-action-menu-item">';
+        cardsHtml += '          <span class="material-symbols-outlined">open_in_new</span><span>Open Portal</span>';
+        cardsHtml += '        </a>';
+        if (s.hasActiveSession) {
+          cardsHtml += '        <button type="button" class="cwp-action-menu-item" onclick="handleResetStaffDeviceSession(\'' + escapeHtml(s.id) + '\')">';
+          cardsHtml += '          <span class="material-symbols-outlined">restart_alt</span><span>Reset Device Session</span>';
+          cardsHtml += '        </button>';
+        }
+        if (isLocked) {
+          cardsHtml += '        <button type="button" class="cwp-action-menu-item" onclick="handleUnlockStaff(\'' + escapeHtml(s.id) + '\')">';
+          cardsHtml += '          <span class="material-symbols-outlined">lock_open</span><span>Unlock Account</span>';
+          cardsHtml += '        </button>';
+        }
+        cardsHtml += '        <div class="cwp-action-menu-divider"></div>';
+        cardsHtml += '        <button type="button" class="cwp-action-menu-item text-danger" onclick="handleDeleteStaff(\'' + escapeHtml(s.id) + '\')">';
+        cardsHtml += '          <span class="material-symbols-outlined">delete</span><span>🗑️ Delete</span>';
+        cardsHtml += '        </button>';
+        cardsHtml += '      </div>';
+        cardsHtml += '    </div>';
         cardsHtml += '  </div>';
         cardsHtml += '</div>';
       });
@@ -7668,6 +7689,54 @@ function loadStaffCustomerData(staffId) {
       }
     }
 
+    function toggleStaffRowActionMenu(staffId, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      var targetMenu = document.getElementById('staffRowMenu_' + staffId);
+      var wasOpen = targetMenu && targetMenu.classList.contains('is-open');
+      var allMenus = document.querySelectorAll('.cwp-action-menu-dropdown');
+      allMenus.forEach(function(m) { m.classList.remove('is-open'); });
+      if (targetMenu && !wasOpen) {
+        targetMenu.classList.add('is-open');
+      }
+    }
+    window.toggleStaffRowActionMenu = toggleStaffRowActionMenu;
+
+    function openAddStaffModal(triggerEl) {
+      if (typeof recordModalTrigger === 'function') {
+        recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
+      }
+      var modal = document.getElementById('addStaffModal');
+      if (!modal) return;
+      var nameInput = document.getElementById('newStaffName');
+      var phoneInput = document.getElementById('newStaffPhone');
+      var pinInput = document.getElementById('newStaffPin');
+      var idEl = document.getElementById('newStaffId');
+      if (nameInput) nameInput.value = '';
+      if (phoneInput) phoneInput.value = '';
+      if (pinInput) pinInput.value = '';
+      if (idEl) idEl.value = '';
+      clearNewStaffPhoto();
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      if (typeof pushModalHistory === 'function') pushModalHistory('addStaffModal');
+      if (nameInput) setTimeout(function() { nameInput.focus(); }, 80);
+    }
+    window.openAddStaffModal = openAddStaffModal;
+
+    function closeAddStaffModal() {
+      if (typeof popModalHistory === 'function') popModalHistory('addStaffModal');
+      var modal = document.getElementById('addStaffModal');
+      if (modal) modal.style.display = 'none';
+      if (typeof getTopmostOpenModal === 'function' ? getTopmostOpenModal() === null : true) {
+        document.body.style.overflow = '';
+      }
+      if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
+    }
+    window.closeAddStaffModal = closeAddStaffModal;
+
     function handleAddStaff(e) {
       e.preventDefault();
       var nameInput = document.getElementById('newStaffName');
@@ -7731,6 +7800,7 @@ function loadStaffCustomerData(staffId) {
         if (pinInput) pinInput.value = '';
         if (idEl) idEl.value = '';
         clearNewStaffPhoto();
+        closeAddStaffModal();
         showToast('Staff member "' + name + '" added successfully!', '✓');
         if (res && res.staffList) {
           populateAdminStaffList(res.staffList);
@@ -18737,7 +18807,7 @@ function loadStaffCustomerData(staffId) {
         html += '<span class="staff-cell-name">' + escapeHtml(sName) + '</span></div></td>';
         html += '  <td><div class="cust-cell-name">' + escapeHtml(cName) + '</div>';
         if (cPhone) {
-          html += '    <div class="cust-phone-actions"><a href="tel:' + escapeHtml(cPhone) + '" class="table-phone-link">📞 ' + escapeHtml(cPhone) + '</a></div>';
+          html += '    <div class="cust-phone-actions"><a href="tel:' + escapeHtml(cPhone) + '" class="table-phone-link"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle; margin-right:2px;">call</span> ' + escapeHtml(cPhone) + '</a></div>';
         }
         html += '  </td>';
         html += '  <td><div class="hsrp-plate-wrap"><div class="hsrp-plate"><span class="hsrp-ind">IND</span><span class="hsrp-no">' + escapeHtml(vReg) + '</span></div>';
@@ -18745,7 +18815,7 @@ function loadStaffCustomerData(staffId) {
           html += '    <span class="hsrp-model">' + escapeHtml(vModel) + '</span>';
         }
         html += '  </div></td>';
-        html += '  <td><div class="table-loc-cell"><span class="loc-pin">📍</span><span class="loc-text" title="' + escapeHtml(locText) + '">' + escapeHtml(locText) + '</span></div></td>';
+        html += '  <td><div class="table-loc-cell"><span class="loc-pin"><span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; color:var(--text-muted); margin-right:3px;">place</span></span><span class="loc-text" title="' + escapeHtml(locText) + '">' + escapeHtml(locText) + '</span></div></td>';
         
         var isCarNotPresent = r.car_not_present === true || r.tag === 'car_not_present' || r.status === 'car_not_present';
         var reportIdStr = String(r.id || '');
@@ -18758,10 +18828,10 @@ function loadStaffCustomerData(staffId) {
         if (photoUrl) {
           html += '    <div class="photo-proof-cell">' +
                   '      <img src="' + escapeHtml(photoUrl) + '" class="report-thumb-img" onclick="openReportPhotoLightbox(\'' + escapeHtml(photoUrl) + '\', \'' + escapeHtml(vReg + ' - ' + cName) + '\', \'Staff: ' + escapeHtml(sName) + ' • Time: ' + timeFormatted + '\', \'' + escapeHtml(cPhone) + '\', this, \'' + reportIdStr + '\', ' + isCarNotPresent + ')" title="Click to view full photo proof">' +
-                  '      <span class="photo-zoom-badge">🔍 Zoom</span>' +
+                  '      <span class="photo-zoom-badge"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">zoom_in</span> Zoom</span>' +
                   '    </div>';
         } else {
-          html += '    <span class="report-no-photo-badge"><span class="warn-dot">⚠️</span> No Photo</span>';
+          html += '    <span class="report-no-photo-badge"><span class="warn-dot"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">no_photography</span></span> No Photo</span>';
         }
         html += '  </td>';
 
@@ -18784,7 +18854,7 @@ function loadStaffCustomerData(staffId) {
           html += '    <div class="reason-text-clean" title="' + escapeHtml(staffNotes || 'Daily clean verified') + '">✓ ' + escapeHtml(staffNotes || 'Daily clean verified with photo proof') + '</div>';
         }
         if (adminNotes) {
-          html += '    <div class="admin-override-note" title="' + escapeHtml(adminNotes) + '"><span class="badge-admin-fixed">🛡️ Admin Reason:</span> ' + escapeHtml(adminNotes) + '</div>';
+          html += '    <div class="admin-override-note" title="' + escapeHtml(adminNotes) + '"><span class="badge-admin-fixed"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">verified_user</span> Admin Reason:</span> ' + escapeHtml(adminNotes) + '</div>';
         }
         html += '  </div></td>';
 
@@ -18792,20 +18862,20 @@ function loadStaffCustomerData(staffId) {
         var transitStr = '';
         if (r.transitDurationMinutes !== undefined || r.transitMinutes !== undefined) {
           var tMin = r.transitDurationMinutes !== undefined ? r.transitDurationMinutes : r.transitMinutes;
-          transitStr = '<span class="cell-time-transit" style="font-size: 10.5px; color: #64748b; display: block; margin-top: 2px;">⏱️ ' + tMin + 'm transit</span>';
+          transitStr = '<span class="cell-time-transit" style="font-size: 10.5px; color: #64748b; display: block; margin-top: 2px;"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">schedule</span> ' + tMin + 'm transit</span>';
         }
 
         var statusBadge = '<span class="badge-status-pill badge-active" style="font-size:11px; padding:3px 8px;">✓ Cleaned</span>';
         if (rowStatus === 'car_not_present' || isCarNotPresent) {
-          statusBadge = '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>🚫</span> Car Not Present</span>';
+          statusBadge = '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size:12px;">event_busy</span> Car Not Present</span>';
         } else if (rowStatus === 'customer_absent') {
-          statusBadge = '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>👤</span> Customer Absent</span>';
+          statusBadge = '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size:12px;">person_off</span> Customer Absent</span>';
         } else if (rowStatus === 'vehicle_not_available') {
-          statusBadge = '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>🚗</span> Vehicle Not Avail</span>';
+          statusBadge = '<span class="badge-status-pill badge-warning" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size:12px;">no_crash</span> Vehicle Not Avail</span>';
         } else if (rowStatus === 'skipped') {
-          statusBadge = '<span class="badge-status-pill" style="background: rgba(148, 163, 184, 0.15); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>⏭️</span> Skipped</span>';
+          statusBadge = '<span class="badge-status-pill" style="background: rgba(148, 163, 184, 0.15); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size:12px;">skip_next</span> Skipped</span>';
         } else if (rowStatus === 'unable_to_complete') {
-          statusBadge = '<span class="badge-status-pill badge-danger" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span>❌</span> Unable to Complete</span>';
+          statusBadge = '<span class="badge-status-pill badge-danger" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 11px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size:12px;">cancel</span> Unable to Complete</span>';
         }
 
         html += '  <td style="text-align: center;">' +
@@ -21313,6 +21383,9 @@ function loadStaffCustomerData(staffId) {
       window.setAppThemeMode = setAppThemeMode;
       window.updateSettingsPrefButtons = updateSettingsPrefButtons;
       window.renderCustomerCards = renderCustomerCards;
+      window.openAddStaffModal = openAddStaffModal;
+      window.closeAddStaffModal = closeAddStaffModal;
+      window.toggleStaffRowActionMenu = toggleStaffRowActionMenu;
 
       // Packages and Bookings Modal & Workflow Controls
       window.openSellPackageModalFromEditCustomer = openSellPackageModalFromEditCustomer;

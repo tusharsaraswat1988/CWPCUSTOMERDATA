@@ -53,10 +53,10 @@ Status Labels:
 | **Admin App Shell & Navigation Rail**| All Admin | Audited | Design Defined | Verified | Verified | Batch 1 |
 | **Customer Records Directory (`records`)**| Ops, Admin | Audited | Design Defined | Verified | Verified | Batch 2 |
 | **Edit Customer Modal & Tabs** | Ops, Admin | Audited | Design Defined | Implemented | Verified | Batch 2 |
-| **Admin Dashboard (`dashboard`)** | Owner, Ops | Audited | Design Defined | Implemented | Verified | Batch 3 |
-| **Daily Reports (`cleanReports`)** | Ops, Owner | Audited | Design Defined | Design Defined | QA Pending | Batch 3 |
-| **Staff Management (`staff`)** | Ops, Owner | Audited | Design Defined | Design Defined | QA Pending | Batch 4 |
-| **Designations & Org Hierarchy** | Super Admin | Audited | Design Defined | Design Defined | QA Pending | Batch 4 |
+| **Admin Dashboard (`dashboard`)** | Owner, Ops | Audited | Design Defined | Verified | Verified | Batch 3 |
+| **Daily Reports (`cleanReports`)** | Ops, Owner | Audited | Design Defined | Verified | Verified | Batch 3 |
+| **Staff Management (`staff`)** | Ops, Owner | Audited | Design Defined | Verified | Verified | Batch 4 |
+| **Designations & Org Hierarchy** | Super Admin | Audited | Design Defined | Verified | Verified | Batch 4 |
 | **Route Sequence & Hub (`sequence`)**| Ops, Dispatch | Audited | Design Defined | Verified (T01.11)| Verified | Batch 5 |
 | **Job Assignment (`jobAssignment`)** | Dispatch, Ops | Audited | Design Defined | Design Defined | QA Pending | Batch 5 |
 | **Wash & Solar Hub (`specialJobs`)** | Dispatch, Solar | Audited | Design Defined | Design Defined | QA Pending | Batch 5 |
