@@ -8,7 +8,8 @@
 const crypto = require('crypto');
 const repos = require('../db/repositories/index');
 
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 Hours
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 Hours (Absolute Max Lifetime)
+const ADMIN_IDLE_TIMEOUT_MS = Math.min(Math.max(parseInt(process.env.ADMIN_SESSION_IDLE_MINUTES, 10) || 30, 5), 240) * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 5;
 const COOLDOWN_PERIOD_MS = 5 * 60 * 1000; // 5 Minutes
 
@@ -130,53 +131,74 @@ async function ensureAdminUser(envPassword = null) {
 /**
  * Admin Login Handler
  */
-async function loginAdmin({ username = 'admin', password, ipAddress = null, userAgent = null }) {
+async function loginAdmin({ username = 'admin', password, ipAddress = null, userAgent = null, deviceLabel = null, browser = null, os = null, trustedDeviceId = null }) {
   if (!password || !password.trim()) {
-    return { success: false, error: 'Please enter admin password.' };
+    return { success: false, error: 'Invalid administrator credentials.' };
   }
 
   // Auto-seed admin if database is newly initialized
   await ensureAdminUser();
 
-  const user = await repos.adminUsers.findByUsername(username);
-  if (!user) {
-    // If user not found, verify fallback against .env ADMIN_PASSWORD
-    const envPass = (process.env.ADMIN_PASSWORD || '').trim();
-    if (envPass && envPass === password.trim()) {
-      // Create user and proceed
+  const cleanUser = (username || 'admin').trim();
+  const cleanPass = password.trim();
+  const envPass = (process.env.ADMIN_PASSWORD || '').trim();
+
+  // Environment-only password enforcement for primary 'admin' account when ADMIN_PASSWORD is set
+  if (cleanUser.toLowerCase() === 'admin' && envPass) {
+    const inBuf = Buffer.from(cleanPass);
+    const envBuf = Buffer.from(envPass);
+    const isEnvMatch = inBuf.length === envBuf.length && crypto.timingSafeEqual(inBuf, envBuf);
+    if (!isEnvMatch) {
+      return { success: false, error: 'Invalid administrator credentials.' };
+    }
+    let user = await repos.adminUsers.findByUsername('admin');
+    if (!user) {
       const hash = hashPasswordScrypt(envPass);
-      const newAdmin = await repos.adminUsers.createAdmin({
-        username: username.trim(),
+      user = await repos.adminUsers.createAdmin({
+        username: 'admin',
         passwordHash: hash,
         role: 'superadmin'
       });
-      return issueAdminSession(newAdmin, ipAddress, userAgent);
     }
-    return { success: false, error: 'Invalid admin credentials.' };
+    if (!user.is_active) {
+      return { success: false, error: 'Admin account is deactivated.' };
+    }
+    await repos.adminUsers.updateLastLogin(user.id);
+    return issueAdminSession(user, ipAddress, userAgent, { deviceLabel, browser, os, trustedDeviceId });
+  }
+
+  const user = await repos.adminUsers.findByUsername(cleanUser);
+  if (!user) {
+    if (envPass) {
+      const inBuf = Buffer.from(cleanPass);
+      const envBuf = Buffer.from(envPass);
+      if (inBuf.length === envBuf.length && crypto.timingSafeEqual(inBuf, envBuf)) {
+        const hash = hashPasswordScrypt(envPass);
+        const newAdmin = await repos.adminUsers.createAdmin({
+          username: cleanUser,
+          passwordHash: hash,
+          role: 'superadmin'
+        });
+        return issueAdminSession(newAdmin, ipAddress, userAgent, { deviceLabel, browser, os, trustedDeviceId });
+      }
+    }
+    return { success: false, error: 'Invalid administrator credentials.' };
   }
 
   if (!user.is_active) {
     return { success: false, error: 'Admin account is deactivated.' };
   }
 
-  const isValid = verifyPasswordScrypt(password.trim(), user.password_hash);
+  const isValid = verifyPasswordScrypt(cleanPass, user.password_hash);
   if (!isValid) {
-    // Fallback check against process.env.ADMIN_PASSWORD in case .env was updated
-    const envPass = (process.env.ADMIN_PASSWORD || '').trim();
-    if (envPass && envPass === password.trim()) {
-      // Auto-update user's password_hash to match new .env password
-      const newHash = hashPasswordScrypt(envPass);
-      await repos.adminUsers.updatePassword(user.id, newHash);
-      return issueAdminSession(user, ipAddress, userAgent);
-    }
-    return { success: false, error: 'Invalid admin password.' };
+    return { success: false, error: 'Invalid administrator credentials.' };
   }
 
   await repos.adminUsers.updateLastLogin(user.id);
-  return issueAdminSession(user, ipAddress, userAgent);
+  return issueAdminSession(user, ipAddress, userAgent, { deviceLabel, browser, os, trustedDeviceId });
 }
 
-async function issueAdminSession(user, ipAddress, userAgent) {
+async function issueAdminSession(user, ipAddress, userAgent, deviceMeta = {}) {
   const token = 'adm_' + crypto.randomBytes(32).toString('hex');
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
@@ -187,7 +209,11 @@ async function issueAdminSession(user, ipAddress, userAgent) {
     adminId: user.id,
     expiresAt,
     ipAddress,
-    userAgent
+    userAgent,
+    deviceLabel: deviceMeta.deviceLabel || null,
+    browser: deviceMeta.browser || null,
+    os: deviceMeta.os || null,
+    trustedDeviceId: deviceMeta.trustedDeviceId || null
   });
 
   return {
@@ -195,6 +221,7 @@ async function issueAdminSession(user, ipAddress, userAgent) {
     token,
     role: user.role,
     username: user.username,
+    adminId: user.id,
     expiresIn: SESSION_TTL_MS / 1000
   };
 }
@@ -367,12 +394,26 @@ async function validateSession(token) {
       await repos.authSessions.revokeSession(tokenHash, 'system_admin_deactivated');
       return { valid: false, error: 'Admin account is deactivated' };
     }
+    const lastAct = sess.last_activity_at ? new Date(sess.last_activity_at).getTime() : new Date(sess.created_at).getTime();
+    if (Date.now() - lastAct > ADMIN_IDLE_TIMEOUT_MS) {
+      await repos.authSessions.revokeSession(tokenHash, 'session_expired_idle');
+      return { valid: false, expiredReason: 'idle', error: 'Session expired due to inactivity' };
+    }
+    if (Date.now() - lastAct > 60000) {
+      repos.authSessions.touchAdminSession(tokenHash).catch(() => {});
+    }
     return {
       valid: true,
       userType: 'admin',
       adminId: sess.admin_id,
       adminUsername: sess.admin_username,
       adminRole: sess.admin_role,
+      createdAt: sess.created_at,
+      lastActivityAt: sess.last_activity_at || sess.created_at,
+      expiresAt: sess.expires_at,
+      deviceLabel: sess.device_label,
+      browser: sess.browser,
+      os: sess.os,
       tokenHash
     };
   }
@@ -398,34 +439,13 @@ async function revokeAllStaffSessions(staffId, reason = 'admin_action') {
 }
 
 /**
- * Update Admin Password
+ * Update Admin Password (DISABLED: Environment-only admin password policy)
  */
-async function updateAdminPassword({ adminId, currentPassword, newPassword }) {
-  if (!newPassword || newPassword.trim().length < 6) {
-    return { success: false, error: 'New password must be at least 6 characters long.' };
-  }
-
-  const admin = await repos.adminUsers.findById(adminId);
-  if (!admin) {
-    return { success: false, error: 'Admin user not found.' };
-  }
-
-  const isCurrentValid = verifyPasswordScrypt(currentPassword, admin.password_hash);
-  if (!isCurrentValid) {
-    // Check .env ADMIN_PASSWORD fallback
-    const envPass = (process.env.ADMIN_PASSWORD || '').trim();
-    if (envPass !== currentPassword.trim()) {
-      return { success: false, error: 'Incorrect current password.' };
-    }
-  }
-
-  const newHash = hashPasswordScrypt(newPassword.trim());
-  await repos.adminUsers.updatePassword(admin.id, newHash);
-
-  // Revoke all existing sessions for this admin except current session could be maintained
-  await repos.authSessions.revokeAllForAdmin(admin.id, 'password_change');
-
-  return { success: true, message: 'Password updated successfully. Please log in with your new password.' };
+async function updateAdminPassword() {
+  return {
+    success: false,
+    error: 'Admin password management is disabled. The administrator password is configured exclusively via server environment variables.'
+  };
 }
 
 /**

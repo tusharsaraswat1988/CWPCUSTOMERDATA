@@ -114,6 +114,15 @@
       titleHi: 'UI प्लेग्राउंड',
       subtitle: 'CWP Aura Tokens, Buttons, Inputs, Overlays & Data Grid Showcase',
       subtitleHi: 'CWP Aura घटक और डिज़ाइन सिस्टम प्रदर्शनी'
+    },
+    security: {
+      group: 'ACCOUNT',
+      groupEn: 'Account',
+      groupHi: 'खाता',
+      title: 'Security & Devices',
+      titleHi: 'सुरक्षा और डिवाइस',
+      subtitle: 'Trusted devices, active sessions & security activity',
+      subtitleHi: 'विश्वसनीय डिवाइस, सक्रिय सत्र और सुरक्षा गतिविधि'
     }
   };
 
@@ -488,29 +497,17 @@
   }
 
   function bindAccountModals() {
-    const openPwBtn = document.getElementById('v2OpenChangePasswordBtn');
+    const openSecBtn = document.getElementById('v2OpenSecurityCenterBtn');
     const openLogoutBtns = [
       document.getElementById('v2OpenLogoutBtn'),
       document.getElementById('v2SidebarLogoutBtn')
     ].filter(Boolean);
     const profileMenu = document.getElementById('v2ProfileMenu');
 
-    if (openPwBtn) {
-      openPwBtn.addEventListener('click', () => {
+    if (openSecBtn) {
+      openSecBtn.addEventListener('click', () => {
         if (profileMenu) profileMenu.hidden = true;
-        const form = document.getElementById('v2ChangePasswordForm');
-        const alertEl = document.getElementById('v2ChangePasswordAlert');
-        if (form) form.reset();
-        if (alertEl) {
-          alertEl.hidden = true;
-          alertEl.textContent = '';
-        }
-        if (window.CWP_ADMIN_V2.overlay) {
-          window.CWP_ADMIN_V2.overlay.open('v2ChangePasswordModal', {
-            initialFocus: '#v2NewAdminPasswordInput',
-            triggerEl: openPwBtn
-          });
-        }
+        navigateTo('security');
       });
     }
 
@@ -522,53 +519,6 @@
         }
       });
     });
-
-    const changePwForm = document.getElementById('v2ChangePasswordForm');
-    if (changePwForm) {
-      changePwForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const newInput = document.getElementById('v2NewAdminPasswordInput');
-        const confirmInput = document.getElementById('v2ConfirmAdminPasswordInput');
-        const alertEl = document.getElementById('v2ChangePasswordAlert');
-        const submitBtn = document.getElementById('v2ChangePasswordSubmitBtn');
-
-        const newPass = (newInput && newInput.value || '').trim();
-        const confirmPass = (confirmInput && confirmInput.value || '').trim();
-
-        if (newPass.length < 4) {
-          if (alertEl) {
-            alertEl.textContent = 'Admin password must be at least 4 characters.';
-            alertEl.hidden = false;
-          }
-          return;
-        }
-        if (newPass !== confirmPass) {
-          if (alertEl) {
-            alertEl.textContent = 'Passwords do not match.';
-            alertEl.hidden = false;
-          }
-          return;
-        }
-
-        if (alertEl) alertEl.hidden = true;
-        const api = window.CWP_ADMIN_V2.api;
-        const runner = async () => {
-          await window.CWP_ADMIN_V2.auth.updatePassword(newPass);
-          if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2ChangePasswordModal');
-          if (window.CWP_ADMIN_V2.toast) window.CWP_ADMIN_V2.toast.show('Admin password updated successfully.', 'success');
-        };
-
-        try {
-          if (api) await api.withLoadingButton(submitBtn, runner);
-          else await runner();
-        } catch (err) {
-          if (alertEl) {
-            alertEl.textContent = err.message || 'Failed to update password.';
-            alertEl.hidden = false;
-          }
-        }
-      });
-    }
 
     const confirmLogoutBtn = document.getElementById('v2ConfirmLogoutBtn');
     if (confirmLogoutBtn) {

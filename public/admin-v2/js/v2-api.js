@@ -21,18 +21,13 @@
     unauthorizedTriggered = false;
   }
 
-  function resolveToken() {
-    if (window.CWP_ADMIN_V2.auth && typeof window.CWP_ADMIN_V2.auth.getToken === 'function') {
-      return window.CWP_ADMIN_V2.auth.getToken();
+  function resolveCsrfToken() {
+    if (window.CWP_ADMIN_V2.auth && typeof window.CWP_ADMIN_V2.auth.getCsrfToken === 'function') {
+      return window.CWP_ADMIN_V2.auth.getCsrfToken();
     }
     try {
-      return (
-        sessionStorage.getItem('cwp_admin_token') ||
-        localStorage.getItem('cwp_admin_token') ||
-        sessionStorage.getItem('adminToken') ||
-        localStorage.getItem('adminToken') ||
-        ''
-      ).trim();
+      const m = document.cookie.match(/(?:^|;\s*)cwp_csrf=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
     } catch (e) {
       return '';
     }
@@ -51,18 +46,16 @@
   }
 
   async function request(action, payload = {}, opts = {}) {
-    const token = opts.token !== undefined ? String(opts.token || '').trim() : resolveToken();
     const skipAuth = !!opts.skipAuth;
     const bodyObj = Object.assign({}, payload || {}, { action });
 
-    if (!skipAuth && token) {
-      if (!bodyObj.token) bodyObj.token = token;
-      if (!bodyObj.adminToken) bodyObj.adminToken = token;
-    }
-
     const headers = { 'Content-Type': 'application/json' };
-    if (!skipAuth && token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (!skipAuth) {
+      const csrf = resolveCsrfToken();
+      if (csrf) headers['X-CSRF-Token'] = csrf;
+      if (opts.token && opts.token !== 'cookie-session') {
+        headers['Authorization'] = `Bearer ${opts.token}`;
+      }
     }
 
     let controller = null;
@@ -75,6 +68,7 @@
     try {
       const fetchOpts = {
         method: 'POST',
+        credentials: 'same-origin',
         headers,
         body: JSON.stringify(bodyObj)
       };

@@ -13,6 +13,28 @@
   window.CWP_ADMIN_V2.mode = 'parallel_isolated';
 
   let loginBound = false;
+  let activeCaptchaId = null;
+
+  function setCaptchaChallenge(captcha) {
+    const box = document.getElementById('v2LoginCaptchaBox');
+    const promptEl = document.getElementById('v2LoginCaptchaPrompt');
+    const inputEl = document.getElementById('v2LoginCaptchaInput');
+    if (!box || !promptEl || !inputEl) return;
+
+    if (captcha && captcha.challengeId && captcha.prompt) {
+      activeCaptchaId = captcha.challengeId;
+      promptEl.textContent = captcha.prompt;
+      inputEl.value = '';
+      inputEl.required = true;
+      box.hidden = false;
+    } else {
+      activeCaptchaId = null;
+      promptEl.textContent = '';
+      inputEl.value = '';
+      inputEl.required = false;
+      box.hidden = true;
+    }
+  }
 
   function setShellInert(locked) {
     const appContainer = document.getElementById('v2AppContainer');
@@ -113,8 +135,14 @@
     if (window.CWP_ADMIN_V2.assignJobs) {
       window.CWP_ADMIN_V2.assignJobs.init();
     }
+    if (window.CWP_ADMIN_V2.sequence) {
+      window.CWP_ADMIN_V2.sequence.init();
+    }
     if (window.CWP_ADMIN_V2.dashboard) {
       window.CWP_ADMIN_V2.dashboard.init();
+    }
+    if (window.CWP_ADMIN_V2.security) {
+      window.CWP_ADMIN_V2.security.init();
     }
   }
 
@@ -152,8 +180,22 @@
     const form = document.getElementById('v2LoginForm');
     const input = document.getElementById('v2AdminPasswordInput');
     const toggleBtn = document.getElementById('v2LoginPasswordToggle');
-    const rememberBox = document.getElementById('v2RememberDevice');
+    const captchaInput = document.getElementById('v2LoginCaptchaInput');
+    const captchaRefreshBtn = document.getElementById('v2LoginCaptchaRefreshBtn');
     const submitBtn = document.getElementById('v2LoginSubmitBtn');
+
+    if (captchaRefreshBtn) {
+      captchaRefreshBtn.addEventListener('click', async () => {
+        if (!window.CWP_ADMIN_V2.auth || typeof window.CWP_ADMIN_V2.auth.fetchCaptcha !== 'function') return;
+        const cap = await window.CWP_ADMIN_V2.auth.fetchCaptcha('admin');
+        if (cap && cap.success) {
+          setCaptchaChallenge(cap);
+          if (captchaInput) captchaInput.focus();
+        } else if (cap && cap.error) {
+          showLoginAlert(cap.error);
+        }
+      });
+    }
 
     if (toggleBtn && input) {
       toggleBtn.addEventListener('click', () => {
@@ -174,19 +216,34 @@
       showLoginAlert('');
 
       const pass = (input && input.value) || '';
-      const remember = rememberBox ? !!rememberBox.checked : true;
+      const capAnswer = captchaInput ? captchaInput.value : '';
 
       const runLogin = async () => {
-        const res = await window.CWP_ADMIN_V2.auth.login(pass, { remember });
+        const loginOpts = {};
+        if (activeCaptchaId) {
+          loginOpts.captchaId = activeCaptchaId;
+          loginOpts.captchaAnswer = capAnswer;
+        }
+        const res = await window.CWP_ADMIN_V2.auth.login(pass, loginOpts);
         if (res.success) {
           if (input) input.value = '';
+          setCaptchaChallenge(null);
           unlockShell(res.user);
           if (window.CWP_ADMIN_V2.toast) {
             window.CWP_ADMIN_V2.toast.show('Signed in to CWP Admin V2.', 'success', 2600);
           }
         } else {
+          if (res.captchaRequired && res.captcha) {
+            setCaptchaChallenge(res.captcha);
+          } else if (!res.captchaRequired) {
+            setCaptchaChallenge(null);
+          }
           showLoginAlert(res.error || 'Authentication failed.');
-          focusPasswordInput();
+          if (res.captchaRequired && captchaInput) {
+            try { captchaInput.focus(); } catch (err) {}
+          } else {
+            focusPasswordInput();
+          }
         }
       };
 

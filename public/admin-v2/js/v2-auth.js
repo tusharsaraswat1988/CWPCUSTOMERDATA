@@ -1,8 +1,8 @@
 /**
  * CWP Admin V2 Real Authentication & Session Bridge
  * STRICTLY SCOPED to window.CWP_ADMIN_V2.auth
- * Validates admin-only sessions via POST /api { action: 'verifyAdminSession' },
- * enforces rememberDevice storage parity, and revokes sessions via logoutAdmin.
+ * Uses HttpOnly server-issued session cookies (cwp_adm_sess) + CSRF double-submit header (X-CSRF-Token).
+ * Never stores admin session tokens in localStorage or sessionStorage.
  */
 
 (function (window) {
@@ -10,104 +10,66 @@
 
   window.CWP_ADMIN_V2 = window.CWP_ADMIN_V2 || {};
 
-  const STORAGE_KEY_TOKEN = 'cwp_admin_token';
-  const STORAGE_KEY_AUTH = 'cwp_admin_auth';
-  const BACKUP_KEY_TOKEN = 'adminToken';
-  const STORAGE_KEY_USER = 'cwp_admin_user_meta';
-  const STORAGE_KEY_ACTIVE_TAB = 'cwp_admin_active_tab';
+  const LEGACY_KEYS = ['cwp_admin_token', 'cwp_admin_auth', 'adminToken', 'cwp_admin_user_meta'];
+  const CROSS_TAB_LOGOUT_KEY = 'cwp_v2_logout_sync';
 
   let currentUser = null;
+  let authenticated = false;
+  let memoryCsrfToken = '';
 
-  function getToken() {
+  function purgeLegacyStorage() {
     try {
-      return (
-        sessionStorage.getItem(STORAGE_KEY_TOKEN) ||
-        localStorage.getItem(STORAGE_KEY_TOKEN) ||
-        sessionStorage.getItem(BACKUP_KEY_TOKEN) ||
-        localStorage.getItem(BACKUP_KEY_TOKEN) ||
-        ''
-      ).trim();
+      [localStorage, sessionStorage].forEach(store => {
+        LEGACY_KEYS.forEach(k => store.removeItem(k));
+      });
+    } catch (e) {}
+  }
+
+  function getCsrfToken() {
+    if (memoryCsrfToken) return memoryCsrfToken;
+    try {
+      const m = document.cookie.match(/(?:^|;\s*)cwp_csrf=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
     } catch (e) {
       return '';
     }
   }
 
-  function setToken(token, remember = true, user = null) {
-    try {
-      if (token) {
-        sessionStorage.setItem(STORAGE_KEY_TOKEN, token);
-        sessionStorage.setItem(STORAGE_KEY_AUTH, 'true');
-        sessionStorage.setItem(BACKUP_KEY_TOKEN, token);
+  function isAuthenticated() {
+    return authenticated;
+  }
 
-        if (remember) {
-          localStorage.setItem(STORAGE_KEY_TOKEN, token);
-          localStorage.setItem(STORAGE_KEY_AUTH, 'true');
-          localStorage.setItem(BACKUP_KEY_TOKEN, token);
-        } else {
-          localStorage.removeItem(STORAGE_KEY_TOKEN);
-          localStorage.removeItem(STORAGE_KEY_AUTH);
-          localStorage.removeItem(BACKUP_KEY_TOKEN);
-        }
-
-        if (user && typeof user === 'object') {
-          currentUser = Object.assign({ username: 'admin', role: 'superadmin', userType: 'admin' }, user);
-          sessionStorage.setItem(STORAGE_KEY_USER, JSON.stringify(currentUser));
-        }
-      } else {
-        clearToken(false);
-      }
-    } catch (e) {
-      console.warn('[V2-Auth] Storage write error:', e);
-    }
+  function getToken() {
+    // Returns a non-secret sentinel when authenticated via HttpOnly cookie
+    // so existing V2 modules checking truthy auth state continue to work without exposing tokens.
+    return authenticated ? 'cookie-session' : '';
   }
 
   function clearToken(clearActiveTab = false) {
+    authenticated = false;
     currentUser = null;
-    try {
-      [sessionStorage, localStorage].forEach(store => {
-        store.removeItem(STORAGE_KEY_TOKEN);
-        store.removeItem(STORAGE_KEY_AUTH);
-        store.removeItem(BACKUP_KEY_TOKEN);
-        store.removeItem(STORAGE_KEY_USER);
-        if (clearActiveTab) {
-          store.removeItem(STORAGE_KEY_ACTIVE_TAB);
-        }
-      });
-    } catch (e) {
-      console.warn('[V2-Auth] Storage clear error:', e);
+    memoryCsrfToken = '';
+    purgeLegacyStorage();
+    if (clearActiveTab) {
+      try {
+        localStorage.removeItem('cwp_admin_active_tab');
+        sessionStorage.removeItem('cwp_admin_active_tab');
+      } catch (e) {}
     }
   }
 
   function getUser() {
-    if (currentUser) return currentUser;
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY_USER);
-      if (raw) {
-        currentUser = JSON.parse(raw);
-        return currentUser;
-      }
-    } catch (e) {}
-    return null;
+    return currentUser;
   }
 
   async function checkSession() {
-    const token = getToken();
-    if (!token) {
-      return { valid: false };
-    }
-
+    purgeLegacyStorage();
     try {
       const res = await fetch('/api', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          action: 'verifyAdminSession',
-          token: token,
-          adminToken: token
-        })
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verifyAdminSession' })
       });
 
       let data = null;
@@ -126,20 +88,29 @@
         return { valid: false, offline: res.status >= 500 };
       }
 
+      authenticated = true;
+      if (data.csrfToken) memoryCsrfToken = data.csrfToken;
       const user = Object.assign(
         { username: 'admin', role: 'superadmin', userType: 'admin' },
         data.user || {}
       );
       currentUser = user;
-      try {
-        sessionStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
-      } catch (e) {}
-
-      return { valid: true, token, user };
+      return { valid: true, user };
     } catch (err) {
       console.warn('[V2-Auth] Session verification failed:', err);
       return { valid: false, offline: true };
     }
+  }
+
+  async function fetchCaptcha(username = 'admin') {
+    const res = await fetch('/api', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'getAdminCaptcha', username })
+    });
+    const data = await res.json().catch(() => ({}));
+    return data;
   }
 
   async function login(password, opts = {}) {
@@ -148,18 +119,23 @@
       return { success: false, error: 'Please enter admin password.' };
     }
 
-    const remember = opts.remember !== undefined ? !!opts.remember : true;
     const username = opts.username || 'admin';
+    const payload = {
+      action: 'verifyAdminPassword',
+      password: cleanPass,
+      username
+    };
+    if (opts.captchaId && opts.captchaAnswer !== undefined) {
+      payload.captchaId = opts.captchaId;
+      payload.captchaAnswer = String(opts.captchaAnswer).trim();
+    }
 
     try {
       const res = await fetch('/api', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'verifyAdminPassword',
-          password: cleanPass,
-          username
-        })
+        body: JSON.stringify(payload)
       });
 
       let data = {};
@@ -169,21 +145,27 @@
         data = {};
       }
 
-      if (res.ok && data && data.success && data.token) {
+      if (res.ok && data && data.success) {
+        authenticated = true;
+        if (data.csrfToken) memoryCsrfToken = data.csrfToken;
+        purgeLegacyStorage();
         const user = Object.assign(
           { username: 'admin', role: 'superadmin', userType: 'admin' },
           data.user || {}
         );
-        setToken(data.token, remember, user);
+        currentUser = user;
         if (window.CWP_ADMIN_V2.api && typeof window.CWP_ADMIN_V2.api.resetUnauthorizedLock === 'function') {
           window.CWP_ADMIN_V2.api.resetUnauthorizedLock();
         }
-        return { success: true, token: data.token, user };
+        return { success: true, user, deviceRecognized: !!data.deviceRecognized };
       }
 
       return {
         success: false,
         status: res.status,
+        rateLimited: !!data.rateLimited,
+        captchaRequired: !!data.captchaRequired,
+        captcha: data.captcha || null,
         error: data.error || (res.status === 429 ? 'Too many login attempts. Please wait and retry.' : 'Authentication failed.')
       };
     } catch (err) {
@@ -192,51 +174,51 @@
   }
 
   async function logout() {
-    const token = getToken();
-    if (token) {
-      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 1200) : null;
-      try {
-        await fetch('/api', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            action: 'logoutAdmin',
-            adminToken: token,
-            token: token
-          }),
-          signal: controller ? controller.signal : undefined
-        });
-      } catch (err) {
-        // Failsafe: clear client session even if server request times out or fails
-      } finally {
-        if (timeoutId) clearTimeout(timeoutId);
-      }
+    const csrf = getCsrfToken();
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 1500) : null;
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (csrf) headers['X-CSRF-Token'] = csrf;
+      await fetch('/api', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers,
+        body: JSON.stringify({ action: 'logoutAdmin' }),
+        signal: controller ? controller.signal : undefined
+      });
+    } catch (err) {
+      // Failsafe: clear client state even if server request times out
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
 
     clearToken(true);
+    try {
+      localStorage.setItem(CROSS_TAB_LOGOUT_KEY, String(Date.now()));
+    } catch (e) {}
     return { success: true };
   }
 
-  async function updatePassword(newPassword) {
-    const cleanNew = (newPassword || '').trim();
-    if (!cleanNew || cleanNew.length < 4) {
-      throw new Error('Admin password must be at least 4 characters.');
+  // Cross-tab logout synchronization
+  window.addEventListener('storage', (e) => {
+    if (e && e.key === CROSS_TAB_LOGOUT_KEY && authenticated) {
+      clearToken(false);
+      if (window.CWP_ADMIN_V2.app && typeof window.CWP_ADMIN_V2.app.lockToLogin === 'function') {
+        window.CWP_ADMIN_V2.app.lockToLogin('Signed out from another browser tab.');
+      }
     }
-    return window.CWP_ADMIN_V2.api.request('updateAdminPassword', { newPassword: cleanNew });
-  }
+  });
 
   window.CWP_ADMIN_V2.auth = {
+    isAuthenticated,
     getToken,
-    setToken,
+    getCsrfToken,
     clearToken,
     getUser,
     checkSession,
+    fetchCaptcha,
     login,
-    logout,
-    updatePassword
+    logout
   };
 })(window);

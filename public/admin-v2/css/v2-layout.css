@@ -327,56 +327,6 @@
   color: #ffffff;
 }
 
-.cwp-v2-v1-switch-card {
-  background: rgba(15, 23, 42, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--cwp-v2-radius-md);
-  padding: var(--cwp-v2-space-2) var(--cwp-v2-space-3);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.cwp-v2-v1-switch-card .text-group {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.cwp-v2-v1-switch-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #cbd5e1;
-}
-
-.cwp-v2-v1-switch-sub {
-  font-size: 10px;
-  color: #94a3b8;
-}
-
-.cwp-v2-v1-switch-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  padding: 4px 8px;
-  border-radius: var(--cwp-v2-radius-sm);
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.15s ease;
-  text-decoration: none !important;
-  flex-shrink: 0;
-}
-
-.cwp-v2-v1-switch-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
 /* Mobile Sidebar Backdrop */
 .cwp-v2-sidebar-backdrop {
   display: none;

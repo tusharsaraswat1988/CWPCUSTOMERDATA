@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="/admin-v2/css/v2-clean-reports.css?v=2.1.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-special-jobs.css?v=2.1.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-assign-jobs.css?v=2.1.0">
+  <link rel="stylesheet" href="/admin-v2/css/v2-sequence.css?v=2.1.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-dashboard.css?v=2.1.0">
 </head>
 <body class="cwp-v2-body">
@@ -208,14 +209,10 @@
                   <div id="v2PopoverProfileName" style="font-size:13px; font-weight:700; color:var(--cwp-v2-sys-on-surface);">admin</div>
                   <div id="v2PopoverProfileRole" style="font-size:11.5px; color:var(--cwp-v2-sys-on-surface-variant);">superadmin • Active Session</div>
                 </div>
-                <button type="button" id="v2OpenChangePasswordBtn" class="cwp-v2-popover-item" role="menuitem">
-                  <span class="material-symbols-outlined" aria-hidden="true" style="font-size:18px;">lock_reset</span>
-                  <span>Change Admin Password</span>
+                <button type="button" id="v2OpenSecurityCenterBtn" class="cwp-v2-popover-item" role="menuitem">
+                  <span class="material-symbols-outlined" aria-hidden="true" style="font-size:18px;">shield_lock</span>
+                  <span>Security &amp; Devices</span>
                 </button>
-                <a href="/admin" class="cwp-v2-popover-item" role="menuitem" style="text-decoration:none;">
-                  <span class="material-symbols-outlined" aria-hidden="true" style="font-size:18px;">open_in_new</span>
-                  <span>Open V1 Fallback</span>
-                </a>
                 <button type="button" id="v2OpenLogoutBtn" class="cwp-v2-popover-item is-danger" role="menuitem">
                   <span class="material-symbols-outlined" aria-hidden="true" style="font-size:18px;">logout</span>
                   <span>Sign Out</span>
@@ -4375,6 +4372,94 @@
           </section>
 
           <!-- ============================================================= -->
+          <!-- VIEW: SECURITY & DEVICES (SECURITY CENTER)                    -->
+          <!-- ============================================================= -->
+          <section id="v2View_security" class="cwp-v2-view" aria-label="Security and Devices">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+              <div>
+                <h2 style="font-size:16px; font-weight:700; color:var(--cwp-v2-sys-on-surface); margin:0;">Admin Security Center</h2>
+                <p style="font-size:12.5px; color:var(--cwp-v2-sys-on-surface-variant); margin:4px 0 0;">Manage trusted devices, active sessions, and review security activity.</p>
+              </div>
+              <button type="button" id="v2SecRefreshBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm">
+                <span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px;">refresh</span>
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            <!-- 1. Account Security -->
+            <div class="cwp-v2-card" style="margin-bottom:16px; padding:16px;">
+              <h3 style="font-size:14px; font-weight:700; margin:0 0 12px; color:var(--cwp-v2-sys-on-surface);">Account Security</h3>
+              <div id="v2SecAccountBody"></div>
+            </div>
+
+            <!-- 2. Trusted Devices -->
+            <div class="cwp-v2-card" style="margin-bottom:16px; padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                <h3 style="font-size:14px; font-weight:700; margin:0; color:var(--cwp-v2-sys-on-surface);">Trusted Devices</h3>
+                <button type="button" id="v2SecRevokeOtherDevicesBtn" class="cwp-v2-btn cwp-v2-btn-danger-outline cwp-v2-btn-sm">Revoke Other Devices</button>
+              </div>
+              <div class="cwp-v2-table-wrap">
+                <table class="cwp-v2-table">
+                  <thead>
+                    <tr>
+                      <th>Device Name</th>
+                      <th>Browser</th>
+                      <th>OS</th>
+                      <th>First Registered</th>
+                      <th>Last Active</th>
+                      <th>Trust Expiry</th>
+                      <th style="text-align:right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="v2SecDevicesBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 3. Active Sessions -->
+            <div class="cwp-v2-card" style="margin-bottom:16px; padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                <h3 style="font-size:14px; font-weight:700; margin:0; color:var(--cwp-v2-sys-on-surface);">Active Sessions</h3>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" id="v2SecLogoutOtherSessionsBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm">Logout Other Sessions</button>
+                  <button type="button" id="v2SecLogoutAllSessionsBtn" class="cwp-v2-btn cwp-v2-btn-danger-outline cwp-v2-btn-sm">Logout All Sessions</button>
+                </div>
+              </div>
+              <div class="cwp-v2-table-wrap">
+                <table class="cwp-v2-table">
+                  <thead>
+                    <tr>
+                      <th>Session Device</th>
+                      <th>Session Start</th>
+                      <th>Last Activity</th>
+                      <th style="text-align:right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="v2SecSessionsBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 4. Security Activity -->
+            <div class="cwp-v2-card" style="padding:16px;">
+              <h3 style="font-size:14px; font-weight:700; margin:0 0 12px; color:var(--cwp-v2-sys-on-surface);">Security Activity</h3>
+              <div class="cwp-v2-table-wrap">
+                <table class="cwp-v2-table">
+                  <thead>
+                    <tr>
+                      <th>Event</th>
+                      <th>Details</th>
+                      <th>Context</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody id="v2SecEventsBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================= -->
           <!-- PRODUCTION VIEWS: OPERATIONS (6 TABS)                         -->
           <!-- ============================================================= -->
           <section id="v2View_dashboard" class="cwp-v2-view" aria-label="Dashboard">
@@ -5315,14 +5400,324 @@
           </section>
 
           <section id="v2View_sequence" class="cwp-v2-view" aria-label="DCC Route Plan">
-            <div class="cwp-v2-kpi-strip" data-v2-live-summary></div>
-            <div class="cwp-v2-card">
-              <div class="cwp-v2-card-header">
-                <span class="cwp-v2-card-title">DCC Route Plan</span>
+            <div class="cwp-v2-seq-header">
+              <div class="cwp-v2-seq-title-group">
+                <div class="cwp-v2-seq-icon-box" aria-hidden="true">
+                  <span class="material-symbols-outlined">route</span>
+                </div>
+                <div>
+                  <h2 class="cwp-v2-seq-title">DCC Route Plan &amp; Operational Sequence</h2>
+                  <p class="cwp-v2-seq-subtitle">Manage daily cleaning routes, staff allocation, stop ordering, and unassigned vehicles</p>
+                </div>
               </div>
-              <p style="font-size:13px; color:var(--cwp-v2-sys-on-surface-variant);">
-                Route planning container ready. Live counts hydrated from <code>getAllRoutes</code> and <code>getUnassignedDccVehicles</code>.
-              </p>
+              <div class="cwp-v2-seq-actions">
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-seq-action="refresh">
+                  <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+                  <span>Refresh</span>
+                </button>
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-primary" data-seq-action="create-route">
+                  <span class="material-symbols-outlined" aria-hidden="true">add_road</span>
+                  <span>Create Route</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="cwp-v2-seq-subtabs" role="tablist" aria-label="Route Plan Views">
+              <button type="button" id="v2SeqSubtabRoutes" class="cwp-v2-seq-subtab is-active" data-seq-subtab="routes" role="tab">
+                <span class="material-symbols-outlined" style="font-size:18px;">alt_route</span>
+                <span>Routes Hub</span>
+                <span id="v2SeqRoutesBadge" class="cwp-v2-seq-badge">0</span>
+              </button>
+              <button type="button" id="v2SeqSubtabUnassigned" class="cwp-v2-seq-subtab" data-seq-subtab="unassigned" role="tab">
+                <span class="material-symbols-outlined" style="font-size:18px;">pending_actions</span>
+                <span>Unassigned Workbench</span>
+                <span id="v2SeqUnassignedBadge" class="cwp-v2-seq-badge is-amber">0</span>
+              </button>
+            </div>
+
+            <!-- Subview 1: Routes Hub -->
+            <div id="v2SeqRoutesPane">
+              <div class="cwp-v2-seq-kpi-grid" style="margin-bottom:14px;">
+                <div class="cwp-v2-seq-kpi-card">
+                  <div class="cwp-v2-seq-kpi-top"><span class="cwp-v2-seq-kpi-label">Total Routes</span></div>
+                  <div id="v2SeqKpiTotalRoutes" class="cwp-v2-seq-kpi-val">0</div>
+                  <div class="cwp-v2-seq-kpi-sub">Configured routes</div>
+                </div>
+                <div class="cwp-v2-seq-kpi-card">
+                  <div class="cwp-v2-seq-kpi-top"><span class="cwp-v2-seq-kpi-label">Active Routes</span></div>
+                  <div id="v2SeqKpiActiveRoutes" class="cwp-v2-seq-kpi-val" style="color:#166534;">0</div>
+                  <div class="cwp-v2-seq-kpi-sub">Operational now</div>
+                </div>
+                <div class="cwp-v2-seq-kpi-card">
+                  <div class="cwp-v2-seq-kpi-top"><span class="cwp-v2-seq-kpi-label">Inactive</span></div>
+                  <div id="v2SeqKpiInactiveRoutes" class="cwp-v2-seq-kpi-val" style="color:#475569;">0</div>
+                  <div class="cwp-v2-seq-kpi-sub">Paused or archived</div>
+                </div>
+                <div class="cwp-v2-seq-kpi-card">
+                  <div class="cwp-v2-seq-kpi-top"><span class="cwp-v2-seq-kpi-label">Assigned Staff</span></div>
+                  <div id="v2SeqKpiAssignedStaff" class="cwp-v2-seq-kpi-val" style="color:#1e40af;">0</div>
+                  <div class="cwp-v2-seq-kpi-sub">Active cleaners</div>
+                </div>
+                <div class="cwp-v2-seq-kpi-card">
+                  <div class="cwp-v2-seq-kpi-top"><span class="cwp-v2-seq-kpi-label">Total Stops</span></div>
+                  <div id="v2SeqKpiTotalStops" class="cwp-v2-seq-kpi-val">0</div>
+                  <div class="cwp-v2-seq-kpi-sub">Scheduled vehicles</div>
+                </div>
+                <div class="cwp-v2-seq-kpi-card">
+                  <div class="cwp-v2-seq-kpi-top"><span class="cwp-v2-seq-kpi-label">Unassigned DCC</span></div>
+                  <div id="v2SeqKpiUnassigned" class="cwp-v2-seq-kpi-val" style="color:#b45309;">0</div>
+                  <div class="cwp-v2-seq-kpi-sub">Awaiting route</div>
+                </div>
+              </div>
+
+              <div class="cwp-v2-seq-toolbar" style="margin-bottom:14px;">
+                <div class="cwp-v2-seq-search-wrap">
+                  <span class="material-symbols-outlined">search</span>
+                  <input type="text" id="v2SeqSearchInput" class="cwp-v2-seq-search-input" placeholder="Search routes by code, name, area, or staff...">
+                </div>
+                <div class="cwp-v2-seq-filters">
+                  <select id="v2SeqStatusFilter" class="cwp-v2-select" style="width:auto;">
+                    <option value="all">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                  <select id="v2SeqStaffFilter" class="cwp-v2-select" style="width:auto;">
+                    <option value="all">All Staff</option>
+                    <option value="assigned">Assigned Staff</option>
+                    <option value="unassigned">Unassigned Staff</option>
+                  </select>
+                  <select id="v2SeqAreaFilter" class="cwp-v2-select" style="width:auto;">
+                    <option value="all">All Operational Areas</option>
+                  </select>
+                  <select id="v2SeqSortSelect" class="cwp-v2-select" style="width:auto;">
+                    <option value="code_asc">Code (A-Z)</option>
+                    <option value="name_asc">Name (A-Z)</option>
+                    <option value="stops_desc">Stops (High-Low)</option>
+                    <option value="stops_asc">Stops (Low-High)</option>
+                  </select>
+                  <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="reset-filters">Reset</button>
+                </div>
+              </div>
+
+              <div id="v2SeqRoutesGrid" class="cwp-v2-seq-routes-grid"></div>
+            </div>
+
+            <!-- Subview 2: Unassigned Workbench -->
+            <div id="v2SeqUnassignedPane" hidden>
+              <div class="cwp-v2-seq-toolbar" style="margin-bottom:12px;">
+                <div class="cwp-v2-seq-search-wrap">
+                  <span class="material-symbols-outlined">search</span>
+                  <input type="text" id="v2SeqUnassignedSearch" class="cwp-v2-seq-search-input" placeholder="Search unassigned by customer, phone, plate, or address...">
+                </div>
+                <div class="cwp-v2-seq-filters">
+                  <select id="v2SeqUnassignedAreaFilter" class="cwp-v2-select" style="width:auto;">
+                    <option value="all">All Areas</option>
+                  </select>
+                </div>
+              </div>
+
+              <div id="v2SeqBatchBar" class="cwp-v2-seq-batch-bar" style="margin-bottom:12px;" hidden>
+                <div style="font-size:13px;font-weight:600;color:#1e40af;">
+                  <strong id="v2SeqBatchCount">0</strong> vehicle(s) selected
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <select id="v2SeqBatchRouteSelect" class="cwp-v2-select" style="min-width:220px;">
+                    <option value="">Select target route...</option>
+                  </select>
+                  <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-seq-action="batch-assign">
+                    <span class="material-symbols-outlined" style="font-size:16px;">add_to_queue</span>
+                    <span>Assign Selected</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="cwp-v2-table-wrap">
+                <table class="cwp-v2-table">
+                  <thead>
+                    <tr>
+                      <th style="width:42px;text-align:center;"><input type="checkbox" id="v2SeqSelectAllUnassigned" aria-label="Select all"></th>
+                      <th>Customer</th>
+                      <th>Vehicle</th>
+                      <th>Package</th>
+                      <th>Service Address</th>
+                      <th style="text-align:right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="v2SeqUnassignedBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Subview 3: Route Detail & Sequence -->
+            <div id="v2SeqDetailPane" hidden>
+              <div class="cwp-v2-seq-toolbar" style="margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="back-to-routes">
+                    <span class="material-symbols-outlined" style="font-size:16px;">arrow_back</span>
+                    <span>Routes Hub</span>
+                  </button>
+                  <span id="v2SeqDetailCode" class="cwp-v2-seq-code-pill">ROUTE</span>
+                  <strong id="v2SeqDetailName" style="font-size:15px;color:#0f172a;">Route Name</strong>
+                  <span id="v2SeqDetailStatus" class="cwp-v2-seq-status-pill is-active">active</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="edit-route">
+                    <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
+                    <span>Edit</span>
+                  </button>
+                  <button type="button" class="cwp-v2-btn cwp-v2-btn-danger cwp-v2-btn-sm" data-seq-action="delete-route">
+                    <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="cwp-v2-seq-detail-grid" style="margin-bottom:14px;">
+                <div class="cwp-v2-seq-detail-box">
+                  <div class="cwp-v2-seq-kpi-label">Operational Area &amp; Notes</div>
+                  <div id="v2SeqDetailArea" style="font-size:13.5px;font-weight:700;color:#0f172a;">—</div>
+                  <div id="v2SeqDetailDesc" style="font-size:12.5px;color:#475569;">—</div>
+                </div>
+                <div class="cwp-v2-seq-detail-box">
+                  <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div class="cwp-v2-seq-kpi-label">Assigned Field Staff</div>
+                    <div style="display:flex;gap:6px;">
+                      <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="assign-staff">Change</button>
+                      <button type="button" id="v2SeqDetailUnassignStaffBtn" class="cwp-v2-btn cwp-v2-btn-danger cwp-v2-btn-sm" data-seq-action="unassign-staff">Unassign</button>
+                    </div>
+                  </div>
+                  <div id="v2SeqDetailStaffName" style="font-size:14px;font-weight:700;color:#0f172a;">No staff assigned</div>
+                  <div id="v2SeqDetailStaffMeta" style="font-size:12px;color:#64748b;">—</div>
+                </div>
+                <div class="cwp-v2-seq-detail-box">
+                  <div class="cwp-v2-seq-kpi-label">Scheduled Stops</div>
+                  <div id="v2SeqDetailStopCount" style="font-size:26px;font-weight:800;color:#1e40af;">0</div>
+                  <div style="font-size:12px;color:#64748b;">Contiguous 1..N sequence</div>
+                </div>
+              </div>
+
+              <div class="cwp-v2-seq-toolbar" style="margin-bottom:12px;">
+                <div style="font-size:14px;font-weight:700;color:#0f172a;">Stop Sequence</div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span id="v2SeqUnsavedPill" class="cwp-v2-seq-unsaved-pill" hidden>Unsaved Order Changes</span>
+                  <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="add-stop">
+                    <span class="material-symbols-outlined" style="font-size:16px;">add_location_alt</span>
+                    <span>Add Stop</span>
+                  </button>
+                  <button type="button" id="v2SeqSaveSequenceBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-seq-action="save-sequence" disabled>
+                    <span class="material-symbols-outlined" style="font-size:16px;">save</span>
+                    <span>Save Sequence</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="v2SeqStopsList" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+
+            <!-- Route Plan Modals -->
+            <div id="v2SeqRouteModal" class="cwp-v2-overlay" hidden>
+              <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2SeqRouteModalTitle">
+                <div class="cwp-v2-modal-header">
+                  <h2 id="v2SeqRouteModalTitle" class="cwp-v2-modal-title">Create Operational Route</h2>
+                  <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <form id="v2SeqRouteForm">
+                  <div class="cwp-v2-modal-body" style="display:flex;flex-direction:column;gap:12px;">
+                    <div class="cwp-v2-field">
+                      <label for="v2SeqRouteCodeInput" class="cwp-v2-field-label">Route Code <span class="cwp-v2-req-star">*</span></label>
+                      <input type="text" id="v2SeqRouteCodeInput" class="cwp-v2-input" placeholder="e.g. ROUTE-01" required>
+                    </div>
+                    <div class="cwp-v2-field">
+                      <label for="v2SeqRouteNameInput" class="cwp-v2-field-label">Route Name <span class="cwp-v2-req-star">*</span></label>
+                      <input type="text" id="v2SeqRouteNameInput" class="cwp-v2-input" placeholder="e.g. North Morning Route" required>
+                    </div>
+                    <div class="cwp-v2-field">
+                      <label for="v2SeqRouteAreaInput" class="cwp-v2-field-label">Operational Area</label>
+                      <input type="text" id="v2SeqRouteAreaInput" class="cwp-v2-input" placeholder="e.g. Sigra, Lanka">
+                    </div>
+                    <div class="cwp-v2-field">
+                      <label for="v2SeqRouteStatusInput" class="cwp-v2-field-label">Status</label>
+                      <select id="v2SeqRouteStatusInput" class="cwp-v2-select">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="archived">Archived</option>
+                      </select>
+                    </div>
+                    <div class="cwp-v2-field">
+                      <label for="v2SeqRouteDescInput" class="cwp-v2-field-label">Description</label>
+                      <textarea id="v2SeqRouteDescInput" class="cwp-v2-textarea" rows="2" placeholder="Optional coverage notes"></textarea>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-modal-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Save Route</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div id="v2SeqAssignStaffModal" class="cwp-v2-overlay" hidden>
+              <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SeqAssignStaffTitle">
+                <div class="cwp-v2-modal-header">
+                  <h2 id="v2SeqAssignStaffTitle" class="cwp-v2-modal-title">Assign Staff</h2>
+                  <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <form id="v2SeqAssignStaffForm">
+                  <div class="cwp-v2-modal-body">
+                    <div class="cwp-v2-field">
+                      <label for="v2SeqAssignStaffSelect" class="cwp-v2-field-label">Field Staff <span class="cwp-v2-req-star">*</span></label>
+                      <select id="v2SeqAssignStaffSelect" class="cwp-v2-select" required></select>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-modal-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Assign Staff</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div id="v2SeqAddStopModal" class="cwp-v2-overlay" hidden>
+              <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2SeqAddStopTitle">
+                <div class="cwp-v2-modal-header">
+                  <h2 id="v2SeqAddStopTitle" class="cwp-v2-modal-title">Add Stop to Route</h2>
+                  <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <form id="v2SeqAddStopForm">
+                  <div class="cwp-v2-modal-body">
+                    <div class="cwp-v2-field">
+                      <label for="v2SeqAddStopSelect" class="cwp-v2-field-label">Unassigned DCC Vehicle <span class="cwp-v2-req-star">*</span></label>
+                      <select id="v2SeqAddStopSelect" class="cwp-v2-select" required></select>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-modal-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Add Stop</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div id="v2SeqTransferStopModal" class="cwp-v2-overlay" hidden>
+              <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SeqTransferStopTitle">
+                <div class="cwp-v2-modal-header">
+                  <h2 id="v2SeqTransferStopTitle" class="cwp-v2-modal-title">Transfer Stop</h2>
+                  <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <form id="v2SeqTransferStopForm">
+                  <div class="cwp-v2-modal-body">
+                    <div class="cwp-v2-field">
+                      <label for="v2SeqTransferTargetRouteSelect" class="cwp-v2-field-label">Destination Route <span class="cwp-v2-req-star">*</span></label>
+                      <select id="v2SeqTransferTargetRouteSelect" class="cwp-v2-select" required></select>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-modal-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Transfer Stop</button>
+                  </div>
+                </form>
+              </div>
             </div>
           </section>
 
@@ -7199,39 +7594,6 @@
       </div>
     </div>
 
-    <!-- Change Admin Password Modal -->
-    <div id="v2ChangePasswordModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
-      <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2ChangePwTitle">
-        <div class="cwp-v2-modal-header">
-          <h2 id="v2ChangePwTitle" class="cwp-v2-modal-title">Change Admin Password</h2>
-          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close change password dialog">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        </div>
-        <form id="v2ChangePasswordForm">
-          <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:12px;">
-            <div id="v2ChangePasswordAlert" class="cwp-v2-form-alert is-error" role="alert" hidden></div>
-            <div class="cwp-v2-field">
-              <label for="v2NewAdminPasswordInput" class="cwp-v2-field-label">New Admin Password <span class="cwp-v2-req-star">*</span></label>
-              <div class="cwp-v2-input-box">
-                <input type="password" id="v2NewAdminPasswordInput" class="cwp-v2-input cwp-v2-input-md" minlength="4" required autocomplete="new-password">
-              </div>
-            </div>
-            <div class="cwp-v2-field">
-              <label for="v2ConfirmAdminPasswordInput" class="cwp-v2-field-label">Confirm Password <span class="cwp-v2-req-star">*</span></label>
-              <div class="cwp-v2-input-box">
-                <input type="password" id="v2ConfirmAdminPasswordInput" class="cwp-v2-input cwp-v2-input-md" minlength="4" required autocomplete="new-password">
-              </div>
-            </div>
-          </div>
-          <div class="cwp-v2-modal-footer">
-            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
-            <button type="submit" id="v2ChangePasswordSubmitBtn" class="cwp-v2-btn cwp-v2-btn-primary">Update Password</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <!-- Logout Confirmation Modal -->
     <div id="v2LogoutConfirmModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
       <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2LogoutModalTitle">
@@ -7808,19 +8170,21 @@
             </div>
           </div>
 
-          <label class="cwp-v2-login-remember" for="v2RememberDevice">
-            <input type="checkbox" id="v2RememberDevice" checked>
-            <span>Keep me signed in on this device (12h)</span>
-          </label>
+          <div id="v2LoginCaptchaBox" class="cwp-v2-field" hidden style="padding:12px; border:1px solid var(--cwp-v2-sys-border); border-radius:var(--cwp-v2-radius-md); background:var(--cwp-v2-sys-surface-ground);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="v2LoginCaptchaInput" class="cwp-v2-field-label" style="margin:0;">Security Verification <span class="cwp-v2-req-star">*</span></label>
+              <button type="button" id="v2LoginCaptchaRefreshBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" style="height:24px; font-size:11px; padding:0 8px;">New Challenge</button>
+            </div>
+            <div id="v2LoginCaptchaPrompt" style="font-size:13.5px; font-weight:700; color:var(--cwp-v2-sys-on-surface); margin-bottom:8px;"></div>
+            <div class="cwp-v2-input-box">
+              <input type="text" id="v2LoginCaptchaInput" class="cwp-v2-input cwp-v2-input-md" placeholder="Enter answer" autocomplete="off" inputmode="numeric">
+            </div>
+          </div>
 
           <button type="submit" id="v2LoginSubmitBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-lg" style="width:100%;">
             <span>Sign In</span>
           </button>
         </form>
-
-        <div style="margin-top:16px; text-align:center; font-size:12.5px;">
-          <a href="/admin">Open Admin V1 Portal</a>
-        </div>
       </div>
     </div>
   </div>
@@ -7842,7 +8206,9 @@
   <script src="/admin-v2/js/v2-clean-reports.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-special-jobs.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-assign-jobs.js?v=2.1.0"></script>
+  <script src="/admin-v2/js/v2-sequence.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-dashboard.js?v=2.1.0"></script>
+  <script src="/admin-v2/js/v2-security.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-app.js?v=2.1.0"></script>
 
   <!-- Lazy UI Playground Loader: loads v2-playground.js ONLY when /admin-v2/ui-lab or ui-lab view is active -->

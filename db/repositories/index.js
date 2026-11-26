@@ -21,5 +21,6 @@ module.exports = {
   jobApplications: require('./jobApplicationsRepo'),
   packages: require('./packagesRepo'),
   routes: require('./routesRepo'),
-  designations: require('./designationsRepo')
+  designations: require('./designationsRepo'),
+  adminSecurity: require('./adminSecurityRepo')
 };

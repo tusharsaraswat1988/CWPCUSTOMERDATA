@@ -26,6 +26,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const cloudinary = require('cloudinary').v2;
+const adminSecurityService = require('./services/adminSecurityService');
 
 // Load local .env immediately if present (only when not running automated unit/fixture tests)
 if (process.env.NODE_ENV !== 'test' && !process.env.DATA_FILE) {
@@ -431,9 +432,7 @@ function verifyAdminPasswordNode(inputPass) {
   if (envPass) {
     const inBuf = Buffer.from(inputPass.trim());
     const envBuf = Buffer.from(envPass);
-    if (inBuf.length === envBuf.length && crypto.timingSafeEqual(inBuf, envBuf)) {
-      return true;
-    }
+    return inBuf.length === envBuf.length && crypto.timingSafeEqual(inBuf, envBuf);
   }
   // If not matched, reload .env in case user changed .env file live
   if (process.env.NODE_ENV !== 'test') {
@@ -442,9 +441,7 @@ function verifyAdminPasswordNode(inputPass) {
     if (envPass) {
       const inBuf = Buffer.from(inputPass.trim());
       const envBuf = Buffer.from(envPass);
-      if (inBuf.length === envBuf.length && crypto.timingSafeEqual(inBuf, envBuf)) {
-        return true;
-      }
+      return inBuf.length === envBuf.length && crypto.timingSafeEqual(inBuf, envBuf);
     }
   }
   if (appState && appState.adminPasswordHash) {
@@ -565,11 +562,18 @@ const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours (Documented Consistent T
 
 function recordAdminSession(token, sessObj) {
   if (!token) return;
+  const now = Date.now();
   const fullObj = {
     username: (sessObj && sessObj.username) || 'admin',
     role: (sessObj && sessObj.role) || 'superadmin',
-    createdAt: (sessObj && sessObj.createdAt) || Date.now(),
-    expiresAt: (sessObj && sessObj.expiresAt) || (Date.now() + SESSION_TTL_MS)
+    adminId: (sessObj && sessObj.adminId) || null,
+    createdAt: (sessObj && sessObj.createdAt) || now,
+    lastActivityAt: (sessObj && sessObj.lastActivityAt) || now,
+    expiresAt: (sessObj && sessObj.expiresAt) || (now + SESSION_TTL_MS),
+    deviceLabel: (sessObj && sessObj.deviceLabel) || null,
+    browser: (sessObj && sessObj.browser) || null,
+    os: (sessObj && sessObj.os) || null,
+    trustedDeviceId: (sessObj && sessObj.trustedDeviceId) || null
   };
   adminSessions.set(token, fullObj);
   if (!appState.adminSessions) appState.adminSessions = {};
@@ -618,7 +622,10 @@ function isValidAdminSession(token) {
     }
   }
   if (!sess) return false;
-  if (Date.now() > sess.expiresAt) {
+  const now = Date.now();
+  const lastAct = sess.lastActivityAt || sess.createdAt || now;
+  const idleExpired = (now - lastAct) > adminSecurityService.ADMIN_IDLE_TIMEOUT_MS;
+  if (now > sess.expiresAt || idleExpired) {
     adminSessions.delete(token);
     if (appState && appState.adminSessions) {
       delete appState.adminSessions[token];
@@ -626,6 +633,7 @@ function isValidAdminSession(token) {
     }
     return false;
   }
+  sess.lastActivityAt = now;
   return true;
 }
 
@@ -739,12 +747,7 @@ function revokeAllStaffSessionsForId(staffId) {
 
 async function getSessionInfo(token) {
   if (!token) return null;
-  // 1. Check in-memory session (fast cache & test mocks)
-  if (adminSessions.has(token)) {
-    const s = adminSessions.get(token);
-    if (Date.now() <= s.expiresAt) return { userType: 'admin', token, ...s };
-    adminSessions.delete(token);
-  }
+  // 1. Check in-memory session (enforces both absolute TTL & 30-min idle timeout)
   if (isValidAdminSession(token)) {
     const s = adminSessions.get(token) || (appState.adminSessions && appState.adminSessions[token]) || {};
     return { userType: 'admin', token, ...s };
@@ -832,11 +835,23 @@ function extractAuthToken(req, payload) {
   if (authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7).trim();
   }
+  // Check HttpOnly admin session cookie
+  const cookies = adminSecurityService.parseCookies(req);
+  if (cookies[adminSecurityService.COOKIE_SESSION]) {
+    return cookies[adminSecurityService.COOKIE_SESSION].trim();
+  }
   // URL query tokens are rejected. Only secure POST payload is accepted as fallback.
   if (payload && typeof payload === 'object') {
     return (payload.token || payload.adminToken || payload.staffToken || '').trim();
   }
   return '';
+}
+
+function isAdminCookieAuth(req) {
+  const authHeader = req.headers['authorization'] || '';
+  if (authHeader.startsWith('Bearer ')) return false;
+  const cookies = adminSecurityService.parseCookies(req);
+  return !!(cookies[adminSecurityService.COOKIE_SESSION]);
 }
 
 /**
@@ -1740,20 +1755,33 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(self), geolocation=(self), microphone=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com https://*.tile.openstreetmap.org https://maps.gstatic.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com; font-src 'self' data:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+  );
+  if (process.env.NODE_ENV === 'production' && adminSecurityService.isHttpsRequest(req)) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
 
   // Environment-Aware CORS Headers
   const origin = req.headers.origin || '';
   if (process.env.NODE_ENV === 'production' && origin) {
     if (origin.endsWith('railway.app') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
       res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
     } else {
       res.setHeader('Access-Control-Allow-Origin', `https://${DOMAIN}`);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
+  } else if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
   } else {
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-Token');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -2088,7 +2116,11 @@ const server = http.createServer(async (req, res) => {
   // GET /api/admin-realtime-stream - Server-Sent Events (SSE) for Admin Live Operations & Audit Hub
   if (req.method === 'GET' && pathname === '/api/admin-realtime-stream') {
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    const token = parsedUrl.searchParams.get('token') || (req.headers.authorization && req.headers.authorization.replace(/^Bearer\s+/i, '').trim());
+    const reqCookies = adminSecurityService.parseCookies(req);
+    const token =
+      (req.headers.authorization && req.headers.authorization.replace(/^Bearer\s+/i, '').trim()) ||
+      reqCookies[adminSecurityService.COOKIE_SESSION] ||
+      parsedUrl.searchParams.get('token');
     const adminSess = await resolveAdminSession(token);
     if (!adminSess) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -2631,116 +2663,340 @@ const server = http.createServer(async (req, res) => {
 
         const token = extractAuthToken(req, payload);
 
-        // 1. Admin Authentication Handler
+        // 0. Built-in First-Party CAPTCHA Challenge Endpoint
+        if (payload.action === 'getAdminCaptcha') {
+          const clientIp = getClientIp(req);
+          const username = (payload.username || 'admin').toString().trim();
+          const challenge = adminSecurityService.generateCaptchaChallenge({ clientIp, username });
+          if (!challenge.success) {
+            res.writeHead(429, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(challenge));
+          }
+          await adminSecurityService.logSecurityEvent({
+            eventType: 'captcha_triggered',
+            actor: username,
+            ipAddress: clientIp,
+            userAgent: req.headers['user-agent'],
+            summary: 'Security verification challenge issued for admin login.',
+            isNeon: isNeonConfigured()
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify(challenge));
+        }
+
+        // 1. Admin Authentication Handler (Hardened: Multi-dim Rate Limit, CAPTCHA, Trusted Device, HttpOnly Cookies)
         if (payload.action === 'verifyAdminPassword') {
           const clientIp = getClientIp(req);
+          const username = (payload.username || 'admin').toString().trim();
+          const userAgent = req.headers['user-agent'] || '';
           const isAuto = !!payload.isAuto;
-          const rateCheck = checkRateLimit(clientIp, 'admin');
+          const neonActive = isNeonConfigured();
+
+          const deviceRecognition = await adminSecurityService.recognizeTrustedDevice({ req, isNeon: neonActive });
+          const rateCheck = adminSecurityService.checkAdminLoginRateLimit({
+            clientIp,
+            username,
+            hasTrustedDevice: deviceRecognition.recognized
+          });
+
           if (!rateCheck.allowed) {
+            await adminSecurityService.logSecurityEvent({
+              eventType: 'rate_limit_triggered',
+              actor: username,
+              ipAddress: clientIp,
+              userAgent,
+              summary: `Admin login throttled (${rateCheck.reason || 'rate_limit'}).`,
+              isNeon: neonActive
+            });
             res.writeHead(429, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
-              error: `Too many failed admin login attempts. Please try again after ${Math.ceil(rateCheck.remainingSec / 60)} minutes.`
+              rateLimited: true,
+              remainingSec: rateCheck.remainingSec,
+              captchaRequired: true,
+              error: rateCheck.error
             }));
           }
 
-          const inputPass = (payload.password || '').trim();
-          if (!inputPass) {
-            if (!isAuto) recordFailedLogin(clientIp, 'admin');
-            res.writeHead(401, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
-              success: false,
-              error: 'Please enter admin password.'
-            }));
+          if (rateCheck.progressiveDelayMs > 0) {
+            await new Promise(r => setTimeout(r, rateCheck.progressiveDelayMs));
           }
 
-          if (isNeonConfigured()) {
-            try {
-              const authRes = await authService.loginAdmin({
-                username: payload.username || 'admin',
-                password: inputPass,
-                ipAddress: clientIp,
-                userAgent: req.headers['user-agent']
+          adminSecurityService.beginAdminLoginAttempt(clientIp, username);
+          try {
+            // Adaptive CAPTCHA validation when required
+            if (rateCheck.captchaRequired) {
+              const hasAnswer = payload.captchaId && payload.captchaAnswer !== undefined && String(payload.captchaAnswer).trim() !== '';
+              if (!hasAnswer) {
+                const freshCap = adminSecurityService.generateCaptchaChallenge({ clientIp, username });
+                await adminSecurityService.logSecurityEvent({
+                  eventType: 'captcha_triggered',
+                  actor: username,
+                  ipAddress: clientIp,
+                  userAgent,
+                  summary: 'Adaptive security challenge required before login.',
+                  isNeon: neonActive
+                });
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: false,
+                  captchaRequired: true,
+                  captcha: freshCap.success ? freshCap : null,
+                  error: 'Security verification challenge is required to continue.'
+                }));
+              }
+
+              const capCheck = adminSecurityService.verifyCaptchaChallenge({
+                challengeId: payload.captchaId,
+                answer: payload.captchaAnswer,
+                clientIp,
+                username
               });
-              if (authRes && authRes.success) {
-                clearRateLimit(clientIp, 'admin');
-                const adminUsername = (authRes.admin && authRes.admin.username) || authRes.username || 'admin';
-                const adminRole = (authRes.admin && authRes.admin.role) || authRes.role || 'superadmin';
-                recordAdminSession(authRes.token, {
+              if (!capCheck.valid) {
+                adminSecurityService.recordAdminLoginFailure({ clientIp, username });
+                const freshCap = adminSecurityService.generateCaptchaChallenge({ clientIp, username });
+                await adminSecurityService.logSecurityEvent({
+                  eventType: 'captcha_failed',
+                  actor: username,
+                  ipAddress: clientIp,
+                  userAgent,
+                  summary: `Security challenge failed (${capCheck.reason}).`,
+                  isNeon: neonActive
+                });
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: false,
+                  captchaRequired: true,
+                  captcha: freshCap.success ? freshCap : null,
+                  error: capCheck.error
+                }));
+              }
+            }
+
+            const inputPass = (payload.password || '').trim();
+            if (!inputPass) {
+              if (!isAuto) adminSecurityService.recordAdminLoginFailure({ clientIp, username });
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: 'Invalid administrator credentials.'
+              }));
+            }
+
+            const uaMeta = adminSecurityService.parseUserAgent(userAgent);
+            const isHttps = adminSecurityService.isHttpsRequest(req);
+            const existingCookies = adminSecurityService.parseCookies(req);
+            const oldSessToken = existingCookies[adminSecurityService.COOKIE_SESSION] || '';
+
+            const finalizeAdminLogin = async ({ sessionToken, adminId, adminUsername, adminRole }) => {
+              adminSecurityService.resetAdminLoginRateLimit({ clientIp, username });
+
+              // Session rotation: revoke any prior admin session token on this browser
+              if (oldSessToken && oldSessToken !== sessionToken) {
+                revokeAdminSession(oldSessToken);
+                if (neonActive) {
+                  try { await authService.logout(oldSessToken, 'session_rotation'); } catch (e) {}
+                }
+              }
+
+              // Register or touch trusted device
+              const devRes = await adminSecurityService.registerOrTouchTrustedDevice({
+                req,
+                adminId: adminId || null,
+                ipAddress: clientIp,
+                userAgent,
+                isNeon: neonActive
+              });
+
+              const csrfToken = crypto.randomBytes(24).toString('hex');
+              const sessMaxAge = Math.floor(adminSecurityService.ADMIN_ABSOLUTE_TTL_MS / 1000);
+              const devMaxAge = Math.floor(adminSecurityService.TRUSTED_DEVICE_TTL_MS / 1000);
+
+              adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+                adminSecurityService.COOKIE_SESSION,
+                sessionToken,
+                { httpOnly: true, sameSite: 'Lax', maxAge: sessMaxAge, secure: isHttps }
+              ));
+              adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+                adminSecurityService.COOKIE_CSRF,
+                csrfToken,
+                { httpOnly: false, sameSite: 'Lax', maxAge: sessMaxAge, secure: isHttps }
+              ));
+              if (devRes && devRes.rawToken) {
+                adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+                  adminSecurityService.COOKIE_DEVICE,
+                  devRes.rawToken,
+                  { httpOnly: true, sameSite: 'Lax', maxAge: devMaxAge, secure: isHttps }
+                ));
+                await adminSecurityService.logSecurityEvent({
+                  eventType: 'device_registered',
+                  actor: adminUsername,
+                  ipAddress: clientIp,
+                  userAgent,
+                  summary: `Trusted device registered (${uaMeta.deviceLabel}).`,
+                  isNeon: neonActive
+                });
+              }
+
+              await adminSecurityService.logSecurityEvent({
+                eventType: 'login_success',
+                actor: adminUsername,
+                ipAddress: clientIp,
+                userAgent,
+                summary: `Admin signed in (${uaMeta.deviceLabel}${deviceRecognition.recognized ? ', recognized device' : ', new device'}).`,
+                isNeon: neonActive
+              });
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: true,
+                token: sessionToken,
+                csrfToken,
+                expiresIn: SESSION_TTL_MS / 1000,
+                deviceRecognized: !!deviceRecognition.recognized,
+                user: {
                   username: adminUsername,
                   role: adminRole,
-                  createdAt: Date.now(),
-                  expiresAt: Date.now() + SESSION_TTL_MS
+                  userType: 'admin'
+                }
+              }));
+            };
+
+            if (neonActive) {
+              try {
+                const authRes = await authService.loginAdmin({
+                  username,
+                  password: inputPass,
+                  ipAddress: clientIp,
+                  userAgent,
+                  deviceLabel: uaMeta.deviceLabel,
+                  browser: uaMeta.browser,
+                  os: uaMeta.os,
+                  trustedDeviceId: deviceRecognition.device ? deviceRecognition.device.id : null
                 });
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({
-                  success: true,
-                  token: authRes.token,
-                  expiresIn: SESSION_TTL_MS / 1000,
-                  user: {
+                if (authRes && authRes.success) {
+                  const adminUsername = (authRes.admin && authRes.admin.username) || authRes.username || 'admin';
+                  const adminRole = (authRes.admin && authRes.admin.role) || authRes.role || 'superadmin';
+                  recordAdminSession(authRes.token, {
                     username: adminUsername,
                     role: adminRole,
-                    userType: 'admin'
-                  }
-                }));
-              } else if (authRes && authRes.rateLimited) {
-                if (!isAuto) recordFailedLogin(clientIp, 'admin');
-                res.writeHead(429, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(authRes));
+                    adminId: authRes.adminId || null,
+                    createdAt: Date.now(),
+                    lastActivityAt: Date.now(),
+                    expiresAt: Date.now() + SESSION_TTL_MS,
+                    deviceLabel: uaMeta.deviceLabel,
+                    browser: uaMeta.browser,
+                    os: uaMeta.os,
+                    trustedDeviceId: deviceRecognition.device ? deviceRecognition.device.id : null
+                  });
+                  return await finalizeAdminLogin({
+                    sessionToken: authRes.token,
+                    adminId: authRes.adminId || null,
+                    adminUsername,
+                    adminRole
+                  });
+                }
+              } catch (authErr) {
+                console.warn('[AdminAuth] Neon loginAdmin error, checking local:', authErr.message);
               }
-            } catch (authErr) {
-              console.warn('[AdminAuth] Neon loginAdmin error, checking local:', authErr.message);
             }
-          }
 
-          // Check if password matches configured environment variable or local scrypt hash
-          const isMatch = verifyAdminPasswordNode(inputPass);
-          if (isMatch) {
-            clearRateLimit(clientIp, 'admin');
-            const sessionToken = createAdminSession();
-            const sessObj = adminSessions.get(sessionToken) || {};
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
-              success: true,
-              token: sessionToken,
-              expiresIn: SESSION_TTL_MS / 1000,
-              user: {
-                username: sessObj.username || 'admin',
-                role: sessObj.role || 'superadmin',
-                userType: 'admin'
+            // Fallback / local mode verification against .env ADMIN_PASSWORD
+            const isMatch = verifyAdminPasswordNode(inputPass);
+            if (isMatch) {
+              const sessionToken = 'adm_' + crypto.randomBytes(32).toString('hex');
+              recordAdminSession(sessionToken, {
+                username: 'admin',
+                role: 'superadmin',
+                createdAt: Date.now(),
+                lastActivityAt: Date.now(),
+                expiresAt: Date.now() + SESSION_TTL_MS,
+                deviceLabel: uaMeta.deviceLabel,
+                browser: uaMeta.browser,
+                os: uaMeta.os,
+                trustedDeviceId: deviceRecognition.device ? deviceRecognition.device.id : null
+              });
+              return await finalizeAdminLogin({
+                sessionToken,
+                adminId: null,
+                adminUsername: 'admin',
+                adminRole: 'superadmin'
+              });
+            }
+
+            if (!isAuto) {
+              const failInfo = adminSecurityService.recordAdminLoginFailure({ clientIp, username });
+              await adminSecurityService.logSecurityEvent({
+                eventType: 'login_failed',
+                actor: username,
+                ipAddress: clientIp,
+                userAgent,
+                summary: `Failed admin login attempt (${uaMeta.deviceLabel}).`,
+                isNeon: neonActive
+              });
+
+              if (!hasAdminPasswordConfigured()) {
+                res.writeHead(401, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: false,
+                  error: 'Admin authentication is not configured on the server.'
+                }));
               }
-            }));
-          }
 
-          if (!isAuto) {
-            recordFailedLogin(clientIp, 'admin');
-          }
+              let nextCaptcha = null;
+              if (failInfo.captchaRequired && !failInfo.locked) {
+                const cap = adminSecurityService.generateCaptchaChallenge({ clientIp, username });
+                if (cap.success) nextCaptcha = cap;
+              }
 
-          if (!hasAdminPasswordConfigured()) {
+              res.writeHead(failInfo.locked ? 429 : 401, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                rateLimited: failInfo.locked,
+                captchaRequired: failInfo.captchaRequired,
+                captcha: nextCaptcha,
+                error: failInfo.locked
+                  ? 'Too many failed login attempts. Please try again in 5 minute(s).'
+                  : 'Invalid administrator credentials.'
+              }));
+            }
+
             res.writeHead(401, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: false,
-              error: 'Admin password is not configured on the server. Please set ADMIN_PASSWORD in environment variables.'
+              error: 'Invalid administrator credentials.'
             }));
+          } finally {
+            adminSecurityService.endAdminLoginAttempt(clientIp, username);
           }
-
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({
-            success: false,
-            error: 'Incorrect admin password. Please enter the correct password.'
-          }));
         }
 
-        // 2. Admin Logout / Explicit Token Revocation
+        // 2. Admin Logout / Explicit Token & Cookie Revocation
         if (payload.action === 'logoutAdmin') {
+          const clientIp = getClientIp(req);
+          const isHttps = adminSecurityService.isHttpsRequest(req);
           revokeAdminSession(token);
-          if (isNeonPrimaryActive && isNeonPrimaryActive()) {
+          if (isNeonConfigured()) {
             try {
-              await authService.logout(token);
+              await authService.logout(token, 'user_logout');
             } catch (logoutErr) {
               console.warn('[Neon] Admin logout revocation warning:', logoutErr.message);
             }
           }
+          await adminSecurityService.logSecurityEvent({
+            eventType: 'logout',
+            actor: 'admin',
+            ipAddress: clientIp,
+            userAgent: req.headers['user-agent'],
+            summary: 'Admin signed out and session revoked.',
+            isNeon: isNeonConfigured()
+          });
+          adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+            adminSecurityService.COOKIE_SESSION, '', { httpOnly: true, sameSite: 'Lax', maxAge: 0, secure: isHttps }
+          ));
+          adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+            adminSecurityService.COOKIE_CSRF, '', { httpOnly: false, sameSite: 'Lax', maxAge: 0, secure: isHttps }
+          ));
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, message: 'Admin session revoked successfully.' }));
         }
@@ -3119,8 +3375,41 @@ const server = http.createServer(async (req, res) => {
           'getDesignationsList',
           'saveDesignation',
           'deleteDesignation',
-          'getStaffHierarchy'
+          'getStaffHierarchy',
+          'backfillHindi',
+          'getAdminSecurityOverview',
+          'renameAdminDevice',
+          'revokeAdminDevice',
+          'revokeOtherAdminDevices',
+          'logoutAdminSession',
+          'logoutOtherAdminSessions',
+          'logoutAllAdminSessions'
         ];
+
+        const adminReadOnlyActions = new Set([
+          'verifyAdminSession',
+          'getAllCustomers',
+          'getLeads',
+          'getStaffSequence',
+          'getDailyCleanReports',
+          'getSpecialJobs',
+          'getDailyCleanAssignments',
+          'getAuditLogs',
+          'getCustomerPackages',
+          'getPackageRedemptionHistory',
+          'getEligiblePackagesForBooking',
+          'getCustomerServiceJobs',
+          'getCustomerDccDetails',
+          'getCustomerDccSubscriptions',
+          'getAllRoutes',
+          'getRoutes',
+          'getRouteDetails',
+          'getUnassignedDccVehicles',
+          'getDailyRouteReconciliation',
+          'getDesignationsList',
+          'getStaffHierarchy',
+          'getAdminSecurityOverview'
+        ]);
 
         if (adminProtectedActions.includes(payload.action)) {
           const adminSess = await resolveAdminSession(token);
@@ -3133,13 +3422,44 @@ const server = http.createServer(async (req, res) => {
             }));
           }
 
+          // CSRF enforcement for cookie-authenticated state-changing admin mutations
+          if (isAdminCookieAuth(req) && !adminReadOnlyActions.has(payload.action)) {
+            const reqCookies = adminSecurityService.parseCookies(req);
+            const cookieCsrf = (reqCookies[adminSecurityService.COOKIE_CSRF] || '').trim();
+            const headerCsrf = (req.headers['x-csrf-token'] || '').toString().trim();
+            if (!cookieCsrf || !headerCsrf || cookieCsrf.length !== headerCsrf.length ||
+                !crypto.timingSafeEqual(Buffer.from(cookieCsrf), Buffer.from(headerCsrf))) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: 'CSRF verification failed. Please refresh the page and try again.'
+              }));
+            }
+          }
+
           if (payload.action === 'verifyAdminSession') {
             const memSess = adminSessions.get(token) || (appState.adminSessions && appState.adminSessions[token]) || {};
             const neonActive = isNeonPrimaryActive();
+            const reqCookies = adminSecurityService.parseCookies(req);
+            let csrfToken = (reqCookies[adminSecurityService.COOKIE_CSRF] || '').trim();
+            if (!csrfToken && isAdminCookieAuth(req)) {
+              csrfToken = crypto.randomBytes(24).toString('hex');
+              adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+                adminSecurityService.COOKIE_CSRF,
+                csrfToken,
+                {
+                  httpOnly: false,
+                  sameSite: 'Lax',
+                  maxAge: Math.floor(adminSecurityService.ADMIN_ABSOLUTE_TTL_MS / 1000),
+                  secure: adminSecurityService.isHttpsRequest(req)
+                }
+              ));
+            }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: true,
               valid: true,
+              csrfToken: csrfToken || null,
               capabilities: {
                 auditLogs: neonActive
               },
@@ -3148,6 +3468,7 @@ const server = http.createServer(async (req, res) => {
                 role: adminSess.adminRole || adminSess.role || memSess.role || 'superadmin',
                 userType: 'admin',
                 expiresAt: adminSess.expiresAt || memSess.expiresAt || null,
+                lastActivityAt: adminSess.lastActivityAt || memSess.lastActivityAt || null,
                 storageMode: neonActive ? 'neon' : 'local'
               }
             }));
@@ -4173,46 +4494,254 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ success: true, staffList: sanitizedList }));
         }
 
-        // Admin: Update Admin Password
+        // Admin: Update Admin Password (DISABLED: Environment-only Admin Password Policy)
         if (payload.action === 'updateAdminPassword') {
-          const newPass = (payload.newPassword || '').trim();
-          if (!newPass || newPass.length < 4) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'Admin password must be at least 4 characters.' }));
-          }
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: false,
+            error: 'Admin password management is disabled. The administrator password is configured exclusively via server environment variables (.env).'
+          }));
+        }
 
-          if (isNeonConfigured()) {
+        // Admin Security Center: Overview (Account Security, Trusted Devices, Active Sessions, Security Activity)
+        if (payload.action === 'getAdminSecurityOverview') {
+          const neonActive = isNeonConfigured();
+          const adminSess = await resolveAdminSession(token);
+          const currentTokenHash = adminSecurityService.hashToken(token);
+          const devRecog = await adminSecurityService.recognizeTrustedDevice({ req, isNeon: neonActive });
+
+          const devices = await adminSecurityService.listTrustedDevicesForUI({
+            adminId: adminSess.adminId || null,
+            currentDeviceHash: devRecog.tokenHash,
+            isNeon: neonActive
+          });
+
+          let activeSessions = [];
+          if (neonActive) {
             try {
-              const newHash = hashPasswordScrypt(newPass);
-              let adminUser = await repos.adminUsers.findByUsername('admin');
-              if (!adminUser) {
-                adminUser = await repos.adminUsers.createAdmin({
-                  username: 'admin',
-                  passwordHash: newHash,
-                  role: 'superadmin'
+              const dbSessions = await repos.authSessions.listActiveAdminSessions(adminSess.adminId || null);
+              const now = Date.now();
+              activeSessions = dbSessions
+                .filter(s => {
+                  const lastAct = s.last_activity_at ? new Date(s.last_activity_at).getTime() : new Date(s.created_at).getTime();
+                  return (now - lastAct) <= adminSecurityService.ADMIN_IDLE_TIMEOUT_MS;
+                })
+                .map(s => {
+                  const ua = adminSecurityService.parseUserAgent(s.user_agent);
+                  return {
+                    sessionRef: adminSecurityService.makeOpaqueRef('sess', s.token_hash),
+                    deviceLabel: s.device_label || ua.deviceLabel,
+                    browser: s.browser || ua.browser,
+                    os: s.os || ua.os,
+                    createdAt: s.created_at,
+                    lastActivityAt: s.last_activity_at || s.created_at,
+                    expiresAt: s.expires_at,
+                    isCurrent: s.token_hash === currentTokenHash
+                  };
                 });
-              } else {
-                await repos.adminUsers.updatePassword(adminUser.id, newHash);
+            } catch (e) {}
+          }
+          if (activeSessions.length === 0) {
+            const now = Date.now();
+            for (const [tok, s] of adminSessions.entries()) {
+              if (now <= s.expiresAt && (now - (s.lastActivityAt || s.createdAt)) <= adminSecurityService.ADMIN_IDLE_TIMEOUT_MS) {
+                activeSessions.push({
+                  sessionRef: adminSecurityService.makeOpaqueRef('sess', adminSecurityService.hashToken(tok)),
+                  deviceLabel: s.deviceLabel || 'Admin Browser',
+                  browser: s.browser || 'Browser',
+                  os: s.os || 'OS',
+                  createdAt: new Date(s.createdAt).toISOString(),
+                  lastActivityAt: new Date(s.lastActivityAt || s.createdAt).toISOString(),
+                  expiresAt: new Date(s.expiresAt).toISOString(),
+                  isCurrent: tok === token
+                });
               }
-              appState.adminPasswordHash = newHash;
-              delete appState.adminPassword;
-              saveLocalData(appState);
-
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ success: true, message: 'Admin password updated successfully in Neon database!' }));
-            } catch (err) {
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ success: false, error: 'Failed to update admin password in Neon: ' + err.message }));
             }
           }
 
-          // Hash with scrypt and save (Plaintext is NEVER stored or logged!)
-          appState.adminPasswordHash = hashPasswordScrypt(newPass);
-          delete appState.adminPassword;
-          saveLocalData(appState);
+          const events = await adminSecurityService.listSecurityEventsForUI({ limit: 40, isNeon: neonActive });
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ success: true, message: 'Admin password updated successfully and securely!' }));
+          return res.end(JSON.stringify({
+            success: true,
+            accountSecurity: {
+              passwordAuthEnabled: hasAdminPasswordConfigured(),
+              credentialSource: 'Server environment (.env)',
+              passwordManagement: 'Restricted to server configuration',
+              idleTimeoutMinutes: Math.round(adminSecurityService.ADMIN_IDLE_TIMEOUT_MS / 60000),
+              maxSessionHours: Math.round(adminSecurityService.ADMIN_ABSOLUTE_TTL_MS / 3600000),
+              currentDeviceRecognized: !!devRecog.recognized,
+              currentSessionStatus: 'Active'
+            },
+            trustedDevices: devices,
+            activeSessions,
+            securityEvents: events
+          }));
+        }
+
+        if (payload.action === 'renameAdminDevice') {
+          const neonActive = isNeonConfigured();
+          const adminSess = await resolveAdminSession(token);
+          const result = await adminSecurityService.renameTrustedDeviceByRef({
+            adminId: adminSess.adminId || null,
+            deviceRef: payload.deviceRef,
+            newLabel: payload.deviceLabel,
+            isNeon: neonActive
+          });
+          res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify(result));
+        }
+
+        if (payload.action === 'revokeAdminDevice') {
+          const neonActive = isNeonConfigured();
+          const adminSess = await resolveAdminSession(token);
+          const devRecog = await adminSecurityService.recognizeTrustedDevice({ req, isNeon: neonActive });
+          const result = await adminSecurityService.revokeTrustedDeviceByRef({
+            adminId: adminSess.adminId || null,
+            deviceRef: payload.deviceRef,
+            revokedBy: adminSess.adminUsername || 'admin',
+            isNeon: neonActive
+          });
+          if (!result.success) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+          }
+          if (devRecog.tokenHash && result.tokenHash === devRecog.tokenHash) {
+            adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+              adminSecurityService.COOKIE_DEVICE, '', { httpOnly: true, sameSite: 'Lax', maxAge: 0, secure: adminSecurityService.isHttpsRequest(req) }
+            ));
+          }
+          await adminSecurityService.logSecurityEvent({
+            eventType: 'device_revoked',
+            actor: adminSess.adminUsername || 'admin',
+            ipAddress: getClientIp(req),
+            userAgent: req.headers['user-agent'],
+            summary: `Trusted device revoked (${result.deviceLabel}).`,
+            isNeon: neonActive
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true }));
+        }
+
+        if (payload.action === 'revokeOtherAdminDevices') {
+          const neonActive = isNeonConfigured();
+          const adminSess = await resolveAdminSession(token);
+          const devRecog = await adminSecurityService.recognizeTrustedDevice({ req, isNeon: neonActive });
+          const result = await adminSecurityService.revokeOtherTrustedDevices({
+            adminId: adminSess.adminId || null,
+            currentDeviceHash: devRecog.tokenHash,
+            revokedBy: adminSess.adminUsername || 'admin',
+            isNeon: neonActive
+          });
+          await adminSecurityService.logSecurityEvent({
+            eventType: 'device_revoked',
+            actor: adminSess.adminUsername || 'admin',
+            ipAddress: getClientIp(req),
+            userAgent: req.headers['user-agent'],
+            summary: `Revoked ${result.revokedCount} other trusted device(s).`,
+            isNeon: neonActive
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify(result));
+        }
+
+        if (payload.action === 'logoutAdminSession') {
+          const neonActive = isNeonConfigured();
+          const adminSess = await resolveAdminSession(token);
+          const targetRef = String(payload.sessionRef || '').trim();
+          const currentTokenHash = adminSecurityService.hashToken(token);
+          let revokedCurrent = false;
+
+          for (const [tok] of adminSessions.entries()) {
+            const h = adminSecurityService.hashToken(tok);
+            if (adminSecurityService.makeOpaqueRef('sess', h) === targetRef) {
+              revokeAdminSession(tok);
+              if (tok === token) revokedCurrent = true;
+            }
+          }
+          if (neonActive) {
+            const dbSessions = await repos.authSessions.listActiveAdminSessions(adminSess.adminId || null);
+            for (const s of dbSessions) {
+              if (adminSecurityService.makeOpaqueRef('sess', s.token_hash) === targetRef) {
+                await repos.authSessions.revokeSession(s.token_hash, 'admin_session_revoked');
+                if (s.token_hash === currentTokenHash) revokedCurrent = true;
+              }
+            }
+          }
+          await adminSecurityService.logSecurityEvent({
+            eventType: 'session_revoked',
+            actor: adminSess.adminUsername || 'admin',
+            ipAddress: getClientIp(req),
+            userAgent: req.headers['user-agent'],
+            summary: revokedCurrent ? 'Current admin session logged out.' : 'An active admin session was revoked.',
+            isNeon: neonActive
+          });
+          if (revokedCurrent) {
+            const isHttps = adminSecurityService.isHttpsRequest(req);
+            adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+              adminSecurityService.COOKIE_SESSION, '', { httpOnly: true, sameSite: 'Lax', maxAge: 0, secure: isHttps }
+            ));
+            adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+              adminSecurityService.COOKIE_CSRF, '', { httpOnly: false, sameSite: 'Lax', maxAge: 0, secure: isHttps }
+            ));
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, revokedCurrent }));
+        }
+
+        if (payload.action === 'logoutOtherAdminSessions') {
+          const neonActive = isNeonConfigured();
+          const adminSess = await resolveAdminSession(token);
+          const currentTokenHash = adminSecurityService.hashToken(token);
+          let count = 0;
+          for (const [tok] of adminSessions.entries()) {
+            if (tok !== token) {
+              revokeAdminSession(tok);
+              count++;
+            }
+          }
+          if (neonActive) {
+            const dbCount = await repos.authSessions.revokeOtherAdminSessions(currentTokenHash, 'admin_logout_others');
+            count = Math.max(count, dbCount);
+          }
+          await adminSecurityService.logSecurityEvent({
+            eventType: 'session_revoked',
+            actor: adminSess.adminUsername || 'admin',
+            ipAddress: getClientIp(req),
+            userAgent: req.headers['user-agent'],
+            summary: `Logged out ${count} other active admin session(s).`,
+            isNeon: neonActive
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, revokedCount: count }));
+        }
+
+        if (payload.action === 'logoutAllAdminSessions') {
+          const neonActive = isNeonConfigured();
+          const adminSess = await resolveAdminSession(token);
+          for (const [tok] of Array.from(adminSessions.entries())) {
+            revokeAdminSession(tok);
+          }
+          if (neonActive) {
+            await repos.authSessions.revokeAllAdminSessionsAny('admin_logout_all');
+          }
+          await adminSecurityService.logSecurityEvent({
+            eventType: 'session_revoked',
+            actor: adminSess.adminUsername || 'admin',
+            ipAddress: getClientIp(req),
+            userAgent: req.headers['user-agent'],
+            summary: 'Logged out all active admin sessions.',
+            isNeon: neonActive
+          });
+          const isHttps = adminSecurityService.isHttpsRequest(req);
+          adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+            adminSecurityService.COOKIE_SESSION, '', { httpOnly: true, sameSite: 'Lax', maxAge: 0, secure: isHttps }
+          ));
+          adminSecurityService.appendSetCookie(res, adminSecurityService.buildCookieHeader(
+            adminSecurityService.COOKIE_CSRF, '', { httpOnly: false, sameSite: 'Lax', maxAge: 0, secure: isHttps }
+          ));
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true }));
         }
 
         // Admin: Save Customer / Save Lead (Task P2.4: Strict Server-Side Indian Mobile Validation & Normalization)
@@ -6764,7 +7293,20 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // 1b. Admin V2 Isolated Portal Route (/admin-v2, /admin/v2)
+  // 1b. Admin V1 Retirement: Redirect /admin, /admin/* (non-asset), and ?admin=... to /admin-v2
+  if (isAdminRoute || adminParam !== null) {
+    const redirectParams = new URLSearchParams(parsedUrl.searchParams || '');
+    redirectParams.delete('admin');
+    const qs = redirectParams.toString();
+    const targetUrl = qs ? `/admin-v2?${qs}` : '/admin-v2';
+    res.writeHead(302, {
+      'Location': targetUrl,
+      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
+    });
+    return res.end();
+  }
+
+  // 1c. Admin V2 Isolated Portal Route (/admin-v2, /admin/v2)
   if (isAdminV2Route) {
     const adminV2Path = path.join(__dirname, 'public', 'admin-v2', 'index.html');
     if (fs.existsSync(adminV2Path)) {
@@ -6780,7 +7322,7 @@ const server = http.createServer(async (req, res) => {
 
   // 2. Customer Homepage Route (/ and /home, /terms, /privacy, /refund)
   // Non-portal visitors at root receive the modern M3 Customer Homepage
-  const isInternalPortal = isStaffRoute || staffParam || isAdminRoute || adminParam !== null || isAdminV2Route;
+  const isInternalPortal = isStaffRoute || staffParam || isAdminV2Route;
   if (!isInternalPortal && (normPath === '' || normPath === '/home' || normPath === '/terms' || normPath === '/privacy' || normPath === '/refund')) {
     const homePath = path.join(__dirname, 'public', 'home.html');
     if (fs.existsSync(homePath)) {
@@ -6796,29 +7338,15 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // 3. Staff & Admin Portal (Index.html)
+  // 3. Staff Portal (Index.html — Admin V1 retired)
   const indexPath = path.join(__dirname, 'Index.html');
   if (fs.existsSync(indexPath)) {
     let content = getCachedIndexTemplate(indexPath);
-
-    // Route logic: /staff explicitly launches Staff Portal; /admin launches Admin Portal
-    let initialMode = 'admin';
-    if (isStaffRoute || staffParam) {
-      initialMode = 'staff';
-    } else if (isAdminRoute || adminParam !== null) {
-      initialMode = 'admin';
-    } else {
-      initialMode = 'staff';
-    }
+    const initialMode = 'staff';
 
     content = content.replace(/<\?=\s*typeof\s+initialStaffId\s*!==\s*'undefined'\s*\?\s*initialStaffId\s*:\s*''\s*\?>/g, () => staffParam);
     content = content.replace(/<\?=\s*typeof\s+initialMode\s*!==\s*'undefined'\s*\?\s*initialMode\s*:\s*'[a-zA-Z]+'\s*\?>/g, () => initialMode);
     content = content.replace(/<\?=\s*typeof\s+webAppUrl\s*!==\s*'undefined'\s*\?\s*webAppUrl\s*:[^?]*\?>/g, '');
-
-    if (initialMode === 'admin') {
-      content = content.replace('class="staff-mode-active"', 'class="admin-mode-active"');
-      content = content.replace('class="main-container"', 'class="main-container admin-mode-active"');
-    }
 
     // Force latest asset version cache-buster across ALL routes
     const APP_ASSET_VERSION = '3.5.1';
@@ -6968,5 +7496,6 @@ module.exports = {
   setAppState: (st) => { appState = st; },
   setDataFile: (df) => { DATA_FILE = df; },
   saveLocalData,
-  loadLocalData
+  loadLocalData,
+  adminSecurityService
 };

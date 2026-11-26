@@ -11,15 +11,20 @@ async function createSession({
   expiresAt,
   ipAddress = null,
   userAgent = null,
-  deviceId = null
+  deviceId = null,
+  deviceLabel = null,
+  browser = null,
+  os = null,
+  trustedDeviceId = null
 }, client = null) {
   const runner = client || db;
   const res = await runner.query(
     `INSERT INTO public.auth_sessions (
-       token_hash, user_type, staff_id, admin_id, expires_at, ip_address, user_agent, device_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       token_hash, user_type, staff_id, admin_id, expires_at, ip_address, user_agent, device_id,
+       last_activity_at, device_label, browser, os, trusted_device_id
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, $9, $10, $11, $12)
      RETURNING *`,
-    [tokenHash, userType, staffId, adminId, expiresAt, ipAddress, userAgent, deviceId]
+    [tokenHash, userType, staffId, adminId, expiresAt, ipAddress, userAgent, deviceId, deviceLabel, browser, os, trustedDeviceId]
   );
   return res.rows[0];
 }
@@ -90,6 +95,57 @@ async function revokeAllForAdmin(adminId, revokedBy = 'system', client = null) {
   return res.rowCount || 0;
 }
 
+async function touchAdminSession(tokenHash, client = null) {
+  const runner = client || db;
+  await runner.query(
+    `UPDATE public.auth_sessions
+     SET last_activity_at = CURRENT_TIMESTAMP
+     WHERE token_hash = $1 AND revoked_at IS NULL`,
+    [tokenHash]
+  );
+}
+
+async function listActiveAdminSessions(adminId = null, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `SELECT token_hash, ip_address, user_agent, device_label, browser, os,
+            trusted_device_id, created_at, last_activity_at, expires_at
+     FROM public.auth_sessions
+     WHERE user_type = 'admin'
+       AND revoked_at IS NULL
+       AND expires_at > CURRENT_TIMESTAMP
+       AND ($1::uuid IS NULL OR admin_id = $1 OR admin_id IS NULL)
+     ORDER BY last_activity_at DESC`,
+    [adminId]
+  );
+  return res.rows;
+}
+
+async function revokeOtherAdminSessions(currentTokenHash, revokedBy = 'admin_logout_others', client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `UPDATE public.auth_sessions
+     SET revoked_at = CURRENT_TIMESTAMP, revoked_by = $2
+     WHERE user_type = 'admin'
+       AND revoked_at IS NULL
+       AND token_hash <> $1`,
+    [currentTokenHash, revokedBy]
+  );
+  return res.rowCount || 0;
+}
+
+async function revokeAllAdminSessionsAny(revokedBy = 'admin_logout_all', client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `UPDATE public.auth_sessions
+     SET revoked_at = CURRENT_TIMESTAMP, revoked_by = $1
+     WHERE user_type = 'admin'
+       AND revoked_at IS NULL`,
+    [revokedBy]
+  );
+  return res.rowCount || 0;
+}
+
 async function cleanupExpired(client = null) {
   const runner = client || db;
   const res = await runner.query(
@@ -106,5 +162,9 @@ module.exports = {
   revokeSession,
   revokeAllForStaff,
   revokeAllForAdmin,
+  touchAdminSession,
+  listActiveAdminSessions,
+  revokeOtherAdminSessions,
+  revokeAllAdminSessionsAny,
   cleanupExpired
 };

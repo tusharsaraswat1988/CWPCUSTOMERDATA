@@ -469,8 +469,8 @@
     }
 
     try {
-      const url = `/api/admin-realtime-stream?token=${encodeURIComponent(token)}`;
-      sseSource = new window.EventSource(url);
+      const url = '/api/admin-realtime-stream';
+      sseSource = new window.EventSource(url, { withCredentials: true });
 
       sseSource.onopen = () => {
         state.sseStatus = 'live';
