@@ -126,13 +126,14 @@ async function createExecution(data, client = null) {
   const runner = client || db;
   const res = await runner.query(
     `INSERT INTO public.service_executions (
-       job_id, staff_id, started_at, ended_at, actual_quantity,
+       job_id, staff_id, client_mutation_id, started_at, ended_at, actual_quantity,
        measurements, checklist_results, proof_photos, customer_confirmation,
        outcome, exception_reason, approval_reference
-     ) VALUES ($1,$2,COALESCE($3, CURRENT_TIMESTAMP),$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+     ) VALUES ($1,$2,$3,COALESCE($4, CURRENT_TIMESTAMP),$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
     [
       data.jobId,
       data.staffId || null,
+      data.clientMutationId || null,
       data.startedAt || null,
       data.endedAt || null,
       data.actualQuantity ?? null,
@@ -155,6 +156,29 @@ async function findExecutionsByJob(jobId, client = null) {
     [jobId]
   );
   return res.rows;
+}
+
+async function findExecutionByClientMutationId(clientMutationId, client = null) {
+  if (!clientMutationId) return null;
+  const runner = client || db;
+  const res = await runner.query(
+    `SELECT * FROM public.service_executions WHERE client_mutation_id = $1 LIMIT 1`,
+    [clientMutationId]
+  );
+  return res.rows[0] || null;
+}
+
+async function findTerminalExecutionByJobId(jobId, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `SELECT * FROM public.service_executions
+     WHERE job_id = $1
+       AND outcome IN ('completed', 'partial_exception', 'failed', 'no_show', 'unable_to_complete')
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [jobId]
+  );
+  return res.rows[0] || null;
 }
 
 async function upsertSolarVerification(data, client = null) {
@@ -214,6 +238,8 @@ module.exports = {
   updateJobAddonStatus,
   createExecution,
   findExecutionsByJob,
+  findExecutionByClientMutationId,
+  findTerminalExecutionByJobId,
   upsertSolarVerification,
   findSolarVerificationByJob
 };

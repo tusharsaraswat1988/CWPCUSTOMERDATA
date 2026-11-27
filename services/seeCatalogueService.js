@@ -21,6 +21,98 @@ const STATUS_TRANSITIONS = {
   retired: ['retired', 'active']
 };
 
+function slugifyChecklistKey(label, index = 0) {
+  const raw = String(label || '').trim().toLowerCase();
+  const slug = raw.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return slug || `item_${index + 1}`;
+}
+
+function normalizeChecklistRequirements(rawChecklist) {
+  if (rawChecklist === undefined || rawChecklist === null) {
+    return [];
+  }
+
+  let list = rawChecklist;
+  if (typeof list === 'string') {
+    const trimmed = list.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[')) {
+      try {
+        list = JSON.parse(trimmed);
+      } catch (e) {
+        throw new Error('checklistRequirements must be an array.');
+      }
+    } else {
+      throw new Error('checklistRequirements must be an array.');
+    }
+  }
+
+  if (!Array.isArray(list)) {
+    throw new Error('checklistRequirements must be an array.');
+  }
+
+  const usedIds = new Set();
+  const usedKeys = new Set();
+  const normalized = [];
+
+  for (let i = 0; i < list.length; i += 1) {
+    const entry = list[i];
+    if (typeof entry === 'string') {
+      const label = entry.trim();
+      if (!label) continue;
+      const base = slugifyChecklistKey(label, i);
+      let id = base;
+      let suffix = 2;
+      while (usedIds.has(id) || usedKeys.has(id)) {
+        id = `${base}_${suffix}`;
+        suffix += 1;
+      }
+      usedIds.add(id);
+      usedKeys.add(id);
+      normalized.push({ id, key: id, label, required: true });
+    } else if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+      const label = String(entry.label ?? entry.name ?? entry.title ?? entry.item ?? '').trim();
+      if (!label) {
+        throw new Error(`Checklist item at index ${i} requires a non-empty label.`);
+      }
+      const explicitId = entry.id ?? entry.key ?? entry.itemId ?? entry.code ?? null;
+      let id;
+      if (explicitId !== null && explicitId !== undefined && String(explicitId).trim() !== '') {
+        id = String(explicitId).trim();
+        if (usedIds.has(id) || usedKeys.has(id)) {
+          throw new Error(`Duplicate checklist item id '${id}'.`);
+        }
+      } else {
+        const base = slugifyChecklistKey(label, i);
+        id = base;
+        let suffix = 2;
+        while (usedIds.has(id) || usedKeys.has(id)) {
+          id = `${base}_${suffix}`;
+          suffix += 1;
+        }
+      }
+      const key = (entry.key !== null && entry.key !== undefined && String(entry.key).trim() !== '')
+        ? String(entry.key).trim()
+        : id;
+      if (key !== id && (usedIds.has(key) || usedKeys.has(key))) {
+        throw new Error(`Duplicate checklist item key '${key}'.`);
+      }
+      usedIds.add(id);
+      usedKeys.add(key);
+      normalized.push({
+        id,
+        key,
+        label,
+        required: entry.required !== false
+      });
+    } else {
+      throw new Error(`Invalid checklist item at index ${i}.`);
+    }
+  }
+
+  return normalized;
+}
+
 // -------------------------------------------------------------------------
 // Phase 1: Service Catalogue
 // -------------------------------------------------------------------------
@@ -71,6 +163,10 @@ async function createService(data, actor = 'admin') {
     throw new Error(`Duplicate serviceCode '${data.serviceCode}'.`);
   }
 
+  const normalizedChecklist = data.checklistRequirements !== undefined
+    ? normalizeChecklistRequirements(data.checklistRequirements)
+    : [];
+
   return db.withTransaction(async (client) => {
     const svc = await repos.seeCatalogue.createService({
       ...data,
@@ -78,6 +174,7 @@ async function createService(data, actor = 'admin') {
       name: data.name.trim(),
       serviceModel: model,
       status,
+      checklistRequirements: normalizedChecklist,
       createdBy: actor
     }, client);
 
@@ -110,8 +207,13 @@ async function updateService(id, patch, actor = 'admin', reason = 'Updated servi
     }
   }
 
+  const nextPatch = { ...patch };
+  if (patch.checklistRequirements !== undefined) {
+    nextPatch.checklistRequirements = normalizeChecklistRequirements(patch.checklistRequirements);
+  }
+
   return db.withTransaction(async (client) => {
-    const updated = await repos.seeCatalogue.updateService(id, patch, actor, reason, client);
+    const updated = await repos.seeCatalogue.updateService(id, nextPatch, actor, reason, client);
     await repos.auditLogs.logChange({
       entityType: 'see_service',
       entityId: id,
@@ -508,6 +610,8 @@ module.exports = {
   VALID_STATUSES,
   VALID_PRICING_MODELS,
   VALID_EXECUTION_MODES,
+  slugifyChecklistKey,
+  normalizeChecklistRequirements,
   listServices,
   getServiceDetail,
   createService,

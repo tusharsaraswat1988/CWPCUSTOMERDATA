@@ -90,13 +90,27 @@ async function recordCompletion({
       ]
     );
   } catch (err) {
-    if (err.code === '23505' && subscriptionId && vehicleId) {
-      const dup = await runner.query(
-        'SELECT * FROM public.service_logs WHERE subscription_id = $1 AND vehicle_id = $2 AND service_date = $3 LIMIT 1',
-        [subscriptionId, vehicleId, targetDate]
-      );
-      if (dup.rows.length > 0) {
-        return { inserted: false, duplicate: true, idempotent: true, log: dup.rows[0] };
+    if (err.code === '23505') {
+      if (jobId && (!err.constraint || err.constraint === 'uq_service_logs_job_once')) {
+        const dupJob = await findByJobId(jobId, runner);
+        if (dupJob) {
+          return { inserted: false, duplicate: true, idempotent: true, log: dupJob };
+        }
+      }
+      if (clientMutationId && (!err.constraint || err.constraint.includes('client_mutation_id'))) {
+        const dupMut = await findByClientMutationId(clientMutationId, runner);
+        if (dupMut) {
+          return { inserted: false, idempotent: true, log: dupMut };
+        }
+      }
+      if (subscriptionId && vehicleId) {
+        const dup = await runner.query(
+          'SELECT * FROM public.service_logs WHERE subscription_id = $1 AND vehicle_id = $2 AND service_date = $3 LIMIT 1',
+          [subscriptionId, vehicleId, targetDate]
+        );
+        if (dup.rows.length > 0) {
+          return { inserted: false, duplicate: true, idempotent: true, log: dup.rows[0] };
+        }
       }
     }
     throw err;
@@ -143,6 +157,18 @@ async function findByJobId(jobId, client = null) {
      WHERE job_id = $1
      LIMIT 1`,
     [jobId]
+  );
+  return res.rows[0] || null;
+}
+
+async function findByClientMutationId(clientMutationId, client = null) {
+  if (!clientMutationId) return null;
+  const runner = client || db;
+  const res = await runner.query(
+    `SELECT * FROM public.service_logs
+     WHERE client_mutation_id = $1
+     LIMIT 1`,
+    [clientMutationId]
   );
   return res.rows[0] || null;
 }
@@ -412,6 +438,7 @@ module.exports = {
   findByStaffAndDate,
   findBySubscriptionVehicleAndDate,
   findByJobId,
+  findByClientMutationId,
   findById,
   updateStatusAndReason,
   deleteReport,

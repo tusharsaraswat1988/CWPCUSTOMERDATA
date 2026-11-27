@@ -14,11 +14,167 @@
 
 'use strict';
 
+const crypto = require('crypto');
 const db = require('../db/index');
 const repos = require('../db/repositories/index');
 const seeStaffCapabilityService = require('./seeStaffCapabilityService');
 const seeEntitlementService = require('./seeEntitlementService');
 const packageService = require('./packageService');
+const { normalizeChecklistRequirements } = require('./seeCatalogueService');
+
+const TERMINAL_JOB_STATUSES = ['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'];
+
+function parseServicePayload(rawPayload) {
+  if (!rawPayload) return {};
+  if (typeof rawPayload === 'object' && !Array.isArray(rawPayload)) return rawPayload;
+  if (typeof rawPayload === 'string') {
+    try {
+      const parsed = JSON.parse(rawPayload);
+      return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+  return {};
+}
+
+function isSeeManagedJob(job, { hasAddons = false, hasSolar = false } = {}) {
+  if (!job || typeof job !== 'object') {
+    return Boolean(hasAddons || hasSolar);
+  }
+  const payload = parseServicePayload(job.service_payload || job.servicePayload);
+  return Boolean(
+    (payload && payload._seeManaged === true) ||
+    job.entitlement_account_id ||
+    job.entitlementAccountId ||
+    job.purchase_snapshot_id ||
+    job.purchaseSnapshotId ||
+    hasAddons ||
+    hasSolar ||
+    job.hasAddons ||
+    job.has_addons ||
+    job.hasSolar ||
+    job.has_solar
+  );
+}
+
+async function detectSeeManagedJob(job, client = null) {
+  if (!job) return false;
+  if (isSeeManagedJob(job)) {
+    return true;
+  }
+  const [addons, solar] = await Promise.all([
+    repos.seeOperations && typeof repos.seeOperations.findJobAddons === 'function'
+      ? repos.seeOperations.findJobAddons(job.id, client)
+      : Promise.resolve([]),
+    repos.seeOperations && typeof repos.seeOperations.findSolarVerificationByJob === 'function'
+      ? repos.seeOperations.findSolarVerificationByJob(job.id, client)
+      : Promise.resolve(null)
+  ]);
+  return isSeeManagedJob(job, {
+    hasAddons: Array.isArray(addons) && addons.length > 0,
+    hasSolar: Boolean(solar)
+  });
+}
+
+async function assertSeeManagedJob(job, client = null) {
+  if (!job) {
+    throw new Error('Job not found.');
+  }
+  if (!(await detectSeeManagedJob(job, client))) {
+    throw new Error(`Job '${job.id}' is not a canonical SEE-managed job and cannot be processed via SEE.`);
+  }
+  return true;
+}
+
+function normalizeMutationUuid(rawId) {
+  if (rawId === undefined || rawId === null) return null;
+  const s = String(rawId).trim();
+  if (!s) return null;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) {
+    return s.toLowerCase();
+  }
+  const hex = crypto.createHash('sha256').update(`cwp-mut:${s}`).digest('hex');
+  const ver = ((parseInt(hex.slice(12, 14), 16) & 0x0f) | 0x40).toString(16).padStart(2, '0');
+  const varByte = ((parseInt(hex.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${ver}${hex.slice(14, 16)}-${varByte}${hex.slice(18, 20)}-${hex.slice(20, 32)}`;
+}
+
+function validateChecklistSubmission(reqChecklist, checklistResults) {
+  const normalizedReq = normalizeChecklistRequirements(reqChecklist);
+
+  if (checklistResults !== undefined && checklistResults !== null && !Array.isArray(checklistResults)) {
+    throw new Error('checklistResults must be an array.');
+  }
+
+  if (normalizedReq.length === 0) {
+    if (Array.isArray(checklistResults) && checklistResults.length > 0) {
+      throw new Error('Unknown checklist item submitted; job has no checklist requirements.');
+    }
+    return { valid: true, normalizedResults: [] };
+  }
+
+  if (!Array.isArray(checklistResults)) {
+    throw new Error('checklistResults must be an array.');
+  }
+
+  const byId = new Map();
+  for (const item of normalizedReq) {
+    byId.set(item.id, item);
+    if (item.key && item.key !== item.id && !byId.has(item.key)) {
+      byId.set(item.key, item);
+    }
+  }
+
+  const seenIds = new Set();
+  const submittedById = new Map();
+
+  for (let i = 0; i < checklistResults.length; i += 1) {
+    const entry = checklistResults[i];
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(`Malformed checklist entry at index ${i}: expected object with authoritative item id and boolean completed status.`);
+    }
+    const rawId = entry.id ?? entry.itemId ?? entry.key ?? null;
+    if (rawId !== null && rawId !== undefined && typeof rawId !== 'string' && typeof rawId !== 'number') {
+      throw new Error(`Checklist entry at index ${i} has invalid item id type (expected string or number).`);
+    }
+    const submittedId = rawId !== null && rawId !== undefined ? String(rawId).trim() : '';
+    if (!submittedId) {
+      throw new Error(`Checklist entry at index ${i} is missing authoritative item id (label-only substitution is not permitted).`);
+    }
+    const authItem = byId.get(submittedId);
+    if (!authItem) {
+      throw new Error(`Unknown or wrong-service checklist item id '${submittedId}'.`);
+    }
+    if (seenIds.has(authItem.id)) {
+      throw new Error(`Duplicate checklist item id '${authItem.id}' submitted.`);
+    }
+    seenIds.add(authItem.id);
+
+    const completedVal = entry.completed !== undefined ? entry.completed : entry.checked;
+    if (typeof completedVal !== 'boolean') {
+      throw new Error(`Checklist item '${authItem.id}' requires boolean completed status.`);
+    }
+    submittedById.set(authItem.id, completedVal);
+  }
+
+  const incompleteRequired = normalizedReq.filter(
+    item => item.required !== false && submittedById.get(item.id) !== true
+  );
+  if (incompleteRequired.length > 0) {
+    throw new Error(`Required checklist items incomplete: ${incompleteRequired.map(item => item.id).join(', ')}.`);
+  }
+
+  const normalizedResults = normalizedReq.map(item => ({
+    id: item.id,
+    key: item.key,
+    label: item.label,
+    required: item.required !== false,
+    completed: submittedById.get(item.id) === true
+  }));
+
+  return { valid: true, normalizedResults };
+}
 
 const ALLOWED_PAYMENT_STATUSES = ['paid', 'unpaid', 'pending', 'package_covered', 'partial', 'waived'];
 const ALLOWED_BOOKING_SOURCES = ['admin', 'customer_request', 'verbal', 'call_center', 'app'];
@@ -68,7 +224,7 @@ function buildStaffSafeJobContract(job, { addons = [], solarVerification = null 
     zone: job.zone || null,
     instructions: job.special_instructions || null,
     sequenceOrder: job.sequence_order || null,
-    checklistRequirements: job.checklist_requirements || [],
+    checklistRequirements: normalizeChecklistRequirements(job.checklist_requirements || []),
     proofRequirements: job.proof_requirements || { before_min: 0, after_min: 0, required: false },
     servicePayload: job.service_payload || {},
     addons: addons.map(a => ({
@@ -282,7 +438,7 @@ async function createCanonicalJob({
         entitlementAccountId,
         purchaseSnapshotId,
         JSON.stringify({ ...(servicePayload || {}), _seeManaged: true }),
-        JSON.stringify(svc.checklist_requirements || []),
+        JSON.stringify(normalizeChecklistRequirements(svc.checklist_requirements || [])),
         JSON.stringify(svc.photo_requirements || { before_min: 0, after_min: 0, required: false })
       ]
     );
@@ -357,6 +513,7 @@ async function assignJob(jobId, staffId, actor = 'admin', opts = {}) {
   return db.withTransaction(async (client) => {
     const job = await repos.serviceJobs.findByIdForUpdate(jobId, client);
     if (!job) throw new Error(`Job '${jobId}' not found.`);
+    await assertSeeManagedJob(job, client);
     if (['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'].includes(job.status)) {
       throw new Error(`Cannot assign job in terminal status '${job.status}'.`);
     }
@@ -460,30 +617,53 @@ async function assignJob(jobId, staffId, actor = 'admin', opts = {}) {
  * Phase 10: Start execution
  */
 async function startExecution(jobId, staffId, opts = {}) {
-  const job = await repos.serviceJobs.findById(jobId);
-  if (!job) throw new Error(`Job '${jobId}' not found.`);
-  if (!['assigned', 'booked', 'pending'].includes(job.status)) {
-    throw new Error(`Cannot start job in status '${job.status}'.`);
-  }
-
   const beforePhotos = Array.isArray(opts && opts.beforePhotos) ? opts.beforePhotos : null;
   const startedAt = (opts && opts.startedAt) || null;
 
   return db.withTransaction(async (client) => {
+    const lockedJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+    if (!lockedJob) throw new Error(`Job '${jobId}' not found.`);
+    await assertSeeManagedJob(lockedJob, client);
+
+    if (!['assigned', 'booked', 'pending', 'requested'].includes(lockedJob.status)) {
+      throw new Error(`Cannot start job in status '${lockedJob.status}'.`);
+    }
+
+    const existingExecs = repos.seeOperations && typeof repos.seeOperations.findExecutionsByJob === 'function'
+      ? await repos.seeOperations.findExecutionsByJob(jobId, client)
+      : [];
+    if (Array.isArray(existingExecs) && existingExecs.some(e => e.outcome === 'in_progress')) {
+      throw new Error(`Job '${jobId}' already has an in_progress execution.`);
+    }
+
     let resolvedStaffUuid = null;
     if (staffId) {
       const sRec = await seeStaffCapabilityService.resolveStaffRecord(staffId, client);
-      resolvedStaffUuid = sRec ? sRec.id : (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(staffId)) ? staffId : null);
+      if (!sRec) {
+        throw new Error(`Staff '${staffId}' not found.`);
+      }
+      resolvedStaffUuid = sRec.id;
+    } else if (repos.staffAssignments && typeof repos.staffAssignments.findActiveByJobId === 'function') {
+      const activeAssign = await repos.staffAssignments.findActiveByJobId(jobId, client);
+      resolvedStaffUuid = activeAssign ? activeAssign.staff_id : null;
     }
-    await client.query(
+
+    const updRes = await client.query(
       `UPDATE public.service_jobs
        SET status = 'in_progress',
            started_at = COALESCE($2, CURRENT_TIMESTAMP),
            before_photos = COALESCE($3::jsonb, before_photos),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1`,
+       WHERE id = $1
+         AND deleted_at IS NULL
+         AND status IN ('assigned', 'booked', 'pending', 'requested')
+       RETURNING *`,
       [jobId, startedAt, beforePhotos && beforePhotos.length > 0 ? JSON.stringify(beforePhotos) : null]
     );
+    if (!updRes || updRes.rowCount === 0) {
+      throw new Error(`Cannot start job '${jobId}' in status '${lockedJob.status}'.`);
+    }
+
     return repos.seeOperations.createExecution({
       jobId,
       staffId: resolvedStaffUuid,
@@ -498,7 +678,7 @@ async function startExecution(jobId, staffId, opts = {}) {
  * Phase 10: Complete execution with backend checklist, proof, and add-on enforcement
  */
 async function completeExecution(jobId, {
-  staffId,
+  staffId = null,
   checklistResults = [],
   proofPhotos = { before: [], after: [] },
   actualQuantity = null,
@@ -506,67 +686,134 @@ async function completeExecution(jobId, {
   customerConfirmation = {},
   authorizedException = null,
   completionNotes = null,
-  actor = 'staff'
-}) {
-  const job = await repos.serviceJobs.findById(jobId);
-  if (!job) throw new Error(`Job '${jobId}' not found.`);
-  if (['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'].includes(job.status)) {
-    throw new Error(`Job '${jobId}' is already in terminal status '${job.status}'.`);
-  }
-
-  // 1. Enforce Proof requirements unless authorized exception (merge before_photos captured on startExecution)
-  const existingBefore = Array.isArray(job.before_photos) ? job.before_photos : [];
-  const effectiveBefore = (Array.isArray(proofPhotos.before) && proofPhotos.before.length > 0) ? proofPhotos.before : existingBefore;
-  const effectiveAfter = Array.isArray(proofPhotos.after) ? proofPhotos.after : [];
-  const normalizedProofPhotos = { before: effectiveBefore, after: effectiveAfter };
-  const proofReq = job.proof_requirements || { before_min: 0, after_min: 0, required: false };
-  const beforeCount = effectiveBefore.length;
-  const afterCount = effectiveAfter.length;
-  if (!authorizedException && (proofReq.required || proofReq.before_min > 0 || proofReq.after_min > 0)) {
-    if (beforeCount < (proofReq.before_min || 0) || afterCount < (proofReq.after_min || 0)) {
-      throw new Error(`Required proof photos missing (need before>=${proofReq.before_min || 0}, after>=${proofReq.after_min || 0}).`);
-    }
-  }
-
-  // 2. Enforce Checklist requirements unless authorized exception
-  const reqChecklist = Array.isArray(job.checklist_requirements) ? job.checklist_requirements : [];
-  if (!authorizedException && reqChecklist.length > 0) {
-    const completedItems = Array.isArray(checklistResults)
-      ? checklistResults.filter(c => c.completed !== false).map(c => c.item || c)
-      : [];
-    if (completedItems.length < reqChecklist.length) {
-      throw new Error(`Required checklist items incomplete (${completedItems.length}/${reqChecklist.length}).`);
-    }
-  }
-
-  // 3. Enforce Add-on completion unless authorized exception
-  const jobAddons = await repos.seeOperations.findJobAddons(jobId);
-  const incompleteRequiredAddons = jobAddons.filter(a => a.is_required && !['completed', 'skipped_exception'].includes(a.status));
-  if (incompleteRequiredAddons.length > 0 && !authorizedException) {
-    throw new Error(`Required add-ons incomplete: ${incompleteRequiredAddons.map(a => a.addon_name_snapshot).join(', ')}`);
-  }
-
-  const execution = await db.withTransaction(async (client) => {
+  actor = 'staff',
+  clientMutationId = null,
+  completedAtDevice = null,
+  source = null
+} = {}) {
+  return db.withTransaction(async (client) => {
     // Row-level lock on service_jobs to serialize concurrent completion attempts
     const lockedJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
     if (!lockedJob) throw new Error(`Job '${jobId}' not found.`);
-    if (['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'].includes(lockedJob.status)) {
+
+    const jobAddons = repos.seeOperations && typeof repos.seeOperations.findJobAddons === 'function'
+      ? await repos.seeOperations.findJobAddons(jobId, client)
+      : [];
+    const solarVer = repos.seeOperations && typeof repos.seeOperations.findSolarVerificationByJob === 'function'
+      ? await repos.seeOperations.findSolarVerificationByJob(jobId, client)
+      : null;
+
+    if (!isSeeManagedJob(lockedJob, {
+      hasAddons: Array.isArray(jobAddons) && jobAddons.length > 0,
+      hasSolar: Boolean(solarVer)
+    })) {
+      throw new Error(`Job '${jobId}' is not a canonical SEE-managed job and cannot be completed via SEE.`);
+    }
+
+    const normMutationId = normalizeMutationUuid(clientMutationId);
+    if (normMutationId) {
+      if (repos.seeOperations && typeof repos.seeOperations.findExecutionByClientMutationId === 'function') {
+        const existingByMut = await repos.seeOperations.findExecutionByClientMutationId(normMutationId, client);
+        if (existingByMut && String(existingByMut.job_id) !== String(jobId)) {
+          throw new Error(`clientMutationId '${clientMutationId}' has already been used for another job.`);
+        }
+      }
+      if (repos.serviceLogs && typeof repos.serviceLogs.findByClientMutationId === 'function') {
+        const existingLogByMut = await repos.serviceLogs.findByClientMutationId(normMutationId, client);
+        if (existingLogByMut && String(existingLogByMut.job_id || '') !== String(jobId)) {
+          throw new Error(`clientMutationId '${clientMutationId}' has already been used for another job.`);
+        }
+      }
+    }
+
+    if (lockedJob.status === 'completed') {
+      const existingExec = repos.seeOperations && typeof repos.seeOperations.findTerminalExecutionByJobId === 'function'
+        ? await repos.seeOperations.findTerminalExecutionByJobId(jobId, client)
+        : null;
+      const existingLog = repos.serviceLogs && typeof repos.serviceLogs.findByJobId === 'function'
+        ? await repos.serviceLogs.findByJobId(jobId, client)
+        : null;
+      const matchesMut = Boolean(
+        normMutationId && (
+          (existingExec && existingExec.client_mutation_id === normMutationId) ||
+          (existingLog && existingLog.client_mutation_id === normMutationId)
+        )
+      );
+      if (matchesMut) {
+        return {
+          ...(existingExec || { job_id: jobId, outcome: 'completed', client_mutation_id: normMutationId }),
+          serviceLog: existingLog || null,
+          idempotent: true
+        };
+      }
       throw new Error(`Job '${jobId}' is already in terminal status '${lockedJob.status}'.`);
     }
 
+    if (['cancelled', 'failed', 'no_show', 'unable_to_complete'].includes(lockedJob.status)) {
+      throw new Error(`Job '${jobId}' is already in terminal status '${lockedJob.status}'.`);
+    }
+
+    // 1. Enforce Proof requirements unless authorized exception (merge before_photos captured on startExecution)
+    const existingBefore = Array.isArray(lockedJob.before_photos) ? lockedJob.before_photos : [];
+    const effectiveBefore = (proofPhotos && Array.isArray(proofPhotos.before) && proofPhotos.before.length > 0) ? proofPhotos.before : existingBefore;
+    const effectiveAfter = (proofPhotos && Array.isArray(proofPhotos.after)) ? proofPhotos.after : [];
+    const normalizedProofPhotos = { before: effectiveBefore, after: effectiveAfter };
+    const proofReq = lockedJob.proof_requirements || { before_min: 0, after_min: 0, required: false };
+    const beforeCount = effectiveBefore.length;
+    const afterCount = effectiveAfter.length;
+    if (!authorizedException && (proofReq.required || proofReq.before_min > 0 || proofReq.after_min > 0)) {
+      if (beforeCount < (proofReq.before_min || 0) || afterCount < (proofReq.after_min || 0)) {
+        throw new Error(`Required proof photos missing (need before>=${proofReq.before_min || 0}, after>=${proofReq.after_min || 0}).`);
+      }
+    }
+
+    // 2. Enforce Checklist requirements by authoritative item ID unless authorized exception
+    const reqChecklist = normalizeChecklistRequirements(lockedJob.checklist_requirements || []);
+    let storedChecklistResults = [];
+    if (!authorizedException) {
+      const { normalizedResults } = validateChecklistSubmission(reqChecklist, checklistResults);
+      storedChecklistResults = normalizedResults;
+    } else {
+      storedChecklistResults = Array.isArray(checklistResults) ? checklistResults : [];
+    }
+
+    // 3. Enforce Add-on completion unless authorized exception
+    const incompleteRequiredAddons = (jobAddons || []).filter(
+      a => a.is_required && !['completed', 'skipped_exception'].includes(a.status)
+    );
+    if (incompleteRequiredAddons.length > 0 && !authorizedException) {
+      throw new Error(`Required add-ons incomplete: ${incompleteRequiredAddons.map(a => a.addon_name_snapshot).join(', ')}`);
+    }
+
+    // 4. Resolve staff attribution: payload.staffId -> active assignment -> prior execution -> null (admin unassigned)
     let resolvedStaffUuid = null;
     if (staffId) {
       const sRec = await seeStaffCapabilityService.resolveStaffRecord(staffId, client);
-      resolvedStaffUuid = sRec ? sRec.id : (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(staffId)) ? staffId : null);
+      if (!sRec) {
+        throw new Error(`Staff '${staffId}' not found.`);
+      }
+      resolvedStaffUuid = sRec.id;
+    } else {
+      if (repos.staffAssignments && typeof repos.staffAssignments.findActiveByJobId === 'function') {
+        const activeAssign = await repos.staffAssignments.findActiveByJobId(jobId, client);
+        resolvedStaffUuid = activeAssign ? activeAssign.staff_id : null;
+      }
+      if (!resolvedStaffUuid && repos.seeOperations && typeof repos.seeOperations.findExecutionsByJob === 'function') {
+        const priorExecs = await repos.seeOperations.findExecutionsByJob(jobId, client);
+        const withStaff = (priorExecs || []).find(e => e && e.staff_id);
+        resolvedStaffUuid = withStaff ? withStaff.staff_id : null;
+      }
     }
 
+    const completedAtIso = completedAtDevice || new Date().toISOString();
     const exec = await repos.seeOperations.createExecution({
       jobId,
       staffId: resolvedStaffUuid,
-      endedAt: new Date().toISOString(),
+      clientMutationId: normMutationId,
+      endedAt: completedAtIso,
       actualQuantity,
       measurements,
-      checklistResults,
+      checklistResults: storedChecklistResults,
       proofPhotos: normalizedProofPhotos,
       customerConfirmation,
       outcome: authorizedException ? 'partial_exception' : 'completed',
@@ -590,7 +837,7 @@ async function completeExecution(jobId, {
     }
 
     const cleanNotes = completionNotes && String(completionNotes).trim() ? String(completionNotes).trim() : null;
-    await client.query(
+    const jobUpdateRes = await client.query(
       `UPDATE public.service_jobs
        SET status = 'completed',
            completed_at = CURRENT_TIMESTAMP,
@@ -599,11 +846,17 @@ async function completeExecution(jobId, {
            completion_notes = COALESCE($4, completion_notes),
            entitlement_consumed = CASE WHEN entitlement_account_id IS NOT NULL OR $5 THEN TRUE ELSE entitlement_consumed END,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1`,
+       WHERE id = $1
+         AND deleted_at IS NULL
+         AND status NOT IN ('completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete')
+       RETURNING *`,
       [jobId, JSON.stringify(normalizedProofPhotos.before || []), JSON.stringify(normalizedProofPhotos.after || []), cleanNotes, legacyRedeemed]
     );
+    if (!jobUpdateRes || jobUpdateRes.rowCount === 0) {
+      throw new Error(`Job '${jobId}' could not be updated to completed from status '${lockedJob.status}'.`);
+    }
 
-    // 4. Idempotent entitlement consumption inside the same transaction
+    // 5. Idempotent entitlement consumption inside the same transaction
     if (lockedJob.entitlement_account_id) {
       await seeEntitlementService.mutateEntitlement({
         accountId: lockedJob.entitlement_account_id,
@@ -618,7 +871,7 @@ async function completeExecution(jobId, {
       }, client);
     }
 
-    for (const addon of jobAddons) {
+    for (const addon of (jobAddons || [])) {
       if (!addon.entitlement_account_id) continue;
       const entryType = addon.status === 'completed' ? 'consume' : 'release';
       await seeEntitlementService.mutateEntitlement({
@@ -636,10 +889,79 @@ async function completeExecution(jobId, {
       }, client);
     }
 
-    return exec;
-  });
+    // 6. Atomic service_logs entry inside the same transaction (pre-check avoids 23505 aborting pg tx)
+    let serviceLog = repos.serviceLogs && typeof repos.serviceLogs.findByJobId === 'function'
+      ? await repos.serviceLogs.findByJobId(jobId, client)
+      : null;
+    if (!serviceLog && repos.serviceLogs && typeof repos.serviceLogs.recordCompletion === 'function') {
+      const logMutationId = normMutationId || crypto.randomUUID();
+      const completedAtStr = completedAtDevice || exec.ended_at || completedAtIso;
+      const istDate = repos.serviceLogs.computeIstServiceDate(completedAtStr);
+      const logRes = await repos.serviceLogs.recordCompletion({
+        clientMutationId: logMutationId,
+        staffId: resolvedStaffUuid,
+        jobId,
+        serviceDate: istDate,
+        status: 'completed',
+        completedAtDevice: completedAtStr,
+        notes: cleanNotes || (authorizedException ? 'Special job completed with authorized exception' : 'Special job completed with photo proof'),
+        photoUrl: (normalizedProofPhotos.after && normalizedProofPhotos.after[0]) || null,
+        source: source || (resolvedStaffUuid ? 'staff_portal' : 'admin_manual')
+      }, client);
+      serviceLog = logRes ? logRes.log : null;
+    }
 
-  return execution;
+    return {
+      ...exec,
+      serviceLog,
+      idempotent: false
+    };
+  });
+}
+
+/**
+ * Release reserved main and add-on entitlements for a SEE job inside an active transaction.
+ * Idempotent per job/add-on via release:* idempotency keys.
+ */
+async function releaseJobEntitlementReservations(job, { outcome = 'cancelled', actor = 'admin', reason = null } = {}, client = null) {
+  if (!job || !job.id) return;
+  const reasonSuffix = reason ? `${outcome}: ${reason}` : outcome;
+
+  if (job.entitlement_account_id) {
+    const acct = await repos.seeEntitlement.findAccountByIdForUpdate(job.entitlement_account_id, client);
+    if (acct && Number(acct.reserved_qty || 0) > 0) {
+      await seeEntitlementService.mutateEntitlement({
+        accountId: job.entitlement_account_id,
+        entryType: 'release',
+        quantity: 1,
+        referenceType: 'service_job',
+        referenceId: job.id,
+        idempotencyKey: `release:job:${job.id}`,
+        reason: `Released reservation due to job ${reasonSuffix}`,
+        actor
+      }, client);
+    }
+  }
+
+  if (repos.seeOperations && typeof repos.seeOperations.findJobAddons === 'function') {
+    const jobAddons = await repos.seeOperations.findJobAddons(job.id, client);
+    for (const addon of (jobAddons || [])) {
+      if (!addon.entitlement_account_id) continue;
+      const account = await repos.seeEntitlement.findAccountByIdForUpdate(addon.entitlement_account_id, client);
+      if (account && Number(account.reserved_qty || 0) > 0) {
+        await seeEntitlementService.mutateEntitlement({
+          accountId: addon.entitlement_account_id,
+          entryType: 'release',
+          quantity: 1,
+          referenceType: 'service_job_addon',
+          referenceId: addon.id,
+          idempotencyKey: `release:job-addon:${addon.id}`,
+          reason: `Released add-on reservation due to job ${reasonSuffix}`,
+          actor
+        }, client);
+      }
+    }
+  }
 }
 
 /**
@@ -653,6 +975,7 @@ async function terminateJobWithoutCompletion(jobId, outcome, { reason, remarks =
   await db.withTransaction(async (client) => {
     const lockedJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
     if (!lockedJob) throw new Error(`Job '${jobId}' not found.`);
+    await assertSeeManagedJob(lockedJob, client);
     if (['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'].includes(lockedJob.status)) {
       throw new Error(`Job '${jobId}' is already in terminal status '${lockedJob.status}'.`);
     }
@@ -692,39 +1015,7 @@ async function terminateJobWithoutCompletion(jobId, outcome, { reason, remarks =
     }
 
     // Release reserved entitlement atomically inside the same transaction
-    if (lockedJob.entitlement_account_id) {
-      const acct = await repos.seeEntitlement.findAccountByIdForUpdate(lockedJob.entitlement_account_id, client);
-      if (acct && acct.reserved_qty > 0) {
-        await seeEntitlementService.mutateEntitlement({
-          accountId: lockedJob.entitlement_account_id,
-          entryType: 'release',
-          quantity: 1,
-          referenceType: 'service_job',
-          referenceId: jobId,
-          idempotencyKey: `release:job:${jobId}`,
-          reason: `Released reservation due to job ${outcome}`,
-          actor
-        }, client);
-      }
-    }
-
-    const jobAddons = await repos.seeOperations.findJobAddons(jobId, client);
-    for (const addon of jobAddons) {
-      if (!addon.entitlement_account_id) continue;
-      const account = await repos.seeEntitlement.findAccountByIdForUpdate(addon.entitlement_account_id, client);
-      if (account && Number(account.reserved_qty || 0) > 0) {
-        await seeEntitlementService.mutateEntitlement({
-          accountId: addon.entitlement_account_id,
-          entryType: 'release',
-          quantity: 1,
-          referenceType: 'service_job_addon',
-          referenceId: addon.id,
-          idempotencyKey: `release:job-addon:${addon.id}`,
-          reason: `Released add-on reservation due to job ${outcome}`,
-          actor
-        }, client);
-      }
-    }
+    await releaseJobEntitlementReservations(lockedJob, { outcome, actor }, client);
   });
 
   return repos.serviceJobs.findById(jobId);
@@ -787,6 +1078,11 @@ async function approveSolarDiscrepancy(jobId, { approved, finalServicedQuantity 
 
 module.exports = {
   VALID_JOB_STATUSES,
+  isSeeManagedJob,
+  detectSeeManagedJob,
+  releaseJobEntitlementReservations,
+  normalizeChecklistRequirements,
+  validateChecklistSubmission,
   buildStaffSafeJobContract,
   createCanonicalJob,
   assignJob,

@@ -5195,6 +5195,14 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff or Admin session required' }));
           }
 
+          if (payload.jobId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              success: false,
+              error: 'Daily clean endpoint does not accept service jobId; use the canonical job completion flow.'
+            }));
+          }
+
           // Security: Prevent client-supplied staff ID spoofing
           if (staffSess && !adminSess && payload.staffId) {
             const myCode = (staffSess.staffCode || '').toUpperCase();
@@ -5593,6 +5601,10 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(404, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: `Report '${payload.reportId}' not found` }));
           }
+          if (appState.serviceLogs[logIdx].job_id) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Cannot modify special or SEE service job history through Daily Clean report status endpoint.' }));
+          }
 
           const isCnp = (payload.status === 'car_not_present');
           appState.serviceLogs[logIdx].status = payload.status || (isCnp ? 'car_not_present' : 'completed');
@@ -5656,6 +5668,10 @@ const server = http.createServer(async (req, res) => {
           if (logIdx === -1) {
             res.writeHead(404, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: `Report '${payload.reportId}' not found` }));
+          }
+          if (appState.serviceLogs[logIdx].job_id) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Cannot delete special or SEE service job history through Daily Clean report endpoint.' }));
           }
 
           appState.serviceLogs.splice(logIdx, 1);
@@ -6189,7 +6205,7 @@ const server = http.createServer(async (req, res) => {
                   return res.end(JSON.stringify({ success: false, error: `Staff '${toStaffId}' not found.` }));
                 }
                 const job = await repos.serviceJobs.findById(jd.jobId);
-                if (job && (job.service_id || job.entitlement_account_id)) {
+                if (job && (await seeExecutionService.detectSeeManagedJob(job))) {
                   try {
                     const updatedJob = await seeExecutionService.assignJob(jd.jobId, targetStaff.id, adminUser, {
                       scheduledTime: jd.scheduledTime !== undefined ? jd.scheduledTime : jd.tentativeTime,
@@ -6736,7 +6752,7 @@ const server = http.createServer(async (req, res) => {
             }
             if (isNeonConfigured()) {
               const existingJob = await repos.serviceJobs.findById(jobId);
-              if (existingJob && (existingJob.entitlement_account_id || existingJob.service_id)) {
+              if (existingJob && (await seeExecutionService.detectSeeManagedJob(existingJob))) {
                 const outcome = payload.outcome === 'no_show' ? 'no_show' : 'unable_to_complete';
                 const reason = payload.failureReason || payload.reason || outcome;
                 const remarks = payload.failureRemarks || payload.remarks || null;
@@ -7299,7 +7315,7 @@ const server = http.createServer(async (req, res) => {
             let startedJob = null;
             if (isNeonConfigured()) {
               const existingJob = await repos.serviceJobs.findById(jobId);
-              if (existingJob && (existingJob.service_id || existingJob.entitlement_account_id)) {
+              if (existingJob && (await seeExecutionService.detectSeeManagedJob(existingJob))) {
                 let staffUuid = (staffSess && staffSess.staffId) || existingJob.staff_id || null;
                 if (!staffUuid && payload.staffId) {
                   const sRec = await seeStaffCapabilityService.resolveStaffRecord(payload.staffId);
@@ -7458,7 +7474,7 @@ const server = http.createServer(async (req, res) => {
             const actor = (staffSess && (staffSess.staffCode || staffSess.name)) || (adminSess && adminSess.username) || 'staff';
             if (isNeonConfigured()) {
               const existingJob = await repos.serviceJobs.findById(jobId);
-              if (existingJob && (existingJob.service_id || existingJob.entitlement_account_id)) {
+              if (existingJob && (await seeExecutionService.detectSeeManagedJob(existingJob))) {
                 // Canonical SEE completion — never fall back to legacy bookingService on SEE failure
                 let staffObj = null;
                 if (staffSess && staffSess.staffId) {
@@ -7480,30 +7496,14 @@ const server = http.createServer(async (req, res) => {
                   customerConfirmation: payload.customerConfirmation || {},
                   authorizedException: adminSess ? (payload.authorizedException || null) : null,
                   completionNotes: notes || null,
+                  clientMutationId: payload.clientMutationId || null,
+                  completedAtDevice: completedAt,
+                  source: staffSess ? 'staff_portal' : 'admin_manual',
                   actor
                 });
-                if (staffObj && staffObj.id) {
-                  try {
-                    const existingLog = await repos.serviceLogs.findByJobId(jobId);
-                    if (!existingLog) {
-                      const mutationId = payload.clientMutationId || crypto.randomUUID();
-                      const istDate = repos.serviceLogs.computeIstServiceDate(completedAt);
-                      await repos.serviceLogs.recordCompletion({
-                        clientMutationId: mutationId,
-                        staffId: staffObj.id,
-                        jobId: jobId,
-                        serviceDate: istDate,
-                        status: 'completed',
-                        completedAtDevice: completedAt,
-                        notes: notes || 'Special job completed with photo proof',
-                        photoUrl: afterPhotoUrls[0] || null,
-                        source: staffSess ? 'staff_portal' : 'admin_manual'
-                      });
-                    }
-                  } catch (logErr) {
-                    console.warn('SEE service_logs recordCompletion warning:', logErr.message);
-                  }
-                }
+                // Service log is now created atomically inside completeExecution's transaction.
+                // No redundant out-of-transaction log insertion needed; the execution.serviceLog
+                // return value confirms the log was recorded.
                 const updatedSeeJob = enrichJobForApi(await repos.serviceJobs.findById(jobId), staffObj);
                 invalidateLiveCustomersCache();
                 broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'completed', jobId, status: 'completed' });
@@ -7524,6 +7524,9 @@ const server = http.createServer(async (req, res) => {
               completedAt: completedAt,
               completionNotes: notes,
               staffId: staffHint,
+              clientMutationId: payload.clientMutationId || null,
+              completedAtDevice: completedAt,
+              source: staffSess ? 'staff_portal' : 'admin_manual',
               actor
             });
             const updatedJob = compRes.job || compRes;
@@ -7595,12 +7598,23 @@ const server = http.createServer(async (req, res) => {
           const jobId = payload.jobId || payload.id;
           try {
             if (isNeonConfigured()) {
-              const existingJob = await repos.serviceJobs.findById(jobId);
-              if (existingJob && (existingJob.status === 'completed' || existingJob.status === 'in_progress')) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ success: false, error: `Cannot delete job in status '${existingJob.status}'.` }));
-              }
-              await repos.serviceJobs.softDelete(jobId);
+              await db.withTransaction(async (client) => {
+                const existingJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+                if (!existingJob) {
+                  throw Object.assign(new Error(`Job '${jobId}' not found.`), { statusCode: 404 });
+                }
+                if (existingJob.status === 'completed' || existingJob.status === 'in_progress') {
+                  throw Object.assign(new Error(`Cannot delete job in status '${existingJob.status}'.`), { statusCode: 400 });
+                }
+                if (await seeExecutionService.detectSeeManagedJob(existingJob, client)) {
+                  await seeExecutionService.releaseJobEntitlementReservations(existingJob, {
+                    outcome: 'cancelled',
+                    actor: adminSess.username || 'admin',
+                    reason: payload.reason || 'Deleted by admin'
+                  }, client);
+                }
+                await repos.serviceJobs.softDelete(jobId, client);
+              });
               invalidateLiveCustomersCache();
               broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'deleted', jobId: jobId });
               res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -7620,7 +7634,7 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: true, message: 'Job cancelled' }));
           } catch (err) {
             console.error('deleteSpecialJob error:', err.message);
-            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.writeHead(err.statusCode || 500, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: err.message }));
           }
         }
@@ -7662,7 +7676,7 @@ const server = http.createServer(async (req, res) => {
           try {
             if (isNeonConfigured()) {
               const existingJob = await repos.serviceJobs.findById(jobId);
-              if (existingJob && (existingJob.entitlement_account_id || existingJob.service_id)) {
+              if (existingJob && (await seeExecutionService.detectSeeManagedJob(existingJob))) {
                 const job = await seeExecutionService.terminateJobWithoutCompletion(jobId, 'cancelled', {
                   reason,
                   remarks,

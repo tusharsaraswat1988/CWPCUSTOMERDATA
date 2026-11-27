@@ -15,6 +15,7 @@ const serviceCatalog = require('./serviceCatalog');
 const { resolveCanonicalCategory } = serviceCatalog;
 const staffCapabilityService = require('./staffCapabilityService');
 const staffDesignationService = require('./staffDesignationService');
+const seeExecutionService = require('./seeExecutionService');
 
 function normalizeIndianMobile(value) {
   if (value === null || value === undefined) return '';
@@ -2039,6 +2040,9 @@ async function updateDailyCleanReportStatus({ reportId, status, reason = '', adm
   if (!existing) {
     throw new Error(`Service report with id '${reportId}' not found`);
   }
+  if (existing.job_id) {
+    throw new Error('Cannot modify special or SEE service job history through Daily Clean report status endpoint.');
+  }
 
   const updated = await repos.serviceLogs.updateStatusAndReason(reportId, {
     status,
@@ -2072,6 +2076,9 @@ async function deleteDailyCleanReport({ reportId, reason = '', adminUser = 'admi
   const existing = await repos.serviceLogs.findById(reportId);
   if (!existing) {
     throw new Error(`Service report with id '${reportId}' not found`);
+  }
+  if (existing.job_id) {
+    throw new Error('Cannot delete special or SEE service job history through Daily Clean report endpoint.');
   }
 
   const deleted = await repos.serviceLogs.deleteReport(reportId);
@@ -3659,13 +3666,28 @@ async function stopCustomerService({ customerId, reason = 'Customer requested se
       [reason, adminUser, customer.id]
     );
 
-    // 2. Mark pending / assigned jobs cancelled
+    // 2. Lock and cancel pending / requested / booked / assigned jobs, releasing any SEE reservations atomically
+    const openJobsRes = await client.query(
+      `SELECT * FROM public.service_jobs
+       WHERE customer_id = $1 AND deleted_at IS NULL AND status IN ('pending', 'requested', 'booked', 'assigned')
+       FOR UPDATE`,
+      [customer.id]
+    );
     await client.query(
       `UPDATE public.service_jobs 
        SET status = 'cancelled', cancellation_reason = $1, cancelled_at = CURRENT_TIMESTAMP, cancelled_by = $2, updated_at = CURRENT_TIMESTAMP 
-       WHERE customer_id = $3 AND status IN ('pending', 'assigned')`,
+       WHERE customer_id = $3 AND deleted_at IS NULL AND status IN ('pending', 'requested', 'booked', 'assigned')`,
       [reason, adminUser, customer.id]
     );
+    for (const openJob of (openJobsRes.rows || [])) {
+      if (await seeExecutionService.detectSeeManagedJob(openJob, client)) {
+        await seeExecutionService.releaseJobEntitlementReservations(openJob, {
+          outcome: 'cancelled',
+          actor: adminUser,
+          reason
+        }, client);
+      }
+    }
 
     // 3. Keep customer profile Active
     await repos.customers.updateCustomer(customer.id, {

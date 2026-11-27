@@ -17,6 +17,7 @@
 
 'use strict';
 
+const crypto = require('crypto');
 const db = require('../db/index');
 const repos = require('../db/repositories/index');
 const serviceCatalog = require('./serviceCatalog');
@@ -24,6 +25,40 @@ const packageService = require('./packageService');
 const staffCapabilityService = require('./staffCapabilityService');
 const seeEntitlementService = require('./seeEntitlementService');
 const seeStaffCapabilityService = require('./seeStaffCapabilityService');
+const { isSeeManagedJob } = require('./seeExecutionService');
+
+function normalizeMutationUuid(rawId) {
+  if (rawId === undefined || rawId === null) return null;
+  const s = String(rawId).trim();
+  if (!s) return null;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) {
+    return s.toLowerCase();
+  }
+  const hex = crypto.createHash('sha256').update(`cwp-mut:${s}`).digest('hex');
+  const ver = ((parseInt(hex.slice(12, 14), 16) & 0x0f) | 0x40).toString(16).padStart(2, '0');
+  const varByte = ((parseInt(hex.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${ver}${hex.slice(14, 16)}-${varByte}${hex.slice(18, 20)}-${hex.slice(20, 32)}`;
+}
+
+async function checkJobIsSeeManaged(job, client = null) {
+  if (!job) return false;
+  if (isSeeManagedJob(job)) return true;
+  if (isNeonActive() && repos.seeOperations) {
+    const [addons, solar] = await Promise.all([
+      typeof repos.seeOperations.findJobAddons === 'function'
+        ? repos.seeOperations.findJobAddons(job.id, client)
+        : Promise.resolve([]),
+      typeof repos.seeOperations.findSolarVerificationByJob === 'function'
+        ? repos.seeOperations.findSolarVerificationByJob(job.id, client)
+        : Promise.resolve(null)
+    ]);
+    return isSeeManagedJob(job, {
+      hasAddons: Array.isArray(addons) && addons.length > 0,
+      hasSolar: Boolean(solar)
+    });
+  }
+  return false;
+}
 
 const ALLOWED_BOOKING_SOURCES = ['admin', 'customer_request', 'verbal', 'call_center', 'app'];
 function normalizeBookingSource(val) {
@@ -221,6 +256,10 @@ async function createBooking(params = {}, actor = 'admin') {
     throw new Error(`Invalid service category: '${serviceCategoryId}'`);
   }
 
+  if (entitlementAccountIdParam || params.purchaseSnapshotId) {
+    throw new Error('SEE entitlement bookings must use canonical seeExecutionService.createCanonicalJob.');
+  }
+
   // 1. Validate Service & Asset combinations
   const isSolar = normCat === 'solar_cleaning';
 
@@ -231,15 +270,11 @@ async function createBooking(params = {}, actor = 'admin') {
     }
   }
 
-  // 2. Package / SEE Entitlement Validation (if booking is linked to a package or entitlement account)
+  // 2. Legacy Package Validation (SEE entitlement bookings are guarded above)
   let linkedPackage = null;
-  let linkedSeeAccount = null;
-  const requestedEntitlementId = entitlementAccountIdParam || packageId;
-  if (requestedEntitlementId) {
-    if (packageId) {
-      const custPackages = await packageService.getCustomerPackages(customerId);
-      linkedPackage = custPackages.find(p => p.id === packageId) || null;
-    }
+  if (packageId) {
+    const custPackages = await packageService.getCustomerPackages(customerId);
+    linkedPackage = custPackages.find(p => p.id === packageId) || null;
 
     if (linkedPackage) {
       if ((linkedPackage.status || '').toLowerCase() !== 'active') {
@@ -260,37 +295,14 @@ async function createBooking(params = {}, actor = 'admin') {
       if (pkgVehId && vehicleId && pkgVehId !== vehicleId) {
         throw new Error(`Package is restricted to vehicle '${pkgVehId}', but '${vehicleId}' was selected.`);
       }
-    } else if (isNeonActive()) {
-      const bal = await seeEntitlementService.getCustomerBalance(customerId);
-      const accounts = Array.isArray(bal && bal.accounts) ? bal.accounts : [];
-      linkedSeeAccount = accounts.find(a => a.id === requestedEntitlementId) || null;
-      if (!linkedSeeAccount) {
-        throw new Error(`Package '${requestedEntitlementId}' does not belong to this customer or does not exist.`);
-      }
-      if (linkedSeeAccount.entitlement_kind === 'addon_credit' || !linkedSeeAccount.service_id) {
-        throw new Error('Selected entitlement account is not a main service package.');
-      }
-      if ((linkedSeeAccount.status || '').toLowerCase() !== 'active') {
-        throw new Error(`Cannot book against entitlement '${linkedSeeAccount.package_name || linkedSeeAccount.service_name}' with status '${linkedSeeAccount.status}'.`);
-      }
-      if (linkedSeeAccount.valid_to && new Date(linkedSeeAccount.valid_to) < new Date()) {
-        throw new Error(`Entitlement '${linkedSeeAccount.package_name || linkedSeeAccount.service_name}' has expired.`);
-      }
-      if (Number(linkedSeeAccount.remaining_qty || 0) <= 0) {
-        throw new Error(`Entitlement '${linkedSeeAccount.package_name || linkedSeeAccount.service_name}' has zero remaining balance.`);
-      }
-      const rawAcctCat = linkedSeeAccount.service_category_id;
-      if (rawAcctCat) {
-        const acctCat = serviceCatalog.resolveCanonicalCategory(rawAcctCat);
-        const detailingMatch = rawAcctCat === 'detailing' && (normCat === 'interior_detailing' || normCat === 'exterior_detailing');
-        if (!detailingMatch && acctCat !== normCat) {
-          throw new Error(`Entitlement category '${rawAcctCat}' is not valid for '${serviceCategoryId}'.`);
+    } else {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(packageId));
+      if (isUuid && isNeonActive() && repos.seeEntitlement && typeof repos.seeEntitlement.findAccountById === 'function') {
+        const seeAcct = await repos.seeEntitlement.findAccountById(packageId);
+        if (seeAcct) {
+          throw new Error('SEE entitlement bookings must use canonical seeExecutionService.createCanonicalJob.');
         }
       }
-      if (linkedSeeAccount.vehicle_id && vehicleId && linkedSeeAccount.vehicle_id !== vehicleId) {
-        throw new Error(`Entitlement is restricted to vehicle '${linkedSeeAccount.vehicle_id}', but '${vehicleId}' was selected.`);
-      }
-    } else {
       throw new Error(`Package '${packageId}' does not belong to this customer or does not exist.`);
     }
   }
@@ -325,7 +337,7 @@ async function createBooking(params = {}, actor = 'admin') {
 
   // Determine initial status: if staff assigned right away -> 'assigned', else 'booked'
   const initialStatus = staffId ? 'assigned' : 'booked';
-  const finalPaymentStatus = (linkedPackage || linkedSeeAccount) ? 'package_covered' : (paymentStatus || 'pending');
+  const finalPaymentStatus = linkedPackage ? 'package_covered' : (paymentStatus || 'pending');
 
   if (isNeonActive()) {
     return db.withTransaction(async (client) => {
@@ -361,7 +373,7 @@ async function createBooking(params = {}, actor = 'admin') {
         }
       }
 
-      const effectiveServiceId = serviceIdParam || (linkedSeeAccount ? linkedSeeAccount.service_id : null);
+      const effectiveServiceId = serviceIdParam || null;
       let svc = null;
       if (effectiveServiceId) {
         svc = await repos.seeCatalogue.findServiceById(effectiveServiceId, client);
@@ -409,11 +421,9 @@ async function createBooking(params = {}, actor = 'admin') {
         serviceCategoryId: normCat,
         serviceId: effectiveServiceId,
         serviceType: serviceType || normCat,
-        packageDetails: packageDetails || (linkedPackage ? (linkedPackage.package_name || linkedPackage.packageName) : (linkedSeeAccount ? (linkedSeeAccount.package_name || linkedSeeAccount.service_name) : null)),
-        packageCode: packageCode || (linkedPackage ? (linkedPackage.package_code || linkedPackage.packageCode) : (linkedSeeAccount ? (linkedSeeAccount.package_code || linkedSeeAccount.service_code) : null)),
+        packageDetails: packageDetails || (linkedPackage ? (linkedPackage.package_name || linkedPackage.packageName) : null),
+        packageCode: packageCode || (linkedPackage ? (linkedPackage.package_code || linkedPackage.packageCode) : null),
         packageId: linkedPackage ? linkedPackage.id : null,
-        entitlementAccountId: linkedSeeAccount ? linkedSeeAccount.id : null,
-        purchaseSnapshotId: linkedSeeAccount ? linkedSeeAccount.purchase_snapshot_id : null,
         seaterType: seaterType || null,
         panelCount: isSolar ? (parseInt(panelCount, 10) || 10) : null,
         siteDetails: isSolar ? (siteDetails || { panelCount: parseInt(panelCount, 10) || 10, roofType: 'RCC' }) : null,
@@ -422,26 +432,13 @@ async function createBooking(params = {}, actor = 'admin') {
         sequenceOrder: sequenceOrder != null ? parseInt(sequenceOrder, 10) : null,
         status: initialStatus,
         specialInstructions: specialInstructions ? String(specialInstructions).trim() : null,
-        servicePrice: (linkedPackage || linkedSeeAccount) ? 0.00 : (parseFloat(servicePrice) || 0.00),
+        servicePrice: linkedPackage ? 0.00 : (parseFloat(servicePrice) || 0.00),
         paymentStatus: finalPaymentStatus,
         bookingSource,
         city,
         zone,
         entitlementConsumed: false
       }, client);
-
-      if (linkedSeeAccount) {
-        await seeEntitlementService.mutateEntitlement({
-          accountId: linkedSeeAccount.id,
-          entryType: 'reserve',
-          quantity: 1,
-          referenceType: 'service_job',
-          referenceId: jobRecord.id,
-          idempotencyKey: `reserve:job:${jobRecord.id}`,
-          reason: `Reserved entitlement for job ${jobRecord.id}`,
-          actor: actor || 'admin'
-        }, client);
-      }
 
       // Staff assignment if provided
       if (resolvedStaffObj) {
@@ -524,36 +521,48 @@ async function startJob(arg1, arg2 = {}) {
   const stAt = startedAt || new Date().toISOString();
 
   if (isNeonActive()) {
-    const existing = await repos.serviceJobs.findById(jobId);
-    if (!existing) {
-      throw new Error(`Job '${jobId}' not found.`);
-    }
+    return db.withTransaction(async (client) => {
+      const existing = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+      if (!existing) {
+        throw new Error(`Job '${jobId}' not found.`);
+      }
+      if (await checkJobIsSeeManaged(existing, client)) {
+        throw new Error(`Job '${jobId}' is a canonical SEE-managed job and must be started via seeExecutionService.`);
+      }
 
-    if (isTerminalState(existing.status)) {
-      throw new Error(`Cannot start job in ${existing.status} status (terminal).`);
-    }
+      if (isTerminalState(existing.status)) {
+        throw new Error(`Cannot start job in ${existing.status} status (terminal).`);
+      }
 
-    if (!isValidTransition(existing.status, 'in_progress')) {
-      throw new Error(`Cannot start service: invalid transition from '${existing.status}' to 'in_progress'.`);
-    }
+      if (!isValidTransition(existing.status, 'in_progress')) {
+        throw new Error(`Cannot start service: invalid transition from '${existing.status}' to 'in_progress'.`);
+      }
 
-    const updated = await repos.serviceJobs.startJob(jobId, {
-      beforePhotos: Array.isArray(beforePhotos) ? beforePhotos : [],
-      startedAt: stAt
+      const updated = await repos.serviceJobs.startJob(jobId, {
+        beforePhotos: Array.isArray(beforePhotos) ? beforePhotos : [],
+        startedAt: stAt
+      }, client);
+
+      if (!updated) {
+        throw new Error(`Cannot start service: job '${jobId}' status changed concurrently.`);
+      }
+
+      return {
+        ...updated,
+        success: true,
+        job: updated,
+        message: 'Service marked in progress.'
+      };
     });
-
-    return {
-      ...updated,
-      success: true,
-      job: updated,
-      message: 'Service marked in progress.'
-    };
   }
 
   // Local fallback
   const job = localJobsStore.find(j => j.id === jobId);
   if (!job) {
     throw new Error(`Job '${jobId}' not found.`);
+  }
+  if (await checkJobIsSeeManaged(job)) {
+    throw new Error(`Job '${jobId}' is a canonical SEE-managed job and must be started via seeExecutionService.`);
   }
   if (isTerminalState(job.status)) {
     throw new Error(`Cannot start job in ${job.status} status (terminal).`);
@@ -594,6 +603,9 @@ async function completeJob(arg1, arg2 = {}) {
   const completionNotes = opts.completionNotes || opts.completionRemarks || null;
   const staffId = opts.staffId || null;
   const actor = opts.actor || 'staff';
+  const clientMutationId = opts.clientMutationId || null;
+  const completedAtDevice = opts.completedAtDevice || completedAt || null;
+  const source = opts.source || null;
 
   if (!jobId) {
     throw new Error('Job ID is required to complete service.');
@@ -607,6 +619,36 @@ async function completeJob(arg1, arg2 = {}) {
       const job = await repos.serviceJobs.findByIdForUpdate(jobId, client);
       if (!job) {
         throw new Error(`Job '${jobId}' not found.`);
+      }
+
+      if (await checkJobIsSeeManaged(job, client)) {
+        throw new Error(`Job '${jobId}' is a canonical SEE-managed job and must be completed via seeExecutionService.completeExecution.`);
+      }
+
+      const normMutationId = normalizeMutationUuid(clientMutationId);
+      if (normMutationId && repos.serviceLogs && typeof repos.serviceLogs.findByClientMutationId === 'function') {
+        const existingByMut = await repos.serviceLogs.findByClientMutationId(normMutationId, client);
+        if (existingByMut && String(existingByMut.job_id || '') !== String(jobId)) {
+          throw new Error(`clientMutationId '${clientMutationId}' has already been used for another job.`);
+        }
+      }
+
+      if (job.status === 'completed') {
+        const existingLog = (repos.serviceLogs && typeof repos.serviceLogs.findByJobId === 'function')
+          ? await repos.serviceLogs.findByJobId(jobId, client)
+          : null;
+        if (normMutationId && existingLog && existingLog.client_mutation_id === normMutationId) {
+          return {
+            ...job,
+            success: true,
+            job,
+            serviceLog: existingLog,
+            entitlementDeducted: Boolean(job.entitlement_consumed),
+            idempotent: true,
+            message: 'Service already completed (idempotent replay).'
+          };
+        }
+        throw new Error(`Cannot complete job in ${job.status} status (terminal).`);
       }
 
       if (isTerminalState(job.status)) {
@@ -637,23 +679,63 @@ async function completeJob(arg1, arg2 = {}) {
       }
 
       // 3. Mark job completed
+      const afterList = Array.isArray(afterPhotos) ? afterPhotos : [];
+      const cleanNotes = completionNotes ? String(completionNotes).trim() : null;
       const updatedJob = await repos.serviceJobs.completeJob(job.id, {
-        afterPhotos: Array.isArray(afterPhotos) ? afterPhotos : [],
+        afterPhotos: afterList,
         completedAt: compAt,
-        completionNotes: completionNotes ? String(completionNotes).trim() : null
+        completionNotes: cleanNotes
       }, client);
+      if (!updatedJob) {
+        throw new Error(`Cannot complete job '${job.id}' in status '${job.status}'.`);
+      }
 
       if (entitlementDeducted) {
         await repos.serviceJobs.updateJob(job.id, { entitlementConsumed: true }, client);
         updatedJob.entitlement_consumed = true;
       }
 
+      // 4. Atomic service_logs insert inside the same transaction
+      let resolvedStaffUuid = null;
+      if (staffId) {
+        const sRec = await seeStaffCapabilityService.resolveStaffRecord(staffId, client);
+        if (!sRec) {
+          throw new Error(`Staff '${staffId}' not found.`);
+        }
+        resolvedStaffUuid = sRec.id;
+      } else if (repos.staffAssignments && typeof repos.staffAssignments.findActiveByJobId === 'function') {
+        const activeAssign = await repos.staffAssignments.findActiveByJobId(job.id, client);
+        resolvedStaffUuid = activeAssign ? activeAssign.staff_id : null;
+      }
+
+      let serviceLog = (repos.serviceLogs && typeof repos.serviceLogs.findByJobId === 'function')
+        ? await repos.serviceLogs.findByJobId(job.id, client)
+        : null;
+      if (!serviceLog && repos.serviceLogs && typeof repos.serviceLogs.recordCompletion === 'function') {
+        const completedAtStr = completedAtDevice || updatedJob.completed_at || compAt;
+        const istDate = repos.serviceLogs.computeIstServiceDate(completedAtStr);
+        const logRes = await repos.serviceLogs.recordCompletion({
+          clientMutationId: normMutationId || crypto.randomUUID(),
+          staffId: resolvedStaffUuid,
+          jobId: job.id,
+          serviceDate: istDate,
+          status: 'completed',
+          completedAtDevice: completedAtStr,
+          notes: cleanNotes || 'Special job completed with photo proof',
+          photoUrl: afterList[0] || null,
+          source: source || (resolvedStaffUuid ? 'staff_portal' : 'admin_manual')
+        }, client);
+        serviceLog = logRes ? logRes.log : null;
+      }
+
       return {
         ...updatedJob,
         success: true,
         job: updatedJob,
+        serviceLog,
         entitlementDeducted,
         redemptionRecord,
+        idempotent: false,
         message: 'Service completed successfully.'
       };
     });
@@ -663,6 +745,29 @@ async function completeJob(arg1, arg2 = {}) {
   const job = localJobsStore.find(j => j.id === jobId);
   if (!job) {
     throw new Error(`Job '${jobId}' not found.`);
+  }
+  if (await checkJobIsSeeManaged(job)) {
+    throw new Error(`Job '${jobId}' is a canonical SEE-managed job and must be completed via seeExecutionService.completeExecution.`);
+  }
+  const normMutationId = normalizeMutationUuid(clientMutationId);
+  if (normMutationId) {
+    const conflictJob = localJobsStore.find(other => other.id !== job.id && other._completionMutationId === normMutationId);
+    if (conflictJob) {
+      throw new Error(`clientMutationId '${clientMutationId}' has already been used for another job.`);
+    }
+  }
+  if (job.status === 'completed') {
+    if (normMutationId && job._completionMutationId === normMutationId) {
+      return {
+        ...job,
+        success: true,
+        job,
+        entitlementDeducted: Boolean(job.entitlement_consumed),
+        idempotent: true,
+        message: 'Service already completed (idempotent replay).'
+      };
+    }
+    throw new Error(`Cannot complete job in ${job.status} status (terminal).`);
   }
   if (isTerminalState(job.status)) {
     throw new Error(`Cannot complete job in ${job.status} status (terminal).`);
@@ -694,6 +799,7 @@ async function completeJob(arg1, arg2 = {}) {
   job.completed_at = compAt;
   job.after_photos = afterPhotos;
   job.completion_notes = completionNotes;
+  job._completionMutationId = normMutationId;
   job.updated_at = new Date().toISOString();
 
   return {
@@ -702,6 +808,7 @@ async function completeJob(arg1, arg2 = {}) {
     job,
     entitlementDeducted,
     redemptionRecord,
+    idempotent: false,
     message: 'Service completed successfully.'
   };
 }
@@ -733,42 +840,54 @@ async function cancelBooking(arg1, arg2 = {}) {
   const cAt = new Date().toISOString();
 
   if (isNeonActive()) {
-    const existing = await repos.serviceJobs.findById(jobId);
-    if (!existing) {
-      throw new Error(`Job '${jobId}' not found.`);
-    }
+    return db.withTransaction(async (client) => {
+      const existing = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+      if (!existing) {
+        throw new Error(`Job '${jobId}' not found.`);
+      }
+      if (await checkJobIsSeeManaged(existing, client)) {
+        throw new Error(`Job '${jobId}' is a canonical SEE-managed job and must be cancelled via seeExecutionService.terminateJobWithoutCompletion.`);
+      }
 
-    if (isTerminalState(existing.status)) {
-      throw new Error(`Cannot cancel job in ${existing.status} status (terminal).`);
-    }
+      if (isTerminalState(existing.status)) {
+        throw new Error(`Cannot cancel job in ${existing.status} status (terminal).`);
+      }
 
-    if (existing.status === 'in_progress') {
-      throw new Error(`Cannot cancel service job after work has commenced (in_progress). Use 'unable_to_complete' instead.`);
-    }
+      if (existing.status === 'in_progress') {
+        throw new Error(`Cannot cancel service job after work has commenced (in_progress). Use 'unable_to_complete' instead.`);
+      }
 
-    if (!isValidTransition(existing.status, 'cancelled')) {
-      throw new Error(`Cannot cancel: invalid transition from '${existing.status}' to 'cancelled'.`);
-    }
+      if (!isValidTransition(existing.status, 'cancelled')) {
+        throw new Error(`Cannot cancel: invalid transition from '${existing.status}' to 'cancelled'.`);
+      }
 
-    const cancelled = await repos.serviceJobs.cancelJob(jobId, {
-      cancellationReason,
-      cancellationRemarks,
-      cancelledAt: cAt,
-      cancelledBy: cBy
+      const cancelled = await repos.serviceJobs.cancelJob(jobId, {
+        cancellationReason,
+        cancellationRemarks,
+        cancelledAt: cAt,
+        cancelledBy: cBy
+      }, client);
+
+      if (!cancelled) {
+        throw new Error(`Cannot cancel job '${jobId}' in status '${existing.status}'.`);
+      }
+
+      return {
+        ...cancelled,
+        success: true,
+        job: cancelled,
+        message: 'Booking cancelled successfully. Zero entitlement consumed.'
+      };
     });
-
-    return {
-      ...cancelled,
-      success: true,
-      job: cancelled,
-      message: 'Booking cancelled successfully. Zero entitlement consumed.'
-    };
   }
 
   // Local fallback
   const job = localJobsStore.find(j => j.id === jobId);
   if (!job) {
     throw new Error(`Job '${jobId}' not found.`);
+  }
+  if (await checkJobIsSeeManaged(job)) {
+    throw new Error(`Job '${jobId}' is a canonical SEE-managed job and must be cancelled via seeExecutionService.terminateJobWithoutCompletion.`);
   }
   if (isTerminalState(job.status)) {
     throw new Error(`Cannot cancel job in ${job.status} status (terminal).`);
@@ -823,36 +942,48 @@ async function failJob(arg1, arg2 = {}) {
   const fAt = failedAt || new Date().toISOString();
 
   if (isNeonActive()) {
-    const existing = await repos.serviceJobs.findById(jobId);
-    if (!existing) {
-      throw new Error(`Job '${jobId}' not found.`);
-    }
-    if (isTerminalState(existing.status)) {
-      throw new Error(`Cannot fail job in ${existing.status} status (terminal).`);
-    }
-    if (!isValidTransition(existing.status, 'unable_to_complete')) {
-      throw new Error(`Cannot mark unable to complete: invalid transition from '${existing.status}'.`);
-    }
+    return db.withTransaction(async (client) => {
+      const existing = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+      if (!existing) {
+        throw new Error(`Job '${jobId}' not found.`);
+      }
+      if (await checkJobIsSeeManaged(existing, client)) {
+        throw new Error(`Job '${jobId}' is a canonical SEE-managed job and must be terminated via seeExecutionService.terminateJobWithoutCompletion.`);
+      }
+      if (isTerminalState(existing.status)) {
+        throw new Error(`Cannot fail job in ${existing.status} status (terminal).`);
+      }
+      if (!isValidTransition(existing.status, 'unable_to_complete')) {
+        throw new Error(`Cannot mark unable to complete: invalid transition from '${existing.status}'.`);
+      }
 
-    const failed = await repos.serviceJobs.failJob(jobId, {
-      failureReason,
-      failureRemarks,
-      failedAt: fAt,
-      failedBy: fBy
+      const failed = await repos.serviceJobs.failJob(jobId, {
+        failureReason,
+        failureRemarks,
+        failedAt: fAt,
+        failedBy: fBy
+      }, client);
+
+      if (!failed) {
+        throw new Error(`Cannot fail job '${jobId}' in status '${existing.status}'.`);
+      }
+
+      return {
+        ...failed,
+        success: true,
+        job: failed,
+        message: 'Service marked unable to complete. Zero entitlement consumed.'
+      };
     });
-
-    return {
-      ...failed,
-      success: true,
-      job: failed,
-      message: 'Service marked unable to complete. Zero entitlement consumed.'
-    };
   }
 
   // Local fallback
   const job = localJobsStore.find(j => j.id === jobId);
   if (!job) {
     throw new Error(`Job '${jobId}' not found.`);
+  }
+  if (await checkJobIsSeeManaged(job)) {
+    throw new Error(`Job '${jobId}' is a canonical SEE-managed job and must be terminated via seeExecutionService.terminateJobWithoutCompletion.`);
   }
   if (isTerminalState(job.status)) {
     throw new Error(`Cannot fail job in ${job.status} status (terminal).`);

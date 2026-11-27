@@ -509,7 +509,10 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
       if (!authCtx) return true;
       const body = await readJsonBody(req);
       const staffId = staffSess ? staffSess.staffId : body.staffId;
-      const execution = await seeExecutionService.startExecution(jobId, staffId);
+      const execution = await seeExecutionService.startExecution(jobId, staffId, {
+        beforePhotos: Array.isArray(body.beforePhotos) ? body.beforePhotos : undefined,
+        startedAt: body.startedAt || undefined
+      });
       return sendJson(res, 200, { success: true, execution });
     }
 
@@ -530,6 +533,10 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
         measurements: body.measurements || {},
         customerConfirmation: body.customerConfirmation || {},
         authorizedException,
+        completionNotes: body.completionNotes || body.notes || null,
+        clientMutationId: body.clientMutationId || null,
+        completedAtDevice: body.completedAtDevice || null,
+        source: staffSess ? 'staff_portal' : 'admin_manual',
         actor
       });
       return sendJson(res, 200, { success: true, execution });

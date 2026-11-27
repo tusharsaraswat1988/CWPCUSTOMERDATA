@@ -471,7 +471,7 @@ async function redeemPackage(params = {}, adminUserParam = 'admin', client = nul
         remainingQuantity: res.package.remaining_quantity,
         status: res.package.status
       }
-    });
+    }, actualClient);
 
     return {
       ...res.package,

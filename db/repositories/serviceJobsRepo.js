@@ -292,8 +292,37 @@ async function completeJob(id, opts = {}, clientOrNotes = null, maybeClient = nu
   return res.rows[0] || null;
 }
 
+async function isSeeManagedRow(job, runner) {
+  if (!job) return false;
+  let payload = job.service_payload;
+  if (typeof payload === 'string') {
+    try { payload = JSON.parse(payload); } catch (_) { payload = {}; }
+  }
+  if (
+    (payload && payload._seeManaged === true) ||
+    job.entitlement_account_id ||
+    job.purchase_snapshot_id
+  ) {
+    return true;
+  }
+  const [addonRes, solarRes] = await Promise.all([
+    runner.query('SELECT id FROM public.service_job_addons WHERE job_id = $1 LIMIT 1', [job.id]),
+    runner.query('SELECT id FROM public.solar_verifications WHERE job_id = $1 LIMIT 1', [job.id])
+  ]);
+  return Boolean((addonRes.rows && addonRes.rows.length > 0) || (solarRes.rows && solarRes.rows.length > 0));
+}
+
 async function updateJobStatus(id, status, client = null) {
   const runner = client || db;
+  const existing = await findByIdForUpdate(id, runner);
+  if (!existing) return null;
+  if (await isSeeManagedRow(existing, runner)) {
+    const err = new Error(
+      `SEE_CANONICAL_COMPLETION_REQUIRED: Job '${id}' is a canonical SEE-managed job and cannot be updated via generic updateJobStatus.`
+    );
+    err.code = 'SEE_CANONICAL_COMPLETION_REQUIRED';
+    throw err;
+  }
   const res = await runner.query(
     `UPDATE public.service_jobs
      SET status = $2, updated_at = CURRENT_TIMESTAMP
@@ -357,13 +386,24 @@ async function findByCustomerId(customerId, { includeDeleted = false, client = n
            c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
            v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
            loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
-           sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code
+           sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code,
+           execution.id AS latest_execution_id, execution.outcome AS latest_execution_outcome,
+           execution.ended_at AS latest_execution_ended_at,
+           execution.checklist_results AS latest_checklist_results,
+           execution.proof_photos AS latest_proof_photos
     FROM public.service_jobs j
     JOIN public.customers c ON j.customer_id = c.id
     LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
     JOIN public.service_locations loc ON j.location_id = loc.id
     LEFT JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
     LEFT JOIN public.staff s ON sa.staff_id = s.id
+    LEFT JOIN LATERAL (
+      SELECT se.id, se.outcome, se.ended_at, se.checklist_results, se.proof_photos
+      FROM public.service_executions se
+      WHERE se.job_id = j.id
+      ORDER BY se.created_at DESC
+      LIMIT 1
+    ) execution ON TRUE
     WHERE ${conditions.join(' AND ')}
     ORDER BY j.created_at DESC
   `;
