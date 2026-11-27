@@ -150,6 +150,7 @@
     if (window.CWP_ADMIN_V2.seePackages) {
       window.CWP_ADMIN_V2.seePackages.init();
     }
+    if (window.CWP_ADMIN_V2.hybridPackages) window.CWP_ADMIN_V2.hybridPackages.init();
     if (window.CWP_ADMIN_V2.seeAddons) {
       window.CWP_ADMIN_V2.seeAddons.init();
     }

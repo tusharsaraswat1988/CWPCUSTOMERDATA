@@ -18,6 +18,26 @@
   let active = false;
   let auditLogsUnsupported = false;
 
+  const STORAGE_KEY_SOUND_MUTED = 'cwp_admin_sound_muted';
+  const STORAGE_KEY_LAST_SOUND = 'cwp_admin_last_sound_evt';
+  const CHANNEL_NAME = 'cwp_admin_realtime_alerts';
+
+  let soundMuted = false;
+  try {
+    soundMuted = localStorage.getItem(STORAGE_KEY_SOUND_MUTED) === 'true';
+  } catch (e) {}
+
+  let audioCtx = null;
+  let audioUnlocked = false;
+  let lastSoundTime = 0;
+  const processedEventIds = new Set();
+  let alertBroadcastChannel = null;
+
+  const activityState = {
+    cleanReportsUnread: 0,
+    specialJobsUnread: 0
+  };
+
   const state = {
     sseStatus: 'offline', // 'live' | 'reconnecting' | 'offline'
     lastSyncAt: null,
@@ -228,8 +248,8 @@
     }, 350);
   }
 
-  function pushSseEventItem(evtType, payload) {
-    const id = `sse_${evtType}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  function pushSseEventItem(evtType, payload = {}) {
+    const id = payload.eventId || `sse_${evtType}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     let title = evtType;
     let subtitle = 'Live server operational update';
     let tab = 'dashboard';
@@ -241,13 +261,22 @@
       tab = 'records';
       icon = 'folder_shared';
     } else if (evtType === 'DAILY_CLEAN_CHANGED') {
-      title = 'Daily cleaning update';
-      subtitle = [payload && payload.action, payload && payload.status, payload && payload.staffId].filter(Boolean).join(' • ') || 'Daily cleaning status changed';
+      const staff = payload.staffName || payload.staffCode || payload.staffId || 'Staff';
+      const cust = payload.customerName || '';
+      const veh = payload.vehicleNumber || '';
+      const isCnp = payload.action === 'car_not_present' || payload.isCarNotPresent;
+      const act = isCnp ? 'Exception: Car not present' : (payload.action === 'completed' ? 'Cleaned' : (payload.action || 'Updated'));
+      title = `Daily clean: ${act}`;
+      subtitle = [staff, cust, veh].filter(Boolean).join(' • ') || 'Daily cleaning status changed';
       tab = 'cleanReports';
       icon = 'directions_car';
     } else if (evtType === 'SPECIAL_JOB_CHANGED') {
-      title = 'Special job update';
-      subtitle = [payload && payload.action, payload && payload.jobId, payload && payload.status].filter(Boolean).join(' • ') || 'Special service job updated';
+      const staff = payload.staffName || payload.staffCode || payload.staffId || 'Staff';
+      const svc = payload.serviceName || 'Special job';
+      const cust = payload.customerName || '';
+      const act = payload.action ? payload.action.toUpperCase() : 'UPDATED';
+      title = `${svc} (${act})`;
+      subtitle = [staff, cust, payload.vehicleNumber].filter(Boolean).join(' • ') || 'Special service job updated';
       tab = 'specialJobs';
       icon = 'solar_power';
     } else if (evtType === 'CUSTOMER_ASSIGNMENT_CHANGED') {
@@ -264,11 +293,373 @@
       subtitle,
       tab,
       icon,
-      timestamp: new Date().toISOString()
+      timestamp: payload.timestamp || new Date().toISOString()
     });
-    if (state.sseEvents.length > 25) state.sseEvents.length = 25;
+    if (state.sseEvents.length > 30) state.sseEvents.length = 30;
     recomputeUnreadCount();
     renderDrawerContent();
+  }
+
+  function initBroadcastChannel() {
+    if (typeof window.BroadcastChannel === 'function') {
+      try {
+        alertBroadcastChannel = new window.BroadcastChannel(CHANNEL_NAME);
+        alertBroadcastChannel.onmessage = (e) => {
+          if (!e || !e.data) return;
+          const msg = e.data;
+          if (msg.type === 'SOUND_PLAYED' && msg.eventId) {
+            processedEventIds.add(msg.eventId);
+            lastSoundTime = Date.now();
+          } else if (msg.type === 'ACK_TAB' && msg.tab) {
+            clearTabAttention(msg.tab, { fromBroadcast: true });
+          } else if (msg.type === 'MUTE_TOGGLED') {
+            soundMuted = Boolean(msg.muted);
+            updateSoundToggleUI();
+          }
+        };
+      } catch (err) {
+        alertBroadcastChannel = null;
+      }
+    }
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY_SOUND_MUTED) {
+        soundMuted = e.newValue === 'true';
+        updateSoundToggleUI();
+      } else if (e.key === 'cwp_admin_ack_tab' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && parsed.tab) {
+            clearTabAttention(parsed.tab, { fromBroadcast: true });
+          }
+        } catch (err) {}
+      }
+    });
+  }
+
+  function unlockAudio() {
+    if (audioUnlocked && audioCtx && audioCtx.state === 'running') return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtx) {
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+      audioUnlocked = true;
+    } catch (e) {}
+  }
+
+  function setupAudioUnlockListeners() {
+    const unlockHandler = () => {
+      unlockAudio();
+      ['click', 'pointerdown', 'keydown', 'touchstart'].forEach(evt => {
+        window.removeEventListener(evt, unlockHandler, { capture: true });
+      });
+    };
+    ['click', 'pointerdown', 'keydown', 'touchstart'].forEach(evt => {
+      window.addEventListener(evt, unlockHandler, { capture: true, once: true });
+    });
+  }
+
+  function playNotificationChime(eventId) {
+    if (soundMuted) return;
+
+    const now = Date.now();
+    if (now - lastSoundTime < 800) return;
+
+    try {
+      const lastSoundStr = localStorage.getItem(STORAGE_KEY_LAST_SOUND);
+      if (lastSoundStr) {
+        const lastSound = JSON.parse(lastSoundStr);
+        if (lastSound && lastSound.eventId === eventId && (now - lastSound.time < 5000)) {
+          return;
+        }
+      }
+    } catch (e) {}
+
+    unlockAudio();
+    if (!audioCtx) return;
+
+    try {
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+
+      const startTime = audioCtx.currentTime;
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      const gain2 = audioCtx.createGain();
+      const masterGain = audioCtx.createGain();
+
+      masterGain.gain.setValueAtTime(0.22, startTime);
+      masterGain.connect(audioCtx.destination);
+
+      // Tone 1: D5 (587.33Hz), smooth sine
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, startTime);
+      gain1.gain.setValueAtTime(0.001, startTime);
+      gain1.gain.exponentialRampToValueAtTime(0.7, startTime + 0.02);
+      gain1.gain.exponentialRampToValueAtTime(0.001, startTime + 0.16);
+      osc1.connect(gain1);
+      gain1.connect(masterGain);
+      osc1.start(startTime);
+      osc1.stop(startTime + 0.18);
+
+      // Tone 2: A5 (880.00Hz), smooth crescendo
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880.00, startTime + 0.10);
+      gain2.gain.setValueAtTime(0.001, startTime + 0.10);
+      gain2.gain.exponentialRampToValueAtTime(0.9, startTime + 0.13);
+      gain2.gain.exponentialRampToValueAtTime(0.001, startTime + 0.38);
+      osc2.connect(gain2);
+      gain2.connect(masterGain);
+      osc2.start(startTime + 0.10);
+      osc2.stop(startTime + 0.40);
+
+      lastSoundTime = now;
+
+      if (alertBroadcastChannel) {
+        alertBroadcastChannel.postMessage({ type: 'SOUND_PLAYED', eventId, time: now });
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY_LAST_SOUND, JSON.stringify({ eventId, time: now }));
+      } catch (e) {}
+    } catch (err) {
+      console.warn('[Realtime Alert] Sound playback error:', err.message);
+    }
+  }
+
+  function updateSoundToggleUI() {
+    const btn = document.getElementById('v2SoundToggleBtn');
+    const icon = document.getElementById('v2SoundToggleIcon');
+    if (!btn || !icon) return;
+
+    if (soundMuted) {
+      icon.textContent = 'volume_off';
+      btn.setAttribute('aria-label', 'Unmute notification sounds');
+      btn.title = 'Notification sounds: Muted (Click to unmute)';
+      btn.classList.add('is-muted');
+    } else {
+      icon.textContent = 'volume_up';
+      btn.setAttribute('aria-label', 'Mute notification sounds');
+      btn.title = 'Notification sounds: On (Click to mute)';
+      btn.classList.remove('is-muted');
+    }
+  }
+
+  function toggleSoundMute() {
+    soundMuted = !soundMuted;
+    try {
+      localStorage.setItem(STORAGE_KEY_SOUND_MUTED, String(soundMuted));
+    } catch (e) {}
+    updateSoundToggleUI();
+    if (!soundMuted) {
+      unlockAudio();
+    }
+    if (alertBroadcastChannel) {
+      alertBroadcastChannel.postMessage({ type: 'MUTE_TOGGLED', muted: soundMuted });
+    }
+    if (window.CWP_ADMIN_V2.toast) {
+      window.CWP_ADMIN_V2.toast.show(
+        soundMuted ? 'Notification sounds muted.' : 'Notification sounds enabled.',
+        'info',
+        2000
+      );
+    }
+  }
+
+  function updateSidebarAlertUI(tab) {
+    if (tab === 'cleanReports') {
+      const btn = document.getElementById('v2NavBtnCleanReports');
+      const badge = document.getElementById('v2AlertCleanReports');
+      const count = activityState.cleanReportsUnread;
+      if (btn) {
+        btn.classList.toggle('has-unread-activity', count > 0);
+      }
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.hidden = false;
+        } else {
+          badge.textContent = '0';
+          badge.hidden = true;
+        }
+      }
+    } else if (tab === 'specialJobs') {
+      const btn = document.getElementById('v2NavBtnSpecialJobs');
+      const badge = document.getElementById('v2AlertSpecialJobs');
+      const count = activityState.specialJobsUnread;
+      if (btn) {
+        btn.classList.toggle('has-unread-activity', count > 0);
+      }
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.hidden = false;
+        } else {
+          badge.textContent = '0';
+          badge.hidden = true;
+        }
+      }
+    }
+  }
+
+  function incrementTabAttention(tab) {
+    if (tab === 'cleanReports') {
+      activityState.cleanReportsUnread++;
+      updateSidebarAlertUI('cleanReports');
+    } else if (tab === 'specialJobs') {
+      activityState.specialJobsUnread++;
+      updateSidebarAlertUI('specialJobs');
+    }
+  }
+
+  function clearTabAttention(tab, opts = {}) {
+    if (tab === 'cleanReports') {
+      if (activityState.cleanReportsUnread > 0) {
+        activityState.cleanReportsUnread = 0;
+        updateSidebarAlertUI('cleanReports');
+        if (!opts.fromBroadcast) {
+          if (alertBroadcastChannel) {
+            alertBroadcastChannel.postMessage({ type: 'ACK_TAB', tab: 'cleanReports' });
+          }
+          try {
+            localStorage.setItem('cwp_admin_ack_tab', JSON.stringify({ tab: 'cleanReports', time: Date.now() }));
+          } catch (e) {}
+        }
+      }
+    } else if (tab === 'specialJobs') {
+      if (activityState.specialJobsUnread > 0) {
+        activityState.specialJobsUnread = 0;
+        updateSidebarAlertUI('specialJobs');
+        if (!opts.fromBroadcast) {
+          if (alertBroadcastChannel) {
+            alertBroadcastChannel.postMessage({ type: 'ACK_TAB', tab: 'specialJobs' });
+          }
+          try {
+            localStorage.setItem('cwp_admin_ack_tab', JSON.stringify({ tab: 'specialJobs', time: Date.now() }));
+          } catch (e) {}
+        }
+      }
+    }
+  }
+
+  function handleRealtimeActivityAlert(evtType, data = {}) {
+    if (!data) return;
+    if (data.idempotent === true || data.isReplay === true) return;
+
+    const eventId = data.eventId || `evt_${data.recordId || data.reportId || data.jobId || Date.now()}_${data.action || ''}`;
+    if (processedEventIds.has(eventId)) {
+      return;
+    }
+    processedEventIds.add(eventId);
+    if (processedEventIds.size > 200) {
+      const first = processedEventIds.values().next().value;
+      processedEventIds.delete(first);
+    }
+
+    const action = String(data.action || '').toLowerCase();
+    const staffName = data.staffName || 'Staff Member';
+    const customerName = data.customerName || '';
+    const vehicleNumber = data.vehicleNumber || '';
+    const timeText = data.timestamp ? formatIstTime(data.timestamp) : formatIstTime(new Date());
+
+    let isQualifying = false;
+    let toastTitle = '';
+    let actionText = '';
+    let actionLabel = '';
+    let categoryLabel = '';
+    let targetTab = '';
+    let iconName = '';
+
+    if (evtType === 'DAILY_CLEAN_CHANGED') {
+      targetTab = 'cleanReports';
+      categoryLabel = 'Daily Cleaning';
+      iconName = 'directions_car';
+
+      if (action === 'completed' || action === 'recorded') {
+        isQualifying = true;
+        toastTitle = 'Daily Cleaning Completed';
+        actionText = `${staffName} completed cleaning.`;
+        actionLabel = 'Completed';
+      } else if (action === 'car_not_present' || action === 'customer_absent') {
+        isQualifying = true;
+        toastTitle = 'Daily Cleaning Exception';
+        actionText = `${staffName} reported car not present.`;
+        actionLabel = 'Car Not Present';
+      } else if (action === 'updated') {
+        isQualifying = true;
+        toastTitle = 'Daily Clean Status Updated';
+        actionText = `${staffName} updated cleaning record status.`;
+        actionLabel = data.status || 'Updated';
+      }
+    } else if (evtType === 'SPECIAL_JOB_CHANGED') {
+      targetTab = 'specialJobs';
+      categoryLabel = 'Other Cleaning';
+      iconName = 'solar_power';
+      const svcName = data.serviceName || 'Special Job';
+
+      if (action === 'started') {
+        isQualifying = true;
+        toastTitle = 'Other Cleaning Started';
+        actionText = `${staffName} started ${svcName}.`;
+        actionLabel = 'In Progress';
+      } else if (action === 'completed') {
+        isQualifying = true;
+        toastTitle = 'Other Cleaning Completed';
+        actionText = `${staffName} completed ${svcName}.`;
+        actionLabel = 'Completed';
+      } else if (action === 'failed' || action === 'unable_to_complete' || action === 'no_show') {
+        isQualifying = true;
+        toastTitle = 'Other Cleaning Issue';
+        actionText = `${staffName} reported job unable to complete${data.reason ? ': ' + data.reason : '.'}`;
+        actionLabel = 'Failed / Exception';
+      } else if (action === 'cancelled') {
+        isQualifying = true;
+        toastTitle = 'Other Cleaning Cancelled';
+        actionText = `Job was cancelled${data.reason ? ': ' + data.reason : '.'}`;
+        actionLabel = 'Cancelled';
+      }
+    }
+
+    if (!isQualifying) return;
+
+    // 1. Short Notification Sound
+    playNotificationChime(eventId);
+
+    // 2. Persistent Sidebar Attention (Glow + Unread Count)
+    const currentTab = window.CWP_ADMIN_V2.shell && typeof window.CWP_ADMIN_V2.shell.getActiveTab === 'function'
+      ? window.CWP_ADMIN_V2.shell.getActiveTab()
+      : null;
+
+    if (targetTab !== currentTab) {
+      incrementTabAttention(targetTab);
+    }
+
+    // 3. Live Toast Notification
+    if (window.CWP_ADMIN_V2.toast && typeof window.CWP_ADMIN_V2.toast.showActivity === 'function') {
+      window.CWP_ADMIN_V2.toast.showActivity({
+        title: toastTitle,
+        actionText: actionText,
+        actionLabel: actionLabel,
+        categoryLabel: categoryLabel,
+        customerName: customerName,
+        vehicleNumber: vehicleNumber,
+        serviceName: data.serviceName || (evtType === 'DAILY_CLEAN_CHANGED' ? 'Daily Car Cleaning' : 'Other Cleaning'),
+        timeText: timeText,
+        icon: iconName,
+        targetTab: targetTab,
+        onNavigate: () => {
+          if (window.CWP_ADMIN_V2.shell && typeof window.CWP_ADMIN_V2.shell.navigateTo === 'function') {
+            window.CWP_ADMIN_V2.shell.navigateTo(targetTab);
+          }
+        }
+      }, { duration: 7000 });
+    }
   }
 
   async function refreshNotificationFeed() {
@@ -514,6 +905,7 @@
           pushSseEventItem(msg.type, msg.data || {});
           scheduleBadgeRefresh();
           updateSsePillUI();
+          handleRealtimeActivityAlert(msg.type, msg.data || {});
         }
       };
 
@@ -681,6 +1073,33 @@
       });
     }
 
+    window.addEventListener('cwp-v2:tab-changed', (e) => {
+      const tab = e.detail && e.detail.tab;
+      if (tab === 'cleanReports' || tab === 'specialJobs') {
+        clearTabAttention(tab);
+      }
+    });
+
+    const cleanReportsNavBtn = document.getElementById('v2NavBtnCleanReports');
+    if (cleanReportsNavBtn) {
+      cleanReportsNavBtn.addEventListener('click', () => clearTabAttention('cleanReports'));
+    }
+
+    const specialJobsNavBtn = document.getElementById('v2NavBtnSpecialJobs');
+    if (specialJobsNavBtn) {
+      specialJobsNavBtn.addEventListener('click', () => clearTabAttention('specialJobs'));
+    }
+
+    const soundBtn = document.getElementById('v2SoundToggleBtn');
+    if (soundBtn) {
+      soundBtn.addEventListener('click', toggleSoundMute);
+    }
+
+    initBroadcastChannel();
+    setupAudioUnlockListeners();
+    updateSoundToggleUI();
+    updateSidebarAlertUI('cleanReports');
+    updateSidebarAlertUI('specialJobs');
     updateSsePillUI();
   }
 
@@ -692,11 +1111,19 @@
     refreshBadges,
     openDrawer,
     markAllRead,
+    toggleSoundMute,
+    isSoundMuted: () => soundMuted,
+    playNotificationChime,
+    handleRealtimeActivityAlert,
+    clearTabAttention,
+    getActivityState: () => ({ ...activityState }),
     getState: () => ({
       sseStatus: state.sseStatus,
       lastSyncAt: state.lastSyncAt,
       unreadCount: state.unreadCount,
-      snapshots: state.snapshots
+      snapshots: state.snapshots,
+      soundMuted,
+      activityState: { ...activityState }
     })
   };
 })(window);

@@ -1480,10 +1480,18 @@ const adminRealtimeClients = new Set();
 
 function broadcastAdminRealtimeEvent(eventType, eventData = {}) {
   if (adminRealtimeClients.size === 0) return;
+  const enrichedData = {
+    eventId: eventData.eventId || `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    type: eventType,
+    category: eventData.category || (eventType === 'DAILY_CLEAN_CHANGED' ? 'daily_cleaning' : (eventType === 'SPECIAL_JOB_CHANGED' ? 'other_cleaning' : 'general')),
+    tab: eventData.tab || (eventType === 'DAILY_CLEAN_CHANGED' ? 'cleanReports' : (eventType === 'SPECIAL_JOB_CHANGED' ? 'specialJobs' : '')),
+    timestamp: eventData.timestamp || new Date().toISOString(),
+    ...eventData
+  };
   const payload = JSON.stringify({
     type: eventType,
-    data: eventData,
-    timestamp: new Date().toISOString()
+    data: enrichedData,
+    timestamp: enrichedData.timestamp
   });
   const sseMessage = `event: message\ndata: ${payload}\n\n`;
   for (const clientRes of adminRealtimeClients) {
@@ -1492,6 +1500,139 @@ function broadcastAdminRealtimeEvent(eventType, eventData = {}) {
     } catch (err) {
       adminRealtimeClients.delete(clientRes);
     }
+  }
+}
+
+async function broadcastAuthoritativeDailyCleanEvent(action, details = {}) {
+  try {
+    if (details.idempotent) return;
+    let staffName = details.staffName || null;
+    let staffCode = details.staffCode || null;
+    let customerName = details.customerName || null;
+    let vehicleNumber = details.vehicleNumber || null;
+    let serviceName = details.serviceName || 'Daily Car Cleaning';
+    let status = details.status || (action === 'car_not_present' ? 'car_not_present' : 'completed');
+    const logId = details.logId || details.reportId || (details.log && details.log.id);
+
+    if (isNeonConfigured() && logId) {
+      try {
+        const enriched = await repos.serviceLogs.findById(logId);
+        if (enriched) {
+          staffName = enriched.staff_name || staffName;
+          staffCode = enriched.staff_code || staffCode;
+          customerName = enriched.customer_name || customerName;
+          vehicleNumber = enriched.registration_no || vehicleNumber;
+          status = enriched.status || status;
+          if (enriched.package_name) serviceName = enriched.package_name;
+        }
+      } catch (dbErr) {
+        // Fall back gracefully
+      }
+    } else if (appState && logId) {
+      const l = (appState.serviceLogs || []).find(x => x.id === logId) || details.log;
+      if (l) {
+        const s = (appState.staffList || []).find(st => st.id === l.staff_id || st.phone === l.staff_id);
+        if (s) {
+          staffName = s.name;
+          staffCode = s.id;
+        }
+        if (l.customerName) customerName = l.customerName;
+        if (l.registrationNo || l.vehicleNumber) vehicleNumber = l.registrationNo || l.vehicleNumber;
+        if (l.status) status = l.status;
+      }
+    }
+
+    const isException = action === 'car_not_present' || action === 'customer_absent' || status === 'car_not_present' || details.isCarNotPresent;
+    const effectiveAction = isException ? 'car_not_present' : (action || 'recorded');
+
+    const eventData = {
+      eventId: details.clientMutationId ? `evt_dcc_${details.clientMutationId}` : `evt_dcc_${logId || Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      category: 'daily_cleaning',
+      action: effectiveAction,
+      staffName: staffName || details.staffName || 'Staff Member',
+      staffCode: staffCode || details.staffCode || '',
+      customerName: customerName || details.customerName || 'Customer',
+      vehicleNumber: vehicleNumber || details.vehicleNumber || '',
+      serviceName: serviceName,
+      recordId: logId || '',
+      reportId: logId || '',
+      logId: logId || '',
+      log: details.log || null,
+      clientMutationId: details.clientMutationId || null,
+      status: status,
+      serviceDate: details.serviceDate || repos.serviceLogs?.computeIstServiceDate?.(new Date().toISOString()) || new Date().toISOString().split('T')[0],
+      tab: 'cleanReports',
+      timestamp: new Date().toISOString(),
+      isStaffAction: Boolean(details.isStaffAction !== false)
+    };
+    broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', eventData);
+  } catch (err) {
+    console.error('broadcastAuthoritativeDailyCleanEvent error:', err.message);
+  }
+}
+
+async function broadcastAuthoritativeSpecialJobEvent(action, details = {}) {
+  try {
+    if (details.idempotent) return;
+    const jobId = details.jobId || (details.job && details.job.id);
+    let staffName = details.staffName || null;
+    let staffCode = details.staffCode || null;
+    let customerName = details.customerName || null;
+    let vehicleNumber = details.vehicleNumber || null;
+    let serviceName = details.serviceName || null;
+    let status = details.status || (action === 'started' ? 'in_progress' : (action === 'completed' ? 'completed' : action));
+
+    if (isNeonConfigured() && jobId) {
+      try {
+        const enriched = await repos.serviceJobs.findById(jobId);
+        if (enriched) {
+          staffName = enriched.assigned_staff_name || staffName;
+          staffCode = enriched.assigned_staff_code || staffCode;
+          customerName = enriched.customer_name || customerName;
+          vehicleNumber = enriched.registration_no || vehicleNumber;
+          serviceName = enriched.service_type || serviceName;
+          if (!details.status && action !== 'started' && action !== 'completed') {
+            status = enriched.status || status;
+          }
+        }
+      } catch (dbErr) {
+        // Fall back gracefully
+      }
+    } else if (appState && jobId) {
+      const j = (appState.serviceJobs || []).find(x => x.id === jobId) || details.job;
+      if (j) {
+        staffName = j.assigned_staff_name || j.staffName || staffName;
+        staffCode = j.assigned_staff_code || j.staffId || staffCode;
+        customerName = j.customer_name || j.customerName || customerName;
+        vehicleNumber = j.registration_no || j.vehicleNumber || vehicleNumber;
+        serviceName = j.service_type || j.serviceType || serviceName;
+        if (!details.status && action !== 'started' && action !== 'completed') {
+          status = j.status || status;
+        }
+      }
+    }
+
+    const eventData = {
+      eventId: details.clientMutationId ? `evt_job_${details.clientMutationId}` : `evt_job_${jobId}_${action}_${Date.now()}`,
+      category: 'other_cleaning',
+      action: action,
+      staffName: staffName || details.staffName || 'Staff Member',
+      staffCode: staffCode || details.staffCode || '',
+      customerName: customerName || details.customerName || 'Customer',
+      vehicleNumber: vehicleNumber || details.vehicleNumber || '',
+      serviceName: serviceName || 'Special Cleaning Job',
+      recordId: jobId || '',
+      jobId: jobId || '',
+      clientMutationId: details.clientMutationId || null,
+      status: status,
+      reason: details.reason || '',
+      tab: 'specialJobs',
+      timestamp: new Date().toISOString(),
+      isStaffAction: Boolean(details.isStaffAction !== false)
+    };
+    broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', eventData);
+  } catch (err) {
+    console.error('broadcastAuthoritativeSpecialJobEvent error:', err.message);
   }
 }
 
@@ -5179,6 +5320,32 @@ const server = http.createServer(async (req, res) => {
             completions: payload.completions || [],
             clientIp: getClientIp(req)
           });
+
+          // Broadcast authoritative realtime events for every newly committed offline completion
+          if (batchRes && Array.isArray(batchRes.results)) {
+            for (const r of batchRes.results) {
+              if (r && r.status === 'synced' && !r.idempotent) {
+                if (r.jobId) {
+                  await broadcastAuthoritativeSpecialJobEvent('completed', {
+                    jobId: r.jobId,
+                    logId: r.logId,
+                    clientMutationId: r.mutationId,
+                    staffCode: staffCode,
+                    isStaffAction: true
+                  });
+                } else if (r.logId) {
+                  await broadcastAuthoritativeDailyCleanEvent(r.status === 'car_not_present' ? 'car_not_present' : 'completed', {
+                    logId: r.logId,
+                    clientMutationId: r.mutationId,
+                    staffCode: staffCode,
+                    serviceDate: r.serviceDate,
+                    isStaffAction: true
+                  });
+                }
+              }
+            }
+          }
+
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify(batchRes));
         }
@@ -5457,7 +5624,20 @@ const server = http.createServer(async (req, res) => {
                 }, client);
               });
 
-              broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', { action: 'recorded', log: outcome.log, serviceDate: istDate });
+              if (!outcome.idempotent) {
+                await broadcastAuthoritativeDailyCleanEvent(isCarNotPresent ? 'car_not_present' : (outcome.log.status === 'completed' ? 'completed' : outcome.log.status), {
+                  logId: outcome.log?.id,
+                  log: outcome.log,
+                  serviceDate: istDate,
+                  isCarNotPresent,
+                  clientMutationId: mutationId,
+                  staffName: staff.name,
+                  staffCode: staff.staff_code || staff.id,
+                  isStaffAction: true
+                });
+              } else {
+                broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', { action: 'recorded', log: outcome.log, serviceDate: istDate, idempotent: true });
+              }
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: true,
@@ -5541,7 +5721,17 @@ const server = http.createServer(async (req, res) => {
           appState.serviceLogs.unshift(localLog);
           saveLocalData(appState);
 
-          broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', { action: 'recorded', log: localLog, serviceDate: localLog.service_date });
+          const localStaff = (appState.staffList || []).find(s => s.id === staffCode || s.phone === staffCode) || staffSess;
+          await broadcastAuthoritativeDailyCleanEvent(isCarNotPresent ? 'car_not_present' : (localLog.status === 'completed' ? 'completed' : localLog.status), {
+            logId: localLog.id,
+            log: localLog,
+            serviceDate: localLog.service_date,
+            isCarNotPresent,
+            clientMutationId: mutationId,
+            staffName: (localStaff && localStaff.name) || (staffSess && staffSess.name) || staffCode,
+            staffCode: (localStaff && (localStaff.staff_code || localStaff.id)) || staffCode,
+            isStaffAction: true
+          });
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: true,
@@ -5691,7 +5881,11 @@ const server = http.createServer(async (req, res) => {
                 reason: payload.reason || '',
                 adminUser: adminSess.username || 'admin'
               });
-              broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', { action: 'updated', reportId: payload.reportId, status: payload.status });
+              await broadcastAuthoritativeDailyCleanEvent('updated', {
+                reportId: payload.reportId,
+                status: payload.status,
+                serviceDate: resObj.report?.service_date
+              });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(resObj));
             } catch (err) {
@@ -6913,7 +7107,13 @@ const server = http.createServer(async (req, res) => {
                 }
                 const enriched = enrichJobForApi(job);
                 invalidateLiveCustomersCache();
-                broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: outcome, jobId, status: outcome });
+                await broadcastAuthoritativeSpecialJobEvent(outcome, {
+                  jobId,
+                  status: outcome,
+                  reason,
+                  actor,
+                  isStaffAction: Boolean(staffSess)
+                });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({ success: true, job: enriched, message: `Service marked ${outcome} via SEE` }));
               }
@@ -6925,7 +7125,13 @@ const server = http.createServer(async (req, res) => {
               actor
             });
             invalidateLiveCustomersCache();
-            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'failed', jobId: jobId, status: 'unable_to_complete' });
+            await broadcastAuthoritativeSpecialJobEvent('failed', {
+              jobId: jobId,
+              status: 'unable_to_complete',
+              reason: payload.failureReason || payload.reason,
+              actor,
+              isStaffAction: Boolean(staffSess)
+            });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, job: result.job || result, message: 'Service marked unable to complete' }));
           } catch (err) {
@@ -7485,7 +7691,12 @@ const server = http.createServer(async (req, res) => {
             }
 
             invalidateLiveCustomersCache();
-            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'started', jobId: jobId, status: 'in_progress' });
+            await broadcastAuthoritativeSpecialJobEvent('started', {
+              jobId: jobId,
+              status: 'in_progress',
+              actor: startActor,
+              isStaffAction: Boolean(staffSess)
+            });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: true,
@@ -7642,7 +7853,13 @@ const server = http.createServer(async (req, res) => {
                 // return value confirms the log was recorded.
                 const updatedSeeJob = enrichJobForApi(await repos.serviceJobs.findById(jobId), staffObj);
                 invalidateLiveCustomersCache();
-                broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'completed', jobId, status: 'completed' });
+                await broadcastAuthoritativeSpecialJobEvent('completed', {
+                  jobId,
+                  status: 'completed',
+                  clientMutationId: payload.clientMutationId,
+                  actor,
+                  isStaffAction: Boolean(staffSess)
+                });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({
                   success: true,
@@ -7668,7 +7885,13 @@ const server = http.createServer(async (req, res) => {
             const updatedJob = compRes.job || compRes;
 
             invalidateLiveCustomersCache();
-            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'completed', jobId: jobId, status: 'completed' });
+            await broadcastAuthoritativeSpecialJobEvent('completed', {
+              jobId: jobId,
+              status: 'completed',
+              clientMutationId: payload.clientMutationId,
+              actor,
+              isStaffAction: Boolean(staffSess)
+            });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: true,
@@ -7808,7 +8031,13 @@ const server = http.createServer(async (req, res) => {
                 }
                 const enriched = enrichJobForApi(job);
                 invalidateLiveCustomersCache();
-                broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'cancelled', jobId, status: 'cancelled' });
+                await broadcastAuthoritativeSpecialJobEvent('cancelled', {
+                  jobId,
+                  status: 'cancelled',
+                  reason,
+                  actor: cancelledBy,
+                  isStaffAction: Boolean(staffSess)
+                });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({
                   success: true,
@@ -7860,7 +8089,13 @@ const server = http.createServer(async (req, res) => {
             }
 
             invalidateLiveCustomersCache();
-            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'cancelled', jobId: jobId, status: 'cancelled' });
+            await broadcastAuthoritativeSpecialJobEvent('cancelled', {
+              jobId: jobId,
+              status: 'cancelled',
+              reason,
+              actor: cancelledBy,
+              isStaffAction: Boolean(staffSess)
+            });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: true,
@@ -7897,7 +8132,8 @@ const server = http.createServer(async (req, res) => {
       extractAuthToken,
       resolveAdminSession,
       resolveStaffSession,
-      uploadImage: uploadToCloudinary
+      uploadImage: uploadToCloudinary,
+      broadcastSpecialJobChange: broadcastAuthoritativeSpecialJobEvent
     });
     if (handled) return;
   }
@@ -8140,5 +8376,8 @@ module.exports = {
   setDataFile: (df) => { DATA_FILE = df; },
   saveLocalData,
   loadLocalData,
-  adminSecurityService
+  adminSecurityService,
+  broadcastAdminRealtimeEvent,
+  broadcastAuthoritativeDailyCleanEvent,
+  broadcastAuthoritativeSpecialJobEvent
 };

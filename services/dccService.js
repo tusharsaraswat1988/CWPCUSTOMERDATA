@@ -155,7 +155,7 @@ async function validateDccEligibility({ subscriptionId, vehicleId = null, custom
 /**
  * Create a new DCC Subscription for a Customer
  */
-async function createSubscription(params = {}, actor = 'admin') {
+async function createSubscription(params = {}, actor = 'admin', externalClient = null) {
   const customerId = params.customerId;
   if (!customerId) {
     throw new Error('Customer ID is required to create a DCC subscription.');
@@ -173,7 +173,7 @@ async function createSubscription(params = {}, actor = 'admin') {
   const vehicles = rawVehicles.map(v => typeof v === 'string' ? { vehicleId: v, locationId: params.locationId } : v);
 
   if (isNeonActive()) {
-    return db.withTransaction(async (client) => {
+    const provision = async (client) => {
       const sub = await repos.subscriptions.createSubscription({
         customerId,
         serviceCategoryId: 'daily_car_cleaning',
@@ -224,7 +224,8 @@ async function createSubscription(params = {}, actor = 'admin') {
         subscription: sub,
         message: 'DCC subscription activated successfully.'
       };
-    });
+    };
+    return externalClient ? provision(externalClient) : db.withTransaction(provision);
   }
 
   // Local fallback
@@ -285,7 +286,7 @@ async function createSubscription(params = {}, actor = 'admin') {
 /**
  * Renew an existing DCC subscription cleanly
  */
-async function renewSubscription({ subscriptionId, newEndDate = null, durationMonths = 1, newPackageName = null, notes = null, actor = 'admin' }) {
+async function renewSubscription({ subscriptionId, newEndDate = null, durationMonths = 1, newPackageName = null, notes = null, actor = 'admin' }, externalClient = null) {
   if (!subscriptionId) {
     throw new Error('Subscription ID is required to renew.');
   }
@@ -298,7 +299,7 @@ async function renewSubscription({ subscriptionId, newEndDate = null, durationMo
   }
 
   if (isNeonActive()) {
-    return db.withTransaction(async (client) => {
+    const renew = async (client) => {
       const existing = await repos.subscriptions.findById(subscriptionId, client);
       if (!existing) {
         throw new Error(`Subscription '${subscriptionId}' not found.`);
@@ -336,7 +337,8 @@ async function renewSubscription({ subscriptionId, newEndDate = null, durationMo
         subscription: updated,
         message: `DCC subscription renewed successfully until ${computedEnd}.`
       };
-    });
+    };
+    return externalClient ? renew(externalClient) : db.withTransaction(renew);
   }
 
   // Local fallback
@@ -411,7 +413,7 @@ async function stopSubscription({ subscriptionId, reason = 'Customer requested s
 /**
  * Cancel a DCC subscription permanently
  */
-async function cancelSubscription(arg1, arg2 = 'Subscription cancelled', arg3 = 'admin') {
+async function cancelSubscription(arg1, arg2 = 'Subscription cancelled', arg3 = 'admin', externalClient = null) {
   const subscriptionId = typeof arg1 === 'object' && arg1 !== null ? arg1.subscriptionId : arg1;
   const reason = typeof arg1 === 'object' && arg1 !== null ? (arg1.reason || 'Subscription cancelled') : arg2;
   const actor = typeof arg1 === 'object' && arg1 !== null ? (arg1.actor || 'admin') : arg3;
@@ -419,7 +421,7 @@ async function cancelSubscription(arg1, arg2 = 'Subscription cancelled', arg3 = 
   if (!subscriptionId) throw new Error('Subscription ID is required.');
 
   if (isNeonActive()) {
-    return db.withTransaction(async (client) => {
+    const cancel = async (client) => {
       const existing = await repos.subscriptions.findById(subscriptionId, client);
       if (!existing) throw new Error(`Subscription '${subscriptionId}' not found.`);
 
@@ -439,7 +441,8 @@ async function cancelSubscription(arg1, arg2 = 'Subscription cancelled', arg3 = 
       }, client);
 
       return { success: true, subscription: cancelled, message: 'DCC subscription cancelled successfully.' };
-    });
+    };
+    return externalClient ? cancel(externalClient) : db.withTransaction(cancel);
   }
 
   // Local fallback

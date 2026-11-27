@@ -213,6 +213,7 @@ async function processCompletionBatch({ staffCodeOrId, completions = [], clientI
           return {
             status: 'synced',
             mutationId,
+            jobId,
             logId: logRecord?.id,
             serviceDate: istServiceDate,
             idempotent: logIdempotent

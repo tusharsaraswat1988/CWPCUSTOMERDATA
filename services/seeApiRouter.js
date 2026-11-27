@@ -14,6 +14,7 @@ const seeFrequencyService = require('./seeFrequencyService');
 const seeStaffCapabilityService = require('./seeStaffCapabilityService');
 const seeEntitlementService = require('./seeEntitlementService');
 const seeExecutionService = require('./seeExecutionService');
+const hybridPackageService = require('./hybridPackageService');
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -111,6 +112,51 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
     || 'anonymous';
 
   try {
+    // Dedicated hybrid catalogue and membership endpoints. These routes never
+    // enter generic SEE package purchase/configuration handlers.
+    if (pathname.startsWith('/api/see/hybrid/')) {
+      if (method === 'GET' && pathname === '/api/see/hybrid/packages') {
+        const packages = await hybridPackageService.listPackages({ includeDrafts: Boolean(adminSess) });
+        return sendJson(res, 200, { success: true, packages });
+      }
+      if (method === 'POST' && pathname === '/api/see/hybrid/packages') {
+        if (!requireAdmin()) return true;
+        const pkg = await hybridPackageService.createPackage(await readJsonBody(req), actor);
+        return sendJson(res, 201, { success: true, package: pkg });
+      }
+      let hm = pathname.match(/^\/api\/see\/hybrid\/packages\/([^/]+)$/);
+      if (hm && ['PATCH','PUT'].includes(method)) {
+        if (!requireAdmin()) return true;
+        const pkg = await hybridPackageService.updatePackage(decodeURIComponent(hm[1]), await readJsonBody(req));
+        return sendJson(res, pkg ? 200 : 404, { success: Boolean(pkg), package: pkg, error: pkg ? undefined : 'Draft hybrid package not found.' });
+      }
+      hm = pathname.match(/^\/api\/see\/hybrid\/packages\/([^/]+)\/status$/);
+      if (hm && method === 'POST') {
+        if (!requireAdmin()) return true;
+        const body = await readJsonBody(req);
+        const pkg = await hybridPackageService.setPackageStatus(decodeURIComponent(hm[1]), body.status);
+        return sendJson(res, pkg ? 200 : 404, { success: Boolean(pkg), package: pkg });
+      }
+      if (method === 'POST' && pathname === '/api/see/hybrid/purchases') {
+        if (!requireAdmin()) return true;
+        const membership = await hybridPackageService.purchase(await readJsonBody(req), actor);
+        return sendJson(res, 201, { success: true, membership });
+      }
+      hm = pathname.match(/^\/api\/see\/hybrid\/memberships\/([^/]+)\/cancel$/);
+      if (hm && method === 'POST') {
+        if (!requireAdmin()) return true;
+        const body = await readJsonBody(req);
+        const membership = await hybridPackageService.cancel(decodeURIComponent(hm[1]), { actor, reason: body.reason });
+        return sendJson(res, 200, { success: true, membership });
+      }
+      hm = pathname.match(/^\/api\/see\/hybrid\/memberships\/([^/]+)\/renew$/);
+      if (hm && method === 'POST') {
+        if (!requireAdmin()) return true;
+        const membership = await hybridPackageService.renew(decodeURIComponent(hm[1]), { actor });
+        return sendJson(res, 200, { success: true, membership });
+      }
+      return sendJson(res, 404, { success: false, error: 'Hybrid package endpoint not found.' });
+    }
     // ---------------------------------------------------------------------
     // 1. Service Catalogue
     // ---------------------------------------------------------------------
@@ -519,6 +565,18 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
         beforePhotos: Array.isArray(body.beforePhotos) ? body.beforePhotos : undefined,
         startedAt: body.startedAt || undefined
       });
+      if (typeof context.broadcastSpecialJobChange === 'function') {
+        try {
+          await context.broadcastSpecialJobChange('started', {
+            jobId,
+            staffId,
+            status: 'in_progress',
+            isStaffAction: Boolean(staffSess)
+          });
+        } catch (bErr) {
+          console.warn('[SEE-Router] startExecution broadcast warning:', bErr.message);
+        }
+      }
       return sendJson(res, 200, { success: true, execution });
     }
 
@@ -545,6 +603,20 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
         source: staffSess ? 'staff_portal' : 'admin_manual',
         actor
       });
+      if (typeof context.broadcastSpecialJobChange === 'function') {
+        try {
+          await context.broadcastSpecialJobChange('completed', {
+            jobId,
+            staffId: staffSess ? staffSess.staffId : body.staffId,
+            status: 'completed',
+            clientMutationId: body.clientMutationId || null,
+            actor,
+            isStaffAction: Boolean(staffSess)
+          });
+        } catch (bErr) {
+          console.warn('[SEE-Router] completeExecution broadcast warning:', bErr.message);
+        }
+      }
       return sendJson(res, 200, { success: true, execution });
     }
 
@@ -559,6 +631,19 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
         reason: body.reason,
         actor
       });
+      if (typeof context.broadcastSpecialJobChange === 'function') {
+        try {
+          await context.broadcastSpecialJobChange(body.outcome === 'cancelled' ? 'cancelled' : 'failed', {
+            jobId,
+            status: body.outcome,
+            reason: body.reason,
+            actor,
+            isStaffAction: Boolean(staffSess)
+          });
+        } catch (bErr) {
+          console.warn('[SEE-Router] terminateJob broadcast warning:', bErr.message);
+        }
+      }
       return sendJson(res, 200, { success: true, job });
     }
 

@@ -65,11 +65,13 @@
               <button type="button" id="v2NavBtnCleanReports" class="cwp-v2-nav-item" data-tab="cleanReports" title="Daily Cleaning Status">
                 <span class="material-symbols-outlined" aria-hidden="true">directions_car</span>
                 <span class="cwp-v2-nav-label">Daily Cleaning Status</span>
+                <span id="v2AlertCleanReports" class="cwp-v2-nav-alert-indicator" hidden aria-label="Unread daily cleaning activity">0</span>
                 <span id="v2BadgeCleanReports" class="cwp-v2-nav-badge">—</span>
               </button>
               <button type="button" id="v2NavBtnSpecialJobs" class="cwp-v2-nav-item" data-tab="specialJobs" title="Other Cleaning Status">
                 <span class="material-symbols-outlined" aria-hidden="true">solar_power</span>
                 <span class="cwp-v2-nav-label">Other Cleaning Status</span>
+                <span id="v2AlertSpecialJobs" class="cwp-v2-nav-alert-indicator" hidden aria-label="Unread other cleaning activity">0</span>
                 <span id="v2BadgeSpecialJobs" class="cwp-v2-nav-badge">—</span>
               </button>
               <button type="button" id="v2NavBtnJobAssignment" class="cwp-v2-nav-item" data-tab="jobAssignment" title="Assign Jobs">
@@ -136,6 +138,9 @@
                 <span class="material-symbols-outlined" aria-hidden="true">inventory_2</span>
                 <span class="cwp-v2-nav-label">Packages</span>
                 <span id="v2BadgeSeePackages" class="cwp-v2-nav-badge">—</span>
+              </button>
+              <button type="button" id="v2NavBtnHybridPackages" class="cwp-v2-nav-item" data-tab="hybridPackages" title="Hybrid Packages">
+                <span class="material-symbols-outlined" aria-hidden="true">account_tree</span><span class="cwp-v2-nav-label">Hybrid Packages</span>
               </button>
               <button type="button" id="v2NavBtnSeeAddons" class="cwp-v2-nav-item" data-tab="seeAddons" title="Add-ons">
                 <span class="material-symbols-outlined" aria-hidden="true">extension</span>
@@ -213,6 +218,11 @@
               </div>
               <div id="v2GlobalSearchResults" class="cwp-v2-search-results-popover" role="listbox" aria-label="Search results" hidden></div>
             </div>
+
+            <!-- Sound Mute/Unmute Toggle -->
+            <button type="button" id="v2SoundToggleBtn" class="cwp-v2-icon-btn" aria-label="Mute notification sounds" title="Notification sounds: On">
+              <span class="material-symbols-outlined" aria-hidden="true" id="v2SoundToggleIcon">volume_up</span>
+            </button>
 
             <!-- Notification Drawer Trigger -->
             <button type="button" id="v2NotificationsBtn" class="cwp-v2-icon-btn" aria-label="Open live notifications drawer" title="Live operational notifications">
@@ -5351,6 +5361,16 @@
 
           </section>
 
+          <section id="v2View_hybridPackages" class="cwp-v2-view" aria-label="Hybrid Packages">
+            <div class="cwp-v2-data-grid">
+              <div class="cwp-v2-table-toolbar"><div><strong>Hybrid Packages</strong><div class="cwp-v2-cell-secondary">Combined Daily Cleaning and Car Wash memberships</div></div>
+                <div style="display:flex;gap:8px"><button id="v2HybridRefresh" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" type="button">Refresh</button><button id="v2HybridCreate" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" type="button">New Hybrid Package</button></div>
+              </div>
+              <div id="v2HybridState" class="cwp-v2-empty-state-panel" style="display:none;margin:16px"></div>
+              <div class="cwp-v2-table-wrap"><table class="cwp-v2-table" aria-label="Hybrid packages"><thead><tr><th>Code</th><th>Name</th><th>Version</th><th>Cycle</th><th>Price</th><th>Credits</th><th>Status</th><th>Actions</th></tr></thead><tbody id="v2HybridBody"></tbody></table></div>
+            </div>
+          </section>
+
           <!-- ============================================================= -->
           <!-- VIEW: SECURITY & DEVICES (SECURITY CENTER)                    -->
           <!-- ============================================================= -->
@@ -10025,6 +10045,7 @@
   <script src="/admin-v2/js/v2-security.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-see-services.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-see-packages.js?v=2.1.4"></script>
+  <script src="/admin-v2/js/v2-hybrid-packages.js?v=1"></script>
   <script src="/admin-v2/js/v2-see-addons.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-app.js?v=2.1.2"></script>
 

@@ -124,6 +124,11 @@
       subtitle: 'Canonical package definitions, benefits, add-ons & pricing rules',
       subtitleHi: 'पैकेज, लाभ, ऐड-ऑन और मूल्य नियम'
     },
+    hybridPackages: {
+      group: 'CATALOGUE', groupEn: 'Catalogue', groupHi: 'Catalogue',
+      title: 'Hybrid Packages', titleHi: 'Hybrid Packages',
+      subtitle: 'Combined Daily Cleaning and Car Wash package definitions and provisioning health', subtitleHi: 'Hybrid Packages'
+    },
     seeAddons: {
       group: 'CATALOGUE',
       groupEn: 'Catalogue',
