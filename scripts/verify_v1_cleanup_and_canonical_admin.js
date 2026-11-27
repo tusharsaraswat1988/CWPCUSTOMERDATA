@@ -50,10 +50,15 @@ async function run() {
   // 1. Static V1 Residual Checks
   const indexHtml = fs.readFileSync(path.join(ROOT, 'Index.html'), 'utf8');
   const appJs = fs.readFileSync(path.join(ROOT, 'public', 'js', 'app.js'), 'utf8');
+  const styleCss = fs.readFileSync(path.join(ROOT, 'public', 'css', 'style.css'), 'utf8');
+  const staffM3Css = fs.readFileSync(path.join(ROOT, 'public', 'css', 'staff-m3.css'), 'utf8');
   const swJs = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  const pkgJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
   const deadIndexIds = [
-    'adminHeader', 'adminView', 'adminAuthGate',
+    'adminHeader', 'adminView', 'adminAuthGate', 'adminUnlockedContent',
+    'adminSidebar', 'adminLogoutBtn', 'adminPasswordInput', 'adminAuthForm',
+    'cwp-neural-login', 'cwp-neural-core',
     'editCleanReportModal', 'deleteCleanReportModal', 'lightboxAdminActionsWrap',
     'addCustomerModal', 'editCustomerModal', 'assignServiceModal',
     'staffEditModal', 'addStaffModal', 'cwpPhotoCropperModal',
@@ -69,18 +74,48 @@ async function run() {
   assert(!indexHtml.includes("initialMode : 'admin'"), 'Index.html initialMode fallback is not admin');
   assert(indexHtml.includes('id="staffHeader"') && indexHtml.includes('id="staffView"'), 'Index.html preserves Staff Portal');
 
+  // 1b. Active Staff CSS free of V1 Admin selectors & mode-switching
+  const deadCssSelectors = [
+    '#adminHeader', '#adminView', '#adminAuthGate', '#adminTab',
+    '.admin-mode-active', '#adminLogoutBtn', '.admin-sidebar',
+    '.admin-layout-wrapper', '.admin-main-workspace', '.cropper-',
+    'cwp-neural-login'
+  ];
+  for (const sel of deadCssSelectors) {
+    assert(!styleCss.includes(sel), `public/css/style.css free of V1 selector: ${sel}`);
+    assert(!staffM3Css.includes(sel), `public/css/staff-m3.css free of V1 selector: ${sel}`);
+  }
+
+  // 1c. Active Staff JS free of V1 Admin handlers & initialization
   const deadAppSymbols = [
     'function isUserAdminAuthenticated', 'function initAdminAutoLogin', 'function handleAdminAuth',
     'function checkAdminAuthStatus', 'function getAdminToken', 'function clearAdminTokens',
     'function initAdminRealtimeStream', 'function openCropperModal',
-    'function openEditReportStatusModal', 'function openDeleteReportModal'
+    'function openEditReportStatusModal', 'function openDeleteReportModal',
+    'function switchAdminTab', 'function toggleAdminSidebar', 'function loadAdminRecords',
+    'function initAdminRouteManagement', 'function initAdminSequenceManager',
+    'function loadStaffTrackingTab', 'function pingStaffFromAdmin',
+    'function renderAdminSpecialJobsTable', 'function loadDailyCleanReports',
+    'TrackingMapAdapter', 'cwp-neural-login', 'cwp-neural-core'
   ];
   for (const sym of deadAppSymbols) {
     assert(!appJs.includes(sym), `public/js/app.js free of V1 residual: ${sym}`);
   }
   assert(!appJs.includes("var initialMode = 'admin'"), 'public/js/app.js initialMode is not admin');
   assert(!fs.existsSync(path.join(ROOT, 'public', 'js', 'cropper.min.js')), 'public/js/cropper.min.js deleted');
+  assert(!fs.existsSync(path.join(ROOT, 'public', 'css', 'cwp-neural-login.css')), 'public/css/cwp-neural-login.css absent');
+  assert(!fs.existsSync(path.join(ROOT, 'public', 'js', 'cwp-neural-core.js')), 'public/js/cwp-neural-core.js absent');
+
+  // 1d. Service Worker & Package.json integrity
   assert(swJs.includes("'/admin'") && swJs.includes("'/admin-v2'"), 'sw.js bypasses /admin and /admin-v2');
+  assert(!swJs.includes('cropper') && !swJs.includes('cwp-neural'), 'sw.js free of deleted V1 assets');
+
+  const allTestScripts = `${pkgJson.scripts?.test || ''} && ${pkgJson.scripts?.['test:neon'] || ''}`;
+  assert(!allTestScripts.includes('test_cwp_admin_neural_login_qa.js'), 'package.json free of obsolete neural login test');
+  const referencedTests = allTestScripts.match(/tests\/[a-zA-Z0-9_.-]+\.js/g) || [];
+  for (const relTest of referencedTests) {
+    assert(fs.existsSync(path.join(ROOT, relTest)), `package.json referenced test exists: ${relTest}`);
+  }
 
   // 2. Canonical Routing & Security Checks
   await new Promise((resolve, reject) => {

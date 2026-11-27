@@ -106,6 +106,24 @@
       subtitle: 'Staff roster, designations, hierarchy & PIN management',
       subtitleHi: 'स्टाफ सूची, पद और पिन प्रबंधन'
     },
+    seeServices: {
+      group: 'CATALOGUE',
+      groupEn: 'Catalogue',
+      groupHi: 'कैटलॉग',
+      title: 'Services',
+      titleHi: 'सेवाएं',
+      subtitle: 'Canonical SEE service definitions, models, proof rules & versions',
+      subtitleHi: 'सेवा परिभाषा, मॉडल और प्रमाण नियम'
+    },
+    seeAddons: {
+      group: 'CATALOGUE',
+      groupEn: 'Catalogue',
+      groupHi: 'कैटलॉग',
+      title: 'Add-ons',
+      titleHi: 'ऐड-ऑन',
+      subtitle: 'Reusable service add-ons, execution modes, pricing & compatibility',
+      subtitleHi: 'अतिरिक्त सेवाएं और संगतता नियम'
+    },
     'ui-lab': {
       group: 'DESIGN LAB',
       groupEn: 'Design Lab',

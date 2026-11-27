@@ -144,6 +144,12 @@
     if (window.CWP_ADMIN_V2.security) {
       window.CWP_ADMIN_V2.security.init();
     }
+    if (window.CWP_ADMIN_V2.seeServices) {
+      window.CWP_ADMIN_V2.seeServices.init();
+    }
+    if (window.CWP_ADMIN_V2.seeAddons) {
+      window.CWP_ADMIN_V2.seeAddons.init();
+    }
   }
 
   async function performLogout() {

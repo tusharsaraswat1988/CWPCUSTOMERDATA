@@ -132,6 +132,7 @@ async function createJob({
   vehicleId = null,
   locationId,
   serviceCategoryId,
+  serviceId = null,
   serviceType,
   packageDetails = null,
   packageCode = null,
@@ -149,31 +150,41 @@ async function createJob({
   afterPhotos = []
 }, client = null) {
   const runner = client || db;
+  let resolvedServiceId = serviceId;
+  if (!resolvedServiceId && serviceCategoryId) {
+    const svcRes = await runner.query(
+      `SELECT id FROM public.services WHERE service_category_id = $1 AND status = 'active' ORDER BY created_at ASC LIMIT 1`,
+      [serviceCategoryId]
+    );
+    resolvedServiceId = svcRes.rows[0]?.id || null;
+  }
   const res = await runner.query(
     `INSERT INTO public.service_jobs (
-       customer_id, vehicle_id, location_id, service_category_id,
-       service_type, package_details, package_code, seater_type, panel_count,
+       customer_id, vehicle_id, location_id, service_category_id, service_id,
+       service_name_snapshot, service_type, package_details, package_code, seater_type, panel_count,
        site_details, scheduled_date, scheduled_time, sequence_order,
        status, special_instructions, photo_url, photo_storage_key,
        before_photos, after_photos
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
      RETURNING *`,
     [
       customerId,
       vehicleId,
       locationId,
       serviceCategoryId,
+      resolvedServiceId,
       serviceType,
-      packageDetails ? packageDetails.trim() : null,
-      packageCode ? packageCode.trim() : null,
-      seaterType || null,
-      panelCount != null && !isNaN(parseInt(panelCount, 10)) ? parseInt(panelCount, 10) : null,
-      siteDetails ? (typeof siteDetails === 'string' ? siteDetails : JSON.stringify(siteDetails)) : null,
+      serviceType,
+      packageDetails,
+      packageCode,
+      seaterType,
+      panelCount,
+      siteDetails ? JSON.stringify(siteDetails) : null,
       scheduledDate,
-      scheduledTime ? scheduledTime.trim() : null,
-      sequenceOrder != null && !isNaN(parseInt(sequenceOrder, 10)) ? parseInt(sequenceOrder, 10) : null,
-      status || 'assigned',
-      specialInstructions ? specialInstructions.trim() : null,
+      scheduledTime,
+      sequenceOrder,
+      status,
+      specialInstructions,
       photoUrl,
       photoStorageKey,
       JSON.stringify(beforePhotos || []),

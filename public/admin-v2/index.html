@@ -119,6 +119,26 @@
             </div>
           </div>
 
+          <!-- CATALOGUE GROUP (SEE Production Integration) -->
+          <div class="cwp-v2-nav-group">
+            <button type="button" class="cwp-v2-nav-group-toggle" aria-expanded="true" aria-controls="v2NavGroupCatalogue">
+              <span>CATALOGUE</span>
+              <span class="material-symbols-outlined cwp-v2-nav-group-chevron" aria-hidden="true">expand_more</span>
+            </button>
+            <div id="v2NavGroupCatalogue" class="cwp-v2-nav-group-items">
+              <button type="button" id="v2NavBtnSeeServices" class="cwp-v2-nav-item" data-tab="seeServices" title="Services">
+                <span class="material-symbols-outlined" aria-hidden="true">cleaning_services</span>
+                <span class="cwp-v2-nav-label">Services</span>
+                <span id="v2BadgeSeeServices" class="cwp-v2-nav-badge">—</span>
+              </button>
+              <button type="button" id="v2NavBtnSeeAddons" class="cwp-v2-nav-item" data-tab="seeAddons" title="Add-ons">
+                <span class="material-symbols-outlined" aria-hidden="true">extension</span>
+                <span class="cwp-v2-nav-label">Add-ons</span>
+                <span id="v2BadgeSeeAddons" class="cwp-v2-nav-badge">—</span>
+              </button>
+            </div>
+          </div>
+
           <!-- DESIGN LAB (Collapsed by default, isolated to /admin-v2/ui-lab) -->
           <div class="cwp-v2-nav-group">
             <button type="button" class="cwp-v2-nav-group-toggle" aria-expanded="false" aria-controls="v2NavGroupLab">
@@ -280,6 +300,10 @@
               <a href="#v2-sec-tables" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" style="height:26px; font-size:11.5px;">
                 <span class="material-symbols-outlined" style="font-size:14px;">grid_on</span>
                 <span>8. Tables &amp; Data Grid (Task 07)</span>
+              </a>
+              <a href="#v2-sec-see" class="cwp-v2-btn cwp-v2-btn-tonal cwp-v2-btn-sm" style="height:26px; font-size:11.5px;">
+                <span class="material-symbols-outlined" style="font-size:14px;">hub</span>
+                <span>9. SEE-09 Engine UI</span>
               </a>
             </div>
 
@@ -4369,6 +4393,956 @@
 
             </div>
 
+            <!-- ----------------------------------------------------------- -->
+            <!-- 16. SEE-10: Service & Entitlement Engine (Owner Review)     -->
+            <!-- ----------------------------------------------------------- -->
+            <div id="v2-sec-see" class="cwp-v2-playground-section">
+              <div class="cwp-v2-section-heading">
+                <h2><span class="material-symbols-outlined" style="color:var(--cwp-v2-sys-primary);">hub</span> 16. SEE-10 &mdash; Service &amp; Entitlement Engine (Owner Review Prototype)</h2>
+                <span class="cwp-v2-section-tag" style="background:var(--cwp-v2-sys-primary-container); color:var(--cwp-v2-sys-on-primary-container);">Prototype Data &bull; Design Only</span>
+              </div>
+
+              <!-- Approved Navigation & Domain Boundary Strip -->
+              <div class="cwp-v2-card" style="margin-bottom:var(--cwp-v2-space-3); padding:12px 16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                  <div>
+                    <span class="cwp-v2-card-title">Approved SEE Navigation Architecture</span>
+                    <div class="cwp-v2-card-subtitle"><strong>CATALOGUE</strong> (Services, Packages, Add-ons, Tags) &bull; <strong>Customer Inspector</strong> (Entitlements) &bull; <strong>Staff Inspector</strong> (Capabilities) &bull; <strong>Operations</strong> (Jobs &amp; Execution)</div>
+                  </div>
+                  <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <span class="cwp-v2-badge cwp-v2-badge-primary">New: CATALOGUE Group</span>
+                    <span class="cwp-v2-badge cwp-v2-badge-warning">DCC Route Isolated</span>
+                  </div>
+                </div>
+
+                <!-- Module Switcher + UI State Preview Bar -->
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:8px; border-top:1px solid var(--cwp-v2-sys-border-subtle);">
+                  <div class="cwp-v2-chip-cluster" id="v2SeeModuleTabs" role="tablist" aria-label="SEE Modules">
+                    <span style="font-size:10.5px; font-weight:700; color:var(--cwp-v2-sys-on-surface-muted); text-transform:uppercase; letter-spacing:0.04em; margin-right:2px;">Catalogue:</span>
+                    <button type="button" class="cwp-v2-filter-chip is-active" role="tab" aria-selected="true" data-see-module="services">
+                      <span class="material-symbols-outlined" style="font-size:15px;">cleaning_services</span>
+                      <span>Services</span>
+                      <span class="cwp-v2-chip-count">5</span>
+                    </button>
+                    <button type="button" class="cwp-v2-filter-chip" role="tab" aria-selected="false" data-see-module="packages">
+                      <span class="material-symbols-outlined" style="font-size:15px;">inventory_2</span>
+                      <span>Packages</span>
+                      <span class="cwp-v2-chip-count">4</span>
+                    </button>
+                    <button type="button" class="cwp-v2-filter-chip" role="tab" aria-selected="false" data-see-module="addons">
+                      <span class="material-symbols-outlined" style="font-size:15px;">extension</span>
+                      <span>Add-ons</span>
+                      <span class="cwp-v2-chip-count">5</span>
+                    </button>
+                    <button type="button" class="cwp-v2-filter-chip" role="tab" aria-selected="false" data-see-module="tags">
+                      <span class="material-symbols-outlined" style="font-size:15px;">sell</span>
+                      <span>Service Tags</span>
+                      <span class="cwp-v2-chip-count">4</span>
+                    </button>
+                    <span style="font-size:10.5px; font-weight:700; color:var(--cwp-v2-sys-on-surface-muted); text-transform:uppercase; letter-spacing:0.04em; margin:0 2px 0 6px;">Inspectors &amp; Ops:</span>
+                    <button type="button" class="cwp-v2-filter-chip" role="tab" aria-selected="false" data-see-module="capabilities">
+                      <span class="material-symbols-outlined" style="font-size:15px;">engineering</span>
+                      <span>Staff Capabilities</span>
+                      <span class="cwp-v2-chip-count">3</span>
+                    </button>
+                    <button type="button" class="cwp-v2-filter-chip" role="tab" aria-selected="false" data-see-module="entitlements">
+                      <span class="material-symbols-outlined" style="font-size:15px;">account_balance_wallet</span>
+                      <span>Purchased Entitlements</span>
+                      <span class="cwp-v2-chip-count">3</span>
+                    </button>
+                    <button type="button" class="cwp-v2-filter-chip" role="tab" aria-selected="false" data-see-module="jobs">
+                      <span class="material-symbols-outlined" style="font-size:15px;">assignment_turned_in</span>
+                      <span>Jobs &amp; Execution</span>
+                      <span class="cwp-v2-chip-count">4</span>
+                    </button>
+                  </div>
+
+                  <!-- State Preview Toggle -->
+                  <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                    <span style="font-size:11.5px; font-weight:600; color:var(--cwp-v2-sys-on-surface-variant); margin-right:2px;">UI State:</span>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm v2-see-state-btn" data-see-state="data">Live</button>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-state-btn" data-see-state="loading">Loading</button>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-state-btn" data-see-state="empty">Empty</button>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-state-btn" data-see-state="error">Error</button>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-state-btn" data-see-state="disabled">Disabled</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Shared SEE State Overlays (Loading / Empty / Error) -->
+              <div id="v2SeeStateLoading" class="cwp-v2-data-grid" style="display:none; padding:16px; margin-bottom:var(--cwp-v2-space-4);">
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <div class="cwp-v2-skeleton-bar" style="height:32px; width:100%;"></div>
+                  <div class="cwp-v2-skeleton-bar" style="height:34px; width:100%;"></div>
+                  <div class="cwp-v2-skeleton-bar" style="height:34px; width:100%;"></div>
+                  <div class="cwp-v2-skeleton-bar" style="height:34px; width:88%;"></div>
+                </div>
+              </div>
+
+              <div id="v2SeeStateEmpty" class="cwp-v2-empty-state-panel" style="display:none; margin-bottom:var(--cwp-v2-space-4);">
+                <span class="material-symbols-outlined cwp-v2-empty-state-icon">inventory_2</span>
+                <div class="cwp-v2-empty-state-title">No SEE Records Match Current Filters</div>
+                <div class="cwp-v2-empty-state-desc">Adjust your category, status, or search filter, or create a new configuration record.</div>
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" id="v2SeeStateResetBtn">Reset to Live View</button>
+              </div>
+
+              <div id="v2SeeStateError" class="cwp-v2-empty-state-panel" style="display:none; border-color:var(--cwp-v2-status-danger); margin-bottom:var(--cwp-v2-space-4);">
+                <span class="material-symbols-outlined cwp-v2-empty-state-icon" style="color:var(--cwp-v2-status-danger);">cloud_off</span>
+                <div class="cwp-v2-empty-state-title">Unable to Load SEE Module Data</div>
+                <div class="cwp-v2-empty-state-desc">Simulated API timeout or permission error. Existing cached configurations remain read-only.</div>
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" id="v2SeeStateRetryBtn">Retry Request</button>
+              </div>
+
+              <!-- =========================================================== -->
+              <!-- MODULE A: SERVICES                                          -->
+              <!-- =========================================================== -->
+              <div id="v2SeePanel_services" class="v2-see-module-panel">
+                <div class="cwp-v2-data-grid">
+                  <div class="cwp-v2-table-toolbar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <div class="cwp-v2-input-box cwp-v2-input-sm" style="width:230px;">
+                        <span class="material-symbols-outlined cwp-v2-input-leading-icon" style="font-size:16px;">search</span>
+                        <input type="text" id="v2SeeServiceSearch" class="cwp-v2-input" placeholder="Search service code or name...">
+                      </div>
+                      <select id="v2SeeServiceModelFilter" class="cwp-v2-select-compact" aria-label="Service Model Filter">
+                        <option value="ALL">All Models</option>
+                        <option value="recurring">recurring</option>
+                        <option value="one_time">one_time</option>
+                        <option value="visit_credit">visit_credit</option>
+                        <option value="site_quantity">site_quantity</option>
+                        <option value="flexible_custom">flexible_custom</option>
+                      </select>
+                      <select id="v2SeeServiceStatusFilter" class="cwp-v2-select-compact" aria-label="Service Status Filter">
+                        <option value="ALL">All Statuses</option>
+                        <option value="active">active</option>
+                        <option value="draft">draft</option>
+                        <option value="retired">retired</option>
+                      </select>
+                    </div>
+                    <button type="button" id="v2SeeNewServiceBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm v2-see-disableable">
+                      <span class="material-symbols-outlined">add</span>
+                      <span>New Service</span>
+                    </button>
+                  </div>
+
+                  <div class="cwp-v2-table-container has-sticky-header">
+                    <table class="cwp-v2-table is-compact">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Service Name &amp; Category</th>
+                          <th>Service Model</th>
+                          <th>Proof &amp; Checklist</th>
+                          <th>Version</th>
+                          <th>Status</th>
+                          <th class="is-sticky-action">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="v2SeeServicesTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- =========================================================== -->
+              <!-- MODULE B: PACKAGES                                          -->
+              <!-- =========================================================== -->
+              <div id="v2SeePanel_packages" class="v2-see-module-panel" style="display:none;">
+                <div class="cwp-v2-data-grid">
+                  <div class="cwp-v2-table-toolbar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <div class="cwp-v2-input-box cwp-v2-input-sm" style="width:230px;">
+                        <span class="material-symbols-outlined cwp-v2-input-leading-icon" style="font-size:16px;">search</span>
+                        <input type="text" id="v2SeePackageSearch" class="cwp-v2-input" placeholder="Search package code or name...">
+                      </div>
+                      <select id="v2SeePackageSegmentFilter" class="cwp-v2-select-compact" aria-label="Vehicle Segment Filter">
+                        <option value="ALL">All Segments</option>
+                        <option value="5_seater">5_seater</option>
+                        <option value="5_plus_seater">5_plus_seater</option>
+                      </select>
+                      <select id="v2SeePackageStatusFilter" class="cwp-v2-select-compact" aria-label="Package Status Filter">
+                        <option value="ALL">All Statuses</option>
+                        <option value="active">active</option>
+                        <option value="draft">draft</option>
+                        <option value="retired">retired</option>
+                      </select>
+                    </div>
+                    <button type="button" id="v2SeeNewPackageBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm v2-see-disableable">
+                      <span class="material-symbols-outlined">add_box</span>
+                      <span>Create Package</span>
+                    </button>
+                  </div>
+
+                  <div class="cwp-v2-table-container has-sticky-header">
+                    <table class="cwp-v2-table is-compact">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Package &amp; Main Service</th>
+                          <th>Benefits &amp; Add-ons</th>
+                          <th>Frequency &amp; Validity</th>
+                          <th>Pricing Rule</th>
+                          <th>Status</th>
+                          <th class="is-sticky-action">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="v2SeePackagesTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- =========================================================== -->
+              <!-- MODULE C: ADD-ONS                                           -->
+              <!-- =========================================================== -->
+              <div id="v2SeePanel_addons" class="v2-see-module-panel" style="display:none;">
+                <div class="cwp-v2-data-grid">
+                  <div class="cwp-v2-table-toolbar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <div class="cwp-v2-input-box cwp-v2-input-sm" style="width:220px;">
+                        <span class="material-symbols-outlined cwp-v2-input-leading-icon" style="font-size:16px;">search</span>
+                        <input type="text" id="v2SeeAddonSearch" class="cwp-v2-input" placeholder="Search add-on...">
+                      </div>
+                      <select id="v2SeeAddonModeFilter" class="cwp-v2-select-compact" aria-label="Execution Mode Filter">
+                        <option value="ALL">All 5 Execution Modes</option>
+                        <option value="per_main_service">per_main_service</option>
+                        <option value="during_main_service">during_main_service</option>
+                        <option value="separate_job">separate_job</option>
+                        <option value="customer_redemption">customer_redemption</option>
+                        <option value="scheduled_independently">scheduled_independently</option>
+                      </select>
+                    </div>
+                    <button type="button" id="v2SeeNewAddonBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm v2-see-disableable">
+                      <span class="material-symbols-outlined">add</span>
+                      <span>New Add-on</span>
+                    </button>
+                  </div>
+
+                  <div class="cwp-v2-table-container has-sticky-header">
+                    <table class="cwp-v2-table is-compact">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Add-on Name</th>
+                          <th>Execution Mode</th>
+                          <th>Compatible Services</th>
+                          <th>Price</th>
+                          <th>Status</th>
+                          <th class="is-sticky-action">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="v2SeeAddonsTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- =========================================================== -->
+              <!-- MODULE D: SERVICE TAGS                                      -->
+              <!-- =========================================================== -->
+              <div id="v2SeePanel_tags" class="v2-see-module-panel" style="display:none;">
+                <div class="cwp-v2-data-grid">
+                  <div class="cwp-v2-table-toolbar">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">Configurable promotional tags &amp; media slot metadata (<code>1:1</code> / <code>4:3</code>)</span>
+                    </div>
+                    <button type="button" id="v2SeeNewTagBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm v2-see-disableable">
+                      <span class="material-symbols-outlined">new_label</span>
+                      <span>Create Tag</span>
+                    </button>
+                  </div>
+
+                  <div class="cwp-v2-table-container has-sticky-header">
+                    <table class="cwp-v2-table is-compact">
+                      <thead>
+                        <tr>
+                          <th>Tag Key</th>
+                          <th>Display Chip Preview</th>
+                          <th>Tag Type</th>
+                          <th>Assigned To</th>
+                          <th>Validity</th>
+                          <th>Status</th>
+                          <th class="is-sticky-action">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="v2SeeTagsTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- =========================================================== -->
+              <!-- MODULE E: STAFF CAPABILITIES                                -->
+              <!-- =========================================================== -->
+              <div id="v2SeePanel_capabilities" class="v2-see-module-panel" style="display:none;">
+                <div style="display:grid; grid-template-columns:1fr; gap:var(--cwp-v2-space-4);">
+                  <!-- Capability Templates -->
+                  <div class="cwp-v2-data-grid">
+                    <div class="cwp-v2-table-toolbar">
+                      <span style="font-weight:600; font-size:13px;">1. Staff Capability Templates (<code>staff_types</code>)</span>
+                      <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-disableable" data-overlay-target="v2SeeModalStaffCap">
+                        <span class="material-symbols-outlined">add</span>
+                        <span>New Template</span>
+                      </button>
+                    </div>
+                    <div class="cwp-v2-table-container">
+                      <table class="cwp-v2-table is-compact">
+                        <thead>
+                          <tr>
+                            <th>Template</th>
+                            <th>Permitted Services</th>
+                            <th>Permitted Add-ons</th>
+                            <th>Required Equipment</th>
+                            <th>Daily Cap</th>
+                            <th>Active Staff</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>DCC Route Specialist</strong></td>
+                            <td>DCC Daily Cleaning</td>
+                            <td>None (DCC Isolated)</td>
+                            <td>Microfiber Kit, Duster</td>
+                            <td>28 jobs/day</td>
+                            <td>14</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Mobile Wash &amp; Detail Tech</strong></td>
+                            <td>Foam Wash, Interior Steam</td>
+                            <td>Tyre, Dashboard, Engine Bay</td>
+                            <td>Pressure Washer, Vacuum, Foam Lance</td>
+                            <td>6 jobs/day</td>
+                            <td>9</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Solar Array Technician</strong></td>
+                            <td>Solar Panel Cleaning</td>
+                            <td>Inverter Dusting</td>
+                            <td>Telescopic Pole, TDS Meter, Safety Harness</td>
+                            <td>4 jobs/day</td>
+                            <td>4</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Individual Staff Capability & Audited Overrides -->
+                  <div class="cwp-v2-data-grid">
+                    <div class="cwp-v2-table-toolbar">
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span class="cwp-v2-badge cwp-v2-badge-primary">Staff Inspector Context</span>
+                        <span style="font-weight:600; font-size:13px;">2. Staff Assignment Eligibility &amp; Audited Overrides</span>
+                      </div>
+                      <span style="font-size:11.5px; color:var(--cwp-v2-sys-on-surface-muted);">Embedded in Staff Detail &bull; Changing staff type preserves existing assigned jobs</span>
+                    </div>
+                    <div class="cwp-v2-table-container has-sticky-header">
+                      <table class="cwp-v2-table is-compact">
+                        <thead>
+                          <tr>
+                            <th>Staff Member</th>
+                            <th>Staff Type</th>
+                            <th>Allowed Cities / Zones</th>
+                            <th>Equipment Verified</th>
+                            <th>Overrides</th>
+                            <th class="is-sticky-action">Actions</th>
+                          </tr>
+                        </thead>
+                      <tbody id="v2SeeStaffTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+              <!-- =========================================================== -->
+              <!-- MODULE F: PURCHASED ENTITLEMENTS                            -->
+              <!-- =========================================================== -->
+              <div id="v2SeePanel_entitlements" class="v2-see-module-panel" style="display:none;">
+                <div class="cwp-v2-data-grid">
+                  <div class="cwp-v2-table-toolbar" style="flex-direction:column; align-items:stretch; gap:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span class="cwp-v2-badge cwp-v2-badge-primary">Customer Inspector Context</span>
+                        <span style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">Embedded in Customer Detail &bull; Snapshot &amp; Ledger separated</span>
+                      </div>
+                      <div id="v2SeeEntitlementSummary" style="display:flex; gap:6px; flex-wrap:wrap; font-size:11.5px;">
+                        <span class="cwp-v2-badge cwp-v2-badge-neutral">Purchased: 12</span>
+                        <span class="cwp-v2-badge cwp-v2-badge-warning">Reserved: 1</span>
+                        <span class="cwp-v2-badge cwp-v2-badge-info">Consumed: 6</span>
+                        <span class="cwp-v2-badge cwp-v2-badge-success">Remaining: 5</span>
+                      </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <div class="cwp-v2-input-box cwp-v2-input-sm" style="width:240px;">
+                          <span class="material-symbols-outlined cwp-v2-input-leading-icon" style="font-size:16px;">search</span>
+                          <input type="text" id="v2SeeEntitlementSearch" class="cwp-v2-input" placeholder="Search customer, plate, sale ref...">
+                        </div>
+                        <select id="v2SeeEntitlementStatusFilter" class="cwp-v2-select-compact" aria-label="Entitlement Status Filter">
+                          <option value="ALL">All Account Statuses</option>
+                          <option value="active">active</option>
+                          <option value="exhausted">exhausted</option>
+                          <option value="expired">expired</option>
+                          <option value="refunded">refunded</option>
+                        </select>
+                      </div>
+                      <span class="cwp-v2-badge cwp-v2-badge-info">Immutable Snapshots &bull; Admin-Only Mutations</span>
+                    </div>
+                  </div>
+
+                  <div class="cwp-v2-table-container has-sticky-header">
+                    <table class="cwp-v2-table is-compact">
+                      <thead>
+                        <tr>
+                          <th>Customer &amp; Vehicle</th>
+                          <th>Purchase Snapshot</th>
+                          <th>Credits (Rem / Res / Cons / Pur)</th>
+                          <th>Utilization</th>
+                          <th>Validity</th>
+                          <th>Status</th>
+                          <th class="is-sticky-action">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="v2SeeEntitlementsTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- =========================================================== -->
+              <!-- MODULE G: JOBS & EXECUTION                                  -->
+              <!-- =========================================================== -->
+              <div id="v2SeePanel_jobs" class="v2-see-module-panel" style="display:none;">
+                <div class="cwp-v2-data-grid">
+                  <div class="cwp-v2-table-toolbar" style="flex-direction:column; align-items:stretch; gap:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span class="cwp-v2-badge cwp-v2-badge-primary">SEE Service Jobs</span>
+                        <span style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">Distinct from DCC Route Plan &bull; Reserves on assign, consumes idempotently on valid completion</span>
+                      </div>
+                      <span class="cwp-v2-badge cwp-v2-badge-neutral">DCC Route Plan Isolated</span>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                      <div class="cwp-v2-chip-cluster" id="v2SeeJobFilterChips">
+                        <button type="button" class="cwp-v2-filter-chip is-active" data-see-job-filter="all">All SEE Jobs <span class="cwp-v2-chip-count">4</span></button>
+                        <button type="button" class="cwp-v2-filter-chip cwp-v2-chip-warning" data-see-job-filter="awaiting_approval">Awaiting Approval (Solar) <span class="cwp-v2-chip-count">1</span></button>
+                        <button type="button" class="cwp-v2-filter-chip" data-see-job-filter="in_progress">In Progress <span class="cwp-v2-chip-count">1</span></button>
+                        <button type="button" class="cwp-v2-filter-chip" data-see-job-filter="completed">Completed <span class="cwp-v2-chip-count">1</span></button>
+                        <button type="button" class="cwp-v2-filter-chip" data-see-job-filter="cancelled">Cancelled <span class="cwp-v2-chip-count">1</span></button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="cwp-v2-table-container has-sticky-header">
+                    <table class="cwp-v2-table is-compact" id="v2SeeJobsTable">
+                      <thead>
+                        <tr>
+                          <th>Job ID</th>
+                          <th>Customer &amp; Service</th>
+                          <th>Assigned Staff</th>
+                          <th>Execution Status</th>
+                          <th>Checklist &amp; Proof / Solar</th>
+                          <th>Entitlement</th>
+                          <th class="is-sticky-action">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="v2SeeJobsTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- =========================================================== -->
+              <!-- SEE OVERLAYS: MODALS, DRAWERS & CONFIRMATION DIALOGS        -->
+              <!-- =========================================================== -->
+
+              <!-- 1. Create / Edit Service Modal -->
+              <div id="v2SeeModalService" class="cwp-v2-overlay-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeModalServiceTitle">
+                <div class="cwp-v2-modal cwp-v2-modal-lg">
+                  <div class="cwp-v2-modal-header">
+                    <div class="cwp-v2-modal-header-content">
+                      <h3 class="cwp-v2-modal-title" id="v2SeeModalServiceTitle">Create / Edit Service (Versioned)</h3>
+                      <p class="cwp-v2-modal-subtitle">Edits create a new <code>service_versions</code> snapshot and apply to future sales only.</p>
+                    </div>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                  <div class="cwp-v2-modal-body">
+                    <div id="v2SeeServiceFormError" style="display:none; margin-bottom:10px; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+                    <div class="cwp-v2-form-grid">
+                      <div class="cwp-v2-field-group">
+                        <label class="cwp-v2-field-label">Service Code <span class="cwp-v2-required-mark">*</span></label>
+                        <input type="text" id="v2SeeSvcCode" class="cwp-v2-input" value="SVC-WASH-01">
+                      </div>
+                      <div class="cwp-v2-field-group">
+                        <label class="cwp-v2-field-label">Service Name <span class="cwp-v2-required-mark">*</span></label>
+                        <input type="text" id="v2SeeSvcName" class="cwp-v2-input" value="Pressure Foam Car Wash">
+                      </div>
+                      <div class="cwp-v2-field-group">
+                        <label class="cwp-v2-field-label">Service Category <span class="cwp-v2-required-mark">*</span></label>
+                        <select id="v2SeeSvcCategory" class="cwp-v2-select">
+                          <option value="Car Washing">Car Washing</option>
+                          <option value="Daily Car Cleaning (DCC)">Daily Car Cleaning (DCC)</option>
+                          <option value="Solar">Solar</option>
+                          <option value="Detailing">Detailing</option>
+                        </select>
+                      </div>
+                      <div class="cwp-v2-field-group">
+                        <label class="cwp-v2-field-label">Service Model <span class="cwp-v2-required-mark">*</span></label>
+                        <select id="v2SeeSvcModel" class="cwp-v2-select">
+                          <option value="visit_credit">visit_credit</option>
+                          <option value="recurring">recurring</option>
+                          <option value="one_time">one_time</option>
+                          <option value="site_quantity">site_quantity</option>
+                          <option value="flexible_custom">flexible_custom</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--cwp-v2-sys-border-subtle); display:flex; flex-direction:column; gap:10px;">
+                      <strong style="font-size:12.5px;">Execution &amp; Proof Requirements</strong>
+                      <label class="cwp-v2-switch cwp-v2-switch-sm">
+                        <input type="checkbox" id="v2SeeSvcChecklist" class="cwp-v2-switch-input" checked>
+                        <span class="cwp-v2-switch-track"><span class="cwp-v2-switch-thumb"></span></span>
+                        <span class="cwp-v2-switch-text"><span class="cwp-v2-switch-title">Enforce Checklist Completion Before Job Complete</span></span>
+                      </label>
+                      <label class="cwp-v2-switch cwp-v2-switch-sm">
+                        <input type="checkbox" id="v2SeeSvcPhoto" class="cwp-v2-switch-input" checked>
+                        <span class="cwp-v2-switch-track"><span class="cwp-v2-switch-thumb"></span></span>
+                        <span class="cwp-v2-switch-text"><span class="cwp-v2-switch-title">Require Before &amp; After Photo Proof</span></span>
+                      </label>
+                      <label class="cwp-v2-switch cwp-v2-switch-sm">
+                        <input type="checkbox" id="v2SeeSvcDcc" class="cwp-v2-switch-input">
+                        <span class="cwp-v2-switch-track"><span class="cwp-v2-switch-thumb"></span></span>
+                        <span class="cwp-v2-switch-text"><span class="cwp-v2-switch-title">DCC Isolated Stream (Exclude from wash credits &amp; periodic add-ons)</span></span>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-modal-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="button" id="v2SeeSvcSaveBtn" class="cwp-v2-btn cwp-v2-btn-primary">Save New Version</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Service Details Drawer -->
+              <div id="v2SeeDrawerService" class="cwp-v2-drawer-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeDrawerServiceTitle">
+                <div class="cwp-v2-drawer cwp-v2-drawer-lg">
+                  <div class="cwp-v2-drawer-header">
+                    <div>
+                      <h3 class="cwp-v2-modal-title" id="v2SeeDrawerServiceTitle">Service Details</h3>
+                      <p class="cwp-v2-modal-subtitle" id="v2SeeDrawerServiceSub">&mdash;</p>
+                    </div>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                  <div class="cwp-v2-drawer-body" id="v2SeeDrawerServiceBody" style="display:flex; flex-direction:column; gap:14px;"></div>
+                  <div class="cwp-v2-drawer-footer">
+                    <button type="button" id="v2SeeDrawerServiceRetireBtn" class="cwp-v2-btn cwp-v2-btn-danger">Retire Service</button>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Close</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Create / Edit Package Modal (Sectioned) -->
+              <div id="v2SeeModalPackage" class="cwp-v2-overlay-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeModalPackageTitle">
+                <div class="cwp-v2-modal cwp-v2-modal-lg">
+                  <div class="cwp-v2-modal-header">
+                    <div class="cwp-v2-modal-header-content">
+                      <h3 class="cwp-v2-modal-title" id="v2SeeModalPackageTitle">Configure Package (4-Section Workflow)</h3>
+                      <p class="cwp-v2-modal-subtitle">Logical sections prevent form overload; updates increment version without altering past purchases.</p>
+                    </div>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                  <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:14px;">
+                    <div class="cwp-v2-chip-cluster" id="v2SeePkgStepTabs" style="padding-bottom:10px; border-bottom:1px solid var(--cwp-v2-sys-border-subtle);">
+                      <button type="button" class="cwp-v2-filter-chip is-active" data-pkg-step="1">1. Identity</button>
+                      <button type="button" class="cwp-v2-filter-chip" data-pkg-step="2">2. Benefits &amp; Add-ons</button>
+                      <button type="button" class="cwp-v2-filter-chip" data-pkg-step="3">3. Frequency &amp; Validity</button>
+                      <button type="button" class="cwp-v2-filter-chip" data-pkg-step="4">4. Pricing Rules</button>
+                    </div>
+                    <div id="v2SeePkgFormError" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+                    <div class="v2-see-pkg-step-panel" data-pkg-step-panel="1">
+                      <div class="cwp-v2-form-grid">
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Package Code <span class="cwp-v2-required-mark">*</span></label>
+                          <input type="text" id="v2SeePkgCode" class="cwp-v2-input" value="PKG-WASH-4X">
+                        </div>
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Package Name <span class="cwp-v2-required-mark">*</span></label>
+                          <input type="text" id="v2SeePkgName" class="cwp-v2-input" value="4x Bi-Weekly Wash Pack">
+                        </div>
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Main Service <span class="cwp-v2-required-mark">*</span></label>
+                          <select id="v2SeePkgMainService" class="cwp-v2-select">
+                            <option value="Pressure Foam Wash">Pressure Foam Car Wash (visit_credit)</option>
+                            <option value="Daily Car Cleaning">Daily Car Cleaning (DCC Isolated)</option>
+                            <option value="Solar Panel Cleaning">Solar Panel Cleaning (site_quantity)</option>
+                            <option value="Interior Steam">Interior Steam Sanitization (one_time)</option>
+                          </select>
+                        </div>
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Package Status</label>
+                          <select id="v2SeePkgStatus" class="cwp-v2-select">
+                            <option value="active">active</option>
+                            <option value="draft">draft</option>
+                            <option value="retired">retired</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="v2-see-pkg-step-panel" data-pkg-step-panel="2" style="display:none;">
+                      <div class="cwp-v2-form-grid">
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Main Benefit Quantity</label>
+                          <div class="cwp-v2-stepper">
+                            <button type="button" id="v2SeePkgQtyMinus" class="cwp-v2-stepper-btn">-</button>
+                            <input type="number" id="v2SeePkgQty" class="cwp-v2-stepper-input" value="4" readonly>
+                            <button type="button" id="v2SeePkgQtyPlus" class="cwp-v2-stepper-btn">+</button>
+                          </div>
+                        </div>
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Included / Optional Add-ons</label>
+                          <select id="v2SeePkgAddons" class="cwp-v2-select">
+                            <option value="Tyre Dressing (Included)">Tyre Dressing (Included)</option>
+                            <option value="Dashboard UV (Optional)">Dashboard UV (Optional)</option>
+                            <option value="None">None</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="v2-see-pkg-step-panel" data-pkg-step-panel="3" style="display:none;">
+                      <div class="cwp-v2-form-grid">
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Frequency Type (Asia/Kolkata)</label>
+                          <select id="v2SeePkgFreq" class="cwp-v2-select">
+                            <option value="every_15_days">every_15_days</option>
+                            <option value="daily">daily</option>
+                            <option value="alternate_days">alternate_days</option>
+                            <option value="twice_per_month">twice_per_month</option>
+                            <option value="monthly">monthly</option>
+                            <option value="every_n_months">every_n_months</option>
+                          </select>
+                        </div>
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Validity Window (Days) <span class="cwp-v2-required-mark">*</span></label>
+                          <input type="number" id="v2SeePkgValidity" class="cwp-v2-input" value="60" min="1">
+                        </div>
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Carry-Forward Policy</label>
+                          <select id="v2SeePkgCarryForward" class="cwp-v2-select">
+                            <option value="Allow 15-day grace carry-forward">Allow 15-day grace carry-forward</option>
+                            <option value="Strict expiry at validity end">Strict expiry at validity end</option>
+                          </select>
+                        </div>
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Missed-Visit / Blackout Policy</label>
+                          <select id="v2SeePkgMissedVisit" class="cwp-v2-select">
+                            <option value="Shift to next working day">Shift to next working day</option>
+                            <option value="Skip occurrence">Skip occurrence</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="v2-see-pkg-step-panel" data-pkg-step-panel="4" style="display:none;">
+                      <div class="cwp-v2-form-grid">
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Rule Type</label>
+                          <select id="v2SeePkgPricingRule" class="cwp-v2-select">
+                            <option value="vehicle_segment">vehicle_segment</option>
+                            <option value="fixed">fixed</option>
+                            <option value="per_unit">per_unit</option>
+                            <option value="per_panel">per_panel</option>
+                            <option value="pricing_bands">pricing_bands</option>
+                            <option value="minimum_charge">minimum_charge</option>
+                          </select>
+                        </div>
+                        <div class="cwp-v2-field-group">
+                          <label class="cwp-v2-field-label">Pricing Summary / Rate (&rupee;) <span class="cwp-v2-required-mark">*</span></label>
+                          <input type="text" id="v2SeePkgPricingText" class="cwp-v2-input" value="₹1,499 / ₹1,899">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-modal-footer" style="justify-content:space-between;">
+                    <button type="button" id="v2SeePkgPrevBtn" class="cwp-v2-btn cwp-v2-btn-secondary" disabled>Previous</button>
+                    <div style="display:flex; gap:8px;">
+                      <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                      <button type="button" id="v2SeePkgNextBtn" class="cwp-v2-btn cwp-v2-btn-primary">Next Step</button>
+                      <button type="button" id="v2SeePkgSaveBtn" class="cwp-v2-btn cwp-v2-btn-primary" style="display:none;">Save Package</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. Package Detail Drawer -->
+              <div id="v2SeeDrawerPackage" class="cwp-v2-drawer-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeDrawerPackageTitle">
+                <div class="cwp-v2-drawer cwp-v2-drawer-md">
+                  <div class="cwp-v2-drawer-header">
+                    <div>
+                      <h3 class="cwp-v2-modal-title" id="v2SeeDrawerPackageTitle">Package Inspector</h3>
+                      <p class="cwp-v2-modal-subtitle" id="v2SeeDrawerPackageSub">Dynamic price preview &amp; immutable snapshot guarantee</p>
+                    </div>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                  <div class="cwp-v2-drawer-body" id="v2SeeDrawerPackageBody" style="display:flex; flex-direction:column; gap:12px;"></div>
+                  <div class="cwp-v2-drawer-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Close</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. Create / Edit Add-on Modal -->
+              <div id="v2SeeModalAddon" class="cwp-v2-overlay-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeModalAddonTitle">
+                <div class="cwp-v2-modal cwp-v2-modal-md">
+                  <div class="cwp-v2-modal-header">
+                    <div class="cwp-v2-modal-header-content">
+                      <h3 class="cwp-v2-modal-title" id="v2SeeModalAddonTitle">Configure Add-on &amp; Execution Mode</h3>
+                      <p class="cwp-v2-modal-subtitle">Define service compatibility and one of 5 execution modes.</p>
+                    </div>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                  <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:12px;">
+                    <div id="v2SeeAddonFormError" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+                    <div class="cwp-v2-form-grid">
+                      <div class="cwp-v2-field-group">
+                        <label class="cwp-v2-field-label">Add-on Name <span class="cwp-v2-required-mark">*</span></label>
+                        <input type="text" id="v2SeeAddonName" class="cwp-v2-input" value="Engine Bay Degreasing">
+                      </div>
+                      <div class="cwp-v2-field-group">
+                        <label class="cwp-v2-field-label">Base Price (&rupee;) <span class="cwp-v2-required-mark">*</span></label>
+                        <input type="number" id="v2SeeAddonPrice" class="cwp-v2-input" value="349" min="0">
+                      </div>
+                    </div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">Execution Mode</label>
+                      <select class="cwp-v2-select" id="v2SeeAddonModeSelect">
+                        <option value="per_main_service">per_main_service</option>
+                        <option value="during_main_service">during_main_service</option>
+                        <option value="separate_job" selected>separate_job</option>
+                        <option value="customer_redemption">customer_redemption</option>
+                        <option value="scheduled_independently">scheduled_independently</option>
+                      </select>
+                      <div class="cwp-v2-field-footer">
+                        <span class="cwp-v2-field-helper" id="v2SeeAddonModeHint">Creates a standalone job with its own staff assignment and proof.</span>
+                      </div>
+                    </div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">Service Compatibility</label>
+                      <div class="cwp-v2-chip-cluster" id="v2SeeAddonCompatChips">
+                        <button type="button" class="cwp-v2-filter-chip is-active" data-compat-svc="Foam Wash">Foam Wash</button>
+                        <button type="button" class="cwp-v2-filter-chip is-active" data-compat-svc="Interior Steam">Interior Steam</button>
+                        <button type="button" class="cwp-v2-filter-chip" data-compat-svc="Solar Panel">Solar Panel</button>
+                        <button type="button" class="cwp-v2-filter-chip" disabled title="DCC is isolated">DCC (Excluded)</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-modal-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="button" id="v2SeeAddonSaveBtn" class="cwp-v2-btn cwp-v2-btn-primary">Save Add-on</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 6. Promotional Tag Modal & Assignment Drawer -->
+              <div id="v2SeeModalTag" class="cwp-v2-overlay-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeModalTagTitle">
+                <div class="cwp-v2-modal cwp-v2-modal-sm">
+                  <div class="cwp-v2-modal-header">
+                    <div class="cwp-v2-modal-header-content">
+                      <h3 class="cwp-v2-modal-title" id="v2SeeModalTagTitle">Create Promotional Tag</h3>
+                    </div>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                  </div>
+                  <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:10px;">
+                    <div id="v2SeeTagFormError" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">Tag Label <span class="cwp-v2-required-mark">*</span></label>
+                      <input type="text" id="v2SeeTagLabel" class="cwp-v2-input" placeholder="e.g. Save 20% Monsoon">
+                    </div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">Tag Type</label>
+                      <select id="v2SeeTagType" class="cwp-v2-select">
+                        <option value="promo">promo</option>
+                        <option value="highlight">highlight</option>
+                        <option value="badge">badge</option>
+                      </select>
+                    </div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">M3 Semantic Tone</label>
+                      <select id="v2SeeTagTone" class="cwp-v2-select">
+                        <option value="primary">Primary (Royal Blue)</option>
+                        <option value="warning">Warning (Amber Promo)</option>
+                        <option value="info">Info (Sky Badge)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-modal-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="button" id="v2SeeTagSaveBtn" class="cwp-v2-btn cwp-v2-btn-primary">Save Tag</button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="v2SeeDrawerTagAssign" class="cwp-v2-drawer-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeDrawerTagAssignTitle">
+                <div class="cwp-v2-drawer cwp-v2-drawer-md">
+                  <div class="cwp-v2-drawer-header">
+                    <h3 class="cwp-v2-modal-title" id="v2SeeDrawerTagAssignTitle">Assign Tag to Services &amp; Packages</h3>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                  </div>
+                  <div class="cwp-v2-drawer-body" style="display:flex; flex-direction:column; gap:12px;">
+                    <div style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">Toggle target services or packages for <strong id="v2SeeTagAssignName">Tag</strong>:</div>
+                    <div class="cwp-v2-chip-cluster" id="v2SeeTagAssignChips">
+                      <button type="button" class="cwp-v2-filter-chip" data-assign-target="PKG-DCC-PRO">PKG-DCC-PRO</button>
+                      <button type="button" class="cwp-v2-filter-chip" data-assign-target="PKG-WASH-4X">PKG-WASH-4X</button>
+                      <button type="button" class="cwp-v2-filter-chip" data-assign-target="PKG-SOLAR-QTR">PKG-SOLAR-QTR</button>
+                      <button type="button" class="cwp-v2-filter-chip" data-assign-target="SVC-WASH-01">SVC-WASH-01</button>
+                      <button type="button" class="cwp-v2-filter-chip" data-assign-target="SVC-SOLAR-01">SVC-SOLAR-01</button>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-drawer-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="button" id="v2SeeTagAssignSaveBtn" class="cwp-v2-btn cwp-v2-btn-primary">Apply Assignments</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 7. Staff Capability & Override Modal -->
+              <div id="v2SeeModalStaffCap" class="cwp-v2-overlay-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeModalStaffCapTitle">
+                <div class="cwp-v2-modal cwp-v2-modal-md">
+                  <div class="cwp-v2-modal-header">
+                    <div class="cwp-v2-modal-header-content">
+                      <h3 class="cwp-v2-modal-title" id="v2SeeModalStaffCapTitle">Staff Capability &amp; Audited Override</h3>
+                      <p class="cwp-v2-modal-subtitle">Overrides require a mandatory audit reason; existing assigned jobs are preserved.</p>
+                    </div>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                  </div>
+                  <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:12px;">
+                    <div id="v2SeeStaffCapError" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">Staff Type Template</label>
+                      <select id="v2SeeStaffTypeSelect" class="cwp-v2-select">
+                        <option value="Mobile Wash & Detail Tech">Mobile Wash &amp; Detail Tech</option>
+                        <option value="DCC Route Specialist">DCC Route Specialist</option>
+                        <option value="Solar Array Technician">Solar Array Technician</option>
+                      </select>
+                    </div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">Equipment Available</label>
+                      <div class="cwp-v2-chip-cluster" id="v2SeeStaffEquipChips">
+                        <button type="button" class="cwp-v2-filter-chip is-active" data-equip="Pressure Washer">Pressure Washer</button>
+                        <button type="button" class="cwp-v2-filter-chip is-active" data-equip="Vacuum">Vacuum</button>
+                        <button type="button" class="cwp-v2-filter-chip" data-equip="TDS Meter">TDS Meter</button>
+                        <button type="button" class="cwp-v2-filter-chip" data-equip="DCC Kit">DCC Kit</button>
+                      </div>
+                    </div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">Capability Override</label>
+                      <input type="text" id="v2SeeStaffOverrideText" class="cwp-v2-input" placeholder="e.g. +Solar Assist (leave blank for None)">
+                    </div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">Override Audit Reason <span class="cwp-v2-required-mark">*</span></label>
+                      <textarea id="v2SeeStaffOverrideReason" class="cwp-v2-textarea" rows="2" placeholder="Mandatory reason when granting or modifying an override..."></textarea>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-modal-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="button" id="v2SeeStaffCapSaveBtn" class="cwp-v2-btn cwp-v2-btn-primary">Save Capability</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 8. Entitlement Snapshot & Ledger Drawer + Admin Adjust Modal -->
+              <div id="v2SeeDrawerEntitlement" class="cwp-v2-drawer-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeDrawerEntitlementTitle">
+                <div class="cwp-v2-drawer cwp-v2-drawer-lg">
+                  <div class="cwp-v2-drawer-header">
+                    <div>
+                      <h3 class="cwp-v2-modal-title" id="v2SeeDrawerEntitlementTitle">Purchase Snapshot &amp; Entitlement Ledger</h3>
+                      <p class="cwp-v2-modal-subtitle" id="v2SeeDrawerEntitlementSub">&mdash;</p>
+                    </div>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                  </div>
+                  <div class="cwp-v2-drawer-body" id="v2SeeDrawerEntitlementBody" style="display:flex; flex-direction:column; gap:14px;"></div>
+                  <div class="cwp-v2-drawer-footer">
+                    <button type="button" id="v2SeeDrawerEntitlementAdjustBtn" class="cwp-v2-btn cwp-v2-btn-secondary">Admin Adjust / Refund</button>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-primary" data-overlay-close>Done</button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="v2SeeModalEntitlementAdjust" class="cwp-v2-overlay-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeModalEntitlementAdjustTitle">
+                <div class="cwp-v2-modal cwp-v2-modal-sm">
+                  <div class="cwp-v2-modal-header">
+                    <h3 class="cwp-v2-modal-title" id="v2SeeModalEntitlementAdjustTitle">Admin Entitlement Mutation</h3>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                  </div>
+                  <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:10px;">
+                    <div id="v2SeeEntAdjustError" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">Action Type (Admin Only)</label>
+                      <select id="v2SeeEntAdjustType" class="cwp-v2-select">
+                        <option value="adjust_add">adjust (+1 Credit)</option>
+                        <option value="adjust_sub">adjust (-1 Credit)</option>
+                        <option value="refund">refund (Mark Refunded)</option>
+                        <option value="expire">expire (Mark Expired)</option>
+                      </select>
+                    </div>
+                    <div class="cwp-v2-field-group">
+                      <label class="cwp-v2-field-label">Mandatory Reason <span class="cwp-v2-required-mark">*</span></label>
+                      <textarea id="v2SeeEntAdjustReason" class="cwp-v2-textarea" rows="2" placeholder="Audit log reason..."></textarea>
+                    </div>
+                  </div>
+                  <div class="cwp-v2-modal-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="button" id="v2SeeEntAdjustConfirmBtn" class="cwp-v2-btn cwp-v2-btn-danger">Confirm Mutation</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 9. SEE Job Detail & Solar Verification Drawer -->
+              <div id="v2SeeDrawerJob" class="cwp-v2-drawer-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeDrawerJobTitle">
+                <div class="cwp-v2-drawer cwp-v2-drawer-lg">
+                  <div class="cwp-v2-drawer-header">
+                    <div>
+                      <h3 class="cwp-v2-modal-title" id="v2SeeDrawerJobTitle">SEE Job Detail</h3>
+                      <p class="cwp-v2-modal-subtitle" id="v2SeeDrawerJobSub">&mdash;</p>
+                    </div>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                  </div>
+                  <div class="cwp-v2-drawer-body" id="v2SeeDrawerJobBody" style="display:flex; flex-direction:column; gap:12px;"></div>
+                  <div class="cwp-v2-drawer-footer">
+                    <button type="button" id="v2SeeJobTerminateBtn" class="cwp-v2-btn cwp-v2-btn-danger">Terminate &amp; Release</button>
+                    <button type="button" id="v2SeeJobCompleteBtn" class="cwp-v2-btn cwp-v2-btn-primary">Complete Job</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 10. Shared SEE Confirmation Dialog -->
+              <div id="v2SeeModalConfirm" class="cwp-v2-overlay-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2SeeModalConfirmTitle">
+                <div class="cwp-v2-modal cwp-v2-modal-sm">
+                  <div class="cwp-v2-modal-header">
+                    <h3 class="cwp-v2-modal-title" id="v2SeeModalConfirmTitle">Confirm Operational Action</h3>
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+                  </div>
+                  <div class="cwp-v2-modal-body">
+                    <p id="v2SeeModalConfirmMsg" style="font-size:13px; color:var(--cwp-v2-sys-on-surface-variant); margin:0;">Are you sure?</p>
+                  </div>
+                  <div class="cwp-v2-modal-footer">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+                    <button type="button" id="v2SeeConfirmExecuteBtn" class="cwp-v2-btn cwp-v2-btn-danger">Confirm</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
           </section>
 
           <!-- ============================================================= -->
@@ -6443,6 +7417,185 @@
             </div>
           </section>
 
+          <!-- ============================================================= -->
+          <!-- VIEW: CATALOGUE -> SERVICES (SEE-12 PRODUCTION)               -->
+          <!-- ============================================================= -->
+          <section id="v2View_seeServices" class="cwp-v2-view" aria-label="Services">
+            <div class="cwp-v2-data-grid">
+              <div class="cwp-v2-table-toolbar">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <div class="cwp-v2-input-box cwp-v2-input-sm" style="width:240px;">
+                    <span class="material-symbols-outlined cwp-v2-input-leading-icon" style="font-size:16px;">search</span>
+                    <input type="text" id="v2SeeProdServiceSearch" class="cwp-v2-input" placeholder="Search service code, name, category...">
+                  </div>
+                  <select id="v2SeeProdServiceModelFilter" class="cwp-v2-select-compact" aria-label="Filter by Service Model">
+                    <option value="ALL">All Models</option>
+                    <option value="recurring">recurring</option>
+                    <option value="one_time">one_time</option>
+                    <option value="visit_credit">visit_credit</option>
+                    <option value="site_quantity">site_quantity</option>
+                    <option value="flexible_custom">flexible_custom</option>
+                  </select>
+                  <select id="v2SeeProdServiceStatusFilter" class="cwp-v2-select-compact" aria-label="Filter by Status">
+                    <option value="ALL">All Statuses</option>
+                    <option value="active">active</option>
+                    <option value="draft">draft</option>
+                    <option value="retired">retired</option>
+                  </select>
+                  <button type="button" id="v2SeeProdHideTestBtn" class="cwp-v2-filter-chip cwp-v2-filter-chip-sm is-active" title="Exclude TEST_SVC_* and SEE03 Test records from default view">
+                    <span class="material-symbols-outlined" style="font-size:14px;">filter_alt</span>
+                    <span>Hide Test Data</span>
+                  </button>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button type="button" id="v2SeeProdRefreshServicesBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" title="Refresh from server">
+                    <span class="material-symbols-outlined">refresh</span>
+                    <span>Refresh</span>
+                  </button>
+                  <button type="button" id="v2SeeProdNewServiceBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm">
+                    <span class="material-symbols-outlined">add</span>
+                    <span>New Service</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Loading Skeleton -->
+              <div id="v2SeeProdServicesLoading" style="display:none; padding:16px;">
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <div class="cwp-v2-skeleton-bar" style="height:32px; width:100%;"></div>
+                  <div class="cwp-v2-skeleton-bar" style="height:34px; width:100%;"></div>
+                  <div class="cwp-v2-skeleton-bar" style="height:34px; width:92%;"></div>
+                </div>
+              </div>
+
+              <!-- Empty State -->
+              <div id="v2SeeProdServicesEmpty" class="cwp-v2-empty-state-panel" style="display:none; margin:16px;">
+                <span class="material-symbols-outlined cwp-v2-empty-state-icon">cleaning_services</span>
+                <div class="cwp-v2-empty-state-title">No Services Found</div>
+                <div class="cwp-v2-empty-state-desc">No SEE services match your current search or filter criteria.</div>
+                <button type="button" id="v2SeeProdResetFiltersBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm">Reset Filters</button>
+              </div>
+
+              <!-- Error State -->
+              <div id="v2SeeProdServicesError" class="cwp-v2-empty-state-panel" style="display:none; margin:16px; border-color:var(--cwp-v2-status-danger);">
+                <span class="material-symbols-outlined cwp-v2-empty-state-icon" style="color:var(--cwp-v2-status-danger);">cloud_off</span>
+                <div class="cwp-v2-empty-state-title">Unable to Load Services</div>
+                <div id="v2SeeProdServicesErrorMsg" class="cwp-v2-empty-state-desc">Server request failed.</div>
+                <button type="button" id="v2SeeProdRetryServicesBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm">Retry</button>
+              </div>
+
+              <!-- Live Data Table -->
+              <div id="v2SeeProdServicesTableWrap" class="cwp-v2-table-container">
+                <table class="cwp-v2-table is-compact">
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Service Name &amp; Category</th>
+                      <th>Service Model</th>
+                      <th>Proof &amp; Checklist</th>
+                      <th>Version</th>
+                      <th>Status</th>
+                      <th class="is-sticky-action">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="v2SeeProdServicesTableBody"></tbody>
+                </table>
+              </div>
+              <div id="v2SeeProdServicesPagination" class="cwp-v2-table-pagination" style="display:none;">
+                <span id="v2SeeProdServicesPageInfo" style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);"></span>
+                <div style="display:flex; gap:6px;">
+                  <button type="button" id="v2SeeProdSvcPagePrev" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" disabled>Previous</button>
+                  <button type="button" id="v2SeeProdSvcPageNext" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" disabled>Next</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================= -->
+          <!-- VIEW: CATALOGUE -> ADD-ONS (SEE-13 PRODUCTION)                -->
+          <!-- ============================================================= -->
+          <section id="v2View_seeAddons" class="cwp-v2-view" aria-label="Add-ons">
+            <div class="cwp-v2-data-grid">
+              <div class="cwp-v2-table-toolbar">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <div class="cwp-v2-input-box cwp-v2-input-sm" style="width:230px;">
+                    <span class="material-symbols-outlined cwp-v2-input-leading-icon" style="font-size:16px;">search</span>
+                    <input type="text" id="v2SeeProdAddonSearch" class="cwp-v2-input" placeholder="Search add-on code or name...">
+                  </div>
+                  <select id="v2SeeProdAddonModeFilter" class="cwp-v2-select-compact" aria-label="Filter by Execution Mode">
+                    <option value="ALL">All 5 Execution Modes</option>
+                    <option value="per_main_service">per_main_service</option>
+                    <option value="during_main_service">during_main_service</option>
+                    <option value="separate_job">separate_job</option>
+                    <option value="customer_redemption">customer_redemption</option>
+                    <option value="scheduled_independently">scheduled_independently</option>
+                  </select>
+                  <select id="v2SeeProdAddonStatusFilter" class="cwp-v2-select-compact" aria-label="Filter by Status">
+                    <option value="ALL">All Statuses</option>
+                    <option value="active">active</option>
+                    <option value="draft">draft</option>
+                    <option value="retired">retired</option>
+                  </select>
+                  <button type="button" id="v2SeeProdAddonHideTestBtn" class="cwp-v2-filter-chip cwp-v2-filter-chip-sm is-active" title="Exclude TEST_*, S03_*, and S07_* test records from default view">
+                    <span class="material-symbols-outlined" style="font-size:14px;">filter_alt</span>
+                    <span>Hide Test Data</span>
+                  </button>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button type="button" id="v2SeeProdRefreshAddonsBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm">
+                    <span class="material-symbols-outlined">refresh</span>
+                    <span>Refresh</span>
+                  </button>
+                  <button type="button" id="v2SeeProdNewAddonBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm">
+                    <span class="material-symbols-outlined">add</span>
+                    <span>New Add-on</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="v2SeeProdAddonsLoading" style="display:none; padding:16px;">
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <div class="cwp-v2-skeleton-bar" style="height:32px; width:100%;"></div>
+                  <div class="cwp-v2-skeleton-bar" style="height:34px; width:100%;"></div>
+                  <div class="cwp-v2-skeleton-bar" style="height:34px; width:92%;"></div>
+                </div>
+              </div>
+
+              <div id="v2SeeProdAddonsEmpty" class="cwp-v2-empty-state-panel" style="display:none; margin:16px;">
+                <span class="material-symbols-outlined cwp-v2-empty-state-icon">extension</span>
+                <div class="cwp-v2-empty-state-title">No Add-ons Found</div>
+                <div class="cwp-v2-empty-state-desc">No add-ons match your current search or filter criteria.</div>
+                <button type="button" id="v2SeeProdAddonResetFiltersBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm">Reset Filters</button>
+              </div>
+
+              <div id="v2SeeProdAddonsError" class="cwp-v2-empty-state-panel" style="display:none; margin:16px; border-color:var(--cwp-v2-status-danger);">
+                <span class="material-symbols-outlined cwp-v2-empty-state-icon" style="color:var(--cwp-v2-status-danger);">cloud_off</span>
+                <div class="cwp-v2-empty-state-title">Unable to Load Add-ons</div>
+                <div id="v2SeeProdAddonsErrorMsg" class="cwp-v2-empty-state-desc">Server request failed.</div>
+                <button type="button" id="v2SeeProdRetryAddonsBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm">Retry</button>
+              </div>
+
+              <div id="v2SeeProdAddonsTableWrap" class="cwp-v2-table-container">
+                <table class="cwp-v2-table is-compact">
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Add-on Name</th>
+                      <th>Execution Mode</th>
+                      <th>Pricing</th>
+                      <th>Duration</th>
+                      <th>Compatible Services</th>
+                      <th>Version</th>
+                      <th>Status</th>
+                      <th class="is-sticky-action">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="v2SeeProdAddonsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
         </div>
       </main>
     </div>
@@ -6450,6 +7603,507 @@
     <!-- =================================================================== -->
     <!-- Production Overlays (Managed by v2-overlay.js)                      -->
     <!-- =================================================================== -->
+
+    <!-- SEE Services: Create / Edit Service Modal -->
+    <div id="v2SeeProdServiceModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-lg" role="dialog" aria-modal="true" aria-labelledby="v2SeeProdServiceModalTitle">
+        <div class="cwp-v2-modal-header">
+          <div>
+            <h2 id="v2SeeProdServiceModalTitle" class="cwp-v2-modal-title">Create SEE Service</h2>
+            <div id="v2SeeProdServiceModalSub" style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">Define canonical service configuration.</div>
+          </div>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close dialog">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:14px;">
+          <div id="v2SeeProdSvcFormError" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+          <div id="v2SeeProdSvcDccNotice" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-warning-bg); color:var(--cwp-v2-status-warning); font-size:12px;">
+            <strong>DCC Operational Isolation:</strong> Daily Car Cleaning runs on its own dedicated route plan and daily cleaning status workflow. Generic SEE service creation for DCC is disabled.
+          </div>
+
+          <div class="cwp-v2-form-grid">
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdSvcCode">Service Code <span class="cwp-v2-required-mark">*</span></label>
+              <div class="cwp-v2-input-box">
+                <input type="text" id="v2SeeProdSvcCode" class="cwp-v2-input" placeholder="e.g. SVC-WASH-02">
+              </div>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdSvcName">Service Name <span class="cwp-v2-required-mark">*</span></label>
+              <div class="cwp-v2-input-box">
+                <input type="text" id="v2SeeProdSvcName" class="cwp-v2-input" placeholder="e.g. Ceramic Foam Wash">
+              </div>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdSvcCategory">Category <span class="cwp-v2-required-mark">*</span></label>
+              <select id="v2SeeProdSvcCategory" class="cwp-v2-select"></select>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdSvcModel">Service Model <span class="cwp-v2-required-mark">*</span></label>
+              <select id="v2SeeProdSvcModel" class="cwp-v2-select">
+                <option value="visit_credit">visit_credit</option>
+                <option value="recurring">recurring</option>
+                <option value="one_time">one_time</option>
+                <option value="site_quantity">site_quantity</option>
+                <option value="flexible_custom">flexible_custom</option>
+              </select>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdSvcStatus">Initial Status</label>
+              <select id="v2SeeProdSvcStatus" class="cwp-v2-select">
+                <option value="draft">draft</option>
+                <option value="active">active</option>
+              </select>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdSvcDuration">Expected Duration (minutes) <span class="cwp-v2-required-mark">*</span></label>
+              <div class="cwp-v2-input-box">
+                <input type="number" id="v2SeeProdSvcDuration" class="cwp-v2-input" value="30" min="1" max="1440" step="1">
+                <span style="font-size:11.5px; color:var(--cwp-v2-sys-on-surface-muted); margin-left:6px;">mins</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Model-Specific Configuration Panel -->
+          <div id="v2SeeProdSvcModelConfigWrap" class="cwp-v2-expanded-card" style="padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+              <span class="cwp-v2-expanded-card-title" style="margin:0;">Model Configuration (<code id="v2SeeProdSvcModelBadge">visit_credit</code>)</span>
+            </div>
+            <div id="v2SeeProdSvcModelDesc" style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant); margin-bottom:8px;"></div>
+            <div id="v2SeeProdSvcModelFields" class="cwp-v2-form-grid"></div>
+          </div>
+
+          <div class="cwp-v2-form-grid">
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdSvcNameHi">Hindi Name (हिंदी नाम) <span class="cwp-v2-optional-mark">(Optional)</span></label>
+              <div class="cwp-v2-input-box">
+                <input type="text" id="v2SeeProdSvcNameHi" class="cwp-v2-input" placeholder="e.g. फोम कार वॉश">
+              </div>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdSvcTagline">Tagline</label>
+              <div class="cwp-v2-input-box">
+                <input type="text" id="v2SeeProdSvcTagline" class="cwp-v2-input" placeholder="e.g. Showroom foam wash">
+              </div>
+            </div>
+          </div>
+
+          <div class="cwp-v2-field-group">
+            <label class="cwp-v2-field-label" for="v2SeeProdSvcDesc">Short Description</label>
+            <div class="cwp-v2-input-box">
+              <input type="text" id="v2SeeProdSvcDesc" class="cwp-v2-input" placeholder="Brief catalogue summary...">
+            </div>
+          </div>
+
+          <div class="cwp-v2-field-group">
+            <label class="cwp-v2-field-label" for="v2SeeProdSvcDetails">Detailed Content <span class="cwp-v2-optional-mark">(Optional)</span></label>
+            <textarea id="v2SeeProdSvcDetails" class="cwp-v2-textarea" rows="2" placeholder="Extended service scope, exclusions, or presentation details..."></textarea>
+          </div>
+
+          <!-- Service Media Slots (Real Binary Upload: Square 1:1 & Rectangle 4:3) -->
+          <div class="cwp-v2-expanded-card" style="padding:10px 12px;">
+            <span class="cwp-v2-expanded-card-title" style="margin-bottom:8px;">Service Media</span>
+            <div class="cwp-v2-form-grid">
+              <div class="cwp-v2-field-group">
+                <label class="cwp-v2-field-label">Square Media (1:1 Thumbnail)</label>
+                <div id="v2SeeProdSvcMediaSqDropzone" class="cwp-v2-file-dropzone" style="padding:12px;">
+                  <input type="file" id="v2SeeProdSvcMediaSqInput" style="display:none;" accept="image/jpeg,image/png,image/webp">
+                  <span class="material-symbols-outlined cwp-v2-file-dropzone-icon" style="font-size:22px;">cloud_upload</span>
+                  <div style="font-size:12px; font-weight:600;">Upload 1:1 Square Image</div>
+                  <div style="font-size:11px; color:var(--cwp-v2-sys-on-surface-muted);">JPG, PNG, WebP up to 5MB</div>
+                </div>
+                <div id="v2SeeProdSvcMediaSqError" style="display:none; font-size:11.5px; color:var(--cwp-v2-status-danger); margin-top:4px;"></div>
+                <div id="v2SeeProdSvcMediaSqPreview" style="margin-top:6px; display:flex; align-items:center; gap:8px;"></div>
+              </div>
+              <div class="cwp-v2-field-group">
+                <label class="cwp-v2-field-label">Rectangular Media (4:3 Banner)</label>
+                <div id="v2SeeProdSvcMediaRectDropzone" class="cwp-v2-file-dropzone" style="padding:12px;">
+                  <input type="file" id="v2SeeProdSvcMediaRectInput" style="display:none;" accept="image/jpeg,image/png,image/webp">
+                  <span class="material-symbols-outlined cwp-v2-file-dropzone-icon" style="font-size:22px;">cloud_upload</span>
+                  <div style="font-size:12px; font-weight:600;">Upload 4:3 Rectangular Image</div>
+                  <div style="font-size:11px; color:var(--cwp-v2-sys-on-surface-muted);">JPG, PNG, WebP up to 5MB</div>
+                </div>
+                <div id="v2SeeProdSvcMediaRectError" style="display:none; font-size:11.5px; color:var(--cwp-v2-status-danger); margin-top:4px;"></div>
+                <div id="v2SeeProdSvcMediaRectPreview" style="margin-top:6px; display:flex; align-items:center; gap:8px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Service Marketing Tags -->
+          <div class="cwp-v2-field-group">
+            <label class="cwp-v2-field-label">Marketing Tags</label>
+            <div id="v2SeeProdSvcTagChips" class="cwp-v2-chip-cluster"></div>
+            <div class="cwp-v2-field-footer">
+              <span class="cwp-v2-field-helper">Select tags to attach on save.</span>
+            </div>
+          </div>
+
+          <!-- Structured Checklist Editor + Photo Proof -->
+          <div class="cwp-v2-form-grid" style="align-items:start;">
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label">Checklist Items</label>
+              <div style="display:flex; gap:6px; margin-bottom:6px;">
+                <div class="cwp-v2-input-box cwp-v2-input-sm" style="flex:1;">
+                  <input type="text" id="v2SeeProdSvcChkInput" class="cwp-v2-input" placeholder="Add checklist step...">
+                </div>
+                <button type="button" id="v2SeeProdSvcChkAddBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm">
+                  <span class="material-symbols-outlined">add</span>
+                  <span>Add</span>
+                </button>
+              </div>
+              <div id="v2SeeProdSvcChkError" style="display:none; font-size:11.5px; color:var(--cwp-v2-status-danger); margin-bottom:4px;"></div>
+              <div id="v2SeeProdSvcChkList" style="display:flex; flex-direction:column; gap:4px; max-height:140px; overflow-y:auto;"></div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <label class="cwp-v2-switch cwp-v2-switch-sm">
+                <input type="checkbox" id="v2SeeProdSvcPhotoRequired" class="cwp-v2-switch-input">
+                <span class="cwp-v2-switch-track"><span class="cwp-v2-switch-thumb"></span></span>
+                <span class="cwp-v2-switch-text"><span class="cwp-v2-switch-title">Require Photo Proof</span></span>
+              </label>
+              <div id="v2SeeProdSvcPhotoCountsWrap" class="cwp-v2-form-grid" style="display:none;">
+                <div class="cwp-v2-field-group">
+                  <label class="cwp-v2-field-label" for="v2SeeProdSvcBeforeMin">Before Min <span class="cwp-v2-required-mark">*</span></label>
+                  <div class="cwp-v2-input-box cwp-v2-input-sm">
+                    <input type="number" id="v2SeeProdSvcBeforeMin" class="cwp-v2-input" value="1" min="0" max="10">
+                  </div>
+                </div>
+                <div class="cwp-v2-field-group">
+                  <label class="cwp-v2-field-label" for="v2SeeProdSvcAfterMin">After Min <span class="cwp-v2-required-mark">*</span></label>
+                  <div class="cwp-v2-input-box cwp-v2-input-sm">
+                    <input type="number" id="v2SeeProdSvcAfterMin" class="cwp-v2-input" value="1" min="0" max="10">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- City & Zone Applicability -->
+          <div style="display:flex; flex-direction:column; gap:8px; padding-top:8px; border-top:1px solid var(--cwp-v2-sys-border-subtle);">
+            <label class="cwp-v2-switch cwp-v2-switch-sm">
+              <input type="checkbox" id="v2SeeProdSvcAllCities" class="cwp-v2-switch-input" checked>
+              <span class="cwp-v2-switch-track"><span class="cwp-v2-switch-thumb"></span></span>
+              <span class="cwp-v2-switch-text"><span class="cwp-v2-switch-title">Applicable to All Cities &amp; Zones</span></span>
+            </label>
+            <div id="v2SeeProdSvcScopeWrap" style="display:none;">
+              <div style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant); margin-bottom:6px;">Select applicable zones/routes:</div>
+              <div id="v2SeeProdSvcZoneChips" class="cwp-v2-chip-cluster"></div>
+            </div>
+          </div>
+
+          <div id="v2SeeProdSvcReasonWrap" class="cwp-v2-field-group" style="display:none;">
+            <label class="cwp-v2-field-label" for="v2SeeProdSvcReason">Version Change Reason</label>
+            <div class="cwp-v2-input-box">
+              <input type="text" id="v2SeeProdSvcReason" class="cwp-v2-input" placeholder="e.g. Updated checklist and duration">
+            </div>
+          </div>
+        </div>
+        <div class="cwp-v2-modal-footer">
+          <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+          <button type="button" id="v2SeeProdSvcSaveBtn" class="cwp-v2-btn cwp-v2-btn-primary">Save Service</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEE Services: Service Details Drawer -->
+    <div id="v2SeeProdServiceDrawer" class="cwp-v2-drawer-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-drawer cwp-v2-drawer-lg" role="dialog" aria-modal="true" aria-labelledby="v2SeeProdServiceDrawerTitle">
+        <div class="cwp-v2-drawer-header">
+          <div>
+            <h3 id="v2SeeProdServiceDrawerTitle" class="cwp-v2-modal-title">Service Details</h3>
+            <p id="v2SeeProdServiceDrawerSub" class="cwp-v2-modal-subtitle"></p>
+          </div>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close drawer">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <div id="v2SeeProdServiceDrawerBody" class="cwp-v2-drawer-body" style="display:flex; flex-direction:column; gap:12px;"></div>
+        <div class="cwp-v2-drawer-footer">
+          <button type="button" id="v2SeeProdDrawerRetireBtn" class="cwp-v2-btn cwp-v2-btn-danger">Retire Service</button>
+          <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEE Services: Retire Confirmation Modal -->
+    <div id="v2SeeProdServiceConfirm" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SeeProdServiceConfirmTitle">
+        <div class="cwp-v2-modal-header">
+          <h3 id="v2SeeProdServiceConfirmTitle" class="cwp-v2-modal-title">Confirm Service Retirement</h3>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close dialog">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:10px;">
+          <div id="v2SeeProdRetireError" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+          <p id="v2SeeProdRetireMsg" style="font-size:13px; color:var(--cwp-v2-sys-on-surface-variant); margin:0;"></p>
+          <div class="cwp-v2-field-group">
+            <label class="cwp-v2-field-label" for="v2SeeProdRetireReason">Reason (Optional)</label>
+            <input type="text" id="v2SeeProdRetireReason" class="cwp-v2-input" placeholder="e.g. Replaced by updated service">
+          </div>
+        </div>
+        <div class="cwp-v2-modal-footer">
+          <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+          <button type="button" id="v2SeeProdRetireConfirmBtn" class="cwp-v2-btn cwp-v2-btn-danger">Retire Service</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEE Add-ons: Create / Edit Add-on Modal -->
+    <div id="v2SeeProdAddonModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-lg" role="dialog" aria-modal="true" aria-labelledby="v2SeeProdAddonModalTitle">
+        <div class="cwp-v2-modal-header">
+          <div>
+            <h2 id="v2SeeProdAddonModalTitle" class="cwp-v2-modal-title">Create Add-on</h2>
+            <div id="v2SeeProdAddonModalSub" style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">Configure execution mode, pricing, compatibility, and operational rules.</div>
+          </div>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close dialog">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:14px;">
+          <div id="v2SeeProdAddonFormError" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+          <div class="cwp-v2-form-grid">
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdAddonCode">Add-on Code <span class="cwp-v2-required-mark">*</span></label>
+              <div class="cwp-v2-input-box">
+                <input type="text" id="v2SeeProdAddonCode" class="cwp-v2-input" placeholder="e.g. TYRE_DRESSING">
+              </div>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdAddonName">Add-on Name <span class="cwp-v2-required-mark">*</span></label>
+              <div class="cwp-v2-input-box">
+                <input type="text" id="v2SeeProdAddonName" class="cwp-v2-input" placeholder="e.g. Tyre &amp; Alloy Dressing">
+              </div>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdAddonTagline">Tagline</label>
+              <div class="cwp-v2-input-box">
+                <input type="text" id="v2SeeProdAddonTagline" class="cwp-v2-input" placeholder="Short promotional line...">
+              </div>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdAddonStatus">Status</label>
+              <select id="v2SeeProdAddonStatus" class="cwp-v2-select">
+                <option value="draft">draft</option>
+                <option value="active">active</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="cwp-v2-field-group">
+            <label class="cwp-v2-field-label" for="v2SeeProdAddonDetails">Details &amp; Scope</label>
+            <textarea id="v2SeeProdAddonDetails" class="cwp-v2-textarea" rows="2" placeholder="Operational scope, exclusions, or customer-facing details..."></textarea>
+          </div>
+
+          <div class="cwp-v2-form-grid">
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdAddonPricingModel">Pricing Model</label>
+              <select id="v2SeeProdAddonPricingModel" class="cwp-v2-select">
+                <option value="fixed">fixed</option>
+                <option value="vehicle_segment">vehicle_segment</option>
+                <option value="per_unit">per_unit</option>
+                <option value="per_panel">per_panel</option>
+                <option value="pricing_bands">pricing_bands</option>
+                <option value="minimum_charge">minimum_charge</option>
+                <option value="custom">custom</option>
+              </select>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdAddonPrice">Default Price (&#8377;) <span class="cwp-v2-required-mark">*</span></label>
+              <div class="cwp-v2-input-box">
+                <input type="number" id="v2SeeProdAddonPrice" class="cwp-v2-input" value="149" min="0" step="1">
+              </div>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdAddonDuration">Duration (minutes) <span class="cwp-v2-required-mark">*</span></label>
+              <div class="cwp-v2-input-box">
+                <input type="number" id="v2SeeProdAddonDuration" class="cwp-v2-input" value="15" min="1" max="1440">
+              </div>
+            </div>
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label" for="v2SeeProdAddonQty">Default Quantity</label>
+              <div class="cwp-v2-input-box">
+                <input type="number" id="v2SeeProdAddonQty" class="cwp-v2-input" value="1" min="1">
+              </div>
+            </div>
+          </div>
+
+          <!-- Execution Mode -->
+          <div class="cwp-v2-expanded-card" style="padding:10px 12px;">
+            <div class="cwp-v2-form-grid">
+              <div class="cwp-v2-field-group">
+                <label class="cwp-v2-field-label" for="v2SeeProdAddonMode">Execution Mode <span class="cwp-v2-required-mark">*</span></label>
+                <select id="v2SeeProdAddonMode" class="cwp-v2-select">
+                  <option value="per_main_service">per_main_service</option>
+                  <option value="during_main_service" selected>during_main_service</option>
+                  <option value="separate_job">separate_job</option>
+                  <option value="customer_redemption">customer_redemption</option>
+                  <option value="scheduled_independently">scheduled_independently</option>
+                </select>
+              </div>
+              <div id="v2SeeProdAddonValidityWrap" class="cwp-v2-field-group" style="display:none;">
+                <label class="cwp-v2-field-label" for="v2SeeProdAddonValidity">Validity Window (days)</label>
+                <div class="cwp-v2-input-box">
+                  <input type="number" id="v2SeeProdAddonValidity" class="cwp-v2-input" value="30" min="1">
+                </div>
+              </div>
+            </div>
+            <div id="v2SeeProdAddonModeDesc" style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant); margin-top:6px;"></div>
+            <div style="margin-top:8px;">
+              <label class="cwp-v2-switch cwp-v2-switch-sm">
+                <input type="checkbox" id="v2SeeProdAddonOptional" class="cwp-v2-switch-input" checked>
+                <span class="cwp-v2-switch-track"><span class="cwp-v2-switch-thumb"></span></span>
+                <span class="cwp-v2-switch-text"><span class="cwp-v2-switch-title">Optional Add-on (customer/admin selectable)</span></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Compatible Services (DCC Excluded) -->
+          <div class="cwp-v2-field-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:4px;">
+              <label class="cwp-v2-field-label" style="margin:0;">Compatible Services (DCC Excluded)</label>
+              <button type="button" id="v2SeeProdAddonCompatHideTestBtn" class="cwp-v2-filter-chip cwp-v2-filter-chip-sm is-active" title="Hide TEST_*, S03_*, S07_* test services">
+                <span class="material-symbols-outlined" style="font-size:14px;">filter_alt</span>
+                <span>Hide Test Services</span>
+              </button>
+            </div>
+            <div id="v2SeeProdAddonCompatChips" class="cwp-v2-chip-cluster"></div>
+            <div class="cwp-v2-field-footer">
+              <span class="cwp-v2-field-helper">Daily Car Cleaning services are excluded to preserve DCC route isolation.</span>
+            </div>
+          </div>
+
+          <!-- Checklist + Photo Proof -->
+          <div class="cwp-v2-form-grid" style="align-items:start;">
+            <div class="cwp-v2-field-group">
+              <label class="cwp-v2-field-label">Checklist Items</label>
+              <div style="display:flex; gap:6px; margin-bottom:6px;">
+                <div class="cwp-v2-input-box cwp-v2-input-sm" style="flex:1;">
+                  <input type="text" id="v2SeeProdAddonChkInput" class="cwp-v2-input" placeholder="Add checklist step...">
+                </div>
+                <button type="button" id="v2SeeProdAddonChkAddBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm">
+                  <span class="material-symbols-outlined">add</span>
+                  <span>Add</span>
+                </button>
+              </div>
+              <div id="v2SeeProdAddonChkError" style="display:none; font-size:11.5px; color:var(--cwp-v2-status-danger); margin-bottom:4px;"></div>
+              <div id="v2SeeProdAddonChkList" style="display:flex; flex-direction:column; gap:4px; max-height:130px; overflow-y:auto;"></div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <label class="cwp-v2-switch cwp-v2-switch-sm">
+                <input type="checkbox" id="v2SeeProdAddonPhotoReq" class="cwp-v2-switch-input">
+                <span class="cwp-v2-switch-track"><span class="cwp-v2-switch-thumb"></span></span>
+                <span class="cwp-v2-switch-text"><span class="cwp-v2-switch-title">Require Photo Proof</span></span>
+              </label>
+              <div id="v2SeeProdAddonPhotoCounts" class="cwp-v2-form-grid" style="display:none;">
+                <div class="cwp-v2-field-group">
+                  <label class="cwp-v2-field-label" for="v2SeeProdAddonBeforeMin">Before Min</label>
+                  <div class="cwp-v2-input-box cwp-v2-input-sm"><input type="number" id="v2SeeProdAddonBeforeMin" class="cwp-v2-input" value="1" min="0" max="10"></div>
+                </div>
+                <div class="cwp-v2-field-group">
+                  <label class="cwp-v2-field-label" for="v2SeeProdAddonAfterMin">After Min</label>
+                  <div class="cwp-v2-input-box cwp-v2-input-sm"><input type="number" id="v2SeeProdAddonAfterMin" class="cwp-v2-input" value="1" min="0" max="10"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add-on Media Slots (Square 1:1 & Rectangle 4:3) -->
+          <div class="cwp-v2-expanded-card" style="padding:10px 12px;">
+            <span class="cwp-v2-expanded-card-title" style="margin-bottom:8px;">Add-on Media</span>
+            <div class="cwp-v2-form-grid">
+              <div class="cwp-v2-field-group">
+                <label class="cwp-v2-field-label">Square Media (1:1)</label>
+                <div id="v2SeeProdAddonMediaSqDropzone" class="cwp-v2-file-dropzone" style="padding:10px;">
+                  <input type="file" id="v2SeeProdAddonMediaSqInput" style="display:none;" accept="image/jpeg,image/png,image/webp">
+                  <span class="material-symbols-outlined cwp-v2-file-dropzone-icon" style="font-size:20px;">cloud_upload</span>
+                  <div style="font-size:12px; font-weight:600;">Upload 1:1 Square Image</div>
+                </div>
+                <div id="v2SeeProdAddonMediaSqError" style="display:none; font-size:11.5px; color:var(--cwp-v2-status-danger); margin-top:4px;"></div>
+                <div id="v2SeeProdAddonMediaSqPreview" style="margin-top:6px; display:flex; align-items:center; gap:8px;"></div>
+              </div>
+              <div class="cwp-v2-field-group">
+                <label class="cwp-v2-field-label">Rectangular Media (4:3)</label>
+                <div id="v2SeeProdAddonMediaRectDropzone" class="cwp-v2-file-dropzone" style="padding:10px;">
+                  <input type="file" id="v2SeeProdAddonMediaRectInput" style="display:none;" accept="image/jpeg,image/png,image/webp">
+                  <span class="material-symbols-outlined cwp-v2-file-dropzone-icon" style="font-size:20px;">cloud_upload</span>
+                  <div style="font-size:12px; font-weight:600;">Upload 4:3 Rectangular Image</div>
+                </div>
+                <div id="v2SeeProdAddonMediaRectError" style="display:none; font-size:11.5px; color:var(--cwp-v2-status-danger); margin-top:4px;"></div>
+                <div id="v2SeeProdAddonMediaRectPreview" style="margin-top:6px; display:flex; align-items:center; gap:8px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cwp-v2-modal-footer">
+          <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+          <button type="button" id="v2SeeProdAddonSaveBtn" class="cwp-v2-btn cwp-v2-btn-primary">Save Add-on</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEE Add-ons: Details Drawer -->
+    <div id="v2SeeProdAddonDrawer" class="cwp-v2-drawer-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-drawer cwp-v2-drawer-lg" role="dialog" aria-modal="true" aria-labelledby="v2SeeProdAddonDrawerTitle">
+        <div class="cwp-v2-drawer-header">
+          <div>
+            <h3 id="v2SeeProdAddonDrawerTitle" class="cwp-v2-modal-title">Add-on Details</h3>
+            <p id="v2SeeProdAddonDrawerSub" class="cwp-v2-modal-subtitle"></p>
+          </div>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close drawer">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <div id="v2SeeProdAddonDrawerBody" class="cwp-v2-drawer-body" style="display:flex; flex-direction:column; gap:12px;"></div>
+        <div class="cwp-v2-drawer-footer">
+          <button type="button" id="v2SeeProdAddonDrawerRetireBtn" class="cwp-v2-btn cwp-v2-btn-danger">Retire Add-on</button>
+          <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEE Add-ons: Retire Confirmation Modal -->
+    <div id="v2SeeProdAddonConfirm" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SeeProdAddonConfirmTitle">
+        <div class="cwp-v2-modal-header">
+          <h3 id="v2SeeProdAddonConfirmTitle" class="cwp-v2-modal-title">Confirm Add-on Retirement</h3>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close dialog">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:10px;">
+          <div id="v2SeeProdAddonRetireError" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+          <p id="v2SeeProdAddonRetireMsg" style="font-size:13px; color:var(--cwp-v2-sys-on-surface-variant); margin:0;"></p>
+        </div>
+        <div class="cwp-v2-modal-footer">
+          <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+          <button type="button" id="v2SeeProdAddonRetireConfirmBtn" class="cwp-v2-btn cwp-v2-btn-danger">Retire Add-on</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEE Media Lightbox Preview Modal -->
+    <div id="v2SeeMediaLightbox" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2SeeMediaLightboxTitle">
+        <div class="cwp-v2-modal-header">
+          <div>
+            <h2 id="v2SeeMediaLightboxTitle" class="cwp-v2-modal-title">Media Preview</h2>
+            <div id="v2SeeMediaLightboxSub" style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);"></div>
+          </div>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close preview">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <div class="cwp-v2-modal-body" style="display:flex; justify-content:center; align-items:center; background:#0f172a; border-radius:6px; padding:12px; min-height:240px;">
+          <img id="v2SeeMediaLightboxImg" src="" alt="Media preview" style="max-width:100%; max-height:65vh; object-fit:contain; border-radius:4px;">
+        </div>
+        <div class="cwp-v2-modal-footer">
+          <button type="button" class="cwp-v2-btn cwp-v2-btn-primary" data-overlay-close>Close</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Add Customer Modal (5-Step Guided Wizard) -->
     <div id="v2ModalAddCustomer" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
@@ -8209,6 +9863,8 @@
   <script src="/admin-v2/js/v2-sequence.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-dashboard.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-security.js?v=2.1.0"></script>
+  <script src="/admin-v2/js/v2-see-services.js?v=2.1.0"></script>
+  <script src="/admin-v2/js/v2-see-addons.js?v=2.1.0"></script>
   <script src="/admin-v2/js/v2-app.js?v=2.1.0"></script>
 
   <!-- Lazy UI Playground Loader: loads v2-playground.js ONLY when /admin-v2/ui-lab or ui-lab view is active -->

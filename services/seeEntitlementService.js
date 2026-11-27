@@ -83,9 +83,54 @@ async function createPurchase({
   const saleRef = saleReference || `SALE-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
   const { validFrom, validTo } = computeValidityDates(pkg.validity_value, pkg.validity_unit);
 
+  // P2: Validate package effective dates (Asia/Kolkata)
+  const toYmd = (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10));
+  const todayIst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  if (pkg.effective_from && toYmd(pkg.effective_from) > todayIst) {
+    throw new Error(`Package '${pkg.name}' is not effective yet (starts ${toYmd(pkg.effective_from)}).`);
+  }
+  if (pkg.effective_to && toYmd(pkg.effective_to) < todayIst) {
+    throw new Error(`Package '${pkg.name}' has expired (ended ${toYmd(pkg.effective_to)}).`);
+  }
+
+  // P1: Validate city/zone eligibility
+  const elig = pkg.city_zone_eligibility || { all_cities: true, cities: [], zones: [] };
+  if (elig.all_cities === false) {
+    const allowedCities = Array.isArray(elig.cities) ? elig.cities.map(c => c.toLowerCase()) : [];
+    if (!city || !allowedCities.includes(city.toLowerCase())) {
+      throw new Error(`Package '${pkg.name}' is not available in city '${city || 'unspecified'}'.`);
+    }
+  }
+  if (Array.isArray(elig.zones) && elig.zones.length > 0) {
+    const allowedZones = elig.zones.map(z => z.toLowerCase());
+    if (!zone || !allowedZones.includes(zone.toLowerCase())) {
+      throw new Error(`Package '${pkg.name}' is not available in zone '${zone || 'unspecified'}'.`);
+    }
+  }
+
   return db.withTransaction(async (client) => {
     const customer = await repos.customers.findById(customerId, client);
     if (!customer) throw new Error(`Customer '${customerId}' not found.`);
+    if (customer.is_active === false) throw new Error(`Customer '${customerId}' is inactive.`);
+
+    // P1: Validate vehicle ownership & service compatibility
+    if (vehicleId) {
+      const vehicle = await repos.vehicles.findById(vehicleId, client);
+      if (!vehicle || vehicle.customer_id !== customer.id) {
+        throw new Error(`Vehicle '${vehicleId}' does not belong to customer '${customerId}'.`);
+      }
+      if (pkg.service_category_id === 'solar_cleaning') {
+        throw new Error(`Vehicle '${vehicleId}' cannot be attached to solar cleaning package '${pkg.name}'.`);
+      }
+    }
+
+    // P1: Validate location ownership
+    if (locationId) {
+      const location = await repos.serviceLocations.findById(locationId, client);
+      if (!location || location.customer_id !== customer.id) {
+        throw new Error(`Location '${locationId}' does not belong to customer '${customerId}'.`);
+      }
+    }
 
     const snapshot = await repos.seeEntitlement.createPurchaseSnapshot({
       saleReference: saleRef,
@@ -200,7 +245,8 @@ function deriveAccountStatus(acct, remainingQty) {
 }
 
 /**
- * Core atomic ledger mutation with FOR UPDATE lock + idempotency key
+ * Core atomic ledger mutation with FOR UPDATE lock + idempotency key.
+ * Accepts optional externalClient to participate in a caller's transaction.
  */
 async function mutateEntitlement({
   accountId,
@@ -213,7 +259,7 @@ async function mutateEntitlement({
   idempotencyKey = null,
   reason,
   actor = 'system'
-}) {
+}, externalClient = null) {
   if (!accountId) throw new Error('accountId is required.');
   if (!reason) throw new Error('reason is required for ledger entry.');
   const qty = parseInt(quantity, 10);
@@ -221,7 +267,7 @@ async function mutateEntitlement({
     throw new Error('Invalid quantity for entitlement mutation.');
   }
 
-  return db.withTransaction(async (client) => {
+  const executeInTx = async (client) => {
     // Idempotency check
     if (idempotencyKey) {
       const existingEntry = await repos.seeEntitlement.findLedgerByIdempotencyKey(idempotencyKey, client);
@@ -306,7 +352,12 @@ async function mutateEntitlement({
     }, client);
 
     return { idempotentReplay: false, ledgerEntry, account: updatedAcct };
-  });
+  };
+
+  if (externalClient) {
+    return executeInTx(externalClient);
+  }
+  return db.withTransaction(executeInTx);
 }
 
 async function getCustomerBalance(customerId) {

@@ -45,14 +45,15 @@ function addDaysYmd(ymd, days) {
   return dt.toISOString().slice(0, 10);
 }
 
-function addMonthsYmd(ymd, months) {
+function addMonthsYmd(ymd, months, anchorDay = null) {
   const dt = parseYmd(ymd);
-  const targetDay = dt.getUTCDate();
+  const desiredDay = anchorDay || dt.getUTCDate();
+  dt.setUTCDate(1);
   dt.setUTCMonth(dt.getUTCMonth() + months);
-  // Clamp end-of-month overflow (e.g., Jan 31 + 1 month -> Feb 28/29)
-  if (dt.getUTCDate() !== targetDay) {
-    dt.setUTCDate(0);
-  }
+  const year = dt.getUTCFullYear();
+  const monthIdx = dt.getUTCMonth();
+  const daysInTargetMonth = new Date(Date.UTC(year, monthIdx + 1, 0)).getUTCDate();
+  dt.setUTCDate(Math.min(desiredDay, daysInTargetMonth));
   return dt.toISOString().slice(0, 10);
 }
 
@@ -126,11 +127,17 @@ function generateOccurrences(frequency, { fromDate, toDate, blackoutDates = [] }
       rawDates.push(cur);
     }
   } else if (fType === 'monthly') {
-    for (let cur = start; cur <= end; cur = addMonthsYmd(cur, 1)) {
+    const anchorDay = parseYmd(start).getUTCDate();
+    for (let step = 0; ; step++) {
+      const cur = step === 0 ? start : addMonthsYmd(start, step, anchorDay);
+      if (cur > end) break;
       rawDates.push(cur);
     }
   } else if (fType === 'every_n_months') {
-    for (let cur = start; cur <= end; cur = addMonthsYmd(cur, interval)) {
+    const anchorDay = parseYmd(start).getUTCDate();
+    for (let step = 0; ; step += interval) {
+      const cur = step === 0 ? start : addMonthsYmd(start, step, anchorDay);
+      if (cur > end) break;
       rawDates.push(cur);
     }
   } else if (fType === 'specific_weekdays') {

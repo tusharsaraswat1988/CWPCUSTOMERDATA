@@ -54,7 +54,7 @@ function parsePagination(searchParams) {
 /**
  * Handle /api/see/* routes. Returns true if handled, false otherwise.
  */
-async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolveAdminSession, resolveStaffSession }) {
+async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolveAdminSession, resolveStaffSession, uploadImage }) {
   const pathname = parsedUrl.pathname;
   if (!pathname.startsWith('/api/see/')) return false;
 
@@ -77,6 +77,33 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
       return false;
     }
     return true;
+  };
+
+  /**
+   * Centralized authorization for staff/admin job endpoints (Phase 1 P0 IDOR fix).
+   * - Admin: allowed via explicit admin session.
+   * - Staff: MUST have an active staff_assignments row matching staffSess.staffId.
+   *   Unassigned jobs and jobs assigned to other staff return uniform 403.
+   */
+  const authorizeJobAccess = async (jobId) => {
+    const job = await repos.serviceJobs.findById(jobId);
+    if (adminSess) {
+      if (!job) {
+        sendJson(res, 404, { success: false, error: 'Job not found.' });
+        return null;
+      }
+      return { job, activeAssignment: await repos.staffAssignments.findActiveByJobId(jobId) };
+    }
+    if (!staffSess || !staffSess.staffId) {
+      sendJson(res, 401, { success: false, error: 'Authentication required.' });
+      return null;
+    }
+    const activeAssignment = job ? await repos.staffAssignments.findActiveByJobId(jobId) : null;
+    if (!job || !activeAssignment || activeAssignment.staff_id !== staffSess.staffId) {
+      sendJson(res, 403, { success: false, error: 'Forbidden: you are not authorized to access this job.' });
+      return null;
+    }
+    return { job, activeAssignment };
   };
 
   const actor = (adminSess && (adminSess.username || adminSess.user || 'admin'))
@@ -226,11 +253,19 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
     }
 
     m = pathname.match(/^\/api\/see\/addons\/([^/]+)$/);
-    if (m && (method === 'PATCH' || method === 'PUT')) {
-      if (!requireAdmin()) return true;
-      const body = await readJsonBody(req);
-      const addon = await seeCatalogueService.updateAddon(decodeURIComponent(m[1]), body, actor);
-      return sendJson(res, 200, { success: true, addon });
+    if (m) {
+      const idOrCode = decodeURIComponent(m[1]);
+      if (method === 'GET') {
+        const addon = await seeCatalogueService.getAddonDetail(idOrCode);
+        if (!addon) return sendJson(res, 404, { success: false, error: 'Add-on not found.' });
+        return sendJson(res, 200, { success: true, addon });
+      }
+      if (method === 'PATCH' || method === 'PUT') {
+        if (!requireAdmin()) return true;
+        const body = await readJsonBody(req);
+        const addon = await seeCatalogueService.updateAddon(idOrCode, body, actor);
+        return sendJson(res, 200, { success: true, addon });
+      }
     }
 
     // ---------------------------------------------------------------------
@@ -260,6 +295,50 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
       const body = await readJsonBody(req);
       const media = await seeCatalogueService.registerMediaAsset(body, actor);
       return sendJson(res, 201, { success: true, media });
+    }
+
+    if (method === 'POST' && pathname === '/api/see/media/upload') {
+      if (!requireAdmin()) return true;
+      const body = await readJsonBody(req, 8 * 1024 * 1024);
+      const { entityType, entityId, mediaSlot, base64, mimeType, altText, width, height } = body || {};
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!entityType || !entityId || !mediaSlot || !base64 || !mimeType) {
+        return sendJson(res, 400, { success: false, error: 'entityType, entityId, mediaSlot, base64, and mimeType are required.' });
+      }
+      if (!allowedMimes.includes(String(mimeType).toLowerCase())) {
+        return sendJson(res, 400, { success: false, error: 'Unsupported image MIME type. Allowed: JPEG, PNG, WebP.' });
+      }
+      const rawB64 = String(base64).replace(/^data:[^;]+;base64,/, '');
+      const approxBytes = Math.floor((rawB64.length * 3) / 4);
+      if (approxBytes > 5 * 1024 * 1024) {
+        return sendJson(res, 400, { success: false, error: 'Image size exceeds 5 MB limit.' });
+      }
+      if (typeof uploadImage !== 'function') {
+        return sendJson(res, 503, { success: false, error: 'Image storage adapter is not configured.' });
+      }
+      const storageUrl = await uploadImage({ base64: rawB64, mimeType });
+      if (!storageUrl) {
+        return sendJson(res, 500, { success: false, error: 'Failed to store uploaded image.' });
+      }
+      const media = await seeCatalogueService.registerMediaAsset({
+        entityType,
+        entityId,
+        mediaSlot,
+        storageUrl,
+        altText,
+        width,
+        height,
+        mimeType
+      }, actor);
+      return sendJson(res, 201, { success: true, media });
+    }
+
+    m = pathname.match(/^\/api\/see\/media\/([^/]+)$/);
+    if (m && method === 'DELETE') {
+      if (!requireAdmin()) return true;
+      const deleted = await seeCatalogueService.deleteMediaAsset(decodeURIComponent(m[1]));
+      if (!deleted) return sendJson(res, 404, { success: false, error: 'Media asset not found.' });
+      return sendJson(res, 200, { success: true, deleted });
     }
 
     // ---------------------------------------------------------------------
@@ -305,7 +384,23 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
     if (method === 'POST' && pathname === '/api/see/staff/eligibility') {
       if (!requireAdmin()) return true;
       const body = await readJsonBody(req);
-      const eligibility = await seeStaffCapabilityService.evaluateStaffEligibility(body.staffId, body);
+      // Resolve requiredEquipment and duration strictly from authoritative service configuration
+      let resolvedSvc = null;
+      if (body.serviceId) {
+        resolvedSvc = await repos.seeCatalogue.findServiceById(body.serviceId);
+      } else if (body.serviceCode) {
+        resolvedSvc = await repos.seeCatalogue.findServiceByCode(body.serviceCode);
+      }
+      const requiredEquipment = Array.isArray(resolvedSvc && resolvedSvc.execution_config && resolvedSvc.execution_config.required_equipment)
+        ? resolvedSvc.execution_config.required_equipment
+        : [];
+      const eligibility = await seeStaffCapabilityService.evaluateStaffEligibility(body.staffId, {
+        ...body,
+        serviceId: resolvedSvc ? resolvedSvc.id : body.serviceId,
+        serviceCode: resolvedSvc ? resolvedSvc.service_code : body.serviceCode,
+        durationMinutes: (resolvedSvc && resolvedSvc.expected_duration_minutes) || body.durationMinutes || 60,
+        requiredEquipment
+      });
       return sendJson(res, 200, { success: true, eligibility });
     }
 
@@ -371,36 +466,39 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
     if (m && method === 'GET') {
       if (!requireStaffOrAdmin()) return true;
       const jobId = decodeURIComponent(m[1]);
-      const job = await repos.serviceJobs.findById(jobId);
-      if (!job) return sendJson(res, 404, { success: false, error: 'Job not found.' });
-      if (staffSess && !adminSess && job.staff_id && job.staff_id !== staffSess.staffId) {
-        return sendJson(res, 403, { success: false, error: 'Forbidden: job assigned to another staff member.' });
-      }
+      const authCtx = await authorizeJobAccess(jobId);
+      if (!authCtx) return true;
       const [addons, solarVerification] = await Promise.all([
         repos.seeOperations.findJobAddons(jobId),
         repos.seeOperations.findSolarVerificationByJob(jobId)
       ]);
-      const contract = seeExecutionService.buildStaffSafeJobContract(job, { addons, solarVerification });
+      const contract = seeExecutionService.buildStaffSafeJobContract(authCtx.job, { addons, solarVerification });
       return sendJson(res, 200, { success: true, job: contract });
     }
 
     m = pathname.match(/^\/api\/see\/jobs\/([^/]+)\/start$/);
     if (m && method === 'POST') {
       if (!requireStaffOrAdmin()) return true;
+      const jobId = decodeURIComponent(m[1]);
+      const authCtx = await authorizeJobAccess(jobId);
+      if (!authCtx) return true;
       const body = await readJsonBody(req);
-      const staffId = (staffSess && staffSess.staffId) || body.staffId;
-      const execution = await seeExecutionService.startExecution(decodeURIComponent(m[1]), staffId);
+      const staffId = staffSess ? staffSess.staffId : body.staffId;
+      const execution = await seeExecutionService.startExecution(jobId, staffId);
       return sendJson(res, 200, { success: true, execution });
     }
 
     m = pathname.match(/^\/api\/see\/jobs\/([^/]+)\/complete$/);
     if (m && method === 'POST') {
       if (!requireStaffOrAdmin()) return true;
+      const jobId = decodeURIComponent(m[1]);
+      const authCtx = await authorizeJobAccess(jobId);
+      if (!authCtx) return true;
       const body = await readJsonBody(req);
       // Only admin can supply authorizedException
       const authorizedException = adminSess ? (body.authorizedException || null) : null;
-      const execution = await seeExecutionService.completeExecution(decodeURIComponent(m[1]), {
-        staffId: (staffSess && staffSess.staffId) || body.staffId,
+      const execution = await seeExecutionService.completeExecution(jobId, {
+        staffId: staffSess ? staffSess.staffId : body.staffId,
         checklistResults: body.checklistResults || [],
         proofPhotos: body.proofPhotos || { before: [], after: [] },
         actualQuantity: body.actualQuantity ?? null,
@@ -415,8 +513,11 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
     m = pathname.match(/^\/api\/see\/jobs\/([^/]+)\/terminate$/);
     if (m && method === 'POST') {
       if (!requireStaffOrAdmin()) return true;
+      const jobId = decodeURIComponent(m[1]);
+      const authCtx = await authorizeJobAccess(jobId);
+      if (!authCtx) return true;
       const body = await readJsonBody(req);
-      const job = await seeExecutionService.terminateJobWithoutCompletion(decodeURIComponent(m[1]), body.outcome, {
+      const job = await seeExecutionService.terminateJobWithoutCompletion(jobId, body.outcome, {
         reason: body.reason,
         actor
       });
@@ -426,8 +527,16 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
     m = pathname.match(/^\/api\/see\/jobs\/([^/]+)\/addons\/([^/]+)\/complete$/);
     if (m && method === 'POST') {
       if (!requireStaffOrAdmin()) return true;
+      const jobId = decodeURIComponent(m[1]);
+      const jobAddonId = decodeURIComponent(m[2]);
+      const authCtx = await authorizeJobAccess(jobId);
+      if (!authCtx) return true;
+      const existingAddons = await repos.seeOperations.findJobAddons(jobId);
+      if (!existingAddons.some(a => a.id === jobAddonId)) {
+        return sendJson(res, 404, { success: false, error: 'Job add-on not found for this job.' });
+      }
       const body = await readJsonBody(req);
-      const jobAddon = await repos.seeOperations.updateJobAddonStatus(decodeURIComponent(m[2]), {
+      const jobAddon = await repos.seeOperations.updateJobAddonStatus(jobAddonId, {
         status: body.status || 'completed',
         checklistResults: body.checklistResults || null,
         proofUrls: body.proofUrls || null,
@@ -441,9 +550,12 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
     m = pathname.match(/^\/api\/see\/jobs\/([^/]+)\/solar-verify$/);
     if (m && method === 'POST') {
       if (!requireStaffOrAdmin()) return true;
+      const jobId = decodeURIComponent(m[1]);
+      const authCtx = await authorizeJobAccess(jobId);
+      if (!authCtx) return true;
       const body = await readJsonBody(req);
-      const verification = await seeExecutionService.submitSolarVerification(decodeURIComponent(m[1]), {
-        staffId: (staffSess && staffSess.staffId) || body.staffId,
+      const verification = await seeExecutionService.submitSolarVerification(jobId, {
+        staffId: staffSess ? staffSess.staffId : body.staffId,
         actualPanelCount: body.actualPanelCount,
         discrepancyReason: body.discrepancyReason || null
       });

@@ -300,6 +300,24 @@ async function listAddons(filters = {}) {
   return repos.seeCatalogue.findAllAddons(filters);
 }
 
+async function getAddonDetail(idOrCode) {
+  let addon = null;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(idOrCode)) {
+    addon = await repos.seeCatalogue.findAddonById(idOrCode);
+  }
+  if (!addon) {
+    addon = await repos.seeCatalogue.findAddonByCode(idOrCode);
+  }
+  if (!addon) return null;
+
+  const [tags, media] = await Promise.all([
+    repos.seeCatalogue.findEntityMarketingTags('addon', addon.id),
+    repos.seeCatalogue.findMediaAssets('addon', addon.id)
+  ]);
+
+  return { ...addon, marketingTags: tags, media };
+}
+
 async function createAddon(data, actor = 'admin') {
   if (!data.addonCode || !String(data.addonCode).trim()) {
     throw new Error('addonCode is required.');
@@ -406,6 +424,10 @@ async function registerMediaAsset(data, actor = 'admin') {
   });
 }
 
+async function deleteMediaAsset(id) {
+  return repos.seeCatalogue.deleteMediaAsset(id);
+}
+
 module.exports = {
   VALID_SERVICE_MODELS,
   VALID_STATUSES,
@@ -422,10 +444,12 @@ module.exports = {
   updatePackage,
   calculatePackagePrice,
   listAddons,
+  getAddonDetail,
   createAddon,
   updateAddon,
   listMarketingTags,
   createMarketingTag,
   attachMarketingTag,
-  registerMediaAsset
+  registerMediaAsset,
+  deleteMediaAsset
 };

@@ -29,6 +29,9 @@ const cloudinary = require('cloudinary').v2;
 const adminSecurityService = require('./services/adminSecurityService');
 const seeApiRouter = require('./services/seeApiRouter');
 const seeCatalogueService = require('./services/seeCatalogueService');
+const seeEntitlementService = require('./services/seeEntitlementService');
+const seeExecutionService = require('./services/seeExecutionService');
+const seeStaffCapabilityService = require('./services/seeStaffCapabilityService');
 
 // Load local .env immediately if present (only when not running automated unit/fixture tests)
 if (process.env.NODE_ENV !== 'test' && !process.env.DATA_FILE) {
@@ -5984,7 +5987,56 @@ const server = http.createServer(async (req, res) => {
           try {
             const adminUser = 'admin';
             if (isNeonConfigured()) {
-              const result = await adminService.assignSpecialJob(payload.jobData || payload, adminUser);
+              const jd = payload.jobData || payload;
+              const targetStaffId = jd.staffId || jd.assignedStaffId || jd.assignedCleanerId || null;
+              const catId = jd.serviceCategoryId || jd.serviceCategory || null;
+              const svc = jd.serviceIdOrCode
+                ? (await seeCatalogueService.getServiceDetail(jd.serviceIdOrCode))
+                : (catId ? (await seeCatalogueService.listServices({ categoryId: catId, status: 'active' }))[0] : null);
+
+              // Delegate to canonical SEE locked job creation + assignment when customerId, locationId, and active SEE service exist
+              if (svc && jd.customerId && jd.locationId) {
+                const job = await seeExecutionService.createCanonicalJob({
+                  customerId: jd.customerId,
+                  vehicleId: jd.vehicleId || null,
+                  locationId: jd.locationId,
+                  serviceIdOrCode: svc.id,
+                  scheduledDate: jd.scheduledDate || null,
+                  scheduledTime: jd.scheduledTime || null,
+                  city: jd.city || null,
+                  zone: jd.zone || null,
+                  instructions: jd.specialInstructions || null,
+                  entitlementAccountId: jd.entitlementAccountId || null,
+                  purchaseSnapshotId: jd.purchaseSnapshotId || null,
+                  staffId: targetStaffId,
+                  actor: adminUser
+                });
+                invalidateLiveCustomersCache();
+                broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'assigned', jobId: job.id });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: true, job, message: 'Job assigned via SEE' }));
+              }
+
+              // Legacy composite-payload fallback (e.g. inline vehicleDetails without locationId)
+              if (targetStaffId) {
+                const reqEquip = Array.isArray(svc?.execution_config?.required_equipment) ? svc.execution_config.required_equipment : [];
+                const elig = await seeStaffCapabilityService.evaluateStaffEligibility(targetStaffId, {
+                  serviceId: svc ? svc.id : null,
+                  serviceCode: svc ? svc.service_code : null,
+                  serviceCategoryId: catId,
+                  city: jd.city || null,
+                  zone: jd.zone || null,
+                  scheduledDate: jd.scheduledDate || null,
+                  scheduledTime: jd.scheduledTime || null,
+                  durationMinutes: svc ? svc.expected_duration_minutes : 60,
+                  requiredEquipment: reqEquip
+                });
+                if (!elig.eligible) {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({ success: false, error: `Staff ineligible: ${elig.reasons.join('; ')}` }));
+                }
+              }
+              const result = await adminService.assignSpecialJob(jd, adminUser);
               invalidateLiveCustomersCache();
               broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'assigned', jobId: result.job?.id });
               res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -6065,7 +6117,26 @@ const server = http.createServer(async (req, res) => {
           try {
             const adminUser = 'admin';
             if (isNeonConfigured()) {
-              const result = await adminService.reassignSpecialJob(payload.jobData || payload, adminUser);
+              const jd = payload.jobData || payload;
+              const toStaffId = jd.toStaffId || jd.newStaffId || null;
+              if (toStaffId && toStaffId !== 'unassigned' && !jd.unassign && jd.jobId) {
+                const job = await repos.serviceJobs.findById(jd.jobId);
+                if (job && (job.service_id || job.entitlement_account_id)) {
+                  // Delegate SEE-managed reassignment to canonical locked seeExecutionService.assignJob
+                  const updatedJob = await seeExecutionService.assignJob(jd.jobId, toStaffId, adminUser);
+                  invalidateLiveCustomersCache();
+                  broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'reassigned', jobId: updatedJob.id });
+                  res.writeHead(200, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({
+                    success: true,
+                    jobId: updatedJob.id,
+                    job: updatedJob,
+                    assignedStaff: { id: toStaffId },
+                    message: 'Reassigned via SEE'
+                  }));
+                }
+              }
+              const result = await adminService.reassignSpecialJob(jd, adminUser);
               invalidateLiveCustomersCache();
               broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'reassigned', jobId: result.job?.id });
               res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -6320,12 +6391,35 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // Admin: Sell / Assign Package to Customer
+        // Admin: Sell / Assign Package to Customer (Enforces admin auth & SEE routing)
         if (payload.action === 'sellCustomerPackage') {
           try {
             const adminSess = await resolveAdminSession(token);
-            const adminUser = adminSess?.username || adminSess?.user || 'admin';
+            if (!adminSess) {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin authentication required' }));
+            }
+            const adminUser = adminSess.username || adminSess.user || 'admin';
             const packageData = payload.packageData || payload.data || payload;
+            if (isNeonConfigured() && (packageData.packageCode || packageData.packageId)) {
+              const seePkg = await seeCatalogueService.getPackageDetail(packageData.packageId || packageData.packageCode);
+              if (seePkg) {
+                const seeResult = await seeEntitlementService.createPurchase({
+                  customerId: packageData.customerId || packageData.id,
+                  vehicleId: packageData.vehicleId || null,
+                  locationId: packageData.locationId || null,
+                  packageIdOrCode: seePkg.id,
+                  vehicleSegment: packageData.vehicleSegment || packageData.seaterType || null,
+                  city: packageData.city || null,
+                  zone: packageData.zone || null,
+                  quantity: packageData.totalQuantity || packageData.quantity || 1,
+                  discountAmount: packageData.discountAmount || 0,
+                  actor: adminUser
+                });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: true, package: seeResult.snapshot, accounts: seeResult.accounts, message: 'Package assigned via SEE' }));
+              }
+            }
             const result = await packageService.sellPackage(packageData, adminUser);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, package: result, message: 'Package assigned successfully' }));
@@ -6336,12 +6430,28 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // Admin: Redeem Package Entitlement
+        // Admin: Redeem Package Entitlement (Enforces admin auth & SEE routing)
         if (payload.action === 'redeemPackageEntitlement') {
           try {
             const adminSess = await resolveAdminSession(token);
-            const adminUser = adminSess?.username || adminSess?.user || 'admin';
+            if (!adminSess) {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin authentication required' }));
+            }
+            const adminUser = adminSess.username || adminSess.user || 'admin';
             const redemptionData = payload.redemptionData || payload.data || payload;
+            if (isNeonConfigured() && (redemptionData.accountId || redemptionData.entitlementAccountId)) {
+              const seeRes = await seeEntitlementService.mutateEntitlement({
+                accountId: redemptionData.accountId || redemptionData.entitlementAccountId,
+                entryType: 'consume',
+                quantity: redemptionData.quantity || 1,
+                idempotencyKey: redemptionData.idempotencyKey || null,
+                reason: redemptionData.reason || redemptionData.notes || 'Admin redemption',
+                actor: adminUser
+              });
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, redemption: seeRes.ledgerEntry, account: seeRes.account, message: 'Entitlement redeemed via SEE' }));
+            }
             const result = await packageService.redeemPackage(redemptionData, adminUser);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
@@ -6396,12 +6506,26 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // Admin: Create Service Booking (Decoupled from Daily Clean, with optional Package Entitlement)
+        // Admin: Create Service Booking (Enforces admin auth & SEE eligibility)
         if (payload.action === 'createServiceBooking') {
           try {
             const adminSess = await resolveAdminSession(token);
-            const adminUser = adminSess?.username || adminSess?.user || 'admin';
+            if (!adminSess) {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin authentication required' }));
+            }
+            const adminUser = adminSess.username || adminSess.user || 'admin';
             const bookingData = payload.bookingData || payload.data || payload;
+            if (isNeonConfigured() && bookingData.serviceIdOrCode && bookingData.locationId) {
+              const job = await seeExecutionService.createCanonicalJob({
+                ...bookingData,
+                actor: adminUser
+              });
+              invalidateLiveCustomersCache();
+              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'created', jobId: job.id });
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, booking: job, message: 'Booking created via SEE' }));
+            }
             const result = await bookingService.createBooking(bookingData, adminUser);
             invalidateLiveCustomersCache();
             broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'created', jobId: result.job?.id || result.id });
@@ -6463,6 +6587,27 @@ const server = http.createServer(async (req, res) => {
             }
             const actor = (staffSess && (staffSess.staffCode || staffSess.name)) || (adminSess && adminSess.username) || 'staff';
             const jobId = payload.jobId || payload.id;
+            if (staffSess && !adminSess && isNeonConfigured()) {
+              const activeAssign = await repos.staffAssignments.findActiveByJobId(jobId);
+              if (!activeAssign || activeAssign.staff_id !== staffSess.staffId) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
+              }
+            }
+            if (isNeonConfigured()) {
+              const existingJob = await repos.serviceJobs.findById(jobId);
+              if (existingJob && (existingJob.entitlement_account_id || existingJob.service_id)) {
+                const outcome = payload.outcome === 'no_show' ? 'no_show' : 'failed';
+                const job = await seeExecutionService.terminateJobWithoutCompletion(jobId, outcome, {
+                  reason: payload.failureReason || payload.reason || outcome,
+                  actor
+                });
+                invalidateLiveCustomersCache();
+                broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: outcome, jobId, status: outcome });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: true, job, message: `Service marked ${outcome} via SEE` }));
+              }
+            }
             const result = await bookingService.failJob(jobId, {
               failureReason: payload.failureReason || payload.reason,
               failureRemarks: payload.failureRemarks || payload.remarks,
@@ -6963,13 +7108,8 @@ const server = http.createServer(async (req, res) => {
           }
 
           if (staffSess && !adminSess && isNeonConfigured()) {
-            const existingJob = await repos.serviceJobs.findById(jobId);
-            if (!existingJob) {
-              res.writeHead(404, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
-            }
-            const assignedStaffId = existingJob.staff_id || existingJob.assigned_to_staff_id;
-            if (assignedStaffId && assignedStaffId !== staffSess.staffId && existingJob.assigned_staff_code !== staffSess.staffCode && assignedStaffId !== staffSess.staffCode) {
+            const activeAssign = await repos.staffAssignments.findActiveByJobId(jobId);
+            if (!activeAssign || activeAssign.staff_id !== staffSess.staffId) {
               res.writeHead(403, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
             }
@@ -7048,13 +7188,8 @@ const server = http.createServer(async (req, res) => {
           }
 
           if (staffSess && !adminSess && isNeonConfigured()) {
-            const existingJob = await repos.serviceJobs.findById(jobId);
-            if (!existingJob) {
-              res.writeHead(404, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
-            }
-            const assignedStaffId = existingJob.staff_id || existingJob.assigned_to_staff_id;
-            if (assignedStaffId && assignedStaffId !== staffSess.staffId && existingJob.assigned_staff_code !== staffSess.staffCode && assignedStaffId !== staffSess.staffCode) {
+            const activeAssign = await repos.staffAssignments.findActiveByJobId(jobId);
+            if (!activeAssign || activeAssign.staff_id !== staffSess.staffId) {
               res.writeHead(403, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
             }
@@ -7086,6 +7221,46 @@ const server = http.createServer(async (req, res) => {
 
           try {
             const actor = (staffSess && (staffSess.staffCode || staffSess.name)) || (adminSess && adminSess.username) || 'staff';
+            if (isNeonConfigured()) {
+              const existingJob = await repos.serviceJobs.findById(jobId);
+              if (existingJob && (existingJob.service_id || existingJob.entitlement_account_id)) {
+                // Canonical SEE completion — never fall back to legacy bookingService on SEE failure
+                let staffObj = null;
+                if (staffSess && staffSess.staffId) {
+                  staffObj = { id: staffSess.staffId };
+                } else if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffCode)) {
+                  staffObj = await repos.staff.findById(staffCode);
+                } else {
+                  staffObj = await repos.staff.findByStaffCode(staffCode);
+                }
+                const execution = await seeExecutionService.completeExecution(jobId, {
+                  staffId: staffObj ? staffObj.id : null,
+                  checklistResults: Array.isArray(payload.checklistResults) ? payload.checklistResults : [],
+                  proofPhotos: {
+                    before: Array.isArray(existingJob.before_photos) ? existingJob.before_photos : [],
+                    after: afterPhotoUrls
+                  },
+                  actualQuantity: payload.actualQuantity ?? null,
+                  measurements: payload.measurements || {},
+                  customerConfirmation: payload.customerConfirmation || {},
+                  authorizedException: adminSess ? (payload.authorizedException || null) : null,
+                  actor
+                });
+                const updatedSeeJob = await repos.serviceJobs.findById(jobId);
+                invalidateLiveCustomersCache();
+                broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'completed', jobId, status: 'completed' });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: true,
+                  job: updatedSeeJob,
+                  execution,
+                  afterPhotos: afterPhotoUrls,
+                  completedAt,
+                  entitlementDeducted: Boolean(existingJob.entitlement_account_id),
+                  message: 'Job completed via SEE'
+                }));
+              }
+            }
             const compRes = await bookingService.completeJob(jobId, {
               afterPhotos: afterPhotoUrls,
               completedAt: completedAt,
@@ -7201,13 +7376,8 @@ const server = http.createServer(async (req, res) => {
           }
 
           if (staffSess && !adminSess && isNeonConfigured()) {
-            const existingJob = await repos.serviceJobs.findById(jobId);
-            if (!existingJob) {
-              res.writeHead(404, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
-            }
-            const assignedStaffId = existingJob.staff_id || existingJob.assigned_to_staff_id;
-            if (assignedStaffId && assignedStaffId !== staffSess.staffId && existingJob.assigned_staff_code !== staffSess.staffCode && assignedStaffId !== staffSess.staffCode) {
+            const activeAssign = await repos.staffAssignments.findActiveByJobId(jobId);
+            if (!activeAssign || activeAssign.staff_id !== staffSess.staffId) {
               res.writeHead(403, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
             }
@@ -7224,6 +7394,28 @@ const server = http.createServer(async (req, res) => {
           const cancelledBy = (staffSess && (staffSess.staffCode || staffSess.name || staffSess.staffId)) || (adminSess && (adminSess.username || adminSess.id || 'admin')) || 'staff';
 
           try {
+            if (isNeonConfigured()) {
+              const existingJob = await repos.serviceJobs.findById(jobId);
+              if (existingJob && (existingJob.entitlement_account_id || existingJob.service_id)) {
+                const job = await seeExecutionService.terminateJobWithoutCompletion(jobId, 'cancelled', {
+                  reason,
+                  actor: cancelledBy
+                });
+                invalidateLiveCustomersCache();
+                broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'cancelled', jobId, status: 'cancelled' });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: true,
+                  jobId,
+                  status: 'cancelled',
+                  cancellationReason: reason,
+                  cancellationRemarks: remarks,
+                  cancelledAt,
+                  job,
+                  message: 'Job cancelled via SEE'
+                }));
+              }
+            }
             const cancelRes = await bookingService.cancelBooking(jobId, {
               cancellationReason: reason,
               cancellationRemarks: remarks,
@@ -7298,7 +7490,8 @@ const server = http.createServer(async (req, res) => {
     const handled = await seeApiRouter.handleSeeRequest(req, res, parsedUrl, {
       extractAuthToken,
       resolveAdminSession,
-      resolveStaffSession
+      resolveStaffSession,
+      uploadImage: uploadToCloudinary
     });
     if (handled) return;
   }

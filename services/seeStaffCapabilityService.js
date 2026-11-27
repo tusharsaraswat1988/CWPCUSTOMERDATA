@@ -148,8 +148,56 @@ async function grantCapabilityOverride({
   });
 }
 
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr) return null;
+  const m = String(timeStr).trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+
+function normalizeWeekdayName(val) {
+  if (val == null) return null;
+  const s = String(val).trim().toLowerCase();
+  const map = {
+    '0': 0, sun: 0, sunday: 0,
+    '1': 1, mon: 1, monday: 1,
+    '2': 2, tue: 2, tuesday: 2,
+    '3': 3, wed: 3, wednesday: 3,
+    '4': 4, thu: 4, thursday: 4,
+    '5': 5, fri: 5, friday: 5,
+    '6': 6, sat: 6, saturday: 6
+  };
+  return map[s] !== undefined ? map[s] : null;
+}
+
+function addDaysYmd(ymd, deltaDays) {
+  const [y, m, d] = String(ymd).slice(0, 10).split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + deltaDays, 12, 0, 0));
+  return dt.toISOString().slice(0, 10);
+}
+
+function toYmdStr(val) {
+  if (!val) return null;
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return String(val).slice(0, 10);
+}
+
+function intervalsOverlapRelative(reqStart, reqDur, exStart, exDur, dayOffsetMins = 0) {
+  if (reqStart === null || exStart === null) return false;
+  const reqEnd = reqStart + Math.max(1, parseInt(reqDur, 10) || 60);
+  const relExStart = exStart + dayOffsetMins;
+  const relExEnd = relExStart + Math.max(1, parseInt(exDur, 10) || 60);
+  return reqStart < relExEnd && reqEnd > relExStart;
+}
+
 /**
- * Evaluate full server-side assignment eligibility for a staff member against a job/service/add-ons
+ * Evaluate full server-side assignment eligibility for a staff member against a job/service/add-ons.
+ * When externalClient is provided, locks the staff row (FOR UPDATE) to serialize concurrent assignments.
  */
 async function evaluateStaffEligibility(staffId, {
   serviceId = null,
@@ -159,9 +207,23 @@ async function evaluateStaffEligibility(staffId, {
   city = null,
   zone = null,
   scheduledDate = null,
+  scheduledTime = null,
+  durationMinutes = 60,
+  allowConcurrent = false,
+  timezone = 'Asia/Kolkata',
   requiredEquipment = []
-} = {}) {
-  const staff = await repos.staff.findById(staffId);
+} = {}, externalClient = null) {
+  const runner = externalClient || db;
+  let staff = null;
+  if (externalClient) {
+    const lockRes = await externalClient.query(
+      'SELECT * FROM public.staff WHERE id = $1 AND deleted_at IS NULL FOR UPDATE',
+      [staffId]
+    );
+    staff = lockRes.rows[0] || null;
+  } else {
+    staff = await repos.staff.findById(staffId);
+  }
   if (!staff) {
     return { eligible: false, reasons: [`Staff '${staffId}' not found.`] };
   }
@@ -183,12 +245,16 @@ async function evaluateStaffEligibility(staffId, {
     reasons.push(`Staff '${staff.name}' is not authorized for zone '${zone}'.`);
   }
 
-  // 3. Equipment requirements
+  // 3. Equipment requirements (P1 fix: fail by default if equipment inventory is empty/unknown)
   const staffEquip = Array.isArray(staff.equipment_available) ? staff.equipment_available.map(e => String(e).toLowerCase()) : [];
-  if (Array.isArray(requiredEquipment) && requiredEquipment.length > 0 && staffEquip.length > 0) {
-    for (const eq of requiredEquipment) {
-      if (!staffEquip.includes(String(eq).toLowerCase())) {
-        reasons.push(`Staff '${staff.name}' is missing required equipment '${eq}'.`);
+  if (Array.isArray(requiredEquipment) && requiredEquipment.length > 0) {
+    if (staffEquip.length === 0) {
+      reasons.push(`Staff '${staff.name}' has unknown/empty equipment inventory (required: ${requiredEquipment.join(', ')}).`);
+    } else {
+      for (const eq of requiredEquipment) {
+        if (!staffEquip.includes(String(eq).toLowerCase())) {
+          reasons.push(`Staff '${staff.name}' is missing required equipment '${eq}'.`);
+        }
       }
     }
   }
@@ -197,14 +263,14 @@ async function evaluateStaffEligibility(staffId, {
   let typeSvcCaps = [];
   let typeAddonCaps = [];
   if (staff.staff_type_id) {
-    const st = await repos.seeOperations.findStaffTypeById(staff.staff_type_id);
+    const st = await repos.seeOperations.findStaffTypeById(staff.staff_type_id, runner);
     if (st) {
       typeSvcCaps = Array.isArray(st.default_service_capabilities) ? st.default_service_capabilities : [];
       typeAddonCaps = Array.isArray(st.default_addon_capabilities) ? st.default_addon_capabilities : [];
     }
   }
 
-  const overrides = await repos.seeOperations.findActiveOverridesForStaff(staff.id);
+  const overrides = await repos.seeOperations.findActiveOverridesForStaff(staff.id, runner);
   const legacyCaps = Array.isArray(staff.service_capabilities) ? staff.service_capabilities : [];
 
   // 5. Service capability check
@@ -225,7 +291,7 @@ async function evaluateStaffEligibility(staffId, {
 
   // 6. Add-on capability check
   for (const addonId of addonIds) {
-    const addon = await repos.seeCatalogue.findAddonById(addonId);
+    const addon = await repos.seeCatalogue.findAddonById(addonId, runner);
     if (!addon) continue;
     const ov = overrides.find(o => o.capability_type === 'addon' && o.target_id === addonId);
     if (ov) {
@@ -237,20 +303,50 @@ async function evaluateStaffEligibility(staffId, {
     }
   }
 
-  // 7. Workload / max_daily_jobs check
-  if (staff.max_daily_jobs && scheduledDate) {
-    const countRes = await db.query(
-      `SELECT COUNT(*)::int AS cnt
+  // 7. Weekly-off, Workload & Schedule Overlap checks (P1 fix)
+  if (scheduledDate) {
+    const normDate = toYmdStr(scheduledDate);
+    const offDay = normalizeWeekdayName(staff.weekly_off);
+    if (offDay !== null) {
+      const [y, m, d] = normDate.split('-').map(Number);
+      const jobWeekday = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay();
+      if (jobWeekday === offDay) {
+        reasons.push(`Staff '${staff.name}' has weekly off on ${normDate}.`);
+      }
+    }
+
+    const prevDate = addDaysYmd(normDate, -1);
+    const nextDate = addDaysYmd(normDate, 1);
+
+    const existingRes = await runner.query(
+      `SELECT j.id, TO_CHAR(j.scheduled_date, 'YYYY-MM-DD') AS scheduled_date_str, j.scheduled_time, COALESCE(s.expected_duration_minutes, 60) AS duration_minutes
        FROM public.staff_assignments sa
        JOIN public.service_jobs j ON sa.job_id = j.id
+       LEFT JOIN public.services s ON j.service_id = s.id
        WHERE sa.staff_id = $1 AND sa.is_active = TRUE
-         AND j.scheduled_date = $2 AND j.deleted_at IS NULL
+         AND j.scheduled_date IN ($2::date, $3::date, $4::date) AND j.deleted_at IS NULL
          AND j.status IN ('assigned', 'in_progress')`,
-      [staff.id, scheduledDate]
+      [staff.id, prevDate, normDate, nextDate]
     );
-    const currentCount = countRes.rows[0]?.cnt || 0;
-    if (currentCount >= staff.max_daily_jobs) {
-      reasons.push(`Staff '${staff.name}' has reached max daily job limit (${staff.max_daily_jobs}) on ${scheduledDate}.`);
+
+    const sameDayJobs = existingRes.rows.filter(r => r.scheduled_date_str === normDate);
+    if (staff.max_daily_jobs && sameDayJobs.length >= staff.max_daily_jobs) {
+      reasons.push(`Staff '${staff.name}' has reached max daily job limit (${staff.max_daily_jobs}) on ${normDate}.`);
+    }
+
+    if (!allowConcurrent && scheduledTime) {
+      const reqStart = parseTimeToMinutes(scheduledTime);
+      if (reqStart !== null) {
+        for (const row of existingRes.rows) {
+          const exStart = parseTimeToMinutes(row.scheduled_time);
+          const rowDate = row.scheduled_date_str;
+          const dayOffset = rowDate === prevDate ? -1440 : (rowDate === nextDate ? 1440 : 0);
+          if (intervalsOverlapRelative(reqStart, durationMinutes, exStart, row.duration_minutes, dayOffset)) {
+            reasons.push(`Staff '${staff.name}' has an overlapping job at ${row.scheduled_time} on ${rowDate}.`);
+            break;
+          }
+        }
+      }
     }
   }
 

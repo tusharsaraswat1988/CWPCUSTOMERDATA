@@ -118,23 +118,34 @@ async function createCanonicalJob({
   if (!svc) throw new Error(`Service '${serviceIdOrCode}' not found in catalogue.`);
   if (svc.status !== 'active') throw new Error(`Service '${svc.name}' is not active (status: '${svc.status}').`);
 
-  // Validate staff eligibility if assigned at creation
-  if (staffId) {
-    const elig = await seeStaffCapabilityService.evaluateStaffEligibility(staffId, {
-      serviceId: svc.id,
-      serviceCode: svc.service_code,
-      serviceCategoryId: svc.service_category_id,
-      addonIds,
-      city,
-      zone,
-      scheduledDate
-    });
-    if (!elig.eligible) {
-      throw new Error(`Staff ineligible for job: ${elig.reasons.join('; ')}`);
-    }
-  }
+  const requiredEquipment = Array.isArray(svc.execution_config && svc.execution_config.required_equipment)
+    ? svc.execution_config.required_equipment
+    : [];
+  const durationMinutes = svc.expected_duration_minutes || 60;
+  const allowConcurrent = Boolean(svc.execution_config && svc.execution_config.allow_concurrent);
 
   const job = await db.withTransaction(async (client) => {
+    // Validate staff eligibility INSIDE transaction with FOR UPDATE lock on staff row
+    if (staffId) {
+      const elig = await seeStaffCapabilityService.evaluateStaffEligibility(staffId, {
+        serviceId: svc.id,
+        serviceCode: svc.service_code,
+        serviceCategoryId: svc.service_category_id,
+        addonIds,
+        city,
+        zone,
+        scheduledDate,
+        scheduledTime,
+        durationMinutes,
+        allowConcurrent,
+        timezone,
+        requiredEquipment
+      }, client);
+      if (!elig.eligible) {
+        throw new Error(`Staff ineligible for job: ${elig.reasons.join('; ')}`);
+      }
+    }
+
     const initialStatus = staffId ? 'assigned' : 'booked';
     const res = await client.query(
       `INSERT INTO public.service_jobs (
@@ -201,50 +212,62 @@ async function createCanonicalJob({
       }, client);
     }
 
+    // Reserve entitlement atomically within the same transaction
+    if (entitlementAccountId) {
+      await seeEntitlementService.mutateEntitlement({
+        accountId: entitlementAccountId,
+        entryType: 'reserve',
+        quantity: 1,
+        referenceType: 'service_job',
+        referenceId: createdJob.id,
+        idempotencyKey: `reserve:job:${createdJob.id}`,
+        reason: `Reserved entitlement for job ${createdJob.id}`,
+        actor
+      }, client);
+    }
+
     return createdJob;
   });
-
-  // Reserve entitlement separately (never consume at creation/assignment)
-  if (entitlementAccountId) {
-    await seeEntitlementService.mutateEntitlement({
-      accountId: entitlementAccountId,
-      entryType: 'reserve',
-      quantity: 1,
-      referenceType: 'service_job',
-      referenceId: job.id,
-      idempotencyKey: `reserve:job:${job.id}`,
-      reason: `Reserved entitlement for job ${job.id}`,
-      actor
-    });
-  }
 
   return job;
 }
 
 /**
- * Assign or reassign a job to an eligible staff member
+ * Assign or reassign a job to an eligible staff member (concurrency-safe with FOR UPDATE lock)
  */
 async function assignJob(jobId, staffId, actor = 'admin') {
-  const job = await repos.serviceJobs.findById(jobId);
-  if (!job) throw new Error(`Job '${jobId}' not found.`);
-  if (['completed', 'cancelled'].includes(job.status)) {
-    throw new Error(`Cannot assign job in terminal status '${job.status}'.`);
-  }
-
-  const jobAddons = await repos.seeOperations.findJobAddons(jobId);
-  const elig = await seeStaffCapabilityService.evaluateStaffEligibility(staffId, {
-    serviceId: job.service_id,
-    serviceCategoryId: job.service_category_id,
-    addonIds: jobAddons.map(a => a.addon_id),
-    city: job.city,
-    zone: job.zone,
-    scheduledDate: job.scheduled_date
-  });
-  if (!elig.eligible) {
-    throw new Error(`Staff ineligible for job: ${elig.reasons.join('; ')}`);
-  }
-
   return db.withTransaction(async (client) => {
+    const job = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+    if (!job) throw new Error(`Job '${jobId}' not found.`);
+    if (['completed', 'cancelled', 'failed', 'no_show'].includes(job.status)) {
+      throw new Error(`Cannot assign job in terminal status '${job.status}'.`);
+    }
+
+    const jobAddons = await repos.seeOperations.findJobAddons(jobId, client);
+    const svc = job.service_id ? await repos.seeCatalogue.findServiceById(job.service_id, client) : null;
+    const requiredEquipment = Array.isArray(svc && svc.execution_config && svc.execution_config.required_equipment)
+      ? svc.execution_config.required_equipment
+      : [];
+
+    const elig = await seeStaffCapabilityService.evaluateStaffEligibility(staffId, {
+      serviceId: job.service_id,
+      serviceCode: svc ? svc.service_code : null,
+      serviceCategoryId: job.service_category_id,
+      addonIds: jobAddons.map(a => a.addon_id),
+      city: job.city,
+      zone: job.zone,
+      scheduledDate: job.scheduled_date,
+      scheduledTime: job.scheduled_time,
+      durationMinutes: (svc && svc.expected_duration_minutes) || 60,
+      allowConcurrent: Boolean(svc && svc.execution_config && svc.execution_config.allow_concurrent),
+      timezone: job.timezone || 'Asia/Kolkata',
+      requiredEquipment
+    }, client);
+
+    if (!elig.eligible) {
+      throw new Error(`Staff ineligible for job: ${elig.reasons.join('; ')}`);
+    }
+
     await repos.staffAssignments.assignStaffToJob({ staffId, jobId, assignedBy: actor }, client);
     const res = await client.query(
       `UPDATE public.service_jobs SET status = 'assigned', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
@@ -325,6 +348,13 @@ async function completeExecution(jobId, {
   }
 
   const execution = await db.withTransaction(async (client) => {
+    // Row-level lock on service_jobs to serialize concurrent completion attempts
+    const lockedJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+    if (!lockedJob) throw new Error(`Job '${jobId}' not found.`);
+    if (['completed', 'cancelled', 'failed', 'no_show'].includes(lockedJob.status)) {
+      throw new Error(`Job '${jobId}' is already in terminal status '${lockedJob.status}'.`);
+    }
+
     const exec = await repos.seeOperations.createExecution({
       jobId,
       staffId,
@@ -350,41 +380,43 @@ async function completeExecution(jobId, {
        WHERE id = $1`,
       [jobId, JSON.stringify(proofPhotos.before || []), JSON.stringify(proofPhotos.after || [])]
     );
+
+    // 4. Idempotent entitlement consumption inside the same transaction
+    if (lockedJob.entitlement_account_id) {
+      await seeEntitlementService.mutateEntitlement({
+        accountId: lockedJob.entitlement_account_id,
+        entryType: 'consume',
+        quantity: 1,
+        referenceType: 'service_job',
+        referenceId: jobId,
+        executionReference: exec.id,
+        idempotencyKey: `consume:job:${jobId}`,
+        reason: `Consumed entitlement on completion of job ${jobId}`,
+        actor
+      }, client);
+    }
+
     return exec;
   });
-
-  // 4. Idempotent entitlement consumption on valid completion
-  if (job.entitlement_account_id) {
-    await seeEntitlementService.mutateEntitlement({
-      accountId: job.entitlement_account_id,
-      entryType: 'consume',
-      quantity: 1,
-      referenceType: 'service_job',
-      referenceId: jobId,
-      executionReference: execution.id,
-      idempotencyKey: `consume:job:${jobId}`,
-      reason: `Consumed entitlement on completion of job ${jobId}`,
-      actor
-    });
-  }
 
   return execution;
 }
 
 /**
- * Cancel, fail, or mark no-show — keeping failed and no_show distinct, and releasing any reservation
+ * Cancel, fail, or mark no-show — keeping failed and no_show distinct, and releasing any reservation atomically
  */
 async function terminateJobWithoutCompletion(jobId, outcome, { reason, actor = 'staff' }) {
   if (!['cancelled', 'failed', 'no_show'].includes(outcome)) {
     throw new Error(`Invalid non-completion outcome '${outcome}'.`);
   }
-  const job = await repos.serviceJobs.findById(jobId);
-  if (!job) throw new Error(`Job '${jobId}' not found.`);
-  if (['completed', 'cancelled', 'failed', 'no_show'].includes(job.status)) {
-    throw new Error(`Job '${jobId}' is already in terminal status '${job.status}'.`);
-  }
 
   await db.withTransaction(async (client) => {
+    const lockedJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+    if (!lockedJob) throw new Error(`Job '${jobId}' not found.`);
+    if (['completed', 'cancelled', 'failed', 'no_show'].includes(lockedJob.status)) {
+      throw new Error(`Job '${jobId}' is already in terminal status '${lockedJob.status}'.`);
+    }
+
     await client.query(
       `UPDATE public.service_jobs
        SET status = $2, failure_reason = $3, failed_at = CURRENT_TIMESTAMP, failed_by = $4, updated_at = CURRENT_TIMESTAMP
@@ -398,24 +430,24 @@ async function terminateJobWithoutCompletion(jobId, outcome, { reason, actor = '
         exceptionReason: reason || outcome
       }, client);
     }
-  });
 
-  // Release reserved entitlement if any
-  if (job.entitlement_account_id) {
-    const acct = await repos.seeEntitlement.findAccountById(job.entitlement_account_id);
-    if (acct && acct.reserved_qty > 0) {
-      await seeEntitlementService.mutateEntitlement({
-        accountId: job.entitlement_account_id,
-        entryType: 'release',
-        quantity: 1,
-        referenceType: 'service_job',
-        referenceId: jobId,
-        idempotencyKey: `release:job:${jobId}`,
-        reason: `Released reservation due to job ${outcome}`,
-        actor
-      });
+    // Release reserved entitlement atomically inside the same transaction
+    if (lockedJob.entitlement_account_id) {
+      const acct = await repos.seeEntitlement.findAccountByIdForUpdate(lockedJob.entitlement_account_id, client);
+      if (acct && acct.reserved_qty > 0) {
+        await seeEntitlementService.mutateEntitlement({
+          accountId: lockedJob.entitlement_account_id,
+          entryType: 'release',
+          quantity: 1,
+          referenceType: 'service_job',
+          referenceId: jobId,
+          idempotencyKey: `release:job:${jobId}`,
+          reason: `Released reservation due to job ${outcome}`,
+          actor
+        }, client);
+      }
     }
-  }
+  });
 
   return repos.serviceJobs.findById(jobId);
 }

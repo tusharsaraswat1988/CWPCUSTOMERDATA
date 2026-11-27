@@ -23,6 +23,7 @@
     bindFormPlayground();
     bindSelectionPlayground();
     bindTableDataGridPlayground();
+    bindSeePlayground();
   }
 
   function bindInteractiveButtons() {
@@ -4277,6 +4278,1150 @@
 
     // Initial render
     render();
+  }
+
+  /* =========================================================================
+     SEE-11: Complete SEE Playground Prototype (Mock State & Interactions)
+     ========================================================================= */
+
+  function bindSeePlayground() {
+    const seeSection = document.getElementById('v2-sec-see');
+    if (!seeSection) return;
+
+    const feedbackEl = document.getElementById('v2PlaygroundClickFeedback');
+    const tabBtns = seeSection.querySelectorAll('[data-see-module]');
+    const panels = seeSection.querySelectorAll('.v2-see-module-panel');
+    const stateBtns = seeSection.querySelectorAll('[data-see-state]');
+    const loadingEl = document.getElementById('v2SeeStateLoading');
+    const emptyEl = document.getElementById('v2SeeStateEmpty');
+    const errorEl = document.getElementById('v2SeeStateError');
+    const resetBtn = document.getElementById('v2SeeStateResetBtn');
+    const retryBtn = document.getElementById('v2SeeStateRetryBtn');
+
+    function setFeedback(icon, color, html) {
+      if (!feedbackEl) return;
+      feedbackEl.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px; color:${color};">${icon}</span><span>${html}</span>`;
+    }
+
+    function openOverlay(id) {
+      if (window.CWP_ADMIN_V2 && window.CWP_ADMIN_V2.overlay) {
+        window.CWP_ADMIN_V2.overlay.open(id);
+      }
+    }
+
+    function closeOverlay(id) {
+      if (window.CWP_ADMIN_V2 && window.CWP_ADMIN_V2.overlay) {
+        window.CWP_ADMIN_V2.overlay.close(id);
+      }
+    }
+
+    function statusBadge(status) {
+      const map = {
+        active: 'cwp-v2-badge-success',
+        completed: 'cwp-v2-badge-success',
+        draft: 'cwp-v2-badge-info',
+        awaiting_approval: 'cwp-v2-badge-info',
+        in_progress: 'cwp-v2-badge-warning',
+        retired: 'cwp-v2-badge-neutral',
+        exhausted: 'cwp-v2-badge-neutral',
+        cancelled: 'cwp-v2-badge-neutral',
+        expired: 'cwp-v2-badge-danger',
+        refunded: 'cwp-v2-badge-danger'
+      };
+      return `<span class="cwp-v2-badge ${map[status] || 'cwp-v2-badge-neutral'}">${escapeHtml(status)}</span>`;
+    }
+
+    function updateChipCounts() {
+      const counts = {
+        services: store.services.length,
+        packages: store.packages.length,
+        addons: store.addons.length,
+        tags: store.tags.length,
+        capabilities: store.staff.length,
+        entitlements: store.entitlements.length,
+        jobs: store.jobs.length
+      };
+      tabBtns.forEach(btn => {
+        const key = btn.getAttribute('data-see-module');
+        const badge = btn.querySelector('.cwp-v2-chip-count');
+        if (badge && counts[key] !== undefined) badge.textContent = String(counts[key]);
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // Local Prototype Mock Store
+    // -----------------------------------------------------------------------
+    const store = {
+      services: [
+        { id: 'svc1', code: 'SVC-DCC-01', name: 'Daily Car Cleaning (DCC)', category: 'Daily Car Cleaning (DCC)', model: 'recurring', proofText: 'Photo Required • Daily Route', version: 3, status: 'active', checklist: true, photo: true, dccIsolated: true, addons: ['None (DCC Isolated)'], tags: ['Daily Route'] },
+        { id: 'svc2', code: 'SVC-WASH-01', name: 'Pressure Foam Car Wash', category: 'Car Washing', model: 'visit_credit', proofText: 'Checklist (6) + Before/After Photo', version: 2, status: 'active', checklist: true, photo: true, dccIsolated: false, addons: ['Tyre Dressing', 'Dashboard UV'], tags: ['Most Popular'] },
+        { id: 'svc3', code: 'SVC-SOLAR-01', name: 'Solar Panel Cleaning', category: 'Solar', model: 'site_quantity', proofText: 'Panel Count Verify + Before/After', version: 2, status: 'active', checklist: true, photo: true, dccIsolated: false, addons: ['Inverter Dusting'], tags: ['De-mineralized Water'] },
+        { id: 'svc4', code: 'SVC-DET-02', name: 'Interior Steam Sanitization', category: 'Detailing', model: 'one_time', proofText: 'Checklist (8) + After Photo', version: 1, status: 'draft', checklist: true, photo: true, dccIsolated: false, addons: ['Cabin Ozone'], tags: [] },
+        { id: 'svc5', code: 'SVC-LEGACY-09', name: 'Legacy Wax Polish', category: 'Detailing', model: 'flexible_custom', proofText: 'Checklist (4)', version: 1, status: 'retired', checklist: true, photo: false, dccIsolated: false, addons: [], tags: [] }
+      ],
+      packages: [
+        { id: 'pkg1', code: 'PKG-DCC-PRO', name: 'DCC Monthly + 2 Foam Washes', mainService: 'Daily Car Cleaning', qty: 26, addons: 'Dashboard UV (Optional)', freq: 'daily', validity: 30, carryForward: 'Strict expiry at validity end', missedVisit: 'Skip occurrence', pricingRule: 'vehicle_segment', pricingText: '₹999 / ₹1,249', price5: 999, price5Plus: 1249, segments: ['5_seater', '5_plus_seater'], status: 'active' },
+        { id: 'pkg2', code: 'PKG-WASH-4X', name: '4x Bi-Weekly Wash Pack', mainService: 'Pressure Foam Wash', qty: 4, addons: 'Tyre Dressing (Included)', freq: 'every_15_days', validity: 60, carryForward: 'Allow 15-day grace carry-forward', missedVisit: 'Shift to next working day', pricingRule: 'vehicle_segment', pricingText: '₹1,499 / ₹1,899', price5: 1499, price5Plus: 1899, segments: ['5_seater', '5_plus_seater'], status: 'active' },
+        { id: 'pkg3', code: 'PKG-SOLAR-QTR', name: 'Quarterly Solar Array Care', mainService: 'Solar Panel Cleaning', qty: 4, addons: 'None', freq: 'every_n_months', validity: 365, carryForward: 'Allow 15-day grace carry-forward', missedVisit: 'Shift to next working day', pricingRule: 'per_panel', pricingText: '₹35/panel (min ₹499)', price5: 499, price5Plus: 840, segments: ['5_seater'], status: 'active' },
+        { id: 'pkg4', code: 'PKG-MONSOON', name: 'Monsoon Protection Bundle', mainService: 'Interior Steam', qty: 2, addons: 'Tyre Dressing (Included)', freq: 'twice_per_month', validity: 30, carryForward: 'Strict expiry at validity end', missedVisit: 'Shift to next working day', pricingRule: 'fixed', pricingText: '₹1,799', price5: 1799, price5Plus: 1799, segments: ['5_seater', '5_plus_seater'], status: 'draft' }
+      ],
+      addons: [
+        { id: 'add1', code: 'ADD-TYRE-01', name: 'Tyre & Alloy Dressing', mode: 'per_main_service', compat: ['Foam Wash', 'Interior Steam'], price: 99, status: 'active' },
+        { id: 'add2', code: 'ADD-DASH-02', name: 'Dashboard UV Conditioning', mode: 'during_main_service', compat: ['Foam Wash', 'Interior Steam'], price: 149, status: 'active' },
+        { id: 'add3', code: 'ADD-ENG-03', name: 'Engine Bay Degreasing', mode: 'separate_job', compat: ['Foam Wash'], price: 349, status: 'active' },
+        { id: 'add4', code: 'ADD-ODOR-04', name: 'Cabin Ozone Deodorizer', mode: 'customer_redemption', compat: ['Foam Wash', 'Interior Steam'], price: 299, status: 'active' },
+        { id: 'add5', code: 'ADD-INV-05', name: 'Inverter & Junction Dusting', mode: 'scheduled_independently', compat: ['Solar Panel'], price: 199, status: 'active' }
+      ],
+      tags: [
+        { id: 'tag1', key: 'TAG-BEST-SELLER', label: 'Most Popular', type: 'highlight', tone: 'primary', assigned: ['PKG-DCC-PRO', 'PKG-WASH-4X', 'SVC-WASH-01'], validity: 'Always On', status: 'active' },
+        { id: 'tag2', key: 'TAG-MONSOON-20', label: 'Save 20% Monsoon', type: 'promo', tone: 'warning', assigned: ['PKG-MONSOON'], validity: '01 Jun – 30 Sep', status: 'active' },
+        { id: 'tag3', key: 'TAG-SOLAR-CERT', label: 'De-mineralized Water', type: 'badge', tone: 'info', assigned: ['SVC-SOLAR-01', 'PKG-SOLAR-QTR'], validity: 'Always On', status: 'active' },
+        { id: 'tag4', key: 'TAG-NEW-LAUNCH', label: 'New Service', type: 'badge', tone: 'neutral', assigned: [], validity: 'Draft', status: 'draft' }
+      ],
+      staff: [
+        { id: 'st1', name: 'Vikram S.', type: 'Mobile Wash & Detail Tech', zones: 'Bengaluru • South-4, HSR', equipment: ['Pressure Washer', 'Vacuum'], override: '+Solar Assist', reason: 'Trained on Solar Assist safety protocol; approved for South-4.' },
+        { id: 'st2', name: 'Ramesh K.', type: 'DCC Route Specialist', zones: 'Bengaluru • Whitefield-2', equipment: ['DCC Kit'], override: '', reason: '' },
+        { id: 'st3', name: 'Arjun K.', type: 'Solar Array Technician', zones: 'Bengaluru • North-1, Yelahanka', equipment: ['TDS Meter'], override: '', reason: '' }
+      ],
+      entitlements: [
+        {
+          id: 'ent1', customer: 'Ananya Rao', vehicle: 'KA-05-MB-4120 • 5_seater', saleRef: 'SALE-2026-0891', pkgName: '4x Bi-Weekly Wash Pack (₹1,499)',
+          purchased: 4, reserved: 1, consumed: 1, validity: 'Expires 25 Dec 2026', status: 'active',
+          ledger: [
+            { ts: '26 Nov, 10:15', event: 'reserve', delta: '-1 (res)', balance: '2 rem / 1 res', ref: 'JOB-4410' },
+            { ts: '12 Nov, 14:40', event: 'consume', delta: '-1 (cons)', balance: '3 rem / 0 res', ref: 'JOB-4312' },
+            { ts: '28 Oct, 09:00', event: 'purchase', delta: '+4', balance: '4 rem / 0 res', ref: 'SALE-2026-0891' }
+          ]
+        },
+        {
+          id: 'ent2', customer: 'GreenTech Villas', vehicle: 'Site: 24 Panels (Estimate)', saleRef: 'SALE-2026-0842', pkgName: 'Quarterly Solar Care (₹840)',
+          purchased: 4, reserved: 1, consumed: 1, validity: 'Expires 15 Oct 2027', status: 'active',
+          ledger: [
+            { ts: '26 Nov, 11:00', event: 'reserve', delta: '-1 (res)', balance: '2 rem / 1 res', ref: 'JOB-4411' },
+            { ts: '15 Oct, 10:00', event: 'purchase', delta: '+4', balance: '4 rem / 0 res', ref: 'SALE-2026-0842' }
+          ]
+        },
+        {
+          id: 'ent3', customer: 'Karthik Menon', vehicle: 'KA-01-Z-9021 • 5_plus_seater', saleRef: 'SALE-2026-0710', pkgName: '4x Bi-Weekly Wash Pack (₹1,899)',
+          purchased: 4, reserved: 0, consumed: 4, validity: 'Ended 10 Nov 2026', status: 'exhausted',
+          ledger: [
+            { ts: '10 Nov, 16:20', event: 'consume', delta: '-1 (cons)', balance: '0 rem / 0 res', ref: 'JOB-4402' },
+            { ts: '01 Oct, 09:00', event: 'purchase', delta: '+4', balance: '4 rem / 0 res', ref: 'SALE-2026-0710' }
+          ]
+        }
+      ],
+      jobs: [
+        {
+          id: 'JOB-4410', customer: 'Ananya Rao', service: 'Foam Car Wash + Tyre Dressing', staff: 'Vikram S.', initials: 'VS',
+          status: 'in_progress', entitlementId: 'ent1', entitlementState: 'Reserved (1)',
+          checklistItems: [
+            { label: 'Pre-rinse & wheel arch flush', done: true },
+            { label: 'Snow foam dwell & wash', done: true },
+            { label: 'Microfiber dry & glass wipe', done: true },
+            { label: 'Interior vacuum & mat brush', done: true },
+            { label: 'Tyre & Alloy Dressing (Add-on)', done: false },
+            { label: 'Final quality inspection', done: false }
+          ],
+          beforePhoto: true, afterPhoto: false, isSolar: false
+        },
+        {
+          id: 'JOB-4411', customer: 'GreenTech Villas', service: 'Solar Panel Cleaning', staff: 'Arjun K.', initials: 'AK',
+          status: 'awaiting_approval', entitlementId: 'ent2', entitlementState: 'Reserved (1)',
+          checklistItems: [
+            { label: 'Inverter isolation check', done: true },
+            { label: 'De-mineralized TDS < 50ppm verified', done: true },
+            { label: 'Full array soft-brush wash', done: true },
+            { label: 'Final panel count verification', done: true }
+          ],
+          beforePhoto: true, afterPhoto: true, isSolar: true, solarEstimate: 24, solarActual: 30, solarApproved: null
+        },
+        {
+          id: 'JOB-4402', customer: 'Karthik Menon', service: 'Foam Car Wash', staff: 'Vikram S.', initials: 'VS',
+          status: 'completed', entitlementId: 'ent3', entitlementState: 'Consumed (1)',
+          checklistItems: [
+            { label: 'Full 6-point wash checklist', done: true }
+          ],
+          beforePhoto: true, afterPhoto: true, isSolar: false
+        },
+        {
+          id: 'JOB-4399', customer: 'Meera Nair', service: 'Interior Steam', staff: 'Unassigned', initials: '',
+          status: 'cancelled', entitlementId: null, entitlementState: 'Released',
+          checklistItems: [], beforePhoto: false, afterPhoto: false, isSolar: false
+        }
+      ]
+    };
+
+    let activeModule = 'services';
+    let activeState = 'data';
+    let activeJobFilter = 'all';
+    let pendingConfirmFn = null;
+
+    // Editing context pointers
+    let editingSvcId = null;
+    let inspectingSvcId = null;
+    let editingPkgId = null;
+    let pkgStep = 1;
+    let editingAddonId = null;
+    let editingTagId = null;
+    let assigningTagId = null;
+    let editingStaffId = null;
+    let activeEntId = null;
+    let activeJobId = null;
+
+    // -----------------------------------------------------------------------
+    // A. SERVICES RENDER & HANDLERS
+    // -----------------------------------------------------------------------
+    function renderServices() {
+      const tbody = document.getElementById('v2SeeServicesTableBody');
+      if (!tbody) return;
+      const q = (document.getElementById('v2SeeServiceSearch')?.value || '').trim().toLowerCase();
+      const modelF = document.getElementById('v2SeeServiceModelFilter')?.value || 'ALL';
+      const statusF = document.getElementById('v2SeeServiceStatusFilter')?.value || 'ALL';
+
+      const rows = store.services.filter(s => {
+        if (q && !s.code.toLowerCase().includes(q) && !s.name.toLowerCase().includes(q)) return false;
+        if (modelF !== 'ALL' && s.model !== modelF) return false;
+        if (statusF !== 'ALL' && s.status !== statusF) return false;
+        return true;
+      });
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--cwp-v2-sys-on-surface-muted);">No services match the current filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(s => `
+        <tr class="${s.status === 'retired' ? 'is-disabled' : ''}">
+          <td><span class="cwp-v2-cell-mono">${escapeHtml(s.code)}</span></td>
+          <td>
+            <strong>${escapeHtml(s.name)}</strong>
+            ${s.dccIsolated ? `<span class="cwp-v2-badge cwp-v2-badge-warning" style="margin-left:6px; font-size:10px;">DCC Route Isolated</span>` : `<span style="font-size:11px; color:var(--cwp-v2-sys-on-surface-muted);"> &bull; ${escapeHtml(s.category)}</span>`}
+          </td>
+          <td><code>${escapeHtml(s.model)}</code></td>
+          <td>${escapeHtml(s.proofText)}</td>
+          <td>v${s.version}</td>
+          <td>${statusBadge(s.status)}</td>
+          <td class="is-sticky-action">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-tertiary cwp-v2-btn-sm v2-see-disableable" data-svc-details="${s.id}">Details</button>
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-disableable" data-svc-edit="${s.id}" ${s.status === 'retired' ? 'disabled' : ''}>${s.status === 'retired' ? 'Retired' : 'Edit'}</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openServiceModal(svcId) {
+      editingSvcId = svcId || null;
+      const errEl = document.getElementById('v2SeeServiceFormError');
+      if (errEl) errEl.style.display = 'none';
+      const s = svcId ? store.services.find(x => x.id === svcId) : null;
+      document.getElementById('v2SeeModalServiceTitle').textContent = s ? `Edit Service • ${s.code} (v${s.version} → v${s.version + 1})` : 'Create New Service';
+      document.getElementById('v2SeeSvcCode').value = s ? s.code : '';
+      document.getElementById('v2SeeSvcName').value = s ? s.name : '';
+      document.getElementById('v2SeeSvcCategory').value = s ? s.category : 'Car Washing';
+      document.getElementById('v2SeeSvcModel').value = s ? s.model : 'visit_credit';
+      document.getElementById('v2SeeSvcChecklist').checked = s ? s.checklist : true;
+      document.getElementById('v2SeeSvcPhoto').checked = s ? s.photo : true;
+      document.getElementById('v2SeeSvcDcc').checked = s ? s.dccIsolated : false;
+      openOverlay('v2SeeModalService');
+    }
+
+    function openServiceDrawer(svcId) {
+      inspectingSvcId = svcId;
+      const s = store.services.find(x => x.id === svcId);
+      if (!s) return;
+      document.getElementById('v2SeeDrawerServiceTitle').textContent = `Service Details • ${s.code}`;
+      document.getElementById('v2SeeDrawerServiceSub').textContent = `${s.name} • Version ${s.version} (${s.status})`;
+      document.getElementById('v2SeeDrawerServiceBody').innerHTML = `
+        <div class="cwp-v2-expanded-card">
+          <span class="cwp-v2-expanded-card-title">Configuration Summary</span>
+          <div style="font-size:12.5px; line-height:1.6;">
+            Category: <strong>${escapeHtml(s.category)}</strong> &bull; Model: <code>${escapeHtml(s.model)}</code> &bull; ${escapeHtml(s.proofText)}
+            ${s.dccIsolated ? '<div style="margin-top:6px;"><span class="cwp-v2-badge cwp-v2-badge-warning">DCC Isolated Stream: Excluded from wash credits &amp; periodic add-ons</span></div>' : ''}
+          </div>
+        </div>
+        <div class="cwp-v2-expanded-card">
+          <span class="cwp-v2-expanded-card-title">Applicable Add-ons &amp; Promotional Tags</span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${s.addons.map(a => `<span class="cwp-v2-badge cwp-v2-badge-info">${escapeHtml(a)}</span>`).join('') || '<span style="font-size:12px; color:var(--cwp-v2-sys-on-surface-muted);">None</span>'}
+            ${s.tags.map(t => `<span class="cwp-v2-badge cwp-v2-badge-primary">Tag: ${escapeHtml(t)}</span>`).join('')}
+          </div>
+        </div>
+        <div class="cwp-v2-expanded-card">
+          <span class="cwp-v2-expanded-card-title">Media Asset Slots</span>
+          <div style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);"><code>square_1_1</code> (1:1 Card Thumbnail) &bull; <code>rectangle_4_3</code> (4:3 Detail Banner)</div>
+        </div>
+      `;
+      const retireBtn = document.getElementById('v2SeeDrawerServiceRetireBtn');
+      if (retireBtn) retireBtn.disabled = s.status === 'retired';
+      openOverlay('v2SeeDrawerService');
+    }
+
+    document.getElementById('v2SeeServiceSearch')?.addEventListener('input', renderServices);
+    document.getElementById('v2SeeServiceModelFilter')?.addEventListener('change', renderServices);
+    document.getElementById('v2SeeServiceStatusFilter')?.addEventListener('change', renderServices);
+    document.getElementById('v2SeeNewServiceBtn')?.addEventListener('click', () => openServiceModal(null));
+    document.getElementById('v2SeeSvcSaveBtn')?.addEventListener('click', () => {
+      const code = document.getElementById('v2SeeSvcCode').value.trim();
+      const name = document.getElementById('v2SeeSvcName').value.trim();
+      const errEl = document.getElementById('v2SeeServiceFormError');
+      if (!code || !name) {
+        if (errEl) { errEl.textContent = 'Service Code and Service Name are required.'; errEl.style.display = 'block'; }
+        return;
+      }
+      const checklist = document.getElementById('v2SeeSvcChecklist').checked;
+      const photo = document.getElementById('v2SeeSvcPhoto').checked;
+      const dccIsolated = document.getElementById('v2SeeSvcDcc').checked;
+      const category = document.getElementById('v2SeeSvcCategory').value;
+      const model = document.getElementById('v2SeeSvcModel').value;
+      const proofText = `${checklist ? 'Checklist Required' : 'No Checklist'} + ${photo ? 'Photo Proof' : 'No Photo'}`;
+
+      if (editingSvcId) {
+        const s = store.services.find(x => x.id === editingSvcId);
+        if (s) { Object.assign(s, { code, name, category, model, checklist, photo, dccIsolated, proofText, version: s.version + 1 }); }
+        setFeedback('check_circle', 'var(--cwp-v2-status-success)', `Updated <strong>${escapeHtml(code)}</strong> to new version (Sandbox)`);
+      } else {
+        store.services.unshift({ id: `svc_${Date.now()}`, code, name, category, model, proofText, version: 1, status: 'draft', checklist, photo, dccIsolated, addons: [], tags: [] });
+        setFeedback('add_circle', 'var(--cwp-v2-status-success)', `Created draft service <strong>${escapeHtml(code)}</strong> (Sandbox)`);
+      }
+      closeOverlay('v2SeeModalService');
+      updateChipCounts();
+      renderServices();
+    });
+    document.getElementById('v2SeeDrawerServiceRetireBtn')?.addEventListener('click', () => {
+      const s = store.services.find(x => x.id === inspectingSvcId);
+      if (!s) return;
+      document.getElementById('v2SeeModalConfirmMsg').textContent = `Retire "${s.name}" (${s.code})? New package sales will be blocked while existing purchase snapshots remain intact.`;
+      pendingConfirmFn = () => {
+        s.status = 'retired';
+        renderServices();
+        closeOverlay('v2SeeDrawerService');
+        setFeedback('archive', 'var(--cwp-v2-status-warning)', `Retired service <strong>${escapeHtml(s.code)}</strong> (Sandbox)`);
+      };
+      openOverlay('v2SeeModalConfirm');
+    });
+
+    // -----------------------------------------------------------------------
+    // B. PACKAGES RENDER & 4-STEP HANDLERS
+    // -----------------------------------------------------------------------
+    function renderPackages() {
+      const tbody = document.getElementById('v2SeePackagesTableBody');
+      if (!tbody) return;
+      const q = (document.getElementById('v2SeePackageSearch')?.value || '').trim().toLowerCase();
+      const segF = document.getElementById('v2SeePackageSegmentFilter')?.value || 'ALL';
+      const statusF = document.getElementById('v2SeePackageStatusFilter')?.value || 'ALL';
+
+      const rows = store.packages.filter(p => {
+        if (q && !p.code.toLowerCase().includes(q) && !p.name.toLowerCase().includes(q)) return false;
+        if (segF !== 'ALL' && !p.segments.includes(segF)) return false;
+        if (statusF !== 'ALL' && p.status !== statusF) return false;
+        return true;
+      });
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--cwp-v2-sys-on-surface-muted);">No packages match the current filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(p => `
+        <tr>
+          <td><span class="cwp-v2-cell-mono">${escapeHtml(p.code)}</span></td>
+          <td><strong>${escapeHtml(p.name)}</strong><div style="font-size:11px; color:var(--cwp-v2-sys-on-surface-muted);">Main: ${escapeHtml(p.mainService)}</div></td>
+          <td>${p.qty} Credits &bull; ${escapeHtml(p.addons)}</td>
+          <td><code>${escapeHtml(p.freq)}</code> &bull; ${p.validity}d</td>
+          <td><code>${escapeHtml(p.pricingRule)}</code> (${escapeHtml(p.pricingText)})</td>
+          <td>${statusBadge(p.status)}</td>
+          <td class="is-sticky-action">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-tertiary cwp-v2-btn-sm v2-see-disableable" data-pkg-inspect="${p.id}">Inspect</button>
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-disableable" data-pkg-edit="${p.id}">Edit</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function setPkgStep(step) {
+      pkgStep = Math.max(1, Math.min(4, step));
+      const errEl = document.getElementById('v2SeePkgFormError');
+      if (errEl) errEl.style.display = 'none';
+      seeSection.querySelectorAll('[data-pkg-step]').forEach(t => {
+        t.classList.toggle('is-active', Number(t.getAttribute('data-pkg-step')) === pkgStep);
+      });
+      seeSection.querySelectorAll('[data-pkg-step-panel]').forEach(p => {
+        p.style.display = Number(p.getAttribute('data-pkg-step-panel')) === pkgStep ? 'block' : 'none';
+      });
+      const prevBtn = document.getElementById('v2SeePkgPrevBtn');
+      const nextBtn = document.getElementById('v2SeePkgNextBtn');
+      const saveBtn = document.getElementById('v2SeePkgSaveBtn');
+      if (prevBtn) prevBtn.disabled = pkgStep === 1;
+      if (nextBtn) nextBtn.style.display = pkgStep < 4 ? 'inline-flex' : 'none';
+      if (saveBtn) saveBtn.style.display = pkgStep === 4 ? 'inline-flex' : 'none';
+    }
+
+    function validatePkgStep(step) {
+      const errEl = document.getElementById('v2SeePkgFormError');
+      if (step === 1) {
+        const code = document.getElementById('v2SeePkgCode').value.trim();
+        const name = document.getElementById('v2SeePkgName').value.trim();
+        if (!code || !name) {
+          if (errEl) { errEl.textContent = 'Step 1: Package Code and Package Name are required.'; errEl.style.display = 'block'; }
+          return false;
+        }
+      }
+      if (step === 3) {
+        const val = Number(document.getElementById('v2SeePkgValidity').value);
+        if (!val || val < 1) {
+          if (errEl) { errEl.textContent = 'Step 3: Validity Window must be at least 1 day.'; errEl.style.display = 'block'; }
+          return false;
+        }
+      }
+      if (step === 4) {
+        const pt = document.getElementById('v2SeePkgPricingText').value.trim();
+        if (!pt) {
+          if (errEl) { errEl.textContent = 'Step 4: Pricing Summary / Rate is required.'; errEl.style.display = 'block'; }
+          return false;
+        }
+      }
+      if (errEl) errEl.style.display = 'none';
+      return true;
+    }
+
+    function openPackageModal(pkgId) {
+      editingPkgId = pkgId || null;
+      const p = pkgId ? store.packages.find(x => x.id === pkgId) : null;
+      document.getElementById('v2SeeModalPackageTitle').textContent = p ? `Edit Package • ${p.code}` : 'Create Package (4-Step Workflow)';
+      document.getElementById('v2SeePkgCode').value = p ? p.code : '';
+      document.getElementById('v2SeePkgName').value = p ? p.name : '';
+      document.getElementById('v2SeePkgMainService').value = p ? p.mainService : 'Pressure Foam Wash';
+      document.getElementById('v2SeePkgStatus').value = p ? p.status : 'draft';
+      document.getElementById('v2SeePkgQty').value = p ? p.qty : 4;
+      document.getElementById('v2SeePkgAddons').value = p ? p.addons : 'Tyre Dressing (Included)';
+      document.getElementById('v2SeePkgFreq').value = p ? p.freq : 'every_15_days';
+      document.getElementById('v2SeePkgValidity').value = p ? p.validity : 60;
+      document.getElementById('v2SeePkgCarryForward').value = p ? p.carryForward : 'Allow 15-day grace carry-forward';
+      document.getElementById('v2SeePkgMissedVisit').value = p ? p.missedVisit : 'Shift to next working day';
+      document.getElementById('v2SeePkgPricingRule').value = p ? p.pricingRule : 'vehicle_segment';
+      document.getElementById('v2SeePkgPricingText').value = p ? p.pricingText : '₹1,499 / ₹1,899';
+      setPkgStep(1);
+      openOverlay('v2SeeModalPackage');
+    }
+
+    function openPackageDrawer(pkgId) {
+      const p = store.packages.find(x => x.id === pkgId);
+      if (!p) return;
+      document.getElementById('v2SeeDrawerPackageTitle').textContent = `Package Inspector • ${p.code}`;
+      document.getElementById('v2SeeDrawerPackageSub').textContent = `${p.name} • ${p.status}`;
+      const body = document.getElementById('v2SeeDrawerPackageBody');
+      body.innerHTML = `
+        <div class="cwp-v2-expanded-card">
+          <span class="cwp-v2-expanded-card-title">Dynamic Price Simulator (Design Preview)</span>
+          <div style="display:flex; gap:8px; align-items:center; margin:6px 0;">
+            <select id="v2SeeSimSegment" class="cwp-v2-select-compact">
+              <option value="5_seater">5_seater</option>
+              <option value="5_plus_seater">5_plus_seater</option>
+            </select>
+            <span style="font-size:12.5px;">Estimated Total: <strong id="v2SeeSimPrice">₹${p.price5.toLocaleString('en-IN')}</strong></span>
+          </div>
+          <div style="font-size:11.5px; color:var(--cwp-v2-sys-on-surface-muted);">Rule: <code>${escapeHtml(p.pricingRule)}</code> &bull; Past purchase snapshots remain immutable.</div>
+        </div>
+        <div class="cwp-v2-expanded-card">
+          <span class="cwp-v2-expanded-card-title">Frequency, Carry-Forward &amp; Blackout Policy</span>
+          <div style="font-size:12.5px; line-height:1.6;">
+            Frequency: <code>${escapeHtml(p.freq)}</code> (Asia/Kolkata) &bull; Validity: ${p.validity} days<br>
+            Carry-Forward: ${escapeHtml(p.carryForward)}<br>
+            Missed-Visit: ${escapeHtml(p.missedVisit)}
+          </div>
+        </div>
+      `;
+      document.getElementById('v2SeeSimSegment')?.addEventListener('change', function () {
+        const priceEl = document.getElementById('v2SeeSimPrice');
+        if (priceEl) priceEl.textContent = `₹${(this.value === '5_plus_seater' ? p.price5Plus : p.price5).toLocaleString('en-IN')}`;
+      });
+      openOverlay('v2SeeDrawerPackage');
+    }
+
+    document.getElementById('v2SeePackageSearch')?.addEventListener('input', renderPackages);
+    document.getElementById('v2SeePackageSegmentFilter')?.addEventListener('change', renderPackages);
+    document.getElementById('v2SeePackageStatusFilter')?.addEventListener('change', renderPackages);
+    document.getElementById('v2SeeNewPackageBtn')?.addEventListener('click', () => openPackageModal(null));
+    seeSection.querySelectorAll('[data-pkg-step]').forEach(tab => {
+      tab.addEventListener('click', function () {
+        const target = Number(this.getAttribute('data-pkg-step'));
+        if (target > pkgStep && !validatePkgStep(pkgStep)) return;
+        setPkgStep(target);
+      });
+    });
+    document.getElementById('v2SeePkgPrevBtn')?.addEventListener('click', () => setPkgStep(pkgStep - 1));
+    document.getElementById('v2SeePkgNextBtn')?.addEventListener('click', () => {
+      if (validatePkgStep(pkgStep)) setPkgStep(pkgStep + 1);
+    });
+    document.getElementById('v2SeePkgQtyMinus')?.addEventListener('click', () => {
+      const inp = document.getElementById('v2SeePkgQty');
+      inp.value = Math.max(1, Number(inp.value) - 1);
+    });
+    document.getElementById('v2SeePkgQtyPlus')?.addEventListener('click', () => {
+      const inp = document.getElementById('v2SeePkgQty');
+      inp.value = Math.min(60, Number(inp.value) + 1);
+    });
+    document.getElementById('v2SeePkgSaveBtn')?.addEventListener('click', () => {
+      if (!validatePkgStep(4)) return;
+      const data = {
+        code: document.getElementById('v2SeePkgCode').value.trim(),
+        name: document.getElementById('v2SeePkgName').value.trim(),
+        mainService: document.getElementById('v2SeePkgMainService').value,
+        status: document.getElementById('v2SeePkgStatus').value,
+        qty: Number(document.getElementById('v2SeePkgQty').value),
+        addons: document.getElementById('v2SeePkgAddons').value,
+        freq: document.getElementById('v2SeePkgFreq').value,
+        validity: Number(document.getElementById('v2SeePkgValidity').value),
+        carryForward: document.getElementById('v2SeePkgCarryForward').value,
+        missedVisit: document.getElementById('v2SeePkgMissedVisit').value,
+        pricingRule: document.getElementById('v2SeePkgPricingRule').value,
+        pricingText: document.getElementById('v2SeePkgPricingText').value.trim()
+      };
+      if (editingPkgId) {
+        const p = store.packages.find(x => x.id === editingPkgId);
+        if (p) Object.assign(p, data);
+        setFeedback('check_circle', 'var(--cwp-v2-status-success)', `Updated package <strong>${escapeHtml(data.code)}</strong> (Sandbox)`);
+      } else {
+        store.packages.unshift({ id: `pkg_${Date.now()}`, ...data, price5: 1499, price5Plus: 1899, segments: ['5_seater', '5_plus_seater'] });
+        setFeedback('add_box', 'var(--cwp-v2-status-success)', `Created package <strong>${escapeHtml(data.code)}</strong> (Sandbox)`);
+      }
+      closeOverlay('v2SeeModalPackage');
+      updateChipCounts();
+      renderPackages();
+    });
+
+    // -----------------------------------------------------------------------
+    // C. ADD-ONS RENDER & HANDLERS
+    // -----------------------------------------------------------------------
+    const ADDON_MODE_HINTS = {
+      per_main_service: 'Automatically included on every scheduled occurrence of the main service.',
+      during_main_service: 'Executed by the main job technician; blocks main job completion until done.',
+      separate_job: 'Creates a standalone job with its own staff assignment and proof.',
+      customer_redemption: 'Customer redeems on-demand from their entitlement balance.',
+      scheduled_independently: 'Scheduled on its own recurrence calendar independent of the main service.'
+    };
+
+    function renderAddons() {
+      const tbody = document.getElementById('v2SeeAddonsTableBody');
+      if (!tbody) return;
+      const q = (document.getElementById('v2SeeAddonSearch')?.value || '').trim().toLowerCase();
+      const modeF = document.getElementById('v2SeeAddonModeFilter')?.value || 'ALL';
+
+      const rows = store.addons.filter(a => {
+        if (q && !a.code.toLowerCase().includes(q) && !a.name.toLowerCase().includes(q)) return false;
+        if (modeF !== 'ALL' && a.mode !== modeF) return false;
+        return true;
+      });
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--cwp-v2-sys-on-surface-muted);">No add-ons match the current filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(a => `
+        <tr>
+          <td><span class="cwp-v2-cell-mono">${escapeHtml(a.code)}</span></td>
+          <td><strong>${escapeHtml(a.name)}</strong></td>
+          <td><span class="cwp-v2-badge cwp-v2-badge-info">${escapeHtml(a.mode)}</span></td>
+          <td>${escapeHtml(a.compat.join(', '))} <span style="font-size:11px; color:var(--cwp-v2-sys-on-surface-muted);">(DCC Excluded)</span></td>
+          <td class="is-numeric">&rupee;${a.price}</td>
+          <td>${statusBadge(a.status)}</td>
+          <td class="is-sticky-action">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-disableable" data-addon-edit="${a.id}">Configure</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openAddonModal(addonId) {
+      editingAddonId = addonId || null;
+      const errEl = document.getElementById('v2SeeAddonFormError');
+      if (errEl) errEl.style.display = 'none';
+      const a = addonId ? store.addons.find(x => x.id === addonId) : null;
+      document.getElementById('v2SeeModalAddonTitle').textContent = a ? `Configure Add-on • ${a.code}` : 'Create New Add-on';
+      document.getElementById('v2SeeAddonName').value = a ? a.name : '';
+      document.getElementById('v2SeeAddonPrice').value = a ? a.price : 199;
+      const modeSel = document.getElementById('v2SeeAddonModeSelect');
+      modeSel.value = a ? a.mode : 'during_main_service';
+      document.getElementById('v2SeeAddonModeHint').textContent = ADDON_MODE_HINTS[modeSel.value] || '';
+      const activeCompat = a ? a.compat : ['Foam Wash'];
+      seeSection.querySelectorAll('#v2SeeAddonCompatChips [data-compat-svc]').forEach(chip => {
+        chip.classList.toggle('is-active', activeCompat.includes(chip.getAttribute('data-compat-svc')));
+      });
+      openOverlay('v2SeeModalAddon');
+    }
+
+    document.getElementById('v2SeeAddonSearch')?.addEventListener('input', renderAddons);
+    document.getElementById('v2SeeAddonModeFilter')?.addEventListener('change', renderAddons);
+    document.getElementById('v2SeeNewAddonBtn')?.addEventListener('click', () => openAddonModal(null));
+    document.getElementById('v2SeeAddonModeSelect')?.addEventListener('change', function () {
+      document.getElementById('v2SeeAddonModeHint').textContent = ADDON_MODE_HINTS[this.value] || '';
+    });
+    document.getElementById('v2SeeAddonSaveBtn')?.addEventListener('click', () => {
+      const name = document.getElementById('v2SeeAddonName').value.trim();
+      const price = Number(document.getElementById('v2SeeAddonPrice').value);
+      const errEl = document.getElementById('v2SeeAddonFormError');
+      if (!name || isNaN(price) || price < 0) {
+        if (errEl) { errEl.textContent = 'Add-on Name and valid Base Price (>= 0) are required.'; errEl.style.display = 'block'; }
+        return;
+      }
+      const mode = document.getElementById('v2SeeAddonModeSelect').value;
+      const compat = Array.from(seeSection.querySelectorAll('#v2SeeAddonCompatChips [data-compat-svc].is-active')).map(c => c.getAttribute('data-compat-svc'));
+      if (editingAddonId) {
+        const a = store.addons.find(x => x.id === editingAddonId);
+        if (a) Object.assign(a, { name, price, mode, compat });
+        setFeedback('check_circle', 'var(--cwp-v2-status-success)', `Updated add-on <strong>${escapeHtml(name)}</strong> (Sandbox)`);
+      } else {
+        store.addons.unshift({ id: `add_${Date.now()}`, code: `ADD-NEW-${store.addons.length + 1}`, name, mode, compat, price, status: 'active' });
+        setFeedback('add_circle', 'var(--cwp-v2-status-success)', `Created add-on <strong>${escapeHtml(name)}</strong> (Sandbox)`);
+      }
+      closeOverlay('v2SeeModalAddon');
+      updateChipCounts();
+      renderAddons();
+    });
+
+    // -----------------------------------------------------------------------
+    // D. SERVICE TAGS RENDER & HANDLERS
+    // -----------------------------------------------------------------------
+    function renderTags() {
+      const tbody = document.getElementById('v2SeeTagsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = store.tags.map(t => `
+        <tr>
+          <td><span class="cwp-v2-cell-mono">${escapeHtml(t.key)}</span></td>
+          <td><span class="cwp-v2-badge cwp-v2-badge-${t.tone}">${escapeHtml(t.label)}</span></td>
+          <td>${escapeHtml(t.type)}</td>
+          <td>${t.assigned.length ? `${t.assigned.length} target(s): ${escapeHtml(t.assigned.join(', '))}` : '0 Assigned'}</td>
+          <td>${escapeHtml(t.validity)}</td>
+          <td>${statusBadge(t.status)}</td>
+          <td class="is-sticky-action">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-tertiary cwp-v2-btn-sm v2-see-disableable" data-tag-edit="${t.id}">Edit</button>
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-disableable" data-tag-assign="${t.id}">Assign</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openTagModal(tagId) {
+      editingTagId = tagId || null;
+      const errEl = document.getElementById('v2SeeTagFormError');
+      if (errEl) errEl.style.display = 'none';
+      const t = tagId ? store.tags.find(x => x.id === tagId) : null;
+      document.getElementById('v2SeeModalTagTitle').textContent = t ? `Edit Tag • ${t.key}` : 'Create Promotional Tag';
+      document.getElementById('v2SeeTagLabel').value = t ? t.label : '';
+      document.getElementById('v2SeeTagType').value = t ? t.type : 'promo';
+      document.getElementById('v2SeeTagTone').value = t ? t.tone : 'primary';
+      openOverlay('v2SeeModalTag');
+    }
+
+    document.getElementById('v2SeeNewTagBtn')?.addEventListener('click', () => openTagModal(null));
+    document.getElementById('v2SeeTagSaveBtn')?.addEventListener('click', () => {
+      const label = document.getElementById('v2SeeTagLabel').value.trim();
+      const errEl = document.getElementById('v2SeeTagFormError');
+      if (!label) {
+        if (errEl) { errEl.textContent = 'Tag Label is required.'; errEl.style.display = 'block'; }
+        return;
+      }
+      const type = document.getElementById('v2SeeTagType').value;
+      const tone = document.getElementById('v2SeeTagTone').value;
+      if (editingTagId) {
+        const t = store.tags.find(x => x.id === editingTagId);
+        if (t) Object.assign(t, { label, type, tone });
+      } else {
+        const key = `TAG-${label.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 14)}`;
+        store.tags.unshift({ id: `tag_${Date.now()}`, key, label, type, tone, assigned: [], validity: 'Always On', status: 'active' });
+      }
+      closeOverlay('v2SeeModalTag');
+      updateChipCounts();
+      renderTags();
+      setFeedback('sell', 'var(--cwp-v2-status-success)', `Saved promotional tag <strong>${escapeHtml(label)}</strong> (Sandbox)`);
+    });
+    document.getElementById('v2SeeTagAssignSaveBtn')?.addEventListener('click', () => {
+      const t = store.tags.find(x => x.id === assigningTagId);
+      if (t) {
+        t.assigned = Array.from(seeSection.querySelectorAll('#v2SeeTagAssignChips [data-assign-target].is-active')).map(c => c.getAttribute('data-assign-target'));
+      }
+      closeOverlay('v2SeeDrawerTagAssign');
+      renderTags();
+      setFeedback('check_circle', 'var(--cwp-v2-status-success)', `Updated tag assignments for <strong>${escapeHtml(t?.label || 'Tag')}</strong> (Sandbox)`);
+    });
+
+    // -----------------------------------------------------------------------
+    // E. STAFF CAPABILITIES RENDER & HANDLERS
+    // -----------------------------------------------------------------------
+    function renderStaff() {
+      const tbody = document.getElementById('v2SeeStaffTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = store.staff.map(st => `
+        <tr>
+          <td><strong>${escapeHtml(st.name)}</strong></td>
+          <td>${escapeHtml(st.type)}</td>
+          <td>${escapeHtml(st.zones)}</td>
+          <td><span class="cwp-v2-bool-pill is-true">${escapeHtml(st.equipment.join(' + ') || 'None')}</span></td>
+          <td>${st.override ? `<span class="cwp-v2-badge cwp-v2-badge-warning">${escapeHtml(st.override)}</span>` : 'None'}</td>
+          <td class="is-sticky-action">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-disableable" data-staff-edit="${st.id}">Configure / Override</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('v2SeeStaffCapSaveBtn')?.addEventListener('click', () => {
+      const st = store.staff.find(x => x.id === editingStaffId);
+      if (!st) return;
+      const override = document.getElementById('v2SeeStaffOverrideText').value.trim();
+      const reason = document.getElementById('v2SeeStaffOverrideReason').value.trim();
+      const errEl = document.getElementById('v2SeeStaffCapError');
+      if (override && !reason) {
+        if (errEl) { errEl.textContent = 'Mandatory Audit Reason is required when a capability override is set.'; errEl.style.display = 'block'; }
+        return;
+      }
+      st.type = document.getElementById('v2SeeStaffTypeSelect').value;
+      st.equipment = Array.from(seeSection.querySelectorAll('#v2SeeStaffEquipChips [data-equip].is-active')).map(c => c.getAttribute('data-equip'));
+      st.override = override;
+      st.reason = reason;
+      closeOverlay('v2SeeModalStaffCap');
+      renderStaff();
+      setFeedback('engineering', 'var(--cwp-v2-status-success)', `Updated capability for <strong>${escapeHtml(st.name)}</strong> (Sandbox)`);
+    });
+
+    // -----------------------------------------------------------------------
+    // F. PURCHASED ENTITLEMENTS RENDER & HANDLERS
+    // -----------------------------------------------------------------------
+    function renderEntitlements() {
+      const tbody = document.getElementById('v2SeeEntitlementsTableBody');
+      if (!tbody) return;
+      const q = (document.getElementById('v2SeeEntitlementSearch')?.value || '').trim().toLowerCase();
+      const statusF = document.getElementById('v2SeeEntitlementStatusFilter')?.value || 'ALL';
+
+      const totals = store.entitlements.reduce((acc, e) => {
+        const rem = Math.max(0, e.purchased - e.consumed - e.reserved);
+        acc.p += e.purchased; acc.r += e.reserved; acc.c += e.consumed; acc.rem += rem;
+        return acc;
+      }, { p: 0, r: 0, c: 0, rem: 0 });
+      const sumEl = document.getElementById('v2SeeEntitlementSummary');
+      if (sumEl) {
+        sumEl.innerHTML = `
+          <span class="cwp-v2-badge cwp-v2-badge-neutral">Purchased: ${totals.p}</span>
+          <span class="cwp-v2-badge cwp-v2-badge-warning">Reserved: ${totals.r}</span>
+          <span class="cwp-v2-badge cwp-v2-badge-info">Consumed: ${totals.c}</span>
+          <span class="cwp-v2-badge cwp-v2-badge-success">Remaining: ${totals.rem}</span>
+        `;
+      }
+
+      const rows = store.entitlements.filter(e => {
+        if (q && !e.customer.toLowerCase().includes(q) && !e.saleRef.toLowerCase().includes(q) && !e.vehicle.toLowerCase().includes(q)) return false;
+        if (statusF !== 'ALL' && e.status !== statusF) return false;
+        return true;
+      });
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--cwp-v2-sys-on-surface-muted);">No entitlement accounts match the current filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(e => {
+        const rem = Math.max(0, e.purchased - e.consumed - e.reserved);
+        const pct = Math.min(100, Math.round(((e.consumed + e.reserved) / Math.max(1, e.purchased)) * 100));
+        return `
+          <tr>
+            <td><strong>${escapeHtml(e.customer)}</strong><div style="font-size:11px; color:var(--cwp-v2-sys-on-surface-muted);">${escapeHtml(e.vehicle)}</div></td>
+            <td><span class="cwp-v2-cell-mono">${escapeHtml(e.saleRef)}</span><div style="font-size:11px; color:var(--cwp-v2-sys-on-surface-muted);">${escapeHtml(e.pkgName)}</div></td>
+            <td><strong>${rem}</strong> rem &bull; <span style="color:var(--cwp-v2-status-warning);">${e.reserved} res</span> &bull; ${e.consumed} cons / ${e.purchased}</td>
+            <td>
+              <div class="cwp-v2-progress-cell" style="min-width:90px;">
+                <div class="cwp-v2-progress-track"><div class="cwp-v2-progress-fill ${pct >= 100 ? 'is-complete' : ''}" style="width:${pct}%;"></div></div>
+                <span class="cwp-v2-progress-text">${pct}%</span>
+              </div>
+            </td>
+            <td>${escapeHtml(e.validity)}</td>
+            <td>${statusBadge(e.status)}</td>
+            <td class="is-sticky-action">
+              <button type="button" class="cwp-v2-btn cwp-v2-btn-tertiary cwp-v2-btn-sm v2-see-disableable" data-ent-ledger="${e.id}">Snapshot &amp; Ledger</button>
+              <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm v2-see-disableable" data-ent-adjust="${e.id}" ${e.status !== 'active' ? 'disabled' : ''}>${e.status === 'active' ? 'Adjust' : escapeHtml(e.status)}</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openEntitlementDrawer(entId) {
+      activeEntId = entId;
+      const e = store.entitlements.find(x => x.id === entId);
+      if (!e) return;
+      const rem = Math.max(0, e.purchased - e.consumed - e.reserved);
+      document.getElementById('v2SeeDrawerEntitlementSub').textContent = `${e.customer} • ${e.saleRef} (Immutable Snapshot)`;
+      document.getElementById('v2SeeDrawerEntitlementBody').innerHTML = `
+        <div class="cwp-v2-expanded-card">
+          <span class="cwp-v2-expanded-card-title">Immutable Purchase Snapshot</span>
+          <div style="font-size:12.5px; line-height:1.6;">
+            Package: <strong>${escapeHtml(e.pkgName)}</strong> &bull; Account Status: ${statusBadge(e.status)}<br>
+            Balance: <code>${e.purchased} purchased - ${e.consumed} consumed - ${e.reserved} reserved = ${rem} remaining</code>
+          </div>
+        </div>
+        <div class="cwp-v2-table-container">
+          <table class="cwp-v2-table is-compact">
+            <thead><tr><th>Timestamp</th><th>Event</th><th>Delta</th><th>Balance</th><th>Reference</th></tr></thead>
+            <tbody>
+              ${e.ledger.map(l => `
+                <tr>
+                  <td>${escapeHtml(l.ts)}</td>
+                  <td><span class="cwp-v2-badge cwp-v2-badge-info">${escapeHtml(l.event)}</span></td>
+                  <td>${escapeHtml(l.delta)}</td>
+                  <td>${escapeHtml(l.balance)}</td>
+                  <td><code>${escapeHtml(l.ref)}</code></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      openOverlay('v2SeeDrawerEntitlement');
+    }
+
+    document.getElementById('v2SeeEntitlementSearch')?.addEventListener('input', renderEntitlements);
+    document.getElementById('v2SeeEntitlementStatusFilter')?.addEventListener('change', renderEntitlements);
+    document.getElementById('v2SeeDrawerEntitlementAdjustBtn')?.addEventListener('click', () => {
+      document.getElementById('v2SeeEntAdjustError').style.display = 'none';
+      document.getElementById('v2SeeEntAdjustReason').value = '';
+      openOverlay('v2SeeModalEntitlementAdjust');
+    });
+    document.getElementById('v2SeeEntAdjustConfirmBtn')?.addEventListener('click', () => {
+      const reason = document.getElementById('v2SeeEntAdjustReason').value.trim();
+      const errEl = document.getElementById('v2SeeEntAdjustError');
+      if (!reason) {
+        if (errEl) { errEl.textContent = 'Mandatory Audit Reason is required for Admin Entitlement Mutations.'; errEl.style.display = 'block'; }
+        return;
+      }
+      const e = store.entitlements.find(x => x.id === activeEntId);
+      if (!e) return;
+      const actionType = document.getElementById('v2SeeEntAdjustType').value;
+      let deltaStr = '';
+      if (actionType === 'adjust_add') { e.purchased += 1; deltaStr = '+1 (adj)'; }
+      else if (actionType === 'adjust_sub') { if (e.purchased - e.consumed - e.reserved > 0) e.purchased -= 1; deltaStr = '-1 (adj)'; }
+      else if (actionType === 'refund') { e.status = 'refunded'; deltaStr = 'refunded'; }
+      else if (actionType === 'expire') { e.status = 'expired'; deltaStr = 'expired'; }
+      const rem = Math.max(0, e.purchased - e.consumed - e.reserved);
+      e.ledger.unshift({ ts: 'Just now', event: actionType.split('_')[0], delta: deltaStr, balance: `${rem} rem / ${e.reserved} res`, ref: `ADM-${Date.now().toString().slice(-4)}` });
+      closeOverlay('v2SeeModalEntitlementAdjust');
+      renderEntitlements();
+      if (document.getElementById('v2SeeDrawerEntitlement')?.style.display !== 'none') openEntitlementDrawer(e.id);
+      setFeedback('account_balance_wallet', 'var(--cwp-v2-status-success)', `Applied <strong>${escapeHtml(actionType)}</strong> to ${escapeHtml(e.saleRef)} (Sandbox)`);
+    });
+
+    // -----------------------------------------------------------------------
+    // G. JOBS & EXECUTION RENDER & HANDLERS
+    // -----------------------------------------------------------------------
+    function renderJobs() {
+      const tbody = document.getElementById('v2SeeJobsTableBody');
+      if (!tbody) return;
+      const counts = { all: store.jobs.length, awaiting_approval: 0, in_progress: 0, completed: 0, cancelled: 0 };
+      store.jobs.forEach(j => { if (counts[j.status] !== undefined) counts[j.status] += 1; });
+      seeSection.querySelectorAll('[data-see-job-filter]').forEach(chip => {
+        const f = chip.getAttribute('data-see-job-filter');
+        const c = chip.querySelector('.cwp-v2-chip-count');
+        if (c && counts[f] !== undefined) c.textContent = String(counts[f]);
+      });
+
+      const rows = store.jobs.filter(j => activeJobFilter === 'all' || j.status === activeJobFilter);
+      tbody.innerHTML = rows.map(j => {
+        const doneCount = j.checklistItems.filter(c => c.done).length;
+        const proofSummary = j.isSolar
+          ? `Est (unverified): ${j.solarEstimate} &rarr; Verified: <strong>${j.solarActual} panels</strong>`
+          : `${doneCount}/${j.checklistItems.length} items &bull; ${j.beforePhoto ? 'Before OK' : 'No Before'}${j.afterPhoto ? ' &bull; After OK' : ''}`;
+        return `
+          <tr data-job-status="${j.status}">
+            <td><span class="cwp-v2-cell-mono">${escapeHtml(j.id)}</span></td>
+            <td><strong>${escapeHtml(j.customer)}</strong> &bull; ${escapeHtml(j.service)} ${j.status === 'awaiting_approval' ? '<span class="cwp-v2-badge cwp-v2-badge-warning" style="font-size:10px;">Discrepancy</span>' : ''}</td>
+            <td>${j.staff === 'Unassigned' ? '<span class="cwp-v2-badge cwp-v2-badge-danger">Unassigned</span>' : `<div class="cwp-v2-cell-flex"><span class="cwp-v2-cell-avatar">${escapeHtml(j.initials)}</span><span>${escapeHtml(j.staff)}</span></div>`}</td>
+            <td>${statusBadge(j.status)}</td>
+            <td>${proofSummary}</td>
+            <td><span class="cwp-v2-badge ${j.entitlementState.startsWith('Consumed') ? 'cwp-v2-badge-success' : j.entitlementState.startsWith('Reserved') ? 'cwp-v2-badge-info' : 'cwp-v2-badge-neutral'}">${escapeHtml(j.entitlementState)}</span></td>
+            <td class="is-sticky-action">
+              <button type="button" class="cwp-v2-btn ${j.status === 'in_progress' || j.status === 'awaiting_approval' ? 'cwp-v2-btn-primary' : 'cwp-v2-btn-tertiary'} cwp-v2-btn-sm v2-see-disableable" data-job-detail="${j.id}">${j.status === 'awaiting_approval' ? 'Verify Solar' : 'Job Detail'}</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openJobDrawer(jobId) {
+      activeJobId = jobId;
+      const j = store.jobs.find(x => x.id === jobId);
+      if (!j) return;
+      document.getElementById('v2SeeDrawerJobTitle').textContent = `SEE Job Detail • ${j.id}`;
+      document.getElementById('v2SeeDrawerJobSub').textContent = `${j.customer} • ${j.service} (${j.status})`;
+      const body = document.getElementById('v2SeeDrawerJobBody');
+      body.innerHTML = `
+        <div id="v2SeeJobDrawerError" style="display:none; padding:8px 10px; border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-status-danger-bg); color:var(--cwp-v2-status-danger); font-size:12px;"></div>
+        <div class="cwp-v2-expanded-card">
+          <span class="cwp-v2-expanded-card-title">Assignment &amp; Server-Side Eligibility</span>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:4px;">
+            <select id="v2SeeJobStaffSelect" class="cwp-v2-select-compact" ${j.status === 'completed' || j.status === 'cancelled' ? 'disabled' : ''}>
+              <option value="Vikram S." ${j.staff === 'Vikram S.' ? 'selected' : ''}>Vikram S. (Eligible)</option>
+              <option value="Arjun K." ${j.staff === 'Arjun K.' ? 'selected' : ''}>Arjun K. (Solar Eligible)</option>
+              <option value="Ramesh K." ${j.staff === 'Ramesh K.' ? 'selected' : ''}>Ramesh K. (DCC Only - Ineligible)</option>
+            </select>
+            <span class="cwp-v2-badge ${j.staff === 'Ramesh K.' ? 'cwp-v2-badge-danger' : 'cwp-v2-badge-success'}">${j.staff === 'Ramesh K.' ? 'DCC Isolated: Ineligible' : 'Service Cap &amp; Zone OK'}</span>
+          </div>
+        </div>
+        <div class="cwp-v2-expanded-card">
+          <span class="cwp-v2-expanded-card-title">Checklist &amp; Photo Proof Enforcement</span>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+            ${j.checklistItems.map((item, idx) => `
+              <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer;">
+                <input type="checkbox" class="v2-see-job-chk" data-chk-idx="${idx}" ${item.done ? 'checked' : ''} ${j.status === 'completed' || j.status === 'cancelled' ? 'disabled' : ''}>
+                <span>${escapeHtml(item.label)}</span>
+              </label>
+            `).join('') || '<span style="font-size:12px; color:var(--cwp-v2-sys-on-surface-muted);">No checklist items.</span>'}
+          </div>
+          <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+            <button type="button" id="v2SeeJobToggleBefore" class="cwp-v2-filter-chip ${j.beforePhoto ? 'is-active' : ''}" ${j.status === 'completed' || j.status === 'cancelled' ? 'disabled' : ''}>Before Photo: ${j.beforePhoto ? 'Uploaded' : 'Missing'}</button>
+            <button type="button" id="v2SeeJobToggleAfter" class="cwp-v2-filter-chip ${j.afterPhoto ? 'is-active' : ''}" ${j.status === 'completed' || j.status === 'cancelled' ? 'disabled' : ''}>After Photo: ${j.afterPhoto ? 'Uploaded' : 'Required'}</button>
+          </div>
+        </div>
+        ${j.isSolar ? `
+          <div class="cwp-v2-expanded-card" style="border-left:3px solid var(--cwp-v2-status-warning);">
+            <span class="cwp-v2-expanded-card-title">Solar Verification (Admin Approval Required)</span>
+            <div style="font-size:12.5px; margin-bottom:8px;">
+              Customer Estimate (<code>is_estimate=true</code>): <strong>${j.solarEstimate} panels</strong> &bull; Staff Verified: <strong>${j.solarActual} panels</strong>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" id="v2SeeSolarApproveBtn" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" ${j.status !== 'awaiting_approval' ? 'disabled' : ''}>Approve (${j.solarActual} Panels)</button>
+              <button type="button" id="v2SeeSolarRejectBtn" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" ${j.status !== 'awaiting_approval' ? 'disabled' : ''}>Reject Discrepancy</button>
+            </div>
+          </div>
+        ` : ''}
+        <div class="cwp-v2-expanded-card">
+          <span class="cwp-v2-expanded-card-title">Entitlement Consumption Status</span>
+          <div style="font-size:12.5px;">Status: <strong>${escapeHtml(j.entitlementState)}</strong> &bull; Consumed idempotently only upon valid completion.</div>
+        </div>
+      `;
+
+      document.getElementById('v2SeeJobStaffSelect')?.addEventListener('change', function () {
+        j.staff = this.value;
+        j.initials = this.value.split(' ').map(w => w[0]).join('');
+        renderJobs();
+        openJobDrawer(j.id);
+      });
+      body.querySelectorAll('.v2-see-job-chk').forEach(chk => {
+        chk.addEventListener('change', function () {
+          const idx = Number(this.getAttribute('data-chk-idx'));
+          if (j.checklistItems[idx]) j.checklistItems[idx].done = this.checked;
+          renderJobs();
+        });
+      });
+      document.getElementById('v2SeeJobToggleBefore')?.addEventListener('click', () => { j.beforePhoto = !j.beforePhoto; openJobDrawer(j.id); renderJobs(); });
+      document.getElementById('v2SeeJobToggleAfter')?.addEventListener('click', () => { j.afterPhoto = !j.afterPhoto; openJobDrawer(j.id); renderJobs(); });
+      document.getElementById('v2SeeSolarApproveBtn')?.addEventListener('click', () => {
+        j.status = 'completed';
+        j.entitlementState = 'Consumed (1)';
+        const ent = store.entitlements.find(x => x.id === j.entitlementId);
+        if (ent && ent.reserved > 0) { ent.reserved -= 1; ent.consumed += 1; }
+        closeOverlay('v2SeeDrawerJob');
+        renderJobs();
+        renderEntitlements();
+        setFeedback('solar_power', 'var(--cwp-v2-status-success)', `Approved solar verification (${j.solarActual} panels) &amp; completed <strong>${j.id}</strong> (Sandbox)`);
+      });
+      document.getElementById('v2SeeSolarRejectBtn')?.addEventListener('click', () => {
+        j.status = 'in_progress';
+        closeOverlay('v2SeeDrawerJob');
+        renderJobs();
+        setFeedback('undo', 'var(--cwp-v2-status-warning)', `Rejected solar discrepancy on <strong>${j.id}</strong> &bull; Returned to staff (Sandbox)`);
+      });
+
+      const isTerminal = j.status === 'completed' || j.status === 'cancelled';
+      document.getElementById('v2SeeJobTerminateBtn').disabled = isTerminal;
+      document.getElementById('v2SeeJobCompleteBtn').disabled = isTerminal;
+      openOverlay('v2SeeDrawerJob');
+    }
+
+    document.getElementById('v2SeeJobCompleteBtn')?.addEventListener('click', () => {
+      const j = store.jobs.find(x => x.id === activeJobId);
+      if (!j) return;
+      const errEl = document.getElementById('v2SeeJobDrawerError');
+      const allDone = j.checklistItems.every(c => c.done);
+      if (!allDone || !j.beforePhoto || !j.afterPhoto) {
+        if (errEl) { errEl.textContent = 'Cannot complete: all checklist items and Before/After photo proofs are required.'; errEl.style.display = 'block'; }
+        return;
+      }
+      j.status = 'completed';
+      j.entitlementState = 'Consumed (1)';
+      const ent = store.entitlements.find(x => x.id === j.entitlementId);
+      if (ent && ent.reserved > 0) { ent.reserved -= 1; ent.consumed += 1; }
+      closeOverlay('v2SeeDrawerJob');
+      renderJobs();
+      renderEntitlements();
+      setFeedback('check_circle', 'var(--cwp-v2-status-success)', `Completed <strong>${j.id}</strong> &amp; consumed entitlement (Sandbox)`);
+    });
+
+    document.getElementById('v2SeeJobTerminateBtn')?.addEventListener('click', () => {
+      const j = store.jobs.find(x => x.id === activeJobId);
+      if (!j) return;
+      document.getElementById('v2SeeModalConfirmMsg').textContent = `Terminate ${j.id} and release its reserved entitlement credit back to customer balance?`;
+      pendingConfirmFn = () => {
+        j.status = 'cancelled';
+        j.entitlementState = 'Released';
+        const ent = store.entitlements.find(x => x.id === j.entitlementId);
+        if (ent && ent.reserved > 0) { ent.reserved -= 1; }
+        closeOverlay('v2SeeDrawerJob');
+        renderJobs();
+        renderEntitlements();
+        setFeedback('cancel', 'var(--cwp-v2-status-warning)', `Terminated <strong>${j.id}</strong> &amp; released reservation (Sandbox)`);
+      };
+      openOverlay('v2SeeModalConfirm');
+    });
+
+    // Shared confirmation execute
+    document.getElementById('v2SeeConfirmExecuteBtn')?.addEventListener('click', () => {
+      if (typeof pendingConfirmFn === 'function') {
+        const fn = pendingConfirmFn;
+        pendingConfirmFn = null;
+        fn();
+      }
+      closeOverlay('v2SeeModalConfirm');
+    });
+
+    // Delegated table row action clicks
+    seeSection.addEventListener('click', function (e) {
+      const svcDet = e.target.closest('[data-svc-details]');
+      if (svcDet) return openServiceDrawer(svcDet.getAttribute('data-svc-details'));
+      const svcEdit = e.target.closest('[data-svc-edit]');
+      if (svcEdit) return openServiceModal(svcEdit.getAttribute('data-svc-edit'));
+      const pkgInsp = e.target.closest('[data-pkg-inspect]');
+      if (pkgInsp) return openPackageDrawer(pkgInsp.getAttribute('data-pkg-inspect'));
+      const pkgEdit = e.target.closest('[data-pkg-edit]');
+      if (pkgEdit) return openPackageModal(pkgEdit.getAttribute('data-pkg-edit'));
+      const addEdit = e.target.closest('[data-addon-edit]');
+      if (addEdit) return openAddonModal(addEdit.getAttribute('data-addon-edit'));
+      const tagEdit = e.target.closest('[data-tag-edit]');
+      if (tagEdit) return openTagModal(tagEdit.getAttribute('data-tag-edit'));
+      const tagAss = e.target.closest('[data-tag-assign]');
+      if (tagAss) {
+        assigningTagId = tagAss.getAttribute('data-tag-assign');
+        const t = store.tags.find(x => x.id === assigningTagId);
+        if (!t) return;
+        document.getElementById('v2SeeTagAssignName').textContent = t.label;
+        seeSection.querySelectorAll('#v2SeeTagAssignChips [data-assign-target]').forEach(c => {
+          c.classList.toggle('is-active', t.assigned.includes(c.getAttribute('data-assign-target')));
+        });
+        return openOverlay('v2SeeDrawerTagAssign');
+      }
+      const staffEdit = e.target.closest('[data-staff-edit]');
+      if (staffEdit) {
+        editingStaffId = staffEdit.getAttribute('data-staff-edit');
+        const st = store.staff.find(x => x.id === editingStaffId);
+        if (!st) return;
+        document.getElementById('v2SeeStaffCapError').style.display = 'none';
+        document.getElementById('v2SeeModalStaffCapTitle').textContent = `Staff Capability • ${st.name}`;
+        document.getElementById('v2SeeStaffTypeSelect').value = st.type;
+        document.getElementById('v2SeeStaffOverrideText').value = st.override;
+        document.getElementById('v2SeeStaffOverrideReason').value = st.reason;
+        seeSection.querySelectorAll('#v2SeeStaffEquipChips [data-equip]').forEach(c => {
+          c.classList.toggle('is-active', st.equipment.includes(c.getAttribute('data-equip')));
+        });
+        return openOverlay('v2SeeModalStaffCap');
+      }
+      const entLed = e.target.closest('[data-ent-ledger]');
+      if (entLed) return openEntitlementDrawer(entLed.getAttribute('data-ent-ledger'));
+      const entAdj = e.target.closest('[data-ent-adjust]');
+      if (entAdj) {
+        activeEntId = entAdj.getAttribute('data-ent-adjust');
+        document.getElementById('v2SeeEntAdjustError').style.display = 'none';
+        document.getElementById('v2SeeEntAdjustReason').value = '';
+        return openOverlay('v2SeeModalEntitlementAdjust');
+      }
+      const jobDet = e.target.closest('[data-job-detail]');
+      if (jobDet) return openJobDrawer(jobDet.getAttribute('data-job-detail'));
+    });
+
+    // Toggleable chips inside SEE modals/drawers
+    seeSection.querySelectorAll('.cwp-v2-modal .cwp-v2-filter-chip, .cwp-v2-drawer .cwp-v2-filter-chip').forEach(chip => {
+      if (chip.hasAttribute('data-pkg-step')) return;
+      chip.addEventListener('click', function () {
+        if (!this.hasAttribute('disabled')) this.classList.toggle('is-active');
+      });
+    });
+
+    // Jobs filter chips
+    seeSection.querySelectorAll('[data-see-job-filter]').forEach(chip => {
+      chip.addEventListener('click', function () {
+        activeJobFilter = this.getAttribute('data-see-job-filter') || 'all';
+        seeSection.querySelectorAll('[data-see-job-filter]').forEach(c => c.classList.toggle('is-active', c === this));
+        renderJobs();
+      });
+    });
+
+    // Module tabs & State preview
+    function renderSeeView() {
+      const showPanel = activeState === 'data' || activeState === 'disabled';
+      if (loadingEl) loadingEl.style.display = activeState === 'loading' ? 'block' : 'none';
+      if (emptyEl) emptyEl.style.display = activeState === 'empty' ? 'block' : 'none';
+      if (errorEl) errorEl.style.display = activeState === 'error' ? 'block' : 'none';
+
+      panels.forEach(panel => {
+        panel.style.display = showPanel && panel.id === `v2SeePanel_${activeModule}` ? 'block' : 'none';
+      });
+
+      seeSection.querySelectorAll('.v2-see-disableable').forEach(btn => {
+        if (activeState === 'disabled') {
+          btn.setAttribute('disabled', 'disabled');
+          btn.classList.add('is-disabled');
+        } else if (!btn.hasAttribute('data-keep-disabled')) {
+          btn.removeAttribute('disabled');
+          btn.classList.remove('is-disabled');
+        }
+      });
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', function () {
+        activeModule = this.getAttribute('data-see-module') || 'services';
+        tabBtns.forEach(b => {
+          const match = b === this;
+          b.classList.toggle('is-active', match);
+          b.setAttribute('aria-selected', match ? 'true' : 'false');
+        });
+        activeState = 'data';
+        stateBtns.forEach(s => {
+          const isLive = s.getAttribute('data-see-state') === 'data';
+          s.classList.toggle('cwp-v2-btn-primary', isLive);
+          s.classList.toggle('cwp-v2-btn-secondary', !isLive);
+        });
+        renderSeeView();
+        setFeedback('hub', 'var(--cwp-v2-sys-primary)', `SEE-11 Prototype: Switched to <strong>${escapeHtml(this.textContent.trim())}</strong>`);
+      });
+    });
+
+    stateBtns.forEach(btn => {
+      btn.addEventListener('click', function () {
+        activeState = this.getAttribute('data-see-state') || 'data';
+        stateBtns.forEach(s => {
+          const match = s === this;
+          s.classList.toggle('cwp-v2-btn-primary', match);
+          s.classList.toggle('cwp-v2-btn-secondary', !match);
+        });
+        renderSeeView();
+      });
+    });
+
+    resetBtn?.addEventListener('click', () => seeSection.querySelector('[data-see-state="data"]')?.click());
+    retryBtn?.addEventListener('click', () => {
+      activeState = 'loading';
+      renderSeeView();
+      setTimeout(() => seeSection.querySelector('[data-see-state="data"]')?.click(), 450);
+    });
+
+    // Initial render of all 7 SEE modules
+    updateChipCounts();
+    renderServices();
+    renderPackages();
+    renderAddons();
+    renderTags();
+    renderStaff();
+    renderEntitlements();
+    renderJobs();
+    renderSeeView();
   }
 
   function escapeHtml(str) {

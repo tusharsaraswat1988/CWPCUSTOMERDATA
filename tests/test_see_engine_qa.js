@@ -128,7 +128,7 @@ async function run() {
         { frequency_type: 'monthly', interval_value: 1 },
         { fromDate: '2026-01-31', toDate: '2026-03-31' }
       );
-      assert.deepStrictEqual(monthly.map(o => o.date), ['2026-01-31', '2026-02-28', '2026-03-28']);
+      assert.deepStrictEqual(monthly.map(o => o.date), ['2026-01-31', '2026-02-28', '2026-03-31']);
 
       // Holiday blackout reschedule
       const withHoliday = seeFrequencyService.generateOccurrences(

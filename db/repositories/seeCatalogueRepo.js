@@ -432,16 +432,26 @@ async function findAllAddons({ status = null, serviceId = null } = {}, client = 
   const runner = client || db;
   if (serviceId) {
     const res = await runner.query(
-      `SELECT a.* FROM public.addons a
+      `SELECT a.*,
+              COALESCE(ARRAY_AGG(asa_all.service_id) FILTER (WHERE asa_all.service_id IS NOT NULL), '{}') AS applicable_service_ids
+       FROM public.addons a
        JOIN public.addon_service_applicability asa ON a.id = asa.addon_id
+       LEFT JOIN public.addon_service_applicability asa_all ON a.id = asa_all.addon_id
        WHERE asa.service_id = $1 ${status ? 'AND a.status = $2' : ''}
+       GROUP BY a.id
        ORDER BY a.created_at ASC`,
       status ? [serviceId, status] : [serviceId]
     );
     return res.rows;
   }
   const res = await runner.query(
-    `SELECT * FROM public.addons ${status ? 'WHERE status = $1' : ''} ORDER BY created_at ASC`,
+    `SELECT a.*,
+            COALESCE(ARRAY_AGG(asa.service_id) FILTER (WHERE asa.service_id IS NOT NULL), '{}') AS applicable_service_ids
+     FROM public.addons a
+     LEFT JOIN public.addon_service_applicability asa ON a.id = asa.addon_id
+     ${status ? 'WHERE a.status = $1' : ''}
+     GROUP BY a.id
+     ORDER BY a.created_at ASC`,
     status ? [status] : []
   );
   return res.rows;
@@ -449,13 +459,31 @@ async function findAllAddons({ status = null, serviceId = null } = {}, client = 
 
 async function findAddonById(id, client = null) {
   const runner = client || db;
-  const res = await runner.query('SELECT * FROM public.addons WHERE id = $1 LIMIT 1', [id]);
+  const res = await runner.query(
+    `SELECT a.*,
+            COALESCE(ARRAY_AGG(asa.service_id) FILTER (WHERE asa.service_id IS NOT NULL), '{}') AS applicable_service_ids
+     FROM public.addons a
+     LEFT JOIN public.addon_service_applicability asa ON a.id = asa.addon_id
+     WHERE a.id = $1
+     GROUP BY a.id
+     LIMIT 1`,
+    [id]
+  );
   return res.rows[0] || null;
 }
 
 async function findAddonByCode(code, client = null) {
   const runner = client || db;
-  const res = await runner.query('SELECT * FROM public.addons WHERE UPPER(addon_code) = UPPER($1) LIMIT 1', [code]);
+  const res = await runner.query(
+    `SELECT a.*,
+            COALESCE(ARRAY_AGG(asa.service_id) FILTER (WHERE asa.service_id IS NOT NULL), '{}') AS applicable_service_ids
+     FROM public.addons a
+     LEFT JOIN public.addon_service_applicability asa ON a.id = asa.addon_id
+     WHERE UPPER(a.addon_code) = UPPER($1)
+     GROUP BY a.id
+     LIMIT 1`,
+    [code]
+  );
   return res.rows[0] || null;
 }
 
@@ -512,12 +540,17 @@ async function updateAddon(id, patch, client = null) {
        details = COALESCE($4, details),
        pricing_model = COALESCE($5, pricing_model),
        default_price = COALESCE($6, default_price),
-       execution_mode = COALESCE($7, execution_mode),
-       required_staff_capability = COALESCE($8, required_staff_capability),
-       checklist_requirements = COALESCE($9, checklist_requirements),
-       proof_requirements = COALESCE($10, proof_requirements),
-       expected_duration_minutes = COALESCE($11, expected_duration_minutes),
-       status = COALESCE($12, status),
+       pricing_config = COALESCE($7, pricing_config),
+       default_quantity = COALESCE($8, default_quantity),
+       validity_days = COALESCE($9, validity_days),
+       is_optional = COALESCE($10, is_optional),
+       execution_mode = COALESCE($11, execution_mode),
+       required_staff_capability = COALESCE($12, required_staff_capability),
+       checklist_requirements = COALESCE($13, checklist_requirements),
+       proof_requirements = COALESCE($14, proof_requirements),
+       expected_duration_minutes = COALESCE($15, expected_duration_minutes),
+       city_zone_applicability = COALESCE($16, city_zone_applicability),
+       status = COALESCE($17, status),
        version = version + 1,
        updated_at = CURRENT_TIMESTAMP
      WHERE id = $1 RETURNING *`,
@@ -528,15 +561,30 @@ async function updateAddon(id, patch, client = null) {
       patch.details ?? null,
       patch.pricingModel ?? null,
       patch.defaultPrice ?? null,
+      patch.pricingConfig ? JSON.stringify(patch.pricingConfig) : null,
+      patch.defaultQuantity ?? null,
+      patch.validityDays !== undefined ? patch.validityDays : null,
+      patch.isOptional !== undefined ? patch.isOptional : null,
       patch.executionMode ?? null,
       patch.requiredStaffCapability ?? null,
       patch.checklistRequirements ? JSON.stringify(patch.checklistRequirements) : null,
       patch.proofRequirements ? JSON.stringify(patch.proofRequirements) : null,
       patch.expectedDurationMinutes ?? null,
+      patch.cityZoneApplicability ? JSON.stringify(patch.cityZoneApplicability) : null,
       patch.status ?? null
     ]
   );
-  return res.rows[0] || null;
+  const updated = res.rows[0] || null;
+  if (updated && Array.isArray(patch.applicableServiceIds)) {
+    await runner.query(`DELETE FROM public.addon_service_applicability WHERE addon_id = $1`, [id]);
+    for (const sId of patch.applicableServiceIds) {
+      await runner.query(
+        `INSERT INTO public.addon_service_applicability (addon_id, service_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [id, sId]
+      );
+    }
+  }
+  return updated ? findAddonById(id, runner) : null;
 }
 
 // -------------------------------------------------------------------------
@@ -597,6 +645,12 @@ async function findEntityMarketingTags(entityType, entityId, client = null) {
 
 async function upsertMediaAsset(data, client = null) {
   const runner = client || db;
+  if (data.mediaSlot === 'square_1_1' || data.mediaSlot === 'rectangle_4_3') {
+    await runner.query(
+      `DELETE FROM public.media_assets WHERE entity_type = $1 AND entity_id = $2 AND media_slot = $3`,
+      [data.entityType, data.entityId, data.mediaSlot]
+    );
+  }
   const res = await runner.query(
     `INSERT INTO public.media_assets (
        entity_type, entity_id, media_slot, storage_url, storage_key,
@@ -620,6 +674,12 @@ async function upsertMediaAsset(data, client = null) {
     ]
   );
   return res.rows[0];
+}
+
+async function deleteMediaAsset(id, client = null) {
+  const runner = client || db;
+  const res = await runner.query('DELETE FROM public.media_assets WHERE id = $1 RETURNING *', [id]);
+  return res.rows[0] || null;
 }
 
 async function findMediaAssets(entityType, entityId, client = null) {
@@ -661,5 +721,6 @@ module.exports = {
   attachMarketingTag,
   findEntityMarketingTags,
   upsertMediaAsset,
+  deleteMediaAsset,
   findMediaAssets
 };
