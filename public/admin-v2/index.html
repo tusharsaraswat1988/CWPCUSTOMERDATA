@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/admin-v2/css/v2-tokens.css?v=2.1.2">
   <link rel="stylesheet" href="/admin-v2/css/v2-base.css?v=2.1.2">
   <link rel="stylesheet" href="/admin-v2/css/v2-layout.css?v=2.1.2">
-  <link rel="stylesheet" href="/admin-v2/css/v2-components.css?v=2.1.3">
+  <link rel="stylesheet" href="/admin-v2/css/v2-components.css?v=2.1.4">
   <link rel="stylesheet" href="/admin-v2/css/v2-customers.css?v=2.1.2">
   <link rel="stylesheet" href="/admin-v2/css/v2-staff.css?v=2.1.2">
   <link rel="stylesheet" href="/admin-v2/css/v2-bookings.css?v=2.1.2">
@@ -9277,27 +9277,66 @@
           <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close package editor"><span class="material-symbols-outlined">close</span></button>
         </div>
         <form id="v2SeePackageForm">
-          <div class="cwp-v2-modal-body" style="display:flex;flex-direction:column;gap:12px;max-height:68vh;overflow:auto;">
+          <div class="cwp-v2-modal-body" style="display:flex;flex-direction:column;gap:12px;">
             <input type="hidden" id="v2SeePackageId">
             <div class="cwp-v2-form-grid">
-              <div class="cwp-v2-field"><label for="v2SeePackageCode" class="cwp-v2-field-label">Package code <span class="cwp-v2-req-star">*</span></label><input id="v2SeePackageCode" class="cwp-v2-input" required maxlength="64"></div>
-              <div class="cwp-v2-field"><label for="v2SeePackageName" class="cwp-v2-field-label">Package name <span class="cwp-v2-req-star">*</span></label><input id="v2SeePackageName" class="cwp-v2-input" required maxlength="160"></div>
-              <div class="cwp-v2-field"><label for="v2SeePackageMainService" class="cwp-v2-field-label">Primary service <span class="cwp-v2-req-star">*</span></label><select id="v2SeePackageMainService" class="cwp-v2-select" required></select></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageCode" class="cwp-v2-field-label"><span class="cwp-v2-field-label-text">Package code <span class="cwp-v2-req-star">*</span></span></label><div class="cwp-v2-input-box"><input id="v2SeePackageCode" class="cwp-v2-input" required maxlength="64"></div></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageName" class="cwp-v2-field-label"><span class="cwp-v2-field-label-text">Package name <span class="cwp-v2-req-star">*</span></span></label><div class="cwp-v2-input-box"><input id="v2SeePackageName" class="cwp-v2-input" required maxlength="160"></div></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageMainService" class="cwp-v2-field-label"><span class="cwp-v2-field-label-text">Primary service <span class="cwp-v2-req-star">*</span></span></label><select id="v2SeePackageMainService" class="cwp-v2-select" required></select></div>
               <div class="cwp-v2-field"><label for="v2SeePackageStatus" class="cwp-v2-field-label">Status</label><select id="v2SeePackageStatus" class="cwp-v2-select"><option value="draft">Draft</option><option value="active">Active</option><option value="retired">Retired</option></select></div>
-              <div class="cwp-v2-field"><label for="v2SeePackageValidity" class="cwp-v2-field-label">Validity quantity</label><input type="number" min="1" step="1" id="v2SeePackageValidity" class="cwp-v2-input" required></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageValidity" class="cwp-v2-field-label">Validity quantity</label><div class="cwp-v2-input-box"><input type="number" min="1" step="1" id="v2SeePackageValidity" class="cwp-v2-input" required></div></div>
               <div class="cwp-v2-field"><label for="v2SeePackageValidityUnit" class="cwp-v2-field-label">Validity unit</label><select id="v2SeePackageValidityUnit" class="cwp-v2-select"><option value="days">Days</option><option value="months">Months</option><option value="years">Years</option></select></div>
               <div class="cwp-v2-field"><label for="v2SeePackagePricingModel" class="cwp-v2-field-label">Pricing model</label><select id="v2SeePackagePricingModel" class="cwp-v2-select"><option value="fixed">Fixed</option><option value="vehicle_segment">Vehicle segment</option><option value="per_unit">Per unit</option><option value="per_panel">Per panel</option><option value="pricing_bands">Pricing bands</option><option value="minimum_charge">Minimum charge</option><option value="custom">Custom</option></select></div>
-              <div class="cwp-v2-field"><label for="v2SeePackageBasePrice" class="cwp-v2-field-label">Base price (INR)</label><input type="number" min="0" step="0.01" id="v2SeePackageBasePrice" class="cwp-v2-input" required></div>
-              <div class="cwp-v2-field"><label for="v2SeePackageVehicleSegment" class="cwp-v2-field-label">Vehicle segment</label><input id="v2SeePackageVehicleSegment" class="cwp-v2-input" maxlength="80"></div>
-              <div class="cwp-v2-field"><label for="v2SeePackageEffectiveFrom" class="cwp-v2-field-label">Effective from</label><input type="date" id="v2SeePackageEffectiveFrom" class="cwp-v2-input"></div>
-              <div class="cwp-v2-field"><label for="v2SeePackageEffectiveTo" class="cwp-v2-field-label">Effective to</label><input type="date" id="v2SeePackageEffectiveTo" class="cwp-v2-input"></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageBasePrice" class="cwp-v2-field-label">Base price (INR)</label><div class="cwp-v2-input-box"><input type="number" min="0" step="0.01" id="v2SeePackageBasePrice" class="cwp-v2-input" required></div></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageVehicleSegment" class="cwp-v2-field-label">Vehicle segment</label><div class="cwp-v2-input-box"><input id="v2SeePackageVehicleSegment" class="cwp-v2-input" maxlength="80"></div></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageEffectiveFrom" class="cwp-v2-field-label">Effective from</label><div class="cwp-v2-input-box"><input type="date" id="v2SeePackageEffectiveFrom" class="cwp-v2-input"></div></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageEffectiveTo" class="cwp-v2-field-label">Effective to</label><div class="cwp-v2-input-box"><input type="date" id="v2SeePackageEffectiveTo" class="cwp-v2-input"></div></div>
             </div>
             <div class="cwp-v2-field"><label for="v2SeePackageDetails" class="cwp-v2-field-label">Package details</label><textarea id="v2SeePackageDetails" class="cwp-v2-textarea" rows="2"></textarea></div>
-            <div class="cwp-v2-field"><label for="v2SeePackageBenefits" class="cwp-v2-field-label">Benefits (JSON)</label><textarea id="v2SeePackageBenefits" class="cwp-v2-textarea" rows="4" required spellcheck="false"></textarea><small>Each entry: serviceId, benefitType, quantity, frequencyId, validityOverrideDays, config. Use canonical service IDs.</small></div>
-            <div class="cwp-v2-field"><label for="v2SeePackageAddons" class="cwp-v2-field-label">Included add-ons (JSON)</label><textarea id="v2SeePackageAddons" class="cwp-v2-textarea" rows="3" spellcheck="false"></textarea><small>Each entry: addonId, quantity, frequencyId, isIncluded, overridePrice, config.</small></div>
-            <div class="cwp-v2-field"><label for="v2SeePackagePricingRules" class="cwp-v2-field-label">Pricing rules (JSON)</label><textarea id="v2SeePackagePricingRules" class="cwp-v2-textarea" rows="3" spellcheck="false"></textarea><small>Rules use city, zone, vehicleSegment, pricingModel, unitPrice, minCharge, pricingBands, effectiveFrom, effectiveTo, isActive.</small></div>
-            <div class="cwp-v2-field"><label for="v2SeePackageEligibility" class="cwp-v2-field-label">City / zone eligibility (JSON)</label><textarea id="v2SeePackageEligibility" class="cwp-v2-textarea" rows="2" spellcheck="false"></textarea></div>
-            <div class="cwp-v2-field"><label for="v2SeePackagePricingConfig" class="cwp-v2-field-label">Pricing configuration (JSON)</label><textarea id="v2SeePackagePricingConfig" class="cwp-v2-textarea" rows="2" spellcheck="false"></textarea></div>
+            <section class="cwp-v2-form-section" aria-labelledby="v2SeePackageBenefitsTitle">
+              <div class="cwp-v2-form-section-header">
+                <h3 class="cwp-v2-form-section-title" id="v2SeePackageBenefitsTitle">Included services</h3>
+                <div class="cwp-v2-form-section-desc">Choose the services and quantities customers receive with this package.</div>
+              </div>
+              <div id="v2SeePackageBenefitsList" class="cwp-v2-see-package-list" aria-live="polite"></div>
+              <button type="button" id="v2SeePackageBenefitAdd" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm"><span class="material-symbols-outlined" aria-hidden="true">add</span><span>Add service</span></button>
+            </section>
+            <section class="cwp-v2-form-section" aria-labelledby="v2SeePackageAddonsTitle">
+              <div class="cwp-v2-form-section-header">
+                <h3 class="cwp-v2-form-section-title" id="v2SeePackageAddonsTitle">Add-ons</h3>
+                <div class="cwp-v2-form-section-desc">Attach active add-ons and choose whether they are included or optional.</div>
+              </div>
+              <div id="v2SeePackageAddonsList" class="cwp-v2-see-package-list" aria-live="polite"></div>
+              <button type="button" id="v2SeePackageAddonAdd" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm"><span class="material-symbols-outlined" aria-hidden="true">add</span><span>Add add-on</span></button>
+            </section>
+            <section class="cwp-v2-form-section" aria-labelledby="v2SeePackagePricingTitle">
+              <div class="cwp-v2-form-section-header">
+                <h3 class="cwp-v2-form-section-title" id="v2SeePackagePricingTitle">Pricing options</h3>
+                <div class="cwp-v2-form-section-desc">Add location or vehicle-specific rates when the base price needs an override.</div>
+              </div>
+              <div class="cwp-v2-form-grid">
+                <div class="cwp-v2-field"><label for="v2SeePackageMinimumCharge" class="cwp-v2-field-label">Minimum charge (INR)</label><div class="cwp-v2-input-box"><input type="number" min="0" step="0.01" id="v2SeePackageMinimumCharge" class="cwp-v2-input" value="0"></div></div>
+              </div>
+              <div class="cwp-v2-field">
+                <label class="cwp-v2-field-label">Quantity price bands</label>
+                <div class="cwp-v2-field-helper">Optional rates used when the pricing model is “Pricing bands”.</div>
+                <div id="v2SeePackageBaseBandsList" class="cwp-v2-see-package-list"></div>
+                <button type="button" id="v2SeePackageBaseBandAdd" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm"><span class="material-symbols-outlined" aria-hidden="true">add</span><span>Add quantity band</span></button>
+              </div>
+              <div id="v2SeePackagePricingRulesList" class="cwp-v2-see-package-list" aria-live="polite"></div>
+              <button type="button" id="v2SeePackagePricingRuleAdd" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm"><span class="material-symbols-outlined" aria-hidden="true">add</span><span>Add price override</span></button>
+            </section>
+            <section class="cwp-v2-form-section" aria-labelledby="v2SeePackageAvailabilityTitle">
+              <div class="cwp-v2-form-section-header">
+                <h3 class="cwp-v2-form-section-title" id="v2SeePackageAvailabilityTitle">Availability</h3>
+                <div class="cwp-v2-form-section-desc">Limit package sales to selected cities or zones if needed.</div>
+              </div>
+              <label class="cwp-v2-see-package-availability"><input type="checkbox" id="v2SeePackageAllCities" checked><span>Available in all cities</span></label>
+              <div id="v2SeePackageLocationLimits" class="cwp-v2-form-grid" style="display:none;">
+                <div class="cwp-v2-field"><label for="v2SeePackageCities" class="cwp-v2-field-label">Allowed cities</label><div class="cwp-v2-input-box"><input id="v2SeePackageCities" class="cwp-v2-input" placeholder="e.g. Bengaluru, Mysuru"></div><small class="cwp-v2-field-helper">Separate city names with commas.</small></div>
+                <div class="cwp-v2-field"><label for="v2SeePackageZones" class="cwp-v2-field-label">Allowed zones</label><div class="cwp-v2-input-box"><input id="v2SeePackageZones" class="cwp-v2-input" placeholder="e.g. Whitefield, South Bengaluru"></div><small class="cwp-v2-field-helper">Separate zone names with commas.</small></div>
+              </div>
+            </section>
             <div id="v2SeePackageFormError" class="cwp-v2-form-alert is-error" role="alert" hidden></div>
           </div>
           <div class="cwp-v2-modal-footer"><button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button><button type="submit" id="v2SeePackageSave" class="cwp-v2-btn cwp-v2-btn-primary">Save Package</button></div>
@@ -9999,7 +10038,7 @@
   <script src="/admin-v2/js/v2-dashboard.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-security.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-see-services.js?v=2.1.2"></script>
-  <script src="/admin-v2/js/v2-see-packages.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-see-packages.js?v=2.1.4"></script>
   <script src="/admin-v2/js/v2-see-addons.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-app.js?v=2.1.2"></script>
 

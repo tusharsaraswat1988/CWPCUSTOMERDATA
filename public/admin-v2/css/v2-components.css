@@ -3936,3 +3936,111 @@ body.cwp-v2-modal-open {
     display: none;
   }
 }
+
+/* Structured package composition and pricing editors */
+.cwp-v2-see-package-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cwp-v2-see-package-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border-radius: var(--cwp-v2-radius-md);
+  background: var(--cwp-v2-ref-slate-50);
+}
+
+.cwp-v2-see-package-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cwp-v2-see-package-item-title {
+  margin: 0;
+  color: var(--cwp-v2-sys-on-surface);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cwp-v2-see-package-item-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: end;
+  gap: 10px 12px;
+  min-width: 0;
+}
+
+.cwp-v2-see-package-item .cwp-v2-field-label {
+  justify-content: flex-start;
+}
+
+.cwp-v2-see-package-item .cwp-v2-input-box,
+.cwp-v2-see-package-item .cwp-v2-select {
+  min-height: 38px;
+}
+
+.cwp-v2-see-package-item .cwp-v2-input {
+  min-height: 36px;
+}
+
+.cwp-v2-see-package-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  color: var(--cwp-v2-sys-on-surface);
+  font-size: 12px;
+}
+
+.cwp-v2-see-package-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--cwp-v2-sys-primary);
+}
+
+.cwp-v2-see-package-bands {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  grid-column: 1 / -1;
+  padding-top: 10px;
+  border-top: 1px solid var(--cwp-v2-sys-border-subtle);
+}
+
+.cwp-v2-see-package-band {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) auto;
+  align-items: end;
+  gap: 8px 10px;
+}
+
+.cwp-v2-see-package-availability {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  color: var(--cwp-v2-sys-on-surface);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cwp-v2-see-package-availability input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--cwp-v2-sys-primary);
+}
+
+@media (max-width: 599px) {
+  .cwp-v2-see-package-item-fields,
+  .cwp-v2-see-package-band {
+    grid-template-columns: 1fr;
+  }
+}
