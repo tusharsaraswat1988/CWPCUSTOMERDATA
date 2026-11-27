@@ -19235,6 +19235,7 @@ function loadStaffCustomerData(staffId) {
     var currentStartJobRequiredBeforePhotos = 0;
     var startSpecialJobSubmitting = false;
     var completeSpecialJobSubmitting = false;
+    var currentCompleteJobMutationId = null;
 
     function setSpecialJobPhotoStatus(kind, status, message) {
       var statusEl = document.getElementById(kind + 'JobPhotoUploadStatus');
@@ -19571,6 +19572,7 @@ function loadStaffCustomerData(staffId) {
       if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       var job = (typeof jobId === 'object' && jobId !== null) ? jobId : ((state.customers || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }) || ((window.adminSpecialState && adminSpecialState.jobs) || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }));
       currentCompleteJobId = (typeof jobId === 'object' && jobId !== null) ? (job.id || job.jobId) : jobId;
+      currentCompleteJobMutationId = null;
       completeJobPhotos = [];
       completeJobAfterPhotoUrls = [];
       setCompleteJobStage('edit');
@@ -19614,6 +19616,7 @@ function loadStaffCustomerData(staffId) {
         document.body.style.overflow = '';
       }
       currentCompleteJobId = null;
+      currentCompleteJobMutationId = null;
       completeJobPhotos = [];
       completeJobAfterPhotoUrls = [];
       currentCompleteJobChecklistItems = [];
@@ -19750,8 +19753,24 @@ function loadStaffCustomerData(staffId) {
       var checklistResults = checklistInputs.map(function(input) {
         var index = Number(input.getAttribute('data-see-checklist-index'));
         var raw = currentCompleteJobChecklistItems[index];
-        return { item: typeof raw === 'string' ? raw : (raw && (raw.label || raw.item || raw.name)) || `Checklist item ${index + 1}`, completed: !!input.checked };
+        var entry = {
+          item: typeof raw === 'string' ? raw : (raw && (raw.label || raw.item || raw.name)) || `Checklist item ${index + 1}`,
+          completed: !!input.checked
+        };
+        if (raw && typeof raw === 'object') {
+          if (raw.id) entry.id = raw.id;
+          if (raw.key) entry.key = raw.key;
+        }
+        return entry;
       });
+      if (!currentCompleteJobMutationId) {
+        currentCompleteJobMutationId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+          ? crypto.randomUUID()
+          : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+              var r = Math.random() * 16 | 0;
+              return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            }));
+      }
       var notes = (document.getElementById('completeJobNotes') ? document.getElementById('completeJobNotes').value : '').trim();
       var payload = {
         jobId: currentCompleteJobId,
@@ -19759,6 +19778,7 @@ function loadStaffCustomerData(staffId) {
         staffToken: getStaffToken(state.activeStaffId),
         afterPhotoUrls: completeJobAfterPhotoUrls,
         checklistResults: checklistResults,
+        clientMutationId: currentCompleteJobMutationId,
         notes: notes,
         completedAtDevice: new Date().toISOString()
       };
