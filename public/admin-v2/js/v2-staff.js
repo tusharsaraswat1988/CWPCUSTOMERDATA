@@ -1093,6 +1093,9 @@
     state.addWizard.currentStep = 1;
     const form = document.getElementById('v2AddStaffForm');
     if (form) form.reset();
+    const wtSelect = document.getElementById('v2AddStaffWorkType');
+    if (wtSelect) wtSelect.value = 'dcc_only';
+    renderStaffCapabilities('add', 'dcc_only', ['daily_car_cleaning']);
     goToAddStaffStep(1);
     if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.open('v2ModalAddStaff');
   }
@@ -1143,6 +1146,12 @@
         setFieldErr('v2AddStaffPinField', '6-digit numeric PIN is mandatory for new staff.');
         ok = false;
       } else setFieldErr('v2AddStaffPinField', '');
+    } else if (step === 4) {
+      const wt = document.getElementById('v2AddStaffWorkType')?.value || 'dcc_only';
+      const capVal = validateStaffModalCapabilities('add', wt);
+      if (!capVal.ok) {
+        ok = false;
+      }
     }
     return ok;
   }
@@ -1155,6 +1164,187 @@
     if (err) err.textContent = msg || '';
   }
 
+  // -------------------------------------------------------------------------
+  // WORK TYPE & SERVICE CAPABILITIES CONFIGURATION
+  // -------------------------------------------------------------------------
+  const CAPABILITY_CATALOG = [
+    { id: 'daily_car_cleaning', label: 'Daily Car Cleaning', icon: 'directions_car' },
+    { id: 'car_washing', label: 'Car Washing', icon: 'local_car_wash' },
+    { id: 'solar_cleaning', label: 'Solar Panel Cleaning', icon: 'solar_power' },
+    { id: 'interior_detailing', label: 'Interior Detailing', icon: 'airline_seat_recline_extra' },
+    { id: 'exterior_detailing', label: 'Exterior Detailing', icon: 'auto_awesome' }
+  ];
+
+  const WORK_TYPE_CONFIG = {
+    dcc_only: {
+      name: 'Daily Car Cleaning Only (DCC)',
+      themeClass: 'is-dcc',
+      desc: 'Staff is dedicated exclusively to daily subscription car cleaning routes. On-demand specialized service jobs are not permitted.',
+      hint: 'Daily Car Cleaning is locked (mandatory)',
+      allowedCaps: ['daily_car_cleaning'],
+      mandatoryCaps: ['daily_car_cleaning']
+    },
+    services_only: {
+      name: 'On-Demand Services Only',
+      themeClass: 'is-services',
+      desc: 'Staff is authorized exclusively for specialized on-demand service bookings. Excluded from Daily Car Cleaning subscription routes.',
+      hint: 'Select at least 1 service capability',
+      allowedCaps: ['car_washing', 'solar_cleaning', 'interior_detailing', 'exterior_detailing'],
+      mandatoryCaps: []
+    },
+    dcc_and_services: {
+      name: 'DCC + On-Demand Services',
+      themeClass: 'is-combo',
+      desc: 'Staff is authorized for daily car cleaning routes plus selected on-demand service jobs.',
+      hint: 'DCC is mandatory. Select at least 1 additional service capability.',
+      allowedCaps: ['daily_car_cleaning', 'car_washing', 'solar_cleaning', 'interior_detailing', 'exterior_detailing'],
+      mandatoryCaps: ['daily_car_cleaning']
+    }
+  };
+
+  function getStaffModalSelectedCaps(context, workType) {
+    const wt = workType || (context === 'add' ? document.getElementById('v2AddStaffWorkType')?.value : document.getElementById('v2EditStaffWorkType')?.value) || 'dcc_only';
+    const cfg = WORK_TYPE_CONFIG[wt] || WORK_TYPE_CONFIG.dcc_only;
+
+    if (wt === 'dcc_only') {
+      return ['daily_car_cleaning'];
+    }
+
+    const inputName = context === 'add' ? 'addStaffCap' : 'editStaffCap';
+    const gridId = context === 'add' ? 'v2AddStaffCapGrid' : 'v2EditStaffCapGrid';
+    const checked = Array.from(document.querySelectorAll(`#${gridId} input[name="${inputName}"]:checked`)).map(el => el.value);
+
+    // If mandatory capability exists for this work type (e.g. daily_car_cleaning in dcc_and_services), guarantee its inclusion
+    cfg.mandatoryCaps.forEach(c => {
+      if (!checked.includes(c)) checked.unshift(c);
+    });
+
+    // Prune any capabilities not permitted by this work type
+    return checked.filter(c => cfg.allowedCaps.includes(c));
+  }
+
+  function renderStaffCapabilities(context, workType, selectedCaps = null) {
+    const wt = workType || 'dcc_only';
+    const cfg = WORK_TYPE_CONFIG[wt] || WORK_TYPE_CONFIG.dcc_only;
+
+    const descEl = document.getElementById(context === 'add' ? 'v2AddStaffWorkTypeDesc' : 'v2EditStaffWorkTypeDesc');
+    const hintEl = document.getElementById(context === 'add' ? 'v2AddStaffCapHint' : 'v2EditStaffCapHint');
+    const gridEl = document.getElementById(context === 'add' ? 'v2AddStaffCapGrid' : 'v2EditStaffCapGrid');
+    const errEl = document.getElementById(context === 'add' ? 'v2AddStaffCapError' : 'v2EditStaffCapError');
+
+    if (descEl) {
+      descEl.className = `cwp-v2-staff-worktype-info ${cfg.themeClass}`;
+      descEl.innerHTML = `
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
+        <div><strong>${escapeHtml(cfg.name)}:</strong> ${escapeHtml(cfg.desc)}</div>
+      `;
+    }
+
+    if (hintEl) {
+      hintEl.textContent = cfg.hint;
+    }
+
+    if (errEl) {
+      errEl.style.display = 'none';
+      errEl.textContent = '';
+    }
+
+    if (!gridEl) return;
+
+    // Determine currently checked set pruned to allowed
+    let activeCaps = [];
+    if (Array.isArray(selectedCaps)) {
+      activeCaps = selectedCaps.filter(c => cfg.allowedCaps.includes(c));
+    } else {
+      activeCaps = getStaffModalSelectedCaps(context, wt);
+    }
+
+    cfg.mandatoryCaps.forEach(c => {
+      if (!activeCaps.includes(c)) activeCaps.push(c);
+    });
+
+    const activeSet = new Set(activeCaps);
+    gridEl.innerHTML = '';
+
+    const inputName = context === 'add' ? 'addStaffCap' : 'editStaffCap';
+
+    CAPABILITY_CATALOG.forEach(cap => {
+      if (!cfg.allowedCaps.includes(cap.id)) {
+        return; // Strictly omit non-permitted capabilities
+      }
+
+      const isMandatory = cfg.mandatoryCaps.includes(cap.id);
+      const isChecked = isMandatory || activeSet.has(cap.id);
+
+      const label = document.createElement('label');
+      label.className = 'cwp-v2-staff-cap-check' + (isMandatory ? ' is-locked' : '');
+
+      label.innerHTML = `
+        <input type="checkbox" name="${inputName}" value="${escapeHtml(cap.id)}" ${isChecked ? 'checked' : ''} ${isMandatory ? 'disabled aria-disabled="true"' : ''} />
+        <span class="material-symbols-outlined" style="font-size:16px; color:${isMandatory ? 'var(--cwp-v2-sys-primary, #2563eb)' : 'inherit'};" aria-hidden="true">${escapeHtml(cap.icon)}</span>
+        <span>${escapeHtml(cap.label)}</span>
+        ${isMandatory ? '<span class="cwp-v2-staff-cap-badge-mandatory"><span class="material-symbols-outlined" style="font-size:12px;">lock</span> Mandatory</span>' : ''}
+      `;
+
+      if (!isMandatory) {
+        label.querySelector('input').addEventListener('change', () => {
+          if (context === 'edit') state.editForm.isDirty = true;
+          validateStaffModalCapabilities(context, wt, true);
+        });
+      }
+
+      gridEl.appendChild(label);
+    });
+  }
+
+  function handleWorkTypeChange(context, newWorkType) {
+    const currentChecked = getStaffModalSelectedCaps(context, newWorkType);
+    renderStaffCapabilities(context, newWorkType, currentChecked);
+  }
+
+  function validateStaffModalCapabilities(context, workType, silent = false) {
+    const wt = workType || 'dcc_only';
+    const caps = getStaffModalSelectedCaps(context, wt);
+    const errEl = document.getElementById(context === 'add' ? 'v2AddStaffCapError' : 'v2EditStaffCapError');
+
+    if (errEl) {
+      errEl.style.display = 'none';
+      errEl.textContent = '';
+    }
+
+    if (wt === 'dcc_only') {
+      return { ok: true, caps: ['daily_car_cleaning'] };
+    }
+
+    if (wt === 'services_only') {
+      const nonDcc = caps.filter(c => c !== 'daily_car_cleaning');
+      if (nonDcc.length === 0) {
+        const msg = 'Please select at least one service capability for On-Demand Services staff.';
+        if (!silent && errEl) {
+          errEl.textContent = msg;
+          errEl.style.display = 'block';
+        }
+        return { ok: false, error: msg };
+      }
+      return { ok: true, caps: nonDcc };
+    }
+
+    if (wt === 'dcc_and_services') {
+      const nonDcc = caps.filter(c => c !== 'daily_car_cleaning');
+      if (nonDcc.length === 0) {
+        const msg = 'Please select at least one additional service capability (e.g. Car Washing, Solar, Detailing).';
+        if (!silent && errEl) {
+          errEl.textContent = msg;
+          errEl.style.display = 'block';
+        }
+        return { ok: false, error: msg };
+      }
+      return { ok: true, caps: ['daily_car_cleaning', ...nonDcc] };
+    }
+
+    return { ok: true, caps };
+  }
+
   function populateStaffReview() {
     const rev = document.getElementById('v2StaffWizReview');
     if (!rev) return;
@@ -1164,21 +1354,34 @@
     const code = document.getElementById('v2AddStaffCode')?.value.trim() || 'Auto-Generated';
     const scope = document.getElementById('v2AddStaffScope')?.value.trim() || 'Standard';
     const workType = document.getElementById('v2AddStaffWorkType')?.value || 'dcc_only';
+    const cfg = WORK_TYPE_CONFIG[workType] || WORK_TYPE_CONFIG.dcc_only;
+    const caps = getStaffModalSelectedCaps('add', workType);
+    const capLabels = caps.map(cId => {
+      const found = CAPABILITY_CATALOG.find(c => c.id === cId);
+      return found ? found.label : cId.replace(/_/g, ' ');
+    }).join(', ');
 
     rev.innerHTML = `
       <div class="cwp-v2-staff-summary-grid">
         <div class="cwp-v2-staff-summary-item"><span class="cwp-v2-staff-summary-label">Full Name</span><span class="cwp-v2-staff-summary-val">${escapeHtml(name)}</span></div>
         <div class="cwp-v2-staff-summary-item"><span class="cwp-v2-staff-summary-label">Primary Phone</span><span class="cwp-v2-staff-summary-val">${formatPhoneDisplay(phone)}</span></div>
         <div class="cwp-v2-staff-summary-item"><span class="cwp-v2-staff-summary-label">Designation</span><span class="cwp-v2-staff-summary-val">${escapeHtml(desig)}</span></div>
-        <div class="cwp-v2-staff-summary-item"><span class="cwp-v2-staff-summary-label">Staff ID</span><span class="cwp-v2-staff-summary-val">${escapeHtml(code)}</span></div>
         <div class="cwp-v2-staff-summary-item"><span class="cwp-v2-staff-summary-label">Zone / Scope</span><span class="cwp-v2-staff-summary-val">${escapeHtml(scope)}</span></div>
-        <div class="cwp-v2-staff-summary-item"><span class="cwp-v2-staff-summary-label">Work Type</span><span class="cwp-v2-staff-summary-val">${escapeHtml(workType)}</span></div>
+        <div class="cwp-v2-staff-summary-item"><span class="cwp-v2-staff-summary-label">Work Type</span><span class="cwp-v2-staff-summary-val">${escapeHtml(cfg.name)}</span></div>
+        <div class="cwp-v2-staff-summary-item" style="grid-column: 1 / -1;"><span class="cwp-v2-staff-summary-label">Service Capabilities</span><span class="cwp-v2-staff-summary-val">${escapeHtml(capLabels || 'None')}</span></div>
       </div>
     `;
   }
 
   async function submitAddStaff() {
-    const caps = Array.from(document.querySelectorAll('#v2ModalAddStaff input[name="addStaffCap"]:checked')).map(el => el.value);
+    const workType = document.getElementById('v2AddStaffWorkType')?.value || 'dcc_only';
+    const capVal = validateStaffModalCapabilities('add', workType);
+    if (!capVal.ok) {
+      if (window.CWP_ADMIN_V2.toast) window.CWP_ADMIN_V2.toast.error(capVal.error);
+      goToAddStaffStep(4);
+      return;
+    }
+
     const staffData = {
       name: document.getElementById('v2AddStaffName')?.value.trim(),
       phone: getCleanPhone10(document.getElementById('v2AddStaffPhone')?.value.trim()),
@@ -1192,8 +1395,8 @@
       operationalScope: document.getElementById('v2AddStaffScope')?.value.trim() || '',
       teamName: document.getElementById('v2AddStaffTeam')?.value.trim() || '',
       reportsToId: document.getElementById('v2AddStaffReportsTo')?.value || null,
-      workType: document.getElementById('v2AddStaffWorkType')?.value || 'dcc_only',
-      serviceCapabilities: caps.length > 0 ? caps : ['daily_car_cleaning']
+      workType: workType,
+      serviceCapabilities: capVal.caps
     };
 
     const btn = document.getElementById('v2StaffWizSubmit');
@@ -1228,12 +1431,15 @@
     document.getElementById('v2EditStaffScope').value = s.operationalScope || '';
     document.getElementById('v2EditStaffTeam').value = s.teamName || '';
     document.getElementById('v2EditStaffReportsTo').value = s.reportsToId || '';
-    document.getElementById('v2EditStaffWorkType').value = s.workType || 'dcc_only';
 
-    const caps = new Set(s.serviceCapabilities || ['daily_car_cleaning']);
-    document.querySelectorAll('#v2ModalEditStaff input[name="editStaffCap"]').forEach(cb => {
-      cb.checked = caps.has(cb.value);
-    });
+    const normWorkType = (s.workType || s.work_type || 'dcc_only').toLowerCase().trim();
+    let rawCaps = s.serviceCapabilities || s.service_capabilities || ['daily_car_cleaning'];
+    if (typeof rawCaps === 'string') {
+      try { rawCaps = JSON.parse(rawCaps); } catch (e) { rawCaps = ['daily_car_cleaning']; }
+    }
+    const wtSelect = document.getElementById('v2EditStaffWorkType');
+    if (wtSelect) wtSelect.value = normWorkType;
+    renderStaffCapabilities('edit', normWorkType, rawCaps);
 
     switchEditStaffTab('basic');
     if (window.CWP_ADMIN_V2.overlay) {
@@ -1263,7 +1469,14 @@
       return;
     }
 
-    const caps = Array.from(document.querySelectorAll('#v2ModalEditStaff input[name="editStaffCap"]:checked')).map(el => el.value);
+    const workType = document.getElementById('v2EditStaffWorkType')?.value || 'dcc_only';
+    const capVal = validateStaffModalCapabilities('edit', workType);
+    if (!capVal.ok) {
+      if (window.CWP_ADMIN_V2.toast) window.CWP_ADMIN_V2.toast.error(capVal.error);
+      switchEditStaffTab('work');
+      return;
+    }
+
     const staffData = {
       staffCode: code,
       id: code,
@@ -1277,8 +1490,8 @@
       operationalScope: document.getElementById('v2EditStaffScope').value.trim(),
       teamName: document.getElementById('v2EditStaffTeam').value.trim(),
       reportsToId: document.getElementById('v2EditStaffReportsTo').value || null,
-      workType: document.getElementById('v2EditStaffWorkType').value,
-      serviceCapabilities: caps.length > 0 ? caps : ['daily_car_cleaning']
+      workType: workType,
+      serviceCapabilities: capVal.caps
       // NOTE: PIN is intentionally omitted so existing credentials are NEVER accidentally reset
     };
 
@@ -1455,6 +1668,9 @@
     document.getElementById('v2StaffWizPrev')?.addEventListener('click', () => goToAddStaffStep(state.addWizard.currentStep - 1));
     document.getElementById('v2StaffWizNext')?.addEventListener('click', () => goToAddStaffStep(state.addWizard.currentStep + 1));
     document.getElementById('v2StaffWizSubmit')?.addEventListener('click', submitAddStaff);
+    document.getElementById('v2AddStaffWorkType')?.addEventListener('change', (e) => {
+      handleWorkTypeChange('add', e.target.value);
+    });
   }
 
   function bindEditEvents() {
@@ -1466,6 +1682,10 @@
       editForm.addEventListener('input', () => { state.editForm.isDirty = true; });
       editForm.addEventListener('change', () => { state.editForm.isDirty = true; });
     }
+    document.getElementById('v2EditStaffWorkType')?.addEventListener('change', (e) => {
+      handleWorkTypeChange('edit', e.target.value);
+      state.editForm.isDirty = true;
+    });
     document.getElementById('v2EditStaffCancel')?.addEventListener('click', () => {
       if (state.editForm.isDirty && !confirm('You have unsaved changes. Discard changes and close?')) return;
       state.editForm.isDirty = false;
@@ -1488,6 +1708,9 @@
     switchDetailTab,
     openAddStaffModal,
     openEditStaffModal,
+    renderStaffCapabilities,
+    getStaffModalSelectedCaps,
+    validateStaffModalCapabilities,
     getState: () => state
   };
 

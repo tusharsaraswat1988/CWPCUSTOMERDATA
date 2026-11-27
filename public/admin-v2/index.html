@@ -8668,10 +8668,7 @@
                   <label class="is-required" for="v2AddStaffDesig">Designation</label>
                   <select id="v2AddStaffDesig" class="cwp-v2-select"></select>
                 </div>
-                <div class="cwp-v2-field">
-                  <label for="v2AddStaffCode">Staff ID (Optional — Auto if blank)</label>
-                  <input type="text" id="v2AddStaffCode" class="cwp-v2-input" placeholder="e.g. STF04" />
-                </div>
+                <input type="hidden" id="v2AddStaffCode" value="" />
                 <div class="cwp-v2-field">
                   <label for="v2AddStaffStatus">Employment Status</label>
                   <select id="v2AddStaffStatus" class="cwp-v2-select">
@@ -8715,16 +8712,15 @@
                     <option value="services_only">On-Demand Services Only</option>
                     <option value="dcc_and_services">DCC + On-Demand Services</option>
                   </select>
+                  <div id="v2AddStaffWorkTypeDesc" class="cwp-v2-staff-worktype-info is-dcc" role="status"></div>
                 </div>
-                <div class="cwp-v2-field cwp-v2-form-col-full">
-                  <label>Service Capabilities</label>
-                  <div class="cwp-v2-staff-cap-grid">
-                    <label class="cwp-v2-staff-cap-check"><input type="checkbox" name="addStaffCap" value="daily_car_cleaning" checked /> Daily Car Cleaning</label>
-                    <label class="cwp-v2-staff-cap-check"><input type="checkbox" name="addStaffCap" value="car_washing" /> Car Washing</label>
-                    <label class="cwp-v2-staff-cap-check"><input type="checkbox" name="addStaffCap" value="solar_cleaning" /> Solar Panel Cleaning</label>
-                    <label class="cwp-v2-staff-cap-check"><input type="checkbox" name="addStaffCap" value="interior_detailing" /> Interior Detailing</label>
-                    <label class="cwp-v2-staff-cap-check"><input type="checkbox" name="addStaffCap" value="exterior_detailing" /> Exterior Detailing</label>
+                <div class="cwp-v2-field cwp-v2-form-col-full" id="v2AddStaffCapField">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="margin-bottom:0;">Service Capabilities</label>
+                    <span id="v2AddStaffCapHint" style="font-size:11px; color:var(--cwp-v2-sys-on-surface-variant, #64748b);"></span>
                   </div>
+                  <div id="v2AddStaffCapGrid" class="cwp-v2-staff-cap-grid"></div>
+                  <div class="cwp-v2-field-error" id="v2AddStaffCapError" style="display:none; color:var(--cwp-v2-status-danger, #ef4444); font-size:12px; margin-top:6px;"></div>
                 </div>
               </div>
             </div>
@@ -8851,16 +8847,15 @@
                     <option value="services_only">On-Demand Services Only</option>
                     <option value="dcc_and_services">DCC + On-Demand Services</option>
                   </select>
+                  <div id="v2EditStaffWorkTypeDesc" class="cwp-v2-staff-worktype-info is-dcc" role="status"></div>
                 </div>
-                <div class="cwp-v2-field cwp-v2-form-col-full">
-                  <label>Service Capabilities</label>
-                  <div class="cwp-v2-staff-cap-grid">
-                    <label class="cwp-v2-staff-cap-check"><input type="checkbox" name="editStaffCap" value="daily_car_cleaning" /> Daily Car Cleaning</label>
-                    <label class="cwp-v2-staff-cap-check"><input type="checkbox" name="editStaffCap" value="car_washing" /> Car Washing</label>
-                    <label class="cwp-v2-staff-cap-check"><input type="checkbox" name="editStaffCap" value="solar_cleaning" /> Solar Panel Cleaning</label>
-                    <label class="cwp-v2-staff-cap-check"><input type="checkbox" name="editStaffCap" value="interior_detailing" /> Interior Detailing</label>
-                    <label class="cwp-v2-staff-cap-check"><input type="checkbox" name="editStaffCap" value="exterior_detailing" /> Exterior Detailing</label>
+                <div class="cwp-v2-field cwp-v2-form-col-full" id="v2EditStaffCapField">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="margin-bottom:0;">Service Capabilities</label>
+                    <span id="v2EditStaffCapHint" style="font-size:11px; color:var(--cwp-v2-sys-on-surface-variant, #64748b);"></span>
                   </div>
+                  <div id="v2EditStaffCapGrid" class="cwp-v2-staff-cap-grid"></div>
+                  <div class="cwp-v2-field-error" id="v2EditStaffCapError" style="display:none; color:var(--cwp-v2-status-danger, #ef4444); font-size:12px; margin-top:6px;"></div>
                 </div>
               </div>
             </div>

@@ -63,7 +63,15 @@ function validateCapabilityCombination(workType, capabilities = []) {
     throw new Error(`Invalid work type '${workType}'. Must be one of: ${VALID_WORK_TYPES.join(', ')}`);
   }
 
-  const rawCaps = Array.isArray(capabilities) ? capabilities : (capabilities ? [capabilities] : []);
+  let rawCaps = capabilities;
+  if (typeof rawCaps === 'string') {
+    try {
+      rawCaps = JSON.parse(rawCaps);
+    } catch (e) {
+      rawCaps = rawCaps.includes(',') ? rawCaps.split(',').map(s => s.trim()) : [rawCaps];
+    }
+  }
+  rawCaps = Array.isArray(rawCaps) ? rawCaps : (rawCaps ? [rawCaps] : []);
   const canonicalIds = getCanonicalCapabilityIds();
   const normalizedCaps = [];
 

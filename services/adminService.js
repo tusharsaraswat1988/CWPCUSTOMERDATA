@@ -1414,10 +1414,10 @@ async function getStaffList({ isAdmin = true } = {}) {
         drivingLicenseUrl: s.driving_license_url || '',
         salary: s.salary !== null && s.salary !== undefined ? Number(s.salary) : '',
         weeklyOff: s.weekly_off || '',
-        workType: s.work_type || 'dcc_only',
-        work_type: s.work_type || 'dcc_only',
-        serviceCapabilities: s.service_capabilities || ['daily_car_cleaning'],
-        service_capabilities: s.service_capabilities || ['daily_car_cleaning'],
+        workType: staffCapabilityService.getStaffEffectiveCapabilities(s).workType,
+        work_type: staffCapabilityService.getStaffEffectiveCapabilities(s).workType,
+        serviceCapabilities: staffCapabilityService.getStaffEffectiveCapabilities(s).serviceCapabilities,
+        service_capabilities: staffCapabilityService.getStaffEffectiveCapabilities(s).serviceCapabilities,
         designationId: desig ? desig.id : (s.designation_id || 'cleaner'),
         designation_id: desig ? desig.id : (s.designation_id || 'cleaner'),
         designationName: desig ? desig.name : 'Cleaner',
@@ -1513,11 +1513,16 @@ async function saveStaffMember({
     const inputWorkType = (work_type || workType || (staff ? (staff.work_type || staff.workType) : 'dcc_only') || 'dcc_only').toLowerCase().trim();
     const inputCaps = service_capabilities !== undefined ? service_capabilities : (serviceCapabilities !== undefined ? serviceCapabilities : (staff ? (staff.service_capabilities || staff.serviceCapabilities) : ['daily_car_cleaning']));
 
-    const validatedCap = staffCapabilityService.validateCapabilityCombination(inputWorkType, inputCaps);
+    let validatedCap;
+    try {
+      validatedCap = staffCapabilityService.validateCapabilityCombination(inputWorkType, inputCaps);
 
-    // If updating existing staff, check for operational conflicts (active routes or active service jobs)
-    if (staff && staff.id) {
-      await staffCapabilityService.checkCapabilityChangeConflicts(staff.id, validatedCap.workType, validatedCap.serviceCapabilities, client);
+      // If updating existing staff, check for operational conflicts (active routes or active service jobs)
+      if (staff && staff.id) {
+        await staffCapabilityService.checkCapabilityChangeConflicts(staff.id, validatedCap.workType, validatedCap.serviceCapabilities, client);
+      }
+    } catch (capErr) {
+      return { success: false, error: capErr.message };
     }
 
     // Designation resolution & validation

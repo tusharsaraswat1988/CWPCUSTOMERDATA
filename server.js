@@ -1244,12 +1244,8 @@ function sanitizeStaffForAdmin(staff) {
     lockedUntil: staff.lockedUntil || null,
     hasActiveSession: Boolean(staff.hasActiveSession),
     activeDeviceId: staff.activeDeviceId || null,
-    workType: staff.work_type || staff.workType || 'dcc_only',
-    serviceCapabilities: Array.isArray(staff.service_capabilities)
-      ? staff.service_capabilities
-      : (Array.isArray(staff.serviceCapabilities)
-          ? staff.serviceCapabilities
-          : (staff.service_capabilities ? JSON.parse(staff.service_capabilities) : ['daily_car_cleaning'])),
+    workType: staffCapabilityService.getStaffEffectiveCapabilities(staff).workType,
+    serviceCapabilities: staffCapabilityService.getStaffEffectiveCapabilities(staff).serviceCapabilities,
     designationId: staff.designation_id || staff.designationId || 'cleaner',
     designationName: staff.designationName || staff.designation_name || 'Cleaner',
     designationLevel: staff.designationLevel !== undefined ? staff.designationLevel : (staff.hierarchy_level || 1),

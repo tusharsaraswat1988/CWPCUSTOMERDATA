@@ -701,6 +701,45 @@
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
 }
 
+.cwp-v2-staff-worktype-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #1e40af;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.cwp-v2-staff-worktype-info.is-dcc {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.cwp-v2-staff-worktype-info.is-services {
+  background: #fdf4ff;
+  border-color: #f5d0fe;
+  color: #86198f;
+}
+
+.cwp-v2-staff-worktype-info.is-combo {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.cwp-v2-staff-worktype-info .material-symbols-outlined {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 .cwp-v2-staff-cap-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -718,6 +757,38 @@
   font-weight: 500;
   cursor: pointer;
   background: #f8fafc;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cwp-v2-staff-cap-check:hover:not(.is-locked) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.cwp-v2-staff-cap-check.is-locked {
+  background: #f0f7ff;
+  border-color: #bfdbfe;
+  cursor: default;
+  user-select: none;
+}
+
+.cwp-v2-staff-cap-check.is-locked input[type="checkbox"] {
+  cursor: default;
+  accent-color: #2563eb;
+}
+
+.cwp-v2-staff-cap-badge-mandatory {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #dbeafe;
+  color: #1d4ed8;
+  margin-left: auto;
+  letter-spacing: 0.02em;
 }
 
 /* 7. RESPONSIVE */
