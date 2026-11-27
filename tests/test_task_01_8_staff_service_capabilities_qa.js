@@ -406,6 +406,7 @@ async function runStaffCapabilitiesTestSuite() {
   const specialJobDetail = assignDetailVijay.job;
   specialJobDetail.service_category_id = specialJobDetail.serviceCategoryId || 'interior_detailing';
   repos.serviceJobs.findById = async (id) => (id === specialJobDetail.id ? specialJobDetail : null);
+  repos.serviceJobs.findByIdForUpdate = async (id) => (id === specialJobDetail.id ? specialJobDetail : null);
   repos.staffAssignments.findActiveByJobId = async () => ({ staff_id: staffVijay.id });
 
   const reassignFail = await adminService.reassignSpecialJob({

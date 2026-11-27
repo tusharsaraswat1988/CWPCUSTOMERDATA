@@ -4065,7 +4065,16 @@ const server = http.createServer(async (req, res) => {
           );
 
           if (!id) {
-            id = 'STF' + String(appState.staffList.length + 1).padStart(2, '0');
+            if (isNeonPrimaryActive()) {
+              try {
+                const staffCount = await repos.staff.countStaff();
+                id = 'STF' + String(staffCount + 1).padStart(2, '0');
+              } catch (e) {
+                id = 'STF' + String(appState.staffList.length + 1).padStart(2, '0');
+              }
+            } else {
+              id = 'STF' + String(appState.staffList.length + 1).padStart(2, '0');
+            }
           }
 
           // Strict Indian Mobile Validation & Normalization for Staff (Task P2.4)
@@ -4095,16 +4104,29 @@ const server = http.createServer(async (req, res) => {
 
           // Mobile uniqueness check: staff mobile is proof of identity and must not be same for other staff
           if (normalizedPhone) {
-            const duplicateStaff = (appState.staffList || []).find(s =>
-              (s.id || '').toUpperCase() !== id &&
-              s.phone && normalizeIndianMobile(s.phone) === normalizedPhone
-            );
-            if (duplicateStaff) {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({
-                success: false,
-                error: `Mobile number ${normalizedPhone} is already registered to another staff member (${duplicateStaff.name}). Staff mobile number must be unique.`
-              }));
+            if (isNeonPrimaryActive()) {
+              try {
+                const duplicateStaff = await repos.staff.findByPhone(normalizedPhone);
+                if (duplicateStaff && (duplicateStaff.id !== id && (duplicateStaff.staff_code || '').toUpperCase() !== id)) {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({
+                    success: false,
+                    error: `Mobile number ${normalizedPhone} is already registered to another staff member (${duplicateStaff.name}). Staff mobile number must be unique.`
+                  }));
+                }
+              } catch (e) {}
+            } else {
+              const duplicateStaff = (appState.staffList || []).find(s =>
+                (s.id || '').toUpperCase() !== id &&
+                s.phone && normalizeIndianMobile(s.phone) === normalizedPhone
+              );
+              if (duplicateStaff) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: false,
+                  error: `Mobile number ${normalizedPhone} is already registered to another staff member (${duplicateStaff.name}). Staff mobile number must be unique.`
+                }));
+              }
             }
           }
 
