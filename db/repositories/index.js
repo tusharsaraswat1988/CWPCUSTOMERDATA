@@ -22,5 +22,8 @@ module.exports = {
   packages: require('./packagesRepo'),
   routes: require('./routesRepo'),
   designations: require('./designationsRepo'),
-  adminSecurity: require('./adminSecurityRepo')
+  adminSecurity: require('./adminSecurityRepo'),
+  seeCatalogue: require('./seeCatalogueRepo'),
+  seeEntitlement: require('./seeEntitlementRepo'),
+  seeOperations: require('./seeOperationsRepo')
 };

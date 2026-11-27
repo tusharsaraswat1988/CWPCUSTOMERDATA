@@ -1,0 +1,327 @@
+/**
+ * =========================================================================
+ * CWP Service & Entitlement Engine (SEE-01)
+ * Phases 7 & 8: Immutable Purchase Snapshot & Entitlement Ledger
+ *
+ * Invariants:
+ * 1. Purchase creates an immutable snapshot; catalogue edits never mutate past sales.
+ * 2. Entitlement accounts track purchased, reserved, consumed, expired, adjusted, refunded, remaining.
+ * 3. Assignment does NOT automatically consume entitlement.
+ * 4. Reservation and consumption are separate, transactional, and idempotent.
+ * 5. DCC daily cleaning is separate from DCC wash credits and add-on entitlements.
+ * 6. Solar visit credits are tracked independently of actual panel quantities.
+ * =========================================================================
+ */
+
+'use strict';
+
+const crypto = require('crypto');
+const db = require('../db/index');
+const repos = require('../db/repositories/index');
+const seeCatalogueService = require('./seeCatalogueService');
+
+function computeValidityDates(validityValue, validityUnit, startDate = new Date()) {
+  const start = new Date(startDate);
+  const end = new Date(start);
+  const val = Math.max(1, parseInt(validityValue, 10) || 30);
+  if (validityUnit === 'years') {
+    end.setFullYear(end.getFullYear() + val);
+  } else if (validityUnit === 'months') {
+    end.setMonth(end.getMonth() + val);
+  } else {
+    end.setDate(end.getDate() + val);
+  }
+  return { validFrom: start.toISOString(), validTo: end.toISOString() };
+}
+
+function mapEntitlementKind(serviceCategoryId, benefitType) {
+  if (benefitType === 'wash_credit') return 'wash_credit';
+  if (benefitType === 'visit_credit') return serviceCategoryId === 'solar_cleaning' ? 'solar_visit' : 'wash_credit';
+  if (serviceCategoryId === 'daily_car_cleaning') return 'dcc_daily';
+  if (serviceCategoryId === 'car_washing') return 'wash_credit';
+  if (serviceCategoryId === 'solar_cleaning') return 'solar_visit';
+  if (serviceCategoryId === 'interior_detailing' || serviceCategoryId === 'exterior_detailing' || serviceCategoryId === 'detailing') {
+    return 'detailing_visit';
+  }
+  return 'custom';
+}
+
+/**
+ * Phase 7: Create an immutable Purchase Snapshot & initialize Entitlement Accounts + Ledger
+ */
+async function createPurchase({
+  customerId,
+  vehicleId = null,
+  locationId = null,
+  packageIdOrCode,
+  vehicleSegment = null,
+  city = null,
+  zone = null,
+  quantity = 1,
+  discountAmount = 0,
+  saleReference = null,
+  terms = {},
+  actor = 'admin'
+}) {
+  if (!customerId) throw new Error('customerId is required.');
+  if (!packageIdOrCode) throw new Error('packageIdOrCode is required.');
+
+  const pkg = await seeCatalogueService.getPackageDetail(packageIdOrCode);
+  if (!pkg) throw new Error(`Package '${packageIdOrCode}' not found.`);
+  if (pkg.status !== 'active') {
+    throw new Error(`Cannot purchase package '${pkg.name}' in status '${pkg.status}'.`);
+  }
+
+  const pricing = seeCatalogueService.calculatePackagePrice(pkg, {
+    city,
+    zone,
+    vehicleSegment: vehicleSegment || pkg.vehicle_segment,
+    quantity
+  });
+  const discount = Math.max(0, parseFloat(discountAmount) || 0);
+  const finalPrice = Math.max(0, Math.round((pricing.basePrice - discount) * 100) / 100);
+  const saleRef = saleReference || `SALE-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+  const { validFrom, validTo } = computeValidityDates(pkg.validity_value, pkg.validity_unit);
+
+  return db.withTransaction(async (client) => {
+    const customer = await repos.customers.findById(customerId, client);
+    if (!customer) throw new Error(`Customer '${customerId}' not found.`);
+
+    const snapshot = await repos.seeEntitlement.createPurchaseSnapshot({
+      saleReference: saleRef,
+      customerId,
+      vehicleId,
+      locationId,
+      packageId: pkg.id,
+      packageVersion: pkg.version || 1,
+      packageCode: pkg.package_code,
+      packageName: pkg.name,
+      serviceDefinitions: pkg.benefits || [],
+      addonDefinitions: pkg.addons || [],
+      quantities: { purchaseUnits: quantity, benefits: (pkg.benefits || []).map(b => ({ serviceId: b.service_id, quantity: b.quantity })) },
+      frequencies: (pkg.benefits || []).reduce((acc, b) => {
+        if (b.frequency_code) acc[b.service_id] = b.frequency_code;
+        return acc;
+      }, {}),
+      validity: { value: pkg.validity_value, unit: pkg.validity_unit, validFrom, validTo },
+      vehicleSegment: vehicleSegment || pkg.vehicle_segment,
+      city,
+      zone,
+      basePrice: pricing.basePrice,
+      discountAmount: discount,
+      finalPrice,
+      terms,
+      createdBy: actor
+    }, client);
+
+    const accounts = [];
+
+    // Initialize separate entitlement accounts for each package benefit
+    for (const b of (pkg.benefits || [])) {
+      const kind = mapEntitlementKind(pkg.service_category_id, b.benefit_type);
+      const qty = parseInt(b.quantity, 10) || 1;
+      const acct = await repos.seeEntitlement.createEntitlementAccount({
+        purchaseSnapshotId: snapshot.id,
+        customerId,
+        vehicleId,
+        locationId,
+        serviceId: b.service_id,
+        entitlementKind: kind,
+        purchasedQty: qty,
+        validFrom,
+        validTo
+      }, client);
+
+      await repos.seeEntitlement.insertLedgerEntry({
+        entitlementAccountId: acct.id,
+        entryType: 'purchase',
+        quantity: qty,
+        balanceAfter: qty,
+        referenceType: 'purchase_snapshot',
+        referenceId: snapshot.id,
+        saleReference: saleRef,
+        idempotencyKey: `purchase:${snapshot.id}:svc:${b.id}`,
+        reason: `Initial purchase credit for ${pkg.name}`,
+        actor
+      }, client);
+
+      accounts.push(acct);
+    }
+
+    // Initialize separate entitlement accounts for included package add-ons
+    for (const a of (pkg.addons || [])) {
+      if (a.is_included === false) continue;
+      const qty = parseInt(a.quantity, 10) || 1;
+      const acct = await repos.seeEntitlement.createEntitlementAccount({
+        purchaseSnapshotId: snapshot.id,
+        customerId,
+        vehicleId,
+        locationId,
+        addonId: a.addon_id,
+        entitlementKind: 'addon_credit',
+        purchasedQty: qty,
+        validFrom,
+        validTo
+      }, client);
+
+      await repos.seeEntitlement.insertLedgerEntry({
+        entitlementAccountId: acct.id,
+        entryType: 'purchase',
+        quantity: qty,
+        balanceAfter: qty,
+        referenceType: 'purchase_snapshot',
+        referenceId: snapshot.id,
+        saleReference: saleRef,
+        idempotencyKey: `purchase:${snapshot.id}:addon:${a.id}`,
+        reason: `Included add-on credit for ${a.addon_name}`,
+        actor
+      }, client);
+
+      accounts.push(acct);
+    }
+
+    await repos.auditLogs.logChange({
+      entityType: 'purchase_snapshot',
+      entityId: snapshot.id,
+      action: 'purchase',
+      changedBy: actor,
+      afterState: { saleReference: saleRef, packageCode: pkg.package_code, finalPrice }
+    }, client);
+
+    return { snapshot, accounts };
+  });
+}
+
+function deriveAccountStatus(acct, remainingQty) {
+  if (acct.status === 'cancelled') return 'cancelled';
+  if (acct.valid_to && new Date(acct.valid_to) < new Date() && remainingQty === 0) return 'expired';
+  if (remainingQty <= 0) return 'exhausted';
+  return 'active';
+}
+
+/**
+ * Core atomic ledger mutation with FOR UPDATE lock + idempotency key
+ */
+async function mutateEntitlement({
+  accountId,
+  entryType,
+  quantity = 1,
+  referenceType = null,
+  referenceId = null,
+  saleReference = null,
+  executionReference = null,
+  idempotencyKey = null,
+  reason,
+  actor = 'system'
+}) {
+  if (!accountId) throw new Error('accountId is required.');
+  if (!reason) throw new Error('reason is required for ledger entry.');
+  const qty = parseInt(quantity, 10);
+  if (isNaN(qty) || (entryType !== 'adjust' && qty <= 0) || (entryType === 'adjust' && qty === 0)) {
+    throw new Error('Invalid quantity for entitlement mutation.');
+  }
+
+  return db.withTransaction(async (client) => {
+    // Idempotency check
+    if (idempotencyKey) {
+      const existingEntry = await repos.seeEntitlement.findLedgerByIdempotencyKey(idempotencyKey, client);
+      if (existingEntry) {
+        const acct = await repos.seeEntitlement.findAccountById(accountId, client);
+        return { idempotentReplay: true, ledgerEntry: existingEntry, account: acct };
+      }
+    }
+
+    const acct = await repos.seeEntitlement.findAccountByIdForUpdate(accountId, client);
+    if (!acct) throw new Error(`Entitlement account '${accountId}' not found.`);
+
+    let reserved = acct.reserved_qty;
+    let consumed = acct.consumed_qty;
+    let expired = acct.expired_qty;
+    let adjusted = acct.adjusted_qty;
+    let refunded = acct.refunded_qty;
+    let remaining = acct.remaining_qty;
+
+    if (entryType === 'reserve') {
+      if (acct.status !== 'active') throw new Error(`Cannot reserve from account in status '${acct.status}'.`);
+      if (remaining < qty) throw new Error(`Insufficient remaining entitlement (${remaining} < ${qty}).`);
+      reserved += qty;
+      remaining -= qty;
+    } else if (entryType === 'release') {
+      if (reserved < qty) throw new Error(`Cannot release ${qty}; only ${reserved} reserved.`);
+      reserved -= qty;
+      remaining += qty;
+    } else if (entryType === 'consume') {
+      // Can consume from reserved (preferred) or directly from remaining if unreserved
+      if (reserved >= qty) {
+        reserved -= qty;
+        consumed += qty;
+      } else {
+        if (acct.status !== 'active') throw new Error(`Cannot consume from account in status '${acct.status}'.`);
+        if (remaining < qty) throw new Error(`Insufficient remaining entitlement (${remaining} < ${qty}).`);
+        remaining -= qty;
+        consumed += qty;
+      }
+    } else if (entryType === 'expire') {
+      const expQty = Math.min(remaining, qty);
+      remaining -= expQty;
+      expired += expQty;
+    } else if (entryType === 'adjust') {
+      if (remaining + qty < 0) throw new Error(`Adjustment would result in negative remaining balance.`);
+      adjusted += qty;
+      remaining += qty;
+    } else if (entryType === 'refund' || entryType === 'reverse') {
+      if (remaining < qty) throw new Error(`Insufficient remaining balance (${remaining}) to refund ${qty}.`);
+      refunded += qty;
+      remaining -= qty;
+    } else {
+      throw new Error(`Unsupported ledger entryType '${entryType}'.`);
+    }
+
+    const nextStatus = entryType === 'expire' && remaining === 0
+      ? 'expired'
+      : deriveAccountStatus(acct, remaining);
+
+    const updatedAcct = await repos.seeEntitlement.updateAccountBalances(acct.id, {
+      reservedQty: reserved,
+      consumedQty: consumed,
+      expiredQty: expired,
+      adjustedQty: adjusted,
+      refundedQty: refunded,
+      remainingQty: remaining,
+      status: nextStatus
+    }, client);
+
+    const ledgerEntry = await repos.seeEntitlement.insertLedgerEntry({
+      entitlementAccountId: acct.id,
+      entryType,
+      quantity: qty,
+      balanceAfter: remaining,
+      referenceType,
+      referenceId,
+      saleReference: saleReference || null,
+      executionReference: executionReference || null,
+      idempotencyKey,
+      reason,
+      actor
+    }, client);
+
+    return { idempotentReplay: false, ledgerEntry, account: updatedAcct };
+  });
+}
+
+async function getCustomerBalance(customerId) {
+  const accounts = await repos.seeEntitlement.findAccountsByCustomer(customerId);
+  const snapshots = await repos.seeEntitlement.findSnapshotsByCustomer(customerId);
+  return { customerId, accounts, snapshots };
+}
+
+async function getEntitlementLedger(accountId, opts = {}) {
+  return repos.seeEntitlement.findLedgerByAccount(accountId, opts);
+}
+
+module.exports = {
+  createPurchase,
+  mutateEntitlement,
+  getCustomerBalance,
+  getEntitlementLedger
+};

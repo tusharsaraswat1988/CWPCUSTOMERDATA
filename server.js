@@ -27,6 +27,8 @@ const path = require('path');
 const crypto = require('crypto');
 const cloudinary = require('cloudinary').v2;
 const adminSecurityService = require('./services/adminSecurityService');
+const seeApiRouter = require('./services/seeApiRouter');
+const seeCatalogueService = require('./services/seeCatalogueService');
 
 // Load local .env immediately if present (only when not running automated unit/fixture tests)
 if (process.env.NODE_ENV !== 'test' && !process.env.DATA_FILE) {
@@ -1780,7 +1782,7 @@ const server = http.createServer(async (req, res) => {
   } else {
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-Token');
 
   if (req.method === 'OPTIONS') {
@@ -6248,21 +6250,49 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // Public / Authenticated: Get Canonical Service Catalog
+        // Public / Authenticated: Get Canonical Service Catalog (DB-driven when Neon is configured)
         if (payload.action === 'getServiceCatalog') {
+          try {
+            if (isNeonConfigured()) {
+              const dbServices = await seeCatalogueService.listServices({ status: 'active' });
+              if (dbServices && dbServices.length > 0) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: true,
+                  source: 'database',
+                  services: dbServices,
+                  categories: serviceCatalog.SERVICE_CATEGORIES,
+                  seaterTypes: serviceCatalog.SEATER_TYPES,
+                  solarConfig: serviceCatalog.SOLAR_UNIT_CONFIG
+                }));
+              }
+            }
+          } catch (e) {
+            console.warn('[SEE] getServiceCatalog DB fallback:', e.message);
+          }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: true,
+            source: 'legacy_fallback',
             categories: serviceCatalog.SERVICE_CATEGORIES,
             seaterTypes: serviceCatalog.SEATER_TYPES,
             solarConfig: serviceCatalog.SOLAR_UNIT_CONFIG
           }));
         }
 
-        // Public / Admin: Get Packages & Entitlements Catalog
+        // Public / Admin: Get Packages & Entitlements Catalog (DB-driven when Neon is configured)
         if (payload.action === 'getPackageCatalog') {
           try {
-            const catalog = packageService.getPackageCatalog();
+            let catalog = [];
+            if (isNeonConfigured()) {
+              const dbPkgs = await seeCatalogueService.listPackages({ status: 'active' });
+              if (dbPkgs && dbPkgs.length > 0) {
+                catalog = dbPkgs;
+              }
+            }
+            if (catalog.length === 0) {
+              catalog = packageService.getPackageCatalog();
+            }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, catalog }));
           } catch (err) {
@@ -7259,6 +7289,18 @@ const server = http.createServer(async (req, res) => {
       }
     });
     return;
+  }
+
+  // =========================================================================
+  // SEE-01 REST API ROUTER (/api/see/*)
+  // =========================================================================
+  if (pathname.startsWith('/api/see/')) {
+    const handled = await seeApiRouter.handleSeeRequest(req, res, parsedUrl, {
+      extractAuthToken,
+      resolveAdminSession,
+      resolveStaffSession
+    });
+    if (handled) return;
   }
 
   // =========================================================================
