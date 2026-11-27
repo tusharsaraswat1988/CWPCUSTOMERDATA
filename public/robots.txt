@@ -13,7 +13,7 @@ Allow: /js/
 Allow: /images/
 Allow: /videos/
 Allow: /icons/
-Allow: /cwp_logo.jpg
+Allow: /cwp-logo.png
 Allow: /favicon.ico
 Allow: /favicon.png
 Allow: /manifest.json

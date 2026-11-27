@@ -40,7 +40,7 @@ body.staff-mode-active .top-header {
 
 body.staff-mode-active .top-header .header-inner { min-height: 56px; }
 body.staff-mode-active .top-header .header-app-title { font-size: 16px !important; letter-spacing: 0 !important; }
-body.staff-mode-active .top-header .brand-logo-img { width: 34px; height: 34px !important; object-fit: contain; }
+body.staff-mode-active .top-header .brand-logo-img { width: 34px !important; height: 34px !important; max-height: 34px !important; object-fit: contain !important; }
 body.staff-mode-active .staff-header-utility { min-height: 48px; }
 body.staff-mode-active .staff-offline-badge { min-height: 36px; align-items: center; border-radius: 999px; padding: 0 12px; font-size: 12px; font-weight: 700; }
 body.staff-mode-active #staffPwaInstallBanner { display: none !important; }
@@ -185,6 +185,22 @@ body.staff-mode-active #customerFeed .btn-clean-done {
   font-size: 15px !important;
   font-weight: 750 !important;
 }
+body.staff-mode-active #customerFeed .daily-clean-status {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 4px 10px;
+  border-radius: 11px;
+  color: #065f46;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.25;
+  cursor: default;
+  user-select: text;
+}
 body.staff-mode-active #customerFeed .btn-clean-wa { min-width: 48px; min-height: 48px; border-radius: 12px !important; }
 body.staff-mode-active #customerFeed .card-service-stopped { border-color: var(--staff-danger) !important; }
 body.staff-mode-active #customerFeed .card-cleaned-done { background: var(--staff-surface) !important; opacity: .92; }
@@ -212,6 +228,7 @@ body.staff-mode-active .staff-settings-logout-card {
 }
 body.staff-mode-active .staff-profile-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 body.staff-mode-active .staff-name-text { color: var(--staff-ink) !important; font-size: 18px !important; }
+body.staff-mode-active .staff-phone-subtitle { margin-top: 2px; color: var(--staff-muted) !important; font-size: 12px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
 body.staff-mode-active .settings-card-title { color: var(--staff-ink); font-size: 15px; font-weight: 700; }
 body.staff-mode-active .settings-info-grid { gap: 10px 14px; }
 body.staff-mode-active .settings-info-item { min-height: 42px; }
@@ -505,10 +522,14 @@ body.staff-mode-active #staffSettingsPanel .staff-utility-row .btn-clean-wa {
   font-size: 12px !important;
   font-weight: 700;
 }
-body.staff-mode-active #staffSettingsPanel .staff-install-row { min-height: 52px; }
+body.staff-mode-active #staffSettingsPanel .staff-install-row { min-height: 52px; min-width: 0; }
+body.staff-mode-active #staffSettingsPanel .staff-install-row > span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 body.staff-mode-active #staffSettingsPanel .staff-install-row #staffPwaInstallBtn {
+  flex: 0 1 auto;
+  min-width: 0 !important;
   min-height: 44px;
-  max-width: 172px;
+  max-width: 48%;
+  box-sizing: border-box;
   padding: 7px 11px !important;
   border: 1px solid var(--staff-line) !important;
   border-radius: 10px !important;
@@ -519,6 +540,16 @@ body.staff-mode-active #staffSettingsPanel .staff-install-row #staffPwaInstallBt
   font-size: 12px !important;
   font-weight: 700;
   white-space: normal;
+  overflow: hidden;
+}
+body.staff-mode-active #staffSettingsPanel .staff-install-row #staffPwaInstallBtn .pwa-btn-text {
+  display: block !important;
+  min-width: 0;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: keep-all !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 body.staff-mode-active #staffSettingsPanel .staff-install-row #staffPwaInstallBtn:disabled {
   background: var(--staff-canvas) !important;
@@ -625,10 +656,198 @@ body.staff-mode-active #addressViewModal button.btn-cell-action { min-height: 44
 body.staff-mode-active #addressViewModal #addrModalPrimary,
 body.staff-mode-active #addressViewModal #addrModalSecondary { color: var(--staff-ink) !important; overflow-wrap: anywhere; }
 
+/* Correct the mobile card header geometry that was forcing long names into narrow columns. */
+@media (max-width: 480px) {
+  body.staff-mode-active #customerFeed .card-header-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px 8px !important; }
+  body.staff-mode-active #customerFeed .card-title-group { flex: 1 1 calc(100% - 48px); min-width: 0; }
+  body.staff-mode-active #customerFeed .cust-full-name { font-size: 17px !important; line-height: 1.4 !important; }
+  body.staff-mode-active #customerFeed .card-action-buttons { flex: 0 0 auto; justify-content: flex-end; gap: 6px; padding: 0 !important; }
+  body.staff-mode-active #customerFeed .card-action-buttons .btn-card-action { flex: 0 0 44px; width: 44px; min-width: 44px; min-height: 44px !important; }
+  body.staff-mode-active #customerFeed .card-vehicle-row,
+  body.staff-mode-active #customerFeed .card-address-row,
+  body.staff-mode-active #customerFeed .card-notes-row { margin-inline: 12px !important; }
+  body.staff-mode-active #customerFeed .card-vehicle-row { gap: 4px; padding-block: 6px !important; }
+  body.staff-mode-active #customerFeed .vehicle-plate-reg,
+  body.staff-mode-active #customerFeed .vehicle-plate-model { color: var(--staff-ink) !important; }
+}
+/* Today is a high-volume route list: keep one compact scan row, one detail strip, one action. */
+body.staff-active-today #customerFeed .smart-card:not(.card-service-stopped) { padding: 0 !important; }
+body.staff-active-today #customerFeed .staff-next-stop-label { margin: 7px 10px 0; font-size: 10px; line-height: 1.2; }
+body.staff-active-today #customerFeed .card-header-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 7px 10px 5px !important;
+}
+body.staff-active-today #customerFeed .card-title-group { min-width: 0 !important; gap: 6px !important; }
+body.staff-active-today #customerFeed .cust-route-seq-badge { min-width: 32px; min-height: 32px; border-radius: 9px; }
+body.staff-active-today #customerFeed .cust-name-with-audio { flex: 1 1 auto; min-width: 0; }
+body.staff-active-today #customerFeed .cust-full-name { font-size: 16px !important; line-height: 1.25 !important; }
+body.staff-active-today #customerFeed .btn-card-audio { width: 38px !important; height: 38px !important; min-width: 38px !important; min-height: 38px !important; }
+body.staff-active-today #customerFeed .card-action-buttons { flex: 0 0 auto; gap: 5px; padding: 0 !important; }
+body.staff-active-today #customerFeed .card-action-buttons .btn-card-action { width: 40px; min-width: 40px; min-height: 40px !important; height: 40px !important; padding: 0 !important; border-radius: 11px !important; }
+body.staff-active-today #customerFeed .card-action-buttons .btn-card-action > span:not(.material-symbols-outlined) { display: none !important; }
+body.staff-active-today #customerFeed .card-vehicle-row {
+  min-height: 0;
+  margin: 0 10px !important;
+  padding: 5px 0 !important;
+  border-top: 1px solid #e5ebef;
+  border-bottom: 0;
+}
+body.staff-active-today #customerFeed .card-vehicle-row .vehicle-details-wrap { gap: 4px; }
+body.staff-active-today #customerFeed .card-vehicle-row .vehicle-plate-badge,
+body.staff-active-today #customerFeed .card-vehicle-row .package-pill-badge { min-height: 26px; height: auto; padding: 3px 7px !important; font-size: 12px !important; }
+body.staff-active-today #customerFeed .card-photo-wrap,
+body.staff-active-today #customerFeed .btn-photo-thumb { min-height: 30px; }
+body.staff-active-today #customerFeed .card-address-row {
+  min-height: 0;
+  margin: 0 10px 3px !important;
+  padding: 2px 0 !important;
+  gap: 6px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  font-size: 12px !important;
+}
+body.staff-active-today #customerFeed .card-address-content { min-height: 24px; align-items: center; }
+body.staff-active-today #customerFeed .addr-text-wrap { min-width: 0; }
+body.staff-active-today #customerFeed .addr-primary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; }
+body.staff-active-today #customerFeed .btn-card-map-direct { min-height: 32px; padding: 0 8px !important; }
+body.staff-active-today #customerFeed .card-notes-row { margin: 2px 10px 4px !important; padding: 4px 7px !important; font-size: 11px !important; line-height: 1.3; }
+body.staff-active-today #customerFeed .card-status-actions-bar-split { margin: 0 !important; padding: 5px 10px 9px !important; }
+body.staff-active-today #customerFeed .card-status-actions-bar-split .btn-clean-done { min-height: 44px !important; height: 44px !important; border-radius: 11px !important; }
+/* Jobs: keep customer actions, vehicle identity, status, proof and next step in a tight scan order. */
+body.staff-active-jobs #customerFeed .smart-card { padding: 0 !important; }
+body.staff-active-jobs #customerFeed .card-header-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 7px 10px 5px !important;
+}
+body.staff-active-jobs #customerFeed .card-title-group { min-width: 0 !important; gap: 6px !important; }
+body.staff-active-jobs #customerFeed .cust-route-seq-badge { min-width: 32px; min-height: 32px; border-radius: 9px; }
+body.staff-active-jobs #customerFeed .cust-name-with-audio { flex: 1 1 auto; min-width: 0; }
+body.staff-active-jobs #customerFeed .cust-full-name { font-size: 16px !important; line-height: 1.25 !important; }
+body.staff-active-jobs #customerFeed .btn-card-audio { width: 38px !important; height: 38px !important; min-width: 38px !important; min-height: 38px !important; }
+body.staff-active-jobs #customerFeed .card-action-buttons { flex: 0 0 auto; gap: 5px; padding: 0 !important; }
+body.staff-active-jobs #customerFeed .card-action-buttons .btn-card-action { width: 44px; min-width: 44px; min-height: 44px !important; height: 44px !important; padding: 0 !important; border-radius: 11px !important; }
+body.staff-active-jobs #customerFeed .card-action-buttons .btn-card-action > span:not(.material-symbols-outlined) { display: none !important; }
+body.staff-active-jobs #customerFeed .card-vehicle-row {
+  min-height: 0;
+  margin: 0 10px !important;
+  padding: 5px 0 !important;
+  border-top: 1px solid #e5ebef;
+}
+body.staff-active-jobs #customerFeed .card-vehicle-row .vehicle-details-wrap { gap: 4px; }
+body.staff-active-jobs #customerFeed .card-vehicle-row .vehicle-plate-badge,
+body.staff-active-jobs #customerFeed .card-vehicle-row .package-pill-badge,
+body.staff-active-jobs #customerFeed .card-vehicle-row .badge-cat-carwash,
+body.staff-active-jobs #customerFeed .card-vehicle-row .badge-cat-interior,
+body.staff-active-jobs #customerFeed .card-vehicle-row .badge-cat-exterior,
+body.staff-active-jobs #customerFeed .card-vehicle-row .badge-cat-solar { min-height: 26px; height: auto; padding: 3px 7px !important; font-size: 11px !important; }
+body.staff-active-jobs #customerFeed .card-address-row {
+  min-height: 0;
+  margin: 0 10px 3px !important;
+  padding: 3px 7px !important;
+  gap: 6px;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+}
+body.staff-active-jobs #customerFeed .card-address-content { min-height: 28px; align-items: center; }
+body.staff-active-jobs #customerFeed .addr-text-wrap { min-width: 0; }
+body.staff-active-jobs #customerFeed .addr-primary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+body.staff-active-jobs #customerFeed .btn-card-map-direct { min-height: 32px; padding: 0 8px !important; }
+body.staff-active-jobs #customerFeed .card-notes-row { margin: 2px 10px 4px !important; padding: 4px 7px !important; font-size: 11px !important; line-height: 1.35; }
+body.staff-active-jobs #customerFeed .card-special-job-journey {
+  margin: 5px 10px 9px !important;
+  padding: 6px 0 0 !important;
+  border-top: 1px solid var(--staff-line) !important;
+}
+body.staff-active-jobs #customerFeed .job-card-journey-bar {
+  min-height: 34px;
+  margin: 0 0 5px !important;
+  padding: 5px 8px !important;
+  gap: 8px;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  line-height: 1.25;
+}
+body.staff-active-jobs #customerFeed .job-card-journey-bar .job-time-chip { max-width: 52%; font-size: 10px !important; text-align: right; overflow-wrap: anywhere; }
+body.staff-active-jobs #customerFeed .job-action-buttons-row { gap: 6px !important; margin-top: 5px !important; }
+body.staff-active-jobs #customerFeed .job-action-buttons-row .btn-job-action { min-height: 44px !important; height: 44px !important; padding: 0 8px !important; border-radius: 10px !important; font-size: 12px !important; }
+body.staff-active-jobs #customerFeed .job-action-buttons-row .btn-job-start,
+body.staff-active-jobs #customerFeed .job-action-buttons-row .btn-job-complete { flex: 1 1 auto !important; }
+body.staff-active-jobs #customerFeed .job-action-buttons-row .btn-job-cancel { flex: 0 0 92px !important; }
+body.staff-active-jobs #customerFeed .job-photos-grid {
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  margin: 4px 0 6px !important;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+body.staff-active-jobs #customerFeed .job-photo-item { width: 70px !important; min-width: 70px !important; height: 58px !important; min-height: 58px !important; border-radius: 8px !important; }
+body.staff-active-jobs #customerFeed .job-photo-item:has(img.img-broken)::before { top: 6px; font-size: 22px; }
+body.staff-active-jobs #customerFeed .job-photo-item .job-photo-label { font-size: 9px !important; padding: 2px 3px !important; }
+body.staff-active-jobs #customerFeed .btn-job-wa-share { min-height: 40px !important; height: 40px !important; margin-top: 5px !important; border-radius: 10px !important; font-size: 12px !important; }
+body.staff-mode-active #staffPortalProfileDetailsCard .settings-info-item[data-staff-empty] { display: none !important; }
+body.staff-mode-active #customerFeed .card-status-actions-bar-split .btn-clean-wa[hidden] { display: none !important; }
+
 @media (max-width: 380px) {
   body.staff-mode-active #staffSettingsPanel .pref-row { align-items: flex-start !important; gap: 8px; }
   body.staff-mode-active #staffSettingsPanel .pref-label-group { max-width: 43%; }
   body.staff-mode-active #staffSettingsPanel .btn-test-alarm-chime { flex-basis: 145px; }
   body.staff-mode-active #staffSettingsPanel .staff-install-row > span { max-width: 54%; }
   body.staff-mode-active #customerFeed .job-photo-item { width: 72px !important; min-width: 72px !important; }
+}
+
+/* Proof review is a real decision point: show uploaded evidence before final completion. */
+body.staff-mode-active #completeJobConfirmStage[hidden],
+body.staff-mode-active #completeJobSuccessStage[hidden] { display: none !important; }
+body.staff-mode-active .staff-job-confirm-stage,
+body.staff-mode-active .staff-job-success-stage { padding: 18px 2px 4px; text-align: center; }
+body.staff-mode-active .staff-job-confirm-icon,
+body.staff-mode-active .staff-job-success-check {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  color: var(--staff-primary);
+  background: #eaf3f8;
+}
+body.staff-mode-active .staff-job-confirm-icon .material-symbols-outlined { font-size: 27px; }
+body.staff-mode-active .staff-job-confirm-stage h4,
+body.staff-mode-active .staff-job-success-stage h4 { margin: 0 0 6px; color: var(--staff-ink); font-size: 18px; line-height: 1.35; }
+body.staff-mode-active .staff-job-confirm-stage > p,
+body.staff-mode-active .staff-job-success-stage > p { margin: 0 auto 14px; max-width: 420px; color: var(--staff-muted); font-size: 13px; line-height: 1.5; }
+body.staff-mode-active .staff-job-confirm-summary { display: grid; gap: 7px; margin: 0 0 12px; padding: 12px; border: 1px solid var(--staff-line); border-radius: 12px; background: var(--staff-surface); text-align: left; }
+body.staff-mode-active .staff-job-confirm-summary > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--staff-muted); font-size: 13px; }
+body.staff-mode-active .staff-job-confirm-summary strong { color: var(--staff-ink); }
+body.staff-mode-active .staff-job-confirm-summary > p { margin: 2px 0 0; padding-top: 8px; border-top: 1px solid var(--staff-line); color: var(--staff-ink); font-size: 12px; line-height: 1.45; }
+body.staff-mode-active .staff-job-confirm-photos { display: flex; justify-content: center; gap: 10px; margin: 0 0 12px; }
+body.staff-mode-active .staff-job-confirm-photos figure { position: relative; width: 112px; margin: 0; overflow: hidden; border: 1px solid var(--staff-line); border-radius: 10px; background: var(--staff-surface); }
+body.staff-mode-active .staff-job-confirm-photos img { display: block; width: 100%; height: 76px; object-fit: cover; }
+body.staff-mode-active .staff-job-confirm-photos figcaption { padding: 5px 7px; color: var(--staff-muted); font-size: 11px; font-weight: 700; }
+body.staff-mode-active .staff-job-confirm-error { margin: 0 0 12px; padding: 9px 11px; border: 1px solid #fecaca; border-radius: 9px; color: var(--staff-danger); background: var(--staff-danger-soft); font-size: 12px; text-align: left; }
+body.staff-mode-active .staff-job-confirm-actions { display: flex; justify-content: flex-end; gap: 9px; padding-top: 8px; }
+body.staff-mode-active .staff-job-confirm-actions button { min-height: 48px; padding: 0 15px; border: 1px solid var(--staff-line); border-radius: 11px; color: var(--staff-ink); background: var(--staff-surface); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+body.staff-mode-active .staff-job-confirm-actions #btnConfirmCompleteJob { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-color: var(--staff-positive); color: #fff; background: var(--staff-positive); }
+body.staff-mode-active .staff-job-confirm-actions button:disabled { opacity: .65; cursor: wait; }
+body.staff-mode-active .staff-job-success-stage { padding: 34px 12px 42px; }
+body.staff-mode-active .staff-job-success-check { width: 72px; height: 72px; margin-bottom: 16px; color: #fff; background: var(--staff-positive); animation: staff-job-success-pop .42s cubic-bezier(.2,.8,.2,1) both; }
+body.staff-mode-active .staff-job-success-check .material-symbols-outlined { font-size: 42px; animation: staff-job-success-check .32s .16s ease-out both; }
+body.staff-mode-active #completeSpecialJobModal #completeJobEditStage > div:last-child,
+body.staff-mode-active #completeSpecialJobModal #completeJobConfirmStage .staff-job-confirm-actions { position: sticky; bottom: 0; z-index: 2; padding: 10px 0 max(8px, env(safe-area-inset-bottom, 8px)); background: var(--staff-surface); }
+@keyframes staff-job-success-pop { from { opacity: 0; transform: scale(.72); } to { opacity: 1; transform: scale(1); } }
+@keyframes staff-job-success-check { from { opacity: 0; transform: scale(.65) rotate(-15deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+@media (prefers-reduced-motion: reduce) {
+  body.staff-mode-active .staff-job-success-check,
+  body.staff-mode-active .staff-job-success-check .material-symbols-outlined { animation-duration: .01ms; animation-delay: 0ms; }
 }

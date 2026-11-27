@@ -10,6 +10,7 @@
   <meta name="application-name" content="CWP Portal">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48x48.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CWP Portal">
@@ -28,10 +29,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=3.5.5">
+  <link rel="stylesheet" href="/css/style.css?v=3.5.6">
   <link rel="stylesheet" href="/css/m3-tokens.css?v=3.5.5">
   <link rel="stylesheet" href="/css/staff-m3.css?v=3.5.5">
-  <link rel="stylesheet" href="/css/staff-redesign.css?v=1.0.2">
+  <link rel="stylesheet" href="/css/staff-redesign.css?v=1.0.12">
   <style>
   .is-hidden, [hidden], .header-dropdown-wrap.is-hidden, .header-account-trigger.is-hidden { display: none !important; }
   </style>
@@ -41,7 +42,7 @@
   <div class="header-inner">
     <div class="header-brand-group">
     <a href="javascript:void(0)" class="brand-logo-wrap" title="CWP Detailers" onclick="handleBrandLogoClick()">
-    <img src="/cwp_logo.jpg" alt="CWP Detailers" class="brand-logo-img">
+    <img src="/cwp-logo.png" alt="CWP Detailers" class="brand-logo-img">
     </a>
     <div class="brand-separator" aria-hidden="true"></div>
     <div class="header-context">
@@ -85,7 +86,7 @@
     <div class="auth-card-content cwp-staff-card-body">
     <div class="auth-brand-emblem cwp-brand-bezel" title="CWP Detailers">
     <div class="cwp-emblem-shine"></div>
-    <img src="/cwp_logo.jpg" alt="CWP Detailers" class="auth-card-logo" style="height: 48px; width: auto; max-width: 200px; object-fit: contain;">
+    <img src="/images/brand/cwp-main.png" alt="CWP Detailers" class="auth-card-logo" style="height: 64px; width: 190px; max-width: 100%; object-fit: cover; object-position: center;">
     </div>
     <div class="cwp-crew-pill">
     <span class="cwp-pulse-dot"></span>
@@ -223,7 +224,7 @@
     <div>
     <div class="staff-name-text" id="staffNameHeader">लोड हो रहा है...</div>
     <div class="staff-id-text" id="staffIdHeader" style="display:none;"></div>
-    <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">CWP Verified Staff Portal</div></div></div>
+    <div class="staff-phone-subtitle" id="staffPhoneSubtitle" style="display: none;"></div></div></div>
     <div class="staff-car-count-badge" id="staffCarCount">
     🚗 0 गाड़ियां
     </div></div>
@@ -248,32 +249,6 @@
     <div class="route-progress-bar-bg">
     <div class="route-progress-bar-fill" id="routeProgressBarFill" style="width: 0%;"></div></div></div></div>
     </div>
-    <div id="staffPortalProfileDetailsCard" class="staff-settings-info-card" style="display: none;">
-    <div class="settings-card-header">
-    <span class="material-symbols-outlined settings-card-icon" style="color: var(--brand-blue, #2563eb);" aria-hidden="true">badge</span>
-    <span class="settings-card-title">मेरी प्रोफ़ाइल जानकारी (My Staff Profile)</span>
-    </div>
-    <div class="settings-info-grid">
-    <div class="settings-info-item">
-    <span class="info-label">मोबाइल नंबर:</span>
-    <span class="info-value" id="staffPortalPhoneDisplay">-</span>
-    </div>
-    <div class="settings-info-item" id="staffPortalWeeklyOffWrap" style="display: none;">
-    <span class="info-label">साप्ताहिक अवकाश:</span>
-    <span class="info-value" id="staffPortalWeeklyOffDisplay" style="color: #2563eb; font-weight: 700;">-</span>
-    </div>
-    <div class="settings-info-item" id="staffPortalDojWrap" style="display: none;">
-    <span class="info-label">जॉइनिंग तिथि:</span>
-    <span class="info-value" id="staffPortalDojDisplay">-</span>
-    </div>
-    <div class="settings-info-item" id="staffPortalEmailWrap" style="display: none;">
-    <span class="info-label">ईमेल:</span>
-    <span class="info-value" id="staffPortalEmailDisplay">-</span>
-    </div>
-    <div class="settings-info-item" id="staffPortalSalaryWrap" style="display: none;">
-    <span class="info-label">वेतन (Salary):</span>
-    <span class="info-value text-emerald" id="staffPortalSalaryDisplay">-</span>
-    </div></div></div>
     <div class="staff-settings-info-card staff-settings-prefs-card">
     <div class="settings-card-header">
     <span class="material-symbols-outlined settings-card-icon" style="color: var(--md-sys-color-primary, #1d4ed8);" aria-hidden="true">tune</span>
@@ -618,7 +593,7 @@
     <div id="logoutPromptView">
     <div class="cwp-logout-emblem-wrap">
     <div class="cwp-logout-bezel">
-    <img src="/cwp_logo.jpg" alt="CWP Detailers" class="logout-card-logo auth-brand-logo" style="height: 44px; width: auto; max-width: 180px; object-fit: contain;">
+    <img src="/images/brand/cwp-main.png" alt="CWP Detailers" class="logout-card-logo auth-brand-logo" style="height: 64px; width: 180px; max-width: 100%; object-fit: cover; object-position: center;">
     </div></div>
     <div class="cwp-logout-brand-pill">
     <span class="cwp-badge-star">★</span> CWP DETAILERS & MOTORS
@@ -725,6 +700,7 @@
     </div>
     <div class="camera-modal-body" style="padding: 18px;">
     <div id="completeJobCustomerSummary" style="background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: var(--md-sys-color-on-surface, #0f172a); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);"></div>
+    <div id="completeJobEditStage">
     <div id="completeJobChecklistBlock" style="display:none; margin-bottom: 14px;">
       <div style="font-size:13px; font-weight:600; color:var(--md-sys-color-on-surface, #0f172a); margin-bottom:6px;">Service checklist <span style="color:#ef4444;">*</span></div>
       <div id="completeJobChecklist" style="display:flex; flex-direction:column; gap:6px;"></div>
@@ -760,7 +736,26 @@
     <button type="button" id="btnSubmitCompleteJob" onclick="submitCompleteSpecialJob()" style="background: var(--md-sys-color-tertiary, #059669); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
     <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">check</span><span id="btnSubmitCompleteJobText">काम पूरा करें</span>
     </button>
-    </div></div></div></div>
+    </div>
+    </div>
+    <section id="completeJobConfirmStage" class="staff-job-confirm-stage" hidden aria-labelledby="completeJobConfirmTitle">
+      <div class="staff-job-confirm-icon"><span class="material-symbols-outlined" aria-hidden="true">fact_check</span></div>
+      <h4 id="completeJobConfirmTitle">Confirm job completion</h4>
+      <p id="completeJobConfirmCopy">After photos are uploaded. Mark this job complete?</p>
+      <div id="completeJobConfirmSummary" class="staff-job-confirm-summary"></div>
+      <div id="completeJobConfirmPhotos" class="staff-job-confirm-photos" aria-label="Uploaded after photos"></div>
+      <div id="completeJobConfirmError" class="staff-job-confirm-error" hidden></div>
+      <div class="staff-job-confirm-actions">
+        <button type="button" id="btnBackToCompleteJobEdit" onclick="returnToCompleteJobEdit()">Back to details</button>
+        <button type="button" id="btnConfirmCompleteJob" onclick="confirmCompleteSpecialJob()"><span class="material-symbols-outlined" aria-hidden="true">task_alt</span><span id="btnConfirmCompleteJobText">Mark as completed</span></button>
+      </div>
+    </section>
+    <section id="completeJobSuccessStage" class="staff-job-success-stage" hidden role="status" aria-live="polite">
+      <div class="staff-job-success-check" aria-hidden="true"><span class="material-symbols-outlined">check</span></div>
+      <h4 id="completeJobSuccessTitle">Work completed</h4>
+      <p id="completeJobSuccessCopy">Photos saved and the job status updated.</p>
+    </section>
+    </div></div></div>
   <div id="cancelSpecialJobModal" class="camera-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="cancelSpecialJobModalTitle" style="display: none;" onclick="handleStaticBackdropClick('cancelSpecialJobModal')">
   <div class="camera-modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
     <div class="camera-modal-header">
@@ -805,7 +800,13 @@
   var initialMode = "<?= typeof initialMode !== 'undefined' ? initialMode : 'staff' ?>";
   var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
   </script>
-  <script src="/js/app.js?v=3.5.7" defer></script>
-  <script src="/js/staff-redesign.js?v=1.0.0" defer></script>
+  <script>
+    (function () {
+      var staffMode = document.body && document.body.classList.contains('staff-mode-active');
+      var assetPath = '/js/' + 'app.js?v=' + (staffMode ? '3.5.11' : '3.5.7');
+      document.write('<script src="' + assetPath + '"><\/script>');
+    })();
+  </script>
+  <script src="/js/staff-redesign.js?v=1.0.3" defer></script>
 </body>
 </html>

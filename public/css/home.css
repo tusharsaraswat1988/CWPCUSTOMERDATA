@@ -181,6 +181,15 @@ svg {
   padding: 2px;
   flex-shrink: 0;
 }
+.brand-img.nav-wordmark-logo {
+  width: 132px;
+  height: 56px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  object-fit: cover;
+  object-position: center;
+}
 .brand-info h1 {
   font-size: 1.125rem;
   font-weight: 700;
@@ -1585,6 +1594,14 @@ video::-webkit-media-controls-enclosure {
   align-items: center;
   gap: 12px;
 }
+.footer-wordmark-logo {
+  display: block;
+  width: 180px;
+  height: 68px;
+  object-fit: cover;
+  object-position: center;
+  flex: 0 0 auto;
+}
 .footer-brand-meta {
   font-size: 0.8125rem;
   color: var(--md-sys-color-on-surface-variant);
@@ -1873,6 +1890,10 @@ video::-webkit-media-controls-enclosure {
     border-radius: var(--radius-xs);
     flex-shrink: 0;
   }
+  .brand-img.nav-wordmark-logo {
+    width: 112px;
+    height: 48px;
+  }
   .brand-info h1 {
     font-size: 1rem;
   }
@@ -2056,6 +2077,10 @@ video::-webkit-media-controls-enclosure {
     gap: 16px;
     text-align: center;
     align-items: center;
+  }
+  .footer-wordmark-logo {
+    width: 156px;
+    height: 62px;
   }
   .footer-social-row {
     gap: 12px;

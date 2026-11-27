@@ -53,8 +53,8 @@ function getHomepageSeoHead(config) {
     "url": BASE_URL,
     "telephone": `+91${phone}`,
     "email": email,
-    "image": `${BASE_URL}/cwp_logo.jpg`,
-    "logo": `${BASE_URL}/cwp_logo.jpg`,
+    "image": `${BASE_URL}/cwp-logo.png`,
+    "logo": `${BASE_URL}/images/brand/cwp-main.png`,
     "priceRange": "₹₹",
     "hasMap": mapsUrl,
     "address": {
@@ -153,7 +153,7 @@ function getHomepageSeoHead(config) {
     <meta property="og:url" content="${BASE_URL}/">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
-    <meta property="og:image" content="${BASE_URL}/cwp_logo.jpg">
+    <meta property="og:image" content="${BASE_URL}/cwp-logo.png">
     <meta property="og:locale" content="en_IN">
 
     <!-- Twitter -->
@@ -161,7 +161,7 @@ function getHomepageSeoHead(config) {
     <meta name="twitter:url" content="${BASE_URL}/">
     <meta name="twitter:title" content="${title}">
     <meta name="twitter:description" content="${description}">
-    <meta name="twitter:image" content="${BASE_URL}/cwp_logo.jpg">
+    <meta name="twitter:image" content="${BASE_URL}/cwp-logo.png">
 
     <!-- Schema.org Microdata -->
     <script type="application/ld+json">
@@ -207,7 +207,7 @@ function getCareersSeoHead(config) {
       "@type": "Organization",
       "name": "CWP Detailers & Motors",
       "sameAs": BASE_URL,
-      "logo": `${BASE_URL}/cwp_logo.jpg`
+      "logo": `${BASE_URL}/images/brand/cwp-main.png`
     },
     "jobLocation": {
       "@type": "Place",
@@ -233,7 +233,7 @@ function getCareersSeoHead(config) {
     <meta property="og:url" content="${BASE_URL}/careers">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
-    <meta property="og:image" content="${BASE_URL}/cwp_logo.jpg">
+    <meta property="og:image" content="${BASE_URL}/cwp-logo.png">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${title}">
@@ -263,7 +263,7 @@ function generateSitemapXml() {
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>${baseUrl}/cwp_logo.jpg</image:loc>
+      <image:loc>${baseUrl}/cwp-logo.png</image:loc>
       <image:title>CWP Detailers &amp; Motors Varanasi</image:title>
       <image:caption>Doorstep Car Wash, Detailing &amp; Rooftop Solar Panel Cleaning in Varanasi</image:caption>
     </image:image>
@@ -296,7 +296,7 @@ function generateSitemapXml() {
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <image:image>
-      <image:loc>${baseUrl}/cwp_logo.jpg</image:loc>
+      <image:loc>${baseUrl}/cwp-logo.png</image:loc>
       <image:title>Careers at CWP Detailers Varanasi</image:title>
       <image:caption>Vehicle care technician and operations jobs in Varanasi</image:caption>
     </image:image>
@@ -345,7 +345,7 @@ Allow: /js/
 Allow: /images/
 Allow: /videos/
 Allow: /icons/
-Allow: /cwp_logo.jpg
+Allow: /cwp-logo.png
 Allow: /favicon.ico
 Allow: /favicon.png
 Allow: /manifest.json

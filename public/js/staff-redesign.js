@@ -58,6 +58,34 @@
     observer.observe(body, { childList: true, characterData: true, subtree: true });
   }
 
+  function enforceDailyProofActions(root) {
+    (root || document).querySelectorAll('#customerFeed .smart-card').forEach(function (card) {
+      var button = card.querySelector('.card-status-actions-bar-split .btn-clean-wa');
+      if (!button) return;
+      var custId = card.getAttribute('data-customer-id');
+      var completion = custId && typeof window.getCustomerCompletionData === 'function'
+        ? window.getCustomerCompletionData(custId) : null;
+      var verified = card.classList.contains('card-cleaned-done') && completion && completion.done === true && typeof completion.photoUrl === 'string' && completion.photoUrl.trim();
+      button.hidden = !verified;
+      button.setAttribute('aria-hidden', String(!verified));
+    });
+  }
+
+  function hideEmptyProfileRows() {
+    var ids = ['staffPortalWeeklyOffWrap', 'staffPortalDojWrap', 'staffPortalEmailWrap', 'staffPortalSalaryWrap'];
+    ids.forEach(function (id) {
+      var row = document.getElementById(id);
+      var value = row && row.querySelector('.info-value');
+      var text = value && value.textContent.trim();
+      var empty = !text || /^(?:[-–—]|n\/?a|null|undefined)$/i.test(text);
+      if (row) {
+        row.toggleAttribute('data-staff-empty', !!empty);
+        if (empty) row.setAttribute('aria-hidden', 'true');
+        else row.removeAttribute('aria-hidden');
+      }
+    });
+  }
+
   function currentLanguage() {
     return (localStorage.getItem('cwp_lang') || 'hi').toLowerCase().indexOf('en') === 0 ? 'en' : 'hi';
   }
@@ -120,6 +148,7 @@
         replaceMapIcons(feed);
         prioritizeRoute(feed);
         updateSyncStatus();
+        enforceDailyProofActions(feed);
       });
       observer.observe(feed, { childList: true, subtree: true, characterData: true });
     }
@@ -137,6 +166,11 @@
     }
 
     if (settings) {
+      var profileCard = document.getElementById('staffPortalProfileDetailsCard');
+      if (profileCard) {
+        hideEmptyProfileRows();
+        new MutationObserver(hideEmptyProfileRows).observe(profileCard, { childList: true, subtree: true, characterData: true });
+      }
       var installButton = document.getElementById('staffPwaInstallBtn');
       if (installButton) {
         var installSvg = installButton.querySelector('svg');
@@ -209,6 +243,8 @@
 
     updateLabels();
     updateSyncStatus();
+    enforceDailyProofActions();
+    hideEmptyProfileRows();
     updateActiveDestination();
     cleanText(document.getElementById('staffView'));
     cleanText(document.getElementById('staffAuthGate'));
@@ -223,8 +259,8 @@
   function updateLabels() {
     var isEnglish = currentLanguage() === 'en';
     var labels = [
-      ['pillDailyClean', isEnglish ? 'Today' : 'आज'],
-      ['pillOtherJobs', isEnglish ? 'Jobs' : 'काम'],
+      ['pillDailyClean', isEnglish ? 'Today' : 'डेली क्लीन'],
+      ['pillOtherJobs', isEnglish ? 'Jobs' : 'अन्य काम'],
       ['pillStaffSettings', isEnglish ? 'Profile' : 'प्रोफ़ाइल']
     ];
     labels.forEach(function (entry) {
@@ -250,9 +286,10 @@
     var pageTitle = document.getElementById('pageMainTitle');
     var staffContent = document.getElementById('staffContent');
     if (pageTitle && staffContent && staffContent.style.display !== 'none') {
-      if (document.getElementById('pillOtherJobs')?.classList.contains('active')) pageTitle.textContent = isEnglish ? 'Jobs' : 'काम';
-      else if (document.getElementById('pillStaffSettings')?.classList.contains('active')) pageTitle.textContent = isEnglish ? 'Profile' : 'प्रोफ़ाइल';
-      else pageTitle.textContent = isEnglish ? 'Today' : 'आज';
+      if (!isEnglish) pageTitle.textContent = 'स्टाफ ऐप';
+      else if (document.getElementById('pillOtherJobs')?.classList.contains('active')) pageTitle.textContent = 'Jobs';
+      else if (document.getElementById('pillStaffSettings')?.classList.contains('active')) pageTitle.textContent = 'Profile';
+      else pageTitle.textContent = 'Today';
     }
   }
 

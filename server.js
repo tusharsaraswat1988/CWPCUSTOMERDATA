@@ -2121,10 +2121,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Serve static logo
-  if (pathname === '/cwp_logo.jpg' || pathname === '/logo.jpg') {
-    const logoPath = path.join(__dirname, 'cwp_logo.jpg');
+  if (pathname === '/cwp-logo.png' || pathname === '/cwp_logo.jpg' || pathname === '/logo.jpg') {
+    const logoPath = pathname === '/cwp-logo.png'
+      ? path.join(__dirname, 'cwp-logo.png')
+      : path.join(__dirname, 'cwp_logo.jpg');
     if (fs.existsSync(logoPath)) {
-      res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+      res.writeHead(200, { 'Content-Type': pathname === '/cwp-logo.png' ? 'image/png' : 'image/jpeg' });
       return fs.createReadStream(logoPath).pipe(res);
     }
   }
@@ -7347,7 +7349,64 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // Staff: Complete Special Job with 1 or max 2 After Photos & Notes
+        // Staff: Upload completion proof before the explicit completion confirmation.
+        // This stores the media only; job status and entitlement state remain untouched.
+        if (payload.action === 'uploadSpecialJobProofPhotos') {
+          const staffSess = await resolveStaffSession(token);
+          const adminSess = await resolveAdminSession(token);
+          if (!staffSess && !adminSess) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Unauthorized: Staff session required' }));
+          }
+
+          const jobId = payload.jobId || payload.id;
+          if (!jobId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Job ID is required' }));
+          }
+          if (staffSess && !adminSess && isNeonConfigured()) {
+            const activeAssign = await repos.staffAssignments.findActiveByJobId(jobId);
+            if (!activeAssign || activeAssign.staff_id !== staffSess.staffId) {
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to this job' }));
+            }
+          }
+
+          const job = isNeonConfigured()
+            ? await repos.serviceJobs.findById(jobId)
+            : ((appState.serviceJobs || []).find((item) => String(item.id || item.job_id) === String(jobId)) || null);
+          if (!job) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Job not found' }));
+          }
+          const jobStatus = String(job.status || job.job_status || '').toLowerCase();
+          if (jobStatus !== 'in_progress') {
+            res.writeHead(409, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Only an in-progress job can upload completion photos.' }));
+          }
+
+          const rawPhotos = Array.isArray(payload.photos) ? payload.photos : [];
+          if (rawPhotos.length < 1 || rawPhotos.length > 2 || rawPhotos.some((photo) => !photo || !photo.base64)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Upload one or two completion photos.' }));
+          }
+          try {
+            const afterPhotoUrls = [];
+            for (const photo of rawPhotos) {
+              const url = await uploadToCloudinary(photo);
+              if (!url) throw new Error('Photo storage did not return a URL.');
+              afterPhotoUrls.push(url);
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, afterPhotos: afterPhotoUrls, message: 'Completion photos uploaded; job is still in progress.' }));
+          } catch (err) {
+            console.error('Special job proof upload error:', err.message);
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: err.message || 'Completion photo upload failed.' }));
+          }
+        }
+
+        // Staff: Complete Special Job after proof upload and explicit staff confirmation
         if (payload.action === 'completeSpecialJob' || payload.action === 'completeServiceBooking') {
           const staffSess = await resolveStaffSession(token);
           const adminSess = await resolveAdminSession(token);

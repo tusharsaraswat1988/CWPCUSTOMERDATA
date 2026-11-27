@@ -3,7 +3,7 @@
  * Pure Light Mode · Material Design 3 (M3)
  */
 
-@import url('/css/home.css');
+@import url('/css/home.css?v=2.2.6');
 
 .careers-hero {
   padding: 64px 0 54px 0;

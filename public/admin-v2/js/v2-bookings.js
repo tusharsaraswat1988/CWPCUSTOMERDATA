@@ -1038,6 +1038,8 @@
   // CREATE BOOKING MODAL
   // -------------------------------------------------------------------------
   function openCreateModal() {
+    state.selectedSeeService = null;
+    syncBookingVehicleRequirement(null);
     const custSel = document.getElementById('v2BkCreateCustomer');
     if (custSel) {
       let opts = '<option value="">-- Select Customer --</option>';
@@ -1150,10 +1152,28 @@
       });
   }
 
+  function syncBookingVehicleRequirement(service) {
+    const vehicleSelect = document.getElementById('v2BkCreateVehicle');
+    const vehicleField = vehicleSelect?.closest('.cwp-v2-field');
+    if (!vehicleSelect || !vehicleField) return;
+
+    const category = String(service?.service_category_id || '').toLowerCase();
+    const isSolarService = category === 'solar_cleaning' || category === 'solar_panel_cleaning';
+    const vehicleRow = vehicleField.parentElement;
+    const locationField = document.getElementById('v2BkCreateLocation')?.closest('.cwp-v2-field');
+
+    vehicleField.hidden = isSolarService;
+    vehicleSelect.required = !isSolarService;
+    if (isSolarService) vehicleSelect.value = '';
+    if (vehicleRow) vehicleRow.style.gridTemplateColumns = isSolarService ? '1fr' : '';
+    if (locationField) locationField.style.gridColumn = isSolarService ? '1 / -1' : '';
+  }
+
   async function loadBookingServiceDetails() {
     const serviceId = document.getElementById('v2BkCreateService')?.value;
     const service = state.seeServices.find(row => row.id === serviceId) || null;
     state.selectedSeeService = service;
+    syncBookingVehicleRequirement(service);
     const summary = document.getElementById('v2BkCreateServiceSummary');
     const addonsEl = document.getElementById('v2BkCreateAddons');
     if (summary) summary.textContent = service ? [service.description, `Checklist: ${(service.checklist_requirements || []).length} items`, `Photo proof: ${service.photo_requirements?.required ? 'required' : 'optional'}`].filter(Boolean).join(' • ') : '';
@@ -1186,6 +1206,8 @@
     const vehicleId = document.getElementById('v2BkCreateVehicle')?.value;
     const locationId = document.getElementById('v2BkCreateLocation')?.value;
     const serviceIdOrCode = document.getElementById('v2BkCreateService')?.value;
+    const serviceCategoryId = state.selectedSeeService?.service_category_id || null;
+    const isSolarService = ['solar_cleaning', 'solar_panel_cleaning'].includes(String(serviceCategoryId || '').toLowerCase());
     const scheduledDate = document.getElementById('v2BkCreateDate')?.value || '';
     const scheduledTime = (document.getElementById('v2BkCreateTime')?.value || '').trim();
     const staffId = document.getElementById('v2BkCreateStaff')?.value || '';
@@ -1195,8 +1217,8 @@
     const addonIds = Array.from(document.querySelectorAll('input[name="v2BkCreateAddon"]:checked')).map(input => input.value);
     const specialInstructions = (document.getElementById('v2BkCreateNotes')?.value || '').trim();
 
-    if (!customerId || !vehicleId || !locationId || !serviceIdOrCode) {
-      showToast('Customer, vehicle, service location, and canonical service are required.', 'warning');
+    if (!customerId || (!isSolarService && !vehicleId) || !locationId || !serviceIdOrCode) {
+      showToast(`Customer, ${isSolarService ? '' : 'vehicle, '}service location, and canonical service are required.`, 'warning');
       return;
     }
 
@@ -1207,11 +1229,11 @@
         await window.CWP_ADMIN_V2.api.request('createServiceBooking', {
           bookingData: {
             customerId,
-            vehicleId,
+            vehicleId: isSolarService ? null : vehicleId,
             locationId,
             serviceIdOrCode,
             serviceType: state.selectedSeeService?.name || null,
-            serviceCategoryId: state.selectedSeeService?.service_category_id || null,
+            serviceCategoryId,
             entitlementAccountId: entitlementAccountId || null,
             purchaseSnapshotId: purchaseSnapshotId || null,
             paymentStatus: entitlementAccountId ? 'package_covered' : 'pending',

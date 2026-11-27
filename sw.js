@@ -9,13 +9,15 @@
  *  - Immediate update activation with skipWaiting & clientsClaim
  */
 
-const CACHE_NAME = 'cwp-staff-pwa-v1.0.33';
+const CACHE_NAME = 'cwp-staff-pwa-v1.0.35';
 
 const PRECACHE_ASSETS = [
   '/staff',
   '/manifest.json',
   '/offline.html',
-  '/cwp_logo.jpg',
+  '/cwp-logo.png',
+  '/images/brand/cwp-main.png',
+  '/images/brand/cwp-reverse.png',
   '/css/style.css',
   '/css/m3-tokens.css',
   '/css/staff-m3.css',
@@ -35,7 +37,8 @@ const PRECACHE_ASSETS = [
   '/icons/maskable-icon-512x512.png',
   '/icons/apple-touch-icon.png',
   '/icons/favicon-32x32.png',
-  '/icons/favicon-16x16.png'
+  '/icons/favicon-16x16.png',
+  '/icons/favicon-48x48.png'
 ];
 
 // Install event: Pre-cache core app shell assets
@@ -165,7 +168,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/css/') ||
     url.pathname.startsWith('/js/') ||
     url.pathname.startsWith('/icons/') ||
-    url.pathname === '/cwp_logo.jpg' ||
+    url.pathname === '/cwp-logo.png' ||
     url.pathname === '/manifest.json' ||
     url.hostname.includes('fonts.googleapis.com') ||
     url.hostname.includes('fonts.gstatic.com') ||

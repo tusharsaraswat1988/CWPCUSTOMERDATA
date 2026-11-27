@@ -393,11 +393,12 @@
     }
 
     .brand-logo-img {
-      height: var(--cwp-logo-height) !important;
-      width: auto !important;
-      max-height: 38px !important;
+      height: 40px !important;
+      width: 120px !important;
+      max-height: 40px !important;
       border-radius: 6px !important;
-      object-fit: contain !important;
+      object-fit: cover !important;
+      object-position: center !important;
       background: #08111d !important;
       border: 1px solid rgba(255, 255, 255, 0.12) !important;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
@@ -2053,9 +2054,11 @@
     }
 
     .logout-card-logo {
-      height: 44px;
-      width: auto;
-      max-height: 46px;
+      height: 64px;
+      width: 180px;
+      max-height: 66px;
+      object-fit: cover;
+      object-position: center;
       border-radius: 8px;
       background: #0d131a;
       border: 1px solid rgba(0, 0, 0, 0.08);
@@ -4428,12 +4431,14 @@
     }
 
     #staffAuthGate .auth-card-logo {
-      height: 52px !important;
-      width: auto !important;
-      max-height: 54px !important;
+      height: 64px !important;
+      width: 190px !important;
+      max-width: 100% !important;
+      max-height: 66px !important;
       border-radius: 10px !important;
       display: block !important;
-      object-fit: contain !important;
+      object-fit: cover !important;
+      object-position: center !important;
       filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
     }
 
