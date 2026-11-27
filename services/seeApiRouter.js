@@ -414,6 +414,24 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
       return sendJson(res, 201, { success: true, ...result });
     }
 
+    m = pathname.match(/^\/api\/see\/customers\/([^/]+)\/context$/);
+    if (m && method === 'GET') {
+      if (!requireAdmin()) return true;
+      const customerId = decodeURIComponent(m[1]);
+      const customer = await repos.customers.findById(customerId);
+      if (!customer || customer.deleted_at) return sendJson(res, 404, { success: false, error: 'Customer not found.' });
+      const [vehicles, locations] = await Promise.all([
+        repos.vehicles.findByCustomerId(customerId),
+        repos.serviceLocations.findByCustomerId(customerId)
+      ]);
+      return sendJson(res, 200, {
+        success: true,
+        customer: { id: customer.id, name: customer.name, isActive: customer.is_active },
+        vehicles,
+        locations
+      });
+    }
+
     m = pathname.match(/^\/api\/see\/customers\/([^/]+)\/balance$/);
     if (m && method === 'GET') {
       if (!requireAdmin()) return true;
@@ -447,6 +465,13 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
     // ---------------------------------------------------------------------
     // 8. Canonical Jobs, Executions & Solar Verification
     // ---------------------------------------------------------------------
+    if (method === 'GET' && pathname === '/api/see/jobs') {
+      if (!requireAdmin()) return true;
+      const { limit, offset } = parsePagination(parsedUrl.searchParams);
+      const jobs = await repos.serviceJobs.findAll({ seeManagedOnly: true, limit, offset });
+      return sendJson(res, 200, { success: true, jobs, pagination: { limit, offset } });
+    }
+
     if (method === 'POST' && pathname === '/api/see/jobs') {
       if (!requireAdmin()) return true;
       const body = await readJsonBody(req);

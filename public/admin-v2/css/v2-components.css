@@ -3906,13 +3906,14 @@ body.cwp-v2-modal-open {
 }
 
 .cwp-v2-root .cwp-v2-login-logo {
-  width: 52px;
-  height: 52px;
-  border-radius: var(--cwp-v2-radius-md);
-  object-fit: cover;
+  width: 180px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
   margin: 0 auto 12px;
   display: block;
-  border: 1px solid var(--cwp-v2-sys-border-subtle);
+  border: 0;
+  border-radius: 0;
 }
 
 .cwp-v2-root .cwp-v2-login-remember {

@@ -9,6 +9,7 @@ async function findAll({
   serviceCategoryId = null,
   customerId = null,
   includeDeleted = false,
+  seeManagedOnly = false,
   limit = 200,
   offset = 0,
   client = null
@@ -19,6 +20,10 @@ async function findAll({
 
   if (!includeDeleted) {
     conditions.push('j.deleted_at IS NULL');
+  }
+
+  if (seeManagedOnly) {
+    conditions.push("j.service_payload->>'_seeManaged' = 'true'");
   }
 
   if (status) {
@@ -47,13 +52,24 @@ async function findAll({
            c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
            v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
            loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
-           sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code
+           sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code,
+           execution.id AS latest_execution_id, execution.outcome AS latest_execution_outcome,
+           execution.ended_at AS latest_execution_ended_at,
+           execution.checklist_results AS latest_checklist_results,
+           execution.proof_photos AS latest_proof_photos
     FROM public.service_jobs j
     JOIN public.customers c ON j.customer_id = c.id
     LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
     JOIN public.service_locations loc ON j.location_id = loc.id
     LEFT JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
     LEFT JOIN public.staff s ON sa.staff_id = s.id
+    LEFT JOIN LATERAL (
+      SELECT se.id, se.outcome, se.ended_at, se.checklist_results, se.proof_photos
+      FROM public.service_executions se
+      WHERE se.job_id = j.id
+      ORDER BY se.created_at DESC
+      LIMIT 1
+    ) execution ON TRUE
     ${whereClause}
     ORDER BY j.created_at DESC
     LIMIT $${limitIdx} OFFSET $${offsetIdx}

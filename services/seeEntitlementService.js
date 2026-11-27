@@ -15,7 +15,6 @@
 
 'use strict';
 
-const crypto = require('crypto');
 const db = require('../db/index');
 const repos = require('../db/repositories/index');
 const seeCatalogueService = require('./seeCatalogueService');
@@ -65,6 +64,12 @@ async function createPurchase({
 }) {
   if (!customerId) throw new Error('customerId is required.');
   if (!packageIdOrCode) throw new Error('packageIdOrCode is required.');
+  if (!saleReference || !String(saleReference).trim()) {
+    throw new Error('A stable saleReference is required to make package purchase retries idempotent.');
+  }
+  if (String(saleReference).trim().length > 120) throw new Error('saleReference must be 120 characters or fewer.');
+  const purchaseUnits = parseInt(quantity, 10);
+  if (!Number.isInteger(purchaseUnits) || purchaseUnits < 1) throw new Error('quantity must be a positive integer.');
 
   const pkg = await seeCatalogueService.getPackageDetail(packageIdOrCode);
   if (!pkg) throw new Error(`Package '${packageIdOrCode}' not found.`);
@@ -76,11 +81,11 @@ async function createPurchase({
     city,
     zone,
     vehicleSegment: vehicleSegment || pkg.vehicle_segment,
-    quantity
+    quantity: purchaseUnits
   });
   const discount = Math.max(0, parseFloat(discountAmount) || 0);
   const finalPrice = Math.max(0, Math.round((pricing.basePrice - discount) * 100) / 100);
-  const saleRef = saleReference || `SALE-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+  const saleRef = String(saleReference).trim().slice(0, 120);
   const { validFrom, validTo } = computeValidityDates(pkg.validity_value, pkg.validity_unit);
 
   // P2: Validate package effective dates (Asia/Kolkata)
@@ -109,8 +114,28 @@ async function createPurchase({
   }
 
   return db.withTransaction(async (client) => {
+    // Serialize retries using the caller's stable sale reference before the
+    // unique insert. A repeat with the same purchase facts returns the exact
+    // original snapshot and accounts instead of creating another sale.
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [saleRef]);
+    const existingSnapshot = await repos.seeEntitlement.findSnapshotBySaleReference(saleRef, client);
+    if (existingSnapshot) {
+      const samePurchase = String(existingSnapshot.customer_id) === String(customerId) &&
+        String(existingSnapshot.package_id) === String(pkg.id) &&
+        String(existingSnapshot.vehicle_id || '') === String(vehicleId || '') &&
+        String(existingSnapshot.location_id || '') === String(locationId || '') &&
+        String(existingSnapshot.city || '') === String(city || '') &&
+        String(existingSnapshot.zone || '') === String(zone || '') &&
+        String(existingSnapshot.vehicle_segment || '') === String(vehicleSegment || pkg.vehicle_segment || '') &&
+        Number(existingSnapshot.discount_amount || 0) === discount &&
+        Number(existingSnapshot.quantities?.purchaseUnits || 1) === purchaseUnits;
+      if (!samePurchase) throw new Error('saleReference is already used for a different package purchase.');
+      const accounts = await repos.seeEntitlement.findAccountsBySnapshotId(existingSnapshot.id, client);
+      return { snapshot: existingSnapshot, accounts, idempotentReplay: true };
+    }
+
     const customer = await repos.customers.findById(customerId, client);
-    if (!customer) throw new Error(`Customer '${customerId}' not found.`);
+    if (!customer || customer.deleted_at) throw new Error(`Customer '${customerId}' not found.`);
     if (customer.is_active === false) throw new Error(`Customer '${customerId}' is inactive.`);
 
     // P1: Validate vehicle ownership & service compatibility
@@ -119,6 +144,7 @@ async function createPurchase({
       if (!vehicle || vehicle.customer_id !== customer.id) {
         throw new Error(`Vehicle '${vehicleId}' does not belong to customer '${customerId}'.`);
       }
+      if (vehicle.is_active === false) throw new Error(`Vehicle '${vehicleId}' is inactive.`);
       if (pkg.service_category_id === 'solar_cleaning') {
         throw new Error(`Vehicle '${vehicleId}' cannot be attached to solar cleaning package '${pkg.name}'.`);
       }
@@ -130,6 +156,7 @@ async function createPurchase({
       if (!location || location.customer_id !== customer.id) {
         throw new Error(`Location '${locationId}' does not belong to customer '${customerId}'.`);
       }
+      if (location.is_active === false) throw new Error(`Location '${locationId}' is inactive.`);
     }
 
     const snapshot = await repos.seeEntitlement.createPurchaseSnapshot({
@@ -143,7 +170,7 @@ async function createPurchase({
       packageName: pkg.name,
       serviceDefinitions: pkg.benefits || [],
       addonDefinitions: pkg.addons || [],
-      quantities: { purchaseUnits: quantity, benefits: (pkg.benefits || []).map(b => ({ serviceId: b.service_id, quantity: b.quantity })) },
+      quantities: { purchaseUnits, benefits: (pkg.benefits || []).map(b => ({ serviceId: b.service_id, quantity: (parseInt(b.quantity, 10) || 1) * purchaseUnits })), addons: (pkg.addons || []).map(a => ({ addonId: a.addon_id, quantity: (parseInt(a.quantity, 10) || 1) * purchaseUnits })) },
       frequencies: (pkg.benefits || []).reduce((acc, b) => {
         if (b.frequency_code) acc[b.service_id] = b.frequency_code;
         return acc;
@@ -163,8 +190,8 @@ async function createPurchase({
 
     // Initialize separate entitlement accounts for each package benefit
     for (const b of (pkg.benefits || [])) {
-      const kind = mapEntitlementKind(pkg.service_category_id, b.benefit_type);
-      const qty = parseInt(b.quantity, 10) || 1;
+      const kind = mapEntitlementKind(b.service_category_id || pkg.service_category_id, b.benefit_type);
+      const qty = (parseInt(b.quantity, 10) || 1) * purchaseUnits;
       const acct = await repos.seeEntitlement.createEntitlementAccount({
         purchaseSnapshotId: snapshot.id,
         customerId,
@@ -196,7 +223,7 @@ async function createPurchase({
     // Initialize separate entitlement accounts for included package add-ons
     for (const a of (pkg.addons || [])) {
       if (a.is_included === false) continue;
-      const qty = parseInt(a.quantity, 10) || 1;
+      const qty = (parseInt(a.quantity, 10) || 1) * purchaseUnits;
       const acct = await repos.seeEntitlement.createEntitlementAccount({
         purchaseSnapshotId: snapshot.id,
         customerId,
@@ -239,8 +266,8 @@ async function createPurchase({
 
 function deriveAccountStatus(acct, remainingQty) {
   if (acct.status === 'cancelled') return 'cancelled';
-  if (acct.valid_to && new Date(acct.valid_to) < new Date() && remainingQty === 0) return 'expired';
   if (remainingQty <= 0) return 'exhausted';
+  if (acct.valid_to && new Date(acct.valid_to) < new Date()) return 'expired';
   return 'active';
 }
 
@@ -361,7 +388,12 @@ async function mutateEntitlement({
 }
 
 async function getCustomerBalance(customerId) {
-  const accounts = await repos.seeEntitlement.findAccountsByCustomer(customerId);
+  const rawAccounts = await repos.seeEntitlement.findAccountsByCustomer(customerId);
+  const accounts = rawAccounts.map(account => ({
+    ...account,
+    status: deriveAccountStatus(account, Number(account.remaining_qty || 0)),
+    available_qty: account.valid_to && new Date(account.valid_to) < new Date() ? 0 : Number(account.remaining_qty || 0)
+  }));
   const snapshots = await repos.seeEntitlement.findSnapshotsByCustomer(customerId);
   return { customerId, accounts, snapshots };
 }

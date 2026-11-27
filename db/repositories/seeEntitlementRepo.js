@@ -65,6 +65,15 @@ async function findSnapshotsByCustomer(customerId, { limit = 100, offset = 0 } =
   return res.rows;
 }
 
+async function findAccountsBySnapshotId(snapshotId, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `SELECT * FROM public.entitlement_accounts WHERE purchase_snapshot_id = $1 ORDER BY created_at ASC`,
+    [snapshotId]
+  );
+  return res.rows;
+}
+
 async function createEntitlementAccount(data, client) {
   const runner = client || db;
   const purchasedQty = parseInt(data.purchasedQty, 10) || 0;
@@ -204,6 +213,7 @@ module.exports = {
   findSnapshotById,
   findSnapshotBySaleReference,
   findSnapshotsByCustomer,
+  findAccountsBySnapshotId,
   createEntitlementAccount,
   findAccountById,
   findAccountByIdForUpdate,

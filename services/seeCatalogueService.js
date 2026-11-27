@@ -171,6 +171,27 @@ async function createPackage(data, actor = 'admin') {
     throw new Error(`Duplicate packageCode '${data.packageCode}'.`);
   }
 
+  const mainService = await repos.seeCatalogue.findServiceById(data.mainServiceId);
+  if (!mainService || mainService.status !== 'active') throw new Error('Primary service must be an active canonical service.');
+  if (mainService.service_category_id === 'daily_car_cleaning' || String(mainService.service_code || '').toUpperCase() === 'DCC_DAILY') {
+    throw new Error('Daily Car Cleaning is isolated from generic SEE packages.');
+  }
+  const benefits = Array.isArray(data.benefits) ? data.benefits : [{ serviceId: data.mainServiceId, benefitType: 'primary', quantity: data.defaultQuantity || 1, frequencyId: data.frequencyId || null }];
+  if (!benefits.length) throw new Error('At least one package service benefit is required.');
+  for (const [index, benefit] of benefits.entries()) {
+    if (!benefit || !benefit.serviceId || !Number.isInteger(Number(benefit.quantity)) || Number(benefit.quantity) < 1) throw new Error(`Package benefit ${index + 1} requires a canonical serviceId and positive integer quantity.`);
+    const service = await repos.seeCatalogue.findServiceById(benefit.serviceId);
+    if (!service || service.status !== 'active') throw new Error(`Package benefit service '${benefit.serviceId}' is not active.`);
+    if (service.service_category_id === 'daily_car_cleaning' || String(service.service_code || '').toUpperCase() === 'DCC_DAILY') throw new Error('Daily Car Cleaning cannot be included in a generic SEE package.');
+  }
+  for (const [index, item] of (Array.isArray(data.addons) ? data.addons : []).entries()) {
+    if (!item || !item.addonId || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) throw new Error(`Package add-on ${index + 1} requires a canonical addonId and positive integer quantity.`);
+    const addon = await repos.seeCatalogue.findAddonById(item.addonId);
+    if (!addon || addon.status !== 'active') throw new Error(`Package add-on '${item.addonId}' is not active.`);
+    const compatible = Array.isArray(addon.applicable_service_ids) ? addon.applicable_service_ids.map(String) : [];
+    if (compatible.length && !benefits.some(benefit => compatible.includes(String(benefit.serviceId)))) throw new Error(`Package add-on '${addon.name}' is not compatible with any included service.`);
+  }
+
   return db.withTransaction(async (client) => {
     const pkg = await repos.seeCatalogue.createPackage({
       ...data,
@@ -221,9 +242,63 @@ async function createPackage(data, actor = 'admin') {
 async function updatePackage(id, patch, actor = 'admin') {
   const existing = await repos.seeCatalogue.findPackageById(id);
   if (!existing) throw new Error(`Package '${id}' not found.`);
+  if (patch.status && !VALID_STATUSES.includes(patch.status)) throw new Error(`Invalid package status '${patch.status}'.`);
+  if (patch.status && !(STATUS_TRANSITIONS[existing.status] || []).includes(patch.status)) throw new Error(`Cannot transition package from '${existing.status}' to '${patch.status}'.`);
+  if (patch.pricingModel && !VALID_PRICING_MODELS.includes(patch.pricingModel)) throw new Error(`Invalid pricingModel '${patch.pricingModel}'.`);
+  const mainServiceId = patch.mainServiceId || existing.main_service_id;
+  if (patch.mainServiceId) {
+    const mainService = await repos.seeCatalogue.findServiceById(mainServiceId);
+    if (!mainService || mainService.status !== 'active') throw new Error('Primary service must be an active canonical service.');
+    if (mainService.service_category_id === 'daily_car_cleaning' || String(mainService.service_code || '').toUpperCase() === 'DCC_DAILY') throw new Error('Daily Car Cleaning is isolated from generic SEE packages.');
+  }
+  const nextBenefits = Array.isArray(patch.benefits) ? patch.benefits : existing.benefits;
+  const nextAddons = Array.isArray(patch.addons) ? patch.addons : existing.addons;
+  for (const [index, benefit] of (Array.isArray(patch.benefits) ? nextBenefits : []).entries()) {
+    if (!benefit || !(benefit.serviceId || benefit.service_id) || !Number.isInteger(Number(benefit.quantity)) || Number(benefit.quantity) < 1) throw new Error(`Package benefit ${index + 1} requires a canonical serviceId and positive integer quantity.`);
+    const service = await repos.seeCatalogue.findServiceById(benefit.serviceId || benefit.service_id);
+    if (!service || service.status !== 'active') throw new Error(`Package benefit service '${benefit.serviceId || benefit.service_id}' is not active.`);
+    if (service.service_category_id === 'daily_car_cleaning' || String(service.service_code || '').toUpperCase() === 'DCC_DAILY') throw new Error('Daily Car Cleaning cannot be included in a generic SEE package.');
+  }
+  for (const [index, item] of (Array.isArray(patch.addons) ? nextAddons : []).entries()) {
+    if (!item || !(item.addonId || item.addon_id) || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) throw new Error(`Package add-on ${index + 1} requires a canonical addonId and positive integer quantity.`);
+    const addon = await repos.seeCatalogue.findAddonById(item.addonId || item.addon_id);
+    if (!addon || addon.status !== 'active') throw new Error(`Package add-on '${item.addonId || item.addon_id}' is not active.`);
+    const compatible = Array.isArray(addon.applicable_service_ids) ? addon.applicable_service_ids.map(String) : [];
+    if (compatible.length && !(nextBenefits || []).some(benefit => compatible.includes(String(benefit.serviceId || benefit.service_id)))) throw new Error(`Package add-on '${addon.name}' is not compatible with any included service.`);
+  }
 
   return db.withTransaction(async (client) => {
     const updated = await repos.seeCatalogue.updatePackage(id, patch, client);
+    // Composition is part of a package definition version. Replace only the
+    // child collections explicitly included in the patch, in this transaction;
+    // existing purchase snapshots remain immutable and keep their old content.
+    if (Array.isArray(patch.benefits)) {
+      await client.query('DELETE FROM public.package_benefits WHERE package_id = $1', [id]);
+      for (const benefit of patch.benefits) {
+        if (!benefit || !benefit.serviceId || !Number.isFinite(Number(benefit.quantity)) || Number(benefit.quantity) < 1) {
+          throw new Error('Each package benefit requires a serviceId and quantity greater than zero.');
+        }
+        await repos.seeCatalogue.addPackageBenefit(id, benefit, client);
+      }
+    }
+    if (Array.isArray(patch.addons)) {
+      await client.query('DELETE FROM public.package_addons WHERE package_id = $1', [id]);
+      for (const addon of patch.addons) {
+        if (!addon || !addon.addonId || !Number.isFinite(Number(addon.quantity)) || Number(addon.quantity) < 1) {
+          throw new Error('Each package add-on requires an addonId and quantity greater than zero.');
+        }
+        await repos.seeCatalogue.addPackageAddon(id, addon, client);
+      }
+    }
+    if (Array.isArray(patch.pricingRules)) {
+      await client.query('DELETE FROM public.package_pricing_rules WHERE package_id = $1', [id]);
+      for (const rule of patch.pricingRules) {
+        if (!rule || !rule.pricingModel || !Number.isFinite(Number(rule.unitPrice))) {
+          throw new Error('Each pricing rule requires a pricingModel and numeric unitPrice.');
+        }
+        await repos.seeCatalogue.addPackagePricingRule(id, rule, client);
+      }
+    }
     await repos.auditLogs.logChange({
       entityType: 'see_package',
       entityId: id,

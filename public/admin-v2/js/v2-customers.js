@@ -500,7 +500,7 @@
 
       // 4. Plan / Package
       const planName = c.packageName || c.packageType || c.serviceCategory || 'Standard';
-      const planBadge = `<span class="cwp-v2-badge is-primary" style="font-size:10.5px;">${escapeHtml(planName)}</span>`;
+      const planBadge = `<span class="cwp-v2-badge is-primary" style="font-size:10.5px;">Legacy: ${escapeHtml(planName)}</span>`;
 
       // 5. Route
       const routeDisplay = escapeHtml(c.route || c.staffName ? `Route: ${c.staffName}` : area);
@@ -728,10 +728,8 @@
     }
 
     // Schedule / Frequency
-    const planName = cust.packageName || cust.packageType || cust.serviceCategory || 'Daily Car Cleaning';
+    const legacyPlanName = cust.packageName || cust.packageType || '';
     const staffName = cust.staffName || (cust.staffId ? `Staff ID ${cust.staffId}` : 'Unassigned');
-    const isDcc = cust.serviceCategory === 'Daily Car Cleaning' || cust.sheetName === 'Daily Clean';
-    const nextServiceStr = isDcc ? (cust.isStopped ? 'Suspended by Admin' : 'Tomorrow at 06:30 AM') : 'On-Demand Service';
 
     panel.innerHTML = `
       <!-- 8.1 Header -->
@@ -790,8 +788,8 @@
           <span class="cwp-v2-cust-summary-val">${customerSince}</span>
         </div>
         <div class="cwp-v2-cust-summary-item">
-          <span class="cwp-v2-cust-summary-label">Plan / Package</span>
-          <span class="cwp-v2-cust-summary-val">${escapeHtml(planName)}</span>
+          <span class="cwp-v2-cust-summary-label">Legacy plan label</span>
+          <span class="cwp-v2-cust-summary-val">${legacyPlanName ? `${escapeHtml(legacyPlanName)} (legacy record)` : 'No legacy plan label'}</span>
         </div>
         <div class="cwp-v2-cust-summary-item">
           <span class="cwp-v2-cust-summary-label">Assigned Staff</span>
@@ -817,54 +815,183 @@
         </div>
       </div>
 
-      <!-- 8.4 Service Schedule -->
       <div>
-        <div class="cwp-v2-cust-section-title">
-          <span>Service Schedule</span>
-          <span class="cwp-v2-badge is-neutral" style="font-size:10px;">Daily Morning</span>
-        </div>
-        <div class="cwp-v2-cust-schedule-box">
-          <div style="display:flex; justify-content:space-between; font-size:12px;">
-            <span>Next Service:</span>
-            <strong style="color:${cust.isStopped ? '#dc2626' : '#16a34a'};">${nextServiceStr}</strong>
-          </div>
-          <div class="cwp-v2-cust-progress-wrap">
-            <div class="cwp-v2-cust-progress-meta">
-              <span>Monthly Service Days</span>
-              <span>22 / 26 Cleaned</span>
-            </div>
-            <div class="cwp-v2-cust-progress-bar">
-              <div class="cwp-v2-cust-progress-fill" style="width: 84%;"></div>
-            </div>
-          </div>
-        </div>
+        <div class="cwp-v2-cust-section-title"><span>SEE Entitlements</span><button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-xs" id="v2CustSeePurchaseOpen">Purchase Package</button></div>
+        <div id="v2CustSeeBalance" aria-live="polite">Loading canonical entitlement balance…</div>
       </div>
-
-      <!-- 8.5 Recent Activity -->
       <div>
-        <div class="cwp-v2-cust-section-title">
-          <span>Recent Activity</span>
-        </div>
-        <div class="cwp-v2-cust-activity-list">
-          <div class="cwp-v2-cust-activity-item">
-            <span class="material-symbols-outlined cwp-v2-cust-activity-icon" style="color:#16a34a;">check_circle</span>
-            <div class="cwp-v2-cust-activity-info">
-              <span class="cwp-v2-cust-activity-title">Daily Clean Complete</span>
-              <span class="cwp-v2-cust-activity-time">Today, 07:15 AM by ${escapeHtml(staffName)}</span>
-            </div>
-          </div>
-          <div class="cwp-v2-cust-activity-item">
-            <span class="material-symbols-outlined cwp-v2-cust-activity-icon" style="color:#2563eb;">receipt_long</span>
-            <div class="cwp-v2-cust-activity-info">
-              <span class="cwp-v2-cust-activity-title">Subscription Active</span>
-              <span class="cwp-v2-cust-activity-time">${escapeHtml(planName)} • Verified Account</span>
-            </div>
-          </div>
-        </div>
+        <div class="cwp-v2-cust-section-title"><span>Service &amp; booking history</span></div>
+        <div id="v2CustSeeHistory" aria-live="polite">Loading recorded service history…</div>
       </div>
     `;
 
     bindDetailPanelEvents(cust);
+    loadCustomerSeeInspector(cust);
+  }
+
+  async function loadCustomerSeeInspector(cust) {
+    const balanceEl = document.getElementById('v2CustSeeBalance');
+    const historyEl = document.getElementById('v2CustSeeHistory');
+    if (!balanceEl || !historyEl) return;
+    const customerId = cust.id;
+    try {
+      const response = await fetch(`/api/see/customers/${encodeURIComponent(customerId)}/balance`, { credentials: 'same-origin' });
+      const body = await response.json();
+      if (!response.ok || body.success === false) throw new Error(body.error || `HTTP ${response.status}`);
+      if (document.getElementById('v2CustSeeBalance') !== balanceEl) return;
+      const accounts = Array.isArray(body.accounts) ? body.accounts : [];
+      balanceEl.innerHTML = accounts.length ? `<div class="cwp-v2-cust-activity-list">${accounts.map(account => {
+        const remaining = Number(account.remaining_qty || 0);
+        const available = Number(account.available_qty ?? remaining);
+        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">account_balance_wallet</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(account.package_name || account.service_name || account.addon_name || 'Entitlement')} · ${escapeHtml(account.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">Purchased ${Number(account.purchased_qty || 0)} · Reserved ${Number(account.reserved_qty || 0)} · Consumed ${Number(account.consumed_qty || 0)} · Available ${available} · Remaining balance ${remaining}${account.valid_to ? ` · Valid to ${escapeHtml(String(account.valid_to).slice(0, 10))}` : ''}</span><span class="cwp-v2-cust-activity-time">Purchase ${escapeHtml(account.purchase_snapshot_id || '—')} · Account ${escapeHtml(account.id)}</span><button type="button" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-xs" data-see-ledger="${escapeHtml(account.id)}">View ledger</button><div data-see-ledger-content="${escapeHtml(account.id)}"></div></div></div>`;
+      }).join('')}</div>` : '<div class="cwp-v2-cust-activity-time">No canonical SEE entitlement accounts are recorded for this customer.</div>';
+    } catch (error) {
+      balanceEl.textContent = `Entitlement balance unavailable: ${error.message}`;
+    }
+
+    try {
+      const history = await window.CWP_ADMIN_V2.api.request('getCustomerServiceJobs', { customerId });
+      if (document.getElementById('v2CustSeeHistory') !== historyEl) return;
+      const jobs = Array.isArray(history.all) ? history.all : [];
+      historyEl.innerHTML = jobs.length ? `<div class="cwp-v2-cust-activity-list">${jobs.map(job => {
+        const canonical = Boolean(job.service_payload && job.service_payload._seeManaged);
+        const executionText = canonical ? (job.latest_execution_id ? `Execution ${job.latest_execution_id} · ${escapeHtml(job.latest_execution_outcome || 'recorded')}` : 'No canonical execution record') : 'Legacy record';
+        const proof = job.latest_proof_photos || {};
+        const proofText = job.latest_execution_id ? ` · Proof ${Array.isArray(proof.before) ? proof.before.length : 0} before / ${Array.isArray(proof.after) ? proof.after.length : 0} after` : '';
+        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">${job.status === 'completed' ? 'check_circle' : 'event_note'}</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service booking')} · ${escapeHtml(job.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">${escapeHtml(job.scheduled_date || 'Unscheduled')} · ${canonical ? 'SEE canonical job' : 'Legacy job'} · Job ${escapeHtml(job.id)}</span><span class="cwp-v2-cust-activity-time">${executionText}${proofText}</span></div></div>`;
+      }).join('')}</div>` : '<div class="cwp-v2-cust-activity-time">No recorded service jobs.</div>';
+    } catch (error) {
+      historyEl.textContent = `Service history unavailable: ${error.message}`;
+    }
+  }
+
+  const seePurchaseDraft = { customerId: null, saleReference: null, packages: [], vehicles: [], locations: [], quote: null, quoting: false, quoteSequence: 0 };
+
+  function createPurchaseReference() {
+    if (window.crypto?.randomUUID) return `CWP-${window.crypto.randomUUID()}`;
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    return `CWP-${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')}`;
+  }
+
+  async function openCustomerPurchase(cust) {
+    if (!cust?.id) return;
+    const errorEl = document.getElementById('v2CustPurchaseError');
+    if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
+    seePurchaseDraft.customerId = cust.id;
+    seePurchaseDraft.saleReference = createPurchaseReference();
+    seePurchaseDraft.quote = null;
+    document.getElementById('v2CustPurchaseCustomerId').value = cust.id;
+    document.getElementById('v2CustPurchaseQuantity').value = '1';
+    document.getElementById('v2CustPurchaseCity').value = '';
+    document.getElementById('v2CustPurchaseZone').value = '';
+    document.getElementById('v2CustPurchaseTerms').value = '';
+    document.getElementById('v2CustPurchasePrice').textContent = 'Select an active package to calculate its price.';
+    document.getElementById('v2CustPurchaseReview').textContent = `Sale reference: ${seePurchaseDraft.saleReference}. This reference remains fixed for safe retries.`;
+    try {
+      const [packagesResponse, contextResponse] = await Promise.all([
+        fetch('/api/see/packages?status=active&limit=200&offset=0', { credentials: 'same-origin' }).then(r => r.json().then(b => { if (!r.ok || b.success === false) throw new Error(b.error || `HTTP ${r.status}`); return b; })),
+        fetch(`/api/see/customers/${encodeURIComponent(cust.id)}/context`, { credentials: 'same-origin' }).then(r => r.json().then(b => { if (!r.ok || b.success === false) throw new Error(b.error || `HTTP ${r.status}`); return b; }))
+      ]);
+      seePurchaseDraft.packages = (packagesResponse.packages || []).filter(pkg => pkg.status === 'active' && pkg.service_category_id !== 'daily_car_cleaning' && pkg.main_service_code !== 'DCC_DAILY');
+      seePurchaseDraft.vehicles = contextResponse.vehicles || [];
+      seePurchaseDraft.locations = contextResponse.locations || [];
+      const packageSel = document.getElementById('v2CustPurchasePackage');
+      const vehicleSel = document.getElementById('v2CustPurchaseVehicle');
+      const locationSel = document.getElementById('v2CustPurchaseLocation');
+      packageSel.innerHTML = '<option value="">Select package…</option>' + seePurchaseDraft.packages.map(pkg => `<option value="${escapeHtml(pkg.id)}">${escapeHtml(pkg.name)} · v${escapeHtml(pkg.version || 1)}</option>`).join('');
+      vehicleSel.innerHTML = '<option value="">Select vehicle…</option>' + seePurchaseDraft.vehicles.filter(vehicle => vehicle.is_active !== false).map(vehicle => `<option value="${escapeHtml(vehicle.id)}">${escapeHtml(vehicle.registration_no || vehicle.brand_or_model || 'Vehicle')}</option>`).join('');
+      locationSel.innerHTML = '<option value="">Select service location…</option>' + seePurchaseDraft.locations.map(location => `<option value="${escapeHtml(location.id)}">${escapeHtml(location.location_name || location.address_text || 'Service location')}</option>`).join('');
+      if (!seePurchaseDraft.packages.length) throw new Error('No active SEE packages are available for purchase.');
+      if (!seePurchaseDraft.vehicles.length) throw new Error('This customer has no registered vehicle for package purchase.');
+      if (!seePurchaseDraft.locations.length) throw new Error('This customer has no service location for package purchase.');
+      window.CWP_ADMIN_V2.overlay?.open('v2CustPurchaseModal');
+      await updateCustomerPurchaseQuote();
+    } catch (error) {
+      if (errorEl) { errorEl.hidden = false; errorEl.textContent = error.message; }
+      window.CWP_ADMIN_V2.overlay?.open('v2CustPurchaseModal');
+    }
+  }
+
+  async function updateCustomerPurchaseQuote() {
+    const requestSequence = ++seePurchaseDraft.quoteSequence;
+    const packageId = document.getElementById('v2CustPurchasePackage')?.value;
+    const pkg = seePurchaseDraft.packages.find(item => item.id === packageId);
+    const quantity = parseInt(document.getElementById('v2CustPurchaseQuantity')?.value || '1', 10);
+    const output = document.getElementById('v2CustPurchasePrice');
+    const review = document.getElementById('v2CustPurchaseReview');
+    seePurchaseDraft.quote = null;
+    if (!pkg || !Number.isInteger(quantity) || quantity < 1) {
+      seePurchaseDraft.quote = null;
+      if (output) output.textContent = 'Select an active package and a valid quantity to calculate price.';
+      return;
+    }
+    seePurchaseDraft.quoting = true;
+    if (output) output.textContent = 'Calculating package price…';
+    try {
+      const location = seePurchaseDraft.locations.find(item => item.id === document.getElementById('v2CustPurchaseLocation')?.value);
+      const response = await fetch(`/api/see/packages/${encodeURIComponent(packageId)}/price`, {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ city: document.getElementById('v2CustPurchaseCity')?.value.trim() || location?.city || null, zone: document.getElementById('v2CustPurchaseZone')?.value.trim() || location?.zone || null, vehicleSegment: pkg.vehicle_segment || null, quantity, effectiveDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) })
+      });
+      const body = await response.json();
+      if (!response.ok || body.success === false) throw new Error(body.error || `HTTP ${response.status}`);
+      if (requestSequence !== seePurchaseDraft.quoteSequence || document.getElementById('v2CustPurchasePackage')?.value !== packageId) return;
+      const eligibility = pkg.city_zone_eligibility || { all_cities: true, cities: [], zones: [] };
+      const city = document.getElementById('v2CustPurchaseCity')?.value.trim() || location?.city || '';
+      const zone = document.getElementById('v2CustPurchaseZone')?.value.trim() || location?.zone || '';
+      if (eligibility.all_cities === false && (!city || !(eligibility.cities || []).some(value => String(value).toLowerCase() === city.toLowerCase()))) throw new Error(`Package is not available for city ${city || '(missing)'}.`);
+      if ((eligibility.zones || []).length && (!zone || !eligibility.zones.some(value => String(value).toLowerCase() === zone.toLowerCase()))) throw new Error(`Package is not available for zone ${zone || '(missing)'}.`);
+      seePurchaseDraft.quote = body.pricing;
+      if (output) output.textContent = `Price: ₹${Number(body.pricing.basePrice).toFixed(2)} · ${body.pricing.pricingModel}${body.pricing.matchedRuleId ? ` · Pricing rule ${body.pricing.matchedRuleId}` : ''}`;
+      const vehicle = seePurchaseDraft.vehicles.find(item => item.id === document.getElementById('v2CustPurchaseVehicle')?.value);
+      if (review) review.textContent = `${pkg.name} · version ${pkg.version || 1} · ${quantity} unit(s) · ${vehicle?.registration_no || 'vehicle pending'} · ${location?.location_name || location?.address_text || 'location pending'} · ₹${Number(body.pricing.basePrice).toFixed(2)} · ${pkg.validity_value} ${pkg.validity_unit}`;
+    } catch (error) {
+      if (requestSequence !== seePurchaseDraft.quoteSequence) return;
+      seePurchaseDraft.quote = null;
+      if (output) output.textContent = `Price could not be calculated: ${error.message}`;
+    } finally { if (requestSequence === seePurchaseDraft.quoteSequence) seePurchaseDraft.quoting = false; }
+  }
+
+  async function submitCustomerPurchase(event) {
+    event.preventDefault();
+    const packageId = document.getElementById('v2CustPurchasePackage')?.value;
+    const vehicleId = document.getElementById('v2CustPurchaseVehicle')?.value;
+    const locationId = document.getElementById('v2CustPurchaseLocation')?.value;
+    const errorEl = document.getElementById('v2CustPurchaseError');
+    if (!packageId || !vehicleId || !locationId || !seePurchaseDraft.quote || seePurchaseDraft.quoting) {
+      if (errorEl) { errorEl.hidden = false; errorEl.textContent = 'Select an active package, vehicle and location, then wait for the price quote before confirming.'; }
+      return;
+    }
+    const button = document.getElementById('v2CustPurchaseConfirm');
+    try {
+      await window.CWP_ADMIN_V2.api.withLoadingButton(button, async () => {
+        const csrf = window.CWP_ADMIN_V2.auth?.getCsrfToken?.();
+        const response = await fetch('/api/see/purchases', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+          body: JSON.stringify({
+            customerId: seePurchaseDraft.customerId,
+            packageIdOrCode: packageId,
+            vehicleId,
+            locationId,
+            city: document.getElementById('v2CustPurchaseCity').value.trim() || null,
+            zone: document.getElementById('v2CustPurchaseZone').value.trim() || null,
+            quantity: parseInt(document.getElementById('v2CustPurchaseQuantity').value, 10),
+            saleReference: seePurchaseDraft.saleReference,
+            terms: { adminNotes: document.getElementById('v2CustPurchaseTerms').value.trim() || null }
+          })
+        });
+        const body = await response.json();
+        if (!response.ok || body.success === false) throw new Error(body.error || `HTTP ${response.status}`);
+        window.CWP_ADMIN_V2.overlay?.close('v2CustPurchaseModal');
+        if (window.CWP_ADMIN_V2.toast) window.CWP_ADMIN_V2.toast.success(`${body.snapshot?.package_name || 'Package'} purchased. Snapshot ${body.snapshot?.id || 'created'}; ${body.accounts?.length || 0} entitlement account(s) created.`);
+        const customer = state.allCustomers.find(item => String(item.id) === String(seePurchaseDraft.customerId)) || state.selectedCustomer;
+        if (customer) await loadCustomerSeeInspector(customer);
+      });
+    } catch (error) {
+      if (errorEl) { errorEl.hidden = false; errorEl.textContent = error.message; }
+    }
   }
 
   function toggleVehicleExtra(idx) {
@@ -1550,37 +1677,14 @@
 
   // 2. Log Service
   function openLogServiceModal(cust = null) {
-    const target = cust || state.selectedCustomer;
-    if (!target) return;
-
-    document.getElementById('v2LogServiceCustName').textContent = target.customerName || target.name;
-    document.getElementById('v2LogServiceCustId').value = target.id;
-
-    if (window.CWP_ADMIN_V2.overlay) {
-      window.CWP_ADMIN_V2.overlay.open('v2ModalLogService');
+    if (!(cust || state.selectedCustomer)) return;
+    if (window.CWP_ADMIN_V2.toast) {
+      window.CWP_ADMIN_V2.toast.warning('Service completion is recorded from an assigned booking. Create or open the canonical booking to record the work.');
     }
   }
 
   async function submitLogService() {
-    const custId = document.getElementById('v2LogServiceCustId')?.value;
-    const status = document.getElementById('v2LogServiceStatus')?.value;
-    const notes = document.getElementById('v2LogServiceNotes')?.value.trim();
-
-    const btn = document.getElementById('v2BtnSubmitLogService');
-    try {
-      await window.CWP_ADMIN_V2.api.withLoadingButton(btn, async () => {
-        // Record service completion log
-        if (window.CWP_ADMIN_V2.toast) {
-          window.CWP_ADMIN_V2.toast.success(`Service logged successfully (${status})!`);
-        }
-        if (window.CWP_ADMIN_V2.overlay) {
-          window.CWP_ADMIN_V2.overlay.close('v2ModalLogService');
-        }
-        await loadData(true);
-      });
-    } catch (err) {
-      if (window.CWP_ADMIN_V2.toast) window.CWP_ADMIN_V2.toast.error(err.message || 'Logging failed');
-    }
+    if (window.CWP_ADMIN_V2.toast) window.CWP_ADMIN_V2.toast.warning('This legacy action does not persist a service record. Use the canonical booking and staff completion workflow.');
   }
 
   // 3. Add Vehicle Direct
@@ -2005,6 +2109,27 @@
   }
 
   function bindDetailPanelEvents(cust) {
+    const detailScroll = document.getElementById('v2CustDetailScroll');
+    if (detailScroll) detailScroll.onclick = async (event) => {
+      const ledgerButton = event.target.closest('[data-see-ledger]');
+      if (!ledgerButton) return;
+      const accountId = ledgerButton.getAttribute('data-see-ledger');
+      const content = document.querySelector(`[data-see-ledger-content="${CSS.escape(accountId)}"]`);
+      if (!content || ledgerButton.disabled) return;
+      ledgerButton.disabled = true;
+      content.textContent = 'Loading ledger…';
+      try {
+        const response = await fetch(`/api/see/entitlements/${encodeURIComponent(accountId)}/ledger?limit=25&offset=0`, { credentials: 'same-origin' });
+        const body = await response.json();
+        if (!response.ok || body.success === false) throw new Error(body.error || `HTTP ${response.status}`);
+        const rows = Array.isArray(body.ledger) ? body.ledger : [];
+        content.innerHTML = rows.length ? rows.map(row => `<div class="cwp-v2-cust-activity-time">${escapeHtml(row.entry_type)} ${Number(row.quantity) > 0 ? '+' : ''}${Number(row.quantity)} · balance ${escapeHtml(row.balance_after)} · ${escapeHtml(row.reason || row.reference_id || '—')}</div>`).join('') : '<div class="cwp-v2-cust-activity-time">No ledger entries.</div>';
+      } catch (error) {
+        content.textContent = `Ledger unavailable: ${error.message}`;
+        ledgerButton.disabled = false;
+      }
+    };
+
     // Close / dismiss detail panel
     const closeBtn = document.getElementById('v2BtnCloseDetailPanel');
     if (closeBtn) closeBtn.addEventListener('click', closeDetailPanel);
@@ -2047,6 +2172,8 @@
 
     if (qaAssign) qaAssign.onclick = () => openAssignJobModal(cust);
     if (qaLog) qaLog.onclick = () => openLogServiceModal(cust);
+    const purchaseBtn = document.getElementById('v2CustSeePurchaseOpen');
+    if (purchaseBtn) purchaseBtn.addEventListener('click', () => openCustomerPurchase(cust));
     if (qaAddVeh) qaAddVeh.onclick = () => openAddVehicleModal(cust);
     if (qaUpdatePlan) qaUpdatePlan.onclick = () => openUpdatePlanModal(cust);
   }
@@ -2118,6 +2245,11 @@
     // Update Plan
     const updatePlanBtn = document.getElementById('v2BtnSubmitUpdatePlan');
     if (updatePlanBtn) updatePlanBtn.addEventListener('click', submitUpdatePlan);
+    document.getElementById('v2CustPurchaseForm')?.addEventListener('submit', submitCustomerPurchase);
+    ['v2CustPurchasePackage', 'v2CustPurchaseQuantity', 'v2CustPurchaseVehicle', 'v2CustPurchaseLocation', 'v2CustPurchaseCity', 'v2CustPurchaseZone'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', updateCustomerPurchaseQuote);
+      document.getElementById(id)?.addEventListener('input', updateCustomerPurchaseQuote);
+    });
   }
 
   function populateStaffDropdowns() {

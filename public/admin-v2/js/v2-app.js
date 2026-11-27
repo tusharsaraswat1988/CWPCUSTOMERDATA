@@ -147,6 +147,9 @@
     if (window.CWP_ADMIN_V2.seeServices) {
       window.CWP_ADMIN_V2.seeServices.init();
     }
+    if (window.CWP_ADMIN_V2.seePackages) {
+      window.CWP_ADMIN_V2.seePackages.init();
+    }
     if (window.CWP_ADMIN_V2.seeAddons) {
       window.CWP_ADMIN_V2.seeAddons.init();
     }
@@ -282,10 +285,9 @@
       if (session.valid) {
         unlockShell(session.user);
       } else {
-        const msg = session.expired
-          ? 'Your admin session has expired or is invalid. Please sign in.'
-          : (session.offline ? 'Unable to verify session with server. Please sign in when online.' : '');
-        lockToLogin(msg);
+        // An unauthenticated visit is a normal login state, not a failed attempt.
+        // Show errors only after an explicit sign-in attempt or a mid-session failure.
+        lockToLogin('');
       }
     } else {
       lockToLogin('Authentication module unavailable.');

@@ -5604,6 +5604,9 @@ function loadStaffCustomerData(staffId) {
       var pCard = document.getElementById('staffPortalProfileDetailsCard');
       if (pCard) {
         pCard.style.display = 'block';
+        var hasProfileValue = function(value) {
+          return value !== undefined && value !== null && !/^(?:\s*|[-–—]|n\/?a|null|undefined)$/i.test(String(value).trim());
+        };
         var phoneEl = document.getElementById('staffPortalPhoneDisplay');
         if (phoneEl) {
           var pVal = data.staffPhone || data.phone || '';
@@ -5611,7 +5614,7 @@ function loadStaffCustomerData(staffId) {
         }
         var dojEl = document.getElementById('staffPortalDojDisplay');
         var dojWrap = document.getElementById('staffPortalDojWrap');
-        if (data.dateOfJoining) {
+        if (hasProfileValue(data.dateOfJoining)) {
           if (dojEl) dojEl.textContent = String(data.dateOfJoining).split('T')[0];
           if (dojWrap) dojWrap.style.display = 'flex';
         } else if (dojWrap) {
@@ -5619,7 +5622,7 @@ function loadStaffCustomerData(staffId) {
         }
         var wOffEl = document.getElementById('staffPortalWeeklyOffDisplay');
         var wOffWrap = document.getElementById('staffPortalWeeklyOffWrap');
-        if (data.weeklyOff) {
+        if (hasProfileValue(data.weeklyOff)) {
           if (wOffEl) wOffEl.textContent = data.weeklyOff;
           if (wOffWrap) wOffWrap.style.display = 'flex';
         } else if (wOffWrap) {
@@ -5627,7 +5630,7 @@ function loadStaffCustomerData(staffId) {
         }
         var emailEl = document.getElementById('staffPortalEmailDisplay');
         var emailWrap = document.getElementById('staffPortalEmailWrap');
-        if (data.email) {
+        if (hasProfileValue(data.email)) {
           if (emailEl) emailEl.textContent = data.email;
           if (emailWrap) emailWrap.style.display = 'flex';
         } else if (emailWrap) {
@@ -5635,7 +5638,7 @@ function loadStaffCustomerData(staffId) {
         }
         var salEl = document.getElementById('staffPortalSalaryDisplay');
         var salWrap = document.getElementById('staffPortalSalaryWrap');
-        if (data.salary !== undefined && data.salary !== null && data.salary !== '') {
+        if (hasProfileValue(data.salary)) {
           if (salEl) salEl.textContent = '₹' + Number(data.salary).toLocaleString('en-IN');
           if (salWrap) salWrap.style.display = 'flex';
         } else if (salWrap) {
@@ -5853,11 +5856,11 @@ function loadStaffCustomerData(staffId) {
 
       if (pillDcc) {
         pillDcc.classList.toggle('active', isDcc);
-        pillDcc.setAttribute('aria-selected', isDcc ? 'true' : 'false');
+        if (isDcc) pillDcc.setAttribute('aria-current', 'page'); else pillDcc.removeAttribute('aria-current');
       }
       if (pillOther) {
         pillOther.classList.toggle('active', isOther);
-        pillOther.setAttribute('aria-selected', isOther ? 'true' : 'false');
+        if (isOther) pillOther.setAttribute('aria-current', 'page'); else pillOther.removeAttribute('aria-current');
       }
       if (pillCw) {
         pillCw.classList.toggle('active', isCw);
@@ -5869,7 +5872,7 @@ function loadStaffCustomerData(staffId) {
       }
       if (pillSet) {
         pillSet.classList.toggle('active', isSet);
-        pillSet.setAttribute('aria-selected', isSet ? 'true' : 'false');
+        if (isSet) pillSet.setAttribute('aria-current', 'page'); else pillSet.removeAttribute('aria-current');
       }
 
       if (filter === 'settings') {
@@ -6038,7 +6041,19 @@ function loadStaffCustomerData(staffId) {
     function formatJobDisplayDate(dateStr) {
       if (!dateStr) return '';
       try {
-        var raw = String(dateStr).split('T')[0];
+        var value = String(dateStr);
+        var raw = value.split('T')[0];
+        if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+          var timestamp = new Date(value);
+          if (!isNaN(timestamp.getTime())) {
+            var dateParts = new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit'
+            }).formatToParts(timestamp);
+            var dateValues = {};
+            dateParts.forEach(function(part) { dateValues[part.type] = part.value; });
+            return dateValues.day + '-' + dateValues.month + '-' + dateValues.year;
+          }
+        }
         var parts = raw.split('-');
         if (parts.length === 3) {
           return parts[2] + '-' + parts[1] + '-' + parts[0];
@@ -6418,10 +6433,13 @@ function loadStaffCustomerData(staffId) {
             html += '      <span>' + (isHi ? 'साफ करें' : 'Mark Cleaned') + '</span>';
             html += '    </button>';
           }
-          html += '    <button type="button" class="btn-clean-wa ' + (isDone ? 'wa-ready' : 'wa-idle') + '" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleCustomerWhatsAppShare(this.dataset.custId, Number(this.dataset.index))" title="' + (isHi ? 'व्हाट्सएप पर शेयर करें' : 'Share to WhatsApp') + '">';
-          html += '      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.68 12.04 3.68C14.25 3.68 16.31 4.54 17.87 6.1C19.42 7.66 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.05 20.15Z"/></svg>';
-          html += '      <span>' + (isHi ? 'व्हाट्सएप' : 'WhatsApp') + '</span>';
-          html += '    </button>';
+          var completionPhoto = isDone && compData && compData.photoUrl;
+          if (completionPhoto) {
+            html += '    <button type="button" class="btn-clean-wa wa-ready" data-cust-id="' + escapeHtml(custId) + '" data-index="' + index + '" onclick="handleCustomerWhatsAppShare(this.dataset.custId, Number(this.dataset.index))" title="' + (isHi ? 'व्हाट्सएप पर शेयर करें' : 'Share proof to WhatsApp') + '">';
+            html += '      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.68 12.04 3.68C14.25 3.68 16.31 4.54 17.87 6.1C19.42 7.66 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.05 20.15Z"/></svg>';
+            html += '      <span>' + (isHi ? 'व्हाट्सएप' : 'WhatsApp') + '</span>';
+            html += '    </button>';
+          }
           html += '  </div>';
         } else {
           /* On-Demand / Special Job: 3-Step Completion Journey */
@@ -13694,7 +13712,8 @@ function loadStaffCustomerData(staffId) {
         packageId: packageId || undefined,
         servicePrice: parseFloat(price) || 0,
         paymentStatus: paymentStatus,
-        specialInstructions: notes
+        specialInstructions: notes,
+        legacyCompatibility: true
       };
 
       apiCall('createServiceBooking', payload, function(res) {
@@ -19201,16 +19220,74 @@ function loadStaffCustomerData(staffId) {
     /* Staff: Starting Special Job (Before Photos) */
     var currentStartJobId = null;
     var startJobPhotos = [];
+    var currentStartJobRequiredBeforePhotos = 0;
+    var startSpecialJobSubmitting = false;
+    var completeSpecialJobSubmitting = false;
+
+    function setSpecialJobPhotoStatus(kind, status, message) {
+      var statusEl = document.getElementById(kind + 'JobPhotoUploadStatus');
+      if (statusEl) {
+        statusEl.textContent = message || '';
+        statusEl.dataset.state = status || 'idle';
+        statusEl.hidden = !message;
+      }
+      var photoStates = document.querySelectorAll('#' + kind + 'JobPhotosPreview .staff-photo-item-state');
+      var stateCopy = {
+        selected: staffUploadCopy('Selected · not uploaded', 'चुनी · अपलोड नहीं'),
+        uploading: staffUploadCopy('Uploading…', 'अपलोड हो रही…'),
+        success: staffUploadCopy('Uploaded · confirmed', 'अपलोड पुष्ट'),
+        failure: staffUploadCopy('Upload not confirmed', 'अपलोड की पुष्टि नहीं')
+      };
+      photoStates.forEach(function(item) {
+        item.dataset.state = status || 'selected';
+        item.textContent = stateCopy[status] || stateCopy.selected;
+      });
+    }
+
+    function staffUploadCopy(english, hindi) {
+      return (localStorage.getItem('cwp_lang') || 'hi').toLowerCase().indexOf('en') === 0 ? english : hindi;
+    }
+
+    function setSpecialJobSubmitControls(kind, busy, retry) {
+      var prefix = kind === 'start' ? 'Start' : 'Complete';
+      var modal = document.getElementById(kind + 'SpecialJobModal');
+      var submit = document.getElementById('btnSubmit' + prefix + 'Job');
+      var cancel = document.getElementById('btnCancel' + prefix + 'Job');
+      var addPhoto = document.getElementById('btn' + prefix + 'JobAddPhoto');
+      var close = modal && modal.querySelector('.modal-close-x');
+      [submit, cancel, addPhoto, close].forEach(function(button) { if (button) button.disabled = !!busy; });
+      if (submit) {
+        if (busy) submit.innerHTML = '<span class="staff-upload-spinner" aria-hidden="true"></span><span>' + staffUploadCopy(kind === 'start' ? 'Photo uploading · starting job…' : 'Photo uploading · submitting…', kind === 'start' ? 'फोटो अपलोड हो रही है · काम शुरू हो रहा है…' : 'फोटो अपलोड हो रही है · सबमिट हो रहा है…') + '</span>';
+        else submit.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px" aria-hidden="true">' + (kind === 'start' ? 'play_arrow' : 'check') + '</span><span>' + (retry ? staffUploadCopy(kind === 'start' ? 'Retry upload & start job' : 'Retry upload & complete job', kind === 'start' ? 'फिर से अपलोड करें और काम शुरू करें' : 'फिर से अपलोड करें और काम पूरा करें') : staffUploadCopy(kind === 'start' ? 'Start Job' : 'Complete Job', kind === 'start' ? 'काम शुरू करें' : 'काम पूरा करें')) + '</span>';
+      }
+      if (modal) modal.setAttribute('aria-busy', busy ? 'true' : 'false');
+    }
 
     function openStartSpecialJobModal(jobId, triggerEl) {
       if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       var job = (typeof jobId === 'object' && jobId !== null) ? jobId : ((state.customers || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }) || ((window.adminSpecialState && adminSpecialState.jobs) || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }));
       currentStartJobId = (typeof jobId === 'object' && jobId !== null) ? (job.id || job.jobId) : jobId;
       startJobPhotos = [];
+      setSpecialJobPhotoStatus('start', 'idle', '');
+      setSpecialJobSubmitControls('start', false, false);
       if (!job) {
         showToast('काम की जानकारी नहीं मिली।', '⚠️');
         return;
       }
+      currentStartJobRequiredBeforePhotos = job.seeManaged ? Math.max(0, Number(job.proofRequirements && job.proofRequirements.before_min) || 0) : 0;
+      var beforeMark = document.getElementById('startJobBeforePhotoRequiredMark');
+      var beforeHint = document.getElementById('startJobPhotoHint');
+      var beforeSubTitle = document.getElementById('startJobSubTitle');
+      if (beforeMark) {
+        beforeMark.textContent = currentStartJobRequiredBeforePhotos > 0 ? `(${currentStartJobRequiredBeforePhotos} required)` : '(वैकल्पिक / Optional)';
+        beforeMark.style.color = currentStartJobRequiredBeforePhotos > 0 ? '#b91c1c' : 'var(--md-sys-color-outline, #64748b)';
+      }
+      if (beforeHint) beforeHint.textContent = currentStartJobRequiredBeforePhotos > 0
+        ? `Capture at least ${currentStartJobRequiredBeforePhotos} before-work photo${currentStartJobRequiredBeforePhotos === 1 ? '' : 's'} before starting this SEE job.`
+        : 'यदि चाहें तो काम शुरू करने से पहले की स्थिति की 1 या 2 फोटो लें, या सीधे नीचे दिए बटन से काम शुरू करें।';
+      if (beforeSubTitle) beforeSubTitle.textContent = currentStartJobRequiredBeforePhotos > 0
+        ? `Before photos (${currentStartJobRequiredBeforePhotos} required)`
+        : 'सफाई से पहले की फोटो (वैकल्पिक / Optional)';
       var summaryEl = document.getElementById('startJobCustomerSummary');
       if (summaryEl) {
         var isSolar = (job.category === 'solar_cleaning' || job.serviceCategoryId === 'solar_cleaning');
@@ -19232,6 +19309,7 @@ function loadStaffCustomerData(staffId) {
     }
 
     function closeStartSpecialJobModal() {
+      if (startSpecialJobSubmitting) return;
       if (typeof popModalHistory === 'function') popModalHistory('startSpecialJobModal');
       var modal = document.getElementById('startSpecialJobModal');
       if (modal) modal.style.display = 'none';
@@ -19240,10 +19318,12 @@ function loadStaffCustomerData(staffId) {
       }
       currentStartJobId = null;
       startJobPhotos = [];
+      currentStartJobRequiredBeforePhotos = 0;
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function handleStartJobPhotoSelect(event) {
+      if (startSpecialJobSubmitting) return;
       var file = event.target.files && event.target.files[0];
       if (!file) return;
       if (startJobPhotos.length >= 2) {
@@ -19256,6 +19336,7 @@ function loadStaffCustomerData(staffId) {
         compressImageToJpeg(dataUrl, function(compressedUrl) {
           startJobPhotos.push({ base64: compressedUrl, mimeType: 'image/jpeg' });
           renderStartJobPhotosPreview();
+          setSpecialJobPhotoStatus('start', 'selected', staffUploadCopy('Photo selected · not uploaded yet. Submit to upload.', 'फोटो चुनी गई है — सबमिट करने तक अपलोड नहीं हुई है।'));
         });
       };
       reader.readAsDataURL(file);
@@ -19299,6 +19380,7 @@ function loadStaffCustomerData(staffId) {
       preview.innerHTML = startJobPhotos.map(function(p, idx) {
         return '<div style="position: relative; width: 100px; height: 80px; border-radius: 8px; overflow: hidden; border: 2px solid #2563eb;">' +
           '<img src="' + p.base64 + '" style="width: 100%; height: 100%; object-fit: cover;">' +
+          '<span class="staff-photo-item-state" data-state="selected">' + staffUploadCopy('Selected · not uploaded', 'चुनी · अपलोड नहीं') + '</span>' +
           '<button type="button" onclick="removeStartJobPhoto(' + idx + ')" style="position: absolute; top: 3px; right: 3px; background: rgba(239, 68, 68, 0.9); color: #fff; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>' +
         '</div>';
       }).join('');
@@ -19307,17 +19389,27 @@ function loadStaffCustomerData(staffId) {
     }
 
     function removeStartJobPhoto(idx) {
+      if (startSpecialJobSubmitting) return;
       startJobPhotos.splice(idx, 1);
       renderStartJobPhotosPreview();
+      setSpecialJobPhotoStatus('start', startJobPhotos.length ? 'selected' : 'idle', startJobPhotos.length ? staffUploadCopy('Photo selected · not uploaded yet. Submit to upload.', 'फोटो चुनी गई है — सबमिट करने तक अपलोड नहीं हुई है।') : '');
     }
 
     function submitStartSpecialJob() {
-      if (!currentStartJobId) return;
-      var submitBtn = document.getElementById('btnSubmitStartJob');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span>⏳ काम शुरू हो रहा है...</span>';
+      if (!currentStartJobId || startSpecialJobSubmitting) return;
+      if (startJobPhotos.length < currentStartJobRequiredBeforePhotos) {
+        var proofErr = document.getElementById('startJobErrorMsg');
+        if (proofErr) {
+          proofErr.textContent = `Upload at least ${currentStartJobRequiredBeforePhotos} before-work photo${currentStartJobRequiredBeforePhotos === 1 ? '' : 's'} before starting this job.`;
+          proofErr.style.display = 'block';
+        }
+        return;
       }
+      startSpecialJobSubmitting = true;
+      setSpecialJobPhotoStatus('start', 'uploading', startJobPhotos.length ? staffUploadCopy('Photo uploading…', 'फोटो अपलोड हो रही है…') : staffUploadCopy('Sending start request…', 'काम शुरू करने का अनुरोध भेजा जा रहा है…'));
+      setSpecialJobSubmitControls('start', true, false);
+      var startError = document.getElementById('startJobErrorMsg');
+      if (startError) startError.style.display = 'none';
 
       var payload = {
         jobId: currentStartJobId,
@@ -19328,16 +19420,18 @@ function loadStaffCustomerData(staffId) {
       };
 
       apiCall('startSpecialJob', payload, function(res) {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>काम शुरू करें</span>';
-        }
-        if (res && res.success) {
-          showToast('▶️ काम शुरू हो गया! स्टेटस लाइव अपडेट हो गया।', '✅');
+        startSpecialJobSubmitting = false;
+        var confirmedPhotos = res && Array.isArray(res.beforePhotos) ? res.beforePhotos : [];
+        if (res && res.success && confirmedPhotos.length >= startJobPhotos.length) {
+          setSpecialJobPhotoStatus('start', 'success', startJobPhotos.length ? staffUploadCopy('Photo uploaded and confirmed by the server. Job started.', 'फोटो सर्वर पर अपलोड हो गई। काम शुरू हो गया।') : staffUploadCopy('Job started.', 'काम शुरू हो गया।'));
+          setSpecialJobSubmitControls('start', false, false);
+          showToast(startJobPhotos.length ? 'फोटो अपलोड की पुष्टि हुई और काम शुरू हो गया।' : 'काम शुरू हो गया। स्टेटस लाइव अपडेट हो गया।', '✅');
           closeStartSpecialJobModal();
           loadStaffCustomerData(state.activeStaffId);
         } else {
-          var errMsg = (res && res.error) || 'काम शुरू करने में त्रुटि';
+          var errMsg = (res && res.error) || (res && res.success ? 'सर्वर ने चुनी गई सभी फोटो अपलोड होने की पुष्टि नहीं की।' : 'काम शुरू करने की पुष्टि नहीं हुई।');
+          setSpecialJobPhotoStatus('start', 'failure', staffUploadCopy('Photo upload was not confirmed. Do not continue. Your selected photo is kept; retry or replace it.', 'फोटो अपलोड की पुष्टि नहीं हुई। काम आगे न बढ़ाएँ। चुनी हुई फोटो सुरक्षित है; फिर से कोशिश करें या फोटो बदलें।'));
+          setSpecialJobSubmitControls('start', false, true);
           showToast(errMsg, '❌');
           var err = document.getElementById('startJobErrorMsg');
           if (err) {
@@ -19346,11 +19440,10 @@ function loadStaffCustomerData(staffId) {
           }
         }
       }, function(err) {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">play_arrow</span><span>काम शुरू करें</span>';
-        }
-        var msg = 'Error: ' + (err && err.message ? err.message : err);
+        startSpecialJobSubmitting = false;
+        setSpecialJobSubmitControls('start', false, true);
+        setSpecialJobPhotoStatus('start', 'failure', staffUploadCopy('Photo upload could not be confirmed due to a network or server error. Your selected photo is kept; retry or replace it.', 'फोटो अपलोड की पुष्टि नहीं हुई। नेटवर्क/सर्वर त्रुटि हो सकती है। चुनी हुई फोटो सुरक्षित है; फिर से कोशिश करें या फोटो बदलें।'));
+        var msg = 'Error: ' + (err && err.message ? err.message : (err || 'Upload could not be confirmed'));
         showToast(msg, '❌');
         var errEl = document.getElementById('startJobErrorMsg');
         if (errEl) {
@@ -19363,16 +19456,51 @@ function loadStaffCustomerData(staffId) {
     /* Staff: Completing Special Job (After Photos & Notes) */
     var currentCompleteJobId = null;
     var completeJobPhotos = [];
+    var currentCompleteJobChecklistItems = [];
+
+    function renderCompleteJobChecklist(job) {
+      var block = document.getElementById('completeJobChecklistBlock');
+      var list = document.getElementById('completeJobChecklist');
+      var items = job && job.seeManaged && Array.isArray(job.checklistRequirements) ? job.checklistRequirements : [];
+      currentCompleteJobChecklistItems = items;
+      if (!block || !list) return;
+      block.style.display = items.length ? 'block' : 'none';
+      list.innerHTML = items.map(function(item, index) {
+        var label = typeof item === 'string' ? item : (item && (item.label || item.item || item.name)) || `Checklist item ${index + 1}`;
+        return `<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid var(--md-sys-color-outline-variant, #e2e8f0);border-radius:8px;font-size:13px;color:var(--md-sys-color-on-surface, #0f172a);"><input type="checkbox" data-see-checklist-index="${index}" style="margin-top:2px;accent-color:var(--md-sys-color-primary, #2563eb);"><span>${escapeHtml(label)}</span></label>`;
+      }).join('');
+    }
+
+    function renderCompleteJobAddons(job) {
+      var block = document.getElementById('completeJobAddonsBlock');
+      var list = document.getElementById('completeJobAddons');
+      var addons = job && job.seeManaged && Array.isArray(job.selectedAddons) ? job.selectedAddons : [];
+      if (!block || !list) return;
+      block.style.display = addons.length ? 'block' : 'none';
+      list.innerHTML = addons.map(function(addon) {
+        var status = addon.status || 'selected';
+        var requirement = addon.required ? 'Required' : 'Optional';
+        var mode = addon.executionMode ? ` · ${addon.executionMode}` : '';
+        var checklistCount = Array.isArray(addon.checklistRequirements) ? addon.checklistRequirements.length : 0;
+        var proof = addon.proofRequirements || {};
+        var proofCount = Number(proof.after_min || 0);
+        return `<div style="padding:8px 10px;border:1px solid var(--md-sys-color-outline-variant, #e2e8f0);border-radius:8px;font-size:12px;"><strong>${escapeHtml(addon.name || 'Add-on')}</strong> · ${escapeHtml(requirement)} · ${escapeHtml(status)}${escapeHtml(mode)}${checklistCount ? ` · ${checklistCount} checklist items` : ''}${proofCount ? ` · ${proofCount} proof photo(s)` : ''}</div>`;
+      }).join('');
+    }
 
     function openCompleteSpecialJobModal(jobId, triggerEl) {
       if (typeof recordModalTrigger === 'function') recordModalTrigger(triggerEl || (typeof document !== 'undefined' && document.activeElement));
       var job = (typeof jobId === 'object' && jobId !== null) ? jobId : ((state.customers || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }) || ((window.adminSpecialState && adminSpecialState.jobs) || []).find(function(c) { return String(c.jobId || c.id) === String(jobId); }));
       currentCompleteJobId = (typeof jobId === 'object' && jobId !== null) ? (job.id || job.jobId) : jobId;
       completeJobPhotos = [];
+      setSpecialJobPhotoStatus('complete', 'idle', '');
+      setSpecialJobSubmitControls('complete', false, false);
       if (!job) {
         showToast('काम की जानकारी नहीं मिली।', '⚠️');
         return;
       }
+      renderCompleteJobChecklist(job);
+      renderCompleteJobAddons(job);
       var summaryEl = document.getElementById('completeJobCustomerSummary');
       if (summaryEl) {
         var isSolar = (job.category === 'solar_cleaning' || job.serviceCategoryId === 'solar_cleaning');
@@ -19396,6 +19524,7 @@ function loadStaffCustomerData(staffId) {
     }
 
     function closeCompleteSpecialJobModal() {
+      if (completeSpecialJobSubmitting) return;
       if (typeof popModalHistory === 'function') popModalHistory('completeSpecialJobModal');
       var modal = document.getElementById('completeSpecialJobModal');
       if (modal) modal.style.display = 'none';
@@ -19404,10 +19533,12 @@ function loadStaffCustomerData(staffId) {
       }
       currentCompleteJobId = null;
       completeJobPhotos = [];
+      currentCompleteJobChecklistItems = [];
       if (typeof restoreModalTriggerFocus === 'function') restoreModalTriggerFocus();
     }
 
     function handleCompleteJobPhotoSelect(event) {
+      if (completeSpecialJobSubmitting) return;
       var file = event.target.files && event.target.files[0];
       if (!file) return;
       if (completeJobPhotos.length >= 2) {
@@ -19420,6 +19551,7 @@ function loadStaffCustomerData(staffId) {
         compressImageToJpeg(dataUrl, function(compressedUrl) {
           completeJobPhotos.push({ base64: compressedUrl, mimeType: 'image/jpeg' });
           renderCompleteJobPhotosPreview();
+          setSpecialJobPhotoStatus('complete', 'selected', staffUploadCopy('Photo selected · not uploaded yet. Submit to upload.', 'फोटो चुनी गई है — सबमिट करने तक अपलोड नहीं हुई है।'));
         });
       };
       reader.readAsDataURL(file);
@@ -19434,6 +19566,7 @@ function loadStaffCustomerData(staffId) {
       preview.innerHTML = completeJobPhotos.map(function(p, idx) {
         return '<div style="position: relative; width: 100px; height: 80px; border-radius: 8px; overflow: hidden; border: 2px solid #059669;">' +
           '<img src="' + p.base64 + '" style="width: 100%; height: 100%; object-fit: cover;">' +
+          '<span class="staff-photo-item-state" data-state="selected">' + staffUploadCopy('Selected · not uploaded', 'चुनी · अपलोड नहीं') + '</span>' +
           '<button type="button" onclick="removeCompleteJobPhoto(' + idx + ')" style="position: absolute; top: 3px; right: 3px; background: rgba(239, 68, 68, 0.9); color: #fff; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>' +
         '</div>';
       }).join('');
@@ -19442,12 +19575,23 @@ function loadStaffCustomerData(staffId) {
     }
 
     function removeCompleteJobPhoto(idx) {
+      if (completeSpecialJobSubmitting) return;
       completeJobPhotos.splice(idx, 1);
       renderCompleteJobPhotosPreview();
+      setSpecialJobPhotoStatus('complete', completeJobPhotos.length ? 'selected' : 'idle', completeJobPhotos.length ? staffUploadCopy('Photo selected · not uploaded yet. Submit to upload.', 'फोटो चुनी गई है — सबमिट करने तक अपलोड नहीं हुई है।') : '');
     }
 
     function submitCompleteSpecialJob() {
-      if (!currentCompleteJobId) return;
+      if (!currentCompleteJobId || completeSpecialJobSubmitting) return;
+      var checklistInputs = Array.from(document.querySelectorAll('#completeJobChecklist input[data-see-checklist-index]'));
+      if (checklistInputs.some(function(input) { return !input.checked; })) {
+        var checklistErr = document.getElementById('completeJobErrorMsg');
+        if (checklistErr) {
+          checklistErr.textContent = 'Complete every required service checklist item before submitting.';
+          checklistErr.style.display = 'block';
+        }
+        return;
+      }
       if (completeJobPhotos.length === 0) {
         var err = document.getElementById('completeJobErrorMsg');
         if (err) {
@@ -19456,41 +19600,50 @@ function loadStaffCustomerData(staffId) {
         }
         return;
       }
-      var submitBtn = document.getElementById('btnSubmitCompleteJob');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span>⏳ काम सबमिट हो रहा है...</span>';
-      }
+      completeSpecialJobSubmitting = true;
+      setSpecialJobPhotoStatus('complete', 'uploading', staffUploadCopy('Photo uploading…', 'फोटो अपलोड हो रही है…'));
+      setSpecialJobSubmitControls('complete', true, false);
+      var completeError = document.getElementById('completeJobErrorMsg');
+      if (completeError) completeError.style.display = 'none';
 
       var notes = (document.getElementById('completeJobNotes') ? document.getElementById('completeJobNotes').value : '').trim();
+      var checklistResults = checklistInputs.map(function(input) {
+        var index = Number(input.getAttribute('data-see-checklist-index'));
+        var raw = currentCompleteJobChecklistItems[index];
+        return { item: typeof raw === 'string' ? raw : (raw && (raw.label || raw.item || raw.name)) || `Checklist item ${index + 1}`, completed: true };
+      });
 
       var payload = {
         jobId: currentCompleteJobId,
         staffId: state.activeStaffId,
         staffToken: getStaffToken(state.activeStaffId),
         photos: completeJobPhotos,
+        checklistResults: checklistResults,
         notes: notes,
         completedAtDevice: new Date().toISOString()
       };
 
       apiCall('completeSpecialJob', payload, function(res) {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span>✅ काम पूर्ण और सबमिट करें</span>';
-        }
-        if (res && res.success) {
+        completeSpecialJobSubmitting = false;
+        var confirmedPhotos = res && Array.isArray(res.afterPhotos) ? res.afterPhotos : [];
+        if (res && res.success && confirmedPhotos.length >= completeJobPhotos.length) {
+          setSpecialJobPhotoStatus('complete', 'success', staffUploadCopy('Photo uploaded and confirmed by the server. Job completed.', 'फोटो सर्वर पर अपलोड हो गई। काम पूरा हुआ।'));
+          setSpecialJobSubmitControls('complete', false, false);
           playTaskCompletedChime();
-          showToast('🎉 बहुत बढ़िया! काम सफलतापूर्वक पूरा हो गया और रिकॉर्ड सेव हो गया।', '✅');
+          showToast('फोटो अपलोड की पुष्टि हुई। काम सफलतापूर्वक पूरा हुआ और रिकॉर्ड सेव हो गया।', '✅');
           closeCompleteSpecialJobModal();
           loadStaffCustomerData(state.activeStaffId);
         } else {
-          showToast((res && res.error) || 'काम सबमिट करने में समस्या', '❌');
+          setSpecialJobPhotoStatus('complete', 'failure', staffUploadCopy('Photo upload was not confirmed. Do not continue. Your selected photo is kept; retry or replace it.', 'फोटो अपलोड की पुष्टि नहीं हुई। काम आगे न बढ़ाएँ। चुनी हुई फोटो सुरक्षित है; फिर से कोशिश करें या फोटो बदलें।'));
+          setSpecialJobSubmitControls('complete', false, true);
+          if (completeError) { completeError.textContent = (res && res.error) || 'Photo upload was not confirmed by the server.'; completeError.style.display = 'block'; }
+          showToast((res && res.error) || (res && res.success ? 'सर्वर ने चुनी गई सभी फोटो अपलोड होने की पुष्टि नहीं की।' : 'काम और फोटो अपलोड की पुष्टि नहीं हुई।'), '❌');
         }
       }, function(err) {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span>✅ काम पूर्ण और सबमिट करें</span>';
-        }
+        completeSpecialJobSubmitting = false;
+        setSpecialJobSubmitControls('complete', false, true);
+        setSpecialJobPhotoStatus('complete', 'failure', staffUploadCopy('Photo upload could not be confirmed due to a network or server error. Your selected photo is kept; retry or replace it.', 'फोटो अपलोड की पुष्टि नहीं हुई। नेटवर्क/सर्वर त्रुटि हो सकती है। चुनी हुई फोटो सुरक्षित है; फिर से कोशिश करें या फोटो बदलें।'));
+        if (completeError) { completeError.textContent = err && err.message ? err.message : 'Photo upload could not be confirmed.'; completeError.style.display = 'block'; }
         showToast('Error: ' + err.message, '❌');
       });
     }

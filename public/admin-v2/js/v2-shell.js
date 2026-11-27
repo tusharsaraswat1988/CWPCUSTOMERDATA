@@ -115,6 +115,15 @@
       subtitle: 'Canonical SEE service definitions, models, proof rules & versions',
       subtitleHi: 'सेवा परिभाषा, मॉडल और प्रमाण नियम'
     },
+    seePackages: {
+      group: 'CATALOGUE',
+      groupEn: 'Catalogue',
+      groupHi: 'कैटलॉग',
+      title: 'Packages',
+      titleHi: 'पैकेज',
+      subtitle: 'Canonical package definitions, benefits, add-ons & pricing rules',
+      subtitleHi: 'पैकेज, लाभ, ऐड-ऑन और मूल्य नियम'
+    },
     seeAddons: {
       group: 'CATALOGUE',
       groupEn: 'Catalogue',

@@ -31,6 +31,7 @@
   <link rel="stylesheet" href="/css/style.css?v=3.5.5">
   <link rel="stylesheet" href="/css/m3-tokens.css?v=3.5.5">
   <link rel="stylesheet" href="/css/staff-m3.css?v=3.5.5">
+  <link rel="stylesheet" href="/css/staff-redesign.css?v=1.0.2">
   <style>
   .is-hidden, [hidden], .header-dropdown-wrap.is-hidden, .header-account-trigger.is-hidden { display: none !important; }
   </style>
@@ -332,18 +333,18 @@
     </button>
     <button type="button" id="staffLogoutBtn" style="display: none !important;" hidden aria-hidden="true" onclick="handleStaffLogout()"></button>
     <div class="logout-subtext">सुरक्षित रूप से अपनी आज की शिफ्ट समाप्त करें</div></div></div></div>
-  <nav class="staff-bottom-nav" id="staffBottomNav" role="tablist" aria-label="Staff Navigation" style="display: none;">
-    <button type="button" class="staff-bottom-tab active" id="pillDailyClean" role="tab" aria-selected="true" onclick="setStaffFilter('daily_car_cleaning')">
+  <nav class="staff-bottom-nav" id="staffBottomNav" aria-label="Staff navigation" style="display: none;">
+    <button type="button" class="staff-bottom-tab active" id="pillDailyClean" aria-current="page" onclick="setStaffFilter('daily_car_cleaning')">
     <span class="material-symbols-outlined" aria-hidden="true">cleaning_services</span>
     <span class="bottom-tab-label pill-text">दैनिक सफाई</span>
     <span class="bottom-tab-badge pill-badge" id="countDailyClean" style="display: none;">0</span>
     </button>
-    <button type="button" class="staff-bottom-tab" id="pillOtherJobs" role="tab" aria-selected="false" onclick="setStaffFilter('other_jobs')">
+    <button type="button" class="staff-bottom-tab" id="pillOtherJobs" onclick="setStaffFilter('other_jobs')">
     <span class="material-symbols-outlined" aria-hidden="true">assignment</span>
     <span class="bottom-tab-label pill-text">अन्य काम</span>
     <span class="bottom-tab-badge pill-badge" id="countOtherJobs" style="display: none;">0</span>
     </button>
-    <button type="button" class="staff-bottom-tab" id="pillStaffSettings" role="tab" aria-selected="false" onclick="setStaffFilter('settings')">
+    <button type="button" class="staff-bottom-tab" id="pillStaffSettings" onclick="setStaffFilter('settings')">
     <span class="material-symbols-outlined" aria-hidden="true">settings</span>
     <span class="bottom-tab-label pill-text">सेटिंग्स</span>
     </button>
@@ -691,7 +692,7 @@
     <div id="startJobCustomerSummary" style="background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: var(--md-sys-color-on-surface, #0f172a); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);"></div>
     <div style="margin-bottom: 14px;">
     <label style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
-    <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">photo_camera</span><span id="startJobBeforePhotoLabel">काम शुरू करने से पहले की फोटो</span> <span style="font-size: 11.5px; font-weight: 500; color: var(--md-sys-color-outline, #64748b);">(वैकल्पिक / Optional)</span>
+    <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">photo_camera</span><span id="startJobBeforePhotoLabel">काम शुरू करने से पहले की फोटो</span> <span id="startJobBeforePhotoRequiredMark" style="font-size: 11.5px; font-weight: 500; color: var(--md-sys-color-outline, #64748b);">(वैकल्पिक / Optional)</span>
     </label>
     <p id="startJobPhotoHint" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b); margin-top: 0; margin-bottom: 10px;">
     यदि चाहें तो काम शुरू करने से पहले की स्थिति की 1 या 2 फोटो लें, या सीधे नीचे दिए बटन से काम शुरू करें।
@@ -703,7 +704,7 @@
     </button>
     <span id="startJobPhotoCountHint" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">0 / 2 फोटो चुनी गई</span>
     </div>
-    <div id="startJobPhotosPreview" style="display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap;"></div></div>
+    <div id="startJobPhotosPreview" style="display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap;"></div><div id="startJobPhotoUploadStatus" class="staff-photo-upload-status" role="status" aria-live="polite" hidden></div></div>
     <div id="startJobErrorMsg" style="display: none; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px;"></div>
     <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
     <button type="button" id="btnCancelStartJob" onclick="closeStartSpecialJobModal()" style="background: var(--md-sys-color-surface-container-high, #f1f5f9); border: 1px solid var(--md-sys-color-outline-variant, #cbd5e1); color: var(--md-sys-color-on-surface-variant, #475569); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">रद्द करें</button>
@@ -724,6 +725,14 @@
     </div>
     <div class="camera-modal-body" style="padding: 18px;">
     <div id="completeJobCustomerSummary" style="background: var(--md-sys-color-surface-container-low, #f8fafc); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: var(--md-sys-color-on-surface, #0f172a); border: 1px solid var(--md-sys-color-outline-variant, #e2e8f0);"></div>
+    <div id="completeJobChecklistBlock" style="display:none; margin-bottom: 14px;">
+      <div style="font-size:13px; font-weight:600; color:var(--md-sys-color-on-surface, #0f172a); margin-bottom:6px;">Service checklist <span style="color:#ef4444;">*</span></div>
+      <div id="completeJobChecklist" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+    <div id="completeJobAddonsBlock" style="display:none; margin-bottom:14px;">
+      <div style="font-size:13px; font-weight:600; color:var(--md-sys-color-on-surface, #0f172a); margin-bottom:6px;">Selected add-ons</div>
+      <div id="completeJobAddons" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
     <div style="margin-bottom: 14px;">
     <label style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
     <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">photo_camera</span><span id="completeJobAfterPhotoLabel">काम पूरा होने के बाद की फोटो</span> <span style="color:#ef4444;">*</span>
@@ -738,7 +747,7 @@
     </button>
     <span id="completeJobPhotoCountHint" style="font-size: 12px; color: var(--md-sys-color-outline, #64748b);">0 / 2 फोटो चुनी गई</span>
     </div>
-    <div id="completeJobPhotosPreview" style="display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap;"></div></div>
+    <div id="completeJobPhotosPreview" style="display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap;"></div><div id="completeJobPhotoUploadStatus" class="staff-photo-upload-status" role="status" aria-live="polite" hidden></div></div>
     <div style="margin-bottom: 14px;">
     <label style="display: block; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface, #0f172a); margin-bottom: 6px;">
     <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;" aria-hidden="true">notes</span><span id="completeJobNotesLabel">विशेष टिप्पणी / विवरण</span>
@@ -796,6 +805,7 @@
   var initialMode = "<?= typeof initialMode !== 'undefined' ? initialMode : 'staff' ?>";
   var webAppBaseUrl = "<?= typeof webAppUrl !== 'undefined' ? webAppUrl : '' ?>";
   </script>
-  <script src="/js/app.js?v=3.5.5" defer></script>
+  <script src="/js/app.js?v=3.5.7" defer></script>
+  <script src="/js/staff-redesign.js?v=1.0.0" defer></script>
 </body>
 </html>

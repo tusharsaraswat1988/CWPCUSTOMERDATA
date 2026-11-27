@@ -1,0 +1,634 @@
+/* Staff-only field workflow layer. Keeps the existing Admin styles and tokens untouched. */
+body.staff-mode-active {
+  --staff-ink: #102a43;
+  --staff-muted: #526579;
+  --staff-line: #c6d2dc;
+  --staff-canvas: #f3f6f8;
+  --staff-surface: #ffffff;
+  --staff-primary: #145b82;
+  --staff-primary-pressed: #0d4567;
+  --staff-positive: #176b45;
+  --staff-positive-soft: #e7f4ec;
+  --staff-warning: #815100;
+  --staff-warning-soft: #fff4d8;
+  --staff-danger: #a52a2a;
+  --staff-danger-soft: #fff0ed;
+  --staff-radius: 16px;
+  background: var(--staff-canvas);
+  color: var(--staff-ink);
+  font-family: 'Poppins', 'Noto Sans Devanagari', system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+body.staff-mode-active #staffView {
+  max-width: 760px;
+  min-height: 100dvh;
+  padding: 12px 16px calc(100px + env(safe-area-inset-bottom, 0px));
+  color: var(--staff-ink);
+}
+
+body.staff-mode-active .top-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  min-height: 56px;
+  background: var(--staff-ink) !important;
+  border: 0 !important;
+  box-shadow: 0 2px 10px rgb(16 42 67 / 14%) !important;
+  backdrop-filter: none !important;
+}
+
+body.staff-mode-active .top-header .header-inner { min-height: 56px; }
+body.staff-mode-active .top-header .header-app-title { font-size: 16px !important; letter-spacing: 0 !important; }
+body.staff-mode-active .top-header .brand-logo-img { width: 34px; height: 34px !important; object-fit: contain; }
+body.staff-mode-active .staff-header-utility { min-height: 48px; }
+body.staff-mode-active .staff-offline-badge { min-height: 36px; align-items: center; border-radius: 999px; padding: 0 12px; font-size: 12px; font-weight: 700; }
+body.staff-mode-active #staffPwaInstallBanner { display: none !important; }
+body.staff-mode-active #staffContent { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important; }
+body.staff-mode-active #staffJobsPanel { display: block; }
+body.staff-mode-active .staff-destination-heading { display: none; margin: 2px 0 10px; color: var(--staff-ink); font-size: 19px; font-weight: 750; line-height: 1.4; }
+body.staff-active-jobs .staff-destination-heading { display: block; }
+
+/* Today route summary is moved above the worklist by staff-redesign.js. */
+body.staff-mode-active .staff-route-header-box {
+  display: block;
+  margin: 0 0 12px !important;
+  padding: 16px !important;
+  color: var(--staff-ink) !important;
+  background: var(--staff-surface) !important;
+  border: 1px solid var(--staff-line) !important;
+  border-radius: var(--staff-radius) !important;
+  box-shadow: 0 2px 8px rgb(16 42 67 / 5%) !important;
+}
+body.staff-mode-active .route-header-top { display: block; }
+body.staff-mode-active .route-header-title-wrap { gap: 0 !important; }
+body.staff-mode-active .route-header-title-wrap > .route-header-icon { display: none !important; }
+body.staff-mode-active .route-header-title { color: var(--staff-ink) !important; font-size: 18px !important; line-height: 1.35 !important; }
+body.staff-mode-active .route-header-sub { margin-top: 4px; color: var(--staff-muted) !important; font-size: 13px !important; }
+body.staff-mode-active .route-progress-wrap { margin-top: 12px; }
+body.staff-mode-active .route-progress-text { color: var(--staff-ink) !important; font-size: 13px !important; }
+body.staff-mode-active .route-progress-bar-bg { height: 8px !important; background: #dce5eb !important; border-radius: 999px !important; }
+body.staff-mode-active .route-progress-bar-fill { background: var(--staff-primary) !important; border-radius: inherit; }
+body.staff-mode-active #staffCarCount { display: none !important; }
+body.staff-active-jobs #staffDailyRouteHeader { display: none !important; }
+
+/* Search is available on demand so the route remains the first thing staff see. */
+body.staff-mode-active .staff-search-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 14px;
+  color: var(--staff-primary);
+  background: var(--staff-surface);
+  border: 1px solid var(--staff-line);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+body.staff-mode-active .staff-search-toggle .material-symbols-outlined { font-size: 20px; }
+body.staff-mode-active .staff-search-row { margin: 0 0 12px; }
+body.staff-mode-active .staff-search-row.is-collapsed { display: none !important; }
+body.staff-mode-active .staff-search-row.is-expanded { display: flex !important; }
+body.staff-mode-active .staff-search-row .search-bar-wrapper,
+body.staff-mode-active .staff-search-row .search-input { min-height: 48px; }
+body.staff-mode-active .staff-inline-progress-chip { display: none !important; }
+
+/* Compact service filters stay on one line and remain touch-scrollable. */
+body.staff-mode-active .other-jobs-subfilter-bar {
+  display: flex;
+  flex-wrap: nowrap !important;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 2px 1px 8px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+}
+body.staff-mode-active .other-jobs-subfilter-bar::-webkit-scrollbar { display: none; }
+body.staff-mode-active .other-job-chip {
+  min-height: 44px;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  border: 1px solid var(--staff-line) !important;
+  border-radius: 999px !important;
+  background: var(--staff-surface) !important;
+  color: var(--staff-ink) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+body.staff-mode-active .other-job-chip.active { border-color: var(--staff-primary) !important; background: #e9f3f8 !important; color: var(--staff-primary) !important; }
+
+body.staff-mode-active #customerFeed { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+body.staff-mode-active #customerFeed .smart-card {
+  position: relative;
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: clip;
+  background: var(--staff-surface) !important;
+  border: 1px solid var(--staff-line) !important;
+  border-radius: var(--staff-radius) !important;
+  box-shadow: 0 2px 8px rgb(16 42 67 / 5%) !important;
+  color: var(--staff-ink);
+}
+body.staff-mode-active #customerFeed .smart-card.is-next-stop {
+  border: 2px solid var(--staff-primary) !important;
+  box-shadow: 0 5px 18px rgb(20 91 130 / 12%) !important;
+}
+body.staff-mode-active .staff-next-stop-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 12px 0;
+  color: var(--staff-primary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+body.staff-mode-active .staff-pending-sync { display: flex; align-items: center; gap: 6px; min-height: 38px; margin: 0 14px 8px; padding: 6px 10px; border-radius: 10px; background: var(--staff-warning-soft); color: var(--staff-warning); font-size: 12px; font-weight: 700; }
+body.staff-mode-active .staff-pending-sync::before { content: 'cloud_upload'; font-family: 'Material Symbols Outlined'; font-size: 18px; line-height: 1; }
+body.staff-mode-active #customerFeed .card-header-row { align-items: flex-start; gap: 10px; padding: 12px 14px 8px !important; }
+body.staff-mode-active #customerFeed .cust-route-seq-badge { min-width: 38px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 13px; font-weight: 800; }
+body.staff-mode-active #customerFeed .cust-full-name { color: var(--staff-ink) !important; font-size: 18px !important; font-weight: 700 !important; line-height: 1.45 !important; overflow-wrap: anywhere; }
+body.staff-mode-active #customerFeed .card-action-buttons { display: flex; gap: 8px; padding: 0 14px 10px !important; }
+body.staff-mode-active #customerFeed .btn-card-action {
+  min-height: 48px !important;
+  flex: 1 1 0;
+  justify-content: center;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+body.staff-mode-active #customerFeed .card-vehicle-row,
+body.staff-mode-active #customerFeed .card-address-row,
+body.staff-mode-active #customerFeed .card-notes-row { margin-inline: 14px !important; }
+body.staff-mode-active #customerFeed .card-vehicle-row { min-height: 44px; padding: 8px 0 !important; border-top: 1px solid #e5ebef; }
+body.staff-mode-active #customerFeed .vehicle-plate-badge,
+body.staff-mode-active #customerFeed .solar-site-badge { font-size: 15px !important; }
+body.staff-mode-active #customerFeed .card-address-row { gap: 8px; }
+body.staff-mode-active #customerFeed .card-address-content { min-height: 44px; }
+body.staff-mode-active #customerFeed .card-notes-row { border-radius: 10px; }
+body.staff-mode-active #customerFeed .card-status-actions-bar-split { display: flex; gap: 8px; padding: 12px 14px 14px !important; }
+body.staff-mode-active #customerFeed .btn-clean-done {
+  min-height: 52px !important;
+  flex: 1 1 auto;
+  border-radius: 12px !important;
+  background: var(--staff-primary) !important;
+  color: #fff !important;
+  font-size: 15px !important;
+  font-weight: 750 !important;
+}
+body.staff-mode-active #customerFeed .btn-clean-wa { min-width: 48px; min-height: 48px; border-radius: 12px !important; }
+body.staff-mode-active #customerFeed .card-service-stopped { border-color: var(--staff-danger) !important; }
+body.staff-mode-active #customerFeed .card-cleaned-done { background: var(--staff-surface) !important; opacity: .92; }
+body.staff-mode-active #customerFeed .card-special-job-journey { margin: 10px 14px 14px !important; }
+body.staff-mode-active #customerFeed .job-action-buttons-row { flex-wrap: wrap; }
+body.staff-mode-active #customerFeed .btn-job-action { min-height: 48px !important; border-radius: 12px !important; font-size: 14px !important; }
+body.staff-mode-active #customerFeed .btn-job-action span:not(.material-symbols-outlined) { white-space: normal; }
+body.staff-mode-active #customerFeed .job-card-journey-bar { min-height: 42px; border-radius: 10px; }
+body.staff-mode-active #customerFeed .job-photos-grid { gap: 8px; }
+body.staff-mode-active #customerFeed .job-photo-item { min-width: 84px; min-height: 84px; }
+body.staff-mode-active .staff-completed-group { margin: 2px 0 0; }
+body.staff-mode-active .staff-completed-group > summary { min-height: 48px; padding: 10px 12px; border-radius: 12px; background: var(--staff-surface); border: 1px solid var(--staff-line); color: var(--staff-muted); font-size: 14px; font-weight: 700; cursor: pointer; }
+body.staff-mode-active .staff-completed-list { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+
+/* Profile is organized into readable, separate utility groups. */
+body.staff-mode-active .staff-settings-panel { gap: 12px; padding: 0 0 12px; }
+body.staff-mode-active .staff-profile-card,
+body.staff-mode-active .staff-settings-info-card,
+body.staff-mode-active .staff-settings-logout-card {
+  padding: 16px !important;
+  border: 1px solid var(--staff-line) !important;
+  border-radius: var(--staff-radius) !important;
+  background: var(--staff-surface) !important;
+  box-shadow: 0 2px 8px rgb(16 42 67 / 5%) !important;
+}
+body.staff-mode-active .staff-profile-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+body.staff-mode-active .staff-name-text { color: var(--staff-ink) !important; font-size: 18px !important; }
+body.staff-mode-active .settings-card-title { color: var(--staff-ink); font-size: 15px; font-weight: 700; }
+body.staff-mode-active .settings-info-grid { gap: 10px 14px; }
+body.staff-mode-active .settings-info-item { min-height: 42px; }
+body.staff-mode-active .pref-row { min-height: 52px; padding-block: 8px; border-bottom: 1px solid #e5ebef; }
+body.staff-mode-active .pref-toggle-segmented { min-height: 44px; }
+body.staff-mode-active .btn-pref-segment,
+body.staff-mode-active .btn-test-alarm-chime { min-height: 44px; }
+body.staff-mode-active .btn-staff-settings-logout { min-height: 50px !important; border-radius: 12px !important; }
+
+/* Mobile sheets for task workflows; camera capture keeps its own viewport. */
+body.staff-mode-active #startSpecialJobModal,
+body.staff-mode-active #completeSpecialJobModal,
+body.staff-mode-active #cancelSpecialJobModal,
+body.staff-mode-active #addressViewModal,
+body.staff-mode-active #staffWhatsAppGroupModal,
+body.staff-mode-active #whatsAppImageShareModal,
+body.staff-mode-active #logoutConfirmModal,
+body.staff-mode-active #pwaIosModal {
+  align-items: flex-end !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  background: rgb(9 24 38 / 58%) !important;
+}
+body.staff-mode-active #startSpecialJobModal .camera-modal-card,
+body.staff-mode-active #completeSpecialJobModal .camera-modal-card,
+body.staff-mode-active #cancelSpecialJobModal .camera-modal-card,
+body.staff-mode-active #addressViewModal .modal-card-box,
+body.staff-mode-active #staffWhatsAppGroupModal .modal-card-box,
+body.staff-mode-active #whatsAppImageShareModal .modal-card-box {
+  width: min(100%, 560px) !important;
+  max-width: 560px !important;
+  max-height: min(92dvh, 860px) !important;
+  margin: 0 !important;
+  overflow-y: auto;
+  border-radius: 22px 22px 0 0 !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+body.staff-mode-active #logoutConfirmModal .logout-confirm-box,
+body.staff-mode-active #pwaIosModal .modal-card-box { width: min(100%, 560px) !important; max-width: 560px !important; max-height: min(92dvh, 860px) !important; margin: 0 !important; overflow-y: auto; border-radius: 22px 22px 0 0 !important; padding-bottom: env(safe-area-inset-bottom, 0px); }
+body.staff-mode-active .camera-modal-header { min-height: 60px; }
+body.staff-mode-active .camera-modal-header .modal-close-x,
+body.staff-mode-active .camera-close-btn,
+body.staff-mode-active .modal-close-x { width: 48px; height: 48px; }
+body.staff-mode-active #cleaningCameraModal { padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) !important; }
+body.staff-mode-active #cleaningCameraModal .camera-modal-box { width: 100% !important; max-width: 620px !important; max-height: 100dvh !important; min-height: min(90dvh, 720px); overflow-y: auto; border-radius: 20px 20px 0 0 !important; }
+body.staff-mode-active .camera-controls-row button,
+body.staff-mode-active .camera-controls-row label,
+body.staff-mode-active .camera-review-actions button { min-height: 48px; }
+body.staff-mode-active #btnCameraShutter { min-width: 68px; min-height: 68px; }
+body.staff-mode-active #cameraNonCompletionReasonSelect,
+body.staff-mode-active #cameraNonCompletionNotes,
+body.staff-mode-active #startJobPhotoInput,
+body.staff-mode-active #completeJobNotes,
+body.staff-mode-active #cancelJobReasonSelect,
+body.staff-mode-active #cancelJobRemarksInput { min-height: 48px; font: inherit; font-size: 16px !important; }
+body.staff-mode-active #btnSubmitStartJob,
+body.staff-mode-active #btnSubmitCompleteJob,
+body.staff-mode-active #btnSubmitCancelJob,
+body.staff-mode-active #btnConfirmCleanPhoto { min-height: 52px !important; border-radius: 12px !important; }
+body.staff-mode-active #completeJobChecklist label { min-height: 48px; align-items: center !important; }
+body.staff-mode-active #completeJobChecklist input[type="checkbox"] { width: 24px; height: 24px; flex: 0 0 24px; }
+body.staff-mode-active #completeJobChecklist label { border-color: var(--staff-line) !important; color: var(--staff-ink) !important; }
+body.staff-mode-active #completeJobAddons > div { border-color: var(--staff-line) !important; color: var(--staff-ink) !important; }
+body.staff-mode-active .staff-photo-upload-status { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 10px; color: var(--staff-muted); background: #f1f5f8; font-size: 13px; font-weight: 650; line-height: 1.45; }
+body.staff-mode-active .staff-photo-upload-status[hidden] { display: none; }
+body.staff-mode-active .staff-photo-upload-status::before { flex: 0 0 auto; font-family: 'Material Symbols Outlined'; font-size: 19px; line-height: 1.2; }
+body.staff-mode-active .staff-photo-upload-status[data-state="selected"] { color: var(--staff-muted); background: #f1f5f8; }
+body.staff-mode-active .staff-photo-upload-status[data-state="selected"]::before { content: 'photo'; }
+body.staff-mode-active .staff-photo-upload-status[data-state="uploading"] { color: var(--staff-primary); background: #eaf3f8; }
+body.staff-mode-active .staff-photo-upload-status[data-state="uploading"]::before { content: 'progress_activity'; animation: staff-upload-spin 1s linear infinite; }
+body.staff-mode-active .staff-photo-upload-status[data-state="success"] { color: var(--staff-positive); background: var(--staff-positive-soft); }
+body.staff-mode-active .staff-photo-upload-status[data-state="success"]::before { content: 'check_circle'; }
+body.staff-mode-active .staff-photo-upload-status[data-state="failure"] { color: var(--staff-danger); background: var(--staff-danger-soft); }
+body.staff-mode-active .staff-photo-upload-status[data-state="failure"]::before { content: 'error'; }
+body.staff-mode-active .staff-photo-item-state { position: absolute; right: 0; bottom: 0; left: 0; padding: 3px 4px; overflow: hidden; background: rgb(16 42 67 / 88%); color: #fff; font-size: 9px; font-weight: 700; line-height: 1.2; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+body.staff-mode-active .staff-photo-item-state[data-state="uploading"] { background: var(--staff-primary); }
+body.staff-mode-active .staff-photo-item-state[data-state="success"] { background: var(--staff-positive); }
+body.staff-mode-active .staff-photo-item-state[data-state="failure"] { background: var(--staff-danger); }
+body.staff-mode-active .staff-upload-spinner { display: inline-block; width: 17px; height: 17px; flex: 0 0 17px; border: 2px solid rgb(255 255 255 / 40%); border-top-color: #fff; border-radius: 50%; animation: staff-upload-spin 0.8s linear infinite; }
+@keyframes staff-upload-spin { to { transform: rotate(360deg); } }
+body.staff-mode-active #startSpecialJobModal .camera-modal-body > div:last-child,
+body.staff-mode-active #completeSpecialJobModal .camera-modal-body > div:last-child,
+body.staff-mode-active #cancelSpecialJobModal .camera-modal-body > div:last-child { position: sticky; bottom: 0; z-index: 2; padding: 10px 0 max(8px, env(safe-area-inset-bottom, 8px)); background: var(--staff-surface); }
+
+/* Navigation uses native button semantics and a clear current-page state. */
+body.staff-mode-active .staff-bottom-nav {
+  min-height: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+  height: auto !important;
+  padding: 6px 10px max(8px, env(safe-area-inset-bottom, 8px)) !important;
+  gap: 8px;
+  background: var(--staff-surface) !important;
+  border-top: 1px solid var(--staff-line) !important;
+  box-shadow: 0 -4px 18px rgb(16 42 67 / 8%) !important;
+}
+body.staff-mode-active .staff-bottom-tab {
+  min-height: 52px;
+  gap: 2px;
+  border-radius: 14px;
+  color: var(--staff-muted);
+}
+body.staff-mode-active .staff-bottom-tab .material-symbols-outlined { font-size: 22px; }
+body.staff-mode-active .staff-bottom-tab .bottom-tab-label { font-size: 12px; line-height: 1.4; }
+body.staff-mode-active .staff-bottom-tab.active { color: var(--staff-primary); background: #eaf3f7; border-color: transparent; box-shadow: none; }
+body.staff-mode-active .staff-bottom-tab.active::before { display: none; }
+body.staff-mode-active .staff-bottom-tab[aria-current="page"] .bottom-tab-label { font-weight: 800; }
+body.staff-mode-active .staff-empty-icon { display: none !important; }
+body.staff-mode-active .staff-bottom-tab:focus-visible,
+body.staff-mode-active button:focus-visible,
+body.staff-mode-active a:focus-visible,
+body.staff-mode-active input:focus-visible,
+body.staff-mode-active select:focus-visible,
+body.staff-mode-active textarea:focus-visible { outline: 2px solid var(--staff-primary) !important; outline-offset: 2px; }
+
+/* State feedback remains textual and non-color dependent. */
+body.staff-mode-active #staffOfflineBannerContainer .offline-warning-banner { min-height: 52px; align-items: center; border-radius: 12px !important; }
+body.staff-mode-active #staffNewTaskAlertBanner { margin-bottom: 12px; }
+body.staff-mode-active .empty-state-card { margin: 8px 0; padding: 24px 18px !important; border-radius: var(--staff-radius) !important; }
+body.staff-mode-active .staff-login-card { width: min(100%, 440px); border-radius: 22px !important; box-shadow: 0 8px 28px rgb(16 42 67 / 12%) !important; }
+body.staff-mode-active #staffAuthGate { min-height: calc(100dvh - 72px); padding: 20px 8px; }
+body.staff-mode-active #staffAuthGate .cwp-ambient-glow,
+body.staff-mode-active #staffAuthGate .cwp-gloss-reflection,
+body.staff-mode-active #staffAuthGate .cwp-accent-shimmer { display: none !important; }
+body.staff-mode-active #staffAuthGate .auth-field-input { min-height: 52px !important; font-size: 16px !important; }
+body.staff-mode-active #staffAuthGate .auth-field-input::placeholder { color: var(--staff-muted) !important; opacity: 1 !important; }
+body.staff-mode-active #staffAuthGate .auth-field-input::-webkit-input-placeholder { color: var(--staff-muted) !important; opacity: 1 !important; }
+body.staff-mode-active #staffAuthDesc,
+body.staff-mode-active #staffAuthGate .auth-trust-strip { color: var(--staff-muted) !important; opacity: 1 !important; }
+body.staff-mode-active #staffPinDotsRow { display: none !important; }
+body.staff-mode-active #staffAuthGate .auth-submit-btn { min-height: 52px !important; border-radius: 12px !important; }
+body.staff-mode-active #staffAuthGate .admin-auth-error-msg { position: static !important; margin: 10px 0; }
+body.staff-mode-active .pwa-update-bar { padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)); }
+body.staff-mode-active .staff-utility-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 8px 0; border-top: 1px solid #e5ebef; color: var(--staff-ink); font-size: 14px; font-weight: 600; }
+body.staff-mode-active .staff-utility-row > span { display: inline-flex; align-items: center; gap: 10px; }
+body.staff-mode-active .staff-utility-row > span .material-symbols-outlined { color: var(--staff-primary); font-size: 20px; }
+body.staff-mode-active .staff-utility-row .btn-clean-wa,
+body.staff-mode-active .staff-utility-row #staffPwaInstallBtn { min-width: 48px; min-height: 44px; display: inline-flex !important; align-items: center; justify-content: center; border-radius: 12px !important; }
+body.staff-mode-active .staff-utility-row #staffPwaInstallBtn[style*="display: none"] { display: none !important; }
+body.staff-mode-active .staff-utility-row #staffPwaInstallBtn[hidden] { display: none !important; }
+body.staff-mode-active .staff-utility-row #staffPwaInstallBtn .util-btn-icon { display: none !important; }
+body.staff-mode-active .staff-utility-row #staffPwaInstallBtn .material-symbols-outlined { font-size: 20px; }
+body.staff-mode-active .staff-utility-row #staffPwaInstallBtn .pwa-btn-text { display: inline !important; }
+body.staff-mode-active .staff-sync-card .settings-info-item.is-offline .info-value { color: var(--staff-warning) !important; font-weight: 700; }
+
+@media (min-width: 760px) {
+  body.staff-mode-active #staffView { padding-top: 20px; }
+  body.staff-mode-active #customerFeed .smart-card.is-next-stop { padding-bottom: 2px !important; }
+  body.staff-mode-active .staff-bottom-nav { max-width: 760px !important; border-radius: 18px 18px 0 0 !important; }
+}
+
+@media (min-width: 680px) {
+  body.staff-mode-active #startSpecialJobModal,
+  body.staff-mode-active #completeSpecialJobModal,
+  body.staff-mode-active #cancelSpecialJobModal,
+  body.staff-mode-active #addressViewModal,
+  body.staff-mode-active #staffWhatsAppGroupModal,
+  body.staff-mode-active #whatsAppImageShareModal,
+  body.staff-mode-active #logoutConfirmModal,
+  body.staff-mode-active #pwaIosModal { align-items: center !important; padding: 24px !important; }
+  body.staff-mode-active #startSpecialJobModal .camera-modal-card,
+  body.staff-mode-active #completeSpecialJobModal .camera-modal-card,
+  body.staff-mode-active #cancelSpecialJobModal .camera-modal-card,
+  body.staff-mode-active #addressViewModal .modal-card-box,
+  body.staff-mode-active #staffWhatsAppGroupModal .modal-card-box,
+  body.staff-mode-active #whatsAppImageShareModal .modal-card-box,
+  body.staff-mode-active #logoutConfirmModal .logout-confirm-box,
+  body.staff-mode-active #pwaIosModal .modal-card-box { border-radius: 22px !important; }
+}
+
+@media (max-width: 380px) {
+  body.staff-mode-active #staffView { padding-inline: 10px; }
+  body.staff-mode-active #customerFeed .card-header-row { padding-inline: 10px !important; }
+  body.staff-mode-active #customerFeed .card-action-buttons,
+  body.staff-mode-active #customerFeed .card-status-actions-bar-split { padding-inline: 10px !important; }
+  body.staff-mode-active #customerFeed .btn-card-action { font-size: 12px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.staff-mode-active *, body.staff-mode-active *::before, body.staff-mode-active *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+body.staff-mode-active.theme-dark,
+body.staff-mode-active.theme-dark #staffView {
+  --staff-ink: #f0f5f8;
+  --staff-muted: #b5c3ce;
+  --staff-line: #465866;
+  --staff-canvas: #111e28;
+  --staff-surface: #1b2b37;
+  --staff-primary: #83c8ea;
+  --staff-primary-pressed: #a4dcf2;
+  --staff-positive: #8ed4a9;
+  --staff-positive-soft: #1e3a2c;
+  --staff-warning: #f4d28b;
+  --staff-warning-soft: #40331c;
+  --staff-danger: #ffaaa0;
+  --staff-danger-soft: #482b2b;
+  color: var(--staff-ink);
+  background: var(--staff-canvas);
+}
+body.staff-mode-active.theme-dark .staff-route-header-box,
+body.staff-mode-active.theme-dark #customerFeed .smart-card,
+body.staff-mode-active.theme-dark .staff-profile-card,
+body.staff-mode-active.theme-dark .staff-settings-info-card,
+body.staff-mode-active.theme-dark .staff-settings-logout-card,
+body.staff-mode-active.theme-dark .staff-search-toggle,
+body.staff-mode-active.theme-dark .staff-completed-group > summary { background: var(--staff-surface) !important; color: var(--staff-ink) !important; border-color: var(--staff-line) !important; }
+body.staff-mode-active.theme-dark #customerFeed .cust-full-name,
+body.staff-mode-active.theme-dark .route-header-title,
+body.staff-mode-active.theme-dark .route-progress-text,
+body.staff-mode-active.theme-dark .settings-card-title { color: var(--staff-ink) !important; }
+body.staff-mode-active.theme-dark .other-job-chip { background: var(--staff-surface) !important; color: var(--staff-ink) !important; border-color: var(--staff-line) !important; }
+body.staff-mode-active.theme-dark .other-job-chip.active,
+body.staff-mode-active.theme-dark .staff-bottom-tab.active { background: #243e4d !important; color: #a5d9f0 !important; }
+body.staff-mode-active.theme-dark .staff-bottom-nav { background: #182732 !important; border-color: var(--staff-line) !important; }
+body.staff-mode-active.theme-dark #customerFeed .card-vehicle-row { border-color: var(--staff-line); }
+body.staff-mode-active.theme-dark .staff-utility-row { border-color: var(--staff-line); color: var(--staff-ink); }
+
+/* Final visual polish from the supplied Staff screen references. */
+body.staff-mode-active {
+  --staff-line: #d2dce3;
+}
+
+/* Keep keyboard focus visible, but distinct from the selected navigation fill. */
+body.staff-mode-active .staff-bottom-tab:focus-visible,
+body.staff-mode-active button:focus-visible,
+body.staff-mode-active a:focus-visible,
+body.staff-mode-active input:focus-visible,
+body.staff-mode-active select:focus-visible,
+body.staff-mode-active textarea:focus-visible {
+  outline: 2px solid var(--staff-primary) !important;
+  outline-offset: 2px;
+}
+body.staff-mode-active .staff-bottom-tab:focus:not(:focus-visible),
+body.staff-mode-active .staff-bottom-tab:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Profile: reduce card bulk and restore readable contrast to secondary labels. */
+body.staff-mode-active .staff-settings-panel { gap: 10px; }
+body.staff-mode-active .staff-profile-card,
+body.staff-mode-active #staffSettingsPanel .staff-settings-info-card,
+body.staff-mode-active .staff-settings-logout-card { padding: 12px !important; }
+body.staff-mode-active #staffPortalProfileDetailsCard .settings-card-header,
+body.staff-mode-active #staffSettingsPanel .settings-card-header { margin-bottom: 8px !important; }
+body.staff-mode-active #staffPortalProfileDetailsCard .settings-info-grid,
+body.staff-mode-active #staffSettingsPanel .settings-info-grid { gap: 4px 12px; }
+body.staff-mode-active #staffPortalProfileDetailsCard .settings-info-item,
+body.staff-mode-active #staffSettingsPanel .settings-info-item { min-height: 38px; }
+body.staff-mode-active #staffSettingsPanel .info-label { color: var(--staff-muted) !important; opacity: 1 !important; }
+body.staff-mode-active #staffSettingsPanel .info-value { color: var(--staff-ink) !important; }
+body.staff-mode-active #staffSettingsPanel .pref-row { min-height: 48px; padding-block: 6px; border-color: var(--staff-line); }
+body.staff-mode-active #staffSettingsPanel .pref-label-group { color: var(--staff-ink) !important; }
+body.staff-mode-active #staffSettingsPanel .pref-toggle-segmented { min-height: 44px; }
+body.staff-mode-active #staffSettingsPanel .btn-pref-segment {
+  min-height: 40px;
+  color: var(--staff-muted) !important;
+  opacity: 1 !important;
+  cursor: pointer;
+}
+body.staff-mode-active #staffSettingsPanel .btn-pref-segment.active { color: var(--staff-primary) !important; }
+body.staff-mode-active #staffSettingsPanel .btn-pref-segment:disabled {
+  color: var(--staff-muted) !important;
+  opacity: .55 !important;
+  cursor: not-allowed;
+}
+body.staff-mode-active #btnTestAlarmSound {
+  flex: 0 1 158px;
+  min-height: 40px;
+  padding: 6px 9px !important;
+  border-color: var(--staff-line) !important;
+  border-radius: 10px !important;
+  background: var(--staff-canvas) !important;
+  color: var(--staff-primary) !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  line-height: 1.25;
+}
+body.staff-mode-active #staffSettingsPanel .staff-utility-row .btn-clean-wa {
+  min-height: 40px;
+  padding: 7px 11px !important;
+  border: 1px solid var(--staff-line) !important;
+  border-radius: 10px !important;
+  background: #eaf2f6 !important;
+  color: var(--staff-primary) !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 700;
+}
+body.staff-mode-active #staffSettingsPanel .staff-install-row { min-height: 52px; }
+body.staff-mode-active #staffSettingsPanel .staff-install-row #staffPwaInstallBtn {
+  min-height: 44px;
+  max-width: 172px;
+  padding: 7px 11px !important;
+  border: 1px solid var(--staff-line) !important;
+  border-radius: 10px !important;
+  background: #eaf2f6 !important;
+  color: var(--staff-primary) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  white-space: normal;
+}
+body.staff-mode-active #staffSettingsPanel .staff-install-row #staffPwaInstallBtn:disabled {
+  background: var(--staff-canvas) !important;
+  color: var(--staff-muted) !important;
+  opacity: .65 !important;
+  cursor: not-allowed;
+}
+body.staff-mode-active #staffSettingsPanel .staff-install-row #staffPwaInstallBtn[style*="display: none"],
+body.staff-mode-active #staffSettingsPanel .staff-install-row #staffPwaInstallBtn[hidden] { display: none !important; }
+body.staff-mode-active #staffSettingsPanel .staff-sync-card .settings-card-header { margin-bottom: 6px !important; }
+body.staff-mode-active #staffSettingsPanel .staff-sync-card .settings-info-item { min-height: 34px; padding-block: 4px !important; }
+body.staff-mode-active #staffSettingsPanel .staff-sync-card .info-label { font-size: 12px; }
+body.staff-mode-active #staffSettingsPanel .staff-sync-card .info-value { font-size: 12px; }
+body.staff-mode-active .staff-settings-logout-card { margin-top: 0 !important; }
+body.staff-mode-active .staff-settings-logout-card .logout-subtext { color: var(--staff-muted) !important; opacity: 1 !important; }
+
+/* Jobs: intentional unavailable-photo tiles, compact status separators and actions. */
+body.staff-mode-active #customerFeed .card-special-job-journey {
+  margin-top: 10px !important;
+  padding-top: 8px !important;
+  border-top: 1px solid var(--staff-line) !important;
+}
+body.staff-mode-active #customerFeed .job-photos-grid { gap: 8px; margin: 7px 0 8px !important; }
+body.staff-mode-active #customerFeed .job-photo-item {
+  width: 78px !important;
+  min-width: 78px !important;
+  height: 68px !important;
+  min-height: 68px !important;
+  border: 1px solid var(--staff-line) !important;
+  border-radius: 10px !important;
+  background: var(--staff-canvas) !important;
+}
+body.staff-mode-active #customerFeed .job-photo-item:has(img.img-broken) {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed !important;
+  border-color: #9eb7c7 !important;
+  background: #edf4f7 !important;
+}
+body.staff-mode-active #customerFeed .job-photo-item img.img-broken { display: none !important; }
+body.staff-mode-active #customerFeed .job-photo-item:has(img.img-broken)::before {
+  content: 'image_not_supported';
+  position: absolute;
+  top: 11px;
+  color: var(--staff-primary);
+  font-family: 'Material Symbols Outlined';
+  font-size: 28px;
+  line-height: 1;
+  font-feature-settings: 'liga';
+}
+body.staff-mode-active #customerFeed .job-photo-item .job-photo-label {
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  padding: 3px 5px !important;
+  border-radius: 0 !important;
+  font-size: 10px !important;
+  text-align: center;
+}
+body.staff-mode-active #customerFeed .job-photo-item:has(img.img-broken) .job-photo-label {
+  background: #e0e9ee !important;
+  color: #263d50 !important;
+  font-weight: 700 !important;
+}
+body.staff-mode-active #customerFeed .job-card-journey-bar .job-time-chip { color: var(--staff-muted) !important; font-weight: 600; }
+body.staff-mode-active #customerFeed .btn-job-wa-share {
+  min-height: 44px !important;
+  margin-top: 8px;
+  border: 1px solid var(--staff-line) !important;
+  border-radius: 12px !important;
+  background: var(--staff-positive-soft) !important;
+  color: var(--staff-positive) !important;
+  box-shadow: none !important;
+}
+body.staff-mode-active #customerFeed .btn-job-wa-share:hover { filter: brightness(.97); }
+
+/* Keep the horizontal filter scroll discoverable without cutting off chip targets. */
+body.staff-mode-active .other-jobs-subfilter-bar {
+  padding-inline: 2px 8px;
+  padding-bottom: 7px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+body.staff-mode-active .other-jobs-subfilter-bar::-webkit-scrollbar { display: none !important; }
+body.staff-mode-active .other-jobs-subfilter-bar .other-job-chip { scroll-margin-inline: 8px; }
+
+/* Today: tighten the route summary and keep address text comfortably legible. */
+body.staff-mode-active .staff-route-header-box { padding: 14px !important; margin-bottom: 10px !important; border-color: var(--staff-line) !important; }
+body.staff-mode-active .route-progress-wrap { margin-top: 10px; }
+body.staff-mode-active .staff-search-toggle { margin-bottom: 8px; }
+body.staff-mode-active #customerFeed .card-address-content,
+body.staff-mode-active #customerFeed .card-address-row { color: var(--staff-muted) !important; line-height: 1.5; overflow-wrap: anywhere; }
+body.staff-mode-active #customerFeed .smart-card { border-color: var(--staff-line) !important; }
+
+/* Customer Locations: preserve the sheet while improving close and action targets. */
+body.staff-mode-active #addressViewModal .modal-card-box { max-height: min(88dvh, 760px) !important; }
+body.staff-mode-active #addressViewModal .modal-card-header { padding: 8px 16px 10px !important; }
+body.staff-mode-active #addressViewModal .modal-close-x { width: 44px !important; height: 44px !important; }
+body.staff-mode-active #addressViewModal .modal-card-box > div[style*="overflow-y: auto"] { padding: 12px 16px !important; }
+body.staff-mode-active #addressViewModal #addrModalPrimaryMapLink,
+body.staff-mode-active #addressViewModal #addrModalSecondaryMapLink,
+body.staff-mode-active #addressViewModal button.btn-cell-action { min-height: 44px !important; height: auto !important; }
+body.staff-mode-active #addressViewModal #addrModalPrimary,
+body.staff-mode-active #addressViewModal #addrModalSecondary { color: var(--staff-ink) !important; overflow-wrap: anywhere; }
+
+@media (max-width: 380px) {
+  body.staff-mode-active #staffSettingsPanel .pref-row { align-items: flex-start !important; gap: 8px; }
+  body.staff-mode-active #staffSettingsPanel .pref-label-group { max-width: 43%; }
+  body.staff-mode-active #staffSettingsPanel .btn-test-alarm-chime { flex-basis: 145px; }
+  body.staff-mode-active #staffSettingsPanel .staff-install-row > span { max-width: 54%; }
+  body.staff-mode-active #customerFeed .job-photo-item { width: 72px !important; min-width: 72px !important; }
+}

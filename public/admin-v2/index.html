@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CWP Admin V2 — Operations &amp; Management Shell</title>
+  <title>CWP Admin — Operations &amp; Management Shell</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
 
   <!-- Admin V2 Scoped Stylesheets (Self-hosted Material Symbols, Zero External CDN Fonts, Completely isolated from V1) -->
@@ -130,6 +130,11 @@
                 <span class="material-symbols-outlined" aria-hidden="true">cleaning_services</span>
                 <span class="cwp-v2-nav-label">Services</span>
                 <span id="v2BadgeSeeServices" class="cwp-v2-nav-badge">—</span>
+              </button>
+              <button type="button" id="v2NavBtnSeePackages" class="cwp-v2-nav-item" data-tab="seePackages" title="Packages">
+                <span class="material-symbols-outlined" aria-hidden="true">inventory_2</span>
+                <span class="cwp-v2-nav-label">Packages</span>
+                <span id="v2BadgeSeePackages" class="cwp-v2-nav-badge">—</span>
               </button>
               <button type="button" id="v2NavBtnSeeAddons" class="cwp-v2-nav-item" data-tab="seeAddons" title="Add-ons">
                 <span class="material-symbols-outlined" aria-hidden="true">extension</span>
@@ -7315,6 +7320,33 @@
           <!-- ============================================================= -->
           <!-- VIEW: CATALOGUE -> SERVICES (SEE-12 PRODUCTION)               -->
           <!-- ============================================================= -->
+          <section id="v2View_seePackages" class="cwp-v2-view" aria-label="Packages">
+            <div class="cwp-v2-data-grid">
+              <div class="cwp-v2-table-toolbar">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <div class="cwp-v2-input-box cwp-v2-input-sm" style="width:250px;">
+                    <span class="material-symbols-outlined cwp-v2-input-leading-icon" style="font-size:16px;">search</span>
+                    <input type="search" id="v2SeePackagesSearch" class="cwp-v2-input" placeholder="Search package code or name…" aria-label="Search packages">
+                  </div>
+                  <select id="v2SeePackagesStatus" class="cwp-v2-select-compact" aria-label="Filter packages by status">
+                    <option value="ALL">All statuses</option><option value="active">Active</option><option value="draft">Draft</option><option value="retired">Retired</option>
+                  </select>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <button type="button" id="v2SeePackagesRefresh" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm"><span class="material-symbols-outlined">refresh</span><span>Refresh</span></button>
+                  <button type="button" id="v2SeePackagesCreate" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm"><span class="material-symbols-outlined">add</span><span>New Package</span></button>
+                </div>
+              </div>
+              <div id="v2SeePackagesState" class="cwp-v2-empty-state-panel" style="display:none;margin:16px;"></div>
+              <div class="cwp-v2-table-wrap" id="v2SeePackagesTableWrap">
+                <table class="cwp-v2-table" aria-label="SEE packages">
+                  <thead><tr><th>Code</th><th>Package</th><th>Primary service</th><th>Benefits</th><th>Validity</th><th>Price</th><th>Version</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="v2SeePackagesBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
           <section id="v2View_seeServices" class="cwp-v2-view" aria-label="Services">
             <div class="cwp-v2-data-grid">
               <div class="cwp-v2-table-toolbar">
@@ -9216,6 +9248,62 @@
       </div>
     </div>
 
+    <div id="v2CustPurchaseModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2CustPurchaseTitle">
+        <div class="cwp-v2-modal-header"><h2 id="v2CustPurchaseTitle" class="cwp-v2-modal-title">Purchase Package</h2><button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close purchase confirmation"><span class="material-symbols-outlined">close</span></button></div>
+        <form id="v2CustPurchaseForm">
+          <div class="cwp-v2-modal-body" style="display:flex;flex-direction:column;gap:12px;">
+            <input type="hidden" id="v2CustPurchaseCustomerId">
+            <div class="cwp-v2-field"><label for="v2CustPurchasePackage" class="cwp-v2-field-label">Active package <span class="cwp-v2-req-star">*</span></label><select id="v2CustPurchasePackage" class="cwp-v2-select" required></select></div>
+            <div class="cwp-v2-field"><label for="v2CustPurchaseVehicle" class="cwp-v2-field-label">Vehicle <span class="cwp-v2-req-star">*</span></label><select id="v2CustPurchaseVehicle" class="cwp-v2-select" required></select></div>
+            <div class="cwp-v2-field"><label for="v2CustPurchaseLocation" class="cwp-v2-field-label">Service location <span class="cwp-v2-req-star">*</span></label><select id="v2CustPurchaseLocation" class="cwp-v2-select" required></select></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div class="cwp-v2-field"><label for="v2CustPurchaseCity" class="cwp-v2-field-label">City (for eligibility)</label><input id="v2CustPurchaseCity" class="cwp-v2-input" maxlength="100"></div><div class="cwp-v2-field"><label for="v2CustPurchaseZone" class="cwp-v2-field-label">Zone (for eligibility)</label><input id="v2CustPurchaseZone" class="cwp-v2-input" maxlength="100"></div></div>
+            <div class="cwp-v2-field"><label for="v2CustPurchaseQuantity" class="cwp-v2-field-label">Purchase units</label><input type="number" id="v2CustPurchaseQuantity" class="cwp-v2-input" min="1" step="1" value="1" required></div>
+            <div class="cwp-v2-form-alert is-info" id="v2CustPurchasePrice" role="status">Select an active package to calculate its price.</div>
+            <div class="cwp-v2-field"><label for="v2CustPurchaseTerms" class="cwp-v2-field-label">Purchase terms (optional)</label><textarea id="v2CustPurchaseTerms" class="cwp-v2-textarea" rows="2"></textarea></div>
+            <div id="v2CustPurchaseError" class="cwp-v2-form-alert is-error" role="alert" hidden></div>
+            <div id="v2CustPurchaseReview" class="cwp-v2-field-hint">Review the package, price, vehicle and location before confirming.</div>
+          </div>
+          <div class="cwp-v2-modal-footer"><button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button><button type="submit" id="v2CustPurchaseConfirm" class="cwp-v2-btn cwp-v2-btn-primary">Confirm Purchase</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="v2SeePackageModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-lg" role="dialog" aria-modal="true" aria-labelledby="v2SeePackageModalTitle">
+        <div class="cwp-v2-modal-header">
+          <h2 id="v2SeePackageModalTitle" class="cwp-v2-modal-title">New Package</h2>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close package editor"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <form id="v2SeePackageForm">
+          <div class="cwp-v2-modal-body" style="display:flex;flex-direction:column;gap:12px;max-height:68vh;overflow:auto;">
+            <input type="hidden" id="v2SeePackageId">
+            <div class="cwp-v2-form-grid">
+              <div class="cwp-v2-field"><label for="v2SeePackageCode" class="cwp-v2-field-label">Package code <span class="cwp-v2-req-star">*</span></label><input id="v2SeePackageCode" class="cwp-v2-input" required maxlength="64"></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageName" class="cwp-v2-field-label">Package name <span class="cwp-v2-req-star">*</span></label><input id="v2SeePackageName" class="cwp-v2-input" required maxlength="160"></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageMainService" class="cwp-v2-field-label">Primary service <span class="cwp-v2-req-star">*</span></label><select id="v2SeePackageMainService" class="cwp-v2-select" required></select></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageStatus" class="cwp-v2-field-label">Status</label><select id="v2SeePackageStatus" class="cwp-v2-select"><option value="draft">Draft</option><option value="active">Active</option><option value="retired">Retired</option></select></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageValidity" class="cwp-v2-field-label">Validity quantity</label><input type="number" min="1" step="1" id="v2SeePackageValidity" class="cwp-v2-input" required></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageValidityUnit" class="cwp-v2-field-label">Validity unit</label><select id="v2SeePackageValidityUnit" class="cwp-v2-select"><option value="days">Days</option><option value="months">Months</option><option value="years">Years</option></select></div>
+              <div class="cwp-v2-field"><label for="v2SeePackagePricingModel" class="cwp-v2-field-label">Pricing model</label><select id="v2SeePackagePricingModel" class="cwp-v2-select"><option value="fixed">Fixed</option><option value="vehicle_segment">Vehicle segment</option><option value="per_unit">Per unit</option><option value="per_panel">Per panel</option><option value="pricing_bands">Pricing bands</option><option value="minimum_charge">Minimum charge</option><option value="custom">Custom</option></select></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageBasePrice" class="cwp-v2-field-label">Base price (INR)</label><input type="number" min="0" step="0.01" id="v2SeePackageBasePrice" class="cwp-v2-input" required></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageVehicleSegment" class="cwp-v2-field-label">Vehicle segment</label><input id="v2SeePackageVehicleSegment" class="cwp-v2-input" maxlength="80"></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageEffectiveFrom" class="cwp-v2-field-label">Effective from</label><input type="date" id="v2SeePackageEffectiveFrom" class="cwp-v2-input"></div>
+              <div class="cwp-v2-field"><label for="v2SeePackageEffectiveTo" class="cwp-v2-field-label">Effective to</label><input type="date" id="v2SeePackageEffectiveTo" class="cwp-v2-input"></div>
+            </div>
+            <div class="cwp-v2-field"><label for="v2SeePackageDetails" class="cwp-v2-field-label">Package details</label><textarea id="v2SeePackageDetails" class="cwp-v2-textarea" rows="2"></textarea></div>
+            <div class="cwp-v2-field"><label for="v2SeePackageBenefits" class="cwp-v2-field-label">Benefits (JSON)</label><textarea id="v2SeePackageBenefits" class="cwp-v2-textarea" rows="4" required spellcheck="false"></textarea><small>Each entry: serviceId, benefitType, quantity, frequencyId, validityOverrideDays, config. Use canonical service IDs.</small></div>
+            <div class="cwp-v2-field"><label for="v2SeePackageAddons" class="cwp-v2-field-label">Included add-ons (JSON)</label><textarea id="v2SeePackageAddons" class="cwp-v2-textarea" rows="3" spellcheck="false"></textarea><small>Each entry: addonId, quantity, frequencyId, isIncluded, overridePrice, config.</small></div>
+            <div class="cwp-v2-field"><label for="v2SeePackagePricingRules" class="cwp-v2-field-label">Pricing rules (JSON)</label><textarea id="v2SeePackagePricingRules" class="cwp-v2-textarea" rows="3" spellcheck="false"></textarea><small>Rules use city, zone, vehicleSegment, pricingModel, unitPrice, minCharge, pricingBands, effectiveFrom, effectiveTo, isActive.</small></div>
+            <div class="cwp-v2-field"><label for="v2SeePackageEligibility" class="cwp-v2-field-label">City / zone eligibility (JSON)</label><textarea id="v2SeePackageEligibility" class="cwp-v2-textarea" rows="2" spellcheck="false"></textarea></div>
+            <div class="cwp-v2-field"><label for="v2SeePackagePricingConfig" class="cwp-v2-field-label">Pricing configuration (JSON)</label><textarea id="v2SeePackagePricingConfig" class="cwp-v2-textarea" rows="2" spellcheck="false"></textarea></div>
+            <div id="v2SeePackageFormError" class="cwp-v2-form-alert is-error" role="alert" hidden></div>
+          </div>
+          <div class="cwp-v2-modal-footer"><button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button><button type="submit" id="v2SeePackageSave" class="cwp-v2-btn cwp-v2-btn-primary">Save Package</button></div>
+        </form>
+      </div>
+    </div>
+
     <!-- Create New Booking Modal -->
     <div id="v2ModalCreateBooking" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
       <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2BkCreateModalTitle">
@@ -9235,25 +9323,26 @@
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
               <div class="cwp-v2-field">
-                <label for="v2BkCreateCategory" class="cwp-v2-field-label">Service Category <span class="cwp-v2-req-star">*</span></label>
-                <select id="v2BkCreateCategory" class="cwp-v2-select" required>
-                  <option value="car_washing">Car Washing</option>
-                  <option value="interior_detailing">Interior Detailing</option>
-                  <option value="exterior_detailing">Exterior Detailing</option>
-                  <option value="solar_cleaning">Solar Panel Cleaning</option>
-                  <option value="daily_car_cleaning">Daily Car Cleaning</option>
-                </select>
+                <label for="v2BkCreateVehicle" class="cwp-v2-field-label">Customer Vehicle <span class="cwp-v2-req-star">*</span></label>
+                <select id="v2BkCreateVehicle" class="cwp-v2-select" required disabled><option value="">Select customer first</option></select>
               </div>
               <div class="cwp-v2-field">
-                <label for="v2BkCreateServiceType" class="cwp-v2-field-label">Service Type <span class="cwp-v2-req-star">*</span></label>
-                <input type="text" id="v2BkCreateServiceType" class="cwp-v2-input" placeholder="e.g. Full Foam Wash" required>
+                <label for="v2BkCreateLocation" class="cwp-v2-field-label">Service Location <span class="cwp-v2-req-star">*</span></label>
+                <select id="v2BkCreateLocation" class="cwp-v2-select" required disabled><option value="">Select customer first</option></select>
               </div>
             </div>
             <div class="cwp-v2-field">
-              <label for="v2BkCreatePackage" class="cwp-v2-field-label">Eligible Package (Optional)</label>
-              <select id="v2BkCreatePackage" class="cwp-v2-select">
-                <option value="">No package (Pay per service)</option>
-              </select>
+              <label for="v2BkCreateService" class="cwp-v2-field-label">Service <span class="cwp-v2-req-star">*</span></label>
+              <select id="v2BkCreateService" class="cwp-v2-select" required><option value="">Loading catalogue…</option></select>
+              <div id="v2BkCreateServiceSummary" class="cwp-v2-field-hint" aria-live="polite"></div>
+            </div>
+            <div class="cwp-v2-field">
+              <label for="v2BkCreatePackage" class="cwp-v2-field-label">Service entitlement (Optional)</label>
+              <select id="v2BkCreatePackage" class="cwp-v2-select"><option value="">Pay per service</option></select>
+            </div>
+            <div class="cwp-v2-field">
+              <span class="cwp-v2-field-label">Compatible add-ons</span>
+              <div id="v2BkCreateAddons" class="cwp-v2-field-hint" aria-live="polite">Select a service to view compatible add-ons.</div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
               <div class="cwp-v2-field">
@@ -9844,7 +9933,7 @@
       <div class="cwp-v2-login-card">
         <div class="cwp-v2-login-brand">
           <img src="/cwp_logo.jpg" alt="CWP Detailers Logo" class="cwp-v2-login-logo">
-          <h2 id="v2LoginTitle" style="font-size:18px; font-weight:700; color:var(--cwp-v2-sys-on-surface);">CWP Admin V2</h2>
+          <h2 id="v2LoginTitle" style="font-size:18px; font-weight:700; color:var(--cwp-v2-sys-on-surface);">CWP Admin</h2>
           <p style="font-size:12.5px; color:var(--cwp-v2-sys-on-surface-variant); margin-top:4px;">Sign in with your administrator password</p>
         </div>
 
@@ -9898,7 +9987,7 @@
   <script src="/admin-v2/js/v2-notifications.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-shell.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-customers.js?v=2.1.2"></script>
-  <script src="/admin-v2/js/v2-staff.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-staff.js?v=2.1.5"></script>
   <script src="/admin-v2/js/v2-bookings.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-leads.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-track-staff.js?v=2.1.2"></script>
@@ -9909,6 +9998,7 @@
   <script src="/admin-v2/js/v2-dashboard.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-security.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-see-services.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-see-packages.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-see-addons.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-app.js?v=2.1.2"></script>
 

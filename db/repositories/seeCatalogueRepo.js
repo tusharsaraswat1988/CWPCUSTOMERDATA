@@ -241,7 +241,8 @@ async function findAllPackages({ status = null, mainServiceId = null, vehicleSeg
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   params.push(limit, offset);
   const res = await runner.query(
-    `SELECT p.*, s.service_code AS main_service_code, s.name AS main_service_name, s.service_category_id
+    `SELECT p.*, s.service_code AS main_service_code, s.name AS main_service_name, s.service_category_id,
+            (SELECT COUNT(*)::int FROM public.package_benefits pb WHERE pb.package_id = p.id) AS benefit_count
      FROM public.packages p
      JOIN public.services s ON p.main_service_id = s.id
      ${where}
@@ -266,7 +267,7 @@ async function findPackageById(id, client = null) {
 
   const [benefits, addons, pricingRules] = await Promise.all([
     runner.query(
-      `SELECT pb.*, s.service_code, s.name AS service_name, s.service_model, sf.code AS frequency_code, sf.frequency_type
+      `SELECT pb.*, s.service_code, s.name AS service_name, s.service_model, s.service_category_id, sf.code AS frequency_code, sf.frequency_type
        FROM public.package_benefits pb
        JOIN public.services s ON pb.service_id = s.id
        LEFT JOIN public.service_frequencies sf ON pb.frequency_id = sf.id
@@ -282,7 +283,7 @@ async function findPackageById(id, client = null) {
       [id]
     ),
     runner.query(
-      `SELECT * FROM public.package_pricing_rules WHERE package_id = $1 AND is_active = TRUE ORDER BY created_at ASC`,
+      `SELECT * FROM public.package_pricing_rules WHERE package_id = $1 ORDER BY created_at ASC`,
       [id]
     )
   ]);
@@ -351,6 +352,7 @@ async function updatePackage(id, patch, client = null) {
        effective_from = COALESCE($12, effective_from),
        effective_to = COALESCE($13, effective_to),
        status = COALESCE($14, status),
+       main_service_id = COALESCE($15, main_service_id),
        version = version + 1,
        updated_at = CURRENT_TIMESTAMP
      WHERE id = $1
@@ -369,7 +371,8 @@ async function updatePackage(id, patch, client = null) {
       patch.pricingConfig ? JSON.stringify(patch.pricingConfig) : null,
       patch.effectiveFrom ?? null,
       patch.effectiveTo ?? null,
-      patch.status ?? null
+      patch.status ?? null,
+      patch.mainServiceId ?? null
     ]
   );
   return res.rows[0] || null;

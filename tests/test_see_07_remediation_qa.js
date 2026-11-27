@@ -118,7 +118,7 @@ async function run() {
     // 1. Finding 1: Legacy completeSpecialJob cannot bypass SEE proof/checklist or skip entitlement
     await test('Finding 1 (Endpoint + Real DB): completeSpecialJob enforces SEE proof/checklist and consumes entitlement once', async () => {
       const purchase = await seeEntitlementService.createPurchase({
-        customerId: cust.id, packageIdOrCode: pkg.id, actor: 'test_admin'
+        saleReference: `S07_PURCHASE_${suffix}`, customerId: cust.id, packageIdOrCode: pkg.id, actor: 'test_admin'
       });
       const acct = purchase.accounts[0];
 

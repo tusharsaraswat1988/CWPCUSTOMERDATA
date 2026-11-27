@@ -176,7 +176,7 @@ async function run() {
     // -------------------------------------------------------------------
     await test('P0 Atomic Tx: Failed reservation rolls back job creation; concurrent completion cannot double-consume', async () => {
       const purchase = await seeEntitlementService.createPurchase({
-        customerId: custA.id, packageIdOrCode: pkg.id, city: 'Jaipur', zone: 'Zone-A', actor: 'test_admin'
+        saleReference: `S03_ATOMIC_${suffix}`, customerId: custA.id, packageIdOrCode: pkg.id, city: 'Jaipur', zone: 'Zone-A', actor: 'test_admin'
       });
       const acct = purchase.accounts[0]; // purchased_qty = 1
 
@@ -217,15 +217,15 @@ async function run() {
     // -------------------------------------------------------------------
     await test('P1 Ownership & Dates: Foreign vehicle/location, wrong city, and expired package rejected', async () => {
       await assert.rejects(
-        () => seeEntitlementService.createPurchase({ customerId: custA.id, vehicleId: vehB.id, packageIdOrCode: pkg.id, city: 'Jaipur', zone: 'Zone-A' }),
+        () => seeEntitlementService.createPurchase({ saleReference: `S03_FOREIGN_VEH_${suffix}`, customerId: custA.id, vehicleId: vehB.id, packageIdOrCode: pkg.id, city: 'Jaipur', zone: 'Zone-A' }),
         /does not belong to customer/
       );
       await assert.rejects(
-        () => seeEntitlementService.createPurchase({ customerId: custA.id, locationId: locB.id, packageIdOrCode: pkg.id, city: 'Jaipur', zone: 'Zone-A' }),
+        () => seeEntitlementService.createPurchase({ saleReference: `S03_FOREIGN_LOC_${suffix}`, customerId: custA.id, locationId: locB.id, packageIdOrCode: pkg.id, city: 'Jaipur', zone: 'Zone-A' }),
         /does not belong to customer/
       );
       await assert.rejects(
-        () => seeEntitlementService.createPurchase({ customerId: custA.id, packageIdOrCode: pkg.id, city: 'Delhi', zone: 'Zone-A' }),
+        () => seeEntitlementService.createPurchase({ saleReference: `S03_WRONG_CITY_${suffix}`, customerId: custA.id, packageIdOrCode: pkg.id, city: 'Delhi', zone: 'Zone-A' }),
         /not available in city/
       );
 
@@ -238,7 +238,7 @@ async function run() {
         status: 'active'
       }, 'test_admin');
       await assert.rejects(
-        () => seeEntitlementService.createPurchase({ customerId: custA.id, packageIdOrCode: expiredPkg.id }),
+        () => seeEntitlementService.createPurchase({ saleReference: `S03_EXPIRED_${suffix}`, customerId: custA.id, packageIdOrCode: expiredPkg.id }),
         /has expired/
       );
       await db.query(`DELETE FROM public.packages WHERE id = $1`, [expiredPkg.id]).catch(() => {});

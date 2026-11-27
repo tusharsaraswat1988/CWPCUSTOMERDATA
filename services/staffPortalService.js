@@ -244,7 +244,12 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
   let dispatchedJobs = [];
   if (effCaps.workType !== 'dcc_only') {
     const rawJobs = await repos.serviceJobs.findDispatchedForStaff(staff.id);
-    dispatchedJobs = (rawJobs || []).filter(j => staffCapabilityService.hasServiceCapability(staff, j.service_category_id));
+    dispatchedJobs = await Promise.all((rawJobs || [])
+      .filter(j => staffCapabilityService.hasServiceCapability(staff, j.service_category_id))
+      .map(async j => ({
+        ...j,
+        seeAddons: j.service_id ? await repos.seeOperations.findJobAddons(j.id).catch(() => []) : []
+      })));
   }
   const otherJobs = [];
   const carWashing = [];
@@ -294,6 +299,22 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       vehiclePhotoUrl: j.vehicle_photo_url,
       siteDetails: j.site_details,
       serviceType: j.service_type,
+      serviceId: j.service_id || null,
+      vehicleId: j.vehicle_id || null,
+      locationId: j.location_id || null,
+      seeManaged: Boolean(j.service_payload && j.service_payload._seeManaged),
+      checklistRequirements: Array.isArray(j.checklist_requirements) ? j.checklist_requirements : [],
+      proofRequirements: j.proof_requirements || { before_min: 0, after_min: 0, required: false },
+      selectedAddons: (j.seeAddons || []).map(addon => ({
+        id: addon.id,
+        addonId: addon.addon_id,
+        name: addon.addon_name_snapshot,
+        executionMode: addon.execution_mode,
+        required: Boolean(addon.is_required),
+        status: addon.status,
+        checklistRequirements: addon.checklist_requirements || [],
+        proofRequirements: addon.proof_requirements || {}
+      })),
       serviceCategoryId: j.service_category_id,
       serviceCategory: j.service_category_id,
       category: j.service_category_id,

@@ -160,6 +160,62 @@ async function createCanonicalJob({
   const normSource = normalizeBookingSource(bookingSource);
 
   const job = await db.withTransaction(async (client) => {
+    // Canonical jobs must be tied to the selected customer's real records.
+    const customer = await repos.customers.findById(customerId, client);
+    if (!customer || customer.deleted_at) throw new Error('Customer not found.');
+    if (customer.is_active === false) throw new Error('Cannot book a service for an inactive customer.');
+
+    const location = await repos.serviceLocations.findById(locationId, client);
+    if (!location || String(location.customer_id) !== String(customerId)) {
+      throw new Error('Selected service location does not belong to this customer.');
+    }
+    if (vehicleId) {
+      const vehicle = await repos.vehicles.findById(vehicleId, client);
+      if (!vehicle || String(vehicle.customer_id) !== String(customerId)) {
+        throw new Error('Selected vehicle does not belong to this customer.');
+      }
+    }
+
+    // Validate every selected add-on before inserting the job. A missing or
+    // incompatible item must fail the whole transaction, never disappear.
+    const canonicalAddons = [];
+    for (const addonId of [...new Set((Array.isArray(addonIds) ? addonIds : []).map(String))]) {
+      const addon = await repos.seeCatalogue.findAddonById(addonId, client);
+      if (!addon || addon.status !== 'active') throw new Error(`Selected add-on '${addonId}' is unavailable.`);
+      const compatibleIds = Array.isArray(addon.applicable_service_ids) ? addon.applicable_service_ids.map(String) : [];
+      if (compatibleIds.length && !compatibleIds.includes(String(svc.id))) {
+        throw new Error(`Add-on '${addon.name}' is not compatible with '${svc.name}'.`);
+      }
+      canonicalAddons.push({ addon, addonAccount: null });
+    }
+
+    if (entitlementAccountId) {
+      const account = await repos.seeEntitlement.findAccountByIdForUpdate(entitlementAccountId, client);
+      if (!account || String(account.customer_id) !== String(customerId)) {
+        throw new Error('Entitlement account does not belong to this customer.');
+      }
+      if (String(account.service_id || '') !== String(svc.id)) {
+        throw new Error('Entitlement account is not valid for the selected service.');
+      }
+      if (vehicleId && account.vehicle_id && String(account.vehicle_id) !== String(vehicleId)) {
+        throw new Error('Entitlement account is linked to a different vehicle.');
+      }
+      if (account.location_id && String(account.location_id) !== String(locationId)) {
+        throw new Error('Entitlement account is linked to a different service location.');
+      }
+      if (purchaseSnapshotId && String(account.purchase_snapshot_id) !== String(purchaseSnapshotId)) {
+        throw new Error('Purchase snapshot does not match the selected entitlement account.');
+      }
+      purchaseSnapshotId = account.purchase_snapshot_id;
+    }
+
+    if (purchaseSnapshotId && canonicalAddons.length) {
+      const snapshotAccounts = await repos.seeEntitlement.findAccountsBySnapshotId(purchaseSnapshotId, client);
+      for (const item of canonicalAddons) {
+        item.addonAccount = snapshotAccounts.find(account => String(account.addon_id || '') === String(item.addon.id)) || null;
+      }
+    }
+
     // Resolve staff (UUID or staff_code) & validate eligibility INSIDE transaction with FOR UPDATE lock on staff row
     let resolvedStaffUuid = null;
     if (staffId) {
@@ -225,7 +281,7 @@ async function createCanonicalJob({
         instructions,
         entitlementAccountId,
         purchaseSnapshotId,
-        JSON.stringify(servicePayload || {}),
+        JSON.stringify({ ...(servicePayload || {}), _seeManaged: true }),
         JSON.stringify(svc.checklist_requirements || []),
         JSON.stringify(svc.photo_requirements || { before_min: 0, after_min: 0, required: false })
       ]
@@ -240,15 +296,25 @@ async function createCanonicalJob({
       }, client);
     }
 
-    for (const addonId of addonIds) {
-      const addon = await repos.seeCatalogue.findAddonById(addonId, client);
-      if (addon) {
-        await repos.seeOperations.createJobAddon({
-          jobId: createdJob.id,
-          addonId: addon.id,
-          addonNameSnapshot: addon.name,
-          executionMode: addon.execution_mode,
-          isRequired: !addon.is_optional
+    for (const { addon, addonAccount } of canonicalAddons) {
+      const jobAddon = await repos.seeOperations.createJobAddon({
+        jobId: createdJob.id,
+        addonId: addon.id,
+        addonNameSnapshot: addon.name,
+        executionMode: addon.execution_mode,
+        entitlementAccountId: addonAccount ? addonAccount.id : null,
+        isRequired: !addon.is_optional
+      }, client);
+      if (addonAccount) {
+        await seeEntitlementService.mutateEntitlement({
+          accountId: addonAccount.id,
+          entryType: 'reserve',
+          quantity: 1,
+          referenceType: 'service_job_addon',
+          referenceId: jobAddon.id,
+          idempotencyKey: `reserve:job-addon:${jobAddon.id}`,
+          reason: `Reserved add-on entitlement for job ${createdJob.id}`,
+          actor
         }, client);
       }
     }
@@ -552,6 +618,24 @@ async function completeExecution(jobId, {
       }, client);
     }
 
+    for (const addon of jobAddons) {
+      if (!addon.entitlement_account_id) continue;
+      const entryType = addon.status === 'completed' ? 'consume' : 'release';
+      await seeEntitlementService.mutateEntitlement({
+        accountId: addon.entitlement_account_id,
+        entryType,
+        quantity: 1,
+        referenceType: 'service_job_addon',
+        referenceId: addon.id,
+        executionReference: addon.status === 'completed' ? exec.id : null,
+        idempotencyKey: `${entryType}:job-addon:${addon.id}`,
+        reason: addon.status === 'completed'
+          ? `Consumed add-on entitlement on completion of job ${jobId}`
+          : `Released unused add-on entitlement on completion of job ${jobId}`,
+        actor
+      }, client);
+    }
+
     return exec;
   });
 
@@ -619,6 +703,24 @@ async function terminateJobWithoutCompletion(jobId, outcome, { reason, remarks =
           referenceId: jobId,
           idempotencyKey: `release:job:${jobId}`,
           reason: `Released reservation due to job ${outcome}`,
+          actor
+        }, client);
+      }
+    }
+
+    const jobAddons = await repos.seeOperations.findJobAddons(jobId, client);
+    for (const addon of jobAddons) {
+      if (!addon.entitlement_account_id) continue;
+      const account = await repos.seeEntitlement.findAccountByIdForUpdate(addon.entitlement_account_id, client);
+      if (account && Number(account.reserved_qty || 0) > 0) {
+        await seeEntitlementService.mutateEntitlement({
+          accountId: addon.entitlement_account_id,
+          entryType: 'release',
+          quantity: 1,
+          referenceType: 'service_job_addon',
+          referenceId: addon.id,
+          idempotencyKey: `release:job-addon:${addon.id}`,
+          reason: `Released add-on reservation due to job ${outcome}`,
           actor
         }, client);
       }

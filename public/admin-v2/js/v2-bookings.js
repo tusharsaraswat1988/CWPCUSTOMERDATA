@@ -20,6 +20,8 @@
     staffList: [],
     routes: [],
     serviceCatalog: null,
+    seeServices: [],
+    selectedSeeService: null,
     selectedBookingId: null,
     checkedIds: new Set(),
     kpiFilter: null, // null | 'unassigned' | 'assigned' | 'in_progress' | 'completed' | 'exceptions'
@@ -141,7 +143,19 @@
 
   function formatDateDisplay(val) {
     if (!val) return '—';
-    const str = String(val).slice(0, 10);
+    const raw = String(val);
+    if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) {
+      const parsed = new Date(raw);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleDateString('en-GB', {
+          timeZone: 'Asia/Kolkata',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      }
+    }
+    const str = raw.slice(0, 10);
     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
       const [y, m, d] = str.split('-');
       return `${d}/${m}/${y}`;
@@ -227,8 +241,9 @@
     }
 
     try {
-      const [jobsRes, custRes, staffRes, routesRes, catalogRes] = await Promise.allSettled([
+      const [jobsRes, seeJobsRes, custRes, staffRes, routesRes, catalogRes] = await Promise.allSettled([
         api.request('getSpecialJobs', {}),
+        readSeeJson('/api/see/jobs?limit=200&offset=0'),
         api.request('getAllCustomers', {}),
         api.request('getStaffList', {}),
         api.request('getAllRoutes', {}),
@@ -262,7 +277,16 @@
         const rawJobs = Array.isArray(jobsRes.value.jobs)
           ? jobsRes.value.jobs
           : (Array.isArray(jobsRes.value) ? jobsRes.value : []);
-        state.allBookings = rawJobs.map(j => enrichBooking(j));
+        const legacyBookings = rawJobs.map(j => enrichBooking(j));
+        const canonicalBookings = seeJobsRes.status === 'fulfilled'
+          ? (seeJobsRes.value.jobs || []).map(adaptSeeJob).map(j => enrichBooking(j))
+          : [];
+        if (seeJobsRes.status === 'rejected') {
+          showToast(`Canonical SEE bookings could not be loaded: ${seeJobsRes.reason?.message || 'request failed'}`, 'error');
+        }
+        const bookingById = new Map(legacyBookings.map(j => [String(j.id || j.jobId), j]));
+        canonicalBookings.forEach(j => bookingById.set(String(j.id || j.jobId), j));
+        state.allBookings = Array.from(bookingById.values());
         state.hasLoadedOnce = true;
       }
 
@@ -286,6 +310,43 @@
     return Object.assign({}, j, {
       routeName,
       areaText
+    });
+  }
+
+  function adaptSeeJob(j) {
+    const categoryLabels = {
+      car_washing: 'Car Washing',
+      interior_detailing: 'Interior Detailing',
+      exterior_detailing: 'Exterior Detailing',
+      solar_cleaning: 'Solar Panel Cleaning'
+    };
+    return Object.assign({}, j, {
+      id: j.id,
+      jobId: j.id,
+      seeManaged: true,
+      customerId: j.customer_id,
+      customerName: j.customer_name,
+      customerPhone: j.customer_phone,
+      vehicle: [j.registration_no, j.brand_or_model].filter(Boolean).join(' · '),
+      vehicleId: j.vehicle_id,
+      serviceType: j.service_name_snapshot || j.service_type,
+      serviceCategory: categoryLabels[j.service_category_id] || j.service_category_id || 'Service',
+      serviceCategoryId: j.service_category_id,
+      packageCode: j.package_code,
+      scheduledDate: j.scheduled_date,
+      scheduledTime: j.scheduled_time,
+      address: j.address_text,
+      googleMapsUrl: j.google_maps_url,
+      parkingDetails: j.parking_details,
+      staffId: j.staff_id,
+      staffName: j.assigned_staff_name || 'Unassigned',
+      assignedAt: j.assigned_at,
+      startedAt: j.started_at,
+      completedAt: j.completed_at,
+      specialInstructions: j.special_instructions,
+      completionNotes: j.completion_notes,
+      panelCount: j.panel_count,
+      seaterType: j.seater_type
     });
   }
 
@@ -696,7 +757,7 @@
           <span>${unassigned ? 'Assign Staff' : 'Reassign'}</span>
         </button>
       `;
-      if (!unassigned && normSt === 'assigned') {
+      if (!b.seeManaged && !unassigned && normSt === 'assigned') {
         btns += `
           <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-detail-act="unassign" data-job-id="${escapeHtml(id)}">
             <span>Unassign</span>
@@ -799,13 +860,16 @@
       const active = isStaffActive(s);
       const workload = workloadMap[code] || workloadMap[String(s.id || '').toUpperCase()] || 0;
       const isSelected = state.assignModal.selectedStaffId === sid || state.assignModal.selectedStaffId === s.staffCode;
-      const capableAll = targetJobs.every(j => staffHasCapability(s, j.serviceCategoryId || j.serviceCategory));
+      const canonicalJobs = targetJobs.some(j => j.seeManaged);
+      const capableAll = canonicalJobs || targetJobs.every(j => staffHasCapability(s, j.serviceCategoryId || j.serviceCategory));
 
       const statusBadge = !active
         ? '<span class="cwp-v2-bk-status is-exception">Inactive</span>'
-        : (!capableAll
+        : (canonicalJobs
+          ? '<span class="cwp-v2-bk-status is-unassigned">Checks on submit</span>'
+          : (!capableAll
           ? '<span class="cwp-v2-bk-status is-unassigned">No Capability</span>'
-          : '<span class="cwp-v2-bk-status is-completed">Available</span>');
+          : '<span class="cwp-v2-bk-status is-completed">Available</span>'));
 
       return `
         <tr data-staff-id="${escapeHtml(sid)}" class="${isSelected ? 'is-selected' : ''} ${(!active || !capableAll) ? 'is-unavailable' : ''}">
@@ -850,7 +914,11 @@
       .map(id => state.allBookings.find(b => (b.id || b.jobId) === id))
       .filter(Boolean);
 
-    const incompatible = targetJobs.filter(j => !staffHasCapability(staff, j.serviceCategoryId || j.serviceCategory));
+    if (targetJobs.some(j => j.seeManaged)) {
+      warnings.push('Canonical SEE capability, equipment and schedule eligibility are validated by the server when you assign.');
+    }
+
+    const incompatible = targetJobs.filter(j => !j.seeManaged && !staffHasCapability(staff, j.serviceCategoryId || j.serviceCategory));
     if (incompatible.length > 0) {
       warnings.push(`${staff.name} lacks service capability for ${incompatible.length} selected booking(s).`);
     }
@@ -902,10 +970,22 @@
 
         for (const jobId of state.assignModal.jobIds) {
           try {
-            const payload = { jobId, newStaffId: sid };
-            if (scheduledTime) payload.scheduledTime = scheduledTime;
-            if (reason) payload.reason = reason;
-            await api.request('reassignSpecialJob', payload);
+            const booking = state.allBookings.find(item => String(item.id || item.jobId) === String(jobId));
+            if (booking?.seeManaged) {
+              const body = { staffId: sid };
+              if (scheduledTime) body.scheduledTime = scheduledTime;
+              if (reason) body.reason = reason;
+              await readSeeJson(`/api/see/jobs/${encodeURIComponent(jobId)}/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+              });
+            } else {
+              const payload = { jobId, newStaffId: sid };
+              if (scheduledTime) payload.scheduledTime = scheduledTime;
+              if (reason) payload.reason = reason;
+              await api.request('reassignSpecialJob', payload);
+            }
             succeeded += 1;
           } catch (err) {
             console.error('[V2-Bookings] reassignSpecialJob failed:', err);
@@ -982,34 +1062,119 @@
     if (dateInput && !dateInput.value) dateInput.value = getTodayIso();
 
     const pkgSel = document.getElementById('v2BkCreatePackage');
-    if (pkgSel) pkgSel.innerHTML = '<option value="">No package (Pay per service)</option>';
+    if (pkgSel) pkgSel.innerHTML = '<option value="">Pay per service</option>';
+    const vehicleSel = document.getElementById('v2BkCreateVehicle');
+    const locationSel = document.getElementById('v2BkCreateLocation');
+    if (vehicleSel) { vehicleSel.innerHTML = '<option value="">Select customer first</option>'; vehicleSel.disabled = true; }
+    if (locationSel) { locationSel.innerHTML = '<option value="">Select customer first</option>'; locationSel.disabled = true; }
+    loadSeeServicesForBooking();
 
     if (window.CWP_ADMIN_V2.overlay) {
       window.CWP_ADMIN_V2.overlay.open('v2ModalCreateBooking');
     }
   }
 
-  async function refreshEligiblePackages() {
-    const custId = document.getElementById('v2BkCreateCustomer')?.value;
-    const catId = document.getElementById('v2BkCreateCategory')?.value;
-    const pkgSel = document.getElementById('v2BkCreatePackage');
-    if (!pkgSel) return;
+  async function readSeeJson(url, options = {}) {
+    const response = await fetch(url, { credentials: 'same-origin', ...options });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body.success === false) throw new Error(body.error || `Request failed (${response.status})`);
+    return body;
+  }
 
-    pkgSel.innerHTML = '<option value="">No package (Pay per service)</option>';
-    if (!custId || !catId) return;
-
+  async function loadSeeServicesForBooking() {
+    const select = document.getElementById('v2BkCreateService');
+    if (!select) return;
+    select.innerHTML = '<option value="">Loading services…</option>';
     try {
-      const res = await window.CWP_ADMIN_V2.api.request('getEligiblePackagesForBooking', {
-        customerId: custId,
-        serviceCategoryId: catId
+      const response = await readSeeJson('/api/see/services?status=active&limit=200&offset=0');
+      state.seeServices = (response.services || []).filter(service => {
+        const code = String(service.service_code || '').toUpperCase();
+        const name = String(service.name || '').toUpperCase();
+        const dcc = service.service_category_id === 'daily_car_cleaning' || code.startsWith('SVC-DCC') || code === 'DCC_DAILY';
+        const test = /^(TEST_|S03_|S07_|SEE03|SEE07)/.test(code) || name.includes('SEE03 TEST') || name.includes('SEE07') || name.includes('TEST CERAMIC');
+        return !dcc && !test;
       });
-      const pkgs = (res && res.eligiblePackages) || [];
-      pkgs.forEach(p => {
-        const rem = p.remaining_quantity != null ? p.remaining_quantity : p.remainingQuantity;
-        pkgSel.innerHTML += `<option value="${escapeHtml(p.id)}">${escapeHtml(p.package_name || p.packageName || p.package_code)} (${rem} left)</option>`;
+      select.innerHTML = '<option value="">Select a canonical service…</option>' + state.seeServices
+        .map(service => `<option value="${escapeHtml(service.id)}">${escapeHtml(service.name)} (${escapeHtml(service.service_code)})</option>`).join('');
+    } catch (error) {
+      select.innerHTML = '<option value="">Service catalogue unavailable</option>';
+      showToast(`Could not load canonical services: ${error.message}`, 'error');
+    }
+  }
+
+  async function loadBookingCustomerContext() {
+    const customerId = document.getElementById('v2BkCreateCustomer')?.value;
+    const vehicleSel = document.getElementById('v2BkCreateVehicle');
+    const locationSel = document.getElementById('v2BkCreateLocation');
+    const entitlementSel = document.getElementById('v2BkCreatePackage');
+    if (!customerId) {
+      [vehicleSel, locationSel].forEach(sel => { if (sel) { sel.innerHTML = '<option value="">Select customer first</option>'; sel.disabled = true; } });
+      if (entitlementSel) entitlementSel.innerHTML = '<option value="">Pay per service</option>';
+      return;
+    }
+    try {
+      const [context, balance] = await Promise.all([
+        readSeeJson(`/api/see/customers/${encodeURIComponent(customerId)}/context`),
+        readSeeJson(`/api/see/customers/${encodeURIComponent(customerId)}/balance`)
+      ]);
+      if (document.getElementById('v2BkCreateCustomer')?.value !== customerId) return;
+      const vehicles = context.vehicles || [];
+      const locations = context.locations || [];
+      if (vehicleSel) {
+        vehicleSel.innerHTML = '<option value="">Select vehicle…</option>' + vehicles.filter(v => v.is_active !== false)
+          .map(v => `<option value="${escapeHtml(v.id)}">${escapeHtml(v.registration_no || v.brand_or_model || 'Vehicle')}</option>`).join('');
+        vehicleSel.disabled = vehicles.length === 0;
+      }
+      if (locationSel) {
+        locationSel.innerHTML = '<option value="">Select service location…</option>' + locations
+          .map(loc => `<option value="${escapeHtml(loc.id)}">${escapeHtml(loc.location_name || loc.address_text || 'Service location')}</option>`).join('');
+        locationSel.disabled = locations.length === 0;
+      }
+      const selectedServiceId = document.getElementById('v2BkCreateService')?.value;
+      renderBookingEntitlements(balance.accounts || [], selectedServiceId);
+    } catch (error) {
+      showToast(`Could not load customer vehicles, locations, or entitlements: ${error.message}`, 'error');
+      if (vehicleSel) vehicleSel.disabled = true;
+      if (locationSel) locationSel.disabled = true;
+    }
+  }
+
+  function renderBookingEntitlements(accounts, serviceId) {
+    const select = document.getElementById('v2BkCreatePackage');
+    if (!select) return;
+    select.innerHTML = '<option value="">Pay per service</option>';
+    (accounts || []).filter(account => account.service_id === serviceId && account.status === 'active' && Number(account.remaining_qty) > 0)
+      .forEach(account => {
+        const label = `${account.package_name || account.package_code || account.service_name || 'Entitlement'} — ${account.remaining_qty} remaining`;
+        select.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(account.id)}" data-snapshot="${escapeHtml(account.purchase_snapshot_id || '')}">${escapeHtml(label)}</option>`);
       });
-    } catch (e) {
-      // Non-blocking if customer has no packages
+  }
+
+  async function loadBookingServiceDetails() {
+    const serviceId = document.getElementById('v2BkCreateService')?.value;
+    const service = state.seeServices.find(row => row.id === serviceId) || null;
+    state.selectedSeeService = service;
+    const summary = document.getElementById('v2BkCreateServiceSummary');
+    const addonsEl = document.getElementById('v2BkCreateAddons');
+    if (summary) summary.textContent = service ? [service.description, `Checklist: ${(service.checklist_requirements || []).length} items`, `Photo proof: ${service.photo_requirements?.required ? 'required' : 'optional'}`].filter(Boolean).join(' • ') : '';
+    if (addonsEl) addonsEl.textContent = service ? 'Loading compatible add-ons…' : 'Select a service to view compatible add-ons.';
+    if (!service) return;
+    try {
+      const addonResponse = await readSeeJson(`/api/see/addons?status=active&serviceId=${encodeURIComponent(service.id)}`);
+      if (document.getElementById('v2BkCreateService')?.value !== service.id) return;
+      const addons = (addonResponse.addons || []).filter(addon => !Array.isArray(addon.applicable_service_ids) || !addon.applicable_service_ids.length || addon.applicable_service_ids.includes(service.id));
+      if (addonsEl) addonsEl.innerHTML = addons.length ? addons.map(addon => `<label style="display:flex;align-items:center;gap:8px;margin:4px 0;"><input type="checkbox" name="v2BkCreateAddon" value="${escapeHtml(addon.id)}" ${addon.is_optional === false ? 'checked disabled' : ''}> <span>${escapeHtml(addon.name)}${addon.is_optional === false ? ' (required)' : ''}</span></label>`).join('') : 'No compatible add-ons.';
+    } catch (error) {
+      if (addonsEl) addonsEl.textContent = `Could not load add-ons: ${error.message}`;
+    }
+    const customerId = document.getElementById('v2BkCreateCustomer')?.value;
+    if (customerId) {
+      try {
+        const balance = await readSeeJson(`/api/see/customers/${encodeURIComponent(customerId)}/balance`);
+        renderBookingEntitlements(balance.accounts || [], service.id);
+      } catch (error) {
+        showToast(`Could not load service entitlements: ${error.message}`, 'error');
+      }
     }
   }
 
@@ -1018,16 +1183,20 @@
     if (state.isSubmitting) return;
 
     const customerId = document.getElementById('v2BkCreateCustomer')?.value;
-    const serviceCategoryId = document.getElementById('v2BkCreateCategory')?.value;
-    const serviceType = (document.getElementById('v2BkCreateServiceType')?.value || '').trim();
+    const vehicleId = document.getElementById('v2BkCreateVehicle')?.value;
+    const locationId = document.getElementById('v2BkCreateLocation')?.value;
+    const serviceIdOrCode = document.getElementById('v2BkCreateService')?.value;
     const scheduledDate = document.getElementById('v2BkCreateDate')?.value || '';
     const scheduledTime = (document.getElementById('v2BkCreateTime')?.value || '').trim();
     const staffId = document.getElementById('v2BkCreateStaff')?.value || '';
-    const packageId = document.getElementById('v2BkCreatePackage')?.value || '';
+    const entitlementAccountId = document.getElementById('v2BkCreatePackage')?.value || '';
+    const selectedEntitlement = document.getElementById('v2BkCreatePackage')?.selectedOptions?.[0];
+    const purchaseSnapshotId = selectedEntitlement?.getAttribute('data-snapshot') || '';
+    const addonIds = Array.from(document.querySelectorAll('input[name="v2BkCreateAddon"]:checked')).map(input => input.value);
     const specialInstructions = (document.getElementById('v2BkCreateNotes')?.value || '').trim();
 
-    if (!customerId || !serviceType) {
-      showToast('Customer and Service Type are required.', 'warning');
+    if (!customerId || !vehicleId || !locationId || !serviceIdOrCode) {
+      showToast('Customer, vehicle, service location, and canonical service are required.', 'warning');
       return;
     }
 
@@ -1038,12 +1207,18 @@
         await window.CWP_ADMIN_V2.api.request('createServiceBooking', {
           bookingData: {
             customerId,
-            serviceCategoryId,
-            serviceType,
+            vehicleId,
+            locationId,
+            serviceIdOrCode,
+            serviceType: state.selectedSeeService?.name || null,
+            serviceCategoryId: state.selectedSeeService?.service_category_id || null,
+            entitlementAccountId: entitlementAccountId || null,
+            purchaseSnapshotId: purchaseSnapshotId || null,
+            paymentStatus: entitlementAccountId ? 'package_covered' : 'pending',
+            addonIds,
             scheduledDate: scheduledDate || null,
             scheduledTime: scheduledTime || null,
             staffId: staffId || null,
-            packageId: packageId || null,
             specialInstructions: specialInstructions || null,
             bookingSource: 'admin'
           }
@@ -1089,11 +1264,20 @@
     state.isSubmitting = true;
     try {
       await window.CWP_ADMIN_V2.api.withLoadingButton(submitBtn, async () => {
-        await window.CWP_ADMIN_V2.api.request('cancelBooking', {
-          jobId: state.cancelModal.jobId,
-          reason,
-          remarks
-        });
+        const booking = state.allBookings.find(item => String(item.id || item.jobId) === String(state.cancelModal.jobId));
+        if (booking?.seeManaged) {
+          await readSeeJson(`/api/see/jobs/${encodeURIComponent(state.cancelModal.jobId)}/terminate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ outcome: 'cancelled', reason, remarks })
+          });
+        } else {
+          await window.CWP_ADMIN_V2.api.request('cancelBooking', {
+            jobId: state.cancelModal.jobId,
+            reason,
+            remarks
+          });
+        }
         showToast('Booking cancelled.', 'success');
         if (window.CWP_ADMIN_V2.overlay) {
           window.CWP_ADMIN_V2.overlay.close('v2ModalCancelBooking');
@@ -1131,11 +1315,20 @@
     state.isSubmitting = true;
     try {
       await window.CWP_ADMIN_V2.api.withLoadingButton(submitBtn, async () => {
-        await window.CWP_ADMIN_V2.api.request('failServiceBooking', {
-          jobId: state.failModal.jobId,
-          failureReason,
-          failureRemarks
-        });
+        const booking = state.allBookings.find(item => String(item.id || item.jobId) === String(state.failModal.jobId));
+        if (booking?.seeManaged) {
+          await readSeeJson(`/api/see/jobs/${encodeURIComponent(state.failModal.jobId)}/terminate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ outcome: 'unable_to_complete', reason: failureReason, remarks: failureRemarks })
+          });
+        } else {
+          await window.CWP_ADMIN_V2.api.request('failServiceBooking', {
+            jobId: state.failModal.jobId,
+            failureReason,
+            failureRemarks
+          });
+        }
         showToast('Booking marked unable to complete.', 'success');
         if (window.CWP_ADMIN_V2.overlay) {
           window.CWP_ADMIN_V2.overlay.close('v2ModalFailBooking');
@@ -1372,8 +1565,8 @@
   }
 
   function bindCreateModalEvents() {
-    document.getElementById('v2BkCreateCustomer')?.addEventListener('change', refreshEligiblePackages);
-    document.getElementById('v2BkCreateCategory')?.addEventListener('change', refreshEligiblePackages);
+    document.getElementById('v2BkCreateCustomer')?.addEventListener('change', loadBookingCustomerContext);
+    document.getElementById('v2BkCreateService')?.addEventListener('change', loadBookingServiceDetails);
     document.getElementById('v2BkCreateForm')?.addEventListener('submit', submitCreateModal);
   }
 

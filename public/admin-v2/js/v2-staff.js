@@ -30,6 +30,8 @@
     customers: [],
     cleanReports: [],
     specialJobs: [],
+    seeJobs: [],
+    seeJobsLoadError: null,
     kpiFilter: null,
     searchQuery: '',
     filters: {
@@ -155,13 +157,18 @@
       const api = window.CWP_ADMIN_V2.api;
       const todayIso = new Date().toISOString().split('T')[0];
 
-      const [staffRes, desigRes, routesRes, custRes, reportsRes, jobsRes] = await Promise.allSettled([
+      const [staffRes, desigRes, routesRes, custRes, reportsRes, jobsRes, seeJobsRes] = await Promise.allSettled([
         api.request('getStaffList'),
         api.request('getDesignationsList'),
         api.request('getAllRoutes'),
         api.request('getAllCustomers', { forceRefresh }),
         api.request('getDailyCleanReports', { date: todayIso }),
-        api.request('getSpecialJobs')
+        api.request('getSpecialJobs'),
+        fetch('/api/see/jobs?limit=200&offset=0', { credentials: 'same-origin', cache: 'no-store' }).then(async response => {
+          const body = await response.json();
+          if (!response.ok || body.success === false) throw new Error(body.error || `HTTP ${response.status}`);
+          return body;
+        })
       ]);
 
       if (staffRes.status === 'fulfilled' && Array.isArray(staffRes.value)) {
@@ -190,6 +197,14 @@
       if (jobsRes.status === 'fulfilled' && jobsRes.value) {
         const jb = jobsRes.value;
         state.specialJobs = Array.isArray(jb) ? jb : (Array.isArray(jb.jobs) ? jb.jobs : []);
+      }
+
+      if (seeJobsRes.status === 'fulfilled' && seeJobsRes.value) {
+        state.seeJobs = Array.isArray(seeJobsRes.value.jobs) ? seeJobsRes.value.jobs : [];
+        state.seeJobsLoadError = null;
+      } else {
+        state.seeJobs = [];
+        state.seeJobsLoadError = seeJobsRes.reason?.message || 'Canonical SEE assignments could not be loaded.';
       }
 
       enrichStaffMetrics();
@@ -272,6 +287,13 @@
         String(j.staff_id || '') === String(dbId)
       );
       s._specialJobs = myJobs;
+
+      // Canonical SEE assignments/executions are a separate source from legacy
+      // special jobs and DCC reports. Keep them separate to avoid double count.
+      s._seeJobs = state.seeJobs.filter(j =>
+        String(j.staff_id || '') === String(dbId) ||
+        String(j.assigned_staff_code || j.staff_code || '').toUpperCase() === codeUpper
+      );
     });
   }
 
@@ -798,6 +820,16 @@
             <div style="font-size:11px; color:#64748b;">${escapeHtml(c.vehicle || 'No vehicle')} • ${escapeHtml(c.address || '')}</div>
           </div>
         `).join('') : '<div style="font-size:12px; color:#64748b;">No active DCC customers assigned.</div>'}
+
+        <div class="cwp-v2-staff-section-title" style="margin-top:8px;">
+          <span>Canonical SEE Jobs (${(s._seeJobs || []).length})</span>
+        </div>
+        ${(s._seeJobs || []).length ? s._seeJobs.slice(0, 20).map(job => `
+          <div style="padding:7px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px; margin-bottom:5px;">
+            <div style="font-weight:600;">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service job')} · ${escapeHtml(job.status || 'unknown')}</div>
+            <div style="font-size:11px; color:#64748b;">${escapeHtml(job.customer_name || 'Customer')} · ${escapeHtml(job.scheduled_date || 'Unscheduled')} · Job ${escapeHtml(job.id)}</div>
+          </div>
+        `).join('') : '<div style="font-size:12px; color:#64748b;">No canonical SEE jobs assigned.</div>'}
       `;
 
     } else if (tab === 'performance') {
@@ -805,6 +837,12 @@
       const withPhoto = reports.filter(r => Boolean(r.photoUrl || r.photo_url)).length;
       const jobs = s._specialJobs || [];
       const jobsDone = jobs.filter(j => String(j.status || '').toLowerCase() === 'completed').length;
+      const seeJobs = s._seeJobs || [];
+      const seeDone = seeJobs.filter(j => String(j.status || '').toLowerCase() === 'completed').length;
+      const seeWithProof = seeJobs.filter(j => {
+        const proof = j.latest_proof_photos || {};
+        return (Array.isArray(proof.before) && proof.before.length) || (Array.isArray(proof.after) && proof.after.length);
+      }).length;
 
       body.innerHTML = `
         <div class="cwp-v2-staff-summary-grid">
@@ -824,9 +862,17 @@
             <span class="cwp-v2-staff-summary-label">Special Jobs Completed</span>
             <span class="cwp-v2-staff-summary-val">${jobsDone}</span>
           </div>
+          <div class="cwp-v2-staff-summary-item">
+            <span class="cwp-v2-staff-summary-label">Canonical SEE Jobs</span>
+            <span class="cwp-v2-staff-summary-val">${seeDone} completed · ${seeJobs.length} assigned</span>
+          </div>
+          <div class="cwp-v2-staff-summary-item">
+            <span class="cwp-v2-staff-summary-label">SEE Jobs with Photo Proof</span>
+            <span class="cwp-v2-staff-summary-val">${seeWithProof} of ${seeJobs.length}</span>
+          </div>
         </div>
         <div style="font-size:11px; color:#64748b; padding:6px 2px;">
-          Metrics sourced live from today's <code>getDailyCleanReports</code>, active DCC assignments (<code>getAllCustomers</code>), and <code>getSpecialJobs</code>.
+          DCC, legacy special-job, and canonical SEE records are shown from separate sources to avoid double counting.${state.seeJobsLoadError ? ` SEE data unavailable: ${escapeHtml(state.seeJobsLoadError)}` : ''}
         </div>
       `;
 
@@ -862,6 +908,17 @@
           color: '#16a34a',
           title: `Daily Clean: ${escapeHtml(r.customerName || r.vehicle || 'Customer')} (${escapeHtml(r.status || 'completed')})`,
           time: r.cleanedAt || r.createdAt || 'Today'
+        });
+      });
+      (s._seeJobs || []).slice(0, 12).forEach(job => {
+        const proof = job.latest_proof_photos || {};
+        const beforeCount = Array.isArray(proof.before) ? proof.before.length : 0;
+        const afterCount = Array.isArray(proof.after) ? proof.after.length : 0;
+        events.push({
+          icon: job.status === 'completed' ? 'check_circle' : 'event_note',
+          color: job.status === 'completed' ? '#16a34a' : '#2563eb',
+          title: `SEE: ${escapeHtml(job.service_name_snapshot || job.service_type || 'Service job')} · ${escapeHtml(job.status || 'unknown')}`,
+          time: `${escapeHtml(job.scheduled_date || 'Unscheduled')} · ${beforeCount} before / ${afterCount} after proof${job.latest_execution_id ? ` · Execution ${escapeHtml(job.latest_execution_id)}` : ''}`
         });
       });
 

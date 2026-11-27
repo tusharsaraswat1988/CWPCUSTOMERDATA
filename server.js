@@ -4347,7 +4347,7 @@ const server = http.createServer(async (req, res) => {
               invalidateLiveCustomersCache();
 
               if (existingStaff && (phoneChanged || pinChanged || deactivated)) {
-                revokeAllStaffSessionsForId(newObj.id);
+                // Neon session revocation is handled by adminService with the resolved staff UUID.
                 if (pinChanged) {
                   clearAllRateLimitsForIdentifier(newObj.id);
                   if (newObj.phone) clearAllRateLimitsForIdentifier(newObj.phone);
@@ -4448,9 +4448,6 @@ const server = http.createServer(async (req, res) => {
 
         // Admin: Toggle Staff Active
         if (payload.action === 'toggleStaffActive') {
-          if (!payload.active) {
-            revokeAllStaffSessionsForId(payload.staffId);
-          }
           if (isNeonConfigured()) {
             try {
               const toggleRes = await adminService.toggleStaffActive(payload.staffId, payload.active, 'admin');
@@ -6621,7 +6618,28 @@ const server = http.createServer(async (req, res) => {
             }
             const adminUser = adminSess.username || adminSess.user || 'admin';
             const bookingData = payload.bookingData || payload.data || payload;
-            if (isNeonConfigured() && bookingData.serviceIdOrCode && bookingData.locationId) {
+            const seeIntent = Boolean(bookingData.serviceIdOrCode || bookingData.entitlementAccountId ||
+              bookingData.purchaseSnapshotId || (Array.isArray(bookingData.addonIds) && bookingData.addonIds.length));
+            if (seeIntent && (!bookingData.customerId || !bookingData.serviceIdOrCode || !bookingData.locationId)) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Canonical SEE booking requires customerId, serviceIdOrCode, and locationId.' }));
+            }
+            if (seeIntent && !isNeonConfigured()) {
+              res.writeHead(503, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Canonical SEE booking is unavailable because the database is not configured.' }));
+            }
+            if (!seeIntent && bookingData.legacyCompatibility !== true) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: false, error: 'Select a canonical service, vehicle, and service location to create a booking.' }));
+            }
+            if (!seeIntent && bookingData.legacyCompatibility === true && isNeonConfigured() && bookingData.packageId) {
+              const seeAccount = await repos.seeEntitlement.findAccountById(bookingData.packageId);
+              if (seeAccount) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'SEE entitlement bookings must include the canonical serviceIdOrCode and use the SEE job path.' }));
+              }
+            }
+            if (seeIntent && bookingData.serviceIdOrCode && bookingData.locationId) {
               const targetStaffInput = bookingData.staffId || bookingData.assignedCleanerId || bookingData.assignedStaffId || null;
               let resolvedStaff = null;
               if (targetStaffInput && String(targetStaffInput).toLowerCase() !== 'unassigned') {
