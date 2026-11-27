@@ -383,11 +383,11 @@
 
 .cwp-v2-cr-search-input {
   width: 100%;
-  height: 32px;
-  padding: 0 10px 0 32px;
+  height: 38px;
+  padding: 0 12px 0 34px;
   border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 12.5px;
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  font-size: 13.5px;
   color: #0f172a;
   background: #ffffff;
   outline: none;
@@ -842,12 +842,36 @@
 
 /* Modal Contrast Enforcement */
 #v2ModalCleanReportEdit .cwp-v2-input,
-#v2ModalCleanReportEdit .cwp-v2-select,
-#v2ModalCleanReportEdit .cwp-v2-textarea,
-#v2ModalCleanReportDelete .cwp-v2-textarea {
-  background: #ffffff;
-  border: 1.5px solid #94a3b8;
+#v2ModalCleanReportEdit .cwp-v2-select {
+  width: 100%;
+  box-sizing: border-box;
+  height: 42px;
+  padding: 0 12px !important;
+  background-color: var(--cwp-v2-sys-surface, #ffffff) !important;
+  border: 1px solid var(--cwp-v2-sys-border, #cbd5e1) !important;
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  font-size: 14px;
   color: #0f172a;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#v2ModalCleanReportEdit .cwp-v2-textarea,
+#v2ModalCleanReportDelete .cwp-v2-textarea,
+#v2ModalCleanReportEdit textarea.cwp-v2-input,
+#v2ModalCleanReportDelete textarea.cwp-v2-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 80px;
+  padding: 10px 12px !important;
+  background-color: var(--cwp-v2-sys-surface, #ffffff) !important;
+  border: 1px solid var(--cwp-v2-sys-border, #cbd5e1) !important;
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  font-size: 14px;
+  color: #0f172a;
+  outline: none !important;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .cwp-v2-cr-reason-chips {

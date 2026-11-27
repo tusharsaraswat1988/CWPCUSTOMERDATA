@@ -181,11 +181,11 @@
 
 .cwp-v2-cust-search-input {
   width: 100%;
-  height: 32px;
-  padding: 4px 28px 4px 32px;
-  font-size: 12.5px;
+  height: 38px;
+  padding: 4px 28px 4px 34px;
+  font-size: 13.5px;
   border: 1px solid var(--cwp-v2-sys-outline-variant, #cbd5e1);
-  border-radius: var(--cwp-v2-radius-sm, 6px);
+  border-radius: var(--cwp-v2-radius-md, 8px);
   background: var(--cwp-v2-sys-surface, #ffffff);
   color: var(--cwp-v2-sys-on-surface, #1e293b);
   outline: none;
@@ -216,11 +216,11 @@
 }
 
 .cwp-v2-cust-filter-select {
-  height: 32px;
-  padding: 4px 8px;
-  font-size: 12px;
+  height: 38px;
+  padding: 4px 10px;
+  font-size: 13.5px;
   border: 1px solid var(--cwp-v2-sys-outline-variant, #cbd5e1);
-  border-radius: var(--cwp-v2-radius-sm, 6px);
+  border-radius: var(--cwp-v2-radius-md, 8px);
   background: var(--cwp-v2-sys-surface, #ffffff);
   color: var(--cwp-v2-sys-on-surface, #1e293b);
   outline: none;
@@ -988,12 +988,12 @@
 #v2ModalUpdatePlan .cwp-v2-select {
   width: 100%;
   box-sizing: border-box;
-  height: 36px;
-  padding: 0 10px !important;
+  height: 42px;
+  padding: 0 12px !important;
   background-color: var(--cwp-v2-sys-surface, #ffffff) !important;
   border: 1px solid var(--cwp-v2-sys-border, #cbd5e1) !important;
   border-radius: var(--cwp-v2-radius-md, 8px);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--cwp-v2-sys-on-surface, #0f172a);
   outline: none !important;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -1004,8 +1004,9 @@
 #v2ModalAssignJob textarea.cwp-v2-input,
 #v2ModalLogService textarea.cwp-v2-input {
   height: auto;
-  min-height: 64px;
-  padding: 8px 10px !important;
+  min-height: 80px;
+  padding: 10px 12px !important;
+  font-size: 14px;
   resize: vertical;
 }
 

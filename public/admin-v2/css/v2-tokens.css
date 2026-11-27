@@ -204,11 +204,16 @@
   --cwp-v2-input-font-sm: 0.75rem; /* 12px */
   --cwp-v2-input-icon-sm: 16px;
 
-  /* Standard: 36px height (Recommended operational default across forms) */
+  /* Standard Compact: 36px height (Dense table row cells & inline mini edits) */
   --cwp-v2-input-h-md: 36px;
   --cwp-v2-input-pad-md: 0 10px;
   --cwp-v2-input-font-md: 0.8125rem; /* 13px */
   --cwp-v2-input-icon-md: 18px;
+
+  /* Standard Form & Modal Input Height (Comfortable 42px across all Admin forms, dialogs & modals) */
+  --cwp-v2-input-h-form: 42px;
+  --cwp-v2-input-pad-form: 0 12px;
+  --cwp-v2-input-font-form: 0.875rem; /* 14px */
 
   /* Comfortable: 42px height (Standalone modal hero forms) */
   --cwp-v2-input-h-lg: 42px;

@@ -141,11 +141,11 @@
   align-items: center;
   flex: 1 1 220px;
   min-width: 180px;
-  height: 32px;
+  height: 38px;
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 0 8px;
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  padding: 0 10px;
   gap: 6px;
 }
 
@@ -159,7 +159,7 @@
   border: none;
   outline: none;
   background: transparent;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: #0f172a;
   min-width: 0;
 }
@@ -182,13 +182,13 @@
 
 .cwp-v2-bk-filter-select,
 .cwp-v2-bk-filter-date {
-  height: 32px;
+  height: 38px;
   border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  border-radius: var(--cwp-v2-radius-md, 8px);
   background: #ffffff;
   color: #0f172a;
-  font-size: 12px;
-  padding: 0 8px;
+  font-size: 13.5px;
+  padding: 0 10px;
   outline: none;
   cursor: pointer;
 }
@@ -580,9 +580,28 @@
 #v2ModalCancelBooking .cwp-v2-select,
 #v2ModalFailBooking .cwp-v2-input,
 #v2ModalFailBooking .cwp-v2-select {
-  background: #ffffff;
-  border: 1.5px solid #94a3b8;
+  width: 100%;
+  box-sizing: border-box;
+  height: 42px;
+  padding: 0 12px !important;
+  background-color: var(--cwp-v2-sys-surface, #ffffff) !important;
+  border: 1px solid var(--cwp-v2-sys-border, #cbd5e1) !important;
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  font-size: 14px;
   color: #0f172a;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#v2ModalAssignBooking textarea.cwp-v2-input,
+#v2ModalCreateBooking textarea.cwp-v2-input,
+#v2ModalCancelBooking textarea.cwp-v2-input,
+#v2ModalFailBooking textarea.cwp-v2-input {
+  height: auto;
+  min-height: 80px;
+  padding: 10px 12px !important;
+  font-size: 14px;
+  resize: vertical;
 }
 
 #v2ModalAssignBooking .cwp-v2-input:focus,

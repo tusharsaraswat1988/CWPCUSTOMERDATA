@@ -433,10 +433,10 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
   overflow: hidden;
 
-  /* Standard Default Size (36px Height, aligns with 36px buttons) */
-  height: var(--cwp-v2-input-h-md);
-  padding: var(--cwp-v2-input-pad-md);
-  font-size: var(--cwp-v2-input-font-md);
+  /* Standard Default Form Size (Comfortable 42px Height) */
+  height: var(--cwp-v2-input-h-form, 42px);
+  padding: 0 12px;
+  font-size: var(--cwp-v2-input-font-lg, 14px);
 }
 
 /* Hover State */
@@ -488,8 +488,34 @@
   cursor: default;
 }
 
-/* Inner Input Element */
+/* Standalone Input Element (Default across all forms, dialogs and modals when used without .cwp-v2-input-box wrapper) */
 .cwp-v2-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: var(--cwp-v2-input-h-form, 42px);
+  padding: 0 12px;
+  background-color: var(--cwp-v2-sys-surface, #ffffff);
+  border: 1px solid var(--cwp-v2-sys-border, #cbd5e1);
+  border-radius: var(--cwp-v2-radius-md, 8px);
+  font-family: var(--cwp-v2-font-sans);
+  font-size: var(--cwp-v2-input-font-lg, 14px);
+  color: var(--cwp-v2-sys-on-surface, #0f172a);
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.cwp-v2-input:hover:not(:disabled):not(:read-only) {
+  border-color: var(--cwp-v2-ref-slate-400, #94a3b8);
+}
+
+.cwp-v2-input:focus:not(:read-only) {
+  border-color: var(--cwp-v2-sys-border-focus, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* When embedded within a composite .cwp-v2-input-box container, seamlessly fill the box */
+.cwp-v2-input-box .cwp-v2-input {
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -499,6 +525,7 @@
   margin: 0 !important;
   outline: none !important;
   box-shadow: none !important;
+  border-radius: 0 !important;
   font-family: var(--cwp-v2-font-sans);
   font-size: inherit;
   color: var(--cwp-v2-sys-on-surface);
@@ -540,18 +567,18 @@
   font-size: var(--cwp-v2-input-icon-sm);
 }
 
-/* Standard: 36px height (Default across Admin V2 forms) */
+/* Standard: 42px height (Default across Admin V2 forms) */
 .cwp-v2-input-box.cwp-v2-input-md {
-  height: var(--cwp-v2-input-h-md);
-  padding: var(--cwp-v2-input-pad-md);
-  font-size: var(--cwp-v2-input-font-md);
+  height: var(--cwp-v2-input-h-form, 42px);
+  padding: 0 12px;
+  font-size: var(--cwp-v2-input-font-lg, 14px);
 }
 
 /* Comfortable: 42px height (Standalone hero forms, login) */
 .cwp-v2-input-box.cwp-v2-input-lg {
-  height: var(--cwp-v2-input-h-lg);
-  padding: var(--cwp-v2-input-pad-lg);
-  font-size: var(--cwp-v2-input-font-lg);
+  height: var(--cwp-v2-input-h-lg, 42px);
+  padding: var(--cwp-v2-input-pad-lg, 0 12px);
+  font-size: var(--cwp-v2-input-font-lg, 14px);
 }
 
 .cwp-v2-input-box.cwp-v2-input-lg .cwp-v2-input-leading-icon,
@@ -663,13 +690,13 @@
 .cwp-v2-textarea {
   width: 100%;
   box-sizing: border-box;
-  min-height: 72px;
-  padding: 8px 10px;
+  min-height: 80px;
+  padding: 10px 12px;
   border: 1px solid var(--cwp-v2-sys-border);
   border-radius: var(--cwp-v2-radius-md);
   background-color: var(--cwp-v2-sys-surface);
   font-family: var(--cwp-v2-font-sans);
-  font-size: var(--cwp-v2-text-sm);
+  font-size: var(--cwp-v2-input-font-lg, 14px);
   color: var(--cwp-v2-sys-on-surface);
   line-height: 1.45;
   outline: none;
@@ -1848,20 +1875,20 @@ body.cwp-v2-modal-open {
   -webkit-appearance: none;
   width: 100%;
   box-sizing: border-box;
-  height: var(--cwp-v2-input-h-md); /* 36px default */
-  padding: 0 32px 0 10px;
+  height: var(--cwp-v2-input-h-form, 42px); /* 42px comfortable standard */
+  padding: 0 34px 0 12px;
   background-color: var(--cwp-v2-sys-surface);
   border: 1px solid var(--cwp-v2-sys-border);
   border-radius: var(--cwp-v2-radius-md);
   font-family: var(--cwp-v2-font-sans);
-  font-size: var(--cwp-v2-input-font-md);
+  font-size: var(--cwp-v2-input-font-lg, 14px);
   color: var(--cwp-v2-sys-on-surface);
   cursor: pointer;
   outline: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: var(--cwp-v2-select-arrow-size);
+  background-position: right 10px center;
+  background-size: var(--cwp-v2-select-arrow-size, 18px);
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
@@ -2305,14 +2332,14 @@ body.cwp-v2-modal-open {
 
 .cwp-v2-dropdown-trigger {
   width: 100%;
-  height: var(--cwp-v2-input-h-md);
-  padding: 0 10px;
+  height: var(--cwp-v2-input-h-form, 42px);
+  padding: 0 12px;
   background-color: var(--cwp-v2-sys-surface);
   border: 1px solid var(--cwp-v2-sys-border);
   border-radius: var(--cwp-v2-radius-md);
   color: var(--cwp-v2-sys-on-surface);
   font-family: var(--cwp-v2-font-sans);
-  font-size: var(--cwp-v2-input-font-md);
+  font-size: var(--cwp-v2-input-font-lg, 14px);
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
