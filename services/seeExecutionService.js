@@ -613,6 +613,50 @@ async function assignJob(jobId, staffId, actor = 'admin', opts = {}) {
   });
 }
 
+async function unassignJob(jobId, actor = 'admin', opts = {}) {
+  return db.withTransaction(async (client) => {
+    const job = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+    if (!job) throw new Error(`Job '${jobId}' not found.`);
+    await assertSeeManagedJob(job, client);
+    if (TERMINAL_JOB_STATUSES.includes(job.status)) {
+      throw new Error(`Cannot unassign job in terminal status '${job.status}'.`);
+    }
+    if (job.status === 'in_progress') {
+      throw new Error('Cannot unassign a job that is already in progress.');
+    }
+
+    const currentAssignment = await repos.staffAssignments.findActiveByJobId(jobId, client);
+    const oldStaffId = currentAssignment ? currentAssignment.staff_id : null;
+    const reason = (opts && opts.reason) ? String(opts.reason).trim() : 'Unassigned by admin';
+
+    if (repos.staffAssignments && typeof repos.staffAssignments.unassignJob === 'function') {
+      await repos.staffAssignments.unassignJob({
+        jobId: job.id,
+        unassignedBy: actor,
+        reason
+      }, client);
+    }
+
+    const res = await client.query(
+      `UPDATE public.service_jobs SET status = 'booked', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
+      [jobId]
+    );
+
+    if (repos.auditLogs && repos.auditLogs.logChange) {
+      await repos.auditLogs.logChange({
+        action: 'JOB_UNASSIGNED',
+        entityType: 'service_job',
+        entityId: job.id,
+        changedBy: actor,
+        beforeState: { staffId: oldStaffId, status: job.status },
+        afterState: { jobId: job.id, status: 'booked', seeManaged: true, reason }
+      }, client);
+    }
+
+    return res.rows[0];
+  });
+}
+
 /**
  * Phase 10: Start execution
  */
@@ -1029,50 +1073,64 @@ async function submitSolarVerification(jobId, { staffId, actualPanelCount, discr
     throw new Error('actualPanelCount must be a positive integer.');
   }
   const actual = parseInt(actualPanelCount, 10);
-  const existing = await repos.seeOperations.findSolarVerificationByJob(jobId);
-  const estimated = existing ? existing.estimated_panel_count : null;
-  const discrepancy = estimated != null ? actual - estimated : 0;
-  const needsApproval = discrepancy !== 0;
 
-  return repos.seeOperations.upsertSolarVerification({
-    jobId,
-    estimatedPanelCount: estimated,
-    systemCapacityKw: existing ? existing.system_capacity_kw : null,
-    estimateMethod: existing ? existing.estimate_method : 'customer_declared',
-    isEstimate: false,
-    actualPanelCount: actual,
-    verifiedByStaffId: staffId,
-    discrepancyCount: discrepancy,
-    discrepancyReason,
-    approvalStatus: needsApproval ? 'pending_approval' : 'not_required',
-    finalServicedQuantity: needsApproval ? null : actual
+  return db.withTransaction(async (client) => {
+    const lockedJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+    if (!lockedJob) throw new Error(`Job '${jobId}' not found.`);
+    await assertSeeManagedJob(lockedJob, client);
+
+    const existing = await repos.seeOperations.findSolarVerificationByJob(jobId, client);
+    const estimated = existing ? existing.estimated_panel_count : null;
+    const discrepancy = estimated != null ? actual - estimated : 0;
+    const needsApproval = discrepancy !== 0;
+
+    return repos.seeOperations.upsertSolarVerification({
+      jobId,
+      estimatedPanelCount: estimated,
+      systemCapacityKw: existing ? existing.system_capacity_kw : null,
+      estimateMethod: existing ? existing.estimate_method : 'customer_declared',
+      isEstimate: false,
+      actualPanelCount: actual,
+      verifiedByStaffId: staffId,
+      discrepancyCount: discrepancy,
+      discrepancyReason,
+      approvalStatus: needsApproval ? 'pending_approval' : 'not_required',
+      finalServicedQuantity: needsApproval ? null : actual
+    }, client);
   });
 }
 
 async function approveSolarDiscrepancy(jobId, { approved, finalServicedQuantity = null, approvedBy }) {
   if (!approvedBy) throw new Error('approvedBy is required.');
-  const existing = await repos.seeOperations.findSolarVerificationByJob(jobId);
-  if (!existing) throw new Error(`Solar verification record for job '${jobId}' not found.`);
 
-  const status = approved ? 'approved' : 'rejected';
-  const finalQty = approved
-    ? (finalServicedQuantity != null ? parseInt(finalServicedQuantity, 10) : existing.actual_panel_count)
-    : existing.estimated_panel_count;
+  return db.withTransaction(async (client) => {
+    const lockedJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
+    if (!lockedJob) throw new Error(`Job '${jobId}' not found.`);
+    await assertSeeManagedJob(lockedJob, client);
 
-  return repos.seeOperations.upsertSolarVerification({
-    jobId,
-    estimatedPanelCount: existing.estimated_panel_count,
-    systemCapacityKw: existing.system_capacity_kw,
-    estimateMethod: existing.estimate_method,
-    isEstimate: false,
-    actualPanelCount: existing.actual_panel_count,
-    verifiedByStaffId: existing.verified_by_staff_id,
-    discrepancyCount: existing.discrepancy_count,
-    discrepancyReason: existing.discrepancy_reason,
-    approvalStatus: status,
-    approvedBy,
-    approvedAt: new Date().toISOString(),
-    finalServicedQuantity: finalQty
+    const existing = await repos.seeOperations.findSolarVerificationByJob(jobId, client);
+    if (!existing) throw new Error(`Solar verification record for job '${jobId}' not found.`);
+
+    const status = approved ? 'approved' : 'rejected';
+    const finalQty = approved
+      ? (finalServicedQuantity != null ? parseInt(finalServicedQuantity, 10) : existing.actual_panel_count)
+      : existing.estimated_panel_count;
+
+    return repos.seeOperations.upsertSolarVerification({
+      jobId,
+      estimatedPanelCount: existing.estimated_panel_count,
+      systemCapacityKw: existing.system_capacity_kw,
+      estimateMethod: existing.estimate_method,
+      isEstimate: false,
+      actualPanelCount: existing.actual_panel_count,
+      verifiedByStaffId: existing.verified_by_staff_id,
+      discrepancyCount: existing.discrepancy_count,
+      discrepancyReason: existing.discrepancy_reason,
+      approvalStatus: status,
+      approvedBy,
+      approvedAt: new Date().toISOString(),
+      finalServicedQuantity: finalQty
+    }, client);
   });
 }
 
@@ -1086,6 +1144,7 @@ module.exports = {
   buildStaffSafeJobContract,
   createCanonicalJob,
   assignJob,
+  unassignJob,
   startExecution,
   completeExecution,
   terminateJobWithoutCompletion,

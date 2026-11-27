@@ -312,6 +312,8 @@ async function isSeeManagedRow(job, runner) {
   return Boolean((addonRes.rows && addonRes.rows.length > 0) || (solarRes.rows && solarRes.rows.length > 0));
 }
 
+const TERMINAL_JOB_STATUSES = ['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'];
+
 async function updateJobStatus(id, status, client = null) {
   const runner = client || db;
   const existing = await findByIdForUpdate(id, runner);
@@ -323,10 +325,15 @@ async function updateJobStatus(id, status, client = null) {
     err.code = 'SEE_CANONICAL_COMPLETION_REQUIRED';
     throw err;
   }
+  if (TERMINAL_JOB_STATUSES.includes(existing.status)) {
+    throw new Error(`Cannot update job '${id}' from terminal status '${existing.status}' to '${status}'.`);
+  }
   const res = await runner.query(
     `UPDATE public.service_jobs
      SET status = $2, updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL
+     WHERE id = $1
+       AND deleted_at IS NULL
+       AND status NOT IN ('completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete')
      RETURNING *`,
     [id, status]
   );
@@ -367,8 +374,10 @@ async function softDelete(id, client = null) {
   const runner = actualClient || db;
   const res = await runner.query(
     `UPDATE public.service_jobs
-     SET deleted_at = CURRENT_TIMESTAMP, status = 'cancelled', updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL AND status IN ('requested', 'booked', 'assigned')
+     SET deleted_at = CURRENT_TIMESTAMP,
+         status = CASE WHEN status IN ('cancelled', 'failed', 'no_show', 'unable_to_complete') THEN status ELSE 'cancelled' END,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND deleted_at IS NULL AND status IN ('pending', 'requested', 'booked', 'assigned', 'cancelled', 'failed', 'no_show', 'unable_to_complete')
      RETURNING *`,
     [id]
   );

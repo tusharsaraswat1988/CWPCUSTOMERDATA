@@ -3,6 +3,9 @@ node_modules/
 Thumbs.db
 *.log
 .env
+.env.prod.env
+.env.*
+!.env.example
 uploads/
 .vscode/
 scratch/

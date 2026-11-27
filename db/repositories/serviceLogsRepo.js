@@ -416,8 +416,8 @@ async function updateStatusAndReason(id, { status, adminNotes, adminUser = 'admi
            WHEN $2 = TRUE AND notes NOT LIKE '%Car not present%' THEN $6
            ELSE notes
          END
-     WHERE id = $7
-     RETURNING *`,
+      WHERE id = $7 AND job_id IS NULL AND subscription_id IS NOT NULL
+      RETURNING *`,
     [effStatus, isCnp, effTag, adminNotes ? adminNotes.trim() : null, adminUser, effNotes, id]
   );
   return res.rows[0] || null;
@@ -426,7 +426,7 @@ async function updateStatusAndReason(id, { status, adminNotes, adminUser = 'admi
 async function deleteReport(id, client = null) {
   const runner = client || db;
   const res = await runner.query(
-    `DELETE FROM public.service_logs WHERE id = $1 RETURNING *`,
+    `DELETE FROM public.service_logs WHERE id = $1 AND job_id IS NULL AND subscription_id IS NOT NULL RETURNING *`,
     [id]
   );
   return res.rows[0] || null;

@@ -5258,6 +5258,11 @@ const server = http.createServer(async (req, res) => {
 
           if (isNeonConfigured()) {
             try {
+              if (!payload.subscriptionId || !payload.vehicleId) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'subscriptionId and vehicleId are required for Daily Clean recording.' }));
+              }
+
               let staff = null;
               if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffCode)) {
                 staff = await repos.staff.findById(staffCode);
@@ -5270,11 +5275,23 @@ const server = http.createServer(async (req, res) => {
                 return res.end(JSON.stringify({ success: false, error: `Staff '${staffCode}' not found` }));
               }
 
-              // Authorization: Ensure staff is assigned to the active route for this stop
-              if (staffSess && !adminSess && payload.subscriptionId && repos.routes && repos.routes.findActiveStopBySubscriptionAndVehicle) {
-                const activeStop = await repos.routes.findActiveStopBySubscriptionAndVehicle(payload.subscriptionId, payload.vehicleId);
-                if (activeStop && activeStop.assigned_staff_id) {
-                  if (activeStop.assigned_staff_id !== staff.id) {
+              if (staffSess && !adminSess && !staffCapabilityService.isDccEligible(staff)) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: 'Forbidden: Staff member is not authorized for Daily Car Cleaning (DCC).' }));
+              }
+
+              // Authorization: Ensure staff is assigned to the active subscription/route for this stop
+              if (staffSess && !adminSess && payload.subscriptionId) {
+                if (repos.staffAssignments && typeof repos.staffAssignments.findActiveBySubscriptionId === 'function') {
+                  const subAssign = await repos.staffAssignments.findActiveBySubscriptionId(payload.subscriptionId);
+                  if (subAssign && subAssign.staff_id && subAssign.staff_id !== staff.id) {
+                    res.writeHead(403, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, error: 'Forbidden: Subscription is assigned to another staff member.' }));
+                  }
+                }
+                if (repos.routes && repos.routes.findActiveStopBySubscriptionAndVehicle) {
+                  const activeStop = await repos.routes.findActiveStopBySubscriptionAndVehicle(payload.subscriptionId, payload.vehicleId);
+                  if (activeStop && activeStop.assigned_staff_id && activeStop.assigned_staff_id !== staff.id) {
                     res.writeHead(403, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ success: false, error: 'Forbidden: You are not assigned to the active route for this stop.' }));
                   }
@@ -5282,20 +5299,6 @@ const server = http.createServer(async (req, res) => {
               }
 
               const istDate = repos.serviceLogs.computeIstServiceDate(completedAt);
-
-              // DCC Eligibility Validation
-              if (payload.subscriptionId) {
-                const eligCheck = await dccService.validateDccEligibility({
-                  subscriptionId: payload.subscriptionId,
-                  vehicleId: payload.vehicleId,
-                  customerId: payload.customerId,
-                  operationalDate: istDate
-                });
-                if (!eligCheck.eligible) {
-                  res.writeHead(400, { 'Content-Type': 'application/json' });
-                  return res.end(JSON.stringify({ success: false, error: `Ineligible for DCC: ${eligCheck.reason}` }));
-                }
-              }
 
               // Phase 2 Pre-Alignment: Calculate in-house Haversine distance against customer location (non-blocking)
               let punchDistMeters = null;
@@ -5329,27 +5332,111 @@ const server = http.createServer(async (req, res) => {
                 }
               }
 
-              const outcome = await repos.serviceLogs.recordCompletion({
-                clientMutationId: mutationId,
-                staffId: staff.id,
-                subscriptionId: payload.subscriptionId || null,
-                vehicleId: payload.vehicleId || null,
-                serviceDate: istDate,
-                status: effectiveStatus,
-                completedAtDevice: completedAt,
-                notes: effectiveNotes,
-                photoUrl: uploadedPhotoUrl,
-                source: 'staff_portal',
-                deviceMetadata: payload.deviceMetadata || null,
-                carNotPresent: isCarNotPresent,
-                tag: effectiveTag,
-                punchLatitude: payload.punchLatitude !== undefined ? payload.punchLatitude : null,
-                punchLongitude: payload.punchLongitude !== undefined ? payload.punchLongitude : null,
-                punchAccuracyMeters: payload.punchAccuracyMeters !== undefined ? payload.punchAccuracyMeters : null,
-                punchDistanceMeters: punchDistMeters,
-                punchVerified: punchVerified,
-                punchVerificationStatus: punchStatus,
-                punchMetadata: payload.punchMetadata || null
+              const outcome = await db.withTransaction(async (client) => {
+                // 1. Idempotency replay by clientMutationId (with cross-entity check)
+                const existingByMut = await repos.serviceLogs.findByClientMutationId(mutationId, client);
+                if (existingByMut) {
+                  if (
+                    existingByMut.job_id ||
+                    String(existingByMut.subscription_id || '') !== String(payload.subscriptionId) ||
+                    String(existingByMut.vehicle_id || '') !== String(payload.vehicleId)
+                  ) {
+                    throw Object.assign(
+                      new Error(`clientMutationId '${mutationId}' has already been used for another record.`),
+                      { statusCode: 400 }
+                    );
+                  }
+                  return { log: existingByMut, idempotent: true };
+                }
+
+                // 2. Transactional DCC Eligibility Validation
+                const subRes = await client.query(
+                  `SELECT * FROM public.subscriptions WHERE id = $1 LIMIT 1`,
+                  [payload.subscriptionId]
+                );
+                const sub = subRes.rows[0] || null;
+                if (!sub) {
+                  throw Object.assign(new Error(`Ineligible for DCC: DCC subscription '${payload.subscriptionId}' not found.`), { statusCode: 400 });
+                }
+                if (sub.deleted_at) {
+                  throw Object.assign(new Error('Ineligible for DCC: DCC subscription has been deleted.'), { statusCode: 400 });
+                }
+                if (sub.status !== 'active') {
+                  throw Object.assign(new Error(`Ineligible for DCC: DCC subscription is not active (status: '${sub.status}').`), { statusCode: 400 });
+                }
+                if (payload.customerId && String(sub.customer_id) !== String(payload.customerId)) {
+                  throw Object.assign(new Error(`Ineligible for DCC: DCC subscription does not belong to customer '${payload.customerId}'.`), { statusCode: 400 });
+                }
+                const startStr = sub.start_date
+                  ? (sub.start_date instanceof Date ? sub.start_date.toISOString().split('T')[0] : String(sub.start_date).split('T')[0])
+                  : null;
+                if (startStr && istDate < startStr) {
+                  throw Object.assign(new Error(`Ineligible for DCC: DCC subscription has not started yet (starts on ${startStr}, requested for ${istDate}).`), { statusCode: 400 });
+                }
+                const endStr = sub.end_date
+                  ? (sub.end_date instanceof Date ? sub.end_date.toISOString().split('T')[0] : String(sub.end_date).split('T')[0])
+                  : null;
+                if (endStr && istDate > endStr) {
+                  throw Object.assign(new Error(`Ineligible for DCC: DCC subscription expired on ${endStr} (requested for ${istDate}).`), { statusCode: 400 });
+                }
+                const svRes = await client.query(
+                  `SELECT vehicle_id FROM public.subscription_vehicles WHERE subscription_id = $1`,
+                  [payload.subscriptionId]
+                );
+                if (svRes.rows && svRes.rows.length > 0 && !svRes.rows.some(sv => String(sv.vehicle_id) === String(payload.vehicleId))) {
+                  throw Object.assign(new Error(`Ineligible for DCC: Vehicle '${payload.vehicleId}' is not enrolled under subscription '${payload.subscriptionId}'.`), { statusCode: 400 });
+                }
+
+                // 3. Protect existing daily log from silent/unauthorized overwrite
+                const existingDaily = await repos.serviceLogs.findBySubscriptionVehicleAndDate(
+                  payload.subscriptionId,
+                  payload.vehicleId,
+                  istDate,
+                  client
+                );
+                if (existingDaily) {
+                  if (existingDaily.status === effectiveStatus) {
+                    return { log: existingDaily, idempotent: true };
+                  }
+                  if (existingDaily.status === 'completed' && effectiveStatus !== 'completed' && !adminSess) {
+                    throw Object.assign(
+                      new Error('Cannot overwrite already completed daily clean without admin authorization'),
+                      { statusCode: 400 }
+                    );
+                  }
+                  const resolved = await repos.serviceLogs.resolveConflict({
+                    id: existingDaily.id,
+                    status: effectiveStatus,
+                    notes: `${existingDaily.notes ? existingDaily.notes + ' | ' : ''}Updated via Daily Clean Photo: ${effectiveNotes}`,
+                    conflictResolved: true
+                  }, client);
+                  return { log: resolved, conflictResolved: true };
+                }
+
+                // 4. Record new DCC completion atomically with jobId: null
+                return repos.serviceLogs.recordCompletion({
+                  clientMutationId: mutationId,
+                  staffId: staff.id,
+                  subscriptionId: payload.subscriptionId,
+                  vehicleId: payload.vehicleId,
+                  jobId: null,
+                  serviceDate: istDate,
+                  status: effectiveStatus,
+                  completedAtDevice: completedAt,
+                  notes: effectiveNotes,
+                  photoUrl: uploadedPhotoUrl,
+                  source: 'staff_portal',
+                  deviceMetadata: payload.deviceMetadata || null,
+                  carNotPresent: isCarNotPresent,
+                  tag: effectiveTag,
+                  punchLatitude: payload.punchLatitude !== undefined ? payload.punchLatitude : null,
+                  punchLongitude: payload.punchLongitude !== undefined ? payload.punchLongitude : null,
+                  punchAccuracyMeters: payload.punchAccuracyMeters !== undefined ? payload.punchAccuracyMeters : null,
+                  punchDistanceMeters: punchDistMeters,
+                  punchVerified: punchVerified,
+                  punchVerificationStatus: punchStatus,
+                  punchMetadata: payload.punchMetadata || null
+                }, client);
               });
 
               broadcastAdminRealtimeEvent('DAILY_CLEAN_CHANGED', { action: 'recorded', log: outcome.log, serviceDate: istDate });
@@ -5359,11 +5446,13 @@ const server = http.createServer(async (req, res) => {
                 log: outcome.log,
                 photoUrl: uploadedPhotoUrl,
                 serviceDate: istDate,
-                idempotent: outcome.idempotent || false
+                idempotent: outcome.idempotent || false,
+                ...(outcome.conflictResolved ? { conflictResolved: true } : {})
               }));
             } catch (neonErr) {
               console.error('Neon recordCompletion error:', neonErr.message);
-              res.writeHead(500, { 'Content-Type': 'application/json' });
+              const statusCode = neonErr.statusCode || (/not found/i.test(neonErr.message) ? 404 : (/ineligible|cannot overwrite|required|already been used/i.test(neonErr.message) ? 400 : 500));
+              res.writeHead(statusCode, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: neonErr.message }));
             }
           }
@@ -5589,7 +5678,8 @@ const server = http.createServer(async (req, res) => {
               return res.end(JSON.stringify(resObj));
             } catch (err) {
               console.error('updateDailyCleanReportStatus error:', err.message);
-              res.writeHead(500, { 'Content-Type': 'application/json' });
+              const statusCode = err.statusCode || (/not found/i.test(err.message) ? 404 : (/required|valid|cannot modify|non-dcc/i.test(err.message) ? 400 : 500));
+              res.writeHead(statusCode, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: err.message }));
             }
           }
@@ -5601,9 +5691,9 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(404, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: `Report '${payload.reportId}' not found` }));
           }
-          if (appState.serviceLogs[logIdx].job_id) {
+          if (appState.serviceLogs[logIdx].job_id || !appState.serviceLogs[logIdx].subscription_id) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'Cannot modify special or SEE service job history through Daily Clean report status endpoint.' }));
+            return res.end(JSON.stringify({ success: false, error: 'Cannot modify special, SEE, or non-DCC service log history through Daily Clean report status endpoint.' }));
           }
 
           const isCnp = (payload.status === 'car_not_present');
@@ -5657,7 +5747,8 @@ const server = http.createServer(async (req, res) => {
               return res.end(JSON.stringify(resObj));
             } catch (err) {
               console.error('deleteDailyCleanReport error:', err.message);
-              res.writeHead(500, { 'Content-Type': 'application/json' });
+              const statusCode = err.statusCode || (/not found/i.test(err.message) ? 404 : (/required|cannot delete|non-dcc/i.test(err.message) ? 400 : 500));
+              res.writeHead(statusCode, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ success: false, error: err.message }));
             }
           }
@@ -5669,9 +5760,9 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(404, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: `Report '${payload.reportId}' not found` }));
           }
-          if (appState.serviceLogs[logIdx].job_id) {
+          if (appState.serviceLogs[logIdx].job_id || !appState.serviceLogs[logIdx].subscription_id) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'Cannot delete special or SEE service job history through Daily Clean report endpoint.' }));
+            return res.end(JSON.stringify({ success: false, error: 'Cannot delete special, SEE, or non-DCC service log history through Daily Clean report endpoint.' }));
           }
 
           appState.serviceLogs.splice(logIdx, 1);
@@ -6198,53 +6289,80 @@ const server = http.createServer(async (req, res) => {
               const jd = payload.jobData || payload;
               const toStaffId = jd.toStaffId || jd.newStaffId || jd.targetStaffId || null;
               const isUnassign = (jd.unassign === true || toStaffId === 'unassigned');
-              if (!isUnassign && toStaffId && jd.jobId) {
-                const targetStaff = await seeStaffCapabilityService.resolveStaffRecord(toStaffId);
-                if (!targetStaff) {
-                  res.writeHead(400, { 'Content-Type': 'application/json' });
-                  return res.end(JSON.stringify({ success: false, error: `Staff '${toStaffId}' not found.` }));
-                }
+              if (jd.jobId) {
                 const job = await repos.serviceJobs.findById(jd.jobId);
                 if (job && (await seeExecutionService.detectSeeManagedJob(job))) {
-                  try {
-                    const updatedJob = await seeExecutionService.assignJob(jd.jobId, targetStaff.id, adminUser, {
-                      scheduledTime: jd.scheduledTime !== undefined ? jd.scheduledTime : jd.tentativeTime,
-                      sequenceOrder: jd.sequenceOrder,
-                      reason: jd.reason
-                    });
-                    const fullJob = await repos.serviceJobs.findById(updatedJob.id);
-                    const enrichedJob = enrichJobForApi(fullJob || updatedJob, targetStaff);
-                    invalidateLiveCustomersCache();
-                    broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'reassigned', jobId: enrichedJob.id });
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({
-                      success: true,
-                      jobId: enrichedJob.id,
-                      job: enrichedJob,
-                      assignedStaff: {
-                        id: targetStaff.id,
-                        staffCode: targetStaff.staff_code,
-                        name: targetStaff.name
-                      },
-                      message: 'Reassigned via SEE'
-                    }));
-                  } catch (seeErr) {
-                    res.writeHead(400, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ success: false, error: seeErr.message }));
+                  if (isUnassign) {
+                    try {
+                      const unassignedJob = await seeExecutionService.unassignJob(jd.jobId, adminUser, { reason: jd.reason });
+                      invalidateLiveCustomersCache();
+                      broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'unassigned', jobId: unassignedJob.id });
+                      res.writeHead(200, { 'Content-Type': 'application/json' });
+                      return res.end(JSON.stringify({
+                        success: true,
+                        message: 'SEE job unassigned successfully.',
+                        unassigned: true,
+                        jobId: unassignedJob.id,
+                        status: unassignedJob.status
+                      }));
+                    } catch (seeErr) {
+                      res.writeHead(400, { 'Content-Type': 'application/json' });
+                      return res.end(JSON.stringify({ success: false, error: seeErr.message }));
+                    }
+                  }
+                  if (toStaffId) {
+                    const targetStaff = await seeStaffCapabilityService.resolveStaffRecord(toStaffId);
+                    if (!targetStaff) {
+                      res.writeHead(400, { 'Content-Type': 'application/json' });
+                      return res.end(JSON.stringify({ success: false, error: `Staff '${toStaffId}' not found.` }));
+                    }
+                    try {
+                      const updatedJob = await seeExecutionService.assignJob(jd.jobId, targetStaff.id, adminUser, {
+                        scheduledTime: jd.scheduledTime !== undefined ? jd.scheduledTime : jd.tentativeTime,
+                        sequenceOrder: jd.sequenceOrder,
+                        reason: jd.reason
+                      });
+                      const fullJob = await repos.serviceJobs.findById(updatedJob.id);
+                      const enrichedJob = enrichJobForApi(fullJob || updatedJob, targetStaff);
+                      invalidateLiveCustomersCache();
+                      broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'reassigned', jobId: enrichedJob.id });
+                      res.writeHead(200, { 'Content-Type': 'application/json' });
+                      return res.end(JSON.stringify({
+                        success: true,
+                        jobId: enrichedJob.id,
+                        job: enrichedJob,
+                        assignedStaff: {
+                          id: targetStaff.id,
+                          staffCode: targetStaff.staff_code,
+                          name: targetStaff.name
+                        },
+                        message: 'Reassigned via SEE'
+                      }));
+                    } catch (seeErr) {
+                      res.writeHead(400, { 'Content-Type': 'application/json' });
+                      return res.end(JSON.stringify({ success: false, error: seeErr.message }));
+                    }
                   }
                 }
-                // Non-SEE job: still enforce SEE capability/schedule/equipment check before legacy reassign
-                if (job) {
-                  const elig = await seeStaffCapabilityService.evaluateStaffEligibility(targetStaff.id, {
-                    serviceCategoryId: job.service_category_id,
-                    city: job.city || null,
-                    zone: job.zone || null,
-                    scheduledDate: job.scheduled_date || null,
-                    scheduledTime: (jd.scheduledTime !== undefined ? jd.scheduledTime : (jd.tentativeTime !== undefined ? jd.tentativeTime : job.scheduled_time)) || null
-                  });
-                  if (!elig.eligible) {
+                if (!isUnassign && toStaffId) {
+                  const targetStaff = await seeStaffCapabilityService.resolveStaffRecord(toStaffId);
+                  if (!targetStaff) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ success: false, error: `Staff ineligible: ${elig.reasons.join('; ')}` }));
+                    return res.end(JSON.stringify({ success: false, error: `Staff '${toStaffId}' not found.` }));
+                  }
+                  // Non-SEE job: still enforce SEE capability/schedule/equipment check before legacy reassign
+                  if (job) {
+                    const elig = await seeStaffCapabilityService.evaluateStaffEligibility(targetStaff.id, {
+                      serviceCategoryId: job.service_category_id,
+                      city: job.city || null,
+                      zone: job.zone || null,
+                      scheduledDate: job.scheduled_date || null,
+                      scheduledTime: (jd.scheduledTime !== undefined ? jd.scheduledTime : (jd.tentativeTime !== undefined ? jd.tentativeTime : job.scheduled_time)) || null
+                    });
+                    if (!elig.eligible) {
+                      res.writeHead(400, { 'Content-Type': 'application/json' });
+                      return res.end(JSON.stringify({ success: false, error: `Staff ineligible: ${elig.reasons.join('; ')}` }));
+                    }
                   }
                 }
               }
@@ -7531,40 +7649,6 @@ const server = http.createServer(async (req, res) => {
             });
             const updatedJob = compRes.job || compRes;
 
-            if (isNeonConfigured()) {
-              // Record in service_logs for audit ledger
-              let staff = null;
-              if (staffHint) {
-                staff = await seeStaffCapabilityService.resolveStaffRecord(staffHint);
-              } else if (updatedJob && updatedJob.staff_id) {
-                staff = await repos.staff.findById(updatedJob.staff_id);
-              } else {
-                const activeAssign = await repos.staffAssignments.findActiveByJobId(jobId);
-                if (activeAssign && activeAssign.staff_id) {
-                  staff = await repos.staff.findById(activeAssign.staff_id);
-                }
-              }
-
-              if (staff) {
-                const existingLog = await repos.serviceLogs.findByJobId(jobId);
-                if (!existingLog) {
-                  const mutationId = payload.clientMutationId || crypto.randomUUID();
-                  const istDate = repos.serviceLogs.computeIstServiceDate(completedAt);
-                  await repos.serviceLogs.recordCompletion({
-                    clientMutationId: mutationId,
-                    staffId: staff.id,
-                    jobId: jobId,
-                    serviceDate: istDate,
-                    status: 'completed',
-                    completedAtDevice: completedAt,
-                    notes: notes || 'Special job completed with photo proof',
-                    photoUrl: afterPhotoUrls[0] || null,
-                    source: staffSess ? 'staff_portal' : 'admin_manual'
-                  });
-                }
-              }
-            }
-
             invalidateLiveCustomersCache();
             broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'completed', jobId: jobId, status: 'completed' });
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -7605,6 +7689,13 @@ const server = http.createServer(async (req, res) => {
                 }
                 if (existingJob.status === 'completed' || existingJob.status === 'in_progress') {
                   throw Object.assign(new Error(`Cannot delete job in status '${existingJob.status}'.`), { statusCode: 400 });
+                }
+                if (repos.staffAssignments && typeof repos.staffAssignments.unassignJob === 'function') {
+                  await repos.staffAssignments.unassignJob({
+                    jobId,
+                    unassignedBy: adminSess.username || 'admin',
+                    reason: payload.reason || 'Deleted by admin'
+                  }, client);
                 }
                 if (await seeExecutionService.detectSeeManagedJob(existingJob, client)) {
                   await seeExecutionService.releaseJobEntitlementReservations(existingJob, {

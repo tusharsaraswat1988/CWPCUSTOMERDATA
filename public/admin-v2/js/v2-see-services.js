@@ -599,6 +599,42 @@
     }).join('');
   }
 
+  function slugifyChecklistId(label, idx = 0) {
+    const raw = String(label || '').trim().toLowerCase();
+    const slug = raw.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return slug || `item_${idx + 1}`;
+  }
+
+  function normalizeLocalChecklistItems(rawList) {
+    const usedIds = new Set();
+    const out = [];
+    (Array.isArray(rawList) ? rawList : []).forEach((item, idx) => {
+      const label = typeof item === 'string'
+        ? item.trim()
+        : String(item?.label || item?.name || item?.title || item?.item || '').trim();
+      if (!label) return;
+      let id = (item && typeof item === 'object' && (item.id || item.key || item.itemId))
+        ? String(item.id || item.key || item.itemId).trim()
+        : slugifyChecklistId(label, idx);
+      if (!id) id = slugifyChecklistId(label, idx);
+      let uniqueId = id;
+      let suffix = 2;
+      while (usedIds.has(uniqueId)) {
+        uniqueId = `${id}_${suffix}`;
+        suffix += 1;
+      }
+      usedIds.add(uniqueId);
+      const key = (item && typeof item === 'object' && item.key) ? String(item.key).trim() : uniqueId;
+      out.push({
+        id: uniqueId,
+        key,
+        label,
+        required: (item && typeof item === 'object') ? (item.required !== false) : true
+      });
+    });
+    return out;
+  }
+
   function renderChecklistEditor() {
     const listEl = document.getElementById('v2SeeProdSvcChkList');
     if (!listEl) return;
@@ -606,15 +642,20 @@
       listEl.innerHTML = `<div style="font-size:11.5px; color:var(--cwp-v2-sys-on-surface-muted); padding:6px 0;">No checklist items added yet.</div>`;
       return;
     }
-    listEl.innerHTML = checklistItems.map((item, idx) => `
-      <div style="display:flex; align-items:center; gap:6px; padding:4px 6px; border:1px solid var(--cwp-v2-sys-border-subtle); border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-sys-surface);">
+    listEl.innerHTML = checklistItems.map((item, idx) => {
+      const norm = (item && typeof item === 'object') ? item : { id: slugifyChecklistId(item, idx), key: slugifyChecklistId(item, idx), label: String(item || ''), required: true };
+      const isReq = norm.required !== false;
+      return `
+      <div data-chk-id="${escapeHtml(norm.id)}" style="display:flex; align-items:center; gap:6px; padding:4px 6px; border:1px solid var(--cwp-v2-sys-border-subtle); border-radius:var(--cwp-v2-radius-sm); background:var(--cwp-v2-sys-surface);">
         <span style="font-size:11px; color:var(--cwp-v2-sys-on-surface-muted); min-width:16px;">${idx + 1}.</span>
-        <input type="text" class="cwp-v2-input v2-see-chk-edit" data-chk-idx="${idx}" value="${escapeHtml(item)}" style="font-size:12px; height:24px;">
+        <input type="text" class="cwp-v2-input v2-see-chk-edit" data-chk-idx="${idx}" value="${escapeHtml(norm.label)}" style="font-size:12px; height:24px;">
+        <label style="display:inline-flex; align-items:center; gap:3px; font-size:11px; color:var(--cwp-v2-sys-on-surface-muted); white-space:nowrap; cursor:pointer;" title="Required for completion"><input type="checkbox" data-chk-req="${idx}" ${isReq ? 'checked' : ''}>Req</label>
         <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle cwp-v2-btn-sm" data-chk-up="${idx}" ${idx === 0 ? 'disabled' : ''} title="Move up" aria-label="Move up"><span class="material-symbols-outlined" style="font-size:14px;">arrow_upward</span></button>
         <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-subtle cwp-v2-btn-sm" data-chk-down="${idx}" ${idx === checklistItems.length - 1 ? 'disabled' : ''} title="Move down" aria-label="Move down"><span class="material-symbols-outlined" style="font-size:14px;">arrow_downward</span></button>
         <button type="button" class="cwp-v2-btn cwp-v2-btn-icon cwp-v2-btn-icon-danger cwp-v2-btn-sm" data-chk-del="${idx}" title="Remove" aria-label="Remove"><span class="material-symbols-outlined" style="font-size:14px;">delete</span></button>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   function updateDccModalNotice() {
@@ -740,7 +781,7 @@
     selectedTagIds = new Set(initialTagIds);
 
     const rawList = Array.isArray(detailSvc?.checklist_requirements) ? detailSvc.checklist_requirements : [];
-    checklistItems = rawList.map(item => (typeof item === 'string' ? item : item?.label || '')).filter(Boolean);
+    checklistItems = normalizeLocalChecklistItems(rawList);
 
     const execCfg = detailSvc?.execution_config && typeof detailSvc.execution_config === 'object' ? detailSvc.execution_config : {};
     modelConfigState = {
@@ -840,7 +881,21 @@
         details: details || null,
         executionConfig,
         expectedDurationMinutes: durationRaw,
-        checklistRequirements: checklistItems.map(s => s.trim()).filter(Boolean),
+        checklistRequirements: checklistItems
+          .map((item, idx) => {
+            if (typeof item === 'string') {
+              const label = item.trim();
+              if (!label) return null;
+              const id = slugifyChecklistId(label, idx);
+              return { id, key: id, label, required: true };
+            }
+            const label = String(item?.label || '').trim();
+            if (!label) return null;
+            const id = String(item.id || item.key || slugifyChecklistId(label, idx)).trim();
+            const key = String(item.key || id).trim();
+            return { id, key, label, required: item.required !== false };
+          })
+          .filter(Boolean),
         photoRequirements: {
           required: photoRequired,
           before_min: photoRequired ? beforeMin : 0,
@@ -1070,12 +1125,20 @@
       if (errEl) { errEl.textContent = 'Checklist item cannot be empty.'; errEl.style.display = 'block'; }
       return;
     }
-    if (checklistItems.some(i => i.toLowerCase() === val.toLowerCase())) {
+    if (checklistItems.some(i => String(typeof i === 'string' ? i : i?.label || '').toLowerCase() === val.toLowerCase())) {
       if (errEl) { errEl.textContent = 'Duplicate checklist item.'; errEl.style.display = 'block'; }
       return;
     }
     if (errEl) errEl.style.display = 'none';
-    checklistItems.push(val);
+    const base = slugifyChecklistId(val, checklistItems.length);
+    const usedIds = new Set(checklistItems.map(i => (typeof i === 'object' && i ? i.id : '')).filter(Boolean));
+    let id = base;
+    let suffix = 2;
+    while (usedIds.has(id)) {
+      id = `${base}_${suffix}`;
+      suffix += 1;
+    }
+    checklistItems.push({ id, key: id, label: val, required: true });
     if (inp) inp.value = '';
     renderChecklistEditor();
   }
@@ -1211,15 +1274,29 @@
       }
     });
     document.getElementById('v2SeeProdSvcChkList')?.addEventListener('change', (e) => {
+      const reqChk = e.target.closest('[data-chk-req]');
+      if (reqChk) {
+        const idx = Number(reqChk.getAttribute('data-chk-req'));
+        if (checklistItems[idx] && typeof checklistItems[idx] === 'object') {
+          checklistItems[idx] = { ...checklistItems[idx], required: !!reqChk.checked };
+        }
+        return;
+      }
       const inp = e.target.closest('.v2-see-chk-edit');
       if (!inp) return;
       const idx = Number(inp.getAttribute('data-chk-idx'));
       const val = inp.value.trim();
+      const existing = checklistItems[idx];
       if (!val) {
-        inp.value = checklistItems[idx] || '';
+        inp.value = (existing && typeof existing === 'object' ? existing.label : existing) || '';
         return;
       }
-      checklistItems[idx] = val;
+      if (existing && typeof existing === 'object') {
+        checklistItems[idx] = { ...existing, label: val };
+      } else {
+        const id = slugifyChecklistId(val, idx);
+        checklistItems[idx] = { id, key: id, label: val, required: true };
+      }
     });
 
     document.getElementById('v2SeeProdDrawerRetireBtn')?.addEventListener('click', () => {

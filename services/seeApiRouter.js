@@ -493,6 +493,12 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
       const jobId = decodeURIComponent(m[1]);
       const authCtx = await authorizeJobAccess(jobId);
       if (!authCtx) return true;
+      if (!(await seeExecutionService.detectSeeManagedJob(authCtx.job))) {
+        return sendJson(res, 400, {
+          success: false,
+          error: `Job '${jobId}' is not a canonical SEE-managed job and cannot be accessed via SEE.`
+        });
+      }
       const [addons, solarVerification] = await Promise.all([
         repos.seeOperations.findJobAddons(jobId),
         repos.seeOperations.findSolarVerificationByJob(jobId)
@@ -563,6 +569,12 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
       const jobAddonId = decodeURIComponent(m[2]);
       const authCtx = await authorizeJobAccess(jobId);
       if (!authCtx) return true;
+      if (!(await seeExecutionService.detectSeeManagedJob(authCtx.job))) {
+        return sendJson(res, 400, {
+          success: false,
+          error: `Job '${jobId}' is not a canonical SEE-managed job and cannot process SEE add-ons.`
+        });
+      }
       const existingAddons = await repos.seeOperations.findJobAddons(jobId);
       if (!existingAddons.some(a => a.id === jobAddonId)) {
         return sendJson(res, 404, { success: false, error: 'Job add-on not found for this job.' });
@@ -585,6 +597,12 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
       const jobId = decodeURIComponent(m[1]);
       const authCtx = await authorizeJobAccess(jobId);
       if (!authCtx) return true;
+      if (!(await seeExecutionService.detectSeeManagedJob(authCtx.job))) {
+        return sendJson(res, 400, {
+          success: false,
+          error: `Job '${jobId}' is not a canonical SEE-managed job and cannot accept SEE solar verification.`
+        });
+      }
       const body = await readJsonBody(req);
       const verification = await seeExecutionService.submitSolarVerification(jobId, {
         staffId: staffSess ? staffSess.staffId : body.staffId,
@@ -597,8 +615,19 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
     m = pathname.match(/^\/api\/see\/jobs\/([^/]+)\/solar-approve$/);
     if (m && method === 'POST') {
       if (!requireAdmin()) return true;
+      const jobId = decodeURIComponent(m[1]);
+      const job = await repos.serviceJobs.findById(jobId);
+      if (!job) {
+        return sendJson(res, 404, { success: false, error: 'Job not found.' });
+      }
+      if (!(await seeExecutionService.detectSeeManagedJob(job))) {
+        return sendJson(res, 400, {
+          success: false,
+          error: `Job '${jobId}' is not a canonical SEE-managed job and cannot accept SEE solar discrepancy approval.`
+        });
+      }
       const body = await readJsonBody(req);
-      const verification = await seeExecutionService.approveSolarDiscrepancy(decodeURIComponent(m[1]), {
+      const verification = await seeExecutionService.approveSolarDiscrepancy(jobId, {
         approved: body.approved !== false,
         finalServicedQuantity: body.finalServicedQuantity ?? null,
         approvedBy: actor

@@ -2030,18 +2030,21 @@ async function getDailyCleanReports(filters = {}, adminUser = 'admin') {
 }
 
 async function updateDailyCleanReportStatus({ reportId, status, reason = '', adminUser = 'admin' }) {
-  if (!reportId) throw new Error('reportId is required');
+  if (!reportId) throw Object.assign(new Error('reportId is required'), { statusCode: 400 });
   const validStatuses = ['completed', 'car_not_present', 'customer_absent', 'vehicle_not_available', 'skipped', 'unable_to_complete'];
   if (!status || !validStatuses.includes(status)) {
-    throw new Error(`Valid status (${validStatuses.join(', ')}) is required`);
+    throw Object.assign(new Error(`Valid status (${validStatuses.join(', ')}) is required`), { statusCode: 400 });
   }
 
   const existing = await repos.serviceLogs.findById(reportId);
   if (!existing) {
-    throw new Error(`Service report with id '${reportId}' not found`);
+    throw Object.assign(new Error(`Service report with id '${reportId}' not found`), { statusCode: 404 });
   }
-  if (existing.job_id) {
-    throw new Error('Cannot modify special or SEE service job history through Daily Clean report status endpoint.');
+  if (existing.job_id || !existing.subscription_id) {
+    throw Object.assign(
+      new Error('Cannot modify special, SEE, or non-DCC service log history through Daily Clean report status endpoint.'),
+      { statusCode: 400 }
+    );
   }
 
   const updated = await repos.serviceLogs.updateStatusAndReason(reportId, {
@@ -2049,6 +2052,9 @@ async function updateDailyCleanReportStatus({ reportId, status, reason = '', adm
     adminNotes: reason,
     adminUser
   });
+  if (!updated) {
+    throw Object.assign(new Error(`Service report with id '${reportId}' could not be updated as a Daily Clean report.`), { statusCode: 400 });
+  }
 
   try {
     await repos.auditLogs.logChange({
@@ -2071,17 +2077,23 @@ async function updateDailyCleanReportStatus({ reportId, status, reason = '', adm
 }
 
 async function deleteDailyCleanReport({ reportId, reason = '', adminUser = 'admin' }) {
-  if (!reportId) throw new Error('reportId is required');
+  if (!reportId) throw Object.assign(new Error('reportId is required'), { statusCode: 400 });
 
   const existing = await repos.serviceLogs.findById(reportId);
   if (!existing) {
-    throw new Error(`Service report with id '${reportId}' not found`);
+    throw Object.assign(new Error(`Service report with id '${reportId}' not found`), { statusCode: 404 });
   }
-  if (existing.job_id) {
-    throw new Error('Cannot delete special or SEE service job history through Daily Clean report endpoint.');
+  if (existing.job_id || !existing.subscription_id) {
+    throw Object.assign(
+      new Error('Cannot delete special, SEE, or non-DCC service log history through Daily Clean report endpoint.'),
+      { statusCode: 400 }
+    );
   }
 
   const deleted = await repos.serviceLogs.deleteReport(reportId);
+  if (!deleted) {
+    throw Object.assign(new Error(`Service report with id '${reportId}' could not be deleted as a Daily Clean report.`), { statusCode: 400 });
+  }
 
   try {
     await repos.auditLogs.logChange({
@@ -2813,17 +2825,23 @@ async function reassignSpecialJob(params = {}, maybeAdminUser = null) {
   }
 
   return db.withTransaction(async (client) => {
-    // 1. Find job
-    const job = await repos.serviceJobs.findById(jobId, client);
+    // 1. Lock and load job
+    const job = await repos.serviceJobs.findByIdForUpdate(jobId, client);
     if (!job) {
       return { success: false, error: `Job '${jobId}' not found.` };
     }
-    if (job.status === 'completed') {
-      return { success: false, error: 'Cannot reassign a job that is already completed.' };
+    const TERMINAL_JOB_STATUSES = ['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'];
+    if (TERMINAL_JOB_STATUSES.includes(job.status)) {
+      return { success: false, error: `Cannot reassign a job in terminal status '${job.status}'.` };
     }
+
+    const isSeeManaged = await seeExecutionService.detectSeeManagedJob(job, client);
 
     // 1b. Handle Unassignment if requested
     if (isUnassignRequest) {
+      if (job.status === 'in_progress') {
+        return { success: false, error: 'Cannot unassign a job that is already in progress.' };
+      }
       if (repos.staffAssignments && repos.staffAssignments.unassignJob) {
         await repos.staffAssignments.unassignJob({
           jobId: job.id,
@@ -2831,19 +2849,22 @@ async function reassignSpecialJob(params = {}, maybeAdminUser = null) {
           reason: reason || 'Unassigned by admin'
         }, client);
       }
-      await client.query(`UPDATE public.service_jobs SET status = 'pending' WHERE id = $1`, [job.id]);
+      const nextStatus = isSeeManaged ? 'booked' : 'pending';
+      await client.query(`UPDATE public.service_jobs SET status = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [job.id, nextStatus]);
       await repos.auditLogs.logChange({
         action: 'JOB_UNASSIGNED',
         entityType: 'service_job',
         entityId: job.id,
         changedBy: adminUser,
-        details: { jobId: job.id, reason: reason || 'Unassigned by admin' }
+        beforeState: { status: job.status },
+        afterState: { jobId: job.id, status: nextStatus, seeManaged: isSeeManaged, reason: reason || 'Unassigned by admin' }
       }, client);
       return {
         success: true,
         message: 'Job unassigned successfully.',
         unassigned: true,
-        jobId: job.id
+        jobId: job.id,
+        status: nextStatus
       };
     }
 
@@ -3680,6 +3701,13 @@ async function stopCustomerService({ customerId, reason = 'Customer requested se
       [reason, adminUser, customer.id]
     );
     for (const openJob of (openJobsRes.rows || [])) {
+      if (repos.staffAssignments && typeof repos.staffAssignments.unassignJob === 'function') {
+        await repos.staffAssignments.unassignJob({
+          jobId: openJob.id,
+          unassignedBy: adminUser,
+          reason
+        }, client);
+      }
       if (await seeExecutionService.detectSeeManagedJob(openJob, client)) {
         await seeExecutionService.releaseJobEntitlementReservations(openJob, {
           outcome: 'cancelled',

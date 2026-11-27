@@ -19547,7 +19547,9 @@ function loadStaffCustomerData(staffId) {
       block.style.display = items.length ? 'block' : 'none';
       list.innerHTML = items.map(function(item, index) {
         var label = typeof item === 'string' ? item : (item && (item.label || item.item || item.name)) || `Checklist item ${index + 1}`;
-        return `<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid var(--md-sys-color-outline-variant, #e2e8f0);border-radius:8px;font-size:13px;color:var(--md-sys-color-on-surface, #0f172a);"><input type="checkbox" data-see-checklist-index="${index}" style="margin-top:2px;accent-color:var(--md-sys-color-primary, #2563eb);"><span>${escapeHtml(label)}</span></label>`;
+        var itemId = (item && typeof item === 'object') ? (item.id || item.itemId || item.key || '') : '';
+        var isRequired = (item && typeof item === 'object' && item.required === false) ? false : true;
+        return `<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid var(--md-sys-color-outline-variant, #e2e8f0);border-radius:8px;font-size:13px;color:var(--md-sys-color-on-surface, #0f172a);"><input type="checkbox" data-see-checklist-index="${index}" data-see-checklist-id="${escapeHtml(itemId)}" data-see-checklist-required="${isRequired ? '1' : '0'}" style="margin-top:2px;accent-color:var(--md-sys-color-primary, #2563eb);"><span>${escapeHtml(label)}</span></label>`;
       }).join('');
     }
 
@@ -19674,7 +19676,7 @@ function loadStaffCustomerData(staffId) {
       if (!currentCompleteJobId || completeSpecialJobSubmitting) return;
       if (completeJobStage !== 'edit') return;
       var checklistInputs = Array.from(document.querySelectorAll('#completeJobChecklist input[data-see-checklist-index]'));
-      if (checklistInputs.some(function(input) { return !input.checked; })) {
+      if (checklistInputs.some(function(input) { return input.getAttribute('data-see-checklist-required') !== '0' && !input.checked; })) {
         var checklistErr = document.getElementById('completeJobErrorMsg');
         if (checklistErr) {
           checklistErr.textContent = 'Complete every required service checklist item before submitting.';
@@ -19753,6 +19755,7 @@ function loadStaffCustomerData(staffId) {
       var checklistResults = checklistInputs.map(function(input) {
         var index = Number(input.getAttribute('data-see-checklist-index'));
         var raw = currentCompleteJobChecklistItems[index];
+        var attrId = input.getAttribute('data-see-checklist-id') || '';
         var entry = {
           item: typeof raw === 'string' ? raw : (raw && (raw.label || raw.item || raw.name)) || `Checklist item ${index + 1}`,
           completed: !!input.checked
@@ -19761,6 +19764,8 @@ function loadStaffCustomerData(staffId) {
           if (raw.id) entry.id = raw.id;
           if (raw.key) entry.key = raw.key;
         }
+        if (!entry.id && attrId) entry.id = attrId;
+        if (!entry.key && entry.id) entry.key = entry.id;
         return entry;
       });
       if (!currentCompleteJobMutationId) {
