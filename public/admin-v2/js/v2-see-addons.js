@@ -18,8 +18,8 @@
   let inspectingAddon = null;
   let pendingRetireAddon = null;
 
-  let hideTestAddons = true;
-  let hideTestCompatServices = true;
+  let hideTestAddons = false;
+  let hideTestCompatServices = false;
 
   let checklistItems = [];
   let selectedServiceIds = new Set();

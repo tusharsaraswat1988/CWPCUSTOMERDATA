@@ -20,7 +20,7 @@
   let inspectingService = null;
   let pendingRetireService = null;
 
-  let hideTestRecords = true;
+  let hideTestRecords = false;
   let currentPage = 1;
   const PAGE_SIZE = 25;
 
