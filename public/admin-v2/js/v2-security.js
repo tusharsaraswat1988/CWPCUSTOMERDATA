@@ -48,18 +48,18 @@
 
   function formatEventLabel(eventType) {
     const map = {
-      login_success: { label: 'Successful Login', cls: 'is-success' },
-      login_failed: { label: 'Failed Login', cls: 'is-danger' },
-      rate_limit_triggered: { label: 'Rate Limit Triggered', cls: 'is-warning' },
-      captcha_triggered: { label: 'CAPTCHA Triggered', cls: 'is-info' },
-      captcha_failed: { label: 'CAPTCHA Failed', cls: 'is-danger' },
-      device_registered: { label: 'Device Registered', cls: 'is-success' },
-      device_revoked: { label: 'Device Revoked', cls: 'is-warning' },
-      logout: { label: 'Logout', cls: 'is-neutral' },
-      session_revoked: { label: 'Session Revoked', cls: 'is-warning' },
-      session_expired: { label: 'Session Expired', cls: 'is-warning' }
+      login_success: { label: 'Successful Login', cls: 'cwp-v2-badge-success' },
+      login_failed: { label: 'Failed Login', cls: 'cwp-v2-badge-danger' },
+      rate_limit_triggered: { label: 'Rate Limit Triggered', cls: 'cwp-v2-badge-warning' },
+      captcha_triggered: { label: 'CAPTCHA Triggered', cls: 'cwp-v2-badge-info' },
+      captcha_failed: { label: 'CAPTCHA Failed', cls: 'cwp-v2-badge-danger' },
+      device_registered: { label: 'Device Registered', cls: 'cwp-v2-badge-success' },
+      device_revoked: { label: 'Device Revoked', cls: 'cwp-v2-badge-warning' },
+      logout: { label: 'Logout', cls: 'cwp-v2-badge-neutral' },
+      session_revoked: { label: 'Session Revoked', cls: 'cwp-v2-badge-warning' },
+      session_expired: { label: 'Session Expired', cls: 'cwp-v2-badge-warning' }
     };
-    return map[eventType] || { label: String(eventType || 'Event'), cls: 'is-neutral' };
+    return map[eventType] || { label: String(eventType || 'Event'), cls: 'cwp-v2-badge-neutral' };
   }
 
   function renderAccountSecurity(info) {
@@ -67,25 +67,25 @@
     if (!container) return;
     const s = info || {};
     container.innerHTML = `
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:12px;">
+      <div class="cwp-v2-sec-kpi-grid">
         <div class="cwp-v2-kpi-card">
           <div class="cwp-v2-kpi-label">Password Authentication</div>
-          <div class="cwp-v2-kpi-value" style="font-size:15px;">${s.passwordAuthEnabled ? 'Enabled' : 'Not Configured'}</div>
+          <div class="cwp-v2-kpi-value cwp-v2-sec-kpi-val">${s.passwordAuthEnabled ? 'Enabled' : 'Not Configured'}</div>
           <div class="cwp-v2-kpi-meta">Credential source: ${esc(s.credentialSource || 'Server environment (.env)')}</div>
         </div>
         <div class="cwp-v2-kpi-card">
           <div class="cwp-v2-kpi-label">Password Management</div>
-          <div class="cwp-v2-kpi-value" style="font-size:15px;">Environment Only</div>
+          <div class="cwp-v2-kpi-value cwp-v2-sec-kpi-val">Environment Only</div>
           <div class="cwp-v2-kpi-meta">${esc(s.passwordManagement || 'Restricted to server configuration')}</div>
         </div>
         <div class="cwp-v2-kpi-card">
           <div class="cwp-v2-kpi-label">Current Session</div>
-          <div class="cwp-v2-kpi-value" style="font-size:15px;">${esc(s.currentSessionStatus || 'Active')}</div>
+          <div class="cwp-v2-kpi-value cwp-v2-sec-kpi-val">${esc(s.currentSessionStatus || 'Active')}</div>
           <div class="cwp-v2-kpi-meta">Idle timeout: ${esc(s.idleTimeoutMinutes || 30)}m &bull; Max: ${esc(s.maxSessionHours || 12)}h</div>
         </div>
         <div class="cwp-v2-kpi-card">
           <div class="cwp-v2-kpi-label">Current Browser Device</div>
-          <div class="cwp-v2-kpi-value" style="font-size:15px;">${s.currentDeviceRecognized ? 'Recognized' : 'Standard Session'}</div>
+          <div class="cwp-v2-kpi-value cwp-v2-sec-kpi-val">${s.currentDeviceRecognized ? 'Recognized' : 'Standard Session'}</div>
           <div class="cwp-v2-kpi-meta">HttpOnly cookie-bound recognition</div>
         </div>
       </div>
@@ -96,7 +96,7 @@
     const tbody = document.getElementById('v2SecDevicesBody');
     if (!tbody) return;
     if (!Array.isArray(devices) || devices.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#64748b;">No trusted devices registered yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="cwp-v2-sec-empty-cell">No trusted devices registered yet.</td></tr>';
       return;
     }
 
@@ -104,14 +104,14 @@
       <tr>
         <td>
           <strong>${esc(d.deviceLabel)}</strong>
-          ${d.isCurrent ? '<span class="cwp-v2-badge cwp-v2-badge-success" style="margin-left:6px;">Current Device</span>' : ''}
+          ${d.isCurrent ? '<span class="cwp-v2-badge cwp-v2-badge-success cwp-v2-sec-inline-badge">Current Device</span>' : ''}
         </td>
         <td>${esc(d.browser)}</td>
         <td>${esc(d.os)}</td>
         <td>${esc(formatDateTime(d.firstRegisteredAt))}</td>
         <td>${esc(formatDateTime(d.lastUsedAt))}</td>
         <td>${esc(formatDateTime(d.trustExpiresAt))}</td>
-        <td style="text-align:right; white-space:nowrap;">
+        <td class="cwp-v2-sec-actions-cell">
           <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-sec-rename-device="${esc(d.deviceRef)}" data-sec-current-label="${esc(d.deviceLabel)}">Rename</button>
           <button type="button" class="cwp-v2-btn cwp-v2-btn-danger-outline cwp-v2-btn-sm" data-sec-revoke-device="${esc(d.deviceRef)}">Revoke</button>
         </td>
@@ -123,7 +123,7 @@
     const tbody = document.getElementById('v2SecSessionsBody');
     if (!tbody) return;
     if (!Array.isArray(sessions) || sessions.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">No active sessions found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="cwp-v2-sec-empty-cell">No active sessions found.</td></tr>';
       return;
     }
 
@@ -131,11 +131,11 @@
       <tr>
         <td>
           <strong>${esc(s.deviceLabel || `${s.browser} on ${s.os}`)}</strong>
-          ${s.isCurrent ? '<span class="cwp-v2-badge cwp-v2-badge-success" style="margin-left:6px;">Current Session</span>' : ''}
+          ${s.isCurrent ? '<span class="cwp-v2-badge cwp-v2-badge-success cwp-v2-sec-inline-badge">Current Session</span>' : ''}
         </td>
         <td>${esc(formatDateTime(s.createdAt))}</td>
         <td>${esc(formatDateTime(s.lastActivityAt))}</td>
-        <td style="text-align:right; white-space:nowrap;">
+        <td class="cwp-v2-sec-actions-cell">
           <button type="button" class="cwp-v2-btn cwp-v2-btn-danger-outline cwp-v2-btn-sm" data-sec-logout-session="${esc(s.sessionRef)}">
             ${s.isCurrent ? 'Sign Out' : 'Logout Session'}
           </button>
@@ -148,7 +148,7 @@
     const tbody = document.getElementById('v2SecEventsBody');
     if (!tbody) return;
     if (!Array.isArray(events) || events.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">No security events recorded yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="cwp-v2-sec-empty-cell">No security events recorded yet.</td></tr>';
       return;
     }
 
@@ -234,11 +234,20 @@
       if (renameBtn) {
         const ref = renameBtn.getAttribute('data-sec-rename-device');
         const cur = renameBtn.getAttribute('data-sec-current-label') || '';
-        const nextName = window.prompt('Enter a name for this trusted device:', cur);
-        if (nextName && nextName.trim()) {
-          await api.request('renameAdminDevice', { deviceRef: ref, deviceLabel: nextName.trim() });
-          if (toast) toast.show('Device renamed.', 'success');
-          await loadOverview();
+        const refInp = document.getElementById('v2SecRenameDeviceRef');
+        const nameInp = document.getElementById('v2SecRenameDeviceInput');
+        const errEl = document.getElementById('v2SecRenameDeviceError');
+        if (refInp) refInp.value = ref || '';
+        if (nameInp) nameInp.value = cur;
+        if (errEl) {
+          errEl.hidden = true;
+          errEl.textContent = '';
+        }
+        if (window.CWP_ADMIN_V2.overlay) {
+          window.CWP_ADMIN_V2.overlay.open('v2SecRenameDeviceModal', {
+            triggerEl: renameBtn,
+            initialFocus: '#v2SecRenameDeviceInput'
+          });
         }
         return;
       }
@@ -269,6 +278,42 @@
         });
       }
     });
+
+    const renameForm = document.getElementById('v2SecRenameDeviceForm');
+    if (renameForm && renameForm.dataset.bound !== '1') {
+      renameForm.dataset.bound = '1';
+      renameForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const api = window.CWP_ADMIN_V2.api;
+        const toast = window.CWP_ADMIN_V2.toast;
+        const ref = (document.getElementById('v2SecRenameDeviceRef') || {}).value || '';
+        const nextName = ((document.getElementById('v2SecRenameDeviceInput') || {}).value || '').trim();
+        const errEl = document.getElementById('v2SecRenameDeviceError');
+        const submitBtn = document.getElementById('v2SecRenameDeviceSubmitBtn');
+        if (!ref || !nextName) {
+          if (errEl) {
+            errEl.textContent = 'Please enter a valid device name.';
+            errEl.hidden = false;
+          }
+          return;
+        }
+        if (errEl) errEl.hidden = true;
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+          await api.request('renameAdminDevice', { deviceRef: ref, deviceLabel: nextName });
+          if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2SecRenameDeviceModal');
+          if (toast) toast.show('Device renamed.', 'success');
+          await loadOverview();
+        } catch (err) {
+          if (errEl) {
+            errEl.textContent = (err && err.message) || 'Failed to rename device.';
+            errEl.hidden = false;
+          }
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    }
   }
 
   function init() {

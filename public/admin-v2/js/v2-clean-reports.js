@@ -121,6 +121,7 @@
   };
 
   let searchDebounceTimer = null;
+  let activeLoadSeq = 0;
 
   function esc(val) {
     if (window.CWP_ADMIN_V2.ui && typeof window.CWP_ADMIN_V2.ui.escapeHtml === 'function') {
@@ -486,7 +487,7 @@
     if (metaEl) metaEl.textContent = `${state.staffMatrix.length} active crew with scheduled vehicles`;
 
     if (state.staffMatrix.length === 0) {
-      chipsEl.innerHTML = '<div style="font-size:12px; color:#64748b; padding:4px 0;">No staff activity or assignments recorded for this date.</div>';
+      chipsEl.innerHTML = '<div class="cwp-v2-cr-staff-empty">No staff activity or assignments recorded for this date.</div>';
       return;
     }
 
@@ -532,9 +533,9 @@
     }
 
     if (state.lastError) {
-      tbody.innerHTML = `<tr><td colspan="8" style="padding:24px; text-align:center;">
-        <div style="color:#b91c1c; font-weight:600; margin-bottom:6px;">Unable to load daily cleaning records</div>
-        <div style="font-size:12px; color:#64748b; margin-bottom:10px;">${esc(state.lastError)}</div>
+      tbody.innerHTML = `<tr><td colspan="8" class="cwp-v2-cr-table-state-cell">
+        <div class="cwp-v2-cr-state-title is-error">Unable to load daily cleaning records</div>
+        <div class="cwp-v2-cr-state-sub">${esc(state.lastError)}</div>
         <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-cr-retry>Retry</button>
       </td></tr>`;
       if (pageInfoEl) pageInfoEl.textContent = 'Error loading data';
@@ -542,9 +543,9 @@
     }
 
     if (total === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="padding:28px; text-align:center;">
-        <div style="color:#475569; font-weight:600; margin-bottom:4px;">No cleaning records match the current filters</div>
-        <div style="font-size:12px; color:#64748b; margin-bottom:10px;">Try clearing filters or selecting another date.</div>
+      tbody.innerHTML = `<tr><td colspan="8" class="cwp-v2-cr-table-state-cell">
+        <div class="cwp-v2-cr-state-title">No cleaning records match the current filters</div>
+        <div class="cwp-v2-cr-state-sub">Try clearing filters or selecting another date.</div>
         <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-cr-empty-reset>Reset Filters</button>
       </td></tr>`;
       if (pageInfoEl) pageInfoEl.textContent = 'Showing 0 of 0';
@@ -571,25 +572,25 @@
 
       const proofHtml = r.hasPhoto
         ? `<button type="button" class="cwp-v2-cr-photo-btn" data-cr-photo="${esc(r.id)}" title="View proof photo">
-             <span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px;">photo_camera</span>
+             <span class="material-symbols-outlined cwp-v2-cr-icon-14" aria-hidden="true">photo_camera</span>
              <span>Photo</span>
            </button>`
         : (r.isPending
-            ? '<span style="color:#94a3b8; font-size:11px;">—</span>'
-            : '<span style="color:#b45309; font-size:11px; font-weight:600;">No Photo</span>');
+            ? '<span class="cwp-v2-cr-proof-pending">—</span>'
+            : '<span class="cwp-v2-cr-proof-missing">No Photo</span>');
 
       const actionsHtml = r.isPending
         ? `<button type="button" class="cwp-v2-cr-icon-action" data-cr-view="${esc(r.id)}" title="View record details" aria-label="View record details">
-             <span class="material-symbols-outlined" aria-hidden="true" style="font-size:17px;">visibility</span>
+             <span class="material-symbols-outlined cwp-v2-cr-icon-17" aria-hidden="true">visibility</span>
            </button>`
         : `<button type="button" class="cwp-v2-cr-icon-action" data-cr-view="${esc(r.id)}" title="View details" aria-label="View details">
-             <span class="material-symbols-outlined" aria-hidden="true" style="font-size:17px;">visibility</span>
+             <span class="material-symbols-outlined cwp-v2-cr-icon-17" aria-hidden="true">visibility</span>
            </button>
            <button type="button" class="cwp-v2-cr-icon-action" data-cr-edit="${esc(r.id)}" title="Update cleaning status" aria-label="Update cleaning status">
-             <span class="material-symbols-outlined" aria-hidden="true" style="font-size:17px;">edit</span>
+             <span class="material-symbols-outlined cwp-v2-cr-icon-17" aria-hidden="true">edit</span>
            </button>
            <button type="button" class="cwp-v2-cr-icon-action is-danger" data-cr-delete="${esc(r.id)}" title="Delete cleaning record" aria-label="Delete cleaning record">
-             <span class="material-symbols-outlined" aria-hidden="true" style="font-size:17px;">delete</span>
+             <span class="material-symbols-outlined cwp-v2-cr-icon-17" aria-hidden="true">delete</span>
            </button>`;
 
       return `
@@ -604,14 +605,14 @@
           </td>
           <td>
             <span class="cwp-v2-cr-status-pill ${stMeta.pillClass}">
-              <span class="material-symbols-outlined" aria-hidden="true" style="font-size:13px;">${stMeta.icon}</span>
+              <span class="material-symbols-outlined cwp-v2-cr-icon-13" aria-hidden="true">${stMeta.icon}</span>
               <span>${esc(stMeta.label)}</span>
             </span>
-            ${r.isException && r.status === 'completed' ? '<div class="cwp-v2-cr-exc-tag"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:12px;">priority_high</span><span>No Photo</span></div>' : ''}
-            ${r.isUnassigned ? '<div class="cwp-v2-cr-exc-tag"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:12px;">person_off</span><span>Unassigned</span></div>' : ''}
+            ${r.isException && r.status === 'completed' ? '<div class="cwp-v2-cr-exc-tag"><span class="material-symbols-outlined cwp-v2-cr-icon-12" aria-hidden="true">priority_high</span><span>No Photo</span></div>' : ''}
+            ${r.isUnassigned ? '<div class="cwp-v2-cr-exc-tag"><span class="material-symbols-outlined cwp-v2-cr-icon-12" aria-hidden="true">person_off</span><span>Unassigned</span></div>' : ''}
           </td>
           <td>
-            <div style="font-weight:600; color:#0f172a; font-size:12px;">${esc(timeMain)}</div>
+            <div class="cwp-v2-cr-time-main">${esc(timeMain)}</div>
             <div class="cwp-v2-cr-cell-sub">${esc(timeSub)}</div>
           </td>
           <td>
@@ -623,7 +624,7 @@
             ${r.parkingDetails && r.parkingDetails !== r.areaText ? `<div class="cwp-v2-cr-cell-sub" title="${esc(r.parkingDetails)}">${esc(r.parkingDetails)}</div>` : ''}
           </td>
           <td>${proofHtml}</td>
-          <td style="text-align:right;">
+          <td class="cwp-v2-cr-cell-right">
             <div class="cwp-v2-cr-row-actions">${actionsHtml}</div>
           </td>
         </tr>
@@ -674,7 +675,7 @@
         <div class="cwp-v2-cr-detail-kv"><span class="cwp-v2-cr-detail-k">Completed At (IST)</span><span class="cwp-v2-cr-detail-v">${esc(formatIstDateTime(row.completedAt))}</span></div>
         ${row.cleaningDurationMinutes !== null ? `<div class="cwp-v2-cr-detail-kv"><span class="cwp-v2-cr-detail-k">Cleaning Duration</span><span class="cwp-v2-cr-detail-v">${esc(row.cleaningDurationMinutes)} min</span></div>` : ''}
         ${row.transitDurationMinutes !== null ? `<div class="cwp-v2-cr-detail-kv"><span class="cwp-v2-cr-detail-k">Transit Time</span><span class="cwp-v2-cr-detail-v">${esc(row.transitDurationMinutes)} min</span></div>` : ''}
-        ${row.exceptionReasons.length > 0 ? `<div class="cwp-v2-cr-detail-kv"><span class="cwp-v2-cr-detail-k">Attention</span><span class="cwp-v2-cr-detail-v" style="color:#b45309;">${esc(row.exceptionReasons.join(', '))}</span></div>` : ''}
+        ${row.exceptionReasons.length > 0 ? `<div class="cwp-v2-cr-detail-kv"><span class="cwp-v2-cr-detail-k">Attention</span><span class="cwp-v2-cr-detail-v is-warn">${esc(row.exceptionReasons.join(', '))}</span></div>` : ''}
       </div>
 
       <div class="cwp-v2-cr-detail-section">
@@ -697,8 +698,8 @@
       ${(row.notes || row.adminNotes) ? `
       <div class="cwp-v2-cr-detail-section">
         <div class="cwp-v2-cr-detail-sec-title">Notes</div>
-        ${row.notes ? `<div style="font-size:12px; color:#334155; background:#f8fafc; padding:6px 8px; border-radius:6px; border:1px solid #e2e8f0;">${esc(row.notes)}</div>` : ''}
-        ${row.adminNotes ? `<div style="font-size:12px; color:#1e40af; background:#eff6ff; padding:6px 8px; border-radius:6px; border:1px solid #bfdbfe;"><strong>Admin Note:</strong> ${esc(row.adminNotes)}</div>` : ''}
+        ${row.notes ? `<div class="cwp-v2-cr-detail-note">${esc(row.notes)}</div>` : ''}
+        ${row.adminNotes ? `<div class="cwp-v2-cr-detail-note is-admin"><strong>Admin Note:</strong> ${esc(row.adminNotes)}</div>` : ''}
       </div>` : ''}
 
       ${row.hasPhoto ? `
@@ -710,16 +711,16 @@
 
     if (row.isPending) {
       actionsEl.innerHTML = `
-        <span style="font-size:11.5px; color:#64748b;">Pending vehicles are marked complete by field staff with photo proof.</span>
+        <span class="cwp-v2-cr-detail-pending-hint">Pending vehicles are marked complete by field staff with photo proof.</span>
       `;
     } else {
       actionsEl.innerHTML = `
         <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-cr-edit="${esc(row.id)}">
-          <span class="material-symbols-outlined" aria-hidden="true" style="font-size:15px;">edit</span>
+          <span class="material-symbols-outlined cwp-v2-cr-icon-15" aria-hidden="true">edit</span>
           <span>Update Status</span>
         </button>
         <button type="button" class="cwp-v2-btn cwp-v2-btn-danger-solid cwp-v2-btn-sm" data-cr-delete="${esc(row.id)}">
-          <span class="material-symbols-outlined" aria-hidden="true" style="font-size:15px;">delete</span>
+          <span class="material-symbols-outlined cwp-v2-cr-icon-15" aria-hidden="true">delete</span>
           <span>Delete</span>
         </button>
       `;
@@ -745,8 +746,9 @@
 
   async function loadData({ silent = false } = {}) {
     if (!hasAuthToken()) return;
-    if (state.isLoading) return;
 
+    const reqSeq = ++activeLoadSeq;
+    const reqDate = state.selectedDate;
     state.isLoading = true;
     state.lastError = null;
     if (!silent && !state.hasLoadedOnce) {
@@ -755,20 +757,24 @@
 
     try {
       const res = await window.CWP_ADMIN_V2.api.request('getDailyCleanReports', {
-        startDate: state.selectedDate,
-        endDate: state.selectedDate,
+        startDate: reqDate,
+        endDate: reqDate,
         limit: 1000,
         offset: 0
       });
+      if (reqSeq !== activeLoadSeq) return;
       state.hasLoadedOnce = true;
       buildCombinedDataset(res);
       renderAll({ preserveScroll: silent });
     } catch (err) {
+      if (reqSeq !== activeLoadSeq) return;
       if (err && err.unauthorized) return;
       state.lastError = (err && err.message) ? err.message : 'Failed to load daily cleaning status';
       renderTable();
     } finally {
-      state.isLoading = false;
+      if (reqSeq === activeLoadSeq) {
+        state.isLoading = false;
+      }
     }
   }
 

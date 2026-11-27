@@ -18,6 +18,20 @@ const db = require('../db/index');
 const repos = require('../db/repositories/index');
 const seeStaffCapabilityService = require('./seeStaffCapabilityService');
 const seeEntitlementService = require('./seeEntitlementService');
+const packageService = require('./packageService');
+
+const ALLOWED_PAYMENT_STATUSES = ['paid', 'unpaid', 'pending', 'package_covered', 'partial', 'waived'];
+const ALLOWED_BOOKING_SOURCES = ['admin', 'customer_request', 'verbal', 'call_center', 'app'];
+
+function normalizePaymentStatus(val) {
+  const s = val ? String(val).trim().toLowerCase() : 'pending';
+  return ALLOWED_PAYMENT_STATUSES.includes(s) ? s : 'pending';
+}
+
+function normalizeBookingSource(val) {
+  const s = val ? String(val).trim().toLowerCase() : 'admin';
+  return ALLOWED_BOOKING_SOURCES.includes(s) ? s : 'admin';
+}
 
 const VALID_JOB_STATUSES = [
   'requested', 'booked', 'assigned', 'in_progress',
@@ -90,6 +104,16 @@ async function createCanonicalJob({
   vehicleId = null,
   locationId,
   serviceIdOrCode,
+  serviceType = null,
+  packageCode = null,
+  packageDetails = null,
+  seaterType = null,
+  panelCount = null,
+  siteDetails = null,
+  sequenceOrder = null,
+  servicePrice = 0.00,
+  paymentStatus = 'pending',
+  bookingSource = 'admin',
   scheduledDate = null,
   scheduledTime = null,
   timezone = 'Asia/Kolkata',
@@ -124,10 +148,27 @@ async function createCanonicalJob({
   const durationMinutes = svc.expected_duration_minutes || 60;
   const allowConcurrent = Boolean(svc.execution_config && svc.execution_config.allow_concurrent);
 
+  const parsedPanelCount = (panelCount !== null && panelCount !== undefined && panelCount !== '')
+    ? (isNaN(parseInt(panelCount, 10)) ? null : parseInt(panelCount, 10))
+    : null;
+  const parsedSeqOrder = (sequenceOrder !== null && sequenceOrder !== undefined && sequenceOrder !== '')
+    ? (isNaN(parseInt(sequenceOrder, 10)) ? null : parseInt(sequenceOrder, 10))
+    : null;
+  const numPrice = parseFloat(servicePrice);
+  const finalPrice = Number.isFinite(numPrice) ? numPrice : 0.00;
+  const normPayStatus = normalizePaymentStatus(entitlementAccountId ? (paymentStatus || 'package_covered') : paymentStatus);
+  const normSource = normalizeBookingSource(bookingSource);
+
   const job = await db.withTransaction(async (client) => {
-    // Validate staff eligibility INSIDE transaction with FOR UPDATE lock on staff row
+    // Resolve staff (UUID or staff_code) & validate eligibility INSIDE transaction with FOR UPDATE lock on staff row
+    let resolvedStaffUuid = null;
     if (staffId) {
-      const elig = await seeStaffCapabilityService.evaluateStaffEligibility(staffId, {
+      const staffRecord = await seeStaffCapabilityService.resolveStaffRecord(staffId, client);
+      if (!staffRecord) {
+        throw new Error(`Staff ineligible for job: Staff '${staffId}' not found.`);
+      }
+      resolvedStaffUuid = staffRecord.id;
+      const elig = await seeStaffCapabilityService.evaluateStaffEligibility(resolvedStaffUuid, {
         serviceId: svc.id,
         serviceCode: svc.service_code,
         serviceCategoryId: svc.service_category_id,
@@ -146,15 +187,17 @@ async function createCanonicalJob({
       }
     }
 
-    const initialStatus = staffId ? 'assigned' : 'booked';
+    const initialStatus = resolvedStaffUuid ? 'assigned' : 'booked';
     const res = await client.query(
       `INSERT INTO public.service_jobs (
          customer_id, vehicle_id, location_id, service_category_id,
          service_id, service_name_snapshot, service_type,
+         package_code, package_details, seater_type, panel_count, site_details,
+         sequence_order, service_price, payment_status, booking_source,
          scheduled_date, scheduled_time, timezone, city, zone,
          status, special_instructions, entitlement_account_id, purchase_snapshot_id,
          service_payload, checklist_requirements, proof_requirements
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
        RETURNING *`,
       [
         customerId,
@@ -163,7 +206,16 @@ async function createCanonicalJob({
         svc.service_category_id,
         svc.id,
         svc.name,
-        svc.name,
+        (serviceType && String(serviceType).trim()) ? String(serviceType).trim() : svc.name,
+        packageCode || null,
+        packageDetails || null,
+        seaterType || null,
+        parsedPanelCount,
+        siteDetails ? JSON.stringify(siteDetails) : null,
+        parsedSeqOrder,
+        finalPrice,
+        normPayStatus,
+        normSource,
         scheduledDate,
         scheduledTime,
         timezone,
@@ -180,9 +232,9 @@ async function createCanonicalJob({
     );
     const createdJob = res.rows[0];
 
-    if (staffId) {
+    if (resolvedStaffUuid) {
       await repos.staffAssignments.assignStaffToJob({
-        staffId,
+        staffId: resolvedStaffUuid,
         jobId: createdJob.id,
         assignedBy: actor
       }, client);
@@ -235,12 +287,40 @@ async function createCanonicalJob({
 /**
  * Assign or reassign a job to an eligible staff member (concurrency-safe with FOR UPDATE lock)
  */
-async function assignJob(jobId, staffId, actor = 'admin') {
+async function assignJob(jobId, staffId, actor = 'admin', opts = {}) {
   return db.withTransaction(async (client) => {
     const job = await repos.serviceJobs.findByIdForUpdate(jobId, client);
     if (!job) throw new Error(`Job '${jobId}' not found.`);
-    if (['completed', 'cancelled', 'failed', 'no_show'].includes(job.status)) {
+    if (['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'].includes(job.status)) {
       throw new Error(`Cannot assign job in terminal status '${job.status}'.`);
+    }
+
+    const staffRecord = await seeStaffCapabilityService.resolveStaffRecord(staffId, client);
+    if (!staffRecord) {
+      throw new Error(`Staff '${staffId}' not found.`);
+    }
+
+    const currentAssignment = await repos.staffAssignments.findActiveByJobId(jobId, client);
+    const oldStaffId = currentAssignment ? currentAssignment.staff_id : null;
+
+    const hasScheduleUpdate = (opts && (opts.scheduledTime !== undefined || opts.tentativeTime !== undefined));
+    const hasSeqUpdate = (opts && opts.sequenceOrder !== undefined);
+    const newScheduledTime = hasScheduleUpdate
+      ? ((opts.scheduledTime !== undefined ? opts.scheduledTime : opts.tentativeTime) || '').toString().trim() || null
+      : job.scheduled_time;
+    const newSequenceOrder = hasSeqUpdate
+      ? (opts.sequenceOrder !== null && opts.sequenceOrder !== '' && !isNaN(parseInt(opts.sequenceOrder, 10)) ? parseInt(opts.sequenceOrder, 10) : null)
+      : job.sequence_order;
+
+    if (oldStaffId && oldStaffId === staffRecord.id && !hasScheduleUpdate && !hasSeqUpdate) {
+      throw new Error(`${staffRecord.name} is already assigned to this job.`);
+    }
+
+    if (hasScheduleUpdate || hasSeqUpdate) {
+      await repos.serviceJobs.updateJob(job.id, {
+        ...(hasScheduleUpdate ? { scheduledTime: newScheduledTime } : {}),
+        ...(hasSeqUpdate ? { sequenceOrder: newSequenceOrder } : {})
+      }, client);
     }
 
     const jobAddons = await repos.seeOperations.findJobAddons(jobId, client);
@@ -249,7 +329,7 @@ async function assignJob(jobId, staffId, actor = 'admin') {
       ? svc.execution_config.required_equipment
       : [];
 
-    const elig = await seeStaffCapabilityService.evaluateStaffEligibility(staffId, {
+    const elig = await seeStaffCapabilityService.evaluateStaffEligibility(staffRecord.id, {
       serviceId: job.service_id,
       serviceCode: svc ? svc.service_code : null,
       serviceCategoryId: job.service_category_id,
@@ -257,7 +337,7 @@ async function assignJob(jobId, staffId, actor = 'admin') {
       city: job.city,
       zone: job.zone,
       scheduledDate: job.scheduled_date,
-      scheduledTime: job.scheduled_time,
+      scheduledTime: newScheduledTime,
       durationMinutes: (svc && svc.expected_duration_minutes) || 60,
       allowConcurrent: Boolean(svc && svc.execution_config && svc.execution_config.allow_concurrent),
       timezone: job.timezone || 'Asia/Kolkata',
@@ -268,7 +348,40 @@ async function assignJob(jobId, staffId, actor = 'admin') {
       throw new Error(`Staff ineligible for job: ${elig.reasons.join('; ')}`);
     }
 
-    await repos.staffAssignments.assignStaffToJob({ staffId, jobId, assignedBy: actor }, client);
+    if (!(oldStaffId && oldStaffId === staffRecord.id)) {
+      await repos.staffAssignments.assignStaffToJob({ staffId: staffRecord.id, jobId, assignedBy: actor }, client);
+    }
+
+    const reason = opts && opts.reason ? String(opts.reason).trim() : '';
+    if (reason) {
+      if (oldStaffId) {
+        await client.query(
+          `UPDATE public.staff_assignments
+           SET reassignment_reason = $1
+           WHERE job_id = $2 AND staff_id = $3 AND is_active = FALSE AND unassigned_at IS NOT NULL`,
+          [reason, job.id, oldStaffId]
+        );
+      }
+    }
+
+    if (repos.auditLogs && repos.auditLogs.logChange) {
+      await repos.auditLogs.logChange({
+        entityType: 'service_job',
+        entityId: job.id,
+        action: oldStaffId ? 'reassign_special_job' : 'assign_special_job',
+        changedBy: actor,
+        beforeState: { staffId: oldStaffId, scheduledTime: job.scheduled_time, sequenceOrder: job.sequence_order },
+        afterState: {
+          jobId: job.id,
+          newStaffId: staffRecord.staff_code,
+          newStaffName: staffRecord.name,
+          scheduledTime: newScheduledTime,
+          sequenceOrder: newSequenceOrder,
+          reason: reason || null
+        }
+      }, client);
+    }
+
     const res = await client.query(
       `UPDATE public.service_jobs SET status = 'assigned', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
       [jobId]
@@ -280,21 +393,36 @@ async function assignJob(jobId, staffId, actor = 'admin') {
 /**
  * Phase 10: Start execution
  */
-async function startExecution(jobId, staffId) {
+async function startExecution(jobId, staffId, opts = {}) {
   const job = await repos.serviceJobs.findById(jobId);
   if (!job) throw new Error(`Job '${jobId}' not found.`);
-  if (!['assigned', 'booked'].includes(job.status)) {
+  if (!['assigned', 'booked', 'pending'].includes(job.status)) {
     throw new Error(`Cannot start job in status '${job.status}'.`);
   }
 
+  const beforePhotos = Array.isArray(opts && opts.beforePhotos) ? opts.beforePhotos : null;
+  const startedAt = (opts && opts.startedAt) || null;
+
   return db.withTransaction(async (client) => {
+    let resolvedStaffUuid = null;
+    if (staffId) {
+      const sRec = await seeStaffCapabilityService.resolveStaffRecord(staffId, client);
+      resolvedStaffUuid = sRec ? sRec.id : (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(staffId)) ? staffId : null);
+    }
     await client.query(
-      `UPDATE public.service_jobs SET status = 'in_progress', started_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-      [jobId]
+      `UPDATE public.service_jobs
+       SET status = 'in_progress',
+           started_at = COALESCE($2, CURRENT_TIMESTAMP),
+           before_photos = COALESCE($3::jsonb, before_photos),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [jobId, startedAt, beforePhotos && beforePhotos.length > 0 ? JSON.stringify(beforePhotos) : null]
     );
     return repos.seeOperations.createExecution({
       jobId,
-      staffId,
+      staffId: resolvedStaffUuid,
+      startedAt: startedAt || new Date().toISOString(),
+      proofPhotos: beforePhotos && beforePhotos.length > 0 ? { before: beforePhotos, after: [] } : { before: [], after: [] },
       outcome: 'in_progress'
     }, client);
   });
@@ -311,18 +439,23 @@ async function completeExecution(jobId, {
   measurements = {},
   customerConfirmation = {},
   authorizedException = null,
+  completionNotes = null,
   actor = 'staff'
 }) {
   const job = await repos.serviceJobs.findById(jobId);
   if (!job) throw new Error(`Job '${jobId}' not found.`);
-  if (['completed', 'cancelled', 'failed', 'no_show'].includes(job.status)) {
+  if (['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'].includes(job.status)) {
     throw new Error(`Job '${jobId}' is already in terminal status '${job.status}'.`);
   }
 
-  // 1. Enforce Proof requirements unless authorized exception
+  // 1. Enforce Proof requirements unless authorized exception (merge before_photos captured on startExecution)
+  const existingBefore = Array.isArray(job.before_photos) ? job.before_photos : [];
+  const effectiveBefore = (Array.isArray(proofPhotos.before) && proofPhotos.before.length > 0) ? proofPhotos.before : existingBefore;
+  const effectiveAfter = Array.isArray(proofPhotos.after) ? proofPhotos.after : [];
+  const normalizedProofPhotos = { before: effectiveBefore, after: effectiveAfter };
   const proofReq = job.proof_requirements || { before_min: 0, after_min: 0, required: false };
-  const beforeCount = Array.isArray(proofPhotos.before) ? proofPhotos.before.length : 0;
-  const afterCount = Array.isArray(proofPhotos.after) ? proofPhotos.after.length : 0;
+  const beforeCount = effectiveBefore.length;
+  const afterCount = effectiveAfter.length;
   if (!authorizedException && (proofReq.required || proofReq.before_min > 0 || proofReq.after_min > 0)) {
     if (beforeCount < (proofReq.before_min || 0) || afterCount < (proofReq.after_min || 0)) {
       throw new Error(`Required proof photos missing (need before>=${proofReq.before_min || 0}, after>=${proofReq.after_min || 0}).`);
@@ -351,34 +484,57 @@ async function completeExecution(jobId, {
     // Row-level lock on service_jobs to serialize concurrent completion attempts
     const lockedJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
     if (!lockedJob) throw new Error(`Job '${jobId}' not found.`);
-    if (['completed', 'cancelled', 'failed', 'no_show'].includes(lockedJob.status)) {
+    if (['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'].includes(lockedJob.status)) {
       throw new Error(`Job '${jobId}' is already in terminal status '${lockedJob.status}'.`);
+    }
+
+    let resolvedStaffUuid = null;
+    if (staffId) {
+      const sRec = await seeStaffCapabilityService.resolveStaffRecord(staffId, client);
+      resolvedStaffUuid = sRec ? sRec.id : (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(staffId)) ? staffId : null);
     }
 
     const exec = await repos.seeOperations.createExecution({
       jobId,
-      staffId,
+      staffId: resolvedStaffUuid,
       endedAt: new Date().toISOString(),
       actualQuantity,
       measurements,
       checklistResults,
-      proofPhotos,
+      proofPhotos: normalizedProofPhotos,
       customerConfirmation,
       outcome: authorizedException ? 'partial_exception' : 'completed',
       exceptionReason: authorizedException ? authorizedException.reason : null,
       approvalReference: authorizedException ? authorizedException.approvalReference : null
     }, client);
 
+    let legacyRedeemed = false;
+    if (lockedJob.package_id && !lockedJob.entitlement_consumed && !lockedJob.entitlement_account_id) {
+      await packageService.redeemPackage({
+        packageId: lockedJob.package_id,
+        quantity: 1,
+        vehicleId: lockedJob.vehicle_id,
+        locationId: lockedJob.location_id,
+        serviceJobId: jobId,
+        notes: `Auto-redeemed upon completion of job #${jobId.slice(0, 8)}`,
+        adminUser: actor,
+        client
+      }, actor, client);
+      legacyRedeemed = true;
+    }
+
+    const cleanNotes = completionNotes && String(completionNotes).trim() ? String(completionNotes).trim() : null;
     await client.query(
       `UPDATE public.service_jobs
        SET status = 'completed',
            completed_at = CURRENT_TIMESTAMP,
            before_photos = $2,
            after_photos = $3,
-           entitlement_consumed = CASE WHEN entitlement_account_id IS NOT NULL THEN TRUE ELSE entitlement_consumed END,
+           completion_notes = COALESCE($4, completion_notes),
+           entitlement_consumed = CASE WHEN entitlement_account_id IS NOT NULL OR $5 THEN TRUE ELSE entitlement_consumed END,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $1`,
-      [jobId, JSON.stringify(proofPhotos.before || []), JSON.stringify(proofPhotos.after || [])]
+      [jobId, JSON.stringify(normalizedProofPhotos.before || []), JSON.stringify(normalizedProofPhotos.after || []), cleanNotes, legacyRedeemed]
     );
 
     // 4. Idempotent entitlement consumption inside the same transaction
@@ -405,25 +561,45 @@ async function completeExecution(jobId, {
 /**
  * Cancel, fail, or mark no-show — keeping failed and no_show distinct, and releasing any reservation atomically
  */
-async function terminateJobWithoutCompletion(jobId, outcome, { reason, actor = 'staff' }) {
-  if (!['cancelled', 'failed', 'no_show'].includes(outcome)) {
+async function terminateJobWithoutCompletion(jobId, outcome, { reason, remarks = null, cancelledAt = null, failedAt = null, actor = 'staff' }) {
+  if (!['cancelled', 'failed', 'no_show', 'unable_to_complete'].includes(outcome)) {
     throw new Error(`Invalid non-completion outcome '${outcome}'.`);
   }
 
   await db.withTransaction(async (client) => {
     const lockedJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
     if (!lockedJob) throw new Error(`Job '${jobId}' not found.`);
-    if (['completed', 'cancelled', 'failed', 'no_show'].includes(lockedJob.status)) {
+    if (['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'].includes(lockedJob.status)) {
       throw new Error(`Job '${jobId}' is already in terminal status '${lockedJob.status}'.`);
     }
 
-    await client.query(
-      `UPDATE public.service_jobs
-       SET status = $2, failure_reason = $3, failed_at = CURRENT_TIMESTAMP, failed_by = $4, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1`,
-      [jobId, outcome, reason || outcome, actor]
-    );
-    if (outcome !== 'cancelled') {
+    if (outcome === 'cancelled') {
+      if (lockedJob.status === 'in_progress') {
+        throw new Error(`Cannot cancel service job after work has commenced (in_progress). Use 'unable_to_complete' instead.`);
+      }
+      await client.query(
+        `UPDATE public.service_jobs
+         SET status = 'cancelled',
+             cancellation_reason = $2,
+             cancellation_remarks = $3,
+             cancelled_at = COALESCE($4, CURRENT_TIMESTAMP),
+             cancelled_by = $5,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [jobId, reason ? String(reason).trim() : 'cancelled', remarks ? String(remarks).trim() : null, cancelledAt || null, actor]
+      );
+    } else {
+      await client.query(
+        `UPDATE public.service_jobs
+         SET status = $2,
+             failure_reason = $3,
+             failure_remarks = $4,
+             failed_at = COALESCE($5, CURRENT_TIMESTAMP),
+             failed_by = $6,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [jobId, outcome, reason ? String(reason).trim() : outcome, remarks ? String(remarks).trim() : null, failedAt || null, actor]
+      );
       await repos.seeOperations.createExecution({
         jobId,
         outcome,

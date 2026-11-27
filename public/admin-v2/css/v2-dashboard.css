@@ -471,6 +471,19 @@
   border-bottom: none;
 }
 
+.cwp-v2-dash-table-msg {
+  text-align: center;
+  color: var(--cwp-v2-sys-on-surface-variant, #475569);
+}
+
+.cwp-v2-dash-table-msg.is-error {
+  color: var(--cwp-v2-status-danger, #e11d48);
+}
+
+.cwp-v2-dash-staff-cell {
+  font-weight: 600;
+}
+
 /* 8. BREAKDOWN CHARTS (LIVE DATA ONLY) */
 .cwp-v2-dash-bar-list {
   display: flex;

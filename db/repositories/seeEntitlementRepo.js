@@ -115,10 +115,14 @@ async function findAccountsByCustomer(customerId, { status = null, serviceId = n
   if (serviceId) { params.push(serviceId); conditions.push(`ea.service_id = $${params.length}`); }
   if (addonId) { params.push(addonId); conditions.push(`ea.addon_id = $${params.length}`); }
   const res = await runner.query(
-    `SELECT ea.*, s.service_code, s.name AS service_name, a.addon_code, a.name AS addon_name
+    `SELECT ea.*,
+            s.service_code, s.name AS service_name, s.service_category_id,
+            a.addon_code, a.name AS addon_name,
+            ps.package_code, ps.package_name, ps.vehicle_segment
      FROM public.entitlement_accounts ea
      LEFT JOIN public.services s ON ea.service_id = s.id
      LEFT JOIN public.addons a ON ea.addon_id = a.id
+     LEFT JOIN public.purchase_snapshots ps ON ea.purchase_snapshot_id = ps.id
      WHERE ${conditions.join(' AND ')}
      ORDER BY ea.created_at DESC`,
     params

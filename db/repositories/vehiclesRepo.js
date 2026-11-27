@@ -99,7 +99,7 @@ async function updateVehicle(id, {
     updates.push(`default_location_id = $${params.length}`);
   }
   if (registrationNo !== undefined) {
-    params.push(registrationNo ? String(registrationNo).trim().toUpperCase() : 'NO_REG');
+    params.push((registrationNo ? String(registrationNo).trim() : 'NO_REG').toUpperCase().slice(0, 20));
     updates.push(`registration_no = $${params.length}`);
   }
   if (brandOrModel !== undefined) {

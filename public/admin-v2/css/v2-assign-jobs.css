@@ -336,18 +336,26 @@
   display: inline-flex;
 }
 
-.cwp-v2-aj-filter-select {
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #0f172a;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
+.cwp-v2-aj-toolbar-select {
+  width: auto;
   max-width: 220px;
 }
+
+.cwp-v2-aj-empty-cell {
+  text-align: center;
+  padding: 24px;
+  color: var(--cwp-v2-sys-on-surface-muted, #64748b);
+}
+
+.cwp-v2-aj-cell-right {
+  text-align: right;
+}
+
+.cwp-v2-aj-icon-12 { font-size: 12px; }
+.cwp-v2-aj-icon-13 { font-size: 13px; }
+.cwp-v2-aj-icon-14 { font-size: 14px; }
+.cwp-v2-aj-icon-15 { font-size: 15px; }
+.cwp-v2-aj-icon-16 { font-size: 16px; }
 
 /* 5. MAIN WORKSTATION TABLE CARD */
 .cwp-v2-aj-main-card {
@@ -750,8 +758,14 @@
   }
 
   .cwp-v2-aj-search-box,
-  .cwp-v2-aj-filter-select {
+  .cwp-v2-aj-toolbar-select {
     max-width: none;
     width: 100%;
   }
+}
+
+.cwp-v2-aj-page-label {
+  font-size: 11.5px;
+  color: var(--cwp-v2-sys-on-surface-muted, #64748b);
+  margin-right: 4px;
 }

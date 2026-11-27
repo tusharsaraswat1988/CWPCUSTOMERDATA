@@ -150,9 +150,38 @@ async function grantCapabilityOverride({
 
 function parseTimeToMinutes(timeStr) {
   if (!timeStr) return null;
-  const m = String(timeStr).trim().match(/^(\d{1,2}):(\d{2})/);
+  const m = String(timeStr).trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?/i);
   if (!m) return null;
-  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  let hours = parseInt(m[1], 10);
+  const mins = parseInt(m[2], 10);
+  const meridiem = m[3] ? m[3].toUpperCase() : null;
+  if (meridiem === 'PM' && hours < 12) hours += 12;
+  if (meridiem === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + mins;
+}
+
+/**
+ * Resolve a staff record cleanly from UUID (`staff.id`) or operational `staff_code` (e.g. `STF01`).
+ * When externalClient is provided, locks the staff row with FOR UPDATE.
+ */
+async function resolveStaffRecord(staffIdOrCode, externalClient = null) {
+  if (!staffIdOrCode) return null;
+  const target = String(staffIdOrCode).trim();
+  if (!target) return null;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(target);
+
+  if (externalClient) {
+    const sql = isUuid
+      ? 'SELECT * FROM public.staff WHERE id = $1 AND deleted_at IS NULL FOR UPDATE'
+      : 'SELECT * FROM public.staff WHERE UPPER(staff_code) = UPPER($1) AND deleted_at IS NULL FOR UPDATE';
+    const lockRes = await externalClient.query(sql, [target]);
+    return lockRes.rows[0] || null;
+  }
+
+  if (isUuid) {
+    return repos.staff.findById(target);
+  }
+  return repos.staff.findByStaffCode(target);
 }
 
 function normalizeWeekdayName(val) {
@@ -214,16 +243,7 @@ async function evaluateStaffEligibility(staffId, {
   requiredEquipment = []
 } = {}, externalClient = null) {
   const runner = externalClient || db;
-  let staff = null;
-  if (externalClient) {
-    const lockRes = await externalClient.query(
-      'SELECT * FROM public.staff WHERE id = $1 AND deleted_at IS NULL FOR UPDATE',
-      [staffId]
-    );
-    staff = lockRes.rows[0] || null;
-  } else {
-    staff = await repos.staff.findById(staffId);
-  }
+  const staff = await resolveStaffRecord(staffId, externalClient);
   if (!staff) {
     return { eligible: false, reasons: [`Staff '${staffId}' not found.`] };
   }
@@ -364,5 +384,7 @@ module.exports = {
   resolveDefaultCapabilitiesForStaffType,
   assignStaffType,
   grantCapabilityOverride,
-  evaluateStaffEligibility
+  resolveStaffRecord,
+  evaluateStaffEligibility,
+  parseTimeToMinutes
 };

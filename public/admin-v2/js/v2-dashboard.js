@@ -280,6 +280,7 @@
   function getUnassignedVehiclesArray() {
     const s = state.sources.unassignedDcc;
     if (!s.ok) return null;
+    if (s.data && Array.isArray(s.data.unassigned)) return s.data.unassigned;
     if (s.data && Array.isArray(s.data.vehicles)) return s.data.vehicles;
     if (Array.isArray(s.data)) return s.data;
     return [];
@@ -836,7 +837,7 @@
 
     if (staffList === null) {
       pillsEl.innerHTML = '<span class="cwp-v2-dash-pill">Staff roster unavailable</span>';
-      tbodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--cwp-v2-status-danger);">Failed to load staff roster.</td></tr>';
+      tbodyEl.innerHTML = '<tr><td colspan="5" class="cwp-v2-dash-table-msg is-error">Failed to load staff roster.</td></tr>';
       return;
     }
 
@@ -916,7 +917,7 @@
     `;
 
     if (rows.length === 0) {
-      tbodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--cwp-v2-sys-on-surface-variant);">No staff records found.</td></tr>';
+      tbodyEl.innerHTML = '<tr><td colspan="5" class="cwp-v2-dash-table-msg">No staff records found.</td></tr>';
       return;
     }
 
@@ -924,7 +925,7 @@
 
     tbodyEl.innerHTML = rows.slice(0, 10).map(r => `
       <tr>
-        <td style="font-weight:600;">${escapeHtml(r.name)}</td>
+        <td class="cwp-v2-dash-staff-cell">${escapeHtml(r.name)}</td>
         <td><span class="cwp-v2-badge ${r.statusClass === 'is-completed' ? 'cwp-v2-badge-success' : (r.statusClass === 'is-danger' ? 'cwp-v2-badge-danger' : 'cwp-v2-badge-neutral')}">${escapeHtml(r.statusLabel)}</span></td>
         <td>${r.dccAssigned}</td>
         <td>${r.cleanedToday}</td>

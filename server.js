@@ -1754,6 +1754,37 @@ function getCachedIndexTemplate(filePath) {
   }
 }
 
+function enrichJobForApi(job, staffRecord = null) {
+  if (!job) return job;
+  const staffCode = job.assigned_staff_code || (staffRecord && staffRecord.staff_code) || null;
+  const staffDbId = job.staff_id || (staffRecord && staffRecord.id) || null;
+  const staffName = job.assigned_staff_name || (staffRecord && staffRecord.name) || null;
+  return {
+    ...job,
+    id: job.id,
+    jobId: job.id,
+    customerId: job.customer_id,
+    customerName: job.customer_name || null,
+    customerPhone: job.customer_phone || null,
+    serviceCategoryId: job.service_category_id,
+    serviceType: job.service_type,
+    packageCode: job.package_code || null,
+    packageDetails: job.package_details || null,
+    seaterType: job.seater_type || null,
+    panelCount: job.panel_count ?? null,
+    scheduledDate: job.scheduled_date || null,
+    scheduledTime: job.scheduled_time || '',
+    tentativeTime: job.scheduled_time || '',
+    sequenceOrder: job.sequence_order ?? null,
+    staff_id: staffCode,
+    staff_db_id: staffDbId,
+    staffId: staffCode || '',
+    staffName: staffName || 'Unassigned',
+    assignedStaffId: staffCode,
+    assignedStaffName: staffName
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   // Production Security Headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -1763,7 +1794,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Permissions-Policy', 'camera=(self), geolocation=(self), microphone=()');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com https://*.tile.openstreetmap.org https://maps.gstatic.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com; font-src 'self' data:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://res.cloudinary.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://maps.gstatic.com https://maps.googleapis.com https://*.ggpht.com; connect-src 'self' https://maps.googleapis.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
   );
   if (process.env.NODE_ENV === 'production' && adminSecurityService.isHttpsRequest(req)) {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
@@ -5989,6 +6020,15 @@ const server = http.createServer(async (req, res) => {
             if (isNeonConfigured()) {
               const jd = payload.jobData || payload;
               const targetStaffId = jd.staffId || jd.assignedStaffId || jd.assignedCleanerId || null;
+              let resolvedStaff = null;
+              if (targetStaffId && String(targetStaffId).toLowerCase() !== 'unassigned') {
+                resolvedStaff = await seeStaffCapabilityService.resolveStaffRecord(targetStaffId);
+                if (!resolvedStaff) {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({ success: false, error: `Staff '${targetStaffId}' not found.` }));
+                }
+              }
+
               const catId = jd.serviceCategoryId || jd.serviceCategory || null;
               const svc = jd.serviceIdOrCode
                 ? (await seeCatalogueService.getServiceDetail(jd.serviceIdOrCode))
@@ -5996,39 +6036,58 @@ const server = http.createServer(async (req, res) => {
 
               // Delegate to canonical SEE locked job creation + assignment when customerId, locationId, and active SEE service exist
               if (svc && jd.customerId && jd.locationId) {
-                const job = await seeExecutionService.createCanonicalJob({
-                  customerId: jd.customerId,
-                  vehicleId: jd.vehicleId || null,
-                  locationId: jd.locationId,
-                  serviceIdOrCode: svc.id,
-                  scheduledDate: jd.scheduledDate || null,
-                  scheduledTime: jd.scheduledTime || null,
-                  city: jd.city || null,
-                  zone: jd.zone || null,
-                  instructions: jd.specialInstructions || null,
-                  entitlementAccountId: jd.entitlementAccountId || null,
-                  purchaseSnapshotId: jd.purchaseSnapshotId || null,
-                  staffId: targetStaffId,
-                  actor: adminUser
-                });
-                invalidateLiveCustomersCache();
-                broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'assigned', jobId: job.id });
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ success: true, job, message: 'Job assigned via SEE' }));
+                try {
+                  const job = await seeExecutionService.createCanonicalJob({
+                    customerId: jd.customerId,
+                    vehicleId: jd.vehicleId || null,
+                    locationId: jd.locationId,
+                    serviceIdOrCode: svc.id,
+                    serviceType: jd.serviceType || null,
+                    packageCode: jd.packageCode || null,
+                    packageDetails: jd.packageDetails || null,
+                    seaterType: jd.seaterType || null,
+                    panelCount: jd.panelCount ?? null,
+                    siteDetails: jd.siteDetails || null,
+                    sequenceOrder: jd.sequenceOrder ?? null,
+                    servicePrice: jd.servicePrice ?? 0.00,
+                    paymentStatus: jd.paymentStatus || 'pending',
+                    bookingSource: jd.bookingSource || 'admin',
+                    scheduledDate: jd.scheduledDate || null,
+                    scheduledTime: jd.scheduledTime || jd.tentativeTime || null,
+                    city: jd.city || null,
+                    zone: jd.zone || null,
+                    instructions: jd.specialInstructions || null,
+                    entitlementAccountId: jd.entitlementAccountId || null,
+                    purchaseSnapshotId: jd.purchaseSnapshotId || null,
+                    staffId: resolvedStaff ? resolvedStaff.id : null,
+                    actor: adminUser
+                  });
+                  const fullJob = await repos.serviceJobs.findById(job.id);
+                  const enrichedJob = enrichJobForApi(fullJob || job, resolvedStaff);
+                  invalidateLiveCustomersCache();
+                  broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'assigned', jobId: enrichedJob.id });
+                  res.writeHead(200, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({ success: true, job: enrichedJob, message: 'Job assigned via SEE' }));
+                } catch (seeErr) {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({ success: false, error: seeErr.message }));
+                }
               }
 
               // Legacy composite-payload fallback (e.g. inline vehicleDetails without locationId)
-              if (targetStaffId) {
+              if (resolvedStaff) {
                 const reqEquip = Array.isArray(svc?.execution_config?.required_equipment) ? svc.execution_config.required_equipment : [];
-                const elig = await seeStaffCapabilityService.evaluateStaffEligibility(targetStaffId, {
+                const allowConcurrent = Boolean(svc?.execution_config?.allow_concurrent);
+                const elig = await seeStaffCapabilityService.evaluateStaffEligibility(resolvedStaff.id, {
                   serviceId: svc ? svc.id : null,
                   serviceCode: svc ? svc.service_code : null,
                   serviceCategoryId: catId,
                   city: jd.city || null,
                   zone: jd.zone || null,
                   scheduledDate: jd.scheduledDate || null,
-                  scheduledTime: jd.scheduledTime || null,
+                  scheduledTime: jd.scheduledTime || jd.tentativeTime || null,
                   durationMinutes: svc ? svc.expected_duration_minutes : 60,
+                  allowConcurrent,
                   requiredEquipment: reqEquip
                 });
                 if (!elig.eligible) {
@@ -6037,6 +6096,10 @@ const server = http.createServer(async (req, res) => {
                 }
               }
               const result = await adminService.assignSpecialJob(jd, adminUser);
+              if (!result || result.success === false) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(result || { success: false, error: 'Failed to assign special job.' }));
+              }
               invalidateLiveCustomersCache();
               broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'assigned', jobId: result.job?.id });
               res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -6118,27 +6181,65 @@ const server = http.createServer(async (req, res) => {
             const adminUser = 'admin';
             if (isNeonConfigured()) {
               const jd = payload.jobData || payload;
-              const toStaffId = jd.toStaffId || jd.newStaffId || null;
-              if (toStaffId && toStaffId !== 'unassigned' && !jd.unassign && jd.jobId) {
+              const toStaffId = jd.toStaffId || jd.newStaffId || jd.targetStaffId || null;
+              const isUnassign = (jd.unassign === true || toStaffId === 'unassigned');
+              if (!isUnassign && toStaffId && jd.jobId) {
+                const targetStaff = await seeStaffCapabilityService.resolveStaffRecord(toStaffId);
+                if (!targetStaff) {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({ success: false, error: `Staff '${toStaffId}' not found.` }));
+                }
                 const job = await repos.serviceJobs.findById(jd.jobId);
                 if (job && (job.service_id || job.entitlement_account_id)) {
-                  // Delegate SEE-managed reassignment to canonical locked seeExecutionService.assignJob
-                  const updatedJob = await seeExecutionService.assignJob(jd.jobId, toStaffId, adminUser);
-                  invalidateLiveCustomersCache();
-                  broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'reassigned', jobId: updatedJob.id });
-                  res.writeHead(200, { 'Content-Type': 'application/json' });
-                  return res.end(JSON.stringify({
-                    success: true,
-                    jobId: updatedJob.id,
-                    job: updatedJob,
-                    assignedStaff: { id: toStaffId },
-                    message: 'Reassigned via SEE'
-                  }));
+                  try {
+                    const updatedJob = await seeExecutionService.assignJob(jd.jobId, targetStaff.id, adminUser, {
+                      scheduledTime: jd.scheduledTime !== undefined ? jd.scheduledTime : jd.tentativeTime,
+                      sequenceOrder: jd.sequenceOrder,
+                      reason: jd.reason
+                    });
+                    const fullJob = await repos.serviceJobs.findById(updatedJob.id);
+                    const enrichedJob = enrichJobForApi(fullJob || updatedJob, targetStaff);
+                    invalidateLiveCustomersCache();
+                    broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'reassigned', jobId: enrichedJob.id });
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({
+                      success: true,
+                      jobId: enrichedJob.id,
+                      job: enrichedJob,
+                      assignedStaff: {
+                        id: targetStaff.id,
+                        staffCode: targetStaff.staff_code,
+                        name: targetStaff.name
+                      },
+                      message: 'Reassigned via SEE'
+                    }));
+                  } catch (seeErr) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, error: seeErr.message }));
+                  }
+                }
+                // Non-SEE job: still enforce SEE capability/schedule/equipment check before legacy reassign
+                if (job) {
+                  const elig = await seeStaffCapabilityService.evaluateStaffEligibility(targetStaff.id, {
+                    serviceCategoryId: job.service_category_id,
+                    city: job.city || null,
+                    zone: job.zone || null,
+                    scheduledDate: job.scheduled_date || null,
+                    scheduledTime: (jd.scheduledTime !== undefined ? jd.scheduledTime : (jd.tentativeTime !== undefined ? jd.tentativeTime : job.scheduled_time)) || null
+                  });
+                  if (!elig.eligible) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, error: `Staff ineligible: ${elig.reasons.join('; ')}` }));
+                  }
                 }
               }
               const result = await adminService.reassignSpecialJob(jd, adminUser);
+              if (!result || result.success === false) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(result || { success: false, error: 'Failed to reassign job.' }));
+              }
               invalidateLiveCustomersCache();
-              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'reassigned', jobId: result.job?.id });
+              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: isUnassign ? 'unassigned' : 'reassigned', jobId: result.job?.id || result.jobId });
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(result));
             }
@@ -6182,6 +6283,10 @@ const server = http.createServer(async (req, res) => {
             const adminUser = 'admin';
             if (isNeonConfigured()) {
               const result = await adminService.assignDailyCleanCustomer(payload.data || payload, adminUser);
+              if (!result || result.success === false) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(result || { success: false, error: 'Failed to assign daily clean customer.' }));
+              }
               invalidateLiveCustomersCache();
               broadcastAdminRealtimeEvent('CUSTOMER_ASSIGNMENT_CHANGED', { action: 'assigned' });
               res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -6517,20 +6622,35 @@ const server = http.createServer(async (req, res) => {
             const adminUser = adminSess.username || adminSess.user || 'admin';
             const bookingData = payload.bookingData || payload.data || payload;
             if (isNeonConfigured() && bookingData.serviceIdOrCode && bookingData.locationId) {
+              const targetStaffInput = bookingData.staffId || bookingData.assignedCleanerId || bookingData.assignedStaffId || null;
+              let resolvedStaff = null;
+              if (targetStaffInput && String(targetStaffInput).toLowerCase() !== 'unassigned') {
+                resolvedStaff = await seeStaffCapabilityService.resolveStaffRecord(targetStaffInput);
+                if (!resolvedStaff) {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({ success: false, error: `Staff '${targetStaffInput}' not found.` }));
+                }
+              }
               const job = await seeExecutionService.createCanonicalJob({
                 ...bookingData,
+                staffId: resolvedStaff ? resolvedStaff.id : null,
                 actor: adminUser
               });
+              const fullJob = await repos.serviceJobs.findById(job.id);
+              const enrichedBooking = enrichJobForApi(fullJob || job, resolvedStaff);
               invalidateLiveCustomersCache();
-              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'created', jobId: job.id });
+              broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'created', jobId: enrichedBooking.id });
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ success: true, booking: job, message: 'Booking created via SEE' }));
+              return res.end(JSON.stringify({ success: true, booking: enrichedBooking, message: 'Booking created via SEE' }));
             }
             const result = await bookingService.createBooking(bookingData, adminUser);
+            const rawBooking = result.job || result;
+            const fullBooking = (isNeonConfigured() && rawBooking && rawBooking.id) ? (await repos.serviceJobs.findById(rawBooking.id)) : null;
+            const enrichedBooking = enrichJobForApi(fullBooking || rawBooking);
             invalidateLiveCustomersCache();
-            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'created', jobId: result.job?.id || result.id });
+            broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'created', jobId: enrichedBooking?.id });
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: true, booking: result.job || result, message: 'Booking created successfully' }));
+            return res.end(JSON.stringify({ success: true, booking: enrichedBooking, message: 'Booking created successfully' }));
           } catch (err) {
             console.error('createServiceBooking error:', err.message);
             res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -6597,15 +6717,33 @@ const server = http.createServer(async (req, res) => {
             if (isNeonConfigured()) {
               const existingJob = await repos.serviceJobs.findById(jobId);
               if (existingJob && (existingJob.entitlement_account_id || existingJob.service_id)) {
-                const outcome = payload.outcome === 'no_show' ? 'no_show' : 'failed';
+                const outcome = payload.outcome === 'no_show' ? 'no_show' : 'unable_to_complete';
+                const reason = payload.failureReason || payload.reason || outcome;
+                const remarks = payload.failureRemarks || payload.remarks || null;
                 const job = await seeExecutionService.terminateJobWithoutCompletion(jobId, outcome, {
-                  reason: payload.failureReason || payload.reason || outcome,
+                  reason,
+                  remarks,
                   actor
                 });
+                if (repos.auditLogs && repos.auditLogs.logChange) {
+                  try {
+                    await repos.auditLogs.logChange({
+                      entityType: 'service_job',
+                      entityId: jobId,
+                      action: 'FAIL',
+                      beforeState: { status: existingJob.status },
+                      afterState: { status: outcome, failure_reason: reason, failure_remarks: remarks },
+                      changedBy: actor
+                    });
+                  } catch (aErr) {
+                    console.warn('Audit log write error:', aErr.message);
+                  }
+                }
+                const enriched = enrichJobForApi(job);
                 invalidateLiveCustomersCache();
                 broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: outcome, jobId, status: outcome });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ success: true, job, message: `Service marked ${outcome} via SEE` }));
+                return res.end(JSON.stringify({ success: true, job: enriched, message: `Service marked ${outcome} via SEE` }));
               }
             }
             const result = await bookingService.failJob(jobId, {
@@ -7138,11 +7276,31 @@ const server = http.createServer(async (req, res) => {
 
           try {
             const startActor = (staffSess && (staffSess.staffCode || staffSess.name)) || (adminSess && adminSess.username) || 'staff';
-            const startRes = await bookingService.startJob(jobId, {
-              beforePhotos: beforePhotoUrls,
-              startedAt: startedAt,
-              actor: startActor
-            });
+            let startedJob = null;
+            if (isNeonConfigured()) {
+              const existingJob = await repos.serviceJobs.findById(jobId);
+              if (existingJob && (existingJob.service_id || existingJob.entitlement_account_id)) {
+                let staffUuid = (staffSess && staffSess.staffId) || existingJob.staff_id || null;
+                if (!staffUuid && payload.staffId) {
+                  const sRec = await seeStaffCapabilityService.resolveStaffRecord(payload.staffId);
+                  staffUuid = sRec ? sRec.id : null;
+                }
+                await seeExecutionService.startExecution(jobId, staffUuid, {
+                  beforePhotos: beforePhotoUrls,
+                  startedAt
+                });
+                const refreshed = await repos.serviceJobs.findById(jobId);
+                startedJob = enrichJobForApi(refreshed);
+              }
+            }
+            if (!startedJob) {
+              const startRes = await bookingService.startJob(jobId, {
+                beforePhotos: beforePhotoUrls,
+                startedAt: startedAt,
+                actor: startActor
+              });
+              startedJob = startRes.job || startRes;
+            }
 
             if (appState.serviceJobs) {
               const j = appState.serviceJobs.find(x => x.id === jobId);
@@ -7159,7 +7317,7 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
               success: true,
-              job: startRes.job || startRes,
+              job: startedJob,
               beforePhotos: beforePhotoUrls,
               startedAt: startedAt,
               message: 'Job started successfully'
@@ -7195,7 +7353,7 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          const staffCode = (staffSess && (staffSess.staffCode || staffSess.staffId)) || payload.staffId || 'STF01';
+          const staffHint = (staffSess && (staffSess.staffId || staffSess.staffCode)) || payload.staffId || null;
 
           // Upload after photos (up to 2)
           let afterPhotoUrls = Array.isArray(payload.afterPhotoUrls) ? payload.afterPhotoUrls.slice(0, 2) : [];
@@ -7227,14 +7385,14 @@ const server = http.createServer(async (req, res) => {
                 // Canonical SEE completion — never fall back to legacy bookingService on SEE failure
                 let staffObj = null;
                 if (staffSess && staffSess.staffId) {
-                  staffObj = { id: staffSess.staffId };
-                } else if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffCode)) {
-                  staffObj = await repos.staff.findById(staffCode);
-                } else {
-                  staffObj = await repos.staff.findByStaffCode(staffCode);
+                  staffObj = await repos.staff.findById(staffSess.staffId);
+                } else if (staffHint) {
+                  staffObj = await seeStaffCapabilityService.resolveStaffRecord(staffHint);
+                } else if (existingJob.staff_id) {
+                  staffObj = await repos.staff.findById(existingJob.staff_id);
                 }
                 const execution = await seeExecutionService.completeExecution(jobId, {
-                  staffId: staffObj ? staffObj.id : null,
+                  staffId: staffObj ? staffObj.id : (existingJob.staff_id || null),
                   checklistResults: Array.isArray(payload.checklistResults) ? payload.checklistResults : [],
                   proofPhotos: {
                     before: Array.isArray(existingJob.before_photos) ? existingJob.before_photos : [],
@@ -7244,9 +7402,32 @@ const server = http.createServer(async (req, res) => {
                   measurements: payload.measurements || {},
                   customerConfirmation: payload.customerConfirmation || {},
                   authorizedException: adminSess ? (payload.authorizedException || null) : null,
+                  completionNotes: notes || null,
                   actor
                 });
-                const updatedSeeJob = await repos.serviceJobs.findById(jobId);
+                if (staffObj && staffObj.id) {
+                  try {
+                    const existingLog = await repos.serviceLogs.findByJobId(jobId);
+                    if (!existingLog) {
+                      const mutationId = payload.clientMutationId || crypto.randomUUID();
+                      const istDate = repos.serviceLogs.computeIstServiceDate(completedAt);
+                      await repos.serviceLogs.recordCompletion({
+                        clientMutationId: mutationId,
+                        staffId: staffObj.id,
+                        jobId: jobId,
+                        serviceDate: istDate,
+                        status: 'completed',
+                        completedAtDevice: completedAt,
+                        notes: notes || 'Special job completed with photo proof',
+                        photoUrl: afterPhotoUrls[0] || null,
+                        source: staffSess ? 'staff_portal' : 'admin_manual'
+                      });
+                    }
+                  } catch (logErr) {
+                    console.warn('SEE service_logs recordCompletion warning:', logErr.message);
+                  }
+                }
+                const updatedSeeJob = enrichJobForApi(await repos.serviceJobs.findById(jobId), staffObj);
                 invalidateLiveCustomersCache();
                 broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'completed', jobId, status: 'completed' });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -7256,7 +7437,7 @@ const server = http.createServer(async (req, res) => {
                   execution,
                   afterPhotos: afterPhotoUrls,
                   completedAt,
-                  entitlementDeducted: Boolean(existingJob.entitlement_account_id),
+                  entitlementDeducted: Boolean(existingJob.entitlement_account_id || (existingJob.package_id && !existingJob.entitlement_consumed)),
                   message: 'Job completed via SEE'
                 }));
               }
@@ -7265,7 +7446,7 @@ const server = http.createServer(async (req, res) => {
               afterPhotos: afterPhotoUrls,
               completedAt: completedAt,
               completionNotes: notes,
-              staffId: staffCode,
+              staffId: staffHint,
               actor
             });
             const updatedJob = compRes.job || compRes;
@@ -7273,26 +7454,34 @@ const server = http.createServer(async (req, res) => {
             if (isNeonConfigured()) {
               // Record in service_logs for audit ledger
               let staff = null;
-              if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(staffCode)) {
-                staff = await repos.staff.findById(staffCode);
+              if (staffHint) {
+                staff = await seeStaffCapabilityService.resolveStaffRecord(staffHint);
+              } else if (updatedJob && updatedJob.staff_id) {
+                staff = await repos.staff.findById(updatedJob.staff_id);
               } else {
-                staff = await repos.staff.findByStaffCode(staffCode);
+                const activeAssign = await repos.staffAssignments.findActiveByJobId(jobId);
+                if (activeAssign && activeAssign.staff_id) {
+                  staff = await repos.staff.findById(activeAssign.staff_id);
+                }
               }
 
               if (staff) {
-                const mutationId = payload.clientMutationId || crypto.randomUUID();
-                const istDate = repos.serviceLogs.computeIstServiceDate(completedAt);
-                await repos.serviceLogs.recordCompletion({
-                  clientMutationId: mutationId,
-                  staffId: staff.id,
-                  jobId: jobId,
-                  serviceDate: istDate,
-                  status: 'completed',
-                  completedAtDevice: completedAt,
-                  notes: notes || 'Special job completed with photo proof',
-                  photoUrl: afterPhotoUrls[0] || null,
-                  source: 'staff_portal'
-                });
+                const existingLog = await repos.serviceLogs.findByJobId(jobId);
+                if (!existingLog) {
+                  const mutationId = payload.clientMutationId || crypto.randomUUID();
+                  const istDate = repos.serviceLogs.computeIstServiceDate(completedAt);
+                  await repos.serviceLogs.recordCompletion({
+                    clientMutationId: mutationId,
+                    staffId: staff.id,
+                    jobId: jobId,
+                    serviceDate: istDate,
+                    status: 'completed',
+                    completedAtDevice: completedAt,
+                    notes: notes || 'Special job completed with photo proof',
+                    photoUrl: afterPhotoUrls[0] || null,
+                    source: staffSess ? 'staff_portal' : 'admin_manual'
+                  });
+                }
               }
             }
 
@@ -7399,8 +7588,25 @@ const server = http.createServer(async (req, res) => {
               if (existingJob && (existingJob.entitlement_account_id || existingJob.service_id)) {
                 const job = await seeExecutionService.terminateJobWithoutCompletion(jobId, 'cancelled', {
                   reason,
+                  remarks,
+                  cancelledAt,
                   actor: cancelledBy
                 });
+                if (repos.auditLogs && repos.auditLogs.logChange) {
+                  try {
+                    await repos.auditLogs.logChange({
+                      entityType: 'service_job',
+                      entityId: jobId,
+                      action: 'CANCEL',
+                      beforeState: { status: existingJob.status },
+                      afterState: { status: 'cancelled', cancellation_reason: reason, cancellation_remarks: remarks },
+                      changedBy: cancelledBy
+                    });
+                  } catch (aErr) {
+                    console.warn('Audit log write error:', aErr.message);
+                  }
+                }
+                const enriched = enrichJobForApi(job);
                 invalidateLiveCustomersCache();
                 broadcastAdminRealtimeEvent('SPECIAL_JOB_CHANGED', { action: 'cancelled', jobId, status: 'cancelled' });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -7411,7 +7617,7 @@ const server = http.createServer(async (req, res) => {
                   cancellationReason: reason,
                   cancellationRemarks: remarks,
                   cancelledAt,
-                  job,
+                  job: enriched,
                   message: 'Job cancelled via SEE'
                 }));
               }

@@ -64,14 +64,26 @@
   }
 
   function isDccEligibleStaff(s) {
-    if (!s || s.is_active === false || s.active === false) return false;
+    if (!s || s.is_active === false || s.isActive === false || s.active === false || s.isLocked) return false;
+    const act = String(s.active ?? '').trim().toLowerCase();
+    if (act === 'no' || act === 'false' || act === 'inactive') return false;
     const status = String(s.status || '').toLowerCase();
     if (status === 'inactive' || status === 'resigned' || status === 'terminated') return false;
-    if (Array.isArray(s.service_categories) && s.service_categories.length > 0) {
-      return s.service_categories.includes('daily_car_cleaning');
+    const workType = String(s.workType || s.work_type || 'dcc_only').toLowerCase().trim();
+    if (workType === 'services_only') return false;
+    const caps = Array.isArray(s.serviceCapabilities)
+      ? s.serviceCapabilities
+      : (Array.isArray(s.service_capabilities)
+        ? s.service_capabilities
+        : (Array.isArray(s.serviceCategories)
+          ? s.serviceCategories
+          : (Array.isArray(s.service_categories) ? s.service_categories : null)));
+    if (caps && caps.length > 0) {
+      return caps.includes('daily_car_cleaning');
     }
-    const role = String(s.designation || s.role || '').toLowerCase();
+    const role = String(s.designationName || s.designation || s.role || '').toLowerCase();
     if (role.includes('solar') && !role.includes('car') && !role.includes('clean')) return false;
+    if (role.includes('services_only') || role.includes('services only')) return false;
     return true;
   }
 
@@ -200,10 +212,10 @@
     const routes = getFilteredRoutes();
     if (!routes.length) {
       grid.innerHTML = `
-        <div class="cwp-v2-seq-empty" style="grid-column: 1 / -1;">
+        <div class="cwp-v2-seq-empty cwp-v2-seq-empty-span">
           <span class="material-symbols-outlined">alt_route</span>
-          <div style="font-weight:700;color:#0f172a;margin-bottom:4px;">No routes match your filters</div>
-          <div style="font-size:12.5px;">Create a new operational route or reset your active filters.</div>
+          <div class="cwp-v2-seq-empty-title">No routes match your filters</div>
+          <div class="cwp-v2-seq-empty-desc">Create a new operational route or reset your active filters.</div>
         </div>
       `;
       return;
@@ -226,22 +238,22 @@
           </div>
           <h3 class="cwp-v2-seq-route-name">${esc(r.route_name)}</h3>
           <div class="cwp-v2-seq-route-meta">
-            <span class="material-symbols-outlined" style="font-size:16px;">location_on</span>
+            <span class="material-symbols-outlined cwp-v2-seq-icon-16">location_on</span>
             <span>${areaLabel}</span>
           </div>
           <div class="cwp-v2-seq-route-meta">
-            <span class="material-symbols-outlined" style="font-size:16px;">badge</span>
+            <span class="material-symbols-outlined cwp-v2-seq-icon-16">badge</span>
             <span>${staffLabel}</span>
           </div>
           <div class="cwp-v2-seq-route-footer">
-            <span style="font-size:12.5px;font-weight:700;color:#1e40af;">${stopCount} ${stopCount === 1 ? 'Stop' : 'Stops'}</span>
-            <div style="display:flex;gap:6px;">
+            <span class="cwp-v2-seq-stop-count">${stopCount} ${stopCount === 1 ? 'Stop' : 'Stops'}</span>
+            <div class="cwp-v2-seq-card-actions">
               <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="assign-staff" data-route-id="${esc(r.id)}" title="Assign Staff">
-                <span class="material-symbols-outlined" style="font-size:15px;">person_add</span>
+                <span class="material-symbols-outlined cwp-v2-seq-icon-15">person_add</span>
                 <span>Staff</span>
               </button>
               <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="edit-route" data-route-id="${esc(r.id)}" title="Edit Route">
-                <span class="material-symbols-outlined" style="font-size:15px;">edit</span>
+                <span class="material-symbols-outlined cwp-v2-seq-icon-15">edit</span>
               </button>
               <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-seq-action="open-detail" data-route-id="${esc(r.id)}">
                 <span>Sequence</span>
@@ -292,7 +304,7 @@
     }
 
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:#64748b;">All active DCC vehicles are currently assigned to operational routes.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="cwp-v2-seq-table-empty">All active DCC vehicles are currently assigned to operational routes.</td></tr>';
       return;
     }
 
@@ -301,22 +313,22 @@
       const checked = state.selectedUnassignedKeys.has(key) ? 'checked' : '';
       return `
         <tr>
-          <td style="text-align:center;">
+          <td class="cwp-v2-seq-col-center">
             <input type="checkbox" class="cwp-v2-seq-unassigned-cb" data-unassigned-key="${esc(key)}" ${checked}>
           </td>
           <td>
-            <div style="font-weight:700;color:#0f172a;">${esc(u.customer_name || 'Customer')}</div>
-            <div style="font-size:12px;color:#64748b;">${esc(u.customer_phone || '—')}</div>
+            <div class="cwp-v2-seq-cell-title">${esc(u.customer_name || 'Customer')}</div>
+            <div class="cwp-v2-seq-cell-sub">${esc(u.customer_phone || '—')}</div>
           </td>
           <td>
-            <div style="font-weight:700;font-family:ui-monospace,monospace;color:#1e40af;">${esc(u.registration_no || 'No Plate')}</div>
-            <div style="font-size:12px;color:#64748b;">${esc(u.brand_or_model || u.car_make || 'Vehicle')}</div>
+            <div class="cwp-v2-seq-cell-plate">${esc(u.registration_no || 'No Plate')}</div>
+            <div class="cwp-v2-seq-cell-sub">${esc(u.brand_or_model || u.car_make || 'Vehicle')}</div>
           </td>
-          <td><span style="font-size:12.5px;font-weight:600;color:#0f172a;">${esc(u.package_name || 'Daily Car Cleaning')}</span></td>
-          <td><span style="font-size:12.5px;color:#475569;">${esc(u.address_text || 'Address pending')}</span></td>
-          <td style="text-align:right;">
+          <td><span class="cwp-v2-seq-cell-pkg">${esc(u.package_name || 'Daily Car Cleaning')}</span></td>
+          <td><span class="cwp-v2-seq-cell-addr">${esc(u.address_text || 'Address pending')}</span></td>
+          <td class="cwp-v2-seq-col-right">
             <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="quick-assign-unassigned" data-unassigned-key="${esc(key)}">
-              <span class="material-symbols-outlined" style="font-size:15px;">add_road</span>
+              <span class="material-symbols-outlined cwp-v2-seq-icon-15">add_road</span>
               <span>Assign</span>
             </button>
           </td>
@@ -366,8 +378,8 @@
       stopsEl.innerHTML = `
         <div class="cwp-v2-seq-empty">
           <span class="material-symbols-outlined">directions_car</span>
-          <div style="font-weight:700;color:#0f172a;margin-bottom:4px;">No stops on this route</div>
-          <div style="font-size:12.5px;">Use "Add Stop" to add an eligible daily cleaning customer to this route.</div>
+          <div class="cwp-v2-seq-empty-title">No stops on this route</div>
+          <div class="cwp-v2-seq-empty-desc">Use "Add Stop" to add an eligible daily cleaning customer to this route.</div>
         </div>
       `;
       return;
@@ -381,35 +393,35 @@
         <div class="cwp-v2-seq-stop-card" data-stop-id="${esc(st.id)}">
           <div class="cwp-v2-seq-stop-left">
             <span class="cwp-v2-seq-stop-num">${idx + 1}</span>
-            <div style="min-width:0;">
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <strong style="font-size:14px;color:#0f172a;">${esc(st.customer_name || 'Customer')}</strong>
+            <div class="cwp-v2-seq-stop-body">
+              <div class="cwp-v2-seq-stop-head">
+                <strong class="cwp-v2-seq-stop-name">${esc(st.customer_name || 'Customer')}</strong>
                 <span class="cwp-v2-seq-code-pill">${esc(st.registration_no || 'No Plate')}</span>
-                <span style="font-size:12px;color:#64748b;">${esc(st.brand_or_model || st.car_make || '')}</span>
+                <span class="cwp-v2-seq-stop-model">${esc(st.brand_or_model || st.car_make || '')}</span>
               </div>
-              <div style="font-size:12px;color:#475569;margin-top:3px;">
+              <div class="cwp-v2-seq-stop-meta">
                 ${esc(st.customer_phone || 'No phone')} • ${esc(addr)}
               </div>
             </div>
           </div>
           <div class="cwp-v2-seq-stop-actions">
             <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="move-stop" data-stop-index="${idx}" data-dir="top" ${isFirst ? 'disabled' : ''} title="Move to Top">
-              <span class="material-symbols-outlined" style="font-size:16px;">vertical_align_top</span>
+              <span class="material-symbols-outlined cwp-v2-seq-icon-16">vertical_align_top</span>
             </button>
             <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="move-stop" data-stop-index="${idx}" data-dir="up" ${isFirst ? 'disabled' : ''} title="Move Up">
-              <span class="material-symbols-outlined" style="font-size:16px;">arrow_upward</span>
+              <span class="material-symbols-outlined cwp-v2-seq-icon-16">arrow_upward</span>
             </button>
             <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="move-stop" data-stop-index="${idx}" data-dir="down" ${isLast ? 'disabled' : ''} title="Move Down">
-              <span class="material-symbols-outlined" style="font-size:16px;">arrow_downward</span>
+              <span class="material-symbols-outlined cwp-v2-seq-icon-16">arrow_downward</span>
             </button>
             <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="move-stop" data-stop-index="${idx}" data-dir="bottom" ${isLast ? 'disabled' : ''} title="Move to Bottom">
-              <span class="material-symbols-outlined" style="font-size:16px;">vertical_align_bottom</span>
+              <span class="material-symbols-outlined cwp-v2-seq-icon-16">vertical_align_bottom</span>
             </button>
             <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-seq-action="transfer-stop" data-stop-id="${esc(st.id)}" title="Transfer to another route">
-              <span class="material-symbols-outlined" style="font-size:16px;">swap_horiz</span>
+              <span class="material-symbols-outlined cwp-v2-seq-icon-16">swap_horiz</span>
             </button>
             <button type="button" class="cwp-v2-btn cwp-v2-btn-danger cwp-v2-btn-sm" data-seq-action="remove-stop" data-stop-id="${esc(st.id)}" title="Remove Stop">
-              <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+              <span class="material-symbols-outlined cwp-v2-seq-icon-16">delete</span>
             </button>
           </div>
         </div>
@@ -534,12 +546,27 @@
     if (sel) {
       sel.innerHTML = '<option value="">Select DCC eligible staff...</option>' +
         eligible.map(s => {
-          const label = `${s.name || 'Staff'}${s.staff_code ? ` (${s.staff_code})` : ''}${s.designation ? ` — ${s.designation}` : ''}`;
-          return `<option value="${esc(s.id)}">${esc(label)}</option>`;
+          const code = s.staffCode || s.staff_code || '';
+          const desig = s.designationName || s.designation || s.role || '';
+          const val = s.dbId || s.id;
+          const label = `${s.name || 'Staff'}${code ? ` (${code})` : ''}${desig ? ` — ${desig}` : ''}`;
+          return `<option value="${esc(val)}">${esc(label)}</option>`;
         }).join('');
       if (route.assigned_staff_id) sel.value = route.assigned_staff_id;
     }
     openModal('v2SeqAssignStaffModal');
+  }
+
+  function openDeleteRouteConfirmModal(routeId) {
+    const route = state.routes.find(r => r.id === routeId) || (state.activeRoute && state.activeRoute.id === routeId ? state.activeRoute : null);
+    const form = document.getElementById('v2SeqDeleteConfirmForm');
+    const msgEl = document.getElementById('v2SeqDeleteConfirmMessage');
+    if (form) form.dataset.routeId = routeId;
+    if (msgEl) {
+      const label = route ? `${route.route_code || ''} — ${route.route_name || ''}`.trim() : 'this route';
+      msgEl.textContent = `Delete ${label} and remove its stop assignments? This action cannot be undone.`;
+    }
+    openModal('v2SeqDeleteConfirmModal');
   }
 
   function openAddStopModal(routeId) {
@@ -638,17 +665,7 @@
           }
         } else if (act === 'delete-route') {
           if (!routeId) return;
-          if (!window.confirm('Delete this route and remove its stop assignments?')) return;
-          try {
-            await apiRequest('deleteRoute', { routeId });
-            showToast('Route deleted.', 'success');
-            state.subtab = 'routes';
-            state.activeRouteId = null;
-            state.activeRoute = null;
-            await loadAllData(true);
-          } catch (err) {
-            showToast(err.message || 'Failed to delete route.', 'error');
-          }
+          openDeleteRouteConfirmModal(routeId);
         } else if (act === 'open-detail') {
           await openRouteDetail(routeId);
         } else if (act === 'back-to-routes') {
@@ -684,6 +701,14 @@
           state.filters.sort = 'code_asc';
           const sInp = document.getElementById('v2SeqSearchInput');
           if (sInp) sInp.value = '';
+          const statusSel = document.getElementById('v2SeqStatusFilter');
+          if (statusSel) statusSel.value = 'all';
+          const staffSel = document.getElementById('v2SeqStaffFilter');
+          if (staffSel) staffSel.value = 'all';
+          const areaSel = document.getElementById('v2SeqAreaFilter');
+          if (areaSel) areaSel.value = 'all';
+          const sortSel = document.getElementById('v2SeqSortSelect');
+          if (sortSel) sortSel.value = 'code_asc';
           render();
         } else if (act === 'batch-assign') {
           const targetRouteId = document.getElementById('v2SeqBatchRouteSelect')?.value;
@@ -847,6 +872,27 @@
           render();
         } catch (err) {
           showToast(err.message || 'Failed to transfer stop.', 'error');
+        }
+      });
+    }
+
+    const deleteConfirmForm = document.getElementById('v2SeqDeleteConfirmForm');
+    if (deleteConfirmForm && deleteConfirmForm.dataset.bound !== '1') {
+      deleteConfirmForm.dataset.bound = '1';
+      deleteConfirmForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const routeId = deleteConfirmForm.dataset.routeId;
+        if (!routeId) return;
+        try {
+          await apiRequest('deleteRoute', { routeId });
+          showToast('Route deleted.', 'success');
+          closeModal('v2SeqDeleteConfirmModal');
+          state.subtab = 'routes';
+          state.activeRouteId = null;
+          state.activeRoute = null;
+          await loadAllData(true);
+        } catch (err) {
+          showToast(err.message || 'Failed to delete route.', 'error');
         }
       });
     }

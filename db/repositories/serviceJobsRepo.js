@@ -127,15 +127,30 @@ async function findDispatchedForStaff(staffId, client = null) {
   return res.rows;
 }
 
+const ALLOWED_PAYMENT_STATUSES = ['paid', 'unpaid', 'pending', 'package_covered', 'partial', 'waived'];
+const ALLOWED_BOOKING_SOURCES = ['admin', 'customer_request', 'verbal', 'call_center', 'app'];
+
+function normalizePaymentStatus(val) {
+  const s = val ? String(val).trim().toLowerCase() : 'pending';
+  return ALLOWED_PAYMENT_STATUSES.includes(s) ? s : 'pending';
+}
+
+function normalizeBookingSource(val) {
+  const s = val ? String(val).trim().toLowerCase() : 'admin';
+  return ALLOWED_BOOKING_SOURCES.includes(s) ? s : 'admin';
+}
+
 async function createJob({
   customerId,
   vehicleId = null,
   locationId,
   serviceCategoryId,
   serviceId = null,
+  serviceNameSnapshot = null,
   serviceType,
   packageDetails = null,
   packageCode = null,
+  packageId = null,
   seaterType = null,
   panelCount = null,
   siteDetails = null,
@@ -147,7 +162,16 @@ async function createJob({
   photoUrl = null,
   photoStorageKey = null,
   beforePhotos = [],
-  afterPhotos = []
+  afterPhotos = [],
+  entitlementConsumed = false,
+  servicePrice = 0.00,
+  paymentStatus = 'pending',
+  bookingSource = 'admin',
+  entitlementAccountId = null,
+  purchaseSnapshotId = null,
+  city = null,
+  zone = null,
+  timezone = 'Asia/Kolkata'
 }, client = null) {
   const runner = client || db;
   let resolvedServiceId = serviceId;
@@ -158,14 +182,20 @@ async function createJob({
     );
     resolvedServiceId = svcRes.rows[0]?.id || null;
   }
+  const normPaymentStatus = normalizePaymentStatus(paymentStatus);
+  const normBookingSource = normalizeBookingSource(bookingSource);
+  const numPrice = parseFloat(servicePrice);
+  const finalPrice = Number.isFinite(numPrice) ? numPrice : 0.00;
   const res = await runner.query(
     `INSERT INTO public.service_jobs (
        customer_id, vehicle_id, location_id, service_category_id, service_id,
-       service_name_snapshot, service_type, package_details, package_code, seater_type, panel_count,
+       service_name_snapshot, service_type, package_details, package_code, package_id, seater_type, panel_count,
        site_details, scheduled_date, scheduled_time, sequence_order,
        status, special_instructions, photo_url, photo_storage_key,
-       before_photos, after_photos
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+       before_photos, after_photos,
+       entitlement_consumed, service_price, payment_status, booking_source,
+       entitlement_account_id, purchase_snapshot_id, city, zone, timezone
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
      RETURNING *`,
     [
       customerId,
@@ -173,10 +203,11 @@ async function createJob({
       locationId,
       serviceCategoryId,
       resolvedServiceId,
-      serviceType,
+      serviceNameSnapshot || serviceType,
       serviceType,
       packageDetails,
       packageCode,
+      packageId,
       seaterType,
       panelCount,
       siteDetails ? JSON.stringify(siteDetails) : null,
@@ -188,7 +219,16 @@ async function createJob({
       photoUrl,
       photoStorageKey,
       JSON.stringify(beforePhotos || []),
-      JSON.stringify(afterPhotos || [])
+      JSON.stringify(afterPhotos || []),
+      Boolean(entitlementConsumed),
+      finalPrice,
+      normPaymentStatus,
+      normBookingSource,
+      entitlementAccountId,
+      purchaseSnapshotId,
+      city,
+      zone,
+      timezone || 'Asia/Kolkata'
     ]
   );
   return res.rows[0];
@@ -324,9 +364,12 @@ async function updateJob(id, updates = {}, client = null) {
     vehicleId: 'vehicle_id',
     locationId: 'location_id',
     serviceCategoryId: 'service_category_id',
+    serviceId: 'service_id',
+    serviceNameSnapshot: 'service_name_snapshot',
     serviceType: 'service_type',
     packageDetails: 'package_details',
     packageCode: 'package_code',
+    packageId: 'package_id',
     seaterType: 'seater_type',
     panelCount: 'panel_count',
     siteDetails: 'site_details',
@@ -337,7 +380,16 @@ async function updateJob(id, updates = {}, client = null) {
     specialInstructions: 'special_instructions',
     photoUrl: 'photo_url',
     photoStorageKey: 'photo_storage_key',
-    completionNotes: 'completion_notes'
+    completionNotes: 'completion_notes',
+    entitlementConsumed: 'entitlement_consumed',
+    servicePrice: 'service_price',
+    paymentStatus: 'payment_status',
+    bookingSource: 'booking_source',
+    entitlementAccountId: 'entitlement_account_id',
+    purchaseSnapshotId: 'purchase_snapshot_id',
+    city: 'city',
+    zone: 'zone',
+    timezone: 'timezone'
   };
 
   for (const [key, col] of Object.entries(fieldMap)) {
@@ -347,6 +399,15 @@ async function updateJob(id, updates = {}, client = null) {
         val = JSON.stringify(val);
       } else if (key === 'panelCount' && val != null) {
         val = isNaN(parseInt(val, 10)) ? null : parseInt(val, 10);
+      } else if (key === 'entitlementConsumed') {
+        val = Boolean(val);
+      } else if (key === 'servicePrice' && val != null) {
+        const parsed = parseFloat(val);
+        val = Number.isFinite(parsed) ? parsed : 0.00;
+      } else if (key === 'paymentStatus') {
+        val = normalizePaymentStatus(val);
+      } else if (key === 'bookingSource') {
+        val = normalizeBookingSource(val);
       }
       params.push(val);
       setClauses.push(`${col} = $${params.length}`);

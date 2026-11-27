@@ -89,6 +89,19 @@
     return isStaffActive(staff) && !staff.isLocked;
   }
 
+  function isDccEligible(staff) {
+    if (!isStaffAvailable(staff)) return false;
+    const workType = String(staff.workType || staff.work_type || 'dcc_only').toLowerCase().trim();
+    if (workType === 'services_only') return false;
+    const caps = Array.isArray(staff.serviceCapabilities)
+      ? staff.serviceCapabilities
+      : (Array.isArray(staff.service_capabilities) ? staff.service_capabilities : null);
+    if (Array.isArray(caps) && caps.length > 0) {
+      return caps.includes('daily_car_cleaning');
+    }
+    return workType === 'dcc_only' || workType === 'dcc_and_services';
+  }
+
   function getIstTodayKey() {
     try {
       const parts = new Intl.DateTimeFormat('en-CA', {
@@ -247,12 +260,14 @@
     if (staffSelect) {
       const currentVal = state.filters.staff;
       let html = '<option value="all">Staff: All</option><option value="unassigned">Unassigned Only</option>';
-      const sortedStaff = [...state.staffList].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+      const sortedStaff = state.staffList
+        .filter(s => isDccEligible(s) || getStaffAssignedCount(s) > 0)
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
       sortedStaff.forEach((s) => {
         const count = getStaffAssignedCount(s);
         const key = s.dbId || s.id;
-        const inactiveTag = isStaffAvailable(s) ? '' : ' [Inactive]';
-        html += `<option value="${escapeHtml(key)}">${escapeHtml(s.name)} (${count})${inactiveTag}</option>`;
+        const statusTag = !isStaffAvailable(s) ? ' [Inactive]' : (!isDccEligible(s) ? ' [Services Only]' : '');
+        html += `<option value="${escapeHtml(key)}">${escapeHtml(s.name)} (${count})${statusTag}</option>`;
       });
       staffSelect.innerHTML = html;
       staffSelect.value = currentVal;
@@ -285,7 +300,7 @@
 
   function renderKpisAndExceptions() {
     const { total, assigned, unassigned } = state.summary;
-    const availStaff = state.staffList.filter(isStaffAvailable).length;
+    const availStaff = state.staffList.filter(isDccEligible).length;
     const coverage = total > 0 ? Math.round((assigned / total) * 100) : 0;
 
     const totalPill = document.getElementById('v2AjTotalPill');
@@ -365,7 +380,7 @@
         excBar.hidden = false;
         excBar.innerHTML = `
           <span class="cwp-v2-aj-exc-label">
-            <span class="material-symbols-outlined" style="font-size:16px;" aria-hidden="true">error</span>
+            <span class="material-symbols-outlined cwp-v2-aj-icon-16" aria-hidden="true">error</span>
             <span>Attention Needed:</span>
           </span>
           ${pills.map(p => `
@@ -464,7 +479,7 @@
         const resetBtn = document.getElementById('v2AjEmptyResetBtn');
         if (resetBtn) resetBtn.addEventListener('click', resetFilters);
       } else {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px;">No matching assignments found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="cwp-v2-aj-empty-cell">No matching assignments found.</td></tr>';
       }
       renderPagination(0, 0, 0);
       return;
@@ -480,7 +495,7 @@
       if (row.sequenceOrder != null) {
         seqHtml = `<span class="cwp-v2-aj-seq-pill">#${escapeHtml(row.sequenceOrder)}</span>`;
       } else if (isMissingSeq) {
-        seqHtml = '<span class="cwp-v2-aj-seq-warn" title="Assigned without route stop order"><span class="material-symbols-outlined" style="font-size:12px;" aria-hidden="true">warning</span>No stop</span>';
+        seqHtml = '<span class="cwp-v2-aj-seq-warn" title="Assigned without route stop order"><span class="material-symbols-outlined cwp-v2-aj-icon-12" aria-hidden="true">warning</span>No stop</span>';
       }
 
       let staffHtml = '<span class="cwp-v2-aj-status-badge is-unassigned">Unassigned</span>';
@@ -507,25 +522,25 @@
 
       const addrText = row.locality || row.address || '';
       const mapsLink = row.googleMapsUrl
-        ? `<a href="${escapeHtml(row.googleMapsUrl)}" target="_blank" rel="noopener" class="cwp-v2-aj-maps-link" title="Open in Google Maps" aria-label="Open in Google Maps"><span class="material-symbols-outlined" style="font-size:15px;">location_on</span></a>`
+        ? `<a href="${escapeHtml(row.googleMapsUrl)}" target="_blank" rel="noopener" class="cwp-v2-aj-maps-link" title="Open in Google Maps" aria-label="Open in Google Maps"><span class="material-symbols-outlined cwp-v2-aj-icon-15">location_on</span></a>`
         : '';
       const addrHtml = isMissingAddr
-        ? '<div class="cwp-v2-aj-loc-missing"><span class="material-symbols-outlined" style="font-size:13px;" aria-hidden="true">location_off</span><span>Missing address</span></div>'
+        ? '<div class="cwp-v2-aj-loc-missing"><span class="material-symbols-outlined cwp-v2-aj-icon-13" aria-hidden="true">location_off</span><span>Missing address</span></div>'
         : `<div class="cwp-v2-aj-loc-addr" title="${escapeHtml(addrText)}">${escapeHtml(addrText)}</div>`;
 
       const actionsHtml = row.isAssigned
         ? `
           <button type="button" class="cwp-v2-aj-btn-sm" data-aj-action="assign" data-customer-id="${escapeHtml(row.customerId)}" title="Reassign Staff">
-            <span class="material-symbols-outlined" style="font-size:14px;" aria-hidden="true">sync_alt</span>
+            <span class="material-symbols-outlined cwp-v2-aj-icon-14" aria-hidden="true">sync_alt</span>
             <span>Reassign</span>
           </button>
           <button type="button" class="cwp-v2-aj-btn-sm is-danger" data-aj-action="unassign" data-customer-id="${escapeHtml(row.customerId)}" title="Unassign Cleaner">
-            <span class="material-symbols-outlined" style="font-size:14px;" aria-hidden="true">person_remove</span>
+            <span class="material-symbols-outlined cwp-v2-aj-icon-14" aria-hidden="true">person_remove</span>
           </button>
         `
         : `
           <button type="button" class="cwp-v2-aj-btn-sm is-primary" data-aj-action="assign" data-customer-id="${escapeHtml(row.customerId)}" title="Assign Cleaner">
-            <span class="material-symbols-outlined" style="font-size:14px;" aria-hidden="true">person_add</span>
+            <span class="material-symbols-outlined cwp-v2-aj-icon-14" aria-hidden="true">person_add</span>
             <span>Assign</span>
           </button>
         `;
@@ -550,7 +565,7 @@
           </td>
           <td>${staffHtml}</td>
           <td>${statusHtml}</td>
-          <td style="text-align:right;">
+          <td class="cwp-v2-aj-cell-right">
             <div class="cwp-v2-aj-row-actions">${actionsHtml}</div>
           </td>
         </tr>
@@ -594,20 +609,21 @@
     const tbody = document.getElementById('v2AjStaffTableBody');
     if (!tbody) return;
 
-    if (state.staffList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#64748b;">No staff records available.</td></tr>';
+    const visibleStaff = state.staffList.filter(s => isDccEligible(s) || getStaffAssignedCount(s) > 0);
+    if (visibleStaff.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="cwp-v2-aj-empty-cell">No DCC-eligible staff records available.</td></tr>';
       return;
     }
 
-    const sorted = [...state.staffList].sort((a, b) => {
-      const aAvail = isStaffAvailable(a) ? 0 : 1;
-      const bAvail = isStaffAvailable(b) ? 0 : 1;
+    const sorted = [...visibleStaff].sort((a, b) => {
+      const aAvail = isDccEligible(a) ? 0 : 1;
+      const bAvail = isDccEligible(b) ? 0 : 1;
       if (aAvail !== bAvail) return aAvail - bAvail;
       return getStaffAssignedCount(b) - getStaffAssignedCount(a);
     });
 
     tbody.innerHTML = sorted.map((s) => {
-      const avail = isStaffAvailable(s);
+      const avail = isDccEligible(s);
       const active = isStaffActive(s);
       const routeCars = getStaffAssignedCount(s);
       const dbId = String(s.dbId || '').toLowerCase();
@@ -619,6 +635,8 @@
         availBadge = '<span class="cwp-v2-aj-status-badge is-exception">Inactive</span>';
       } else if (s.isLocked) {
         availBadge = '<span class="cwp-v2-aj-status-badge is-unassigned">Locked</span>';
+      } else if (!avail) {
+        availBadge = '<span class="cwp-v2-aj-status-badge is-exception">Services Only</span>';
       }
 
       const initial = String(s.name || 'S').trim().charAt(0).toUpperCase() || 'S';
@@ -639,9 +657,9 @@
           <td>${availBadge}</td>
           <td><strong>${routeCars}</strong> ${routeCars === 1 ? 'car' : 'cars'}</td>
           <td><strong>${specToday}</strong> ${specToday === 1 ? 'job' : 'jobs'}</td>
-          <td style="text-align:right;">
+          <td class="cwp-v2-aj-cell-right">
             <button type="button" class="cwp-v2-aj-btn-sm" data-aj-filter-staff="${escapeHtml(staffFilterKey)}">
-              <span class="material-symbols-outlined" style="font-size:14px;" aria-hidden="true">filter_alt</span>
+              <span class="material-symbols-outlined cwp-v2-aj-icon-14" aria-hidden="true">filter_alt</span>
               <span>View Roster (${routeCars})</span>
             </button>
           </td>
@@ -751,7 +769,7 @@
     }
 
     if (staffSelect) {
-      const eligible = state.staffList.filter(isStaffAvailable).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+      const eligible = state.staffList.filter(isDccEligible).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
       let optsHtml = '<option value="">-- Select Eligible Cleaner --</option>';
       eligible.forEach((s) => {
         const count = getStaffAssignedCount(s);

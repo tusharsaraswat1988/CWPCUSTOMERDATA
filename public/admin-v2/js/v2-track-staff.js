@@ -334,7 +334,7 @@
 
     if (state.lastError && !state.hasLoadedOnce) {
       container.innerHTML = `
-        <div class="cwp-v2-empty-state-panel" style="padding:24px 12px;">
+        <div class="cwp-v2-empty-state-panel cwp-v2-trk-empty-compact">
           <span class="material-symbols-outlined cwp-v2-empty-state-icon" aria-hidden="true">cloud_off</span>
           <div class="cwp-v2-empty-state-title">Tracking unavailable</div>
           <div class="cwp-v2-empty-state-desc">${esc(state.lastError)}</div>
@@ -351,7 +351,7 @@
         ? 'No active field staff telemetry available.'
         : 'No staff members match your current search or filter.';
       container.innerHTML = `
-        <div class="cwp-v2-empty-state-panel" style="padding:24px 12px;">
+        <div class="cwp-v2-empty-state-panel cwp-v2-trk-empty-compact">
           <span class="material-symbols-outlined cwp-v2-empty-state-icon" aria-hidden="true">person_search</span>
           <div class="cwp-v2-empty-state-title">No matching staff</div>
           <div class="cwp-v2-empty-state-desc">${esc(msg)}</div>
@@ -534,7 +534,7 @@
             <span class="cwp-v2-trk-detail-v">${esc(staff.networkType || staff.connectivityStatus || 'Unavailable')}</span>
           </div>
         </div>
-        ${devChanged ? `<div style="font-size:11px;color:var(--cwp-v2-status-warning);font-weight:600;">Device changed at ${esc(formatLastUpdateTime(staff.deviceChangedAt))}</div>` : ''}
+        ${devChanged ? `<div class="cwp-v2-trk-device-warn">Device changed at ${esc(formatLastUpdateTime(staff.deviceChangedAt))}</div>` : ''}
       `;
     } else if (tab === 'operations') {
       const devText = staff.routeDeviation && staff.routeDeviation.isActive
@@ -596,7 +596,7 @@
     card.innerHTML = `
       <div class="cwp-v2-trk-detail-head">
         <div class="cwp-v2-trk-identity">
-          <div class="cwp-v2-trk-avatar" style="width:32px;height:32px;font-size:11px;">
+          <div class="cwp-v2-trk-avatar cwp-v2-trk-avatar-sm">
             ${esc(getStaffInitials(staff))}
             <span class="cwp-v2-trk-avatar-dot is-${status}" aria-hidden="true"></span>
           </div>
@@ -606,12 +606,12 @@
           </div>
         </div>
         <button type="button" class="cwp-v2-trk-detail-close" id="v2TrkDetailCloseBtn" aria-label="Close staff detail card">
-          <span class="material-symbols-outlined" style="font-size:18px;" aria-hidden="true">close</span>
+          <span class="material-symbols-outlined cwp-v2-trk-icon-sm" aria-hidden="true">close</span>
         </button>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+      <div class="cwp-v2-trk-detail-status-row">
         <span class="cwp-v2-trk-status-badge is-${status}">${esc(getStatusLabel(status))}</span>
-        <span style="font-size:11px;color:var(--cwp-v2-sys-on-surface-variant);">${esc(freshness.label)}</span>
+        <span class="cwp-v2-trk-detail-freshness">${esc(freshness.label)}</span>
       </div>
       <div class="cwp-v2-trk-detail-tabs" role="tablist">
         <button type="button" class="cwp-v2-trk-detail-tab ${tab === 'location' ? 'is-active' : ''}" data-trk-detail-tab="location">Location</button>
@@ -620,7 +620,7 @@
         <button type="button" class="cwp-v2-trk-detail-tab ${tab === 'health' ? 'is-active' : ''}" data-trk-detail-tab="health">Health</button>
       </div>
       ${tabBodyHtml}
-      <div class="cwp-v2-trk-card-actions" style="border-top:none;padding-top:0;">
+      <div class="cwp-v2-trk-card-actions cwp-v2-trk-detail-actions">
         <button type="button" class="cwp-v2-trk-action-btn" data-trk-action="center" data-staff-id="${esc(sid)}">
           <span class="material-symbols-outlined" aria-hidden="true">my_location</span>
           <span>Center</span>
@@ -680,7 +680,7 @@
       }).addTo(mapState.leafletMap);
       const icon = window.L.divIcon({
         className: 'cwp-v2-trk-leaflet-marker',
-        html: `<div style="background:#0f172a;color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap;border:1.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);">Job: ${esc(jv.customerName || 'Site')}</div>`,
+        html: `<div class="cwp-v2-trk-job-pin">Job: ${esc(jv.customerName || 'Site')}</div>`,
         iconSize: [0, 0],
         iconAnchor: [0, 0]
       });
@@ -750,7 +750,7 @@
 
     if (!listEl) return;
     if (combined.length === 0) {
-      listEl.innerHTML = `<div style="padding:16px;text-align:center;font-size:12px;color:var(--cwp-v2-sys-on-surface-variant);">No operational alerts or exceptions today.</div>`;
+      listEl.innerHTML = `<div class="cwp-v2-trk-alert-empty">No operational alerts or exceptions today.</div>`;
       return;
     }
 
@@ -760,14 +760,14 @@
       const canAck = !a.isDerived && a.isActive && !a.acknowledgedAt;
       return `
         <div class="cwp-v2-trk-alert-item ${sev}" data-alert-staff-id="${esc(String(a.staffId))}">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-            <strong style="font-size:12px;color:var(--cwp-v2-sys-on-surface);">${esc(a.title)}</strong>
-            <span style="font-size:10px;font-weight:600;color:var(--cwp-v2-sys-on-surface-muted);">${esc(statusTag)}</span>
+          <div class="cwp-v2-trk-alert-row">
+            <strong class="cwp-v2-trk-alert-title">${esc(a.title)}</strong>
+            <span class="cwp-v2-trk-alert-tag">${esc(statusTag)}</span>
           </div>
-          <div style="font-size:11px;color:var(--cwp-v2-sys-on-surface-variant);">${esc(a.staffName || '')}${a.details ? ` — ${esc(a.details)}` : ''}</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:2px;">
-            <span style="font-size:10px;color:var(--cwp-v2-sys-on-surface-muted);">${a.occurredAt ? esc(formatLastUpdateTime(a.occurredAt)) : 'Current'}</span>
-            ${canAck ? `<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" style="height:22px;padding:0 8px;font-size:10.5px;" data-ack-alert-id="${esc(a.id)}">Acknowledge</button>` : ''}
+          <div class="cwp-v2-trk-alert-desc">${esc(a.staffName || '')}${a.details ? ` — ${esc(a.details)}` : ''}</div>
+          <div class="cwp-v2-trk-alert-foot">
+            <span class="cwp-v2-trk-alert-time">${a.occurredAt ? esc(formatLastUpdateTime(a.occurredAt)) : 'Current'}</span>
+            ${canAck ? `<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm cwp-v2-trk-ack-btn" data-ack-alert-id="${esc(a.id)}">Acknowledge</button>` : ''}
           </div>
         </div>
       `;
@@ -890,17 +890,22 @@
         const link = document.createElement('link');
         link.id = 'leafletCssTag';
         link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        link.href = '/vendor/leaflet/leaflet.css';
         document.head.appendChild(link);
       }
       const existingScript = document.getElementById('leafletJsTag');
       if (existingScript) {
-        resolve(typeof window.L !== 'undefined');
+        if (typeof window.L !== 'undefined') {
+          resolve(true);
+          return;
+        }
+        existingScript.addEventListener('load', () => resolve(typeof window.L !== 'undefined'), { once: true });
+        existingScript.addEventListener('error', () => resolve(false), { once: true });
         return;
       }
       const script = document.createElement('script');
       script.id = 'leafletJsTag';
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.src = '/vendor/leaflet/leaflet.js';
       script.onload = () => resolve(typeof window.L !== 'undefined');
       script.onerror = () => resolve(false);
       document.head.appendChild(script);
@@ -944,9 +949,9 @@
     mapState.engine = 'svg';
     mapState.markersById.clear();
     canvas.innerHTML = `
-      <div class="cwp-v2-trk-svg-fallback" style="width:100%;height:100%;background:#0f172a;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-        <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(59,130,246,0.2) 1px,transparent 1px);background-size:24px 24px;"></div>
-        <svg id="v2TrkSvgCanvas" viewBox="0 0 800 500" style="width:100%;height:100%;position:relative;z-index:1;"></svg>
+      <div class="cwp-v2-trk-svg-fallback">
+        <div class="cwp-v2-trk-svg-grid"></div>
+        <svg id="v2TrkSvgCanvas" viewBox="0 0 800 500" class="cwp-v2-trk-svg-canvas"></svg>
       </div>
     `;
   }
@@ -1313,7 +1318,7 @@
     if (titleEl) titleEl.textContent = `${staff.name || staff.staffCode} — Stoppages & Route History`;
     if (metaEl) metaEl.textContent = `${staff.staffCode || staff.staffId} • Today's distance: ${staff.todayDistanceKm ?? 0} km`;
     if (contentEl) {
-      contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--cwp-v2-sys-on-surface-variant);">Loading stoppage history...</div>';
+      contentEl.innerHTML = '<div class="cwp-v2-trk-stops-loading">Loading stoppage history...</div>';
     }
 
     if (window.CWP_ADMIN_V2.overlay) {
@@ -1337,7 +1342,7 @@
       if (stops.length === 0) {
         if (contentEl) {
           contentEl.innerHTML = `
-            <div class="cwp-v2-empty-state-panel" style="padding:28px 16px;">
+            <div class="cwp-v2-empty-state-panel cwp-v2-trk-empty-modal">
               <span class="material-symbols-outlined cwp-v2-empty-state-icon" aria-hidden="true">directions_run</span>
               <div class="cwp-v2-empty-state-title">No stoppages recorded today</div>
               <div class="cwp-v2-empty-state-desc">No stationary dwell periods met the stoppage threshold for ${esc(res.date || 'today')}.</div>
@@ -1391,7 +1396,7 @@
     } catch (err) {
       if (contentEl) {
         contentEl.innerHTML = `
-          <div class="cwp-v2-empty-state-panel" style="padding:24px 16px;">
+          <div class="cwp-v2-empty-state-panel cwp-v2-trk-empty-error">
             <span class="material-symbols-outlined cwp-v2-empty-state-icon" aria-hidden="true">error_outline</span>
             <div class="cwp-v2-empty-state-title">Unable to load stoppages</div>
             <div class="cwp-v2-empty-state-desc">${esc(err.message || 'API error')}</div>

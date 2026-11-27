@@ -88,7 +88,9 @@
       overlayEl.setAttribute('aria-modal', 'true');
     }
 
-    // Show backdrop
+    // Show backdrop (defensively clear hidden attribute if present)
+    overlayEl.removeAttribute('hidden');
+    overlayEl.hidden = false;
     overlayEl.style.display = 'flex';
     overlayEl.setAttribute('aria-hidden', 'false');
 

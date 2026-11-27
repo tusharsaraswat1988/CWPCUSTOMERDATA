@@ -554,45 +554,74 @@ async function saveCustomer(custData, adminUser = 'admin') {
       }
     }
 
-    // 3. Create Vehicles
-    const rawVehicles = [];
-    if (custData.vehicle || custData.vehicleDetails) {
-      rawVehicles.push({
-        raw: custData.vehicle || custData.vehicleDetails,
-        photo: custData.photoUrl || custData.photo || ''
-      });
-    }
-    if (custData.secondVehicleDetails || custData.vehicle2) {
-      rawVehicles.push({
-        raw: custData.secondVehicleDetails || custData.vehicle2,
-        photo: custData.secondVehiclePhoto || custData.photo2 || ''
-      });
-    }
-    if (custData.thirdVehicleDetails || custData.vehicle3) {
-      rawVehicles.push({
-        raw: custData.thirdVehicleDetails || custData.vehicle3,
-        photo: custData.thirdVehiclePhoto || custData.photo3 || ''
-      });
-    }
-
+    // 3. Create Vehicles (prefer explicit vehicles[] array when supplied)
     const createdVehicles = [];
-    for (let i = 0; i < rawVehicles.length; i++) {
-      const vItem = rawVehicles[i];
-      const parsed = parseVehicleString(vItem.raw);
-      if (parsed.reg) {
+    if (Array.isArray(custData.vehicles) && custData.vehicles.length > 0) {
+      for (let i = 0; i < custData.vehicles.length; i++) {
+        const vItem = custData.vehicles[i];
+        if (!vItem || typeof vItem !== 'object') continue;
+        const rawReg = String(vItem.registration_no ?? vItem.registrationNo ?? vItem.reg ?? '').trim();
+        let rawModel = String(vItem.brand_or_model ?? vItem.brandOrModel ?? vItem.model ?? '').trim();
+        let reg = rawReg.toUpperCase().slice(0, 20);
+        if (rawReg && !rawModel && /[()\-–—]/.test(rawReg)) {
+          const parsed = parseVehicleString(rawReg);
+          reg = parsed.reg;
+          rawModel = parsed.model;
+        }
+        if (!reg) continue;
         const veh = await repos.vehicles.createVehicle({
           customerId: customer.id,
           defaultLocationId: primaryLocation?.id || null,
-          registrationNo: parsed.reg,
-          brandOrModel: parsed.model || null,
-          vehicleType: 'Car',
-          photoUrl: vItem.photo || null,
+          registrationNo: reg,
+          brandOrModel: rawModel || null,
+          vehicleType: vItem.vehicle_type || vItem.vehicleType || 'Car',
+          photoUrl: vItem.photo_url || vItem.photoUrl || vItem.photo || (i === 0 ? (custData.photoUrl || custData.photo || null) : null),
           isActive: true,
-          carMake,
-          carColor,
-          seaterType: customerSeaterType
+          carMake: (vItem.car_make ?? vItem.carMake ?? carMake) || null,
+          carColor: (vItem.car_color ?? vItem.carColor ?? carColor) || null,
+          seaterType: (vItem.seater_type ?? vItem.seaterType ?? customerSeaterType) || '5_seater'
         }, client);
         createdVehicles.push(veh);
+      }
+    } else {
+      const rawVehicles = [];
+      if (custData.vehicle || custData.vehicleDetails) {
+        rawVehicles.push({
+          raw: custData.vehicle || custData.vehicleDetails,
+          photo: custData.photoUrl || custData.photo || ''
+        });
+      }
+      if (custData.secondVehicleDetails || custData.vehicle2) {
+        rawVehicles.push({
+          raw: custData.secondVehicleDetails || custData.vehicle2,
+          photo: custData.secondVehiclePhoto || custData.photo2 || ''
+        });
+      }
+      if (custData.thirdVehicleDetails || custData.vehicle3) {
+        rawVehicles.push({
+          raw: custData.thirdVehicleDetails || custData.vehicle3,
+          photo: custData.thirdVehiclePhoto || custData.photo3 || ''
+        });
+      }
+
+      for (let i = 0; i < rawVehicles.length; i++) {
+        const vItem = rawVehicles[i];
+        const parsed = parseVehicleString(vItem.raw);
+        if (parsed.reg) {
+          const veh = await repos.vehicles.createVehicle({
+            customerId: customer.id,
+            defaultLocationId: primaryLocation?.id || null,
+            registrationNo: parsed.reg,
+            brandOrModel: parsed.model || null,
+            vehicleType: 'Car',
+            photoUrl: vItem.photo || null,
+            isActive: true,
+            carMake,
+            carColor,
+            seaterType: customerSeaterType
+          }, client);
+          createdVehicles.push(veh);
+        }
       }
     }
 
@@ -705,8 +734,14 @@ async function saveCustomer(custData, adminUser = 'admin') {
 
     return {
       success: true,
+      id: customer.id,
       customerId: customer.id,
       customerCode: customer.customer_code,
+      customer: {
+        ...customer,
+        id: customer.id,
+        customerCode: customer.customer_code
+      },
       hasService: Boolean(hasService),
       message: hasService ? 'Customer saved successfully' : 'Customer profile saved successfully (No Service Assigned)'
     };
@@ -944,40 +979,154 @@ async function updateCustomer(custData, adminUser = 'admin') {
       }
     }
 
-    // 3. Update / Upsert Vehicle
-    const rawVeh = (custData.vehicle || custData.vehicleDetails || '').trim();
-    if (rawVeh) {
-      const parsed = parseVehicleString(rawVeh);
-      const existingVehs = await repos.vehicles.findByCustomerId(customer.id, { client });
-      if (existingVehs.length > 0) {
-        await repos.vehicles.updateVehicle(existingVehs[0].id, {
-          registrationNo: parsed.reg,
-          brandOrModel: parsed.model || existingVehs[0].brand_or_model,
-          photoUrl: custData.photoUrl || existingVehs[0].photo_url,
-          carMake: carMakeUpdate !== undefined ? carMakeUpdate : existingVehs[0].car_make,
-          carColor: carColorUpdate !== undefined ? carColorUpdate : existingVehs[0].car_color,
-          seaterType: custData.seaterType || custData.seater_type || existingVehs[0].seater_type
-        }, client);
-      } else if (parsed.reg) {
-        await repos.vehicles.createVehicle({
-          customerId: customer.id,
-          defaultLocationId: primaryLoc?.id || null,
-          registrationNo: parsed.reg,
-          brandOrModel: parsed.model || null,
-          photoUrl: custData.photoUrl || null,
-          carMake: carMakeUpdate || null,
-          carColor: carColorUpdate || null,
-          seaterType: custData.seaterType || custData.seater_type || '5_seater'
-        }, client);
+    // 3. Update / Upsert Vehicle (prefer explicit vehicles[] array when supplied)
+    if (Array.isArray(custData.vehicles)) {
+      const incomingRaw = custData.vehicles.filter(v => v && typeof v === 'object');
+      const normalizedIncoming = [];
+      for (const vItem of incomingRaw) {
+        const rawReg = String(vItem.registration_no ?? vItem.registrationNo ?? vItem.reg ?? '').trim();
+        let rawModel = String(vItem.brand_or_model ?? vItem.brandOrModel ?? vItem.model ?? '').trim();
+        let reg = rawReg.toUpperCase().slice(0, 20);
+        if (rawReg && !rawModel && /[()\-–—]/.test(rawReg)) {
+          const parsed = parseVehicleString(rawReg);
+          reg = parsed.reg;
+          rawModel = parsed.model;
+        }
+        if (!reg) continue;
+        normalizedIncoming.push({
+          id: vItem.id || null,
+          registrationNo: reg,
+          brandOrModel: rawModel || null,
+          vehicleType: vItem.vehicle_type || vItem.vehicleType || 'Car',
+          photoUrl: vItem.photo_url || vItem.photoUrl || vItem.photo || undefined,
+          carMake: vItem.car_make !== undefined ? vItem.car_make : (vItem.carMake !== undefined ? vItem.carMake : carMakeUpdate),
+          carColor: vItem.car_color !== undefined ? vItem.car_color : (vItem.carColor !== undefined ? vItem.carColor : carColorUpdate),
+          seaterType: vItem.seater_type || vItem.seaterType || custData.seaterType || custData.seater_type || '5_seater'
+        });
       }
-    } else if (carMakeUpdate !== undefined || carColorUpdate !== undefined || custData.seaterType !== undefined || custData.seater_type !== undefined) {
-      const existingVehs = await repos.vehicles.findByCustomerId(customer.id, { client });
-      if (existingVehs.length > 0) {
-        await repos.vehicles.updateVehicle(existingVehs[0].id, {
-          carMake: carMakeUpdate,
-          carColor: carColorUpdate,
-          seaterType: custData.seaterType || custData.seater_type || existingVehs[0].seater_type
-        }, client);
+
+      if (normalizedIncoming.length > 0) {
+        const existingVehs = await repos.vehicles.findByCustomerId(customer.id, { client });
+        const matchedExistingIds = new Set();
+        const assignments = new Array(normalizedIncoming.length).fill(null);
+
+        // Pass 1: Match by explicit ID
+        normalizedIncoming.forEach((inc, idx) => {
+          if (!inc.id) return;
+          const match = existingVehs.find(ev => ev.id === inc.id && !matchedExistingIds.has(ev.id));
+          if (match) {
+            assignments[idx] = match;
+            matchedExistingIds.add(match.id);
+          }
+        });
+
+        // Pass 2: Match by normalized registration_no
+        normalizedIncoming.forEach((inc, idx) => {
+          if (assignments[idx]) return;
+          const normIncReg = inc.registrationNo.replace(/\s+/g, '').toUpperCase();
+          const match = existingVehs.find(ev =>
+            !matchedExistingIds.has(ev.id) &&
+            String(ev.registration_no || '').replace(/\s+/g, '').toUpperCase() === normIncReg
+          );
+          if (match) {
+            assignments[idx] = match;
+            matchedExistingIds.add(match.id);
+          }
+        });
+
+        // Pass 3: Positional pairing for remaining unmatched (preserves subscription_vehicles FKs when editing plate)
+        const remainingExisting = existingVehs.filter(ev => !matchedExistingIds.has(ev.id));
+        let remCursor = 0;
+        normalizedIncoming.forEach((inc, idx) => {
+          if (!assignments[idx] && remCursor < remainingExisting.length) {
+            assignments[idx] = remainingExisting[remCursor++];
+            matchedExistingIds.add(assignments[idx].id);
+          }
+        });
+
+        const activeSubForVehs = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
+        const targetPrimLoc = primaryLoc || await repos.serviceLocations.findPrimaryByCustomerId(customer.id, client);
+
+        for (let idx = 0; idx < normalizedIncoming.length; idx++) {
+          const inc = normalizedIncoming[idx];
+          const existingMatch = assignments[idx];
+          if (existingMatch) {
+            await repos.vehicles.updateVehicle(existingMatch.id, {
+              registrationNo: inc.registrationNo,
+              brandOrModel: inc.brandOrModel !== null ? inc.brandOrModel : existingMatch.brand_or_model,
+              vehicleType: inc.vehicleType || existingMatch.vehicle_type,
+              photoUrl: inc.photoUrl !== undefined ? inc.photoUrl : existingMatch.photo_url,
+              carMake: inc.carMake !== undefined ? inc.carMake : existingMatch.car_make,
+              carColor: inc.carColor !== undefined ? inc.carColor : existingMatch.car_color,
+              seaterType: inc.seaterType || existingMatch.seater_type
+            }, client);
+          } else {
+            const createdVeh = await repos.vehicles.createVehicle({
+              customerId: customer.id,
+              defaultLocationId: targetPrimLoc?.id || null,
+              registrationNo: inc.registrationNo,
+              brandOrModel: inc.brandOrModel,
+              vehicleType: inc.vehicleType || 'Car',
+              photoUrl: inc.photoUrl || custData.photoUrl || null,
+              carMake: inc.carMake || null,
+              carColor: inc.carColor || null,
+              seaterType: inc.seaterType || '5_seater'
+            }, client);
+            if (activeSubForVehs && normCategory === 'Daily Car Cleaning') {
+              await repos.subscriptionVehicles.addVehicleToSubscription({
+                subscriptionId: activeSubForVehs.id,
+                customerId: customer.id,
+                vehicleId: createdVeh.id,
+                locationId: targetPrimLoc?.id || null,
+                scheduleTag: custData.scheduleTag || 'daily'
+              }, client);
+            }
+          }
+        }
+
+        // Soft-delete genuinely removed vehicles and clean their subscription_vehicles links
+        for (const ev of existingVehs) {
+          if (!matchedExistingIds.has(ev.id)) {
+            await client.query('DELETE FROM public.subscription_vehicles WHERE vehicle_id = $1', [ev.id]);
+            await repos.vehicles.softDelete(ev.id, client);
+          }
+        }
+      }
+    } else {
+      const rawVeh = (custData.vehicle || custData.vehicleDetails || '').trim();
+      if (rawVeh) {
+        const parsed = parseVehicleString(rawVeh);
+        const existingVehs = await repos.vehicles.findByCustomerId(customer.id, { client });
+        if (existingVehs.length > 0) {
+          await repos.vehicles.updateVehicle(existingVehs[0].id, {
+            registrationNo: parsed.reg,
+            brandOrModel: parsed.model || existingVehs[0].brand_or_model,
+            photoUrl: custData.photoUrl || existingVehs[0].photo_url,
+            carMake: carMakeUpdate !== undefined ? carMakeUpdate : existingVehs[0].car_make,
+            carColor: carColorUpdate !== undefined ? carColorUpdate : existingVehs[0].car_color,
+            seaterType: custData.seaterType || custData.seater_type || existingVehs[0].seater_type
+          }, client);
+        } else if (parsed.reg) {
+          await repos.vehicles.createVehicle({
+            customerId: customer.id,
+            defaultLocationId: primaryLoc?.id || null,
+            registrationNo: parsed.reg,
+            brandOrModel: parsed.model || null,
+            photoUrl: custData.photoUrl || null,
+            carMake: carMakeUpdate || null,
+            carColor: carColorUpdate || null,
+            seaterType: custData.seaterType || custData.seater_type || '5_seater'
+          }, client);
+        }
+      } else if (carMakeUpdate !== undefined || carColorUpdate !== undefined || custData.seaterType !== undefined || custData.seater_type !== undefined) {
+        const existingVehs = await repos.vehicles.findByCustomerId(customer.id, { client });
+        if (existingVehs.length > 0) {
+          await repos.vehicles.updateVehicle(existingVehs[0].id, {
+            carMake: carMakeUpdate,
+            carColor: carColorUpdate,
+            seaterType: custData.seaterType || custData.seater_type || existingVehs[0].seater_type
+          }, client);
+        }
       }
     }
 
@@ -1780,25 +1929,33 @@ async function getDailyCleanReports(filters = {}, adminUser = 'admin') {
 
     const pendingSql = `
       SELECT 
-        sv.subscription_id, sv.vehicle_id, sv.sequence_order,
+        sv.subscription_id, sv.vehicle_id, srs.sequence_order,
         s.id AS staff_id, s.name AS staff_name, s.staff_code,
         c.id AS customer_id, c.customer_code, c.name AS customer_name, c.phone AS customer_phone,
         v.registration_no, v.brand_or_model, v.car_make, v.car_color,
         loc.address_text, loc.parking_details, loc.google_maps_url
       FROM public.subscription_vehicles sv
-      JOIN public.subscriptions sub ON sv.subscription_id = sub.id AND sub.is_active = TRUE
-      JOIN public.customers c ON sub.customer_id = c.id AND c.is_active = TRUE
-      JOIN public.vehicles v ON sv.vehicle_id = v.id
+      JOIN public.subscriptions sub ON sv.subscription_id = sub.id AND sub.status = 'active' AND sub.deleted_at IS NULL AND sub.service_category_id = 'daily_car_cleaning'
+      JOIN public.customers c ON sub.customer_id = c.id AND c.is_active = TRUE AND c.deleted_at IS NULL
+      JOIN public.vehicles v ON sv.vehicle_id = v.id AND v.deleted_at IS NULL
       LEFT JOIN public.service_locations loc ON sv.location_id = loc.id
       LEFT JOIN public.staff_assignments sa ON sa.subscription_id = sub.id AND sa.is_active = TRUE
       LEFT JOIN public.staff s ON sa.staff_id = s.id
+      LEFT JOIN LATERAL (
+        SELECT srs_inner.sequence_order
+        FROM public.staff_route_sequences srs_inner
+        WHERE srs_inner.subscription_id = sub.id
+          AND (sa.staff_id IS NULL OR srs_inner.staff_id = sa.staff_id)
+        ORDER BY srs_inner.sequence_order ASC NULLS LAST
+        LIMIT 1
+      ) srs ON TRUE
       WHERE NOT EXISTS (
         SELECT 1 FROM public.service_logs sl
         WHERE sl.subscription_id = sv.subscription_id
           AND sl.vehicle_id = sv.vehicle_id
           AND sl.service_date = $1
       )
-      ORDER BY sv.sequence_order ASC NULLS LAST, sv.created_at ASC
+      ORDER BY srs.sequence_order ASC NULLS LAST, sv.created_at ASC
     `;
 
     const pendingRes = await db.query(pendingSql, [todayIst]);
@@ -1846,7 +2003,9 @@ async function getDailyCleanReports(filters = {}, adminUser = 'admin') {
         else s.status = 'Idle / Break 🟠';
       }
     });
-  } catch (err) {}
+  } catch (err) {
+    console.error('getDailyCleanReports pending query error:', err.message);
+  }
 
   const staffMatrix = Object.values(staffMatrixMap);
   const totalPending = pendingRecords.length;
@@ -2616,6 +2775,10 @@ async function assignSpecialJob(params, adminUser = 'admin') {
         tentativeTime: finalScheduledTime,
         sequenceOrder: finalSequenceOrder,
         status: job.status,
+        staff_id: targetStaff.staff_code,
+        staff_db_id: targetStaff.id,
+        staffId: targetStaff.staff_code,
+        staffName: targetStaff.name,
         assignedStaffId: targetStaff.staff_code,
         assignedStaffName: targetStaff.name
       },
@@ -2780,6 +2943,10 @@ async function reassignSpecialJob(params = {}, maybeAdminUser = null) {
         serviceCategoryId: job.service_category_id,
         serviceType: job.service_type,
         status: job.status,
+        staff_id: targetStaff.staff_code,
+        staff_db_id: targetStaff.id,
+        staffId: targetStaff.staff_code,
+        staffName: targetStaff.name,
         assignedStaffId: targetStaff.staff_code,
         assignedStaffName: targetStaff.name
       },
@@ -3028,6 +3195,12 @@ async function assignDailyCleanCustomer({ customerId, staffId, adminUser = 'admi
       staff = allStaff.find(s => s.id === sTarget || s.staff_code?.toLowerCase() === sTarget.toLowerCase() || s.name?.toLowerCase() === sTarget.toLowerCase()) || null;
     }
     if (!staff) return { success: false, error: `Staff member '${sTarget}' not found.` };
+    if (!staff.is_active) {
+      return { success: false, error: `Cannot assign daily clean route to deactivated staff member '${staff.name}'.` };
+    }
+    if (!staffCapabilityService.isDccEligible(staff)) {
+      return { success: false, error: `Staff member '${staff.name}' is classified as 'services_only' and is not eligible for Daily Car Cleaning.` };
+    }
 
     // 3. Resolve or Create Active Subscription for Daily Car Cleaning
     let sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);

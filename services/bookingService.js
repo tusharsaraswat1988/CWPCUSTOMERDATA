@@ -22,6 +22,14 @@ const repos = require('../db/repositories/index');
 const serviceCatalog = require('./serviceCatalog');
 const packageService = require('./packageService');
 const staffCapabilityService = require('./staffCapabilityService');
+const seeEntitlementService = require('./seeEntitlementService');
+const seeStaffCapabilityService = require('./seeStaffCapabilityService');
+
+const ALLOWED_BOOKING_SOURCES = ['admin', 'customer_request', 'verbal', 'call_center', 'app'];
+function normalizeBookingSource(val) {
+  const s = val ? String(val).trim().toLowerCase() : 'admin';
+  return ALLOWED_BOOKING_SOURCES.includes(s) ? s : 'admin';
+}
 
 // In-memory mock store for test / offline execution
 let localJobsStore = [];
@@ -88,9 +96,9 @@ async function getEligiblePackagesForBooking(arg1, arg2, arg3 = null) {
   if (!customerId) return [];
 
   const normCat = serviceCatalog.resolveCanonicalCategory(serviceCategoryId);
-  const packages = await packageService.getCustomerPackages(customerId, { includeExhausted: false, includeCancelled: false });
+  const legacyPackages = await packageService.getCustomerPackages(customerId, { includeExhausted: false, includeCancelled: false });
 
-  return packages.filter(pkg => {
+  const eligibleLegacy = legacyPackages.filter(pkg => {
     // 1. Must be active with remaining balance
     const rem = pkg.remaining_quantity != null ? pkg.remaining_quantity : pkg.remainingQuantity;
     if (rem <= 0) return false;
@@ -107,7 +115,69 @@ async function getEligiblePackagesForBooking(arg1, arg2, arg3 = null) {
     }
 
     return true;
-  });
+  }).map(p => ({ ...p, source: 'legacy' }));
+
+  const eligibleSee = [];
+  if (isNeonActive()) {
+    try {
+      const bal = await seeEntitlementService.getCustomerBalance(customerId);
+      const accounts = Array.isArray(bal && bal.accounts) ? bal.accounts : [];
+      const now = new Date();
+      for (const acct of accounts) {
+        if (acct.entitlement_kind === 'addon_credit' || !acct.service_id) continue;
+        if ((acct.status || '').toLowerCase() !== 'active') continue;
+        if (acct.valid_to && new Date(acct.valid_to) < now) continue;
+        const rem = Number(acct.remaining_qty || 0);
+        if (rem <= 0) continue;
+
+        const rawAcctCat = acct.service_category_id || (
+          acct.entitlement_kind === 'wash_credit' ? 'car_washing' :
+          acct.entitlement_kind === 'solar_credit' ? 'solar_cleaning' :
+          acct.entitlement_kind === 'dcc_credit' ? 'daily_car_cleaning' : null
+        );
+        if (normCat && rawAcctCat) {
+          const resolvedAcctCat = serviceCatalog.resolveCanonicalCategory(rawAcctCat);
+          const detailingMatch = rawAcctCat === 'detailing' && (normCat === 'interior_detailing' || normCat === 'exterior_detailing');
+          if (!detailingMatch && resolvedAcctCat !== normCat) continue;
+        }
+        if (acct.vehicle_id && vehicleId && acct.vehicle_id !== vehicleId) continue;
+
+        eligibleSee.push({
+          id: acct.id,
+          source: 'see',
+          entitlementAccountId: acct.id,
+          entitlement_account_id: acct.id,
+          purchaseSnapshotId: acct.purchase_snapshot_id || null,
+          purchase_snapshot_id: acct.purchase_snapshot_id || null,
+          serviceId: acct.service_id,
+          service_id: acct.service_id,
+          packageCode: acct.package_code || acct.service_code || 'SEE_PKG',
+          package_code: acct.package_code || acct.service_code || 'SEE_PKG',
+          packageName: acct.package_name || acct.service_name || 'Service Entitlement',
+          package_name: acct.package_name || acct.service_name || 'Service Entitlement',
+          serviceCategoryId: rawAcctCat || normCat,
+          service_category_id: rawAcctCat || normCat,
+          vehicleId: acct.vehicle_id || null,
+          vehicle_id: acct.vehicle_id || null,
+          totalQuantity: Number(acct.purchased_qty || 0),
+          total_quantity: Number(acct.purchased_qty || 0),
+          reservedQuantity: Number(acct.reserved_qty || 0),
+          reserved_quantity: Number(acct.reserved_qty || 0),
+          consumedQuantity: Number(acct.consumed_qty || 0),
+          consumed_quantity: Number(acct.consumed_qty || 0),
+          remainingQuantity: rem,
+          remaining_quantity: rem,
+          expiryDate: acct.valid_to || null,
+          expiry_date: acct.valid_to || null,
+          status: acct.status
+        });
+      }
+    } catch (seeErr) {
+      console.warn('getEligiblePackagesForBooking SEE lookup warning:', seeErr.message);
+    }
+  }
+
+  return [...eligibleSee, ...eligibleLegacy];
 }
 
 /**
@@ -118,8 +188,10 @@ async function createBooking(params = {}, actor = 'admin') {
   const locationId = params.locationId || null;
   const vehicleId = params.vehicleId || params.assetId || null;
   const serviceCategoryId = params.serviceCategoryId || params.serviceCategory || 'car_washing';
+  const serviceIdParam = params.serviceId || null;
   const serviceType = params.serviceType;
   const packageId = params.packageId || null;
+  const entitlementAccountIdParam = params.entitlementAccountId || null;
   const packageCode = params.packageCode || null;
   const packageDetails = params.packageDetails || null;
   const seaterType = params.seaterType || null;
@@ -132,7 +204,9 @@ async function createBooking(params = {}, actor = 'admin') {
   const specialInstructions = params.specialInstructions || null;
   const servicePrice = params.servicePrice != null ? params.servicePrice : 0.00;
   const paymentStatus = params.paymentStatus || null;
-  const bookingSource = params.bookingSource || 'admin';
+  const bookingSource = normalizeBookingSource(params.bookingSource);
+  const city = params.city || null;
+  const zone = params.zone || null;
 
   if (!customerId) {
     throw new Error('Customer ID is required to create a booking.');
@@ -149,7 +223,6 @@ async function createBooking(params = {}, actor = 'admin') {
 
   // 1. Validate Service & Asset combinations
   const isSolar = normCat === 'solar_cleaning';
-  const isVehicleService = ['car_washing', 'interior_detailing', 'exterior_detailing', 'daily_car_cleaning'].includes(normCat);
 
   if (isSolar) {
     const panels = parseInt(panelCount, 10);
@@ -158,37 +231,73 @@ async function createBooking(params = {}, actor = 'admin') {
     }
   }
 
-  // 2. Package Validation (if booking is linked to a package)
+  // 2. Package / SEE Entitlement Validation (if booking is linked to a package or entitlement account)
   let linkedPackage = null;
-  if (packageId) {
-    const custPackages = await packageService.getCustomerPackages(customerId);
-    linkedPackage = custPackages.find(p => p.id === packageId);
-    if (!linkedPackage) {
+  let linkedSeeAccount = null;
+  const requestedEntitlementId = entitlementAccountIdParam || packageId;
+  if (requestedEntitlementId) {
+    if (packageId) {
+      const custPackages = await packageService.getCustomerPackages(customerId);
+      linkedPackage = custPackages.find(p => p.id === packageId) || null;
+    }
+
+    if (linkedPackage) {
+      if ((linkedPackage.status || '').toLowerCase() !== 'active') {
+        throw new Error(`Cannot book against package '${linkedPackage.package_name || linkedPackage.packageName}' with status '${linkedPackage.status}'.`);
+      }
+
+      const rem = linkedPackage.remaining_quantity != null ? linkedPackage.remaining_quantity : linkedPackage.remainingQuantity;
+      if (rem <= 0) {
+        throw new Error(`Package '${linkedPackage.package_name || linkedPackage.packageName}' has zero remaining entitlement.`);
+      }
+
+      const pkgCat = serviceCatalog.resolveCanonicalCategory(linkedPackage.service_category_id || linkedPackage.serviceCategoryId);
+      if (pkgCat !== normCat) {
+        throw new Error(`Package category '${linkedPackage.service_category || pkgCat}' is not valid for '${serviceCategoryId}'.`);
+      }
+
+      const pkgVehId = linkedPackage.vehicle_id || linkedPackage.vehicleId || linkedPackage.asset_id || linkedPackage.assetId;
+      if (pkgVehId && vehicleId && pkgVehId !== vehicleId) {
+        throw new Error(`Package is restricted to vehicle '${pkgVehId}', but '${vehicleId}' was selected.`);
+      }
+    } else if (isNeonActive()) {
+      const bal = await seeEntitlementService.getCustomerBalance(customerId);
+      const accounts = Array.isArray(bal && bal.accounts) ? bal.accounts : [];
+      linkedSeeAccount = accounts.find(a => a.id === requestedEntitlementId) || null;
+      if (!linkedSeeAccount) {
+        throw new Error(`Package '${requestedEntitlementId}' does not belong to this customer or does not exist.`);
+      }
+      if (linkedSeeAccount.entitlement_kind === 'addon_credit' || !linkedSeeAccount.service_id) {
+        throw new Error('Selected entitlement account is not a main service package.');
+      }
+      if ((linkedSeeAccount.status || '').toLowerCase() !== 'active') {
+        throw new Error(`Cannot book against entitlement '${linkedSeeAccount.package_name || linkedSeeAccount.service_name}' with status '${linkedSeeAccount.status}'.`);
+      }
+      if (linkedSeeAccount.valid_to && new Date(linkedSeeAccount.valid_to) < new Date()) {
+        throw new Error(`Entitlement '${linkedSeeAccount.package_name || linkedSeeAccount.service_name}' has expired.`);
+      }
+      if (Number(linkedSeeAccount.remaining_qty || 0) <= 0) {
+        throw new Error(`Entitlement '${linkedSeeAccount.package_name || linkedSeeAccount.service_name}' has zero remaining balance.`);
+      }
+      const rawAcctCat = linkedSeeAccount.service_category_id;
+      if (rawAcctCat) {
+        const acctCat = serviceCatalog.resolveCanonicalCategory(rawAcctCat);
+        const detailingMatch = rawAcctCat === 'detailing' && (normCat === 'interior_detailing' || normCat === 'exterior_detailing');
+        if (!detailingMatch && acctCat !== normCat) {
+          throw new Error(`Entitlement category '${rawAcctCat}' is not valid for '${serviceCategoryId}'.`);
+        }
+      }
+      if (linkedSeeAccount.vehicle_id && vehicleId && linkedSeeAccount.vehicle_id !== vehicleId) {
+        throw new Error(`Entitlement is restricted to vehicle '${linkedSeeAccount.vehicle_id}', but '${vehicleId}' was selected.`);
+      }
+    } else {
       throw new Error(`Package '${packageId}' does not belong to this customer or does not exist.`);
-    }
-
-    if ((linkedPackage.status || '').toLowerCase() !== 'active') {
-      throw new Error(`Cannot book against package '${linkedPackage.package_name || linkedPackage.packageName}' with status '${linkedPackage.status}'.`);
-    }
-
-    const rem = linkedPackage.remaining_quantity != null ? linkedPackage.remaining_quantity : linkedPackage.remainingQuantity;
-    if (rem <= 0) {
-      throw new Error(`Package '${linkedPackage.package_name || linkedPackage.packageName}' has zero remaining entitlement.`);
-    }
-
-    const pkgCat = serviceCatalog.resolveCanonicalCategory(linkedPackage.service_category_id || linkedPackage.serviceCategoryId);
-    if (pkgCat !== normCat) {
-      throw new Error(`Package category '${linkedPackage.service_category || pkgCat}' is not valid for '${serviceCategoryId}'.`);
-    }
-
-    const pkgVehId = linkedPackage.vehicle_id || linkedPackage.vehicleId || linkedPackage.asset_id || linkedPackage.assetId;
-    if (pkgVehId && vehicleId && pkgVehId !== vehicleId) {
-      throw new Error(`Package is restricted to vehicle '${pkgVehId}', but '${vehicleId}' was selected.`);
     }
   }
 
-  // Validate staff capability if staff is assigned
-  if (staffId) {
+  // Validate staff capability if staff is assigned (local fallback vs Neon)
+  let resolvedLocalStaff = null;
+  if (staffId && !isNeonActive()) {
     let staffObj = null;
     if (repos.staff && typeof repos.staff.findById === 'function') {
       try {
@@ -210,12 +319,13 @@ async function createBooking(params = {}, actor = 'admin') {
         const catName = catMeta ? catMeta.name : normCat;
         throw new Error(`Staff member '${staffObj.name}' is classified as '${eff.workType}' and does not have the capability for '${catName}'.`);
       }
+      resolvedLocalStaff = staffObj;
     }
   }
 
   // Determine initial status: if staff assigned right away -> 'assigned', else 'booked'
   const initialStatus = staffId ? 'assigned' : 'booked';
-  const finalPaymentStatus = linkedPackage ? 'package_covered' : (paymentStatus || 'pending');
+  const finalPaymentStatus = (linkedPackage || linkedSeeAccount) ? 'package_covered' : (paymentStatus || 'pending');
 
   if (isNeonActive()) {
     return db.withTransaction(async (client) => {
@@ -225,17 +335,22 @@ async function createBooking(params = {}, actor = 'admin') {
         throw new Error(`Customer with ID '${customerId}' not found.`);
       }
 
-      // Validate location
+      // Validate location (fallback to first non-primary location if primary missing)
       let targetLocId = locationId;
       if (!targetLocId) {
         const primaryLoc = await repos.serviceLocations.findPrimaryByCustomerId(customerId, client);
         targetLocId = primaryLoc ? primaryLoc.id : null;
       }
-      if (targetLocId) {
-        const loc = await repos.serviceLocations.findById(targetLocId, client);
-        if (!loc || loc.customer_id !== customer.id) {
-          throw new Error('Selected location does not belong to this customer.');
-        }
+      if (!targetLocId) {
+        const allLocs = await repos.serviceLocations.findByCustomerId(customer.id, { client });
+        targetLocId = allLocs && allLocs[0] ? allLocs[0].id : null;
+      }
+      if (!targetLocId) {
+        throw new Error('Customer must have a service location before creating a booking.');
+      }
+      const loc = await repos.serviceLocations.findById(targetLocId, client);
+      if (!loc || loc.customer_id !== customer.id) {
+        throw new Error('Selected location does not belong to this customer.');
       }
 
       // Validate vehicle
@@ -246,15 +361,59 @@ async function createBooking(params = {}, actor = 'admin') {
         }
       }
 
+      const effectiveServiceId = serviceIdParam || (linkedSeeAccount ? linkedSeeAccount.service_id : null);
+      let svc = null;
+      if (effectiveServiceId) {
+        svc = await repos.seeCatalogue.findServiceById(effectiveServiceId, client);
+      }
+
+      // Resolve & validate staff eligibility inside transaction with FOR UPDATE lock
+      let resolvedStaffObj = null;
+      if (staffId) {
+        resolvedStaffObj = await seeStaffCapabilityService.resolveStaffRecord(staffId, client);
+        if (!resolvedStaffObj) {
+          const allStaff = await repos.staff.findAll({ client });
+          const targetLower = String(staffId).trim().toLowerCase();
+          resolvedStaffObj = (allStaff || []).find(s =>
+            (s.name && s.name.toLowerCase() === targetLower) ||
+            (s.staff_code && s.staff_code.toLowerCase() === targetLower)
+          ) || null;
+        }
+        if (!resolvedStaffObj) {
+          throw new Error(`Staff member '${staffId}' not found.`);
+        }
+        const reqEquip = Array.isArray(svc && svc.execution_config && svc.execution_config.required_equipment)
+          ? svc.execution_config.required_equipment
+          : [];
+        const elig = await seeStaffCapabilityService.evaluateStaffEligibility(resolvedStaffObj.id, {
+          serviceId: svc ? svc.id : effectiveServiceId,
+          serviceCode: svc ? svc.service_code : null,
+          serviceCategoryId: normCat,
+          city,
+          zone,
+          scheduledDate,
+          scheduledTime,
+          durationMinutes: (svc && svc.expected_duration_minutes) || 60,
+          allowConcurrent: Boolean(svc && svc.execution_config && svc.execution_config.allow_concurrent),
+          requiredEquipment: reqEquip
+        }, client);
+        if (!elig.eligible) {
+          throw new Error(elig.reasons.join('; '));
+        }
+      }
+
       const jobRecord = await repos.serviceJobs.createJob({
         customerId: customer.id,
         vehicleId: vehicleId || null,
         locationId: targetLocId,
         serviceCategoryId: normCat,
+        serviceId: effectiveServiceId,
         serviceType: serviceType || normCat,
-        packageDetails: packageDetails || (linkedPackage ? (linkedPackage.package_name || linkedPackage.packageName) : null),
-        packageCode: packageCode || (linkedPackage ? (linkedPackage.package_code || linkedPackage.packageCode) : null),
+        packageDetails: packageDetails || (linkedPackage ? (linkedPackage.package_name || linkedPackage.packageName) : (linkedSeeAccount ? (linkedSeeAccount.package_name || linkedSeeAccount.service_name) : null)),
+        packageCode: packageCode || (linkedPackage ? (linkedPackage.package_code || linkedPackage.packageCode) : (linkedSeeAccount ? (linkedSeeAccount.package_code || linkedSeeAccount.service_code) : null)),
         packageId: linkedPackage ? linkedPackage.id : null,
+        entitlementAccountId: linkedSeeAccount ? linkedSeeAccount.id : null,
+        purchaseSnapshotId: linkedSeeAccount ? linkedSeeAccount.purchase_snapshot_id : null,
         seaterType: seaterType || null,
         panelCount: isSolar ? (parseInt(panelCount, 10) || 10) : null,
         siteDetails: isSolar ? (siteDetails || { panelCount: parseInt(panelCount, 10) || 10, roofType: 'RCC' }) : null,
@@ -263,16 +422,31 @@ async function createBooking(params = {}, actor = 'admin') {
         sequenceOrder: sequenceOrder != null ? parseInt(sequenceOrder, 10) : null,
         status: initialStatus,
         specialInstructions: specialInstructions ? String(specialInstructions).trim() : null,
-        servicePrice: linkedPackage ? 0.00 : (parseFloat(servicePrice) || 0.00),
+        servicePrice: (linkedPackage || linkedSeeAccount) ? 0.00 : (parseFloat(servicePrice) || 0.00),
         paymentStatus: finalPaymentStatus,
-        bookingSource: bookingSource || 'admin',
+        bookingSource,
+        city,
+        zone,
         entitlementConsumed: false
       }, client);
 
+      if (linkedSeeAccount) {
+        await seeEntitlementService.mutateEntitlement({
+          accountId: linkedSeeAccount.id,
+          entryType: 'reserve',
+          quantity: 1,
+          referenceType: 'service_job',
+          referenceId: jobRecord.id,
+          idempotencyKey: `reserve:job:${jobRecord.id}`,
+          reason: `Reserved entitlement for job ${jobRecord.id}`,
+          actor: actor || 'admin'
+        }, client);
+      }
+
       // Staff assignment if provided
-      if (staffId) {
+      if (resolvedStaffObj) {
         await repos.staffAssignments.assignStaffToJob({
-          staffId,
+          staffId: resolvedStaffObj.id,
           jobId: jobRecord.id,
           assignedBy: actor || 'admin'
         }, client);

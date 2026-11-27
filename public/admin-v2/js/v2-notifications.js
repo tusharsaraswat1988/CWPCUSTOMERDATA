@@ -209,7 +209,9 @@
       const routes = Array.isArray(routesRes) ? routesRes : (Array.isArray(routesRes.routes) ? routesRes.routes : []);
       state.snapshots.routes = routes;
       const unassignedRes = results[7].status === 'fulfilled' ? results[7].value : null;
-      const unassignedList = unassignedRes && Array.isArray(unassignedRes.vehicles) ? unassignedRes.vehicles : [];
+      const unassignedList = unassignedRes && Array.isArray(unassignedRes.unassigned)
+        ? unassignedRes.unassigned
+        : (unassignedRes && Array.isArray(unassignedRes.vehicles) ? unassignedRes.vehicles : []);
       state.snapshots.unassignedVehicles = unassignedList;
       setNavBadge('v2BadgeSequence', String(routes.length));
     }

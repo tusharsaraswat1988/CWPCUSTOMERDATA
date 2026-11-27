@@ -5706,7 +5706,7 @@
                   <input type="search" id="v2CrSearchInput" class="cwp-v2-cr-search-input" placeholder="Search customer, phone, plate, model, staff, area..." aria-label="Search daily cleaning records" autocomplete="off">
                 </div>
 
-                <select id="v2CrStatusFilter" class="cwp-v2-cr-select" aria-label="Filter by cleaning status">
+                <select id="v2CrStatusFilter" class="cwp-v2-select cwp-v2-select-sm cwp-v2-cr-toolbar-select" aria-label="Filter by cleaning status">
                   <option value="all">All Statuses</option>
                   <option value="completed">Completed</option>
                   <option value="pending">Pending</option>
@@ -5717,15 +5717,15 @@
                   <option value="unable_to_complete">Unable to Complete</option>
                 </select>
 
-                <select id="v2CrStaffFilter" class="cwp-v2-cr-select" aria-label="Filter by staff member">
+                <select id="v2CrStaffFilter" class="cwp-v2-select cwp-v2-select-sm cwp-v2-cr-toolbar-select" aria-label="Filter by staff member">
                   <option value="all">All Staff</option>
                 </select>
 
-                <select id="v2CrAreaFilter" class="cwp-v2-cr-select" aria-label="Filter by area or location">
+                <select id="v2CrAreaFilter" class="cwp-v2-select cwp-v2-select-sm cwp-v2-cr-toolbar-select" aria-label="Filter by area or location">
                   <option value="all">All Areas</option>
                 </select>
 
-                <select id="v2CrExceptionFilter" class="cwp-v2-cr-select" aria-label="Filter by operational exceptions">
+                <select id="v2CrExceptionFilter" class="cwp-v2-select cwp-v2-select-sm cwp-v2-cr-toolbar-select" aria-label="Filter by operational exceptions">
                   <option value="all">All Records</option>
                   <option value="all_exceptions">Exceptions Only</option>
                   <option value="no_photo">Completed Without Photo</option>
@@ -5780,8 +5780,8 @@
                 <div id="v2CrPaginationBar" class="cwp-v2-cr-pagination">
                   <div id="v2CrPageInfo">Showing 0 of 0</div>
                   <div class="cwp-v2-cr-page-controls">
-                    <label for="v2CrPageSizeSelect" style="font-size:11.5px; color:#64748b;">Rows:</label>
-                    <select id="v2CrPageSizeSelect" class="cwp-v2-cr-select" style="height:28px; width:auto;" aria-label="Rows per page">
+                    <label for="v2CrPageSizeSelect" class="cwp-v2-cr-page-label">Rows:</label>
+                    <select id="v2CrPageSizeSelect" class="cwp-v2-select-compact" aria-label="Rows per page">
                       <option value="10">10</option>
                       <option value="25" selected>25</option>
                       <option value="50">50</option>
@@ -6129,16 +6129,16 @@
                   <span class="material-symbols-outlined" style="font-size:15px;">close</span>
                 </button>
               </div>
-              <select id="v2AjFilterStatus" class="cwp-v2-aj-filter-select" aria-label="Filter by assignment status">
+              <select id="v2AjFilterStatus" class="cwp-v2-select cwp-v2-select-sm cwp-v2-aj-toolbar-select" aria-label="Filter by assignment status">
                 <option value="all">Status: All</option>
                 <option value="assigned">Assigned Only</option>
                 <option value="unassigned">Unassigned Only</option>
                 <option value="exceptions">Exceptions Only</option>
               </select>
-              <select id="v2AjFilterStaff" class="cwp-v2-aj-filter-select" aria-label="Filter by assigned staff">
+              <select id="v2AjFilterStaff" class="cwp-v2-select cwp-v2-select-sm cwp-v2-aj-toolbar-select" aria-label="Filter by assigned staff">
                 <option value="all">Staff: All</option>
               </select>
-              <select id="v2AjFilterLocation" class="cwp-v2-aj-filter-select" aria-label="Filter by location or area">
+              <select id="v2AjFilterLocation" class="cwp-v2-select cwp-v2-select-sm cwp-v2-aj-toolbar-select" aria-label="Filter by location or area">
                 <option value="all">Area / Location: All</option>
               </select>
               <button type="button" id="v2AjResetFilters" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-sm" style="height:32px; color:#dc2626;">
@@ -6168,8 +6168,8 @@
               <div class="cwp-v2-aj-pagination" id="v2AjPagination">
                 <span id="v2AjPageInfo">Showing 0–0 of 0 assignments</span>
                 <div class="cwp-v2-aj-page-controls">
-                  <label for="v2AjPageSize" style="font-size:11.5px; color:#64748b; margin-right:4px;">Rows:</label>
-                  <select id="v2AjPageSize" class="cwp-v2-aj-filter-select" style="height:28px; padding:2px 6px;">
+                  <label for="v2AjPageSize" class="cwp-v2-aj-page-label">Rows:</label>
+                  <select id="v2AjPageSize" class="cwp-v2-select-compact" aria-label="Rows per page">
                     <option value="10">10</option>
                     <option value="25" selected>25</option>
                     <option value="50">50</option>
@@ -6450,21 +6450,21 @@
                   <input type="text" id="v2SeqSearchInput" class="cwp-v2-seq-search-input" placeholder="Search routes by code, name, area, or staff...">
                 </div>
                 <div class="cwp-v2-seq-filters">
-                  <select id="v2SeqStatusFilter" class="cwp-v2-select" style="width:auto;">
+                  <select id="v2SeqStatusFilter" class="cwp-v2-select cwp-v2-select-sm cwp-v2-seq-toolbar-select">
                     <option value="all">All Statuses</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                     <option value="archived">Archived</option>
                   </select>
-                  <select id="v2SeqStaffFilter" class="cwp-v2-select" style="width:auto;">
+                  <select id="v2SeqStaffFilter" class="cwp-v2-select cwp-v2-select-sm cwp-v2-seq-toolbar-select">
                     <option value="all">All Staff</option>
                     <option value="assigned">Assigned Staff</option>
                     <option value="unassigned">Unassigned Staff</option>
                   </select>
-                  <select id="v2SeqAreaFilter" class="cwp-v2-select" style="width:auto;">
+                  <select id="v2SeqAreaFilter" class="cwp-v2-select cwp-v2-select-sm cwp-v2-seq-toolbar-select">
                     <option value="all">All Operational Areas</option>
                   </select>
-                  <select id="v2SeqSortSelect" class="cwp-v2-select" style="width:auto;">
+                  <select id="v2SeqSortSelect" class="cwp-v2-select cwp-v2-select-sm cwp-v2-seq-toolbar-select">
                     <option value="code_asc">Code (A-Z)</option>
                     <option value="name_asc">Name (A-Z)</option>
                     <option value="stops_desc">Stops (High-Low)</option>
@@ -6485,7 +6485,7 @@
                   <input type="text" id="v2SeqUnassignedSearch" class="cwp-v2-seq-search-input" placeholder="Search unassigned by customer, phone, plate, or address...">
                 </div>
                 <div class="cwp-v2-seq-filters">
-                  <select id="v2SeqUnassignedAreaFilter" class="cwp-v2-select" style="width:auto;">
+                  <select id="v2SeqUnassignedAreaFilter" class="cwp-v2-select cwp-v2-select-sm cwp-v2-seq-toolbar-select">
                     <option value="all">All Areas</option>
                   </select>
                 </div>
@@ -6496,7 +6496,7 @@
                   <strong id="v2SeqBatchCount">0</strong> vehicle(s) selected
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  <select id="v2SeqBatchRouteSelect" class="cwp-v2-select" style="min-width:220px;">
+                  <select id="v2SeqBatchRouteSelect" class="cwp-v2-select cwp-v2-select-sm cwp-v2-seq-batch-select">
                     <option value="">Select target route...</option>
                   </select>
                   <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-seq-action="batch-assign">
@@ -6587,111 +6587,6 @@
               </div>
 
               <div id="v2SeqStopsList" style="display:flex;flex-direction:column;gap:8px;"></div>
-            </div>
-
-            <!-- Route Plan Modals -->
-            <div id="v2SeqRouteModal" class="cwp-v2-overlay" hidden>
-              <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2SeqRouteModalTitle">
-                <div class="cwp-v2-modal-header">
-                  <h2 id="v2SeqRouteModalTitle" class="cwp-v2-modal-title">Create Operational Route</h2>
-                  <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
-                </div>
-                <form id="v2SeqRouteForm">
-                  <div class="cwp-v2-modal-body" style="display:flex;flex-direction:column;gap:12px;">
-                    <div class="cwp-v2-field">
-                      <label for="v2SeqRouteCodeInput" class="cwp-v2-field-label">Route Code <span class="cwp-v2-req-star">*</span></label>
-                      <input type="text" id="v2SeqRouteCodeInput" class="cwp-v2-input" placeholder="e.g. ROUTE-01" required>
-                    </div>
-                    <div class="cwp-v2-field">
-                      <label for="v2SeqRouteNameInput" class="cwp-v2-field-label">Route Name <span class="cwp-v2-req-star">*</span></label>
-                      <input type="text" id="v2SeqRouteNameInput" class="cwp-v2-input" placeholder="e.g. North Morning Route" required>
-                    </div>
-                    <div class="cwp-v2-field">
-                      <label for="v2SeqRouteAreaInput" class="cwp-v2-field-label">Operational Area</label>
-                      <input type="text" id="v2SeqRouteAreaInput" class="cwp-v2-input" placeholder="e.g. Sigra, Lanka">
-                    </div>
-                    <div class="cwp-v2-field">
-                      <label for="v2SeqRouteStatusInput" class="cwp-v2-field-label">Status</label>
-                      <select id="v2SeqRouteStatusInput" class="cwp-v2-select">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="archived">Archived</option>
-                      </select>
-                    </div>
-                    <div class="cwp-v2-field">
-                      <label for="v2SeqRouteDescInput" class="cwp-v2-field-label">Description</label>
-                      <textarea id="v2SeqRouteDescInput" class="cwp-v2-textarea" rows="2" placeholder="Optional coverage notes"></textarea>
-                    </div>
-                  </div>
-                  <div class="cwp-v2-modal-footer">
-                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
-                    <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Save Route</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-
-            <div id="v2SeqAssignStaffModal" class="cwp-v2-overlay" hidden>
-              <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SeqAssignStaffTitle">
-                <div class="cwp-v2-modal-header">
-                  <h2 id="v2SeqAssignStaffTitle" class="cwp-v2-modal-title">Assign Staff</h2>
-                  <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
-                </div>
-                <form id="v2SeqAssignStaffForm">
-                  <div class="cwp-v2-modal-body">
-                    <div class="cwp-v2-field">
-                      <label for="v2SeqAssignStaffSelect" class="cwp-v2-field-label">Field Staff <span class="cwp-v2-req-star">*</span></label>
-                      <select id="v2SeqAssignStaffSelect" class="cwp-v2-select" required></select>
-                    </div>
-                  </div>
-                  <div class="cwp-v2-modal-footer">
-                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
-                    <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Assign Staff</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-
-            <div id="v2SeqAddStopModal" class="cwp-v2-overlay" hidden>
-              <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2SeqAddStopTitle">
-                <div class="cwp-v2-modal-header">
-                  <h2 id="v2SeqAddStopTitle" class="cwp-v2-modal-title">Add Stop to Route</h2>
-                  <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
-                </div>
-                <form id="v2SeqAddStopForm">
-                  <div class="cwp-v2-modal-body">
-                    <div class="cwp-v2-field">
-                      <label for="v2SeqAddStopSelect" class="cwp-v2-field-label">Unassigned DCC Vehicle <span class="cwp-v2-req-star">*</span></label>
-                      <select id="v2SeqAddStopSelect" class="cwp-v2-select" required></select>
-                    </div>
-                  </div>
-                  <div class="cwp-v2-modal-footer">
-                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
-                    <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Add Stop</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-
-            <div id="v2SeqTransferStopModal" class="cwp-v2-overlay" hidden>
-              <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SeqTransferStopTitle">
-                <div class="cwp-v2-modal-header">
-                  <h2 id="v2SeqTransferStopTitle" class="cwp-v2-modal-title">Transfer Stop</h2>
-                  <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close"><span class="material-symbols-outlined">close</span></button>
-                </div>
-                <form id="v2SeqTransferStopForm">
-                  <div class="cwp-v2-modal-body">
-                    <div class="cwp-v2-field">
-                      <label for="v2SeqTransferTargetRouteSelect" class="cwp-v2-field-label">Destination Route <span class="cwp-v2-req-star">*</span></label>
-                      <select id="v2SeqTransferTargetRouteSelect" class="cwp-v2-select" required></select>
-                    </div>
-                  </div>
-                  <div class="cwp-v2-modal-footer">
-                    <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
-                    <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Transfer Stop</button>
-                  </div>
-                </form>
-              </div>
             </div>
           </section>
 
@@ -9789,6 +9684,166 @@
         <div class="cwp-v2-modal-footer">
           <button type="button" class="cwp-v2-btn cwp-v2-btn-primary" data-overlay-close>Close</button>
         </div>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- M1 Route Plan & Security Overlays (M1-03 / M1-07)                   -->
+    <!-- =================================================================== -->
+    <div id="v2SeqRouteModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2SeqRouteModalTitle">
+        <div class="cwp-v2-modal-header">
+          <h2 id="v2SeqRouteModalTitle" class="cwp-v2-modal-title">Create Operational Route</h2>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <form id="v2SeqRouteForm">
+          <div class="cwp-v2-modal-body">
+            <div class="cwp-v2-field">
+              <label for="v2SeqRouteCodeInput" class="cwp-v2-field-label">Route Code <span class="cwp-v2-req-star">*</span></label>
+              <input type="text" id="v2SeqRouteCodeInput" class="cwp-v2-input" placeholder="e.g. ROUTE-01" required>
+            </div>
+            <div class="cwp-v2-field">
+              <label for="v2SeqRouteNameInput" class="cwp-v2-field-label">Route Name <span class="cwp-v2-req-star">*</span></label>
+              <input type="text" id="v2SeqRouteNameInput" class="cwp-v2-input" placeholder="e.g. North Morning Route" required>
+            </div>
+            <div class="cwp-v2-field">
+              <label for="v2SeqRouteAreaInput" class="cwp-v2-field-label">Operational Area</label>
+              <input type="text" id="v2SeqRouteAreaInput" class="cwp-v2-input" placeholder="e.g. Sigra, Lanka">
+            </div>
+            <div class="cwp-v2-field">
+              <label for="v2SeqRouteStatusInput" class="cwp-v2-field-label">Status</label>
+              <select id="v2SeqRouteStatusInput" class="cwp-v2-select">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+            <div class="cwp-v2-field">
+              <label for="v2SeqRouteDescInput" class="cwp-v2-field-label">Description</label>
+              <textarea id="v2SeqRouteDescInput" class="cwp-v2-textarea" rows="2" placeholder="Optional coverage notes"></textarea>
+            </div>
+          </div>
+          <div class="cwp-v2-modal-footer">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+            <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Save Route</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="v2SeqAssignStaffModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SeqAssignStaffTitle">
+        <div class="cwp-v2-modal-header">
+          <h2 id="v2SeqAssignStaffTitle" class="cwp-v2-modal-title">Assign Staff</h2>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <form id="v2SeqAssignStaffForm">
+          <div class="cwp-v2-modal-body">
+            <div class="cwp-v2-field">
+              <label for="v2SeqAssignStaffSelect" class="cwp-v2-field-label">Field Staff <span class="cwp-v2-req-star">*</span></label>
+              <select id="v2SeqAssignStaffSelect" class="cwp-v2-select" required></select>
+            </div>
+          </div>
+          <div class="cwp-v2-modal-footer">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+            <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Assign Staff</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="v2SeqAddStopModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2SeqAddStopTitle">
+        <div class="cwp-v2-modal-header">
+          <h2 id="v2SeqAddStopTitle" class="cwp-v2-modal-title">Add Stop to Route</h2>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <form id="v2SeqAddStopForm">
+          <div class="cwp-v2-modal-body">
+            <div class="cwp-v2-field">
+              <label for="v2SeqAddStopSelect" class="cwp-v2-field-label">Unassigned DCC Vehicle <span class="cwp-v2-req-star">*</span></label>
+              <select id="v2SeqAddStopSelect" class="cwp-v2-select" required></select>
+            </div>
+          </div>
+          <div class="cwp-v2-modal-footer">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+            <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Add Stop</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="v2SeqTransferStopModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SeqTransferStopTitle">
+        <div class="cwp-v2-modal-header">
+          <h2 id="v2SeqTransferStopTitle" class="cwp-v2-modal-title">Transfer Stop</h2>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <form id="v2SeqTransferStopForm">
+          <div class="cwp-v2-modal-body">
+            <div class="cwp-v2-field">
+              <label for="v2SeqTransferTargetRouteSelect" class="cwp-v2-field-label">Destination Route <span class="cwp-v2-req-star">*</span></label>
+              <select id="v2SeqTransferTargetRouteSelect" class="cwp-v2-select" required></select>
+            </div>
+          </div>
+          <div class="cwp-v2-modal-footer">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+            <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary">Transfer Stop</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="v2SeqDeleteConfirmModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SeqDeleteConfirmTitle">
+        <div class="cwp-v2-modal-header">
+          <h2 id="v2SeqDeleteConfirmTitle" class="cwp-v2-modal-title">Delete Route</h2>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <form id="v2SeqDeleteConfirmForm">
+          <div class="cwp-v2-modal-body">
+            <p id="v2SeqDeleteConfirmMessage" class="cwp-v2-modal-copy">Delete this route and remove its stop assignments?</p>
+          </div>
+          <div class="cwp-v2-modal-footer">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+            <button type="submit" class="cwp-v2-btn cwp-v2-btn-danger">Delete Route</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="v2SecRenameDeviceModal" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
+      <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SecRenameDeviceTitle">
+        <div class="cwp-v2-modal-header">
+          <h2 id="v2SecRenameDeviceTitle" class="cwp-v2-modal-title">Rename Trusted Device</h2>
+          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <form id="v2SecRenameDeviceForm">
+          <div class="cwp-v2-modal-body">
+            <input type="hidden" id="v2SecRenameDeviceRef">
+            <div id="v2SecRenameDeviceError" class="cwp-v2-form-alert is-error" role="alert" aria-live="assertive" hidden></div>
+            <div class="cwp-v2-field">
+              <label for="v2SecRenameDeviceInput" class="cwp-v2-field-label">Device Name <span class="cwp-v2-req-star">*</span></label>
+              <input type="text" id="v2SecRenameDeviceInput" class="cwp-v2-input" placeholder="e.g. Ops Lead Laptop" maxlength="80" required>
+            </div>
+          </div>
+          <div class="cwp-v2-modal-footer">
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
+            <button type="submit" id="v2SecRenameDeviceSubmitBtn" class="cwp-v2-btn cwp-v2-btn-primary">Save Name</button>
+          </div>
+        </form>
       </div>
     </div>
 
