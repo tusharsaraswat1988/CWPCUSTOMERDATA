@@ -85,8 +85,11 @@
 
   function isDccService(svc) {
     if (!svc) return false;
-    return String(svc.service_category_id || '').toLowerCase() === 'daily_car_cleaning' ||
-      String(svc.service_code || '').toUpperCase().startsWith('SVC-DCC');
+    const category = String(svc.service_category_id || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const code = String(svc.service_code || '').trim().toUpperCase();
+    const name = String(svc.name || '').trim().toLowerCase().replace(/\s*\(dcc\)$/, '');
+    const config = svc.execution_config && typeof svc.execution_config === 'object' ? svc.execution_config : {};
+    return ['daily_car_cleaning', 'daily_clean', 'dcc'].includes(category) || code === 'DCC_DAILY' || code.startsWith('SVC-DCC') || name === 'daily car cleaning' || config.dcc_isolated === true;
   }
 
   function isTestRecord(rec) {
@@ -169,7 +172,8 @@
     tbody.innerHTML = filtered.map(a => {
       const retired = a.status === 'retired';
       const compatNames = (Array.isArray(a.applicable_service_ids) ? a.applicable_service_ids : [])
-        .map(id => svcMap.get(String(id))).filter(Boolean);
+        .map(id => services.find(s => String(s.id) === String(id) && !isDccService(s)))
+        .filter(Boolean).map(s => svcMap.get(String(s.id))).filter(Boolean);
       return `
         <tr class="${retired ? 'is-disabled' : ''}">
           <td><span class="cwp-v2-cell-mono">${escapeHtml(a.addon_code)}</span></td>
@@ -214,6 +218,7 @@
     const el = document.getElementById('v2SeeProdAddonCompatChips');
     if (!el) return;
     const list = services.filter(s => {
+      if (isDccService(s)) return false;
       const id = String(s.id);
       if (selectedServiceIds.has(id)) return true;
       if (hideTestCompatServices && isTestRecord(s)) return false;
@@ -224,12 +229,11 @@
       return;
     }
     el.innerHTML = list.map(s => {
-      const dcc = isDccService(s);
       const isTest = isTestRecord(s);
       const id = String(s.id);
-      const active = !dcc && selectedServiceIds.has(id);
+      const active = selectedServiceIds.has(id);
       const label = isTest ? `${s.name} (${s.service_code})` : s.name;
-      return `<button type="button" class="cwp-v2-filter-chip ${active ? 'is-active' : ''}" data-addon-compat-svc="${escapeHtml(id)}" ${dcc ? 'disabled title="DCC Excluded — operates on isolated route"' : `title="${escapeHtml(s.service_code)}"`}>${escapeHtml(label)}${dcc ? ' (DCC Excluded)' : ''}</button>`;
+      return `<button type="button" class="cwp-v2-filter-chip ${active ? 'is-active' : ''}" data-addon-compat-svc="${escapeHtml(id)}" title="${escapeHtml(s.service_code)}">${escapeHtml(label)}</button>`;
     }).join('');
   }
 
@@ -366,7 +370,8 @@
     document.getElementById('v2SeeProdAddonAfterMin').value = pr.required ? Number(pr.after_min || 1) : 1;
 
     checklistItems = Array.isArray(detail?.checklist_requirements) ? detail.checklist_requirements.map(x => typeof x === 'string' ? x : x?.label || '').filter(Boolean) : [];
-    selectedServiceIds = new Set((Array.isArray(detail?.applicable_service_ids) ? detail.applicable_service_ids : []).map(String));
+    const availableServiceIds = new Set(services.filter(s => !isDccService(s)).map(s => String(s.id)));
+    selectedServiceIds = new Set((Array.isArray(detail?.applicable_service_ids) ? detail.applicable_service_ids : []).map(String).filter(id => availableServiceIds.has(id)));
 
     const mList = Array.isArray(detail?.media) ? detail.media : [];
     const sq = mList.find(m => m.media_slot === 'square_1_1');
@@ -425,7 +430,7 @@
         before_min: photoReq ? beforeMin : 0,
         after_min: photoReq ? afterMin : 0
       },
-      applicableServiceIds: Array.from(selectedServiceIds)
+      applicableServiceIds: Array.from(selectedServiceIds).filter(id => services.some(s => String(s.id) === id && !isDccService(s)))
     };
 
     const runner = async () => {

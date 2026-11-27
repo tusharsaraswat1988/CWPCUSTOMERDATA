@@ -28,7 +28,11 @@
 
   function visibleService(service) {
     const code = String(service.service_code || '').toUpperCase();
-    return service.status === 'active' && service.service_category_id !== 'daily_car_cleaning' && code !== 'DCC_DAILY' && !code.startsWith('SVC-DCC');
+    const category = String(service.service_category_id || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const name = String(service.name || '').trim().toLowerCase().replace(/\s*\(dcc\)$/, '');
+    const config = service.execution_config && typeof service.execution_config === 'object' ? service.execution_config : {};
+    return service.status === 'active' && !['daily_car_cleaning', 'daily_clean', 'dcc'].includes(category) &&
+      code !== 'DCC_DAILY' && !code.startsWith('SVC-DCC') && name !== 'daily car cleaning' && config.dcc_isolated !== true;
   }
 
   function render() {
@@ -76,8 +80,12 @@
         request('/api/see/frequencies')
       ]);
       state.packages = packageResponse.packages || [];
-      state.services = (serviceResponse.services || []).filter(visibleService);
-      state.addons = addonResponse.addons || [];
+      const allServices = serviceResponse.services || [];
+      state.services = allServices.filter(visibleService);
+      const dccServiceIds = new Set(allServices.filter(service => !visibleService(service)).map(service => String(service.id)));
+      state.addons = (addonResponse.addons || []).filter(addon =>
+        !(Array.isArray(addon.applicable_service_ids) ? addon.applicable_service_ids : []).some(id => dccServiceIds.has(String(id)))
+      );
       state.frequencies = frequencyResponse.frequencies || [];
       render();
     } catch (error) {
@@ -92,7 +100,7 @@
   function populateServices(selectedId = '', selectedService = null) {
     const select = $('v2SeePackageMainService');
     if (!select) return;
-    const existingService = selectedId && !state.services.some(service => String(service.id) === String(selectedId)) && selectedService
+    const existingService = selectedId && !state.services.some(service => String(service.id) === String(selectedId)) && selectedService && visibleService({ ...selectedService, status: 'active' })
       ? `<option value="${esc(selectedId)}">${esc(selectedService.name)} (${esc(selectedService.service_code)})</option>` : '';
     select.innerHTML = `<option value="">Select active service…</option>${existingService}` + state.services.map(service => `<option value="${esc(service.id)}">${esc(service.name)} (${esc(service.service_code)})</option>`).join('');
     if (selectedId) select.value = selectedId;
@@ -102,10 +110,10 @@
     const existing = state.editing?.benefits?.find(item => String(item.service_id) === String(selected));
     const existingAddon = state.editing?.addons?.find(item => String(item.addon_id) === String(selected));
     const existingFrequency = [...(state.editing?.benefits || []), ...(state.editing?.addons || [])].find(item => String(item.frequency_id) === String(selected));
-    const fallback = existing ? { id: selected, name: existing.service_name, service_code: existing.service_code }
+    const fallback = existing ? { id: selected, name: existing.service_name, service_code: existing.service_code, service_category_id: existing.service_category_id }
       : existingAddon ? { id: selected, name: existingAddon.addon_name, addon_code: existingAddon.addon_code }
         : existingFrequency ? { id: selected, name: existingFrequency.frequency_code, code: existingFrequency.frequency_code, frequency_type: existingFrequency.frequency_type } : null;
-    const options = selected && !items.some(item => String(item.id) === String(selected)) && fallback ? [fallback, ...items] : items;
+    const options = selected && !items.some(item => String(item.id) === String(selected)) && fallback && (!fallback.service_code || visibleService({ ...fallback, status: 'active' })) ? [fallback, ...items] : items;
     return `<option value="">${esc(emptyLabel)}</option>` + options.map(item => `<option value="${esc(item.id)}" ${String(item.id) === String(selected || '') ? 'selected' : ''}>${esc(label(item))}</option>`).join('');
   }
 

@@ -15,6 +15,36 @@ const VALID_STATUSES = ['draft', 'active', 'retired'];
 const VALID_PRICING_MODELS = ['fixed', 'vehicle_segment', 'per_unit', 'per_panel', 'pricing_bands', 'minimum_charge', 'custom'];
 const VALID_EXECUTION_MODES = ['per_main_service', 'during_main_service', 'separate_job', 'customer_redemption', 'scheduled_independently'];
 
+function isDccService(service) {
+  if (!service) return false;
+  const category = String(service.serviceCategoryId ?? service.service_category_id ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const code = String(service.serviceCode ?? service.service_code ?? '').trim().toUpperCase();
+  const name = String(service.name ?? service.service_name ?? '').trim().toLowerCase().replace(/\s*\(dcc\)$/, '');
+  let config = service.executionConfig ?? service.execution_config ?? {};
+  if (typeof config === 'string') {
+    try { config = JSON.parse(config); } catch (e) { config = {}; }
+  }
+  return ['daily_car_cleaning', 'daily_clean', 'dcc'].includes(category) ||
+    code === 'DCC_DAILY' || code.startsWith('SVC-DCC') || name === 'daily car cleaning' ||
+    (config && typeof config === 'object' && config.dcc_isolated === true);
+}
+
+function assertGenericSeeService(data, existing = null) {
+  if (isDccService(existing) || isDccService({ ...(existing || {}), ...(data || {}) })) {
+    throw new Error('Daily Car Cleaning is managed through the dedicated DCC workflows and cannot be configured as a generic SEE service.');
+  }
+}
+
+async function assertGenericSeeAddon(addon) {
+  const serviceIds = Array.isArray(addon?.applicable_service_ids) ? addon.applicable_service_ids : [];
+  for (const serviceId of serviceIds) {
+    const service = await repos.seeCatalogue.findServiceById(serviceId);
+    if (!service || isDccService(service)) {
+      throw new Error('Generic SEE add-ons cannot reference Daily Car Cleaning services.');
+    }
+  }
+}
+
 const STATUS_TRANSITIONS = {
   draft: ['draft', 'active', 'retired'],
   active: ['active', 'retired'],
@@ -140,6 +170,7 @@ async function getServiceDetail(idOrCode) {
 }
 
 async function createService(data, actor = 'admin') {
+  assertGenericSeeService(data);
   if (!data.serviceCode || !String(data.serviceCode).trim()) {
     throw new Error('serviceCode is required.');
   }
@@ -193,6 +224,7 @@ async function createService(data, actor = 'admin') {
 async function updateService(id, patch, actor = 'admin', reason = 'Updated service') {
   const existing = await repos.seeCatalogue.findServiceById(id);
   if (!existing) throw new Error(`Service '${id}' not found.`);
+  assertGenericSeeService(patch, existing);
 
   if (patch.serviceModel && !VALID_SERVICE_MODELS.includes(patch.serviceModel)) {
     throw new Error(`Invalid serviceModel '${patch.serviceModel}'.`);
@@ -275,7 +307,7 @@ async function createPackage(data, actor = 'admin') {
 
   const mainService = await repos.seeCatalogue.findServiceById(data.mainServiceId);
   if (!mainService || mainService.status !== 'active') throw new Error('Primary service must be an active canonical service.');
-  if (mainService.service_category_id === 'daily_car_cleaning' || String(mainService.service_code || '').toUpperCase() === 'DCC_DAILY') {
+  if (isDccService(mainService)) {
     throw new Error('Daily Car Cleaning is isolated from generic SEE packages.');
   }
   const benefits = Array.isArray(data.benefits) ? data.benefits : [{ serviceId: data.mainServiceId, benefitType: 'primary', quantity: data.defaultQuantity || 1, frequencyId: data.frequencyId || null }];
@@ -284,12 +316,13 @@ async function createPackage(data, actor = 'admin') {
     if (!benefit || !benefit.serviceId || !Number.isInteger(Number(benefit.quantity)) || Number(benefit.quantity) < 1) throw new Error(`Package benefit ${index + 1} requires a canonical serviceId and positive integer quantity.`);
     const service = await repos.seeCatalogue.findServiceById(benefit.serviceId);
     if (!service || service.status !== 'active') throw new Error(`Package benefit service '${benefit.serviceId}' is not active.`);
-    if (service.service_category_id === 'daily_car_cleaning' || String(service.service_code || '').toUpperCase() === 'DCC_DAILY') throw new Error('Daily Car Cleaning cannot be included in a generic SEE package.');
+    if (isDccService(service)) throw new Error('Daily Car Cleaning cannot be included in a generic SEE package.');
   }
   for (const [index, item] of (Array.isArray(data.addons) ? data.addons : []).entries()) {
     if (!item || !item.addonId || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) throw new Error(`Package add-on ${index + 1} requires a canonical addonId and positive integer quantity.`);
     const addon = await repos.seeCatalogue.findAddonById(item.addonId);
     if (!addon || addon.status !== 'active') throw new Error(`Package add-on '${item.addonId}' is not active.`);
+    await assertGenericSeeAddon(addon);
     const compatible = Array.isArray(addon.applicable_service_ids) ? addon.applicable_service_ids.map(String) : [];
     if (compatible.length && !benefits.some(benefit => compatible.includes(String(benefit.serviceId)))) throw new Error(`Package add-on '${addon.name}' is not compatible with any included service.`);
   }
@@ -348,23 +381,22 @@ async function updatePackage(id, patch, actor = 'admin') {
   if (patch.status && !(STATUS_TRANSITIONS[existing.status] || []).includes(patch.status)) throw new Error(`Cannot transition package from '${existing.status}' to '${patch.status}'.`);
   if (patch.pricingModel && !VALID_PRICING_MODELS.includes(patch.pricingModel)) throw new Error(`Invalid pricingModel '${patch.pricingModel}'.`);
   const mainServiceId = patch.mainServiceId || existing.main_service_id;
-  if (patch.mainServiceId) {
-    const mainService = await repos.seeCatalogue.findServiceById(mainServiceId);
-    if (!mainService || mainService.status !== 'active') throw new Error('Primary service must be an active canonical service.');
-    if (mainService.service_category_id === 'daily_car_cleaning' || String(mainService.service_code || '').toUpperCase() === 'DCC_DAILY') throw new Error('Daily Car Cleaning is isolated from generic SEE packages.');
-  }
+  const mainService = await repos.seeCatalogue.findServiceById(mainServiceId);
+  if (!mainService || mainService.status !== 'active') throw new Error('Primary service must be an active canonical service.');
+  if (isDccService(mainService)) throw new Error('Daily Car Cleaning is isolated from generic SEE packages.');
   const nextBenefits = Array.isArray(patch.benefits) ? patch.benefits : existing.benefits;
   const nextAddons = Array.isArray(patch.addons) ? patch.addons : existing.addons;
-  for (const [index, benefit] of (Array.isArray(patch.benefits) ? nextBenefits : []).entries()) {
+  for (const [index, benefit] of (nextBenefits || []).entries()) {
     if (!benefit || !(benefit.serviceId || benefit.service_id) || !Number.isInteger(Number(benefit.quantity)) || Number(benefit.quantity) < 1) throw new Error(`Package benefit ${index + 1} requires a canonical serviceId and positive integer quantity.`);
     const service = await repos.seeCatalogue.findServiceById(benefit.serviceId || benefit.service_id);
     if (!service || service.status !== 'active') throw new Error(`Package benefit service '${benefit.serviceId || benefit.service_id}' is not active.`);
-    if (service.service_category_id === 'daily_car_cleaning' || String(service.service_code || '').toUpperCase() === 'DCC_DAILY') throw new Error('Daily Car Cleaning cannot be included in a generic SEE package.');
+    if (isDccService(service)) throw new Error('Daily Car Cleaning cannot be included in a generic SEE package.');
   }
   for (const [index, item] of (Array.isArray(patch.addons) ? nextAddons : []).entries()) {
     if (!item || !(item.addonId || item.addon_id) || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) throw new Error(`Package add-on ${index + 1} requires a canonical addonId and positive integer quantity.`);
     const addon = await repos.seeCatalogue.findAddonById(item.addonId || item.addon_id);
     if (!addon || addon.status !== 'active') throw new Error(`Package add-on '${item.addonId || item.addon_id}' is not active.`);
+    await assertGenericSeeAddon(addon);
     const compatible = Array.isArray(addon.applicable_service_ids) ? addon.applicable_service_ids.map(String) : [];
     if (compatible.length && !(nextBenefits || []).some(benefit => compatible.includes(String(benefit.serviceId || benefit.service_id)))) throw new Error(`Package add-on '${addon.name}' is not compatible with any included service.`);
   }
@@ -502,6 +534,12 @@ async function createAddon(data, actor = 'admin') {
   if (!data.name || !String(data.name).trim()) {
     throw new Error('Add-on name is required.');
   }
+  for (const serviceId of (Array.isArray(data.applicableServiceIds) ? data.applicableServiceIds : [])) {
+    const service = await repos.seeCatalogue.findServiceById(serviceId);
+    if (!service || isDccService(service)) {
+      throw new Error('Generic SEE add-ons cannot reference Daily Car Cleaning services.');
+    }
+  }
   const executionMode = data.executionMode || 'during_main_service';
   if (!VALID_EXECUTION_MODES.includes(executionMode)) {
     throw new Error(`Invalid executionMode '${executionMode}'.`);
@@ -536,6 +574,17 @@ async function updateAddon(id, patch, actor = 'admin') {
   if (!existing) throw new Error(`Add-on '${id}' not found.`);
   if (patch.executionMode && !VALID_EXECUTION_MODES.includes(patch.executionMode)) {
     throw new Error(`Invalid executionMode '${patch.executionMode}'.`);
+  }
+  const effectiveServiceIds = Array.isArray(patch.applicableServiceIds)
+    ? patch.applicableServiceIds
+    : (Array.isArray(existing.applicable_service_ids) ? existing.applicable_service_ids : []);
+  if (effectiveServiceIds.length) {
+    for (const serviceId of effectiveServiceIds) {
+      const service = await repos.seeCatalogue.findServiceById(serviceId);
+      if (!service || isDccService(service)) {
+        throw new Error('Generic SEE add-ons cannot reference Daily Car Cleaning services.');
+      }
+    }
   }
   return repos.seeCatalogue.updateAddon(id, patch);
 }
@@ -610,6 +659,7 @@ module.exports = {
   VALID_STATUSES,
   VALID_PRICING_MODELS,
   VALID_EXECUTION_MODES,
+  isDccService,
   slugifyChecklistKey,
   normalizeChecklistRequirements,
   listServices,

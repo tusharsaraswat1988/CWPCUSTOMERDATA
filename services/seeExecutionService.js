@@ -20,7 +20,7 @@ const repos = require('../db/repositories/index');
 const seeStaffCapabilityService = require('./seeStaffCapabilityService');
 const seeEntitlementService = require('./seeEntitlementService');
 const packageService = require('./packageService');
-const { normalizeChecklistRequirements } = require('./seeCatalogueService');
+const { normalizeChecklistRequirements, isDccService } = require('./seeCatalogueService');
 
 const TERMINAL_JOB_STATUSES = ['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'];
 
@@ -81,10 +81,24 @@ async function assertSeeManagedJob(job, client = null) {
   if (!job) {
     throw new Error('Job not found.');
   }
+  await assertNotDccGenericJob(job, client);
   if (!(await detectSeeManagedJob(job, client))) {
     throw new Error(`Job '${job.id}' is not a canonical SEE-managed job and cannot be processed via SEE.`);
   }
   return true;
+}
+
+async function assertNotDccGenericJob(job, client = null) {
+  if (isDccService(job)) {
+    throw new Error('Daily Car Cleaning jobs must use the dedicated DCC workflow.');
+  }
+  const serviceId = job.service_id || job.serviceId;
+  if (serviceId) {
+    const service = await repos.seeCatalogue.findServiceById(serviceId, client);
+    if (isDccService(service)) {
+      throw new Error('Daily Car Cleaning jobs must use the dedicated DCC workflow.');
+    }
+  }
 }
 
 function normalizeMutationUuid(rawId) {
@@ -296,6 +310,9 @@ async function createCanonicalJob({
     svc = await repos.seeCatalogue.findServiceByCode(serviceIdOrCode);
   }
   if (!svc) throw new Error(`Service '${serviceIdOrCode}' not found in catalogue.`);
+  if (isDccService(svc)) {
+    throw new Error('Daily Car Cleaning jobs must use the dedicated DCC workflow.');
+  }
   if (svc.status !== 'active') throw new Error(`Service '${svc.name}' is not active (status: '${svc.status}').`);
 
   const requiredEquipment = Array.isArray(svc.execution_config && svc.execution_config.required_equipment)
@@ -739,6 +756,7 @@ async function completeExecution(jobId, {
     // Row-level lock on service_jobs to serialize concurrent completion attempts
     const lockedJob = await repos.serviceJobs.findByIdForUpdate(jobId, client);
     if (!lockedJob) throw new Error(`Job '${jobId}' not found.`);
+    await assertNotDccGenericJob(lockedJob, client);
 
     const jobAddons = repos.seeOperations && typeof repos.seeOperations.findJobAddons === 'function'
       ? await repos.seeOperations.findJobAddons(jobId, client)
@@ -1137,6 +1155,7 @@ async function approveSolarDiscrepancy(jobId, { approved, finalServicedQuantity 
 module.exports = {
   VALID_JOB_STATUSES,
   isSeeManagedJob,
+  assertNotDccGenericJob,
   detectSeeManagedJob,
   releaseJobEntitlementReservations,
   normalizeChecklistRequirements,

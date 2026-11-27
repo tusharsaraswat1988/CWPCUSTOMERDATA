@@ -141,7 +141,7 @@ async function run() {
       const okRes = await callLegacyApi({
         action: 'completeSpecialJob',
         jobId: job.id,
-        checklistResults: ['Pre-rinse', 'Foam'],
+        checklistResults: [{ id: 'pre_rinse', completed: true }, { id: 'foam', completed: true }],
         afterPhotoUrls: ['https://cdn.example.com/after.jpg']
       }, staffToken);
       assert.strictEqual(okRes.statusCode, 200);
@@ -155,7 +155,7 @@ async function run() {
       const dupRes = await callLegacyApi({
         action: 'completeSpecialJob',
         jobId: job.id,
-        checklistResults: ['Pre-rinse', 'Foam'],
+        checklistResults: [{ id: 'pre_rinse', completed: true }, { id: 'foam', completed: true }],
         afterPhotoUrls: ['https://cdn.example.com/after.jpg']
       }, staffToken);
       assert.strictEqual(dupRes.statusCode, 400);

@@ -127,8 +127,10 @@
     const catId = String(svc.service_category_id || '').toLowerCase();
     const code = String(svc.service_code || '').toUpperCase();
     const cfg = svc.execution_config && typeof svc.execution_config === 'object' ? svc.execution_config : {};
-    return catId === 'daily_car_cleaning' || code.startsWith('SVC-DCC') || cfg.dcc_isolated === true;
+    return ['daily_car_cleaning', 'daily_clean', 'dcc'].includes(catId) || code === 'DCC_DAILY' || code.startsWith('SVC-DCC') || cfg.dcc_isolated === true;
   }
+
+  function isGenericSeeService(svc) { return !!svc && !isDccService(svc); }
 
   function isTestRecord(svc) {
     const code = String(svc?.service_code || '').toUpperCase();
@@ -176,7 +178,7 @@
   function updateSidebarBadge() {
     const badgeEl = document.getElementById('v2BadgeSeeServices');
     if (badgeEl) {
-      const activeCount = services.filter(s => s.status === 'active' && !isTestRecord(s)).length;
+      const activeCount = services.filter(s => isGenericSeeService(s) && s.status === 'active' && !isTestRecord(s)).length;
       badgeEl.textContent = services.length ? String(activeCount) : '—';
     }
   }
@@ -186,10 +188,10 @@
     if (!sel) return;
     const catMap = new Map();
     categories.forEach(c => {
-      if (c && c.id) catMap.set(c.id, c.name || c.display_name || c.id);
+      if (c && c.id && !['daily_car_cleaning', 'daily_clean', 'dcc'].includes(String(c.id).toLowerCase())) catMap.set(c.id, c.name || c.display_name || c.id);
     });
     services.forEach(s => {
-      if (s.service_category_id && !catMap.has(s.service_category_id)) {
+      if (s.service_category_id && !isDccService(s) && !catMap.has(s.service_category_id)) {
         catMap.set(s.service_category_id, s.category_name || s.service_category_id);
       }
     });
@@ -198,7 +200,6 @@
       catMap.set('solar_cleaning', 'Solar Panel Cleaning');
       catMap.set('interior_detailing', 'Interior Detailing');
       catMap.set('exterior_detailing', 'Exterior Detailing');
-      catMap.set('daily_car_cleaning', 'Daily Car Cleaning');
     }
     const current = sel.value;
     sel.innerHTML = Array.from(catMap.entries())
@@ -207,8 +208,7 @@
     if (current && catMap.has(current)) {
       sel.value = current;
     } else {
-      const firstNonDcc = Array.from(catMap.keys()).find(k => k !== 'daily_car_cleaning');
-      if (firstNonDcc) sel.value = firstNonDcc;
+      if (catMap.size) sel.value = catMap.keys().next().value;
     }
   }
 
@@ -250,6 +250,7 @@
     const statusF = document.getElementById('v2SeeProdServiceStatusFilter')?.value || 'ALL';
 
     const filtered = services.filter(s => {
+      if (!isGenericSeeService(s)) return false;
       if (hideTestRecords && isTestRecord(s)) return false;
       if (q) {
         const hay = `${s.service_code || ''} ${s.name || ''} ${s.category_name || ''}`.toLowerCase();
@@ -665,23 +666,9 @@
     const modelSel = document.getElementById('v2SeeProdSvcModel');
     const saveBtn = document.getElementById('v2SeeProdSvcSaveBtn');
 
-    const isDcc = (catSel && catSel.value === 'daily_car_cleaning') ||
-      (codeInp && codeInp.value.trim().toUpperCase().startsWith('SVC-DCC'));
-
-    if (notice) notice.style.display = isDcc ? 'block' : 'none';
-
-    if (isDcc && !editingService) {
-      if (saveBtn) saveBtn.disabled = true;
-    } else if (isDcc && editingService) {
-      if (modelSel) {
-        modelSel.value = 'recurring';
-        modelSel.disabled = true;
-      }
-      if (saveBtn) saveBtn.disabled = false;
-    } else {
-      if (modelSel) modelSel.disabled = false;
-      if (saveBtn) saveBtn.disabled = false;
-    }
+    if (notice) notice.style.display = 'none';
+    if (modelSel) modelSel.disabled = false;
+    if (saveBtn) saveBtn.disabled = false;
   }
 
   async function openServiceModal(svc) {
@@ -843,9 +830,7 @@
     if (!code || !name || !serviceCategoryId) {
       return showErr('Service Code, Service Name, and Category are required.');
     }
-    if (!editingService && (serviceCategoryId === 'daily_car_cleaning' || code.startsWith('SVC-DCC'))) {
-      return showErr('DCC is isolated and cannot be created through generic SEE service creation.');
-    }
+    if (serviceCategoryId === 'daily_car_cleaning' || code === 'DCC_DAILY' || code.startsWith('SVC-DCC')) return showErr('Select a valid SEE service category and code.');
     if (!Number.isInteger(durationRaw) || durationRaw < 1 || durationRaw > 1440) {
       return showErr('Expected Duration must be a whole number between 1 and 1440 minutes.');
     }
@@ -864,9 +849,6 @@
       executionConfig.requires_quantity_verification = !!modelConfigState.requires_quantity_verification;
     } else if (serviceModel === 'recurring') {
       executionConfig.default_cadence = modelConfigState.default_cadence || 'weekly';
-    }
-    if (editingService && isDccService(editingService)) {
-      executionConfig.dcc_isolated = true;
     }
 
     const runner = async () => {

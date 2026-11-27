@@ -202,11 +202,11 @@ async function run() {
 
       // Concurrent completion attempts on job1 -> exactly 1 succeeds, 0 double consumption
       const results = await Promise.allSettled([
-        seeExecutionService.completeExecution(job1.id, { staffId: staffA.id, checklistResults: ['Wash'], actor: staffA.staff_code }),
-        seeExecutionService.completeExecution(job1.id, { staffId: staffA.id, checklistResults: ['Wash'], actor: staffA.staff_code })
+        seeExecutionService.completeExecution(job1.id, { staffId: staffA.id, checklistResults: [{ id: 'wash', completed: true }], actor: staffA.staff_code }),
+        seeExecutionService.completeExecution(job1.id, { staffId: staffA.id, checklistResults: [{ id: 'wash', completed: true }], actor: staffA.staff_code })
       ]);
       const fulfilled = results.filter(r => r.status === 'fulfilled');
-      assert.strictEqual(fulfilled.length, 1);
+      assert.strictEqual(fulfilled.length, 1, `Expected one completion winner; failures: ${results.filter(r => r.status === 'rejected').map(r => r.reason && r.reason.message).join(' | ')}`);
       const acctAfter = await repos.seeEntitlement.findAccountById(acct.id);
       assert.strictEqual(acctAfter.consumed_qty, 1);
       assert.strictEqual(acctAfter.remaining_qty, 0);

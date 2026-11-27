@@ -76,6 +76,12 @@ async function createPurchase({
   if (pkg.status !== 'active') {
     throw new Error(`Cannot purchase package '${pkg.name}' in status '${pkg.status}'.`);
   }
+  for (const benefit of pkg.benefits || []) {
+    const service = benefit.service_id ? await repos.seeCatalogue.findServiceById(benefit.service_id) : null;
+    if (!service || seeCatalogueService.isDccService(service) || seeCatalogueService.isDccService(benefit)) {
+      throw new Error('Generic SEE purchases cannot include Daily Car Cleaning entitlements or unresolved services.');
+    }
+  }
 
   const pricing = seeCatalogueService.calculatePackagePrice(pkg, {
     city,
