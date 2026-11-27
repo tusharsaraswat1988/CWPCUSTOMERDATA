@@ -956,11 +956,6 @@
     setFormAlert('v2LeadFormAlert', '');
     state.isSubmitting = true;
     const submitBtn = document.getElementById('v2LeadFormSubmitBtn');
-    const origText = submitBtn ? submitBtn.textContent : '';
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = editId ? 'Updating...' : 'Saving...';
-    }
 
     const leadData = {
       id: editId || undefined,
@@ -989,27 +984,25 @@
     };
 
     try {
-      const res = editId
-        ? await window.CWP_ADMIN_V2.api.request('updateLead', { leadId: editId, leadData })
-        : await window.CWP_ADMIN_V2.api.request('saveLead', { customerData: leadData });
+      await window.CWP_ADMIN_V2.api.withLoadingButton(submitBtn, async () => {
+        const res = editId
+          ? await window.CWP_ADMIN_V2.api.request('updateLead', { leadId: editId, leadData })
+          : await window.CWP_ADMIN_V2.api.request('saveLead', { customerData: leadData });
 
-      if (res && res.error) {
-        throw new Error(res.error);
-      }
+        if (res && res.error) {
+          throw new Error(res.error);
+        }
 
-      showToast(editId ? 'Lead updated successfully.' : 'Lead added to pipeline.', 'success');
-      if (window.CWP_ADMIN_V2.overlay) {
-        window.CWP_ADMIN_V2.overlay.close('v2ModalLeadForm');
-      }
-      await loadData({ forceRefresh: true, silent: true });
+        showToast(editId ? 'Lead updated successfully.' : 'Lead added to pipeline.', 'success');
+        if (window.CWP_ADMIN_V2.overlay) {
+          window.CWP_ADMIN_V2.overlay.close('v2ModalLeadForm');
+        }
+        await loadData({ forceRefresh: true, silent: true });
+      }, editId ? 'Updating...' : 'Saving...');
     } catch (err) {
       setFormAlert('v2LeadFormAlert', err && err.message ? err.message : 'Unable to save lead.');
     } finally {
       state.isSubmitting = false;
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = origText;
-      }
     }
   }
 
@@ -1111,51 +1104,44 @@
     setFormAlert('v2ConvertLeadAlert', '');
     state.isSubmitting = true;
     const btn = document.getElementById('v2ConvertLeadSubmitBtn');
-    const origText = btn ? btn.textContent : '';
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Converting...';
-    }
 
     try {
-      const res = await window.CWP_ADMIN_V2.api.request('convertLead', {
-        leadId,
-        convertData: {
-          serviceCategory,
-          packageType,
-          panelCount,
-          panel_count: panelCount,
-          seaterType,
-          seater_type: seaterType,
-          staffId,
-          staffName,
-          notes
+      await window.CWP_ADMIN_V2.api.withLoadingButton(btn, async () => {
+        const res = await window.CWP_ADMIN_V2.api.request('convertLead', {
+          leadId,
+          convertData: {
+            serviceCategory,
+            packageType,
+            panelCount,
+            panel_count: panelCount,
+            seaterType,
+            seater_type: seaterType,
+            staffId,
+            staffName,
+            notes
+          }
+        });
+
+        if (res && res.error) {
+          throw new Error(res.error);
         }
-      });
 
-      if (res && res.error) {
-        throw new Error(res.error);
-      }
-
-      showToast('Lead converted to active customer.', 'success');
-      if (window.CWP_ADMIN_V2.overlay) {
-        window.CWP_ADMIN_V2.overlay.close('v2ModalConvertLead');
-      }
-      if (state.selectedLeadId === leadId) {
-        closeDetailPanel();
-      }
-      await loadData({ forceRefresh: true, silent: true });
-      if (window.CWP_ADMIN_V2.customers && typeof window.CWP_ADMIN_V2.customers.loadData === 'function') {
-        window.CWP_ADMIN_V2.customers.loadData();
-      }
+        showToast('Lead converted to active customer.', 'success');
+        if (window.CWP_ADMIN_V2.overlay) {
+          window.CWP_ADMIN_V2.overlay.close('v2ModalConvertLead');
+        }
+        if (state.selectedLeadId === leadId) {
+          closeDetailPanel();
+        }
+        await loadData({ forceRefresh: true, silent: true });
+        if (window.CWP_ADMIN_V2.customers && typeof window.CWP_ADMIN_V2.customers.loadData === 'function') {
+          window.CWP_ADMIN_V2.customers.loadData();
+        }
+      }, 'Converting...');
     } catch (err) {
       setFormAlert('v2ConvertLeadAlert', err && err.message ? err.message : 'Failed to convert lead.');
     } finally {
       state.isSubmitting = false;
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = origText;
-      }
     }
   }
 
@@ -1195,30 +1181,23 @@
     setFormAlert('v2LeadNoteAlert', '');
     state.isSubmitting = true;
     const btn = document.getElementById('v2LeadNoteSubmitBtn');
-    const origText = btn ? btn.textContent : '';
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Saving...';
-    }
 
     try {
-      const res = await window.CWP_ADMIN_V2.api.request('addLeadNote', { leadId, note: noteText });
-      if (res && res.error) {
-        throw new Error(res.error);
-      }
-      showToast('Follow-up note saved.', 'success');
-      if (window.CWP_ADMIN_V2.overlay) {
-        window.CWP_ADMIN_V2.overlay.close('v2ModalLeadNote');
-      }
-      await loadData({ forceRefresh: true, silent: true });
+      await window.CWP_ADMIN_V2.api.withLoadingButton(btn, async () => {
+        const res = await window.CWP_ADMIN_V2.api.request('addLeadNote', { leadId, note: noteText });
+        if (res && res.error) {
+          throw new Error(res.error);
+        }
+        showToast('Follow-up note saved.', 'success');
+        if (window.CWP_ADMIN_V2.overlay) {
+          window.CWP_ADMIN_V2.overlay.close('v2ModalLeadNote');
+        }
+        await loadData({ forceRefresh: true, silent: true });
+      }, 'Saving note...');
     } catch (err) {
       setFormAlert('v2LeadNoteAlert', err && err.message ? err.message : 'Unable to save note.');
     } finally {
       state.isSubmitting = false;
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = origText;
-      }
     }
   }
 
@@ -1244,31 +1223,31 @@
     if (!state.deleteTargetId || state.isSubmitting) return;
     state.isSubmitting = true;
     const btn = document.getElementById('v2DeleteLeadConfirmBtn');
-    if (btn) btn.disabled = true;
-
     const targetId = state.deleteTargetId;
+
     try {
-      const res = await window.CWP_ADMIN_V2.api.request('deleteLead', {
-        leadId: targetId,
-        reason: 'Dismissed by admin'
-      });
-      if (res && res.error) {
-        throw new Error(res.error);
-      }
-      showToast('Lead removed from pipeline.', 'success');
-      if (window.CWP_ADMIN_V2.overlay) {
-        window.CWP_ADMIN_V2.overlay.close('v2ModalDeleteLead');
-      }
-      if (state.selectedLeadId === targetId) {
-        closeDetailPanel();
-      }
-      state.deleteTargetId = null;
-      await loadData({ forceRefresh: true, silent: true });
+      await window.CWP_ADMIN_V2.api.withLoadingButton(btn, async () => {
+        const res = await window.CWP_ADMIN_V2.api.request('deleteLead', {
+          leadId: targetId,
+          reason: 'Dismissed by admin'
+        });
+        if (res && res.error) {
+          throw new Error(res.error);
+        }
+        showToast('Lead removed from pipeline.', 'success');
+        if (window.CWP_ADMIN_V2.overlay) {
+          window.CWP_ADMIN_V2.overlay.close('v2ModalDeleteLead');
+        }
+        if (state.selectedLeadId === targetId) {
+          closeDetailPanel();
+        }
+        state.deleteTargetId = null;
+        await loadData({ forceRefresh: true, silent: true });
+      }, 'Deleting...');
     } catch (err) {
       showToast(err && err.message ? err.message : 'Failed to delete lead.', 'error');
     } finally {
       state.isSubmitting = false;
-      if (btn) btn.disabled = false;
     }
   }
 

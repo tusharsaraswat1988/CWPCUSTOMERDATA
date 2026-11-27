@@ -114,19 +114,73 @@
     }
   }
 
-  async function withLoadingButton(btn, asyncFn) {
+  async function withLoadingButton(btn, asyncFn, options = {}) {
     if (typeof asyncFn !== 'function') return undefined;
     if (!btn) return asyncFn();
 
     const wasDisabled = !!btn.disabled;
+    const originalHtml = btn.innerHTML;
+    const originalMinWidth = btn.style.minWidth;
+    const originalWidth = btn.style.width;
+
+    // Zero Layout Jump: Lock exact rendered width during loading
+    try {
+      const rect = btn.getBoundingClientRect();
+      if (rect && rect.width > 0) {
+        btn.style.minWidth = `${Math.ceil(rect.width)}px`;
+      }
+    } catch (e) {}
+
+    // Contextual Loading Text
+    let loadingText = 'Saving...';
+    const textLower = (btn.textContent || '').trim().toLowerCase();
+    if (textLower.includes('delete') || textLower.includes('remove')) {
+      loadingText = 'Deleting...';
+    } else if (textLower.includes('cancel')) {
+      loadingText = 'Cancelling...';
+    } else if (textLower.includes('unassign')) {
+      loadingText = 'Unassigning...';
+    } else if (textLower.includes('assign')) {
+      loadingText = 'Assigning...';
+    } else if (textLower.includes('convert')) {
+      loadingText = 'Converting...';
+    } else if (textLower.includes('login') || textLower.includes('sign in')) {
+      loadingText = 'Signing in...';
+    } else if (textLower.includes('logout')) {
+      loadingText = 'Logging out...';
+    } else if (textLower.includes('refresh') || textLower.includes('sync')) {
+      loadingText = 'Syncing...';
+    }
+
+    if (typeof options === 'string' && options.trim()) {
+      loadingText = options.trim();
+    } else if (options && typeof options === 'object' && options.text) {
+      loadingText = options.text;
+    } else if (typeof btn.getAttribute === 'function' && btn.getAttribute('data-loading-text')) {
+      loadingText = btn.getAttribute('data-loading-text');
+    }
+
     btn.disabled = true;
-    btn.classList.add('is-loading');
-    btn.setAttribute('aria-busy', 'true');
+    if (btn.classList && typeof btn.classList.add === 'function') {
+      btn.classList.add('is-loading');
+    }
+    if (typeof btn.setAttribute === 'function') {
+      btn.setAttribute('aria-busy', 'true');
+    }
+    btn.innerHTML = `<span class="cwp-v2-btn-spinner" aria-hidden="true"></span><span>${loadingText}</span>`;
+
     try {
       return await asyncFn();
     } finally {
-      btn.classList.remove('is-loading');
-      btn.removeAttribute('aria-busy');
+      btn.innerHTML = originalHtml;
+      if (btn.classList && typeof btn.classList.remove === 'function') {
+        btn.classList.remove('is-loading');
+      }
+      if (typeof btn.removeAttribute === 'function') {
+        btn.removeAttribute('aria-busy');
+      }
+      btn.style.minWidth = originalMinWidth;
+      btn.style.width = originalWidth;
       btn.disabled = wasDisabled;
     }
   }

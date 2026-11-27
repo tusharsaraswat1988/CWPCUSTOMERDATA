@@ -9,7 +9,7 @@
   'use strict';
 
   window.CWP_ADMIN_V2 = window.CWP_ADMIN_V2 || {};
-  window.CWP_ADMIN_V2.version = '2.1.0-shell';
+  window.CWP_ADMIN_V2.version = '2.1.2-shell';
   window.CWP_ADMIN_V2.mode = 'parallel_isolated';
 
   let loginBound = false;

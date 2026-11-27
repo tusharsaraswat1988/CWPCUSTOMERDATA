@@ -950,8 +950,13 @@
       s.classList.remove('is-active');
       if (num === stepNum) {
         s.classList.add('is-active');
+        s.setAttribute('aria-current', 'step');
       } else if (num < stepNum) {
         s.classList.add('is-completed');
+        s.removeAttribute('aria-current');
+      } else {
+        s.classList.remove('is-completed');
+        s.removeAttribute('aria-current');
       }
     });
 
@@ -1740,7 +1745,7 @@
     const name = target.customerName || target.name;
     const promptMsg = `Type "DELETE" to confirm administrative deletion of ${name} and all related service records:`;
     const input = window.prompt(promptMsg);
-    if (input !== 'DELETE') {
+    if (!input || input.trim().toUpperCase() !== 'DELETE') {
       return;
     }
 
@@ -1755,6 +1760,7 @@
           window.CWP_ADMIN_V2.toast.success(`Customer ${name} deleted successfully.`);
         }
         state.selectedCustomer = null;
+        closeDetailPanel();
         await loadData(true);
       } else {
         throw new Error((res && res.error) || 'Failed to delete customer');

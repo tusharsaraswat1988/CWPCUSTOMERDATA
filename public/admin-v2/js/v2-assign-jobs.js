@@ -811,26 +811,27 @@
 
     state.isSubmitting = true;
     if (errEl) errEl.hidden = true;
-    if (submitBtn) submitBtn.disabled = true;
 
     try {
-      const res = await window.CWP_ADMIN_V2.api.request('assignDailyCleanCustomer', {
-        customerId,
-        staffId
+      await window.CWP_ADMIN_V2.api.withLoadingButton(submitBtn, async () => {
+        const res = await window.CWP_ADMIN_V2.api.request('assignDailyCleanCustomer', {
+          customerId,
+          staffId
+        });
+
+        if (!res || res.success === false) {
+          throw new Error((res && res.error) || 'Failed to save assignment.');
+        }
+
+        if (window.CWP_ADMIN_V2.overlay) {
+          window.CWP_ADMIN_V2.overlay.close('v2ModalAjAssign');
+        }
+        showToast(res.message || 'Daily cleaner assigned successfully.', 'success');
+        await loadData({ force: true });
+        if (window.CWP_ADMIN_V2.notifications && typeof window.CWP_ADMIN_V2.notifications.refreshBadges === 'function') {
+          window.CWP_ADMIN_V2.notifications.refreshBadges();
+        }
       });
-
-      if (!res || res.success === false) {
-        throw new Error((res && res.error) || 'Failed to save assignment.');
-      }
-
-      if (window.CWP_ADMIN_V2.overlay) {
-        window.CWP_ADMIN_V2.overlay.close('v2ModalAjAssign');
-      }
-      showToast(res.message || 'Daily cleaner assigned successfully.', 'success');
-      await loadData({ force: true });
-      if (window.CWP_ADMIN_V2.notifications && typeof window.CWP_ADMIN_V2.notifications.refreshBadges === 'function') {
-        window.CWP_ADMIN_V2.notifications.refreshBadges();
-      }
     } catch (err) {
       if (errEl) {
         errEl.textContent = err.message || 'Unable to assign cleaner. Please retry.';
@@ -839,7 +840,6 @@
       showToast(err.message || 'Assignment failed', 'error');
     } finally {
       state.isSubmitting = false;
-      if (submitBtn) submitBtn.disabled = false;
     }
   }
 
@@ -886,26 +886,27 @@
 
     state.isSubmitting = true;
     if (errEl) errEl.hidden = true;
-    if (confirmBtn) confirmBtn.disabled = true;
 
     try {
-      const res = await window.CWP_ADMIN_V2.api.request('unassignDailyCleanCustomer', {
-        customerId,
-        reason: reason.trim() || 'Unassigned by admin'
-      });
+      await window.CWP_ADMIN_V2.api.withLoadingButton(confirmBtn, async () => {
+        const res = await window.CWP_ADMIN_V2.api.request('unassignDailyCleanCustomer', {
+          customerId,
+          reason: reason.trim() || 'Unassigned by admin'
+        });
 
-      if (!res || res.success === false) {
-        throw new Error((res && res.error) || 'Failed to unassign customer.');
-      }
+        if (!res || res.success === false) {
+          throw new Error((res && res.error) || 'Failed to unassign customer.');
+        }
 
-      if (window.CWP_ADMIN_V2.overlay) {
-        window.CWP_ADMIN_V2.overlay.close('v2ModalAjUnassign');
-      }
-      showToast(res.message || 'Customer unassigned from daily route.', 'success');
-      await loadData({ force: true });
-      if (window.CWP_ADMIN_V2.notifications && typeof window.CWP_ADMIN_V2.notifications.refreshBadges === 'function') {
-        window.CWP_ADMIN_V2.notifications.refreshBadges();
-      }
+        if (window.CWP_ADMIN_V2.overlay) {
+          window.CWP_ADMIN_V2.overlay.close('v2ModalAjUnassign');
+        }
+        showToast(res.message || 'Customer unassigned from daily route.', 'success');
+        await loadData({ force: true });
+        if (window.CWP_ADMIN_V2.notifications && typeof window.CWP_ADMIN_V2.notifications.refreshBadges === 'function') {
+          window.CWP_ADMIN_V2.notifications.refreshBadges();
+        }
+      }, 'Unassigning...');
     } catch (err) {
       if (errEl) {
         errEl.textContent = err.message || 'Unable to unassign customer. Please retry.';
@@ -914,7 +915,6 @@
       showToast(err.message || 'Unassign failed', 'error');
     } finally {
       state.isSubmitting = false;
-      if (confirmBtn) confirmBtn.disabled = false;
     }
   }
 

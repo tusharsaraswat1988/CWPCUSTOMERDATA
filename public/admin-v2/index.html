@@ -7,20 +7,20 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
 
   <!-- Admin V2 Scoped Stylesheets (Self-hosted Material Symbols, Zero External CDN Fonts, Completely isolated from V1) -->
-  <link rel="stylesheet" href="/admin-v2/css/v2-tokens.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-base.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-layout.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-components.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-customers.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-staff.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-bookings.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-leads.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-track-staff.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-clean-reports.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-special-jobs.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-assign-jobs.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-sequence.css?v=2.1.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-dashboard.css?v=2.1.0">
+  <link rel="stylesheet" href="/admin-v2/css/v2-tokens.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-base.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-layout.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-components.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-customers.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-staff.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-bookings.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-leads.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-track-staff.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-clean-reports.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-special-jobs.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-assign-jobs.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-sequence.css?v=2.1.2">
+  <link rel="stylesheet" href="/admin-v2/css/v2-dashboard.css?v=2.1.2">
 </head>
 <body class="cwp-v2-body">
   <div id="cwpV2App" class="cwp-v2-root">
@@ -8000,45 +8000,35 @@
       </div>
     </div>
 
-    <!-- Add Customer Modal (5-Step Guided Wizard) -->
+    <!-- Add Customer Modal (segmented five-step form) -->
     <div id="v2ModalAddCustomer" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
-      <div class="cwp-v2-modal cwp-v2-modal-lg" role="dialog" aria-modal="true" aria-labelledby="v2AddCustomerTitle">
+      <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2AddCustomerTitle">
         <div class="cwp-v2-modal-header">
           <div>
             <h2 id="v2AddCustomerTitle" class="cwp-v2-modal-title">Add New Customer</h2>
-            <div style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">5-Step Guided Account Onboarding</div>
           </div>
           <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close dialog">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
-        <!-- 5-Step Stepper -->
-        <div class="cwp-v2-wizard-stepper" role="tablist">
-          <div class="cwp-v2-wizard-step is-active" data-step="1" role="tab">
-            <span class="cwp-v2-wizard-step-num">1</span>
-            <span>Customer Info</span>
-          </div>
-          <div class="cwp-v2-wizard-divider"></div>
-          <div class="cwp-v2-wizard-step" data-step="2" role="tab">
-            <span class="cwp-v2-wizard-step-num">2</span>
-            <span>Vehicles</span>
-          </div>
-          <div class="cwp-v2-wizard-divider"></div>
-          <div class="cwp-v2-wizard-step" data-step="3" role="tab">
-            <span class="cwp-v2-wizard-step-num">3</span>
-            <span>Plan &amp; Billing</span>
-          </div>
-          <div class="cwp-v2-wizard-divider"></div>
-          <div class="cwp-v2-wizard-step" data-step="4" role="tab">
-            <span class="cwp-v2-wizard-step-num">4</span>
-            <span>Operations</span>
-          </div>
-          <div class="cwp-v2-wizard-divider"></div>
-          <div class="cwp-v2-wizard-step" data-step="5" role="tab">
-            <span class="cwp-v2-wizard-step-num">5</span>
-            <span>Review &amp; Save</span>
-          </div>
+        <!-- Existing five-step workflow, presented with the approved segmented-tab component. -->
+        <div class="cwp-v2-edit-tabs-bar v2-add-customer-stepper" role="group" aria-label="Customer form sections">
+          <button type="button" class="cwp-v2-edit-tab-btn cwp-v2-wizard-step is-active" data-step="1" aria-current="step">
+            <span class="cwp-v2-wizard-step-num">1</span><span>Customer Info</span>
+          </button>
+          <button type="button" class="cwp-v2-edit-tab-btn cwp-v2-wizard-step" data-step="2">
+            <span class="cwp-v2-wizard-step-num">2</span><span>Vehicles</span>
+          </button>
+          <button type="button" class="cwp-v2-edit-tab-btn cwp-v2-wizard-step" data-step="3">
+            <span class="cwp-v2-wizard-step-num">3</span><span>Plan &amp; Billing</span>
+          </button>
+          <button type="button" class="cwp-v2-edit-tab-btn cwp-v2-wizard-step" data-step="4">
+            <span class="cwp-v2-wizard-step-num">4</span><span>Operations</span>
+          </button>
+          <button type="button" class="cwp-v2-edit-tab-btn cwp-v2-wizard-step" data-step="5">
+            <span class="cwp-v2-wizard-step-num">5</span><span>Review &amp; Save</span>
+          </button>
         </div>
 
         <form id="v2AddCustomerForm" onsubmit="return false;">
@@ -9899,28 +9889,28 @@
   </div>
 
   <!-- Admin V2 Production Shell Scripts (Mock-free, isolated from V1) -->
-  <script src="/admin-v2/js/v2-api.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-toast.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-ui-helpers.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-auth.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-overlay.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-search.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-notifications.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-shell.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-customers.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-staff.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-bookings.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-leads.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-track-staff.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-clean-reports.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-special-jobs.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-assign-jobs.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-sequence.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-dashboard.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-security.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-see-services.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-see-addons.js?v=2.1.0"></script>
-  <script src="/admin-v2/js/v2-app.js?v=2.1.0"></script>
+  <script src="/admin-v2/js/v2-api.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-toast.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-ui-helpers.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-auth.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-overlay.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-search.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-notifications.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-shell.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-customers.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-staff.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-bookings.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-leads.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-track-staff.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-clean-reports.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-special-jobs.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-assign-jobs.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-sequence.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-dashboard.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-security.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-see-services.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-see-addons.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-app.js?v=2.1.2"></script>
 
   <!-- Lazy UI Playground Loader: loads v2-playground.js ONLY when /admin-v2/ui-lab or ui-lab view is active -->
   <script>
@@ -9936,7 +9926,7 @@
         if (loaded) return;
         loaded = true;
         var s = document.createElement('script');
-        s.src = '/admin-v2/js/v2-playground.js?v=2.1.0';
+        s.src = '/admin-v2/js/v2-playground.js?v=2.1.2';
         s.defer = true;
         document.body.appendChild(s);
       }

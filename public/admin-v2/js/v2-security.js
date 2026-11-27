@@ -298,19 +298,18 @@
           return;
         }
         if (errEl) errEl.hidden = true;
-        if (submitBtn) submitBtn.disabled = true;
         try {
-          await api.request('renameAdminDevice', { deviceRef: ref, deviceLabel: nextName });
-          if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2SecRenameDeviceModal');
-          if (toast) toast.show('Device renamed.', 'success');
-          await loadOverview();
+          await api.withLoadingButton(submitBtn, async () => {
+            await api.request('renameAdminDevice', { deviceRef: ref, deviceLabel: nextName });
+            if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2SecRenameDeviceModal');
+            if (toast) toast.show('Device renamed.', 'success');
+            await loadOverview();
+          });
         } catch (err) {
           if (errEl) {
             errEl.textContent = (err && err.message) || 'Failed to rename device.';
             errEl.hidden = false;
           }
-        } finally {
-          if (submitBtn) submitBtn.disabled = false;
         }
       });
     }

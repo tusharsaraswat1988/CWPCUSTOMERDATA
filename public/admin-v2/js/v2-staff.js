@@ -1018,7 +1018,7 @@
 
   async function deleteStaffConfirm(s) {
     const check = window.prompt(`Type "DELETE" to confirm removing staff member ${s.name} (${s.id}):`);
-    if (check !== 'DELETE') return;
+    if (!check || check.trim().toUpperCase() !== 'DELETE') return;
     try {
       await window.CWP_ADMIN_V2.api.request('deleteStaffMember', { id: s.id });
       if (window.CWP_ADMIN_V2.toast) window.CWP_ADMIN_V2.toast.success(`Staff ${s.name} deleted.`);

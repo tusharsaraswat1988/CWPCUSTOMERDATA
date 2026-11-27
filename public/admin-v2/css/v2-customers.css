@@ -838,6 +838,36 @@
   overflow-x: auto;
 }
 
+/* The customer form reuses the approved segmented tabs inside the standard
+   form modal; keep all five existing section controls compact and readable. */
+.v2-add-customer-stepper {
+  gap: 2px;
+  padding: 0 8px;
+}
+
+.v2-add-customer-stepper .cwp-v2-wizard-step {
+  flex: 1 0 max-content;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 8px;
+  font-size: 11px;
+}
+
+.v2-add-customer-stepper .cwp-v2-wizard-step-num {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+}
+
+.v2-add-customer-stepper .cwp-v2-wizard-step.is-active .cwp-v2-wizard-step-num,
+.v2-add-customer-stepper .cwp-v2-wizard-step.is-completed .cwp-v2-wizard-step-num {
+  background: transparent;
+  color: inherit;
+}
+
 .cwp-v2-wizard-step {
   display: flex;
   align-items: center;

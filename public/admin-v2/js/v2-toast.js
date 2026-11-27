@@ -29,7 +29,11 @@
       containerEl.setAttribute('role', 'region');
       containerEl.setAttribute('aria-live', 'polite');
       containerEl.setAttribute('aria-label', 'Status notifications');
-      root.appendChild(containerEl);
+      if (root) {
+        root.appendChild(containerEl);
+      } else if (document.body) {
+        document.body.appendChild(containerEl);
+      }
     }
     return containerEl;
   }
@@ -37,8 +41,14 @@
   function show(message, type = 'info', opts = {}) {
     if (!message) return null;
     const variant = ICON_BY_TYPE[type] ? type : 'info';
-    const duration = typeof opts === 'number' ? opts : (opts.duration !== undefined ? opts.duration : 3800);
+    let duration = 3800;
+    if (typeof opts === 'number') {
+      duration = opts;
+    } else if (opts && typeof opts === 'object' && opts.duration !== undefined) {
+      duration = opts.duration;
+    }
     const host = ensureContainer();
+    if (!host) return null;
 
     const toastEl = document.createElement('div');
     toastEl.className = `cwp-v2-toast is-${variant}`;
@@ -52,7 +62,9 @@
 
     const msgEl = document.createElement('div');
     msgEl.className = 'cwp-v2-toast-msg';
-    msgEl.textContent = String(message);
+    msgEl.textContent = typeof message === 'object' && message !== null
+      ? (message.message || JSON.stringify(message))
+      : String(message);
 
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
@@ -90,14 +102,38 @@
     return { element: toastEl, dismiss };
   }
 
+  function success(message, opts) {
+    return show(message, 'success', opts);
+  }
+
+  function error(message, opts) {
+    return show(message, 'error', opts);
+  }
+
+  function warning(message, opts) {
+    return show(message, 'warning', opts);
+  }
+
+  function info(message, opts) {
+    return show(message, 'info', opts);
+  }
+
   function clear() {
     if (containerEl) {
       containerEl.innerHTML = '';
     }
   }
 
-  window.CWP_ADMIN_V2.toast = {
-    show,
-    clear
+  const toastHandler = function (message, type, opts) {
+    return show(message, type, opts);
   };
+
+  toastHandler.show = show;
+  toastHandler.success = success;
+  toastHandler.error = error;
+  toastHandler.warning = warning;
+  toastHandler.info = info;
+  toastHandler.clear = clear;
+
+  window.CWP_ADMIN_V2.toast = toastHandler;
 })(window);

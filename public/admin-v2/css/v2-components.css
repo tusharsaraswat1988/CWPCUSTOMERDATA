@@ -96,7 +96,10 @@
 }
 
 /* Loading State (Zero layout jump) */
-.cwp-v2-btn.is-loading {
+.cwp-v2-btn.is-loading,
+.cwp-v2-btn.is-loading:disabled,
+.cwp-v2-btn.is-loading[disabled] {
+  opacity: 0.92 !important;
   pointer-events: none !important;
   cursor: wait !important;
 }
@@ -110,6 +113,7 @@
   border-radius: 50%;
   animation: cwpV2Spin 0.7s linear infinite;
   flex-shrink: 0;
+  vertical-align: middle;
 }
 
 @keyframes cwpV2Spin {

@@ -833,20 +833,19 @@
     }
 
     const btn = document.getElementById('v2CrEditSubmitBtn');
-    if (btn) btn.disabled = true;
     try {
-      await window.CWP_ADMIN_V2.api.request('updateDailyCleanReportStatus', {
-        reportId: state.editingRowId,
-        status,
-        reason
+      await window.CWP_ADMIN_V2.api.withLoadingButton(btn, async () => {
+        await window.CWP_ADMIN_V2.api.request('updateDailyCleanReportStatus', {
+          reportId: state.editingRowId,
+          status,
+          reason
+        });
+        if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2ModalCleanReportEdit');
+        showToast('Cleaning status updated.', 'success');
+        await loadData({ silent: true });
       });
-      if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2ModalCleanReportEdit');
-      showToast('Cleaning status updated.', 'success');
-      await loadData({ silent: true });
     } catch (err) {
       showToast((err && err.message) || 'Failed to update status', 'error');
-    } finally {
-      if (btn) btn.disabled = false;
     }
   }
 
@@ -860,20 +859,19 @@
     }
 
     const btn = document.getElementById('v2CrDeleteSubmitBtn');
-    if (btn) btn.disabled = true;
     try {
-      await window.CWP_ADMIN_V2.api.request('deleteDailyCleanReport', {
-        reportId: state.deletingRowId,
-        reason
-      });
-      if (state.selectedRowId === state.deletingRowId) state.selectedRowId = null;
-      if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2ModalCleanReportDelete');
-      showToast('Cleaning record deleted.', 'success');
-      await loadData({ silent: true });
+      await window.CWP_ADMIN_V2.api.withLoadingButton(btn, async () => {
+        await window.CWP_ADMIN_V2.api.request('deleteDailyCleanReport', {
+          reportId: state.deletingRowId,
+          reason
+        });
+        if (state.selectedRowId === state.deletingRowId) state.selectedRowId = null;
+        if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2ModalCleanReportDelete');
+        showToast('Cleaning record deleted.', 'success');
+        await loadData({ silent: true });
+      }, 'Deleting...');
     } catch (err) {
       showToast((err && err.message) || 'Failed to delete record', 'error');
-    } finally {
-      if (btn) btn.disabled = false;
     }
   }
 
