@@ -48,7 +48,7 @@ function assertEligibility(pkg,{city,zone,vehicleSegment}) {
 }
 async function provisionSee(client, membership, pkg, cycleKey, actor) {
   const s=pkg.see_config;
-  const service=await repos.seeCatalogue.findServiceById(s.serviceId);
+  const service=await repos.seeCatalogue.findServiceById(s.serviceId,client);
   if(!service || service.status !== 'active' || String(service.service_category_id).toLowerCase()!=='car_washing') throw new Error('Hybrid SEE component must reference an active Car Wash service.');
   const saleRef=`HYB:${membership.id}:${cycleKey}`;
   const start=membership.renews_at;
