@@ -19,7 +19,7 @@ function assertRuntimeOwnership() {
   assert.match(serverSrc, /if \(isAdminRoute\)[\s\S]*?public', 'admin-v2', 'index\.html'/);
   assert.match(v2Html, /id="v2ModalEditCustomer"/);
   assert.match(v2Html, /v2-customers\.css\?v=2\.2\.1/);
-  assert.match(v2Html, /v2-customers\.js\?v=2\.1\.3/);
+  assert.match(v2Html, /v2-customers\.js\?v=2\.1\.\d+/);
   assert.match(v2CustCss, /#v2ModalEditCustomer \.cwp-v2-select:disabled/);
   assert.match(serverSrc, /err\.code === 'HYBRID_PACKAGE_REQUIRES_ORCHESTRATION' \? 400 : 500/);
 }

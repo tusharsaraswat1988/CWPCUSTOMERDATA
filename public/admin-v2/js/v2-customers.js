@@ -249,7 +249,7 @@
     const totalCount = custs.length;
     const activeCount = custs.filter(c => c.active !== 'No' && c.active !== false && !c.isStopped).length;
     const inactiveCount = custs.filter(c => c.active === 'No' || c.active === false || c.isStopped === true).length;
-    const upcomingCount = custs.filter(c => (c.serviceCategory === 'Daily Car Cleaning' || c.hasService) && !c.isStopped).length;
+    const upcomingCount = custs.filter(c => c.hasService && (c.serviceCategory === 'Daily Car Cleaning' || c.planSource === 'hybrid') && !c.isStopped).length;
 
     const elTotal = document.getElementById('v2CustKpiTotal');
     const elActive = document.getElementById('v2CustKpiActive');
@@ -290,7 +290,7 @@
     } else if (state.kpiFilter === 'inactive') {
       result = result.filter(c => c.active === 'No' || c.active === false || c.isStopped === true);
     } else if (state.kpiFilter === 'upcoming') {
-      result = result.filter(c => (c.serviceCategory === 'Daily Car Cleaning' || c.hasService) && !c.isStopped);
+      result = result.filter(c => c.hasService && (c.serviceCategory === 'Daily Car Cleaning' || c.planSource === 'hybrid') && !c.isStopped);
     }
 
     // 2. Search Query (Truthful live search)
@@ -498,16 +498,23 @@
       const countPill = vehCount > 1 ? `<span class="cwp-v2-cust-vehicle-count">+${vehCount - 1}</span>` : '';
 
       // 4. Plan / Package
-      const planName = c.packageName || c.packageType || c.serviceCategory || 'Standard';
-      const planBadge = `<span class="cwp-v2-badge is-primary" style="font-size:10.5px;">Legacy: ${escapeHtml(planName)}</span>`;
+      const planName = (c.activePackageName || c.packageName || c.packageType || '').trim();
+      const hasPlan = Boolean(planName && planName.toLowerCase() !== 'none' && c.serviceStatus !== 'none' && !c.isStopped);
+      const planBadge = hasPlan
+        ? `<span class="cwp-v2-badge is-primary" style="font-size:10.5px;">${escapeHtml(planName)}</span>`
+        : (c.isStopped && planName
+          ? `<span class="cwp-v2-badge is-neutral" style="font-size:10.5px; color:#dc2626;">${escapeHtml(planName)} (Stopped)</span>`
+          : `<span class="cwp-v2-badge is-neutral" style="font-size:10.5px; color:#64748b;">No Active Plan</span>`);
 
       // 5. Route
-      const routeDisplay = escapeHtml(c.route || c.staffName ? `Route: ${c.staffName}` : area);
+      const routeDisplay = escapeHtml(c.route || (c.staffName ? `Route: ${c.staffName}` : area));
 
       // 6. Next Service
-      const isDcc = c.serviceCategory === 'Daily Car Cleaning' || (c.sheetName === 'Daily Clean');
-      const nextService = isDcc ? (c.isStopped ? 'Suspended' : 'Daily 06:30 AM') : 'On-Demand';
-      const nextColor = c.isStopped ? '#dc2626' : '#16a34a';
+      const isDcc = c.serviceCategory === 'Daily Car Cleaning';
+      const nextService = !c.hasService
+        ? 'No Schedule'
+        : (isDcc ? (c.isStopped ? 'Suspended' : 'Daily 06:30 AM') : (c.isStopped ? 'Cancelled' : 'On-Demand'));
+      const nextColor = !c.hasService ? '#64748b' : (c.isStopped ? '#dc2626' : '#16a34a');
 
       // 7. Status
       const isActive = c.active !== 'No' && c.active !== false && !c.isStopped;
@@ -724,7 +731,7 @@
     }
 
     // Schedule / Frequency
-    const legacyPlanName = cust.packageName || cust.packageType || '';
+    const currentPlanName = (cust.activePackageName || cust.packageName || cust.packageType || '').trim();
     const staffName = cust.staffName || (cust.staffId ? `Staff ID ${cust.staffId}` : 'Unassigned');
 
     panel.innerHTML = `
@@ -784,8 +791,8 @@
           <span class="cwp-v2-cust-summary-val">${customerSince}</span>
         </div>
         <div class="cwp-v2-cust-summary-item">
-          <span class="cwp-v2-cust-summary-label">Legacy plan label</span>
-          <span class="cwp-v2-cust-summary-val">${legacyPlanName ? `${escapeHtml(legacyPlanName)} (legacy record)` : 'No legacy plan label'}</span>
+          <span class="cwp-v2-cust-summary-label">Current Plan / Package</span>
+          <span class="cwp-v2-cust-summary-val">${currentPlanName && cust.serviceStatus !== 'none' ? escapeHtml(currentPlanName) : 'No active plan'}</span>
         </div>
         <div class="cwp-v2-cust-summary-item">
           <span class="cwp-v2-cust-summary-label">Assigned Staff</span>
@@ -851,13 +858,13 @@
       const jobs = Array.isArray(history.all) ? history.all : [];
       historyEl.innerHTML = jobs.length ? `<div class="cwp-v2-cust-activity-list">${jobs.map(job => {
         const canonical = Boolean(job.service_payload && job.service_payload._seeManaged);
-        const executionText = canonical ? (job.latest_execution_id ? `Execution ${job.latest_execution_id} · ${escapeHtml(job.latest_execution_outcome || 'recorded')}` : 'No canonical execution record') : 'Legacy record';
+        const executionText = canonical ? (job.latest_execution_id ? `Execution ${job.latest_execution_id} · ${escapeHtml(job.latest_execution_outcome || 'recorded')}` : 'No canonical execution record') : 'Standard record';
         const proof = job.latest_proof_photos || {};
         const assignedStaff = job.assigned_staff_name || job.staff_name || job.assignedStaffName || 'Unassigned';
         const scheduled = [job.scheduled_date || 'Unscheduled', job.scheduled_time || job.scheduledTime].filter(Boolean).join(' · ');
         const proofText = job.latest_execution_id ? ` · Proof ${Array.isArray(proof.before) ? proof.before.length : 0} before / ${Array.isArray(proof.after) ? proof.after.length : 0} after` : '';
         const bookingId = job.id || job.jobId || job.job_id;
-        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">${job.status === 'completed' ? 'check_circle' : 'event_note'}</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service booking')} · ${escapeHtml(job.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">${escapeHtml(scheduled)} · Staff ${escapeHtml(assignedStaff)} · ${canonical ? 'SEE canonical job' : 'Legacy job'} · Job ${escapeHtml(bookingId || '—')}</span><span class="cwp-v2-cust-activity-time">${executionText}${proofText}</span>${bookingId ? `<button type="button" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-xs" data-customer-booking-id="${escapeHtml(bookingId)}">View Booking</button>` : ''}</div></div>`;
+        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">${job.status === 'completed' ? 'check_circle' : 'event_note'}</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service booking')} · ${escapeHtml(job.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">${escapeHtml(scheduled)} · Staff ${escapeHtml(assignedStaff)} · ${canonical ? 'SEE canonical job' : 'Standard job'} · Job ${escapeHtml(bookingId || '—')}</span><span class="cwp-v2-cust-activity-time">${executionText}${proofText}</span>${bookingId ? `<button type="button" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-xs" data-customer-booking-id="${escapeHtml(bookingId)}">View Booking</button>` : ''}</div></div>`;
       }).join('')}</div>` : '<div class="cwp-v2-cust-activity-time">No recorded service jobs.</div>';
     } catch (error) {
       historyEl.textContent = `Service history unavailable: ${error.message}`;
@@ -1431,8 +1438,8 @@
     document.getElementById('v2EditCustAltPhone').value = target.altPhone || '';
     document.getElementById('v2EditCustEmail').value = target.email || '';
     document.getElementById('v2EditCustAddress').value = target.address || '';
-    setCustomerEditIdentityDisplayOnly('v2EditCustCategory', target.serviceCategory || target.interestedService, 'Daily Car Cleaning');
-    setCustomerEditIdentityDisplayOnly('v2EditCustPackage', target.packageName || target.packageType, 'DCC ONLY');
+    setCustomerEditIdentityDisplayOnly('v2EditCustCategory', target.serviceCategory || target.interestedService, 'None');
+    setCustomerEditIdentityDisplayOnly('v2EditCustPackage', target.activePackageName || target.packageName || target.packageType, 'No Active Plan');
     document.getElementById('v2EditCustStaff').value = target.staffId || '';
     document.getElementById('v2EditCustStatus').value = (target.active === 'No' || target.isStopped) ? 'inactive' : 'active';
     document.getElementById('v2EditCustNotes').value = target.notes || '';

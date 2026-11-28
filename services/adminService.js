@@ -163,6 +163,56 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
     jobsByCust.get(j.customer_id).push(j);
   });
 
+  // Active Hybrid memberships query (best-effort if table exists)
+  const hybridByCust = new Map();
+  try {
+    const hybridTblRes = await db.query("SELECT to_regclass('public.hybrid_memberships') AS tbl");
+    if (hybridTblRes.rows[0]?.tbl) {
+      const hybRes = await db.query(
+        `SELECT hm.id, hm.customer_id, hm.status, hm.starts_at, hm.renews_at,
+                COALESCE(hm.package_snapshot->>'name', hm.package_snapshot->>'package_name', hp.name) AS package_name
+         FROM public.hybrid_memberships hm
+         LEFT JOIN public.hybrid_packages hp ON hp.id = hm.package_id
+         WHERE hm.customer_id = ANY($1)
+           AND hm.status IN ('active', 'renewal_pending', 'provisioning', 'pending_provisioning', 'cancellation_pending')
+         ORDER BY hm.created_at DESC`,
+        [custIds]
+      );
+      hybRes.rows.forEach(h => {
+        if (!hybridByCust.has(h.customer_id)) hybridByCust.set(h.customer_id, []);
+        hybridByCust.get(h.customer_id).push(h);
+      });
+    }
+  } catch (e) {
+    // Non-fatal fallback for minimal test schemas
+  }
+
+  // Active SEE entitlement accounts query (best-effort if table exists)
+  const seeByCust = new Map();
+  try {
+    const seeTblRes = await db.query("SELECT to_regclass('public.entitlement_accounts') AS tbl");
+    if (seeTblRes.rows[0]?.tbl) {
+      const seeRes = await db.query(
+        `SELECT ea.id, ea.customer_id, ea.remaining_qty, ea.entitlement_kind, ea.status,
+                ps.package_name, ps.package_code, s.name AS service_name, s.service_category_id
+         FROM public.entitlement_accounts ea
+         LEFT JOIN public.purchase_snapshots ps ON ps.id = ea.purchase_snapshot_id
+         LEFT JOIN public.services s ON s.id = ea.service_id
+         WHERE ea.customer_id = ANY($1)
+           AND ea.status = 'active'
+           AND COALESCE(ea.remaining_qty, 0) > 0
+         ORDER BY ea.created_at DESC`,
+        [custIds]
+      );
+      seeRes.rows.forEach(se => {
+        if (!seeByCust.has(se.customer_id)) seeByCust.set(se.customer_id, []);
+        seeByCust.get(se.customer_id).push(se);
+      });
+    }
+  } catch (e) {
+    // Non-fatal fallback for minimal test schemas
+  }
+
   // Format into rich view model compatible with frontend expectations
   const results = [];
   for (const c of customers) {
@@ -170,6 +220,8 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
     const vehs = vehsByCust.get(c.id) || [];
     const subs = subsByCust.get(c.id) || [];
     const jobs = jobsByCust.get(c.id) || [];
+    const hybrids = hybridByCust.get(c.id) || [];
+    const seeEnts = seeByCust.get(c.id) || [];
 
     const primaryLoc = locs.find(l => l.is_primary) || locs[0] || null;
     const secondaryLoc = locs.find(l => !l.is_primary) || (locs.length > 1 ? locs[1] : null);
@@ -177,6 +229,8 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
     // Active / stopped subscription (daily clean)
     const activeSub = subs.find(s => s.status === 'active') || null;
     const stoppedSub = subs.find(s => s.status === 'stopped') || null;
+    const activeHybrid = hybrids[0] || null;
+    const activeSee = seeEnts[0] || null;
 
     // Service category & lifecycle classification
     let serviceCategory = 'Daily Car Cleaning';
@@ -188,6 +242,9 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
     let assignedStaffId = '';
 
     const rawCustCat = (c.interested_service || '').toString().trim();
+    const activeJob = jobs.find(j => ['pending', 'requested', 'booked', 'assigned', 'in_progress'].includes(j.status)) || null;
+    const latestJob = activeJob || jobs[0] || null;
+
     if (activeSub) {
       serviceCategory = 'Daily Car Cleaning';
       serviceStatus = 'active';
@@ -200,8 +257,10 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
       stoppedReason = stoppedSub.stopped_reason || 'Service Stopped';
       staffName = stoppedSub.staff_name || '';
       assignedStaffId = stoppedSub.staff_code || (stoppedSub.staff_id ? 'STF01' : '');
-    } else if (jobs.length > 0) {
-      const activeJob = jobs.find(j => j.status === 'assigned' || j.status === 'pending' || j.status === 'in_progress') || jobs[0];
+    } else if (activeHybrid) {
+      serviceCategory = 'Daily Car Cleaning';
+      serviceStatus = 'active';
+    } else if (activeJob) {
       if (activeJob.service_category_id === 'solar_cleaning') {
         serviceCategory = 'Solar Panel Cleaning';
       } else if (activeJob.service_category_id === 'interior_detailing') {
@@ -212,12 +271,19 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
         serviceCategory = 'Car Washing';
       }
       serviceStatus = activeJob.status || 'assigned';
-      if (activeJob.status === 'cancelled') {
-        isStopped = true;
-        stoppedReason = activeJob.cancellation_reason || 'Cancelled';
-      }
       staffName = activeJob.staff_name || '';
       assignedStaffId = activeJob.staff_code || '';
+    } else if (activeSee) {
+      if (activeSee.service_category_id === 'solar_cleaning') serviceCategory = 'Solar Panel Cleaning';
+      else if (activeSee.service_category_id === 'interior_detailing') serviceCategory = 'Interior Detailing';
+      else if (activeSee.service_category_id === 'exterior_detailing') serviceCategory = 'Exterior Detailing';
+      else serviceCategory = 'Car Washing';
+      serviceStatus = 'active';
+    } else if (latestJob && latestJob.status === 'cancelled') {
+      serviceCategory = 'None';
+      serviceStatus = 'cancelled';
+      isStopped = true;
+      stoppedReason = latestJob.cancellation_reason || 'Cancelled';
     } else if (rawCustCat && rawCustCat.toLowerCase() !== 'none' && rawCustCat.toLowerCase() !== 'no service') {
       if (/solar/i.test(rawCustCat)) serviceCategory = 'Solar Panel Cleaning';
       else if (/interior/i.test(rawCustCat)) serviceCategory = 'Interior Detailing';
@@ -230,8 +296,27 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
       serviceStatus = 'none';
     }
 
-    const hasService = (serviceCategory !== 'None' && serviceStatus !== 'none');
+    const hasService = Boolean(activeSub || stoppedSub || activeHybrid || activeJob || activeSee);
     sheetName = (serviceCategory === 'Daily Car Cleaning') ? 'Daily Clean' : 'All Other Work';
+
+    let resolvedPackageName = '';
+    let planSource = 'none';
+    if (activeHybrid?.package_name) {
+      resolvedPackageName = activeHybrid.package_name;
+      planSource = 'hybrid';
+    } else if (activeSub) {
+      resolvedPackageName = activeSub.package_name || 'Daily Car Cleaning';
+      planSource = 'dcc';
+    } else if (activeSee) {
+      resolvedPackageName = activeSee.package_name || activeSee.service_name || serviceCategory;
+      planSource = 'see';
+    } else if (activeJob) {
+      resolvedPackageName = activeJob.service_name_snapshot || activeJob.package_details || activeJob.service_type || serviceCategory;
+      planSource = (activeJob.service_payload && activeJob.service_payload._seeManaged) ? 'see' : 'job';
+    } else if (stoppedSub) {
+      resolvedPackageName = stoppedSub.package_name || 'Daily Car Cleaning';
+      planSource = 'dcc';
+    }
 
     // Apply category / staff filter if requested
     if (category && serviceCategory.toLowerCase() !== category.toLowerCase()) {
@@ -304,8 +389,10 @@ async function getAllCustomers({ search = '', category = null, staffId = null, l
       stoppedReason: stoppedReason,
       hasService: hasService,
       sheetName: sheetName,
-      packageName: activeSub?.package_name || jobs[0]?.package_details || jobs[0]?.service_type || (serviceCategory === 'Daily Car Cleaning' ? 'Daily Clean' : serviceCategory),
-      packageType: activeSub?.package_name || jobs[0]?.package_details || jobs[0]?.service_type || (serviceCategory === 'Daily Car Cleaning' ? 'DCC ONLY' : 'Standard'),
+      packageName: resolvedPackageName,
+      packageType: resolvedPackageName,
+      activePackageName: resolvedPackageName,
+      planSource: planSource,
       packagesPurchased: String(activeSub?.packages_purchased || 1),
       rotationType: activeSub?.rotation_type || 'none',
       rotationNotes: activeSub?.rotation_notes || '',
