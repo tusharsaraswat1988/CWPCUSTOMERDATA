@@ -744,17 +744,20 @@
       if (jobsRes.status === 'fulfilled' && jobsRes.value) {
         const jobs = Array.isArray(jobsRes.value.jobs) ? jobsRes.value.jobs : [];
         const unassigned = jobs.filter(j => !j.staffId && !j.staff_id && String(j.status || '').toLowerCase() === 'pending');
-        if (unassigned.length > 0) {
+        unassigned.forEach(job => {
+          const bookingId = String(job.id || job.jobId || job.job_id || '').trim();
+          if (!bookingId) return;
           items.push({
-            id: `jobs_unassigned_${unassigned.length}`,
+            id: `booking_unassigned_${bookingId}`,
+            bookingId,
             source: 'Bookings',
-            title: `${unassigned.length} pending special job(s) awaiting staff`,
-            subtitle: 'Assign staff in Assign Booking',
+            title: `Unassigned booking · ${job.customerName || job.customer_name || bookingId}`,
+            subtitle: 'View this booking and review its assignment.',
             tab: 'serviceAssign',
             icon: 'solar_power',
-            timestamp: ''
+            timestamp: job.scheduledDate || job.scheduled_date || ''
           });
-        }
+        });
       }
 
       if (leadsRes.status === 'fulfilled' && Array.isArray(leadsRes.value) && leadsRes.value.length > 0) {
@@ -836,7 +839,7 @@
       const unread = !state.readIds.has(item.id);
       const timeLabel = item.timestamp ? formatIstTime(item.timestamp) : item.source;
       return `
-        <button type="button" class="cwp-v2-notif-item${unread ? ' is-unread' : ''}" data-notif-id="${esc(item.id)}" data-notif-tab="${esc(item.tab)}">
+        <button type="button" class="cwp-v2-notif-item${unread ? ' is-unread' : ''}" data-notif-id="${esc(item.id)}" data-notif-tab="${esc(item.tab)}"${item.bookingId ? ` data-notif-booking-id="${esc(item.bookingId)}"` : ''}>
           <span class="material-symbols-outlined" aria-hidden="true" style="color:var(--cwp-v2-sys-primary); font-size:20px; margin-top:2px;">${esc(item.icon || 'notifications')}</span>
           <div style="flex:1; min-width:0;">
             <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
@@ -1046,6 +1049,7 @@
         if (!btn) return;
         const notifId = btn.getAttribute('data-notif-id');
         const targetTab = btn.getAttribute('data-notif-tab');
+        const bookingId = btn.getAttribute('data-notif-booking-id');
         if (notifId) {
           state.readIds.add(notifId);
           recomputeUnreadCount();
@@ -1054,7 +1058,10 @@
         const currentTab = window.CWP_ADMIN_V2.shell && typeof window.CWP_ADMIN_V2.shell.getActiveTab === 'function'
           ? window.CWP_ADMIN_V2.shell.getActiveTab()
           : null;
-        if (targetTab && window.CWP_ADMIN_V2.shell && targetTab !== currentTab) {
+        if (bookingId && targetTab === 'serviceAssign' && window.CWP_ADMIN_V2.bookings) {
+          if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2NotificationsDrawer', { skipHistoryBack: true });
+          window.CWP_ADMIN_V2.bookings.navigateToBooking(bookingId);
+        } else if (targetTab && window.CWP_ADMIN_V2.shell && targetTab !== currentTab) {
           if (window.CWP_ADMIN_V2.overlay) {
             window.CWP_ADMIN_V2.overlay.close('v2NotificationsDrawer', { skipHistoryBack: true });
           }

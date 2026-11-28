@@ -350,20 +350,60 @@ async function run() {
   }, authHeaders);
   assert.strictEqual(seed2.status, 200);
 
-  // Test createServiceBooking
-  const createRes = await httpRequest('POST', '/api', {
-    action: 'createServiceBooking',
-    bookingData: {
-      customerId: 'cust_bk_1',
-      serviceCategoryId: 'car_washing',
-      serviceType: 'Ceramic Quick Coat',
-      scheduledDate: todayIso,
-      scheduledTime: '02:00 PM',
-      bookingSource: 'admin'
-    }
-  }, authHeaders);
+  // Test canonical createServiceBooking contract without connecting a database.
+  // The route forwards this complete fixture to the canonical service boundary.
+  const db = require('../db');
+  const repos = require('../db/repositories');
+  const seeExecutionService = require('../services/seeExecutionService');
+  const originalIsConfigured = db.isConfigured;
+  const originalCreateCanonicalJob = seeExecutionService.createCanonicalJob;
+  const originalFindJobById = repos.serviceJobs.findById;
+  const canonicalFixtureJob = {
+    id: 'see_job_fixture_1',
+    customer_id: 'cust_bk_1',
+    customer_name: 'Aarav Sharma',
+    customer_phone: '9876500101',
+    service_category_id: 'car_washing',
+    service_type: 'Fixture Canonical Wash',
+    status: 'booked',
+    scheduled_date: todayIso,
+    scheduled_time: '02:00 PM'
+  };
+  let canonicalCreateInput = null;
+  assert.strictEqual(originalIsConfigured(), false, 'Canonical booking contract test must not have a configured database');
+  db.isConfigured = () => true;
+  seeExecutionService.createCanonicalJob = async (input) => {
+    canonicalCreateInput = input;
+    return canonicalFixtureJob;
+  };
+  repos.serviceJobs.findById = async (id) => id === canonicalFixtureJob.id ? canonicalFixtureJob : null;
+  let createRes;
+  try {
+    createRes = await httpRequest('POST', '/api', {
+      action: 'createServiceBooking',
+      bookingData: {
+        customerId: 'cust_bk_1',
+        vehicleId: 'vehicle_fixture_1',
+        locationId: 'location_fixture_1',
+        serviceIdOrCode: 'FIXTURE_CAR_WASH',
+        serviceType: 'Fixture Canonical Wash',
+        scheduledDate: todayIso,
+        scheduledTime: '02:00 PM',
+        bookingSource: 'admin'
+      }
+    }, authHeaders);
+  } finally {
+    seeExecutionService.createCanonicalJob = originalCreateCanonicalJob;
+    repos.serviceJobs.findById = originalFindJobById;
+    db.isConfigured = originalIsConfigured;
+  }
   assert.strictEqual(createRes.status, 200);
   assert.strictEqual(createRes.json.success, true);
+  assert.strictEqual(createRes.json.booking.id, canonicalFixtureJob.id);
+  assert.ok(canonicalCreateInput, 'Canonical service boundary must receive the booking request');
+  assert.strictEqual(canonicalCreateInput.serviceIdOrCode, 'FIXTURE_CAR_WASH');
+  assert.strictEqual(canonicalCreateInput.vehicleId, 'vehicle_fixture_1');
+  assert.strictEqual(canonicalCreateInput.locationId, 'location_fixture_1');
 
   const jobsRes = await httpRequest('POST', '/api', { action: 'getSpecialJobs' }, authHeaders);
   assert.strictEqual(jobsRes.status, 200);

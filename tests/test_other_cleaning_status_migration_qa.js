@@ -99,7 +99,7 @@ fs.writeFileSync(tempDataFile, JSON.stringify({
   ]
 }, null, 2));
 
-process.env.LOCAL_DATA_FILE = tempDataFile;
+process.env.DATA_FILE = tempDataFile;
 
 function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
@@ -376,7 +376,7 @@ async function runTests() {
     assert.strictEqual(s5.status, 200);
 
     // Also verify bookingService lifecycle transitions (start -> complete) on a booking
-    const lcCreate = await httpPostApi({
+    const rejectedLegacyPayload = await httpPostApi({
       action: 'createServiceBooking',
       bookingData: {
         customerId: 'cust_sj_1',
@@ -384,6 +384,20 @@ async function runTests() {
         serviceType: 'Quick Wash',
         scheduledDate: todayIso,
         bookingSource: 'admin'
+      }
+    }, adminToken);
+    assert.strictEqual(rejectedLegacyPayload.status, 400, 'Non-canonical booking payload must remain rejected');
+    assert.match(rejectedLegacyPayload.json.error, /canonical service, vehicle, and service location/);
+
+    const lcCreate = await httpPostApi({
+      action: 'createServiceBooking',
+      bookingData: {
+        customerId: 'cust_sj_1',
+        serviceCategoryId: 'car_washing',
+        serviceType: 'Quick Wash',
+        scheduledDate: todayIso,
+        bookingSource: 'admin',
+        legacyCompatibility: true
       }
     }, adminToken);
     assert.strictEqual(lcCreate.status, 200);

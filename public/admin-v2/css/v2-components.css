@@ -3929,19 +3929,20 @@ body.cwp-v2-modal-open {
 
 .cwp-v2-root .cwp-v2-login-brand {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .cwp-v2-root .cwp-v2-login-logo {
-  width: 240px;
+  width: 56px;
+  height: 56px;
   max-width: 100%;
-  height: 82px;
   object-fit: cover;
   object-position: center;
-  margin: 0 auto 12px;
+  margin: 0 auto 14px;
   display: block;
-  border: 0;
-  border-radius: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(11, 26, 43, 0.08);
+  box-shadow: 0 4px 14px -2px rgba(11, 26, 43, 0.12), 0 2px 6px -1px rgba(11, 26, 43, 0.06);
 }
 
 .cwp-v2-root .cwp-v2-login-remember {

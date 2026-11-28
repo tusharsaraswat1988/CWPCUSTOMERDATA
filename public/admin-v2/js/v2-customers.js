@@ -816,7 +816,7 @@
         <div id="v2CustSeeBalance" aria-live="polite">Loading canonical entitlement balance…</div>
       </div>
       <div>
-        <div class="cwp-v2-cust-section-title"><span>Service &amp; booking history</span><button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-xs" id="v2CustManageBookings">Manage bookings</button></div>
+        <div class="cwp-v2-cust-section-title"><span>Service &amp; booking history</span></div>
         <div id="v2CustSeeHistory" aria-live="polite">Loading recorded service history…</div>
       </div>
     `;
@@ -856,7 +856,8 @@
         const assignedStaff = job.assigned_staff_name || job.staff_name || job.assignedStaffName || 'Unassigned';
         const scheduled = [job.scheduled_date || 'Unscheduled', job.scheduled_time || job.scheduledTime].filter(Boolean).join(' · ');
         const proofText = job.latest_execution_id ? ` · Proof ${Array.isArray(proof.before) ? proof.before.length : 0} before / ${Array.isArray(proof.after) ? proof.after.length : 0} after` : '';
-        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">${job.status === 'completed' ? 'check_circle' : 'event_note'}</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service booking')} · ${escapeHtml(job.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">${escapeHtml(scheduled)} · Staff ${escapeHtml(assignedStaff)} · ${canonical ? 'SEE canonical job' : 'Legacy job'} · Job ${escapeHtml(job.id)}</span><span class="cwp-v2-cust-activity-time">${executionText}${proofText}</span></div></div>`;
+        const bookingId = job.id || job.jobId || job.job_id;
+        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">${job.status === 'completed' ? 'check_circle' : 'event_note'}</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service booking')} · ${escapeHtml(job.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">${escapeHtml(scheduled)} · Staff ${escapeHtml(assignedStaff)} · ${canonical ? 'SEE canonical job' : 'Legacy job'} · Job ${escapeHtml(bookingId || '—')}</span><span class="cwp-v2-cust-activity-time">${executionText}${proofText}</span>${bookingId ? `<button type="button" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-xs" data-customer-booking-id="${escapeHtml(bookingId)}">View Booking</button>` : ''}</div></div>`;
       }).join('')}</div>` : '<div class="cwp-v2-cust-activity-time">No recorded service jobs.</div>';
     } catch (error) {
       historyEl.textContent = `Service history unavailable: ${error.message}`;
@@ -2108,11 +2109,13 @@
   }
 
   function bindDetailPanelEvents(cust) {
-    document.getElementById('v2CustManageBookings')?.addEventListener('click', () => {
-      window.CWP_ADMIN_V2.shell?.navigateTo('serviceAssign');
-    });
     const detailScroll = document.getElementById('v2CustDetailScroll');
     if (detailScroll) detailScroll.onclick = async (event) => {
+      const bookingButton = event.target.closest('[data-customer-booking-id]');
+      if (bookingButton) {
+        window.CWP_ADMIN_V2.bookings?.navigateToBooking(bookingButton.getAttribute('data-customer-booking-id'));
+        return;
+      }
       const ledgerButton = event.target.closest('[data-see-ledger]');
       if (!ledgerButton) return;
       const accountId = ledgerButton.getAttribute('data-see-ledger');

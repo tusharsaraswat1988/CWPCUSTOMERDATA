@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="/admin-v2/css/v2-tokens.css?v=2.2.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-base.css?v=2.2.1">
   <link rel="stylesheet" href="/admin-v2/css/v2-layout.css?v=2.2.1">
-  <link rel="stylesheet" href="/admin-v2/css/v2-components.css?v=2.2.0">
+  <link rel="stylesheet" href="/admin-v2/css/v2-components.css?v=2.2.1">
   <link rel="stylesheet" href="/admin-v2/css/v2-customers.css?v=2.2.1">
   <link rel="stylesheet" href="/admin-v2/css/v2-staff.css?v=2.2.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-bookings.css?v=2.2.0">
@@ -1071,7 +1071,7 @@
                     </button>
                     <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" style="margin-left:auto;">
                       <span class="material-symbols-outlined">add</span>
-                      <span>New Job</span>
+                      <span>Add Demo Row</span>
                     </button>
                   </div>
                 </div>
@@ -1625,9 +1625,9 @@
                       <span class="material-symbols-outlined">refresh</span>
                       <span>Refresh</span>
                     </button>
-                    <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" title="New operational booking">
+                    <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" title="Add sample record">
                       <span class="material-symbols-outlined">add</span>
-                      <span>New Job</span>
+                      <span>Add Demo Row</span>
                     </button>
                   </div>
                 </div>
@@ -4080,9 +4080,9 @@
                         <span class="material-symbols-outlined" style="font-size:15px;">refresh</span>
                         <span>Reset Data</span>
                       </button>
-                      <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" id="v2TableNewJobBtn" title="Create simulated job record">
+                      <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" id="v2TableNewJobBtn" title="Add simulated sample record">
                         <span class="material-symbols-outlined" style="font-size:15px;">add</span>
-                        <span>New Booking</span>
+                        <span>Add Demo Row</span>
                       </button>
                     </div>
 
@@ -5580,9 +5580,9 @@
                 <span>Quick Actions</span>
               </span>
               <div class="cwp-v2-dash-quick-actions">
-                <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-dash-quick-action="createBooking">
-                  <span class="material-symbols-outlined" aria-hidden="true">add_circle</span>
-                  <span>Create Booking</span>
+                <button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-dash-quick-action="openBookingQueue">
+                  <span class="material-symbols-outlined" aria-hidden="true">event_note</span>
+                  <span>Booking Queue</span>
                 </button>
                 <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-dash-quick-action="addCustomer">
                   <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
@@ -5924,7 +5924,7 @@
                   <span>Other Cleaning Status</span>
                   <span id="v2SjHeaderCount" class="cwp-v2-sj-count-pill">0 jobs</span>
                 </h2>
-                <p class="cwp-v2-sj-subtitle">Execution, completion, proof and exceptions. Create or manage bookings in Assign Booking.</p>
+                <p class="cwp-v2-sj-subtitle">Execution, completion, proof and exceptions. Use View Booking on a record to open it in the booking queue.</p>
               </div>
               <div class="cwp-v2-sj-top-actions">
                 <select id="v2SjPeriodSelect" class="cwp-v2-sj-period-select" aria-label="Date period">
@@ -5938,10 +5938,6 @@
                 <button type="button" id="v2SjBtnRefresh" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" title="Refresh Service Jobs">
                   <span class="material-symbols-outlined" style="font-size:16px;" aria-hidden="true">refresh</span>
                   <span>Refresh</span>
-                </button>
-                <button type="button" id="v2SjBtnManageBookings" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm">
-                  <span class="material-symbols-outlined" style="font-size:16px;" aria-hidden="true">event_note</span>
-                  <span>Manage bookings</span>
                 </button>
               </div>
             </div>
@@ -9850,9 +9846,9 @@
     <div id="v2LoginGate" class="cwp-v2-login-gate" role="dialog" aria-modal="true" aria-labelledby="v2LoginTitle" hidden style="display:none;">
       <div class="cwp-v2-login-card">
         <div class="cwp-v2-login-brand">
-          <img src="/images/brand/cwp-reverse.png" alt="CWP Detailers" class="cwp-v2-login-logo">
-          <h2 id="v2LoginTitle" style="font-size:18px; font-weight:700; color:var(--cwp-v2-sys-on-surface);">CWP Admin</h2>
-          <p style="font-size:12.5px; color:var(--cwp-v2-sys-on-surface-variant); margin-top:4px;">Sign in with your administrator password</p>
+          <img src="/cwp-logo.png" alt="CWP Detailers" class="cwp-v2-login-logo" width="56" height="56">
+          <h2 id="v2LoginTitle" style="font-size:20px; font-weight:700; color:var(--cwp-v2-sys-on-surface); letter-spacing:-0.02em; margin:0 0 6px;">CWP Admin</h2>
+          <p style="font-size:13px; color:var(--cwp-v2-sys-on-surface-variant); margin:0; line-height:1.45;">Sign in with your administrator password</p>
         </div>
 
         <form id="v2LoginForm" style="display:flex; flex-direction:column; gap:14px;">
@@ -9902,18 +9898,18 @@
   <script src="/admin-v2/js/v2-auth.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-overlay.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-search.js?v=2.1.3"></script>
-  <script src="/admin-v2/js/v2-notifications.js?v=2.1.3"></script>
+  <script src="/admin-v2/js/v2-notifications.js?v=2.1.4"></script>
   <script src="/admin-v2/js/v2-shell.js?v=2.1.3"></script>
-  <script src="/admin-v2/js/v2-customers.js?v=2.1.4"></script>
-  <script src="/admin-v2/js/v2-staff.js?v=2.1.6"></script>
+  <script src="/admin-v2/js/v2-customers.js?v=2.1.5"></script>
+  <script src="/admin-v2/js/v2-staff.js?v=2.1.7"></script>
   <script src="/admin-v2/js/v2-bookings.js?v=2.1.3"></script>
   <script src="/admin-v2/js/v2-leads.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-track-staff.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-clean-reports.js?v=2.1.2"></script>
-  <script src="/admin-v2/js/v2-special-jobs.js?v=2.1.3"></script>
+  <script src="/admin-v2/js/v2-special-jobs.js?v=2.1.4"></script>
   <script src="/admin-v2/js/v2-assign-jobs.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-sequence.js?v=2.1.2"></script>
-  <script src="/admin-v2/js/v2-dashboard.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-dashboard.js?v=2.1.3"></script>
   <script src="/admin-v2/js/v2-security.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-see-services.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-see-packages.js?v=2.1.4"></script>
@@ -9935,7 +9931,7 @@
         if (loaded) return;
         loaded = true;
         var s = document.createElement('script');
-        s.src = '/admin-v2/js/v2-playground.js?v=2.1.2';
+        s.src = '/admin-v2/js/v2-playground.js?v=2.1.3';
         s.defer = true;
         document.body.appendChild(s);
       }

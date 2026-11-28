@@ -1124,14 +1124,8 @@
     viewEl.querySelectorAll('[data-dash-quick-action]').forEach(btn => {
       btn.addEventListener('click', () => {
         const action = btn.getAttribute('data-dash-quick-action');
-        if (action === 'createBooking') {
-          navigateToModule('serviceAssign', {
-            afterNavigate: () => {
-              if (window.CWP_ADMIN_V2.bookings && typeof window.CWP_ADMIN_V2.bookings.openCreateModal === 'function') {
-                window.CWP_ADMIN_V2.bookings.openCreateModal();
-              }
-            }
-          });
+        if (action === 'openBookingQueue') {
+          navigateToModule('serviceAssign');
         } else if (action === 'addCustomer') {
           navigateToModule('records', {
             afterNavigate: () => {

@@ -4245,14 +4245,14 @@
           priority: "High",
           progress: 0,
           keyWithGuard: true,
-          notes: "Express evening dispatch booking created from playground."
+          notes: "Express evening sample row created in UI Lab."
         };
         currentData.unshift(newRecord);
         state.page = 1;
         render();
         showFeedback(`
           <span class="material-symbols-outlined" style="font-size:16px; color:var(--cwp-v2-status-success);">add_task</span>
-          <span>Simulated new operational booking created: <strong>${newId}</strong></span>
+          <span>Simulated sample record added: <strong>${newId}</strong></span>
         `);
       });
     }

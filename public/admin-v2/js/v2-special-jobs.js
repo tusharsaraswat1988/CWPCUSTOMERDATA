@@ -625,10 +625,10 @@
         if (st === 'in_progress') {
           primaryActionHtml = `<button type="button" class="cwp-v2-sj-act-btn is-primary" data-sj-action="complete" data-sj-id="${escapeHtml(id)}">Complete</button>`;
         } else {
-          primaryActionHtml = `<button type="button" class="cwp-v2-sj-act-btn" data-sj-action="manageBooking" data-sj-id="${escapeHtml(id)}">Manage booking</button>`;
+          primaryActionHtml = `<button type="button" class="cwp-v2-sj-act-btn" data-sj-action="manageBooking" data-sj-id="${escapeHtml(id)}">View Booking</button>`;
         }
       } else {
-        primaryActionHtml = `<button type="button" class="cwp-v2-sj-act-btn" data-sj-action="view" data-sj-id="${escapeHtml(id)}">Details</button>`;
+        primaryActionHtml = `<button type="button" class="cwp-v2-sj-act-btn" data-sj-action="manageBooking" data-sj-id="${escapeHtml(id)}">View Booking</button>`;
       }
 
       html += `<tr data-sj-row="${escapeHtml(id)}" class="${isSelected ? 'is-selected-row' : ''}">
@@ -873,8 +873,8 @@
 
     // Action buttons strictly adhering to backend PERMITTED_TRANSITIONS
     let actHtml = '';
+    actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-sj-detail-act="manageBooking">View Booking</button>`;
     if (!terminal) {
-      actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-sj-detail-act="manageBooking">Manage booking</button>`;
       if (st === 'requested' || st === 'booked' || st === 'pending' || st === 'assigned') {
         actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-sj-detail-act="start">Start Job</button>`;
       }
@@ -885,7 +885,7 @@
         actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-sj-detail-act="fail" style="color:#92400e;">Unable to Complete</button>`;
       }
     } else {
-      actHtml = `<span style="font-size:12px; color:#64748b;">Terminal state (${escapeHtml(stMeta.label)}) — read-only record</span>`;
+      actHtml += `<span style="font-size:12px; color:#64748b;">Terminal state (${escapeHtml(stMeta.label)}) — read-only record</span>`;
     }
     actions.innerHTML = actHtml;
   }
@@ -1022,11 +1022,6 @@
 
     const refreshBtn = document.getElementById('v2SjBtnRefresh');
     if (refreshBtn) refreshBtn.addEventListener('click', () => loadData());
-
-    const manageBookingsBtn = document.getElementById('v2SjBtnManageBookings');
-    if (manageBookingsBtn) manageBookingsBtn.addEventListener('click', () => {
-      window.CWP_ADMIN_V2.shell?.navigateTo('serviceAssign');
-    });
 
     const kpiStrip = document.getElementById('v2SjKpiStrip');
     if (kpiStrip) {

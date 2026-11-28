@@ -829,10 +829,16 @@
         ${(s._seeJobs || []).length ? s._seeJobs.slice(0, 20).map(job => `
           <div style="padding:7px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px; margin-bottom:5px;">
             <div style="font-weight:600;">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service job')} · ${escapeHtml(job.status || 'unknown')}</div>
-            <div style="font-size:11px; color:#64748b;">${escapeHtml(job.customer_name || 'Customer')} · ${escapeHtml(job.scheduled_date || 'Unscheduled')} · Job ${escapeHtml(job.id)}</div>
+            <div style="font-size:11px; color:#64748b;">${escapeHtml(job.customer_name || 'Customer')} · ${escapeHtml(job.scheduled_date || 'Unscheduled')} · Job ${escapeHtml(job.id || job.jobId || job.job_id)}</div>
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-xs" data-staff-booking-id="${escapeHtml(job.id || job.jobId || job.job_id)}">View Booking</button>
           </div>
         `).join('') : '<div style="font-size:12px; color:#64748b;">No canonical SEE jobs assigned.</div>'}
       `;
+
+      body.onclick = (event) => {
+        const bookingButton = event.target.closest('[data-staff-booking-id]');
+        if (bookingButton) window.CWP_ADMIN_V2.bookings?.navigateToBooking(bookingButton.getAttribute('data-staff-booking-id'));
+      };
 
     } else if (tab === 'performance') {
       const reports = s._todayReports || [];
