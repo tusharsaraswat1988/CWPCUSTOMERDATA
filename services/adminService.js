@@ -778,6 +778,27 @@ async function updateCustomer(custData, adminUser = 'admin') {
   }
 
   return db.withTransaction(async (client) => {
+    // Hybrid packages can only be assigned through hybridPackageService.purchase.
+    // Reject attempts to route a Hybrid catalogue identity through the legacy
+    // customer editor, even if a client bypasses the display-only UI control.
+    const requestedLegacyPackage = String(custData.packageType || custData.packageName || '').trim();
+    if (requestedLegacyPackage) {
+      const hybridTable = await client.query("SELECT to_regclass('public.hybrid_packages') AS table_name");
+      if (hybridTable.rows[0]?.table_name) {
+        const hybridMatch = await client.query(
+          `SELECT id FROM public.hybrid_packages
+           WHERE id::text = $1 OR lower(package_code) = lower($1) OR lower(name) = lower($1)
+           LIMIT 1`,
+          [requestedLegacyPackage]
+        );
+        if (hybridMatch.rows.length) {
+        const err = new Error('Hybrid packages must be assigned through the Hybrid purchase and provisioning workflow.');
+        err.code = 'HYBRID_PACKAGE_REQUIRES_ORCHESTRATION';
+        throw err;
+        }
+      }
+    }
+
     const rawBefore = await getCustomerById(customer.id);
 
     // 1. Update Customer Core
@@ -1148,7 +1169,7 @@ async function updateCustomer(custData, adminUser = 'admin') {
     const sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
     if (normCategory === 'Daily Car Cleaning') {
       if (sub) {
-        if (custData.packageType || custData.packageName) {
+        if (!custData.profileOnly && (custData.packageType || custData.packageName)) {
           await repos.subscriptions.updateSubscription(sub.id, {
             packageName: custData.packageType || custData.packageName
           }, client);
@@ -1166,7 +1187,7 @@ async function updateCustomer(custData, adminUser = 'admin') {
             reason: 'Customer unassigned by admin'
           }, client);
         }
-      } else {
+      } else if (!custData.profileOnly) {
         const newSub = await repos.subscriptions.createSubscription({
           customerId: customer.id,
           serviceCategoryId: 'daily_car_cleaning',
@@ -1181,7 +1202,7 @@ async function updateCustomer(custData, adminUser = 'admin') {
           }, client);
         }
       }
-    } else {
+    } else if (!custData.profileOnly) {
       // On-demand service category (Solar, Car Wash, Detailing)
       if (sub) {
         await repos.subscriptions.cancelSubscription(sub.id, client);
@@ -1239,6 +1260,25 @@ async function updateCustomer(custData, adminUser = 'admin') {
       } else if (targetJobId && hasExplicitStaffField && (sName.toLowerCase() === 'unassigned' || sId.toLowerCase() === 'unassigned')) {
         await repos.staffAssignments.unassignJob({
           jobId: targetJobId,
+          unassignedBy: adminUser,
+          reason: 'Customer unassigned by admin'
+        }, client);
+      }
+    } else {
+      // Profile-only edits may update staff on an existing on-demand job, but
+      // cannot change/create/cancel service or package records.
+      const existingJobs = await repos.serviceJobs.findByCustomerId(customer.id, { client });
+      const existingJob = existingJobs[0];
+      if (existingJob && targetStaff) {
+        await repos.staffAssignments.assignStaffToJob({
+          staffId: targetStaff.id,
+          jobId: existingJob.id,
+          assignedBy: adminUser
+        }, client);
+      } else if (existingJob && hasExplicitStaffField &&
+        (sName.toLowerCase() === 'unassigned' || sId.toLowerCase() === 'unassigned')) {
+        await repos.staffAssignments.unassignJob({
+          jobId: existingJob.id,
           unassignedBy: adminUser,
           reason: 'Customer unassigned by admin'
         }, client);

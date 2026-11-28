@@ -8584,6 +8584,35 @@ function loadStaffCustomerData(staffId) {
         pkgSelect.value = pkgSelect.options[0].value;
       }
       handleEditPackageTypeChange(pkgSelect.value);
+      markEditPackageAsDisplayOnly();
+    }
+
+    // This legacy profile editor has no package provisioning contract. Keep the
+    // saved package visible for compatibility, but never imply that editing it
+    // assigns DCC/SEE entitlements or creates a Hybrid membership.
+    function markEditPackageAsDisplayOnly() {
+      var categorySelect = document.getElementById('editCustCategory');
+      var pkgSelect = document.getElementById('editCustPkgType');
+      var customInput = document.getElementById('editCustPkgTypeCustom');
+      if (categorySelect) {
+        categorySelect.disabled = true;
+        categorySelect.setAttribute('aria-describedby', 'editCustPackageAssignmentNote');
+      }
+      if (pkgSelect) {
+        pkgSelect.disabled = true;
+        pkgSelect.setAttribute('aria-describedby', 'editCustPackageAssignmentNote');
+        pkgSelect.title = 'Display only: package assignment requires its service engine workflow.';
+      }
+      if (customInput) customInput.disabled = true;
+      if (document.getElementById('editCustPackageAssignmentNote')) return;
+      var anchor = customInput || pkgSelect;
+      var parent = anchor && anchor.parentElement;
+      if (!parent) return;
+      var note = document.createElement('small');
+      note.id = 'editCustPackageAssignmentNote';
+      note.className = 'form-help-text';
+      note.textContent = 'Current service and legacy package label (display only). Assignment changes must use the service engine workflow; Hybrid memberships require Hybrid provisioning.';
+      parent.appendChild(note);
     }
 
     function syncPackageAndVehicleSeater(mode, pkgVal) {
@@ -11182,6 +11211,7 @@ function loadStaffCustomerData(staffId) {
           customPkgInput.value = customVal;
         }
       }
+      markEditPackageAsDisplayOnly();
 
       /* Populate Staff Dropdown with Unassigned option and preserve assigned staff */
       var staffSelect = document.getElementById('editCustStaff');
@@ -14022,6 +14052,7 @@ function loadStaffCustomerData(staffId) {
         staffName: editStaffName,
         staffId: editStaffId,
         serviceCategory: serviceCategory,
+        profileOnly: true,
         serviceType: resolvedServiceType,
         panelCount: panelCountVal,
         panel_count: panelCountVal,

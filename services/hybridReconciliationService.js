@@ -21,7 +21,7 @@ async function inspectSee(client,m,c){
 }
 async function reconcileMembership(id,{actor='admin'}={}){
   const m=await db.query('SELECT * FROM public.hybrid_memberships WHERE id=$1',[id]);if(!m.rows[0])throw Object.assign(new Error('Hybrid membership not found.'),{statusCode:404});
-  const membership=m.rows[0];if(['cancelled','expired'].includes(membership.status))return{membership:await recovery.getMembership(id),classification:'terminal_membership',repaired:false};
+  const membership=m.rows[0];if(['cancelled','expired','cancellation_pending','renewal_pending'].includes(membership.status))return{membership:await recovery.getMembership(id),classification:'lifecycle_operation_in_progress_or_terminal',repaired:false};
   const comps=await db.query('SELECT * FROM public.hybrid_membership_components WHERE membership_id=$1 ORDER BY component_key',[id]);const findings=[];let manual=false;
   const expected={DCC:comps.rows.filter(c=>c.engine==='DCC'),SEE:comps.rows.filter(c=>c.engine==='SEE')};
   if(expected.DCC.length!==1||expected.SEE.length!==1||comps.rows.length!==2){

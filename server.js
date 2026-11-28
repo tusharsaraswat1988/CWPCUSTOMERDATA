@@ -1923,6 +1923,7 @@ function enrichJobForApi(job, staffRecord = null) {
 }
 
 const server = http.createServer(async (req, res) => {
+  try {
   // Production Security Headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -2467,15 +2468,23 @@ const server = http.createServer(async (req, res) => {
     }
     let body = '';
     let received = 0;
+    let aborted = false;
     req.on('data', chunk => {
+      if (aborted) return;
       received += chunk.length;
       if (received > 1024 * 1024) {
-        res.writeHead(413, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ success: false, error: 'Payload too large' }));
+        aborted = true;
+        req.resume();
+        if (!res.headersSent && !res.writableEnded && !res.destroyed) {
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Payload too large' }));
+        }
+        return;
       }
       body += chunk;
     });
     req.on('end', async () => {
+      if (aborted) return;
       try {
         const updates = JSON.parse(body || '{}');
         const updated = await homepageConfigService.updateHomepageConfig(updates);
@@ -2493,15 +2502,23 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && (pathname === '/api/leads' || pathname === '/api/public/book')) {
     let body = '';
     let received = 0;
+    let aborted = false;
     req.on('data', chunk => {
+      if (aborted) return;
       received += chunk.length;
       if (received > 1024 * 1024) {
-        res.writeHead(413, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ success: false, error: 'Payload too large' }));
+        aborted = true;
+        req.resume();
+        if (!res.headersSent && !res.writableEnded && !res.destroyed) {
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Payload too large' }));
+        }
+        return;
       }
       body += chunk;
     });
     req.on('end', async () => {
+      if (aborted) return;
       try {
         const payload = JSON.parse(body || '{}');
         const name = (payload.name || payload.customerName || '').trim();
@@ -2562,15 +2579,23 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pathname === '/api/careers/apply') {
     let body = '';
     let received = 0;
+    let aborted = false;
     req.on('data', chunk => {
+      if (aborted) return;
       received += chunk.length;
       if (received > 15 * 1024 * 1024) {
-        res.writeHead(413, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ success: false, error: 'Payload exceeds 15MB limit' }));
+        aborted = true;
+        req.resume();
+        if (!res.headersSent && !res.writableEnded && !res.destroyed) {
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Payload exceeds 15MB limit' }));
+        }
+        return;
       }
       body += chunk;
     });
     req.on('end', async () => {
+      if (aborted) return;
       try {
         const payload = JSON.parse(body || '{}');
         const application = await careerService.submitJobApplication(payload, payload.fileData);
@@ -8117,8 +8142,10 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ success: false, error: 'Unknown or unsupported action: ' + (payload.action || '') }));
       } catch (parseErr) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON payload: ' + parseErr.message }));
+        if (!res.headersSent && !res.writableEnded && !res.destroyed) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON payload: ' + parseErr.message }));
+        }
       }
     });
     return;
@@ -8135,15 +8162,18 @@ const server = http.createServer(async (req, res) => {
       uploadImage: uploadToCloudinary,
       broadcastSpecialJobChange: broadcastAuthoritativeSpecialJobEvent
     });
-    if (handled) return;
+    if (handled === true || res.headersSent || res.writableEnded) return;
   }
 
   // =========================================================================
   // MAIN UI ROUTE (Index.html) - In-Memory Cached for High Concurrency
   // =========================================================================
   if (pathname.startsWith('/api/')) {
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ error: 'Endpoint Not Found', pathname }));
+    if (!res.headersSent && !res.writableEnded && !res.destroyed) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Endpoint Not Found', pathname }));
+    }
+    return;
   }
 
   const normPath = parsedUrl.pathname.toLowerCase().replace(/\/+$/, '');
@@ -8244,6 +8274,16 @@ const server = http.createServer(async (req, res) => {
 
   res.writeHead(404, { 'Content-Type': 'text/plain' });
   res.end('Index.html not found');
+  } catch (err) {
+    const safePath = (req && req.url ? req.url.split('?')[0] : '/');
+    console.error(`[Server] Unhandled request error (${req && req.method ? req.method : 'UNKNOWN'} ${safePath}):`, err && err.message ? err.message : err);
+    if (!res.headersSent && !res.writableEnded && !res.destroyed) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Internal Server Error' }));
+    } else if (!res.writableEnded && !res.destroyed) {
+      try { res.end(); } catch (_) {}
+    }
+  }
 });
 
 if (require.main === module) {

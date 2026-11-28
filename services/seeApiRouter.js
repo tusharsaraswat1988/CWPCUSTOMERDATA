@@ -19,8 +19,10 @@ const hybridRecoveryService = require('./hybridRecoveryService');
 const hybridReconciliationService = require('./hybridReconciliationService');
 
 function sendJson(res, statusCode, payload) {
+  if (res.headersSent || res.writableEnded || res.destroyed) return true;
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(payload));
+  return true;
 }
 
 function readJsonBody(req, maxBytes = 1024 * 1024) {
@@ -122,6 +124,16 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
         try {const memberships=await hybridRecoveryService.listRecovery({limit:parsePagination(parsedUrl.searchParams).limit});return sendJson(res,200,{success:true,memberships});}
         catch(err){console.error('[Hybrid recovery] Status query failed.',err.code||'UNKNOWN');return sendJson(res,500,{success:false,error:'Hybrid recovery status could not be loaded.'});}
       }
+      if (pathname === '/api/see/hybrid/memberships' && method === 'GET') {
+        if (!requireAdmin()) return true;
+        try {const memberships=await hybridPackageService.listMemberships({limit:parsePagination(parsedUrl.searchParams).limit});return sendJson(res,200,{success:true,memberships});}
+        catch(err){console.error('[Hybrid lifecycle] Membership query failed.',err.code||'UNKNOWN');return sendJson(res,500,{success:false,error:'Hybrid memberships could not be loaded.'});}
+      }
+      if (pathname === '/api/see/hybrid/expiry/run' && method === 'POST') {
+        if (!requireAdmin()) return true;
+        try {const result=await hybridPackageService.expireDueMemberships({actor});return sendJson(res,200,{success:true,result});}
+        catch(err){console.error('[Hybrid lifecycle] Expiry run failed.',err.code||'UNKNOWN');return sendJson(res,500,{success:false,error:'Hybrid expiry processing could not be completed.'});}
+      }
       if (pathname === '/api/see/hybrid/reconciliation/run' && method === 'POST') {
         if (!requireAdmin()) return true;
         try {const results=await hybridReconciliationService.reconcileAll({actor});return sendJson(res,200,{success:true,results});}
@@ -179,15 +191,23 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
       hm = pathname.match(/^\/api\/see\/hybrid\/memberships\/([^/]+)\/cancel$/);
       if (hm && method === 'POST') {
         if (!requireAdmin()) return true;
-        const body = await readJsonBody(req);
-        const membership = await hybridPackageService.cancel(decodeURIComponent(hm[1]), { actor, reason: body.reason });
-        return sendJson(res, 200, { success: true, membership });
+        let id;try{id=decodeURIComponent(hm[1]);}catch(_){return sendJson(res,400,{success:false,error:'Invalid hybrid membership ID.'});}
+        if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return sendJson(res,400,{success:false,error:'Invalid hybrid membership ID.'});
+        try{const body = await readJsonBody(req);const membership = await hybridPackageService.cancel(id, { actor, reason: body.reason });return sendJson(res, 200, { success: true, membership });}
+        catch(err){if(err.statusCode)return sendJson(res,err.statusCode,{success:false,error:err.message});console.error('[Hybrid lifecycle] Cancellation failed.',err.code||'UNKNOWN');return sendJson(res,500,{success:false,error:'Hybrid cancellation request could not be completed.'});}
       }
       hm = pathname.match(/^\/api\/see\/hybrid\/memberships\/([^/]+)\/renew$/);
       if (hm && method === 'POST') {
         if (!requireAdmin()) return true;
-        const membership = await hybridPackageService.renew(decodeURIComponent(hm[1]), { actor });
-        return sendJson(res, 200, { success: true, membership });
+        let id;try{id=decodeURIComponent(hm[1]);}catch(_){return sendJson(res,400,{success:false,error:'Invalid hybrid membership ID.'});}
+        if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return sendJson(res,400,{success:false,error:'Invalid hybrid membership ID.'});
+        try{const body=await readJsonBody(req);const membership=await hybridPackageService.renew(id,{actor,idempotencyKey:body.idempotencyKey,paymentReference:body.paymentReference,price:body.price});const renewal=membership?.renewals?.[0];const complete=renewal?.status==='active';return sendJson(res,complete?200:202,{success:true,completed:complete,accepted:!complete,membership,renewal});}
+        catch(err){if(err.statusCode)return sendJson(res,err.statusCode,{success:false,error:err.message});console.error('[Hybrid lifecycle] Renewal failed.',err.code||'UNKNOWN');return sendJson(res,500,{success:false,error:'Hybrid renewal could not be completed.'});}
+      }
+      hm = pathname.match(/^\/api\/see\/hybrid\/renewals\/([^/]+)\/retry$/);
+      if(hm&&method==='POST'){
+        if(!requireAdmin())return true;let id;try{id=decodeURIComponent(hm[1]);}catch(_){return sendJson(res,400,{success:false,error:'Invalid hybrid renewal ID.'});}if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return sendJson(res,400,{success:false,error:'Invalid hybrid renewal ID.'});
+        try{const membership=await hybridPackageService.retryRenewal(id,{actor});const renewal=membership?.renewals?.find(x=>String(x.id)===id);return sendJson(res,renewal?.status==='active'?200:202,{success:true,completed:renewal?.status==='active',accepted:renewal?.status!=='active',membership,renewal});}catch(err){if(err.statusCode)return sendJson(res,err.statusCode,{success:false,error:err.message});console.error('[Hybrid lifecycle] Renewal retry failed.',err.code||'UNKNOWN');return sendJson(res,500,{success:false,error:'Hybrid renewal could not be retried.'});}
       }
       return sendJson(res, 404, { success: false, error: 'Hybrid package endpoint not found.' });
     }

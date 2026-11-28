@@ -14,6 +14,7 @@
   let reconnectTimer = null;
   let pulseTimer = null;
   let badgeDebounceTimer = null;
+  let badgeRefreshPromise = null;
   let initialized = false;
   let active = false;
   let auditLogsUnsupported = false;
@@ -114,10 +115,12 @@
   }
 
   async function refreshBadges() {
+    if (badgeRefreshPromise) return badgeRefreshPromise;
     const api = window.CWP_ADMIN_V2.api;
     const auth = window.CWP_ADMIN_V2.auth;
     if (!api || !auth || !auth.getToken()) return;
 
+    badgeRefreshPromise = (async () => {
     const results = await Promise.allSettled([
       api.request('getAllCustomers', {}),
       api.request('getLeads', {}),
@@ -239,6 +242,13 @@
     state.lastSyncAt = new Date();
     updateSsePillUI();
     window.dispatchEvent(new CustomEvent('cwp-v2:live-data-updated', { detail: { snapshots: state.snapshots } }));
+    })();
+
+    try {
+      return await badgeRefreshPromise;
+    } finally {
+      badgeRefreshPromise = null;
+    }
   }
 
   function scheduleBadgeRefresh() {
@@ -932,22 +942,37 @@
     }
   }
 
+  const BADGE_POLL_INTERVAL_MS = 15000;
+
+  function scheduleNextPulse() {
+    if (pulseTimer) {
+      clearTimeout(pulseTimer);
+      pulseTimer = null;
+    }
+    if (!active) return;
+    pulseTimer = setTimeout(async () => {
+      pulseTimer = null;
+      if (!active) return;
+      if (document.visibilityState === 'visible' && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+        try {
+          await refreshBadges();
+        } catch (_) {}
+      }
+      scheduleNextPulse();
+    }, BADGE_POLL_INTERVAL_MS);
+  }
+
   async function syncNow() {
-    await Promise.allSettled([refreshBadges(), refreshNotificationFeed()]);
+    await refreshBadges().catch(() => {});
+    await refreshNotificationFeed().catch(() => {});
   }
 
   function start() {
     active = true;
     connectSse();
-    syncNow().catch(() => {});
-
-    if (pulseTimer) clearInterval(pulseTimer);
-    pulseTimer = setInterval(() => {
-      if (!active) return;
-      if (document.visibilityState !== 'visible') return;
-      if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
-      refreshBadges().catch(() => {});
-    }, 15000);
+    syncNow().catch(() => {}).finally(() => {
+      scheduleNextPulse();
+    });
   }
 
   function stop() {
@@ -958,7 +983,7 @@
       reconnectTimer = null;
     }
     if (pulseTimer) {
-      clearInterval(pulseTimer);
+      clearTimeout(pulseTimer);
       pulseTimer = null;
     }
     if (badgeDebounceTimer) {
@@ -1077,6 +1102,17 @@
       const tab = e.detail && e.detail.tab;
       if (tab === 'cleanReports' || tab === 'specialJobs') {
         clearTabAttention(tab);
+      }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!active || document.visibilityState !== 'visible') return;
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+      const elapsed = state.lastSyncAt ? (Date.now() - state.lastSyncAt.getTime()) : BADGE_POLL_INTERVAL_MS;
+      if (elapsed >= BADGE_POLL_INTERVAL_MS) {
+        refreshBadges().catch(() => {}).finally(() => {
+          scheduleNextPulse();
+        });
       }
     });
 
