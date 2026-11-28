@@ -1,4 +1,4 @@
-/**
+﻿/**
  * =========================================================================
  * CWP Staff Information Viewer - Node.js Production Server for Railway
  * CWP Detailers & Motors
@@ -993,7 +993,7 @@ function parseVehicleDetails(vehicleStr) {
 
   if (match) {
     reg = match[1].toUpperCase().replace(/\s+/g, ' ');
-    const remaining = raw.replace(match[0], '').replace(/^[-–—:,/|\s()]+|[-–—:,/|\s()]+$/g, '').trim();
+    const remaining = raw.replace(match[0], '').replace(/^[-â€“â€”:,/|\s()]+|[-â€“â€”:,/|\s()]+$/g, '').trim();
     model = (remaining.toLowerCase() === 'vehicle' || remaining.toLowerCase() === 'car') ? '' : remaining;
   } else if (raw.includes('-')) {
     const parts = raw.split('-');
@@ -1010,13 +1010,13 @@ function parseVehicleDetails(vehicleStr) {
   }
 
   if (model) {
-    model = model.replace(/^[-–—:,/|\s()]+|[-–—:,/|\s()]+$/g, '').trim();
-    if (/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(model)) {
+    model = model.replace(/^[-â€“â€”:,/|\s()]+|[-â€“â€”:,/|\s()]+$/g, '').trim();
+    if (/^(vehicle|car|à¤—à¤¾à¥œà¥€|à¤—à¤¾à¤¡à¤¼à¥€)$/i.test(model)) {
       model = '';
     }
   }
   if (reg) {
-    reg = reg.replace(/\s*[-–—]\s*(vehicle|car|गाड़ी|गाड़ी)$/i, '').trim();
+    reg = reg.replace(/\s*[-â€“â€”]\s*(vehicle|car|à¤—à¤¾à¥œà¥€|à¤—à¤¾à¤¡à¤¼à¥€)$/i, '').trim();
   }
 
   return {
@@ -1461,7 +1461,7 @@ function classifyServiceCategory(sheetName, serviceType, packageType, packageDet
   // 5. Handling unknown / ambiguous values safely:
   // If the sheet is 'All Other Work' (which holds car washing and solar):
   // Since solar was already checked and false, unknown work in 'All Other Work'
-  // maps safely to 'Car Washing' — NEVER into 'Daily Car Cleaning'!
+  // maps safely to 'Car Washing' â€” NEVER into 'Daily Car Cleaning'!
   return 'Car Washing';
 }
 
@@ -3242,7 +3242,7 @@ const server = http.createServer(async (req, res) => {
 
           if ((!cleanPhone && !staffId) || !pin) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'पंजीकृत मोबाइल नंबर और 6-अंकों का पिन दोनों आवश्यक हैं।' }));
+            return res.end(JSON.stringify({ success: false, error: 'à¤ªà¤‚à¤œà¥€à¤•à¥ƒà¤¤ à¤®à¥‹à¤¬à¤¾à¤‡à¤² à¤¨à¤‚à¤¬à¤° à¤”à¤° 6-à¤…à¤‚à¤•à¥‹à¤‚ à¤•à¤¾ à¤ªà¤¿à¤¨ à¤¦à¥‹à¤¨à¥‹à¤‚ à¤†à¤µà¤¶à¥à¤¯à¤• à¤¹à¥ˆà¤‚à¥¤' }));
           }
 
           if (isNeonPrimaryActive()) {
@@ -3312,18 +3312,18 @@ const server = http.createServer(async (req, res) => {
           if (!staff) {
             recordFailedLogin(clientIp, rateKey);
             res.writeHead(404, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'यह मोबाइल नंबर या स्टाफ आईडी पंजीकृत नहीं मिला।' }));
+            return res.end(JSON.stringify({ success: false, error: 'à¤¯à¤¹ à¤®à¥‹à¤¬à¤¾à¤‡à¤² à¤¨à¤‚à¤¬à¤° à¤¯à¤¾ à¤¸à¥à¤Ÿà¤¾à¤« à¤†à¤ˆà¤¡à¥€ à¤ªà¤‚à¤œà¥€à¤•à¥ƒà¤¤ à¤¨à¤¹à¥€à¤‚ à¤®à¤¿à¤²à¤¾à¥¤' }));
           }
 
           const isActive = staff.active !== undefined ? (staff.active === true || staff.active === 'Yes' || staff.active === 'yes' || staff.active === 'Active') : true;
           if (!isActive) {
             res.writeHead(403, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, inactive: true, error: 'आपका स्टाफ अकाउंट निष्क्रिय (Inactive) कर दिया गया है। कृपया अपने एडमिन से संपर्क करें।' }));
+            return res.end(JSON.stringify({ success: false, inactive: true, error: 'à¤†à¤ªà¤•à¤¾ à¤¸à¥à¤Ÿà¤¾à¤« à¤…à¤•à¤¾à¤‰à¤‚à¤Ÿ à¤¨à¤¿à¤·à¥à¤•à¥à¤°à¤¿à¤¯ (Inactive) à¤•à¤° à¤¦à¤¿à¤¯à¤¾ à¤—à¤¯à¤¾ à¤¹à¥ˆà¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤…à¤ªà¤¨à¥‡ à¤à¤¡à¤®à¤¿à¤¨ à¤¸à¥‡ à¤¸à¤‚à¤ªà¤°à¥à¤• à¤•à¤°à¥‡à¤‚à¥¤' }));
           }
 
           if (!staff.pin || !isValidCredentialFormat(staff.pin)) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'इस स्टाफ अकाउंट के लिए पिन सेट नहीं है। कृपया एडमिन से संपर्क करें।' }));
+            return res.end(JSON.stringify({ success: false, error: 'à¤‡à¤¸ à¤¸à¥à¤Ÿà¤¾à¤« à¤…à¤•à¤¾à¤‰à¤‚à¤Ÿ à¤•à¥‡ à¤²à¤¿à¤ à¤ªà¤¿à¤¨ à¤¸à¥‡à¤Ÿ à¤¨à¤¹à¥€à¤‚ à¤¹à¥ˆà¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤à¤¡à¤®à¤¿à¤¨ à¤¸à¥‡ à¤¸à¤‚à¤ªà¤°à¥à¤• à¤•à¤°à¥‡à¤‚à¥¤' }));
           }
 
           const isPinValid = verifyPin(pin, staff.pin);
@@ -3346,7 +3346,7 @@ const server = http.createServer(async (req, res) => {
                 return res.end(JSON.stringify({
                   success: false,
                   sessionConflict: true,
-                  error: 'यह स्टाफ अकाउंट पहले से किसी अन्य मोबाइल/डिवाइस पर एक्टिव है। सुरक्षा और गोपनीयता के लिए नया लॉगिन ब्लॉक किया गया है। कृपया पहले पुराने फोन से लॉगआउट करें या एडमिन से रीसेट करवाएं।'
+                  error: 'à¤¯à¤¹ à¤¸à¥à¤Ÿà¤¾à¤« à¤…à¤•à¤¾à¤‰à¤‚à¤Ÿ à¤ªà¤¹à¤²à¥‡ à¤¸à¥‡ à¤•à¤¿à¤¸à¥€ à¤…à¤¨à¥à¤¯ à¤®à¥‹à¤¬à¤¾à¤‡à¤²/à¤¡à¤¿à¤µà¤¾à¤‡à¤¸ à¤ªà¤° à¤à¤•à¥à¤Ÿà¤¿à¤µ à¤¹à¥ˆà¥¤ à¤¸à¥à¤°à¤•à¥à¤·à¤¾ à¤”à¤° à¤—à¥‹à¤ªà¤¨à¥€à¤¯à¤¤à¤¾ à¤•à¥‡ à¤²à¤¿à¤ à¤¨à¤¯à¤¾ à¤²à¥‰à¤—à¤¿à¤¨ à¤¬à¥à¤²à¥‰à¤• à¤•à¤¿à¤¯à¤¾ à¤—à¤¯à¤¾ à¤¹à¥ˆà¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤ªà¤¹à¤²à¥‡ à¤ªà¥à¤°à¤¾à¤¨à¥‡ à¤«à¥‹à¤¨ à¤¸à¥‡ à¤²à¥‰à¤—à¤†à¤‰à¤Ÿ à¤•à¤°à¥‡à¤‚ à¤¯à¤¾ à¤à¤¡à¤®à¤¿à¤¨ à¤¸à¥‡ à¤°à¥€à¤¸à¥‡à¤Ÿ à¤•à¤°à¤µà¤¾à¤à¤‚à¥¤'
                 }));
               }
             }
@@ -3376,7 +3376,7 @@ const server = http.createServer(async (req, res) => {
           } else {
             recordFailedLogin(clientIp, rateKey);
             res.writeHead(401, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'गलत 6-डिजिट पासवर्ड! कृपया सही पिन दर्ज करें।' }));
+            return res.end(JSON.stringify({ success: false, error: 'à¤—à¤²à¤¤ 6-à¤¡à¤¿à¤œà¤¿à¤Ÿ à¤ªà¤¾à¤¸à¤µà¤°à¥à¤¡! à¤•à¥ƒà¤ªà¤¯à¤¾ à¤¸à¤¹à¥€ à¤ªà¤¿à¤¨ à¤¦à¤°à¥à¤œ à¤•à¤°à¥‡à¤‚à¥¤' }));
           }
         }
 
@@ -3981,7 +3981,7 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(neonUpdateRes));
             } catch (err) {
-              const statusCode = err.code === 'HYBRID_PACKAGE_REQUIRES_ORCHESTRATION' ? 400 : 500;
+              const statusCode = 500;
               res.writeHead(statusCode, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: false,
@@ -5248,7 +5248,7 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(neonUpdateRes));
             } catch (err) {
-              const statusCode = err.code === 'HYBRID_PACKAGE_REQUIRES_ORCHESTRATION' ? 400 : 500;
+              const statusCode = 500;
               res.writeHead(statusCode, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({
                 success: false,
@@ -5480,7 +5480,7 @@ const server = http.createServer(async (req, res) => {
           const isCarNotPresent = Boolean(payload.carNotPresent || payload.tag === 'car_not_present');
           const effectiveTag = payload.tag || (isCarNotPresent ? 'car_not_present' : null);
           const effectiveStatus = payload.status || (isCarNotPresent ? 'car_not_present' : 'completed');
-          const effectiveNotes = payload.notes || (isCarNotPresent ? 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)' : 'Daily clean verified with photo proof');
+          const effectiveNotes = payload.notes || (isCarNotPresent ? 'Car not present (à¤—à¤¾à¤¡à¤¼à¥€ à¤ªà¤¾à¤°à¥à¤•à¤¿à¤‚à¤— à¤®à¥‡à¤‚ à¤®à¥Œà¤œà¥‚à¤¦ à¤¨à¤¹à¥€à¤‚ à¤¥à¥€ - à¤–à¤¾à¤²à¥€ à¤¸à¥à¤ªà¥‰à¤Ÿ à¤«à¥‹à¤Ÿà¥‹)' : 'Daily clean verified with photo proof');
 
           // Evidence Validation: Mandatory photo proof for completed daily cleaning (field staff)
           if (staffSess && !adminSess && effectiveStatus === 'completed' && !uploadedPhotoUrl) {
@@ -5882,7 +5882,7 @@ const server = http.createServer(async (req, res) => {
               totalAssigned: staffCleaned.length,
               lastPunchTime: staffCleaned.length > 0 ? staffCleaned[0].completed_at_device : null,
               lastLocation: staffCleaned.length > 0 ? (staffCleaned[0].address_text || 'Field') : null,
-              status: staffCleaned.length > 0 ? 'Active on Route 🟢' : 'Shift Starting ⏳'
+              status: staffCleaned.length > 0 ? 'Active on Route ðŸŸ¢' : 'Shift Starting â³'
             };
           });
 
@@ -5966,7 +5966,7 @@ const server = http.createServer(async (req, res) => {
           appState.serviceLogs[logIdx].admin_updated_at = new Date().toISOString();
           appState.serviceLogs[logIdx].admin_updated_by = adminSess.username || 'admin';
           if (isCnp) {
-            appState.serviceLogs[logIdx].notes = 'Car not present (गाड़ी पार्किंग में मौजूद नहीं थी - खाली स्पॉट फोटो)';
+            appState.serviceLogs[logIdx].notes = 'Car not present (à¤—à¤¾à¤¡à¤¼à¥€ à¤ªà¤¾à¤°à¥à¤•à¤¿à¤‚à¤— à¤®à¥‡à¤‚ à¤®à¥Œà¤œà¥‚à¤¦ à¤¨à¤¹à¥€à¤‚ à¤¥à¥€ - à¤–à¤¾à¤²à¥€ à¤¸à¥à¤ªà¥‰à¤Ÿ à¤«à¥‹à¤Ÿà¥‹)';
           } else {
             appState.serviceLogs[logIdx].notes = 'Daily clean verified with photo proof';
           }
@@ -7287,7 +7287,7 @@ const server = http.createServer(async (req, res) => {
           try {
             const routes = await routeService.getAllRoutes(payload);
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(routes));
+            return res.end(JSON.stringify({ success: true, count: routes.length, routes }));
           } catch (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: false, error: err.message }));
@@ -7872,7 +7872,7 @@ const server = http.createServer(async (req, res) => {
             if (isNeonConfigured()) {
               const existingJob = await repos.serviceJobs.findById(jobId);
               if (existingJob && (await seeExecutionService.detectSeeManagedJob(existingJob))) {
-                // Canonical SEE completion — never fall back to legacy bookingService on SEE failure
+                // Canonical SEE completion â€” never fall back to legacy bookingService on SEE failure
                 let staffObj = null;
                 if (staffSess && staffSess.staffId) {
                   staffObj = await repos.staff.findById(staffSess.staffId);
@@ -8272,7 +8272,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // 3. Staff Portal (Index.html — Admin V1 retired)
+  // 3. Staff Portal (Index.html â€” Admin V1 retired)
   const indexPath = path.join(__dirname, 'Index.html');
   if (fs.existsSync(indexPath)) {
     let content = getCachedIndexTemplate(indexPath);
@@ -8378,13 +8378,13 @@ if (require.main === module) {
 
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
-        console.error(`\n❌ [PORT CONFLICT] Port ${PORT} is already in use by another process!`);
-        console.error(`👉 An existing instance of the CWP server or another application is occupying port ${PORT}.`);
+        console.error(`\nâŒ [PORT CONFLICT] Port ${PORT} is already in use by another process!`);
+        console.error(`ðŸ‘‰ An existing instance of the CWP server or another application is occupying port ${PORT}.`);
         if (process.platform === 'win32') {
-          console.error(`👉 To free port ${PORT} in PowerShell, run:`);
+          console.error(`ðŸ‘‰ To free port ${PORT} in PowerShell, run:`);
           console.error(`   Stop-Process -Id (Get-NetTCPConnection -LocalPort ${PORT}).OwningProcess -Force\n`);
         } else {
-          console.error(`👉 To free port ${PORT} in terminal, run:`);
+          console.error(`ðŸ‘‰ To free port ${PORT} in terminal, run:`);
           console.error(`   fuser -k ${PORT}/tcp  # or: npx kill-port ${PORT}\n`);
         }
         process.exit(1);
@@ -8396,19 +8396,71 @@ if (require.main === module) {
 
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`=======================================================`);
-      console.log(`🚗 CWP Detailers & Motors - Staff Information Viewer`);
+      console.log(`ðŸš— CWP Detailers & Motors - Staff Information Viewer`);
       console.log(`=======================================================`);
-      console.log(`✔ Hardened Security & Functional Architecture Active`);
-      console.log(`✔ Environment: ${startupSummary.runtimeEnv}`);
-      console.log(`✔ Hosting: ${startupSummary.hostingEnv}`);
-      console.log(`✔ Server: ${startupSummary.serverEndpoint}`);
-      console.log(`✔ ${startupSummary.domainLabel}: ${startupSummary.domainUrl}`);
-      console.log(`✔ Database: ${startupSummary.dbTarget.databaseName} (${startupSummary.dbTarget.provider} | ${startupSummary.dbTarget.classification})`);
-      console.log(`✔ DB Host: ${startupSummary.dbTarget.sanitizedHost}`);
-      console.log(`✔ Migration Startup: ${startupSummary.migrationStatusLabel}`);
-      console.log(`✔ Cloudinary Status: ${isCloudinaryConfigured() ? 'Connected' : 'Pending Environment Variables'}`);
-      console.log(`✔ Admin Password: ${hasAdminPasswordConfigured() ? 'Configured' : 'NOT CONFIGURED (Must set ADMIN_PASSWORD)'}`);
+      console.log(`âœ” Hardened Security & Functional Architecture Active`);
+      console.log(`âœ” Environment: ${startupSummary.runtimeEnv}`);
+      console.log(`âœ” Hosting: ${startupSummary.hostingEnv}`);
+      console.log(`âœ” Server: ${startupSummary.serverEndpoint}`);
+      console.log(`âœ” ${startupSummary.domainLabel}: ${startupSummary.domainUrl}`);
+      console.log(`âœ” Database: ${startupSummary.dbTarget.databaseName} (${startupSummary.dbTarget.provider} | ${startupSummary.dbTarget.classification})`);
+      console.log(`âœ” DB Host: ${startupSummary.dbTarget.sanitizedHost}`);
+      console.log(`âœ” Migration Startup: ${startupSummary.migrationStatusLabel}`);
+      console.log(`âœ” Cloudinary Status: ${isCloudinaryConfigured() ? 'Connected' : 'Pending Environment Variables'}`);
+      console.log(`âœ” Admin Password: ${hasAdminPasswordConfigured() ? 'Configured' : 'NOT CONFIGURED (Must set ADMIN_PASSWORD)'}`);
       console.log(`=======================================================`);
+
+      // ── BRD IST Schedulers ─────────────────────────────────────────────
+      function msUntilISTTime(hh, mm) {
+        const now = new Date();
+        const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        let target = new Date(ist);
+        target.setHours(hh, mm, 0, 0);
+        if (target <= ist) target.setDate(target.getDate() + 1);
+        return target - ist;
+      }
+      function scheduleDCCGeneration() {
+        const ms = msUntilISTTime(5, 0);
+        setTimeout(async () => {
+          try {
+            if (typeof dccService !== 'undefined' && dccService.generateDailyJobs) {
+              await dccService.generateDailyJobs();
+              console.log('[Scheduler] DCC daily jobs generated at 05:00 IST');
+            }
+          } catch (e) { console.error('[Scheduler] DCC generation error:', e.message); }
+          scheduleDCCGeneration();
+        }, ms);
+        console.log('[Scheduler] DCC job generation in ' + Math.round(ms/60000) + 'min');
+      }
+      function scheduleDCCMissed() {
+        const ms = msUntilISTTime(23, 55);
+        setTimeout(async () => {
+          try {
+            if (typeof dccService !== 'undefined' && dccService.markMissedJobs) {
+              await dccService.markMissedJobs();
+              console.log('[Scheduler] DCC missed jobs marked at 23:55 IST');
+            }
+          } catch (e) { console.error('[Scheduler] DCC missed error:', e.message); }
+          scheduleDCCMissed();
+        }, ms);
+        console.log('[Scheduler] DCC missed marking in ' + Math.round(ms/60000) + 'min');
+      }
+      async function autoVerifyServiceJobs() {
+        try {
+          const setting = await repos.settings.get('auto_verify_hours').catch(() => ({ value: '24' }));
+          const hours = parseInt((setting && setting.value) || '24', 10);
+          const cutoff = new Date(Date.now() - hours * 3600 * 1000);
+          if (repos.serviceJobs && repos.serviceJobs.autoVerifyCompleted) {
+            const count = await repos.serviceJobs.autoVerifyCompleted(cutoff);
+            if (count > 0) console.log('[Scheduler] Auto-verified ' + count + ' service job(s)');
+          }
+        } catch (e) { console.error('[Scheduler] Auto-verify error:', e.message); }
+      }
+      scheduleDCCGeneration();
+      scheduleDCCMissed();
+      setInterval(autoVerifyServiceJobs, 60 * 60 * 1000);
+      autoVerifyServiceJobs();
+      // ───────────────────────────────────────────────────────────────────
     });
   };
 
@@ -8471,3 +8523,5 @@ module.exports = {
   broadcastAuthoritativeDailyCleanEvent,
   broadcastAuthoritativeSpecialJobEvent
 };
+
+

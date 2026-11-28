@@ -1,29 +1,26 @@
 /**
- * Barrel export for all 15 database repositories
+ * Barrel export for all 18 BRD v1.0 database repositories
  */
+
+'use strict';
+
 module.exports = {
   adminUsers: require('./adminUsersRepo'),
+  adminSecurity: require('./adminSecurityRepo'),
+  authSessions: require('./authSessionsRepo'),
+  auditLogs: require('./auditLogsRepo'),
+  customers: require('./customersRepo'),
+  serviceLocations: require('./serviceLocationsRepo'),
+  vehicles: require('./vehiclesRepo'),
+  solarInstallations: require('./solarInstallationsRepo'),
   staff: require('./staffRepo'),
   staffAuth: require('./staffAuthRepo'),
-  authSessions: require('./authSessionsRepo'),
-  customers: require('./customersRepo'),
-  vehicles: require('./vehiclesRepo'),
-  serviceLocations: require('./serviceLocationsRepo'),
-  serviceCategories: require('./serviceCategoriesRepo'),
-  subscriptions: require('./subscriptionsRepo'),
-  subscriptionVehicles: require('./subscriptionVehiclesRepo'),
-  staffAssignments: require('./staffAssignmentsRepo'),
-  staffRouteSequences: require('./staffRouteSequencesRepo'),
+  catalog: require('./catalogRepo'),
+  bookings: require('./bookingsRepo'),
+  routes: require('./routesRepo'),
+  dccDailyJobs: require('./dccDailyJobsRepo'),
   serviceJobs: require('./serviceJobsRepo'),
-  serviceLogs: require('./serviceLogsRepo'),
-  auditLogs: require('./auditLogsRepo'),
   staffTracking: require('./staffTrackingRepo'),
   jobApplications: require('./jobApplicationsRepo'),
-  packages: require('./packagesRepo'),
-  routes: require('./routesRepo'),
-  designations: require('./designationsRepo'),
-  adminSecurity: require('./adminSecurityRepo'),
-  seeCatalogue: require('./seeCatalogueRepo'),
-  seeEntitlement: require('./seeEntitlementRepo'),
-  seeOperations: require('./seeOperationsRepo')
+  settings: require('./settingsRepo')
 };

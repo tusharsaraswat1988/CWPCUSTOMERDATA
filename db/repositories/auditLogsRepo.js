@@ -14,7 +14,7 @@ async function logChange({
   ipAddress = null
 }, client = null) {
   const runner = client || db;
-  const safeAction = String(action || 'unknown').trim().slice(0, 20);
+  const safeAction = String(action || 'unknown').trim().slice(0, 50);
   const res = await runner.query(
     `INSERT INTO public.audit_logs (
        entity_type, entity_id, action, changed_by, before_state, after_state, ip_address

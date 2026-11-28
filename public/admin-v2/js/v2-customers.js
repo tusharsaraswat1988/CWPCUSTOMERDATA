@@ -1,6 +1,6 @@
-/**
+﻿/**
  * =========================================================================
- * CWP ADMIN V2 — CUSTOMER MANAGEMENT MODULE
+ * CWP ADMIN V2 â€” CUSTOMER MANAGEMENT MODULE
  * =========================================================================
  * Production Migration, Functional Restoration & Split-View Workstation.
  * Strictly scoped to window.CWP_ADMIN_V2.customers.
@@ -73,7 +73,7 @@
   }
 
   function formatPhoneDisplay(phone) {
-    if (!phone) return '—';
+    if (!phone) return 'â€”';
     const clean = String(phone).replace(/\D/g, '');
     const num10 = clean.length > 10 ? clean.slice(-10) : clean;
     if (num10.length === 10) {
@@ -194,8 +194,9 @@
         populateStaffDropdowns();
       }
 
-      if (routesRes.status === 'fulfilled' && Array.isArray(routesRes.value)) {
-        state.routesList = routesRes.value;
+      if (routesRes.status === 'fulfilled' && routesRes.value) {
+        const rv = routesRes.value;
+        state.routesList = Array.isArray(rv) ? rv : (Array.isArray(rv.routes) ? rv.routes : []);
         populateRoutesDropdowns();
       }
 
@@ -527,7 +528,7 @@
           <td>
             <div class="cwp-v2-cust-cell-name">
               <span class="cwp-v2-cust-name-main">${name}</span>
-              ${area ? `<span class="cwp-v2-cust-name-sub" title="${area}">• ${area}</span>` : ''}
+              ${area ? `<span class="cwp-v2-cust-name-sub" title="${area}">â€¢ ${area}</span>` : ''}
             </div>
           </td>
           <td>
@@ -591,7 +592,7 @@
 
     const infoEl = document.getElementById('v2CustPageInfo');
     if (infoEl) {
-      infoEl.textContent = `Showing ${startRecord}–${endRecord} of ${totalRecords} customers`;
+      infoEl.textContent = `Showing ${startRecord}â€“${endRecord} of ${totalRecords} customers`;
     }
 
     const prevBtn = document.getElementById('v2CustPagePrev');
@@ -714,7 +715,7 @@
             </div>
             <div class="cwp-v2-cust-rvc-body">
               <span class="cwp-v2-cust-color-dot" style="background:${getColorHex(color)};" title="Colour: ${color}"></span>
-              <span>${make} • ${color}</span>
+              <span>${make} â€¢ ${color}</span>
             </div>
             <div class="cwp-v2-cust-rvc-extra" style="display:none;" id="rvcExtra_${i}">
               <div><strong>Default Location:</strong> ${escapeHtml(cust.address || 'Standard Location')}</div>
@@ -784,7 +785,7 @@
       <div class="cwp-v2-cust-summary-grid">
         <div class="cwp-v2-cust-summary-item">
           <span class="cwp-v2-cust-summary-label">Phone</span>
-          <span class="cwp-v2-cust-summary-val">${escapeHtml(cust.phone || '—')}</span>
+          <span class="cwp-v2-cust-summary-val">${escapeHtml(cust.phone || 'â€”')}</span>
         </div>
         <div class="cwp-v2-cust-summary-item">
           <span class="cwp-v2-cust-summary-label">Customer Since</span>
@@ -820,11 +821,11 @@
 
       <div>
         <div class="cwp-v2-cust-section-title"><span>SEE Entitlements</span><button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-xs" id="v2CustSeePurchaseOpen">Purchase Package</button></div>
-        <div id="v2CustSeeBalance" aria-live="polite">Loading canonical entitlement balance…</div>
+        <div id="v2CustSeeBalance" aria-live="polite">Loading canonical entitlement balanceâ€¦</div>
       </div>
       <div>
         <div class="cwp-v2-cust-section-title"><span>Service &amp; booking history</span></div>
-        <div id="v2CustSeeHistory" aria-live="polite">Loading recorded service history…</div>
+        <div id="v2CustSeeHistory" aria-live="polite">Loading recorded service historyâ€¦</div>
       </div>
     `;
 
@@ -846,7 +847,7 @@
       balanceEl.innerHTML = accounts.length ? `<div class="cwp-v2-cust-activity-list">${accounts.map(account => {
         const remaining = Number(account.remaining_qty || 0);
         const available = Number(account.available_qty ?? remaining);
-        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">account_balance_wallet</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(account.package_name || account.service_name || account.addon_name || 'Entitlement')} · ${escapeHtml(account.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">Purchased ${Number(account.purchased_qty || 0)} · Reserved ${Number(account.reserved_qty || 0)} · Consumed ${Number(account.consumed_qty || 0)} · Available ${available} · Remaining balance ${remaining}${account.valid_to ? ` · Valid to ${escapeHtml(String(account.valid_to).slice(0, 10))}` : ''}</span><span class="cwp-v2-cust-activity-time">Purchase ${escapeHtml(account.purchase_snapshot_id || '—')} · Account ${escapeHtml(account.id)}</span><button type="button" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-xs" data-see-ledger="${escapeHtml(account.id)}">View ledger</button><div data-see-ledger-content="${escapeHtml(account.id)}"></div></div></div>`;
+        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">account_balance_wallet</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(account.package_name || account.service_name || account.addon_name || 'Entitlement')} Â· ${escapeHtml(account.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">Purchased ${Number(account.purchased_qty || 0)} Â· Reserved ${Number(account.reserved_qty || 0)} Â· Consumed ${Number(account.consumed_qty || 0)} Â· Available ${available} Â· Remaining balance ${remaining}${account.valid_to ? ` Â· Valid to ${escapeHtml(String(account.valid_to).slice(0, 10))}` : ''}</span><span class="cwp-v2-cust-activity-time">Purchase ${escapeHtml(account.purchase_snapshot_id || 'â€”')} Â· Account ${escapeHtml(account.id)}</span><button type="button" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-xs" data-see-ledger="${escapeHtml(account.id)}">View ledger</button><div data-see-ledger-content="${escapeHtml(account.id)}"></div></div></div>`;
       }).join('')}</div>` : '<div class="cwp-v2-cust-activity-time">No canonical SEE entitlement accounts are recorded for this customer.</div>';
     } catch (error) {
       balanceEl.textContent = `Entitlement balance unavailable: ${error.message}`;
@@ -858,13 +859,13 @@
       const jobs = Array.isArray(history.all) ? history.all : [];
       historyEl.innerHTML = jobs.length ? `<div class="cwp-v2-cust-activity-list">${jobs.map(job => {
         const canonical = Boolean(job.service_payload && job.service_payload._seeManaged);
-        const executionText = canonical ? (job.latest_execution_id ? `Execution ${job.latest_execution_id} · ${escapeHtml(job.latest_execution_outcome || 'recorded')}` : 'No canonical execution record') : 'Standard record';
+        const executionText = canonical ? (job.latest_execution_id ? `Execution ${job.latest_execution_id} Â· ${escapeHtml(job.latest_execution_outcome || 'recorded')}` : 'No canonical execution record') : 'Standard record';
         const proof = job.latest_proof_photos || {};
         const assignedStaff = job.assigned_staff_name || job.staff_name || job.assignedStaffName || 'Unassigned';
-        const scheduled = [job.scheduled_date || 'Unscheduled', job.scheduled_time || job.scheduledTime].filter(Boolean).join(' · ');
-        const proofText = job.latest_execution_id ? ` · Proof ${Array.isArray(proof.before) ? proof.before.length : 0} before / ${Array.isArray(proof.after) ? proof.after.length : 0} after` : '';
+        const scheduled = [job.scheduled_date || 'Unscheduled', job.scheduled_time || job.scheduledTime].filter(Boolean).join(' Â· ');
+        const proofText = job.latest_execution_id ? ` Â· Proof ${Array.isArray(proof.before) ? proof.before.length : 0} before / ${Array.isArray(proof.after) ? proof.after.length : 0} after` : '';
         const bookingId = job.id || job.jobId || job.job_id;
-        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">${job.status === 'completed' ? 'check_circle' : 'event_note'}</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service booking')} · ${escapeHtml(job.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">${escapeHtml(scheduled)} · Staff ${escapeHtml(assignedStaff)} · ${canonical ? 'SEE canonical job' : 'Standard job'} · Job ${escapeHtml(bookingId || '—')}</span><span class="cwp-v2-cust-activity-time">${executionText}${proofText}</span>${bookingId ? `<button type="button" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-xs" data-customer-booking-id="${escapeHtml(bookingId)}">View Booking</button>` : ''}</div></div>`;
+        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">${job.status === 'completed' ? 'check_circle' : 'event_note'}</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service booking')} Â· ${escapeHtml(job.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">${escapeHtml(scheduled)} Â· Staff ${escapeHtml(assignedStaff)} Â· ${canonical ? 'SEE canonical job' : 'Standard job'} Â· Job ${escapeHtml(bookingId || 'â€”')}</span><span class="cwp-v2-cust-activity-time">${executionText}${proofText}</span>${bookingId ? `<button type="button" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-xs" data-customer-booking-id="${escapeHtml(bookingId)}">View Booking</button>` : ''}</div></div>`;
       }).join('')}</div>` : '<div class="cwp-v2-cust-activity-time">No recorded service jobs.</div>';
     } catch (error) {
       historyEl.textContent = `Service history unavailable: ${error.message}`;
@@ -905,9 +906,9 @@
       const packageSel = document.getElementById('v2CustPurchasePackage');
       const vehicleSel = document.getElementById('v2CustPurchaseVehicle');
       const locationSel = document.getElementById('v2CustPurchaseLocation');
-      packageSel.innerHTML = '<option value="">Select package…</option>' + seePurchaseDraft.packages.map(pkg => `<option value="${escapeHtml(pkg.id)}">${escapeHtml(pkg.name)} · v${escapeHtml(pkg.version || 1)}</option>`).join('');
-      vehicleSel.innerHTML = '<option value="">Select vehicle…</option>' + seePurchaseDraft.vehicles.filter(vehicle => vehicle.is_active !== false).map(vehicle => `<option value="${escapeHtml(vehicle.id)}">${escapeHtml(vehicle.registration_no || vehicle.brand_or_model || 'Vehicle')}</option>`).join('');
-      locationSel.innerHTML = '<option value="">Select service location…</option>' + seePurchaseDraft.locations.map(location => `<option value="${escapeHtml(location.id)}">${escapeHtml(location.location_name || location.address_text || 'Service location')}</option>`).join('');
+      packageSel.innerHTML = '<option value="">Select packageâ€¦</option>' + seePurchaseDraft.packages.map(pkg => `<option value="${escapeHtml(pkg.id)}">${escapeHtml(pkg.name)} Â· v${escapeHtml(pkg.version || 1)}</option>`).join('');
+      vehicleSel.innerHTML = '<option value="">Select vehicleâ€¦</option>' + seePurchaseDraft.vehicles.filter(vehicle => vehicle.is_active !== false).map(vehicle => `<option value="${escapeHtml(vehicle.id)}">${escapeHtml(vehicle.registration_no || vehicle.brand_or_model || 'Vehicle')}</option>`).join('');
+      locationSel.innerHTML = '<option value="">Select service locationâ€¦</option>' + seePurchaseDraft.locations.map(location => `<option value="${escapeHtml(location.id)}">${escapeHtml(location.location_name || location.address_text || 'Service location')}</option>`).join('');
       if (!seePurchaseDraft.packages.length) throw new Error('No active SEE packages are available for purchase.');
       if (!seePurchaseDraft.vehicles.length) throw new Error('This customer has no registered vehicle for package purchase.');
       if (!seePurchaseDraft.locations.length) throw new Error('This customer has no service location for package purchase.');
@@ -933,7 +934,7 @@
       return;
     }
     seePurchaseDraft.quoting = true;
-    if (output) output.textContent = 'Calculating package price…';
+    if (output) output.textContent = 'Calculating package priceâ€¦';
     try {
       const location = seePurchaseDraft.locations.find(item => item.id === document.getElementById('v2CustPurchaseLocation')?.value);
       const response = await fetch(`/api/see/packages/${encodeURIComponent(packageId)}/price`, {
@@ -949,9 +950,9 @@
       if (eligibility.all_cities === false && (!city || !(eligibility.cities || []).some(value => String(value).toLowerCase() === city.toLowerCase()))) throw new Error(`Package is not available for city ${city || '(missing)'}.`);
       if ((eligibility.zones || []).length && (!zone || !eligibility.zones.some(value => String(value).toLowerCase() === zone.toLowerCase()))) throw new Error(`Package is not available for zone ${zone || '(missing)'}.`);
       seePurchaseDraft.quote = body.pricing;
-      if (output) output.textContent = `Price: ₹${Number(body.pricing.basePrice).toFixed(2)} · ${body.pricing.pricingModel}${body.pricing.matchedRuleId ? ` · Pricing rule ${body.pricing.matchedRuleId}` : ''}`;
+      if (output) output.textContent = `Price: â‚¹${Number(body.pricing.basePrice).toFixed(2)} Â· ${body.pricing.pricingModel}${body.pricing.matchedRuleId ? ` Â· Pricing rule ${body.pricing.matchedRuleId}` : ''}`;
       const vehicle = seePurchaseDraft.vehicles.find(item => item.id === document.getElementById('v2CustPurchaseVehicle')?.value);
-      if (review) review.textContent = `${pkg.name} · version ${pkg.version || 1} · ${quantity} unit(s) · ${vehicle?.registration_no || 'vehicle pending'} · ${location?.location_name || location?.address_text || 'location pending'} · ₹${Number(body.pricing.basePrice).toFixed(2)} · ${pkg.validity_value} ${pkg.validity_unit}`;
+      if (review) review.textContent = `${pkg.name} Â· version ${pkg.version || 1} Â· ${quantity} unit(s) Â· ${vehicle?.registration_no || 'vehicle pending'} Â· ${location?.location_name || location?.address_text || 'location pending'} Â· â‚¹${Number(body.pricing.basePrice).toFixed(2)} Â· ${pkg.validity_value} ${pkg.validity_unit}`;
     } catch (error) {
       if (requestSequence !== seePurchaseDraft.quoteSequence) return;
       seePurchaseDraft.quote = null;
@@ -1030,7 +1031,7 @@
       if (match) {
         plate = match[1].trim();
         if (match[2] && match[2].trim()) {
-          model = match[2].trim().replace(/^[\(\-–—\s]+|[\)\s]+$/g, '');
+          model = match[2].trim().replace(/^[\(\-â€“â€”\s]+|[\)\s]+$/g, '');
         }
       }
       return {
@@ -1219,7 +1220,7 @@
               <label>Seater Type</label>
               <select class="cwp-v2-select wiz-veh-seater">
                 <option value="5_seater" ${v.seaterType === '5_seater' ? 'selected' : ''}>5 Seater</option>
-                <option value="7_seater" ${v.seaterType === '7_seater' ? 'selected' : ''}>7 Seater</option>
+                <option value="5_plus_seater" ${v.seaterType === '5_plus_seater' ? 'selected' : ''}>5+ Seater</option>
               </select>
             </div>
           </div>
@@ -1269,10 +1270,10 @@
   function populateReviewStep() {
     syncWizardVehiclesFromInputs();
 
-    const name = document.getElementById('v2AddCustName')?.value.trim() || '—';
-    const phone = document.getElementById('v2AddCustPhone')?.value.trim() || '—';
+    const name = document.getElementById('v2AddCustName')?.value.trim() || 'â€”';
+    const phone = document.getElementById('v2AddCustPhone')?.value.trim() || 'â€”';
     const altPhone = document.getElementById('v2AddCustAltPhone')?.value.trim() || 'None';
-    const address = document.getElementById('v2AddCustAddress')?.value.trim() || '—';
+    const address = document.getElementById('v2AddCustAddress')?.value.trim() || 'â€”';
     const category = document.getElementById('v2AddCustCategory')?.value || 'Daily Car Cleaning';
     const pkg = document.getElementById('v2AddCustPackage')?.value || 'DCC ONLY';
     const staff = document.getElementById('v2AddCustStaff')?.selectedOptions[0]?.text || 'Unassigned';
@@ -1282,7 +1283,7 @@
     if (!revContainer) return;
 
     let vehSummary = state.addWizard.vehicles.map((v, i) =>
-      `• ${v.registrationNo || 'No Plate'} (${v.carMake || 'Car'}, ${v.carColor}, ${v.seaterType})`
+      `â€¢ ${v.registrationNo || 'No Plate'} (${v.carMake || 'Car'}, ${v.carColor}, ${v.seaterType})`
     ).join('<br/>');
 
     revContainer.innerHTML = `
@@ -1527,7 +1528,7 @@
               <label>Seater Type</label>
               <select class="cwp-v2-select edit-veh-seater">
                 <option value="5_seater" ${v.seaterType === '5_seater' ? 'selected' : ''}>5 Seater</option>
-                <option value="7_seater" ${v.seaterType === '7_seater' ? 'selected' : ''}>7 Seater</option>
+                <option value="5_plus_seater" ${v.seaterType === '5_plus_seater' ? 'selected' : ''}>5+ Seater</option>
               </select>
             </div>
           </div>
@@ -2129,13 +2130,13 @@
       const content = document.querySelector(`[data-see-ledger-content="${CSS.escape(accountId)}"]`);
       if (!content || ledgerButton.disabled) return;
       ledgerButton.disabled = true;
-      content.textContent = 'Loading ledger…';
+      content.textContent = 'Loading ledgerâ€¦';
       try {
         const response = await fetch(`/api/see/entitlements/${encodeURIComponent(accountId)}/ledger?limit=25&offset=0`, { credentials: 'same-origin' });
         const body = await response.json();
         if (!response.ok || body.success === false) throw new Error(body.error || `HTTP ${response.status}`);
         const rows = Array.isArray(body.ledger) ? body.ledger : [];
-        content.innerHTML = rows.length ? rows.map(row => `<div class="cwp-v2-cust-activity-time">${escapeHtml(row.entry_type)} ${Number(row.quantity) > 0 ? '+' : ''}${Number(row.quantity)} · balance ${escapeHtml(row.balance_after)} · ${escapeHtml(row.reason || row.reference_id || '—')}</div>`).join('') : '<div class="cwp-v2-cust-activity-time">No ledger entries.</div>';
+        content.innerHTML = rows.length ? rows.map(row => `<div class="cwp-v2-cust-activity-time">${escapeHtml(row.entry_type)} ${Number(row.quantity) > 0 ? '+' : ''}${Number(row.quantity)} Â· balance ${escapeHtml(row.balance_after)} Â· ${escapeHtml(row.reason || row.reference_id || 'â€”')}</div>`).join('') : '<div class="cwp-v2-cust-activity-time">No ledger entries.</div>';
       } catch (error) {
         content.textContent = `Ledger unavailable: ${error.message}`;
         ledgerButton.disabled = false;
@@ -2298,10 +2299,7 @@
           html += `<option value="${name}">${name}</option>`;
         });
       } else {
-        const areas = ['Gomti Nagar', 'Indira Nagar', 'Aliganj', 'Hazratganj', 'Mahanagar', 'Vikas Nagar'];
-        areas.forEach(a => {
-          html += `<option value="${a}">${a}</option>`;
-        });
+        html += `<option value="" disabled>No routes configured</option>`;
       }
 
       sel.innerHTML = html;

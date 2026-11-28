@@ -231,7 +231,7 @@ async function issueAdminSession(user, ipAddress, userAgent, deviceMeta = {}) {
  */
 async function loginStaff({ identifier, pin, ipAddress = null, userAgent = null, deviceId = null }) {
   if (!identifier || !pin) {
-    return { success: false, error: 'Please enter staff ID or mobile number and 6-digit PIN.' };
+    return { success: false, error: 'Please enter staff ID or mobile number and PIN (4–6 digits).' };
   }
 
   const cleanIdent = identifier.trim();
@@ -241,9 +241,6 @@ async function loginStaff({ identifier, pin, ipAddress = null, userAgent = null,
   let staff = null;
   if (/^[6-9]\d{9}$/.test(cleanIdent)) {
     staff = await repos.staff.findByPhone(cleanIdent);
-    if (!staff && (cleanIdent === '8081913264' || cleanIdent === '8603756369')) {
-      staff = await repos.staff.findByStaffCode('STF02');
-    }
   } else {
     staff = await repos.staff.findByStaffCode(cleanIdent);
   }

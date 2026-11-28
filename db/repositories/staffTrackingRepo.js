@@ -623,10 +623,9 @@ async function evaluateOperationalIntelligence({
     `SELECT j.id AS job_id, j.status, loc.latitude AS job_lat, loc.longitude AS job_lng,
             COALESCE(loc.address_text, c.name, 'Assigned Job') AS job_label
      FROM public.service_jobs j
-     JOIN public.staff_assignments sa ON sa.job_id = j.id AND sa.staff_id = $1
      JOIN public.service_locations loc ON j.location_id = loc.id
      LEFT JOIN public.customers c ON j.customer_id = c.id
-     WHERE j.deleted_at IS NULL
+     WHERE j.assigned_staff_id = $1
        AND j.scheduled_date = $2::date
        AND j.status NOT IN ('cancelled')
        AND loc.latitude IS NOT NULL AND loc.longitude IS NOT NULL`,
@@ -677,13 +676,26 @@ async function evaluateOperationalIntelligence({
     }
   }
 
-  // 4. Route stops for active assigned route
+  // 4. Route stops for active assigned route (including active temporary cover routes)
   const routeStopsRes = await runner.query(
     `SELECT loc.latitude AS stop_lat, loc.longitude AS stop_lng
      FROM public.routes r
-     JOIN public.route_stops rs ON rs.route_id = r.id
-     JOIN public.service_locations loc ON rs.location_id = loc.id
-     WHERE r.assigned_staff_id = $1 AND r.status = 'active'
+     JOIN public.route_stops rs ON rs.route_id = r.id AND rs.is_active = TRUE
+     JOIN public.vehicles v ON rs.vehicle_id = v.id
+     JOIN public.service_locations loc ON v.location_id = loc.id
+     WHERE r.is_active = TRUE
+       AND (
+         r.staff_id = $1
+         OR EXISTS (
+           SELECT 1
+           FROM public.route_temp_assignments rta
+           WHERE rta.route_id = r.id
+             AND rta.is_active = TRUE
+             AND rta.cover_staff_id = $1
+             AND rta.start_date <= (NOW() AT TIME ZONE 'Asia/Kolkata')::date
+             AND rta.end_date >= (NOW() AT TIME ZONE 'Asia/Kolkata')::date
+         )
+       )
        AND loc.latitude IS NOT NULL AND loc.longitude IS NOT NULL`,
     [staffId]
   );
@@ -836,7 +848,7 @@ async function getCurrentTrackingSummary(date = null, client = null) {
       stc.accuracy_tier
     FROM public.staff s
     LEFT JOIN public.staff_tracking_current stc ON s.id = stc.staff_id
-    WHERE s.deleted_at IS NULL AND s.is_active = TRUE
+    WHERE s.deleted_at IS NULL AND s.status = 'Active'
     ORDER BY s.staff_code ASC
   `;
   const staffRes = await runner.query(staffQuery);
@@ -874,14 +886,15 @@ async function getCurrentTrackingSummary(date = null, client = null) {
 
   // 3. Fetch today's assigned jobs & locations per staff
   const jobsRes = await runner.query(
-    `SELECT sa.staff_id, j.id AS job_id, j.status, j.scheduled_time,
+    `SELECT j.assigned_staff_id AS staff_id, j.id AS job_id, j.status, NULL::text AS scheduled_time,
             c.name AS customer_name, loc.address_text, loc.latitude, loc.longitude
      FROM public.service_jobs j
-     JOIN public.staff_assignments sa ON sa.job_id = j.id
      LEFT JOIN public.customers c ON j.customer_id = c.id
      LEFT JOIN public.service_locations loc ON j.location_id = loc.id
-     WHERE j.deleted_at IS NULL AND j.scheduled_date = $1::date AND j.status NOT IN ('cancelled')
-     ORDER BY j.sequence_order ASC NULLS LAST, j.created_at ASC`,
+     WHERE j.assigned_staff_id IS NOT NULL
+       AND j.scheduled_date = $1::date
+       AND j.status NOT IN ('cancelled')
+     ORDER BY j.created_at ASC`,
     [targetDate]
   );
   const jobsByStaff = {};
@@ -905,7 +918,7 @@ async function getCurrentTrackingSummary(date = null, client = null) {
             MAX(captured_at) AS last_loc_at,
             COUNT(*) AS fix_count
      FROM public.staff_locations
-     WHERE captured_at::date = $1::date AND is_valid_fix = TRUE
+     WHERE (captured_at AT TIME ZONE 'Asia/Kolkata')::date = $1::date AND is_valid_fix = TRUE
      GROUP BY staff_id`,
     [targetDate]
   );
@@ -1122,7 +1135,7 @@ async function getMovementHistory(staffIdentifier, date = null, client = null) {
   const crumbsRes = await runner.query(
     `SELECT id, latitude, longitude, accuracy, speed, heading, battery_level, trigger_type, captured_at
      FROM public.staff_locations
-     WHERE staff_id = $1 AND captured_at::date = $2::date
+     WHERE staff_id = $1 AND (captured_at AT TIME ZONE 'Asia/Kolkata')::date = $2::date
      ORDER BY captured_at ASC`,
     [staffId, targetDate]
   );

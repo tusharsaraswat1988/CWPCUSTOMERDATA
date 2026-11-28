@@ -181,8 +181,9 @@
         state.designations = Array.isArray(desigRes.value) ? desigRes.value : desigRes.value.designations;
       }
 
-      if (routesRes.status === 'fulfilled' && Array.isArray(routesRes.value)) {
-        state.routes = routesRes.value;
+      if (routesRes.status === 'fulfilled' && routesRes.value) {
+        const rv = routesRes.value;
+        state.routes = Array.isArray(rv) ? rv : (Array.isArray(rv.routes) ? rv.routes : []);
       }
 
       if (custRes.status === 'fulfilled' && Array.isArray(custRes.value)) {

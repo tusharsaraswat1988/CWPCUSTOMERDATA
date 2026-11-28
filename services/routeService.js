@@ -126,11 +126,7 @@ async function getRouteDetails(routeId) {
  */
 async function getAllRoutes(filters = {}) {
   const routes = await repos.routes.findAll(filters);
-  return {
-    success: true,
-    count: routes.length,
-    routes
-  };
+  return routes;
 }
 
 /**

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * =========================================================================
  * CWP DATA APP - STAFF PORTAL SERVICE
  * Phase 4: Field-Usable Staff Portal with Strict Data Isolation
@@ -11,6 +11,10 @@ const repos = require('../db/repositories/index');
 const serviceCatalog = require('./serviceCatalog');
 const staffCapabilityService = require('./staffCapabilityService');
 const staffDesignationService = require('./staffDesignationService');
+
+// Stub serviceLogs repo if not present (deleted in BRD cleanup)
+const serviceLogsStub = { findByStaffAndDate: async () => [] };
+const getServiceLogs = () => (repos.serviceLogs || serviceLogsStub);
 
 /**
  * Computes deterministic ETag / version hash from staff payload
@@ -66,181 +70,68 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
   const effCaps = staffCapabilityService.getStaffEffectiveCapabilities(staff);
   const isDccAllowed = staffCapabilityService.isDccEligible(staff);
 
-  // 2. Fetch Active Daily Clean Subscriptions assigned to this staff (only if DCC capable)
-  let dailySubsRes = { rows: [] };
+  // 2. Fetch Today's DCC daily jobs for this staff (BRD: routes + route_stops + dcc_daily_jobs)
+  let dccJobs = [];
+  const completedJobIds = new Set();
   if (isDccAllowed) {
-    dailySubsRes = await db.query(
-      `SELECT sub.*, 
-              c.id AS customer_id, c.customer_code, c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone,
-              c.alt_phone AS customer_alt_phone, c.notes AS customer_notes,
-              srs.sequence_order
-       FROM public.staff_assignments sa
-       JOIN public.subscriptions sub ON sa.subscription_id = sub.id
-       JOIN public.customers c ON sub.customer_id = c.id
-       LEFT JOIN public.staff_route_sequences srs ON srs.staff_id = $1 AND srs.subscription_id = sub.id
-       WHERE sa.staff_id = $1 
-         AND sa.is_active = TRUE 
-         AND (sub.status = 'active' OR (sub.status = 'stopped' AND (sub.stopped_at IS NULL OR sub.stopped_at >= CURRENT_DATE - INTERVAL '14 days')))
-         AND sub.deleted_at IS NULL
-         AND c.deleted_at IS NULL
-         AND c.is_active = TRUE
-       ORDER BY srs.sequence_order ASC NULLS LAST, sub.created_at ASC`,
-      [staff.id]
-    );
+    dccJobs = await repos.dccDailyJobs.findByStaffAndDate(staff.id, currentDate).catch(() => []);
   }
 
-  const subIds = dailySubsRes.rows.map(r => r.id);
-  const custIds = dailySubsRes.rows.map(r => r.customer_id);
+  // 5. Track non-DCC job completions from service_jobs (serviceLogs repo removed in BRD)
+  const todayLogs = await getServiceLogs().findByStaffAndDate(staff.id, currentDate).catch(() => []);
+  todayLogs.filter(l => l.status === 'completed' && l.job_id).forEach(l => completedJobIds.add(l.job_id));
 
-  // 3. Fetch Vehicles & Subscription Mapping
-  let subVehicles = [];
-  if (subIds.length > 0) {
-    const svRes = await db.query(
-      `SELECT sv.*, 
-              v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
-              loc.location_name, loc.address_type, loc.address_text, loc.address_text_hi, loc.google_maps_url,
-              loc.latitude, loc.longitude, loc.parking_details
-       FROM public.subscription_vehicles sv
-       JOIN public.vehicles v ON sv.vehicle_id = v.id
-       LEFT JOIN public.service_locations loc ON sv.location_id = loc.id
-       WHERE sv.subscription_id = ANY($1)
-       ORDER BY sv.created_at ASC`,
-      [subIds]
-    );
-    subVehicles = svRes.rows;
-  }
-
-  // 4. Fetch Locations for Customers
-  let locations = [];
-  if (custIds.length > 0) {
-    const locRes = await db.query(
-      `SELECT * FROM public.service_locations 
-       WHERE customer_id = ANY($1) AND deleted_at IS NULL 
-       ORDER BY is_primary DESC, created_at ASC`,
-      [custIds]
-    );
-    locations = locRes.rows;
-  }
-
-  // 5. Fetch Today's Completions for this Staff
-  const todayLogs = await repos.serviceLogs.findByStaffAndDate(staff.id, currentDate);
-  const completedSubVehKeys = new Set(
-    todayLogs
-      .filter(l => (l.status === 'completed' || l.status === 'car_not_present' || l.car_not_present === true) && l.subscription_id)
-      .map(l => `${l.subscription_id}_${l.vehicle_id}`)
-  );
-  const completedJobIds = new Set(
-    todayLogs
-      .filter(l => l.status === 'completed' && l.job_id)
-      .map(l => l.job_id)
-  );
-
-  // 6. Build Daily Cleaning Customer Cards
-  const subVehsBySub = new Map();
-  subVehicles.forEach(sv => {
-    if (!subVehsBySub.has(sv.subscription_id)) subVehsBySub.set(sv.subscription_id, []);
-    subVehsBySub.get(sv.subscription_id).push(sv);
+  // 6. Build Daily Cleaning Customer Cards from dcc_daily_jobs
+  const dailyCarCleaning = dccJobs.map((dj, index) => {
+    const isCompleted = dj.status === 'completed';
+    const isCarNotAvailable = dj.status === 'car_not_available';
+    const isMissed = dj.status === 'missed';
+    return {
+      dccJobId: dj.id,
+      vehicleId: dj.vehicle_id,
+      customerId: dj.customer_id,
+      customerCode: dj.customer_code || '',
+      customerName: dj.customer_name || '',
+      name: dj.customer_name || '',
+      nameHi: dj.customer_name_hi || '',
+      customerNumber: dj.customer_phone || '',
+      phone: dj.customer_phone || '',
+      address: dj.address_text || '',
+      addressHi: dj.address_text_hi || '',
+      googleMapsUrl: dj.google_maps_url || '',
+      parkingDetails: dj.parking_details || '',
+      vehicle: dj.registration_no ? (dj.car_model ? dj.registration_no + ' (' + dj.car_model + ')' : dj.registration_no) : '',
+      carMake: dj.car_model || '',
+      carColor: dj.car_color || '',
+      seaterType: dj.seater_type || '',
+      vehicles: [{
+        id: dj.vehicle_id, vehicleId: dj.vehicle_id,
+        registrationNo: dj.registration_no || '',
+        brandOrModel: dj.car_model || '',
+        carMake: dj.car_model || '', carColor: dj.car_color || '',
+        seaterType: dj.seater_type || '',
+        completedToday: isCompleted || isCarNotAvailable,
+        locationId: dj.location_id || null,
+        locationName: dj.location_label || 'Home',
+        addressText: dj.address_text || '', addressTextHi: dj.address_text_hi || '',
+        googleMapsUrl: dj.google_maps_url || '',
+        latitude: dj.latitude != null ? parseFloat(dj.latitude) : null,
+        longitude: dj.longitude != null ? parseFloat(dj.longitude) : null,
+        parkingDetails: dj.parking_details || ''
+      }],
+      photoUrl: dj.photo_url || '',
+      serviceCategory: 'Daily Car Cleaning', sheetName: 'Daily Clean',
+      packageType: dj.package_name || 'Daily', frequency: dj.frequency || 'daily',
+      routeName: dj.route_name || '',
+      staffName: staff.name, staffId: staff.staff_code,
+      sequenceOrder: dj.sequence_order != null ? dj.sequence_order : index + 1,
+      completedToday: isCompleted || isCarNotAvailable,
+      isStopped: false, status: dj.status, serviceStatus: dj.status,
+      carNotAvailable: isCarNotAvailable, isMissed: isMissed, active: 'Yes'
+    };
   });
 
-  const locsByCust = new Map();
-  locations.forEach(loc => {
-    if (!locsByCust.has(loc.customer_id)) locsByCust.set(loc.customer_id, []);
-    locsByCust.get(loc.customer_id).push(loc);
-  });
-
-  const dailyCarCleaning = [];
-  dailySubsRes.rows.forEach((subRow, index) => {
-    const svList = subVehsBySub.get(subRow.id) || [];
-    const custLocs = locsByCust.get(subRow.customer_id) || [];
-
-    const primaryLoc = custLocs.find(l => l.is_primary) || custLocs[0] || null;
-    const secondaryLoc = custLocs.find(l => !l.is_primary) || (custLocs.length > 1 ? custLocs[1] : null);
-
-    // Multi-vehicle details
-    const vehicleSummary = svList.map(sv => {
-      const cleanModel = (sv.brand_or_model && !/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(sv.brand_or_model.trim())) ? sv.brand_or_model.trim() : '';
-      return cleanModel ? `${sv.registration_no} (${cleanModel})` : sv.registration_no;
-    }).join(', ');
-    const mainPhoto = svList[0]?.vehicle_photo_url || '';
-
-    // Check completion today & stopped state
-    const isStopped = (subRow.status === 'stopped');
-    const stoppedReason = isStopped ? (subRow.stopped_reason || 'ग्राहक ने सर्विस बंद कर दी है (Service Stopped)') : null;
-    const allVehiclesCompleted = !isStopped && svList.length > 0 && svList.every(sv => completedSubVehKeys.has(`${subRow.id}_${sv.vehicle_id}`));
-
-    dailyCarCleaning.push({
-      subscriptionId: subRow.id,
-      customerId: subRow.customer_id,
-      customerCode: subRow.customer_code,
-      customerName: subRow.customer_name,
-      name: subRow.customer_name,
-      nameHi: subRow.customer_name_hi || '',
-      customerNumber: subRow.customer_phone,
-      phone: subRow.customer_phone,
-      altPhone: subRow.customer_alt_phone || '',
-      address: primaryLoc?.address_text || '',
-      addressHi: primaryLoc?.address_text_hi || '',
-      googleMapsUrl: primaryLoc?.google_maps_url || '',
-      parkingDetails: primaryLoc?.parking_details || '',
-      secondaryAddress: secondaryLoc?.address_text || '',
-      secondaryAddressHi: secondaryLoc?.address_text_hi || '',
-      secondaryMapsUrl: secondaryLoc?.google_maps_url || '',
-      secondaryParkingDetails: secondaryLoc?.parking_details || '',
-      vehicle: vehicleSummary,
-      carMake: svList[0]?.car_make || subRow.car_make || '',
-      carColor: svList[0]?.car_color || subRow.car_color || '',
-      vehicles: svList.map(sv => {
-        const vehLocName = sv.location_name || (sv.address_type ? (sv.address_type.charAt(0).toUpperCase() + sv.address_type.slice(1)) : (primaryLoc?.location_name || 'Home'));
-        const vehAddress = sv.address_text || primaryLoc?.address_text || '';
-        const vehAddressHi = sv.address_text_hi || primaryLoc?.address_text_hi || '';
-        const vehMapsUrl = sv.google_maps_url || primaryLoc?.google_maps_url || '';
-        const vehLat = sv.latitude != null ? parseFloat(sv.latitude) : (primaryLoc?.latitude != null ? parseFloat(primaryLoc.latitude) : null);
-        const vehLng = sv.longitude != null ? parseFloat(sv.longitude) : (primaryLoc?.longitude != null ? parseFloat(primaryLoc.longitude) : null);
-        const vehParking = sv.parking_details || primaryLoc?.parking_details || '';
-
-        return {
-          id: sv.vehicle_id,
-          vehicleId: sv.vehicle_id,
-          subVehId: sv.id,
-          subscriptionVehicleId: sv.id,
-          registrationNo: sv.registration_no,
-          brandOrModel: (sv.brand_or_model && !/^(vehicle|car|गाड़ी|गाड़ी)$/i.test(sv.brand_or_model.trim())) ? sv.brand_or_model.trim() : '',
-          carMake: sv.car_make || '',
-          carColor: sv.car_color || '',
-          photoUrl: sv.vehicle_photo_url,
-          scheduleTag: sv.schedule_tag,
-          completedToday: !isStopped && completedSubVehKeys.has(`${subRow.id}_${sv.vehicle_id}`),
-          locationId: sv.location_id || primaryLoc?.id || null,
-          locationName: vehLocName,
-          addressText: vehAddress,
-          addressTextHi: vehAddressHi,
-          googleMapsUrl: vehMapsUrl,
-          latitude: vehLat,
-          longitude: vehLng,
-          parkingDetails: vehParking
-        };
-      }),
-      photoUrl: mainPhoto,
-      serviceCategory: 'Daily Car Cleaning',
-      sheetName: 'Daily Clean',
-      packageType: subRow.package_name,
-      packagesPurchased: String(subRow.packages_purchased),
-      rotationType: subRow.rotation_type,
-      rotationNotes: subRow.rotation_notes || '',
-      notes: subRow.customer_notes || subRow.rotation_notes || '',
-      staffName: staff.name,
-      staffId: staff.staff_code,
-      sequenceOrder: subRow.sequence_order !== null ? subRow.sequence_order : index + 1,
-      completedToday: allVehiclesCompleted,
-      isStopped: isStopped,
-      status: subRow.status,
-      serviceStatus: subRow.status,
-      stoppedReason: stoppedReason,
-      active: isStopped ? 'No' : 'Yes'
-    });
-  });
-
-  // 7. Fetch Dispatched On-Demand & Instance Jobs (Car Wash, Solar, Interior & Exterior Detailing)
+    // 7. Fetch Dispatched On-Demand & Instance Jobs (Car Wash, Solar, Interior & Exterior Detailing)
   let dispatchedJobs = [];
   if (effCaps.workType !== 'dcc_only') {
     const rawJobs = await repos.serviceJobs.findDispatchedForStaff(staff.id);
@@ -248,7 +139,7 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
       .filter(j => staffCapabilityService.hasServiceCapability(staff, j.service_category_id))
       .map(async j => ({
         ...j,
-        seeAddons: j.service_id ? await repos.seeOperations.findJobAddons(j.id).catch(() => []) : []
+        seeAddons: []
       })));
   }
   const otherJobs = [];
@@ -274,7 +165,7 @@ async function getStaffData(staffCodeOrId, { clientVersion = null, todayDate = n
     const categoryName = catMeta ? catMeta.name : (j.service_category_id === 'solar_cleaning' ? 'Solar Panel Cleaning' : 'Car Washing');
     const categoryNameHi = catMeta ? catMeta.nameHi : '';
     const categoryIcon = catMeta ? catMeta.icon : (j.service_category_id === 'solar_cleaning' ? 'solar_power' : 'local_car_wash');
-    const categoryEmoji = catMeta ? catMeta.iconEmoji : '⚡';
+    const categoryEmoji = catMeta ? catMeta.iconEmoji : 'âš¡';
 
     const jobItem = {
       jobId: j.id,

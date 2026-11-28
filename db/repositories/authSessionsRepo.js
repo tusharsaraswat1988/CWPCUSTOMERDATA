@@ -33,7 +33,7 @@ async function findActiveSession(tokenHash, client = null) {
   const runner = client || db;
   const res = await runner.query(
     `SELECT s.*, 
-            st.staff_code, st.name AS staff_name, st.phone AS staff_phone, st.is_active AS staff_active,
+            st.staff_code, st.name AS staff_name, st.phone AS staff_phone, (st.status = 'Active') AS staff_active,
             adm.username AS admin_username, adm.role AS admin_role, adm.is_active AS admin_active
      FROM public.auth_sessions s
      LEFT JOIN public.staff st ON s.staff_id = st.id

@@ -1,9 +1,9 @@
 /**
--- =========================================================================
--- CWP DATA APP - MIGRATION RUNNER
--- Sequential Database Schema Provisioning
--- =========================================================================
-*/
+ * =========================================================================
+ * CWP DATA APP - MIGRATION RUNNER
+ * Sequential Database Schema Provisioning (BRD v1.0)
+ * =========================================================================
+ */
 
 const fs = require('fs');
 const path = require('path');
@@ -31,7 +31,7 @@ try {
       }
     }
   }
-} catch (e) {}
+} catch (_) {}
 
 const { resolveDatabaseConfig } = require('../db/connectionResolver');
 const startupSafety = require('../lib/startupSafety');
@@ -42,9 +42,6 @@ async function runMigration(options = {}) {
   console.log('CWP DATA APP - DATABASE SCHEMA PROVISIONING');
   console.log('================================================================');
 
-  // Validate migration numbering before reading DB config or opening a
-  // connection. The runner keys applied migrations by numeric prefix, so
-  // duplicate prefixes would otherwise cause a file to be silently skipped.
   const migrationsDir = __dirname;
   const sqlFiles = fs.readdirSync(migrationsDir)
     .filter(f => f.endsWith('.sql'))
@@ -86,7 +83,6 @@ async function runMigration(options = {}) {
     console.warn(`[Migration Safety]: ${policy.warn}`);
   }
 
-  // Migrations use the direct unpooled connection for DDL execution
   const connectionString = dbConfig.directUrl;
   const sanitizedHost = startupSafety.sanitizeHost(dbConfig.host);
   console.log(`[Connection Target]: ${sanitizedHost} (Database: ${dbConfig.databaseName}, Mode: ${dbConfig.isNeon ? 'Direct/Unpooled' : 'Standard'})`);
@@ -94,18 +90,16 @@ async function runMigration(options = {}) {
   const client = new Client({
     connectionString,
     ssl: { rejectUnauthorized: process.env.ALLOW_INSECURE_DB_SSL === 'true' ? false : true },
-    connectionTimeoutMillis: 10000
+    connectionTimeoutMillis: 15000
   });
 
   await client.connect();
 
   try {
-    // 1. Verify database identity
     const dbIdentity = await client.query('SELECT current_database(), current_user, version()');
     const activeDb = dbIdentity.rows[0].current_database;
     console.log(`[Connected Database]: ${activeDb}`);
 
-    // 2. Setup meta schema
     await client.query('CREATE SCHEMA IF NOT EXISTS meta;');
     await client.query(`
       CREATE TABLE IF NOT EXISTS meta.schema_migrations (
@@ -117,7 +111,6 @@ async function runMigration(options = {}) {
       );
     `);
 
-    // 3. Execute migrations in filename order after the preflight above.
     let appliedCount = 0;
 
     for (const file of sqlFiles) {
@@ -141,7 +134,7 @@ async function runMigration(options = {}) {
         await client.query(`
           INSERT INTO meta.schema_migrations (version, name, checksum, applied_by)
           VALUES ($1, $2, $3, $4)
-          ON CONFLICT (version) DO UPDATE 
+          ON CONFLICT (version) DO UPDATE
           SET checksum = EXCLUDED.checksum, applied_at = CURRENT_TIMESTAMP;
         `, [version, file, checksum, 'Automated Provisioner']);
         await client.query('COMMIT');
@@ -154,7 +147,6 @@ async function runMigration(options = {}) {
       }
     }
 
-    // 4. Synchronize sequences only when new migrations were applied or explicitly forced
     let sequencesSynced = false;
     if (appliedCount > 0 || process.env.FORCE_SYNC_SEQUENCES === 'true') {
       await syncSequences(client);
@@ -173,7 +165,6 @@ async function runMigration(options = {}) {
       appliedCount,
       sequencesSynced
     };
-
   } catch (err) {
     console.error('\n[MIGRATION FAILED]:', err.message);
     throw err;
@@ -191,8 +182,8 @@ async function syncSequences(client) {
           v_max BIGINT;
           v_sql TEXT;
       BEGIN
-          FOR rec IN 
-              SELECT 
+          FOR rec IN
+              SELECT
                   t.relname AS table_name,
                   a.attname AS col_name,
                   s.relname AS seq_name
@@ -215,7 +206,8 @@ async function syncSequences(client) {
 }
 
 module.exports = {
-  runMigration
+  runMigration,
+  syncSequences
 };
 
 if (require.main === module) {

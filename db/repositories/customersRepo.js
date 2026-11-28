@@ -1,7 +1,26 @@
 /**
- * Repository for table: customers
+ * Repository for table: customers (BRD v1.0)
  */
+
+'use strict';
+
 const db = require('../index');
+
+function normalizeLeadNotesInput(leadNotes, existingNotes = null) {
+  if (leadNotes === undefined) return undefined;
+  if (leadNotes === null || leadNotes === '') return null;
+  if (Array.isArray(leadNotes)) return leadNotes;
+  if (typeof leadNotes === 'object') return [leadNotes];
+  const text = String(leadNotes).trim();
+  if (!text) return null;
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (_) {}
+  const base = Array.isArray(existingNotes) ? [...existingNotes] : [];
+  base.push({ text, created_at: new Date().toISOString() });
+  return base;
+}
 
 async function findAll({
   search = '',
@@ -34,13 +53,11 @@ async function findAll({
     params.push(`%${search.trim().toLowerCase()}%`);
     const pIdx = params.length;
     conditions.push(`(
-      LOWER(name) LIKE $${pIdx} OR 
-      phone LIKE $${pIdx} OR 
+      LOWER(name) LIKE $${pIdx} OR
+      COALESCE(phone, '') LIKE $${pIdx} OR
       LOWER(customer_code) LIKE $${pIdx} OR
       LOWER(COALESCE(name_hi, '')) LIKE $${pIdx} OR
-      LOWER(COALESCE(address_hi, '')) LIKE $${pIdx} OR
-      LOWER(COALESCE(car_make, '')) LIKE $${pIdx} OR
-      LOWER(COALESCE(car_color, '')) LIKE $${pIdx}
+      LOWER(COALESCE(email, '')) LIKE $${pIdx}
     )`);
   }
 
@@ -64,7 +81,7 @@ async function findAll({
 async function findById(id, client = null) {
   const runner = client || db;
   const res = await runner.query(
-    'SELECT * FROM public.customers WHERE id = $1 LIMIT 1',
+    'SELECT * FROM public.customers WHERE id = $1 AND deleted_at IS NULL LIMIT 1',
     [id]
   );
   return res.rows[0] || null;
@@ -73,81 +90,66 @@ async function findById(id, client = null) {
 async function findByCode(customerCode, client = null) {
   const runner = client || db;
   const res = await runner.query(
-    'SELECT * FROM public.customers WHERE UPPER(customer_code) = UPPER($1) LIMIT 1',
-    [customerCode.trim()]
+    'SELECT * FROM public.customers WHERE UPPER(customer_code) = UPPER($1) AND deleted_at IS NULL LIMIT 1',
+    [String(customerCode || '').trim()]
   );
   return res.rows[0] || null;
 }
 
 async function findByPhone(phone, client = null) {
   const runner = client || db;
+  if (!phone || !String(phone).trim()) return [];
   const res = await runner.query(
     'SELECT * FROM public.customers WHERE phone = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
-    [phone.trim()]
+    [String(phone).trim()]
   );
   return res.rows;
+}
+
+async function findOneByPhone(phone, client = null) {
+  const rows = await findByPhone(phone, client);
+  return rows[0] || null;
 }
 
 async function createCustomer({
   customerCode,
   name,
-  phone,
-  altPhone = null,
+  nameHi = null,
+  phone = null,
   email = null,
   notes = null,
-  sourceSheetName = 'Daily Clean',
-  sourceRowIndex = 0,
   isActive = true,
-  nameHi = null,
-  addressHi = null,
-  secondaryAddressHi = null,
   isLead = false,
-  leadStatus = 'open',
+  leadStage = null,
+  leadStatus = null,
+  leadSource = null,
   leadNotes = null,
-  interestedService = 'Daily Car Cleaning',
-  carMake = null,
-  carColor = null,
-  car_make = null,
-  car_color = null,
-  panelCount = null,
-  panel_count = null
+  interestedService = null
 }, client = null) {
   const runner = client || db;
-  const code = (customerCode || ('CUST_' + Date.now())).trim();
-  const makeVal = (carMake || car_make) ? String(carMake || car_make).trim() : null;
-  const colorVal = (carColor || car_color) ? String(carColor || car_color).trim() : null;
-  const pCount = (panelCount !== undefined && panelCount !== null)
-    ? (parseInt(panelCount, 10) || null)
-    : ((panel_count !== undefined && panel_count !== null) ? (parseInt(panel_count, 10) || null) : null);
+  const code = (customerCode || (`${isLead ? 'LEAD' : 'CUST'}_${Date.now()}_${Math.floor(Math.random() * 1000)}`)).trim();
+  const effectiveLeadStage = leadStage !== undefined ? leadStage : (leadStatus !== undefined ? leadStatus : (isLead ? 'open' : null));
+  const normalizedLeadNotes = normalizeLeadNotesInput(leadNotes);
+
   const res = await runner.query(
     `INSERT INTO public.customers (
-       customer_code, name, phone, alt_phone, email, notes, 
-       source_sheet_name, source_row_index, is_active,
-       name_hi, address_hi, secondary_address_hi,
-       is_lead, lead_status, lead_notes, interested_service,
-       car_make, car_color, panel_count
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+       customer_code, name, name_hi, phone, email, is_active,
+       is_lead, lead_stage, lead_source, interested_service, notes, lead_notes
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb)
      RETURNING *`,
     [
       code,
-      name.trim(),
-      phone ? phone.trim() : null,
-      altPhone ? altPhone.trim() : null,
-      email ? email.trim() : null,
-      notes ? notes.trim() : null,
-      sourceSheetName,
-      parseInt(sourceRowIndex, 10) || 0,
+      String(name || '').trim(),
+      nameHi ? String(nameHi).trim() : null,
+      phone ? String(phone).trim() : null,
+      email ? String(email).trim() : null,
       Boolean(isActive),
-      nameHi ? nameHi.trim() : null,
-      addressHi ? addressHi.trim() : null,
-      secondaryAddressHi ? secondaryAddressHi.trim() : null,
       Boolean(isLead),
-      leadStatus ? leadStatus.trim() : 'open',
-      leadNotes ? leadNotes.trim() : null,
-      interestedService ? interestedService.trim() : 'Daily Car Cleaning',
-      makeVal,
-      colorVal,
-      pCount
+      effectiveLeadStage ? String(effectiveLeadStage).trim() : null,
+      leadSource ? String(leadSource).trim() : null,
+      interestedService ? String(interestedService).trim() : null,
+      notes ? String(notes).trim() : null,
+      normalizedLeadNotes ? JSON.stringify(normalizedLeadNotes) : null
     ]
   );
   return res.rows[0];
@@ -155,96 +157,69 @@ async function createCustomer({
 
 async function updateCustomer(id, {
   name,
+  nameHi,
   phone,
-  altPhone,
   email,
   notes,
   isActive,
-  nameHi,
-  addressHi,
-  secondaryAddressHi,
   isLead,
+  leadStage,
   leadStatus,
+  leadSource,
   leadNotes,
-  interestedService,
-  carMake,
-  carColor,
-  car_make,
-  car_color,
-  panelCount,
-  panel_count
-}, client = null) {
+  interestedService
+} = {}, client = null) {
   const runner = client || db;
   const updates = [];
   const params = [id];
 
   if (name !== undefined) {
-    params.push(name ? name.trim() : '');
+    params.push(name ? String(name).trim() : '');
     updates.push(`name = $${params.length}`);
   }
+  if (nameHi !== undefined) {
+    params.push(nameHi ? String(nameHi).trim() : null);
+    updates.push(`name_hi = $${params.length}`);
+  }
   if (phone !== undefined) {
-    params.push(phone ? phone.trim() : null);
+    params.push(phone ? String(phone).trim() : null);
     updates.push(`phone = $${params.length}`);
   }
-  if (altPhone !== undefined) {
-    params.push(altPhone ? altPhone.trim() : null);
-    updates.push(`alt_phone = $${params.length}`);
-  }
   if (email !== undefined) {
-    params.push(email ? email.trim() : null);
+    params.push(email ? String(email).trim() : null);
     updates.push(`email = $${params.length}`);
   }
   if (notes !== undefined) {
-    params.push(notes ? notes.trim() : null);
+    params.push(notes ? String(notes).trim() : null);
     updates.push(`notes = $${params.length}`);
   }
   if (isActive !== undefined) {
     params.push(Boolean(isActive));
     updates.push(`is_active = $${params.length}`);
   }
-  if (nameHi !== undefined) {
-    params.push(nameHi ? nameHi.trim() : null);
-    updates.push(`name_hi = $${params.length}`);
-  }
-  if (addressHi !== undefined) {
-    params.push(addressHi ? addressHi.trim() : null);
-    updates.push(`address_hi = $${params.length}`);
-  }
-  if (secondaryAddressHi !== undefined) {
-    params.push(secondaryAddressHi ? secondaryAddressHi.trim() : null);
-    updates.push(`secondary_address_hi = $${params.length}`);
-  }
   if (isLead !== undefined) {
     params.push(Boolean(isLead));
     updates.push(`is_lead = $${params.length}`);
   }
-  if (leadStatus !== undefined) {
-    params.push(leadStatus ? leadStatus.trim() : 'open');
-    updates.push(`lead_status = $${params.length}`);
+  const effStage = leadStage !== undefined ? leadStage : leadStatus;
+  if (effStage !== undefined) {
+    params.push(effStage ? String(effStage).trim() : null);
+    updates.push(`lead_stage = $${params.length}`);
+  }
+  if (leadSource !== undefined) {
+    params.push(leadSource ? String(leadSource).trim() : null);
+    updates.push(`lead_source = $${params.length}`);
   }
   if (leadNotes !== undefined) {
-    params.push(leadNotes ? leadNotes.trim() : null);
-    updates.push(`lead_notes = $${params.length}`);
+    const norm = normalizeLeadNotesInput(leadNotes);
+    params.push(norm ? JSON.stringify(norm) : null);
+    updates.push(`lead_notes = $${params.length}::jsonb`);
   }
   if (interestedService !== undefined) {
-    params.push(interestedService ? interestedService.trim() : null);
+    params.push(interestedService ? String(interestedService).trim() : null);
     updates.push(`interested_service = $${params.length}`);
   }
-  const makeVal = carMake !== undefined ? carMake : car_make;
-  if (makeVal !== undefined) {
-    params.push(makeVal ? String(makeVal).trim() : null);
-    updates.push(`car_make = $${params.length}`);
-  }
-  const colorVal = carColor !== undefined ? carColor : car_color;
-  if (colorVal !== undefined) {
-    params.push(colorVal ? String(colorVal).trim() : null);
-    updates.push(`car_color = $${params.length}`);
-  }
-  const pCountVal = panelCount !== undefined ? panelCount : panel_count;
-  if (pCountVal !== undefined) {
-    params.push(pCountVal !== null && pCountVal !== '' ? (parseInt(pCountVal, 10) || null) : null);
-    updates.push(`panel_count = $${params.length}`);
-  }
+
   updates.push('updated_at = CURRENT_TIMESTAMP');
 
   const res = await runner.query(
@@ -257,42 +232,49 @@ async function updateCustomer(id, {
   return res.rows[0] || null;
 }
 
-async function convertLeadToCustomer(id, client = null) {
+async function convertLeadToCustomer(id, { phone = null } = {}, client = null) {
   const runner = client || db;
+  const params = [id];
+  let phoneClause = '';
+  if (phone) {
+    params.push(String(phone).trim());
+    phoneClause = `, phone = $${params.length}`;
+  }
   const res = await runner.query(
     `UPDATE public.customers
      SET is_lead = FALSE,
-         lead_status = 'converted',
+         lead_stage = 'converted'
+         ${phoneClause},
          updated_at = CURRENT_TIMESTAMP
      WHERE id = $1 AND deleted_at IS NULL
      RETURNING *`,
-    [id]
+    params
   );
   return res.rows[0] || null;
 }
 
 async function appendLeadNote(id, noteText, client = null) {
   const runner = client || db;
-  // Fetch existing notes
   const custRes = await runner.query(
     'SELECT notes, lead_notes FROM public.customers WHERE id = $1 AND deleted_at IS NULL LIMIT 1',
     [id]
   );
   if (!custRes.rows[0]) return null;
 
-  const existingLeadNotes = custRes.rows[0].lead_notes || '';
+  const cleanText = String(noteText || '').trim();
+  const existingLeadNotes = Array.isArray(custRes.rows[0].lead_notes) ? custRes.rows[0].lead_notes : [];
+  const nextLeadNotes = [...existingLeadNotes, { text: cleanText, created_at: new Date().toISOString() }];
   const existingNotes = custRes.rows[0].notes || '';
-  const newLeadNotes = existingLeadNotes ? `${existingLeadNotes}\n${noteText.trim()}` : noteText.trim();
-  const newNotes = existingNotes ? `${existingNotes}\n${noteText.trim()}` : noteText.trim();
+  const nextNotes = existingNotes ? `${existingNotes}\n${cleanText}` : cleanText;
 
   const res = await runner.query(
     `UPDATE public.customers
-     SET lead_notes = $2,
+     SET lead_notes = $2::jsonb,
          notes = $3,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = $1 AND deleted_at IS NULL
      RETURNING *`,
-    [id, newLeadNotes, newNotes]
+    [id, JSON.stringify(nextLeadNotes), nextNotes]
   );
   return res.rows[0] || null;
 }
@@ -325,9 +307,12 @@ async function softDelete(id, { deletedBy = 'admin', deletionReason = 'Administr
   return res.rows[0] || null;
 }
 
-async function countCustomers(client = null) {
+async function countCustomers({ includeLeads = false, client = null } = {}) {
   const runner = client || db;
-  const res = await runner.query('SELECT count(*)::int AS count FROM public.customers WHERE deleted_at IS NULL');
+  const leadFilter = includeLeads ? '' : 'AND is_lead = FALSE';
+  const res = await runner.query(
+    `SELECT count(*)::int AS count FROM public.customers WHERE deleted_at IS NULL ${leadFilter}`
+  );
   return res.rows[0].count;
 }
 
@@ -336,11 +321,12 @@ module.exports = {
   findById,
   findByCode,
   findByPhone,
+  findOneByPhone,
   createCustomer,
   updateCustomer,
+  convertLeadToCustomer,
+  appendLeadNote,
   toggleActive,
   softDelete,
-  countCustomers,
-  convertLeadToCustomer,
-  appendLeadNote
+  countCustomers
 };

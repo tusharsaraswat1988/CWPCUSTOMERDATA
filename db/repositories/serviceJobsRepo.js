@@ -1,15 +1,31 @@
 /**
- * Repository for table: service_jobs
- * On-Demand / Special Jobs (Solar Panel Cleaning, Car Washing, Detailing)
+ * Repository for table: service_jobs (BRD v1.0 Non-DCC 6-Step + Cancel Lifecycle)
+ * Statuses: scheduled -> assigned -> enrolled -> in_progress -> completed -> verified | cancelled
+ * Categories: car_wash | solar | detailing
  */
+
+'use strict';
+
 const db = require('../index');
+
+const NON_DCC_CATEGORIES = ['car_wash', 'solar', 'detailing'];
+const JOB_STATUSES = ['scheduled', 'assigned', 'enrolled', 'in_progress', 'completed', 'verified', 'cancelled'];
+
+function normalizeCategory(cat) {
+  const c = String(cat || '').trim().toLowerCase();
+  if (c === 'car_washing' || c === 'car_wash') return 'car_wash';
+  if (c === 'solar_cleaning' || c === 'solar') return 'solar';
+  if (c === 'interior_detailing' || c === 'exterior_detailing' || c === 'detailing') return 'detailing';
+  throw new Error(`Invalid Non-DCC service_category '${cat}'. Allowed: car_wash, solar, detailing.`);
+}
 
 async function findAll({
   status = null,
-  serviceCategoryId = null,
+  serviceCategory = null,
+  staffId = null,
   customerId = null,
-  includeDeleted = false,
-  seeManagedOnly = false,
+  dateFrom = null,
+  dateTo = null,
   limit = 200,
   offset = 0,
   client = null
@@ -18,27 +34,29 @@ async function findAll({
   const conditions = [];
   const params = [];
 
-  if (!includeDeleted) {
-    conditions.push('j.deleted_at IS NULL');
-  }
-
-  if (seeManagedOnly) {
-    conditions.push("j.service_payload->>'_seeManaged' = 'true'");
-  }
-
-  if (status) {
+  if (status && status !== 'all') {
     params.push(status);
     conditions.push(`j.status = $${params.length}`);
   }
-
-  if (serviceCategoryId) {
-    params.push(serviceCategoryId);
-    conditions.push(`j.service_category_id = $${params.length}`);
+  if (serviceCategory && serviceCategory !== 'all') {
+    params.push(normalizeCategory(serviceCategory));
+    conditions.push(`j.service_category = $${params.length}`);
   }
-
+  if (staffId && staffId !== 'all') {
+    params.push(staffId);
+    conditions.push(`j.assigned_staff_id = $${params.length}`);
+  }
   if (customerId) {
     params.push(customerId);
     conditions.push(`j.customer_id = $${params.length}`);
+  }
+  if (dateFrom) {
+    params.push(dateFrom);
+    conditions.push(`COALESCE(j.scheduled_date, (j.created_at AT TIME ZONE 'Asia/Kolkata')::date) >= $${params.length}::date`);
+  }
+  if (dateTo) {
+    params.push(dateTo);
+    conditions.push(`COALESCE(j.scheduled_date, (j.created_at AT TIME ZONE 'Asia/Kolkata')::date) <= $${params.length}::date`);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -47,35 +65,28 @@ async function findAll({
   params.push(offset);
   const offsetIdx = params.length;
 
-  const sql = `
-    SELECT j.*,
-           c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
-           v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
-           loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
-           sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code,
-           execution.id AS latest_execution_id, execution.outcome AS latest_execution_outcome,
-           execution.ended_at AS latest_execution_ended_at,
-           execution.checklist_results AS latest_checklist_results,
-           execution.proof_photos AS latest_proof_photos
-    FROM public.service_jobs j
-    JOIN public.customers c ON j.customer_id = c.id
-    LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
-    JOIN public.service_locations loc ON j.location_id = loc.id
-    LEFT JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
-    LEFT JOIN public.staff s ON sa.staff_id = s.id
-    LEFT JOIN LATERAL (
-      SELECT se.id, se.outcome, se.ended_at, se.checklist_results, se.proof_photos
-      FROM public.service_executions se
-      WHERE se.job_id = j.id
-      ORDER BY se.created_at DESC
-      LIMIT 1
-    ) execution ON TRUE
-    ${whereClause}
-    ORDER BY j.created_at DESC
-    LIMIT $${limitIdx} OFFSET $${offsetIdx}
-  `;
-
-  const res = await runner.query(sql, params);
+  const res = await runner.query(
+    `SELECT j.*,
+            c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
+            v.registration_no, v.seater_type, v.car_model, v.car_color,
+            si.panel_count, si.kw_load,
+            loc.label AS location_label, loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details, loc.latitude, loc.longitude,
+            s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code, s.phone AS assigned_staff_phone,
+            svc.name AS service_name,
+            b.payment_status, b.total_amount AS booking_total_amount
+     FROM public.service_jobs j
+     JOIN public.customers c ON j.customer_id = c.id
+     LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
+     LEFT JOIN public.solar_installations si ON j.solar_id = si.id
+     JOIN public.service_locations loc ON j.location_id = loc.id
+     LEFT JOIN public.staff s ON j.assigned_staff_id = s.id
+     LEFT JOIN public.services svc ON j.service_id = svc.id
+     LEFT JOIN public.bookings b ON j.booking_id = b.id
+     ${whereClause}
+     ORDER BY j.created_at DESC
+     LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+    params
+  );
   return res.rows;
 }
 
@@ -84,16 +95,19 @@ async function findById(id, client = null) {
   const res = await runner.query(
     `SELECT j.*,
             c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
-            v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
-            loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
-            sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code
+            v.registration_no, v.seater_type, v.car_model, v.car_color,
+            si.panel_count, si.kw_load,
+            loc.label AS location_label, loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details, loc.latitude, loc.longitude,
+            s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code, s.phone AS assigned_staff_phone,
+            svc.name AS service_name
      FROM public.service_jobs j
      JOIN public.customers c ON j.customer_id = c.id
      LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
-     LEFT JOIN public.service_locations loc ON j.location_id = loc.id
-     LEFT JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
-     LEFT JOIN public.staff s ON sa.staff_id = s.id
-     WHERE j.id = $1 AND j.deleted_at IS NULL
+     LEFT JOIN public.solar_installations si ON j.solar_id = si.id
+     JOIN public.service_locations loc ON j.location_id = loc.id
+     LEFT JOIN public.staff s ON j.assigned_staff_id = s.id
+     LEFT JOIN public.services svc ON j.service_id = svc.id
+     WHERE j.id = $1
      LIMIT 1`,
     [id]
   );
@@ -105,12 +119,28 @@ async function findByIdForUpdate(id, client) {
     throw new Error('client with active transaction is required for findByIdForUpdate');
   }
   const res = await client.query(
-    `SELECT * FROM public.service_jobs
-     WHERE id = $1 AND deleted_at IS NULL
-     FOR UPDATE`,
+    'SELECT * FROM public.service_jobs WHERE id = $1 FOR UPDATE',
     [id]
   );
   return res.rows[0] || null;
+}
+
+async function findByCustomerId(customerId, client = null) {
+  return findAll({ customerId, client });
+}
+
+async function findByBookingId(bookingId, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `SELECT j.*, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code, svc.name AS service_name
+     FROM public.service_jobs j
+     LEFT JOIN public.staff s ON j.assigned_staff_id = s.id
+     LEFT JOIN public.services svc ON j.service_id = svc.id
+     WHERE j.booking_id = $1
+     ORDER BY j.created_at DESC`,
+    [bookingId]
+  );
+  return res.rows;
 }
 
 async function findDispatchedForStaff(staffId, client = null) {
@@ -118,424 +148,308 @@ async function findDispatchedForStaff(staffId, client = null) {
   const res = await runner.query(
     `SELECT j.*,
             c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
-            v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
-            loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details
+            v.registration_no, v.seater_type, v.car_model, v.car_color,
+            si.panel_count, si.kw_load,
+            loc.label AS location_label, loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details, loc.latitude, loc.longitude,
+            svc.name AS service_name
      FROM public.service_jobs j
      JOIN public.customers c ON j.customer_id = c.id
      LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
+     LEFT JOIN public.solar_installations si ON j.solar_id = si.id
      JOIN public.service_locations loc ON j.location_id = loc.id
-     JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
-     WHERE sa.staff_id = $1 AND j.deleted_at IS NULL AND (j.status != 'cancelled' OR (j.status = 'cancelled' AND (j.cancelled_at::date = CURRENT_DATE OR j.updated_at::date = CURRENT_DATE)))
-     ORDER BY 
-       CASE j.status 
-         WHEN 'in_progress' THEN 1 
-         WHEN 'assigned' THEN 2 
-         WHEN 'completed' THEN 3 
-         WHEN 'cancelled' THEN 4
-         ELSE 5 
+     LEFT JOIN public.services svc ON j.service_id = svc.id
+     WHERE j.assigned_staff_id = $1
+       AND (
+         j.status IN ('assigned', 'enrolled', 'in_progress', 'completed')
+         OR (j.status IN ('verified', 'cancelled') AND (j.updated_at AT TIME ZONE 'Asia/Kolkata')::date = (NOW() AT TIME ZONE 'Asia/Kolkata')::date)
+       )
+     ORDER BY
+       CASE j.status
+         WHEN 'in_progress' THEN 1
+         WHEN 'enrolled' THEN 2
+         WHEN 'assigned' THEN 3
+         WHEN 'completed' THEN 4
+         ELSE 5
        END ASC,
        j.scheduled_date ASC NULLS LAST,
-       j.sequence_order ASC NULLS LAST,
-       j.scheduled_time ASC NULLS LAST,
        j.created_at ASC`,
     [staffId]
   );
   return res.rows;
 }
 
-const ALLOWED_PAYMENT_STATUSES = ['paid', 'unpaid', 'pending', 'package_covered', 'partial', 'waived'];
-const ALLOWED_BOOKING_SOURCES = ['admin', 'customer_request', 'verbal', 'call_center', 'app'];
-
-function normalizePaymentStatus(val) {
-  const s = val ? String(val).trim().toLowerCase() : 'pending';
-  return ALLOWED_PAYMENT_STATUSES.includes(s) ? s : 'pending';
-}
-
-function normalizeBookingSource(val) {
-  const s = val ? String(val).trim().toLowerCase() : 'admin';
-  return ALLOWED_BOOKING_SOURCES.includes(s) ? s : 'admin';
-}
-
 async function createJob({
+  bookingId = null,
   customerId,
-  vehicleId = null,
-  locationId,
-  serviceCategoryId,
+  serviceCategory,
   serviceId = null,
-  serviceNameSnapshot = null,
-  serviceType,
-  packageDetails = null,
-  packageCode = null,
-  packageId = null,
-  seaterType = null,
-  panelCount = null,
-  siteDetails = null,
+  assetType = null,
+  vehicleId = null,
+  solarId = null,
+  locationId,
+  assignedStaffId = null,
+  status = null,
   scheduledDate = null,
-  scheduledTime = null,
-  sequenceOrder = null,
-  status = 'assigned',
-  specialInstructions = null,
-  photoUrl = null,
-  photoStorageKey = null,
-  beforePhotos = [],
-  afterPhotos = [],
-  entitlementConsumed = false,
-  servicePrice = 0.00,
-  paymentStatus = 'pending',
-  bookingSource = 'admin',
-  entitlementAccountId = null,
-  purchaseSnapshotId = null,
-  city = null,
-  zone = null,
-  timezone = 'Asia/Kolkata'
+  notes = null
 }, client = null) {
   const runner = client || db;
+  const normCat = normalizeCategory(serviceCategory);
+  const resolvedAssetType = assetType || (normCat === 'solar' ? 'solar' : 'vehicle');
+  const resolvedStatus = status || (assignedStaffId ? 'assigned' : 'scheduled');
+
+  if (!JOB_STATUSES.includes(resolvedStatus)) {
+    throw new Error(`Invalid job status '${resolvedStatus}'.`);
+  }
+
   let resolvedServiceId = serviceId;
-  if (!resolvedServiceId && serviceCategoryId) {
+  if (!resolvedServiceId) {
     const svcRes = await runner.query(
-      `SELECT id FROM public.services WHERE service_category_id = $1 AND status = 'active' ORDER BY created_at ASC LIMIT 1`,
-      [serviceCategoryId]
+      'SELECT id FROM public.services WHERE category = $1 AND is_active = TRUE ORDER BY sort_order ASC LIMIT 1',
+      [normCat]
     );
     resolvedServiceId = svcRes.rows[0]?.id || null;
   }
-  const normPaymentStatus = normalizePaymentStatus(paymentStatus);
-  const normBookingSource = normalizeBookingSource(bookingSource);
-  const numPrice = parseFloat(servicePrice);
-  const finalPrice = Number.isFinite(numPrice) ? numPrice : 0.00;
+
   const res = await runner.query(
     `INSERT INTO public.service_jobs (
-       customer_id, vehicle_id, location_id, service_category_id, service_id,
-       service_name_snapshot, service_type, package_details, package_code, package_id, seater_type, panel_count,
-       site_details, scheduled_date, scheduled_time, sequence_order,
-       status, special_instructions, photo_url, photo_storage_key,
-       before_photos, after_photos,
-       entitlement_consumed, service_price, payment_status, booking_source,
-       entitlement_account_id, purchase_snapshot_id, city, zone, timezone
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
+       booking_id, customer_id, service_category, service_id, asset_type,
+       vehicle_id, solar_id, location_id, assigned_staff_id, status, scheduled_date, notes
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING *`,
     [
+      bookingId || null,
       customerId,
-      vehicleId,
-      locationId,
-      serviceCategoryId,
+      normCat,
       resolvedServiceId,
-      serviceNameSnapshot || serviceType,
-      serviceType,
-      packageDetails,
-      packageCode,
-      packageId,
-      seaterType,
-      panelCount,
-      siteDetails ? JSON.stringify(siteDetails) : null,
-      scheduledDate,
-      scheduledTime,
-      sequenceOrder,
-      status,
-      specialInstructions,
-      photoUrl,
-      photoStorageKey,
-      JSON.stringify(beforePhotos || []),
-      JSON.stringify(afterPhotos || []),
-      Boolean(entitlementConsumed),
-      finalPrice,
-      normPaymentStatus,
-      normBookingSource,
-      entitlementAccountId,
-      purchaseSnapshotId,
-      city,
-      zone,
-      timezone || 'Asia/Kolkata'
+      resolvedAssetType,
+      resolvedAssetType === 'vehicle' ? vehicleId : null,
+      resolvedAssetType === 'solar' ? solarId : null,
+      locationId,
+      assignedStaffId || null,
+      resolvedStatus,
+      scheduledDate || null,
+      notes ? String(notes).trim() : null
     ]
   );
   return res.rows[0];
 }
 
+async function assignStaff(id, staffId, { scheduledDate = null, notes = null } = {}, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `UPDATE public.service_jobs
+     SET assigned_staff_id = $2,
+         status = 'assigned',
+         scheduled_date = COALESCE($3::date, scheduled_date),
+         notes = COALESCE($4, notes),
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND status IN ('scheduled', 'assigned')
+     RETURNING *`,
+    [id, staffId, scheduledDate || null, notes ? String(notes).trim() : null]
+  );
+  return res.rows[0] || null;
+}
+
+async function enrollJob(id, staffId = null, client = null) {
+  const runner = client || db;
+  const params = [id];
+  let staffFilter = '';
+  if (staffId) {
+    params.push(staffId);
+    staffFilter = ` AND assigned_staff_id = $${params.length}`;
+  }
+  const res = await runner.query(
+    `UPDATE public.service_jobs
+     SET status = 'enrolled',
+         enrolled_at = COALESCE(enrolled_at, CURRENT_TIMESTAMP),
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND status = 'assigned' ${staffFilter}
+     RETURNING *`,
+    params
+  );
+  return res.rows[0] || null;
+}
+
 async function startJob(id, opts = {}, client = null) {
   const runner = client || db;
-  const beforePhotos = Array.isArray(opts) ? opts : (opts && opts.beforePhotos ? opts.beforePhotos : []);
-  const startedAt = Array.isArray(opts) ? null : (opts && opts.startedAt);
+  const beforePhotos = Array.isArray(opts) ? opts : (opts?.beforePhotos || []);
+  const startedAt = Array.isArray(opts) ? null : (opts?.startedAt || null);
   const stAt = startedAt || new Date().toISOString();
+
   const res = await runner.query(
     `UPDATE public.service_jobs
      SET status = 'in_progress',
          started_at = $2,
-         before_photos = $3,
+         before_photos = $3::jsonb,
          updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL AND status IN ('requested', 'booked', 'assigned')
+     WHERE id = $1 AND status = 'enrolled'
      RETURNING *`,
     [id, stAt, JSON.stringify(beforePhotos || [])]
   );
   return res.rows[0] || null;
 }
 
-async function completeJob(id, opts = {}, clientOrNotes = null, maybeClient = null) {
-  const isLegacySig = Array.isArray(opts);
-  const afterPhotos = isLegacySig ? opts : (opts && opts.afterPhotos ? opts.afterPhotos : []);
-  const completedAt = isLegacySig ? null : (opts && opts.completedAt);
-  const completionNotes = isLegacySig 
-    ? (typeof clientOrNotes === 'string' ? clientOrNotes : null)
-    : (opts && opts.completionNotes ? opts.completionNotes : null);
-  const runner = (isLegacySig ? maybeClient : clientOrNotes) || db;
+async function appendProofPhotos(id, { beforePhotos = null, afterPhotos = null } = {}, client = null) {
+  const runner = client || db;
+  const cur = await findById(id, runner);
+  if (!cur) return null;
+  const nextBefore = Array.isArray(beforePhotos)
+    ? [...(Array.isArray(cur.before_photos) ? cur.before_photos : []), ...beforePhotos]
+    : (Array.isArray(cur.before_photos) ? cur.before_photos : []);
+  const nextAfter = Array.isArray(afterPhotos)
+    ? [...(Array.isArray(cur.after_photos) ? cur.after_photos : []), ...afterPhotos]
+    : (Array.isArray(cur.after_photos) ? cur.after_photos : []);
 
-  const compAt = completedAt || new Date().toISOString();
+  const res = await runner.query(
+    `UPDATE public.service_jobs
+     SET before_photos = $2::jsonb,
+         after_photos = $3::jsonb,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1
+     RETURNING *`,
+    [id, JSON.stringify(nextBefore), JSON.stringify(nextAfter)]
+  );
+  return res.rows[0] || null;
+}
+
+async function completeJob(id, opts = {}, client = null) {
+  const runner = client || db;
+  const afterPhotos = Array.isArray(opts) ? opts : (opts?.afterPhotos || []);
+  const checklistResults = Array.isArray(opts) ? null : (opts?.checklistResults || null);
+  const notes = Array.isArray(opts) ? null : (opts?.notes || opts?.completionNotes || null);
+  const completedAt = Array.isArray(opts) ? new Date() : new Date(opts?.completedAt || Date.now());
+  const autoVerifyHours = Math.max(1, Number(opts?.autoVerifyHours || 24));
+  const autoVerifyAt = new Date(completedAt.getTime() + autoVerifyHours * 3600 * 1000);
+
   const res = await runner.query(
     `UPDATE public.service_jobs
      SET status = 'completed',
          completed_at = $2,
-         after_photos = $3,
-         completion_notes = $4,
+         after_photos = $3::jsonb,
+         checklist_results = COALESCE($4::jsonb, checklist_results),
+         notes = COALESCE($5, notes),
+         auto_verify_at = $6,
          updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL AND status = 'in_progress'
-     RETURNING *`,
-    [id, compAt, JSON.stringify(afterPhotos || []), completionNotes ? completionNotes.trim() : null]
-  );
-  return res.rows[0] || null;
-}
-
-async function isSeeManagedRow(job, runner) {
-  if (!job) return false;
-  let payload = job.service_payload;
-  if (typeof payload === 'string') {
-    try { payload = JSON.parse(payload); } catch (_) { payload = {}; }
-  }
-  if (
-    (payload && payload._seeManaged === true) ||
-    job.entitlement_account_id ||
-    job.purchase_snapshot_id
-  ) {
-    return true;
-  }
-  const [addonRes, solarRes] = await Promise.all([
-    runner.query('SELECT id FROM public.service_job_addons WHERE job_id = $1 LIMIT 1', [job.id]),
-    runner.query('SELECT id FROM public.solar_verifications WHERE job_id = $1 LIMIT 1', [job.id])
-  ]);
-  return Boolean((addonRes.rows && addonRes.rows.length > 0) || (solarRes.rows && solarRes.rows.length > 0));
-}
-
-const TERMINAL_JOB_STATUSES = ['completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete'];
-
-async function updateJobStatus(id, status, client = null) {
-  const runner = client || db;
-  const existing = await findByIdForUpdate(id, runner);
-  if (!existing) return null;
-  if (await isSeeManagedRow(existing, runner)) {
-    const err = new Error(
-      `SEE_CANONICAL_COMPLETION_REQUIRED: Job '${id}' is a canonical SEE-managed job and cannot be updated via generic updateJobStatus.`
-    );
-    err.code = 'SEE_CANONICAL_COMPLETION_REQUIRED';
-    throw err;
-  }
-  if (TERMINAL_JOB_STATUSES.includes(existing.status)) {
-    throw new Error(`Cannot update job '${id}' from terminal status '${existing.status}' to '${status}'.`);
-  }
-  const res = await runner.query(
-    `UPDATE public.service_jobs
-     SET status = $2, updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1
-       AND deleted_at IS NULL
-       AND status NOT IN ('completed', 'cancelled', 'failed', 'no_show', 'unable_to_complete')
-     RETURNING *`,
-    [id, status]
-  );
-  return res.rows[0] || null;
-}
-
-async function cancelJob(id, {
-  cancellationReason,
-  cancellationRemarks = null,
-  cancelledAt = null,
-  cancelledBy = null
-} = {}, client = null) {
-  const runner = client || db;
-  const cAt = cancelledAt || new Date().toISOString();
-  const res = await runner.query(
-    `UPDATE public.service_jobs
-     SET status = 'cancelled',
-         cancellation_reason = $2,
-         cancellation_remarks = $3,
-         cancelled_at = $4,
-         cancelled_by = $5,
-         updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL AND status IN ('requested', 'booked', 'assigned')
+     WHERE id = $1 AND status = 'in_progress'
      RETURNING *`,
     [
       id,
-      cancellationReason ? String(cancellationReason).trim() : 'booking cancelled due to other reason',
-      cancellationRemarks ? String(cancellationRemarks).trim() : null,
-      cAt,
-      cancelledBy || null
+      completedAt.toISOString(),
+      JSON.stringify(afterPhotos || []),
+      checklistResults ? JSON.stringify(checklistResults) : null,
+      notes ? String(notes).trim() : null,
+      autoVerifyAt.toISOString()
     ]
   );
   return res.rows[0] || null;
 }
 
-async function softDelete(id, client = null) {
-  const actualClient = (client && typeof client.query === 'function') ? client : null;
-  const runner = actualClient || db;
+async function verifyJob(id, { verifiedBy = 'admin', notes = null } = {}, client = null) {
+  const runner = client || db;
   const res = await runner.query(
     `UPDATE public.service_jobs
-     SET deleted_at = CURRENT_TIMESTAMP,
-         status = CASE WHEN status IN ('cancelled', 'failed', 'no_show', 'unable_to_complete') THEN status ELSE 'cancelled' END,
+     SET status = 'verified',
+         verified_at = CURRENT_TIMESTAMP,
+         verified_by = $2,
+         notes = COALESCE($3, notes),
          updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL AND status IN ('pending', 'requested', 'booked', 'assigned', 'cancelled', 'failed', 'no_show', 'unable_to_complete')
+     WHERE id = $1 AND status = 'completed'
      RETURNING *`,
-    [id]
+    [id, verifiedBy || 'admin', notes ? String(notes).trim() : null]
   );
   return res.rows[0] || null;
 }
 
-async function findByCustomerId(customerId, { includeDeleted = false, client = null } = {}) {
+async function autoVerifyExpiredJobs(client = null) {
   const runner = client || db;
-  const conditions = ['j.customer_id = $1'];
-  if (!includeDeleted) {
-    conditions.push('j.deleted_at IS NULL');
-  }
-  const sql = `
-    SELECT j.*,
-           c.name AS customer_name, c.name_hi AS customer_name_hi, c.phone AS customer_phone, c.customer_code,
-           v.registration_no, v.brand_or_model, v.car_make, v.car_color, v.photo_url AS vehicle_photo_url,
-           loc.address_text, loc.address_text_hi, loc.google_maps_url, loc.parking_details,
-           sa.staff_id, s.name AS assigned_staff_name, s.staff_code AS assigned_staff_code,
-           execution.id AS latest_execution_id, execution.outcome AS latest_execution_outcome,
-           execution.ended_at AS latest_execution_ended_at,
-           execution.checklist_results AS latest_checklist_results,
-           execution.proof_photos AS latest_proof_photos
-    FROM public.service_jobs j
-    JOIN public.customers c ON j.customer_id = c.id
-    LEFT JOIN public.vehicles v ON j.vehicle_id = v.id
-    JOIN public.service_locations loc ON j.location_id = loc.id
-    LEFT JOIN public.staff_assignments sa ON j.id = sa.job_id AND sa.is_active = TRUE
-    LEFT JOIN public.staff s ON sa.staff_id = s.id
-    LEFT JOIN LATERAL (
-      SELECT se.id, se.outcome, se.ended_at, se.checklist_results, se.proof_photos
-      FROM public.service_executions se
-      WHERE se.job_id = j.id
-      ORDER BY se.created_at DESC
-      LIMIT 1
-    ) execution ON TRUE
-    WHERE ${conditions.join(' AND ')}
-    ORDER BY j.created_at DESC
-  `;
-  const res = await runner.query(sql, [customerId]);
+  const res = await runner.query(
+    `UPDATE public.service_jobs
+     SET status = 'verified',
+         verified_at = CURRENT_TIMESTAMP,
+         verified_by = 'auto_verify',
+         updated_at = CURRENT_TIMESTAMP
+     WHERE status = 'completed'
+       AND auto_verify_at IS NOT NULL
+       AND auto_verify_at <= CURRENT_TIMESTAMP
+     RETURNING *`
+  );
   return res.rows;
+}
+
+async function cancelJob(id, { notes = null } = {}, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `UPDATE public.service_jobs
+     SET status = 'cancelled',
+         notes = COALESCE($2, notes),
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND status NOT IN ('verified', 'cancelled')
+     RETURNING *`,
+    [id, notes ? String(notes).trim() : null]
+  );
+  return res.rows[0] || null;
 }
 
 async function updateJob(id, updates = {}, client = null) {
   const runner = client || db;
-  const setClauses = [];
+  const fields = [];
   const params = [id];
 
-  const fieldMap = {
-    vehicleId: 'vehicle_id',
-    locationId: 'location_id',
-    serviceCategoryId: 'service_category_id',
-    serviceId: 'service_id',
-    serviceNameSnapshot: 'service_name_snapshot',
-    serviceType: 'service_type',
-    packageDetails: 'package_details',
-    packageCode: 'package_code',
-    packageId: 'package_id',
-    seaterType: 'seater_type',
-    panelCount: 'panel_count',
-    siteDetails: 'site_details',
-    scheduledDate: 'scheduled_date',
-    scheduledTime: 'scheduled_time',
-    sequenceOrder: 'sequence_order',
-    status: 'status',
-    specialInstructions: 'special_instructions',
-    photoUrl: 'photo_url',
-    photoStorageKey: 'photo_storage_key',
-    completionNotes: 'completion_notes',
-    entitlementConsumed: 'entitlement_consumed',
-    servicePrice: 'service_price',
-    paymentStatus: 'payment_status',
-    bookingSource: 'booking_source',
-    entitlementAccountId: 'entitlement_account_id',
-    purchaseSnapshotId: 'purchase_snapshot_id',
-    city: 'city',
-    zone: 'zone',
-    timezone: 'timezone'
-  };
-
-  for (const [key, col] of Object.entries(fieldMap)) {
-    if (updates[key] !== undefined) {
-      let val = updates[key];
-      if (key === 'siteDetails' && val && typeof val === 'object') {
-        val = JSON.stringify(val);
-      } else if (key === 'panelCount' && val != null) {
-        val = isNaN(parseInt(val, 10)) ? null : parseInt(val, 10);
-      } else if (key === 'entitlementConsumed') {
-        val = Boolean(val);
-      } else if (key === 'servicePrice' && val != null) {
-        const parsed = parseFloat(val);
-        val = Number.isFinite(parsed) ? parsed : 0.00;
-      } else if (key === 'paymentStatus') {
-        val = normalizePaymentStatus(val);
-      } else if (key === 'bookingSource') {
-        val = normalizeBookingSource(val);
-      }
-      params.push(val);
-      setClauses.push(`${col} = $${params.length}`);
+  if (updates.locationId !== undefined) {
+    params.push(updates.locationId);
+    fields.push(`location_id = $${params.length}`);
+  }
+  if (updates.assignedStaffId !== undefined) {
+    params.push(updates.assignedStaffId || null);
+    fields.push(`assigned_staff_id = $${params.length}`);
+  }
+  if (updates.scheduledDate !== undefined) {
+    params.push(updates.scheduledDate || null);
+    fields.push(`scheduled_date = $${params.length}`);
+  }
+  if (updates.status !== undefined) {
+    if (!JOB_STATUSES.includes(updates.status)) {
+      throw new Error(`Invalid job status '${updates.status}'.`);
     }
+    params.push(updates.status);
+    fields.push(`status = $${params.length}`);
+  }
+  if (updates.notes !== undefined) {
+    params.push(updates.notes ? String(updates.notes).trim() : null);
+    fields.push(`notes = $${params.length}`);
   }
 
-  if (setClauses.length === 0) {
-    return findById(id, client);
-  }
+  if (fields.length === 0) return findById(id, runner);
+  fields.push('updated_at = CURRENT_TIMESTAMP');
 
-  setClauses.push('updated_at = CURRENT_TIMESTAMP');
-  const sql = `
-    UPDATE public.service_jobs
-    SET ${setClauses.join(', ')}
-    WHERE id = $1 AND deleted_at IS NULL
-    RETURNING *
-  `;
-  const res = await runner.query(sql, params);
-  return res.rows[0] || null;
-}
-
-
-async function failJob(id, {
-  failureReason,
-  failureRemarks = null,
-  failedAt = null,
-  failedBy = null
-} = {}, client = null) {
-  const runner = client || db;
-  const fAt = failedAt || new Date().toISOString();
   const res = await runner.query(
     `UPDATE public.service_jobs
-     SET status = 'unable_to_complete',
-         failure_reason = $2,
-         failure_remarks = $3,
-         failed_at = $4,
-         failed_by = $5,
-         updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND deleted_at IS NULL AND status IN ('assigned', 'in_progress')
+     SET ${fields.join(', ')}
+     WHERE id = $1
      RETURNING *`,
-    [
-      id,
-      failureReason ? String(failureReason).trim() : 'Unable to complete service',
-      failureRemarks ? String(failureRemarks).trim() : null,
-      fAt,
-      failedBy || null
-    ]
+    params
   );
   return res.rows[0] || null;
 }
 
 module.exports = {
+  NON_DCC_CATEGORIES,
+  JOB_STATUSES,
+  normalizeCategory,
   findAll,
   findById,
   findByIdForUpdate,
   findByCustomerId,
+  findByBookingId,
   findDispatchedForStaff,
   createJob,
-  updateJob,
+  assignStaff,
+  enrollJob,
   startJob,
+  appendProofPhotos,
   completeJob,
+  verifyJob,
+  autoVerifyExpiredJobs,
   cancelJob,
-  failJob,
-  updateJobStatus,
-  softDelete
+  updateJob
 };
