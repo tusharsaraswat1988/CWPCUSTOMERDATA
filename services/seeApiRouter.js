@@ -15,6 +15,8 @@ const seeStaffCapabilityService = require('./seeStaffCapabilityService');
 const seeEntitlementService = require('./seeEntitlementService');
 const seeExecutionService = require('./seeExecutionService');
 const hybridPackageService = require('./hybridPackageService');
+const hybridRecoveryService = require('./hybridRecoveryService');
+const hybridReconciliationService = require('./hybridReconciliationService');
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -115,6 +117,16 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
     // Dedicated hybrid catalogue and membership endpoints. These routes never
     // enter generic SEE package purchase/configuration handlers.
     if (pathname.startsWith('/api/see/hybrid/')) {
+      if (pathname === '/api/see/hybrid/recovery' && method === 'GET') {
+        if (!requireAdmin()) return true;
+        try {const memberships=await hybridRecoveryService.listRecovery({limit:parsePagination(parsedUrl.searchParams).limit});return sendJson(res,200,{success:true,memberships});}
+        catch(err){console.error('[Hybrid recovery] Status query failed.',err.code||'UNKNOWN');return sendJson(res,500,{success:false,error:'Hybrid recovery status could not be loaded.'});}
+      }
+      if (pathname === '/api/see/hybrid/reconciliation/run' && method === 'POST') {
+        if (!requireAdmin()) return true;
+        try {const results=await hybridReconciliationService.reconcileAll({actor});return sendJson(res,200,{success:true,results});}
+        catch(err){console.error('[Hybrid recovery] Reconciliation failed.',err.code||'UNKNOWN');return sendJson(res,500,{success:false,error:'Hybrid reconciliation could not be completed.'});}
+      }
       if (method === 'GET' && pathname === '/api/see/hybrid/packages') {
         const packages = await hybridPackageService.listPackages({ includeDrafts: Boolean(adminSess) });
         return sendJson(res, 200, { success: true, packages });
@@ -139,8 +151,30 @@ async function handleSeeRequest(req, res, parsedUrl, { extractAuthToken, resolve
       }
       if (method === 'POST' && pathname === '/api/see/hybrid/purchases') {
         if (!requireAdmin()) return true;
-        const membership = await hybridPackageService.purchase(await readJsonBody(req), actor);
-        return sendJson(res, 201, { success: true, membership });
+        try {
+          const membership = await hybridPackageService.purchase(await readJsonBody(req), actor);
+          const complete=membership.status==='active';
+          return sendJson(res,membership.idempotentReplay?(complete?200:202):(complete?201:202),{success:complete,accepted:!complete,membership,recovery:{eligible:membership.recoveryEligible===true}});
+        } catch (err) {
+          if (err.code === '23505') return sendJson(res, 409, { success: false, error: 'A purchase or payment reference has already been used.' });
+          if (err.statusCode) return sendJson(res, err.statusCode, { success: false, error: err.message, code: err.code });
+          console.error('[Hybrid purchase] Provisioning transaction rolled back.', err.code || 'UNKNOWN');
+          return sendJson(res, 500, { success: false, error: 'Hybrid purchase could not be completed. No active membership was created. Retry with the same idempotency key.' });
+        }
+      }
+      hm = pathname.match(/^\/api\/see\/hybrid\/memberships\/([^/]+)\/(retry|reconcile)$/);
+      if (hm && method === 'POST') {
+        if (!requireAdmin()) return true;
+        let id;try{id=decodeURIComponent(hm[1]);}catch(_){return sendJson(res,400,{success:false,error:'Invalid hybrid membership ID.'});}
+        if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return sendJson(res,400,{success:false,error:'Invalid hybrid membership ID.'});
+        try {
+          const result=hm[2]==='retry'?await hybridRecoveryService.retry(id,{actor}):await hybridReconciliationService.reconcileMembership(id,{actor});
+          return sendJson(res,200,{success:true,...(result.membership?result:{membership:result})});
+        } catch(err) {
+          if(err.statusCode)return sendJson(res,err.statusCode,{success:false,error:err.message});
+          console.error('[Hybrid recovery] Operation failed.',err.code||'UNKNOWN');
+          return sendJson(res,500,{success:false,error:'Hybrid recovery could not be completed.'});
+        }
       }
       hm = pathname.match(/^\/api\/see\/hybrid\/memberships\/([^/]+)\/cancel$/);
       if (hm && method === 'POST') {

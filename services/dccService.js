@@ -183,7 +183,8 @@ async function createSubscription(params = {}, actor = 'admin', externalClient =
         rotationNotes,
         status: 'active',
         startDate,
-        endDate
+        endDate,
+        hybridMembershipId: params.hybridMembershipId || null
       }, client);
 
       // Link vehicles

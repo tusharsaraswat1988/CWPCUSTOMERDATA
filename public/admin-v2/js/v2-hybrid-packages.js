@@ -2,29 +2,87 @@
   'use strict';
   window.CWP_ADMIN_V2 = window.CWP_ADMIN_V2 || {};
   const $ = id => document.getElementById(id);
-  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const state = { packages: [], services: [], memberships: [], editing: null, loading: false, saving: false, reconciling: false, dirty: false, error: '' };
+  const SEGMENTS = ['Hatchback', 'Sedan', 'SUV', 'Luxury', '5 Seater', '5+ Seater'];
+  const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function notify(message, type='info') { window.CWP_ADMIN_V2.toast?.[type]?.(message); if (!window.CWP_ADMIN_V2.toast?.[type]) window.CWP_ADMIN_V2.toast?.show?.(message,type); }
+  function authHeaders(json=false) { const h=json?{'Content-Type':'application/json'}:{};const csrf=window.CWP_ADMIN_V2.auth?.getCsrfToken?.();if(csrf)h['X-CSRF-Token']=csrf;return h; }
   async function request(url, options={}) {
-    const csrf=window.CWP_ADMIN_V2.auth?.getCsrfToken?.();
-    const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(csrf?{'X-CSRF-Token':csrf}:{})};
-    const response=await fetch(url,{credentials:'same-origin',...options,headers}); const body=await response.json().catch(()=>({}));
-    if(!response.ok||body.success===false) throw new Error(body.error||`Request failed (${response.status})`); return body;
+    const response=await fetch(url,{credentials:'same-origin',...options,headers:{...authHeaders(Boolean(options.body)),...(options.headers||{})}});
+    const body=await response.json().catch(()=>({}));if(!response.ok||body.success===false)throw new Error(body.error||body.message||`Request failed (${response.status})`);return body;
   }
-  async function load(){
-    const state=$('v2HybridState'), body=$('v2HybridBody'); if(!state||!body)return;
-    state.style.display='block';state.textContent='Loading hybrid packages…';
-    try { const {packages=[]}=await request('/api/see/hybrid/packages');
-      body.innerHTML=packages.map(p=>`<tr><td>${esc(p.package_code)}</td><td>${esc(p.name)}</td><td>v${esc(p.version)}</td><td>${esc(p.billing_cycle)}</td><td>₹${Number(p.price).toFixed(2)}</td><td>${esc(p.see_config?.creditsPerCycle)}</td><td>${esc(p.status)}</td><td>${p.status==='draft'?`<button class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-hybrid-edit="${esc(p.id)}" data-value="${esc(JSON.stringify({name:p.name,price:Number(p.price),currency:p.currency,validity_value:p.validity_value,validity_unit:p.validity_unit,billing_cycle:p.billing_cycle,city_zone_eligibility:p.city_zone_eligibility,vehicle_segments:p.vehicle_segments,dcc_config:p.dcc_config,see_config:p.see_config,credit_policy:p.credit_policy}))}">Edit</button><button class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-hybrid-status="active" data-id="${esc(p.id)}">Activate</button>`:''} ${p.status==='active'?`<button class="cwp-v2-btn cwp-v2-btn-tertiary cwp-v2-btn-sm" data-hybrid-status="retired" data-id="${esc(p.id)}">Retire</button>`:''}</td></tr>`).join('');
-      state.style.display=packages.length?'none':'block';state.textContent=packages.length?'':'No hybrid package definitions.';
-    } catch(e){state.style.display='block';state.textContent=`Could not load hybrid packages: ${e.message}`;}
+  function showFieldError(key,message) { const node=document.querySelector(`[data-error-for="${key}"]`);if(node)node.textContent=message||'';const input=key==='packageCode'?'v2HybridCode':key==='serviceId'?'v2HybridWashService':key==='creditsPerCycle'?'v2HybridCredits':key==='price'?'v2HybridPrice':'v2HybridName';$(input)?.classList.toggle('v2-hybrid-invalid',Boolean(message)); }
+  function clearErrors(){document.querySelectorAll('.v2-hybrid-error').forEach(n=>n.textContent='');document.querySelectorAll('.v2-hybrid-invalid').forEach(n=>n.classList.remove('v2-hybrid-invalid'));const e=$('v2HybridFormError');if(e){e.textContent='';e.style.display='none';}}
+  function parseList(v){return String(v||'').split(',').map(x=>x.trim()).filter(Boolean);}
+  function formPayload(){
+    const cities=parseList($('v2HybridCity').value),zones=parseList($('v2HybridZones').value);
+    const segments=[...document.querySelectorAll('[name="v2HybridSegment"]:checked')].map(x=>x.value);
+    return {name:$('v2HybridName').value.trim(),packageCode:$('v2HybridCode').value.trim().toUpperCase(),price:Number($('v2HybridPrice').value),currency:'INR',validityValue:Number($('v2HybridDuration').value),validityUnit:$('v2HybridValidityUnit').value,billingCycle:$('v2HybridBilling').value,cityZoneEligibility:{all_cities:cities.length===0,cities,zones},vehicleSegments:segments,dccConfig:{packageName:$('v2HybridDccName').value.trim()||$('v2HybridName').value.trim(),rotationType:$('v2HybridRotation').value},seeConfig:{serviceId:$('v2HybridWashService').value,creditsPerCycle:Number($('v2HybridCredits').value)}};
   }
-  async function create(){
-    const help='Enter a JSON package definition. Example: {"packageCode":"DCC_GOLD","name":"DCC GOLD","price":999,"validityValue":1,"validityUnit":"months","billingCycle":"monthly","dccConfig":{"packageName":"DCC GOLD"},"seeConfig":{"serviceId":"CAR_WASH_SERVICE_UUID","creditsPerCycle":2},"cityZoneEligibility":{"all_cities":true,"cities":[],"zones":[]},"vehicleSegments":[]}';
-    const value=window.prompt(help); if(!value)return;
-    let data;try{data=JSON.parse(value);}catch(e){window.alert('Package definition must be valid JSON.');return;}
-    try{await request('/api/see/hybrid/packages',{method:'POST',body:JSON.stringify(data)});await load();}catch(e){window.alert(e.message);}
+  function validate(p){
+    clearErrors();let ok=true;
+    if(!p.name){showFieldError('name','Package name is required.');ok=false;}
+    if(!p.packageCode||!/^[A-Z0-9_-]+$/.test(p.packageCode)){showFieldError('packageCode','Use letters, numbers, underscores, or hyphens.');ok=false;}
+    if(!Number.isFinite(p.price)||p.price<0){showFieldError('price','Enter a valid non-negative price.');ok=false;}
+    if(!Number.isInteger(p.validityValue)||p.validityValue<1||p.validityValue>120){const n=$('v2HybridDuration');n.classList.add('v2-hybrid-invalid');const e=$('v2HybridFormError');e.textContent='Validity must be between 1 and 120.';e.style.display='block';ok=false;}
+    if(!p.seeConfig.serviceId){showFieldError('serviceId','Select an active Car Wash service.');ok=false;}
+    if(!Number.isInteger(p.seeConfig.creditsPerCycle)||p.seeConfig.creditsPerCycle<1||p.seeConfig.creditsPerCycle>100){showFieldError('creditsPerCycle','Enter a whole number from 1 to 100.');ok=false;}
+    return ok;
   }
-  async function setStatus(id,status){try{await request(`/api/see/hybrid/packages/${encodeURIComponent(id)}/status`,{method:'POST',body:JSON.stringify({status})});await load();}catch(e){window.alert(e.message);}}
-  async function edit(id, raw){const value=window.prompt('Edit the draft package JSON fields.',raw);if(!value)return;try{await request(`/api/see/hybrid/packages/${encodeURIComponent(id)}`,{method:'PATCH',body:value});await load();}catch(e){window.alert(e.message);}}
-  function init(){ $('v2HybridRefresh')?.addEventListener('click',load);$('v2HybridCreate')?.addEventListener('click',create);$('v2HybridBody')?.addEventListener('click',e=>{const editButton=e.target.closest('[data-hybrid-edit]');if(editButton){edit(editButton.dataset.hybridEdit,editButton.dataset.value);return;}const b=e.target.closest('[data-hybrid-status]');if(b)setStatus(b.dataset.id,b.dataset.hybridStatus);});window.addEventListener('cwp-v2:tab-changed',e=>{if(e.detail?.tab==='hybridPackages')load();});if($('v2View_hybridPackages')?.classList.contains('is-active'))load(); }
-  window.CWP_ADMIN_V2.hybridPackages={init,load};
+  async function loadServices(){
+    const select=$('v2HybridWashService');select.innerHTML='<option value="">Loading active Car Wash services…</option>';select.disabled=true;
+    const response=await request('/api/see/services?status=active&limit=200&offset=0');
+    state.services=(response.services||[]).filter(s=>s.status==='active'&&String(s.service_category_id||'').toLowerCase()==='car_washing'&&!/dcc/i.test(String(s.service_code||'')));
+    select.innerHTML='<option value="">Select an active Car Wash service</option>'+state.services.map(s=>`<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.service_code)})</option>`).join('');select.disabled=state.services.length===0;
+    if(!state.services.length)select.innerHTML='<option value="">No active Car Wash services available</option>';
+  }
+  function renderSegments(selected=[]){$('v2HybridSegments').innerHTML=SEGMENTS.map(s=>`<label class="v2-hybrid-check"><input type="checkbox" name="v2HybridSegment" value="${esc(s)}" ${selected.includes(s)?'checked':''}>${esc(s)}</label>`).join('');}
+  function render(){
+    const body=$('v2HybridBody'),services=new Map(state.services.map(s=>[String(s.id),s]));
+    if(state.loading){$('v2HybridState').style.display='block';$('v2HybridState').textContent='Loading hybrid packages…';return;}
+    body.innerHTML=state.packages.map(p=>{
+      const e=p.city_zone_eligibility||{},svc=services.get(String(p.see_config?.serviceId));
+      const area=e.all_cities===false?(e.cities||[]).join(', ')||'Selected cities':'All cities';const zone=(e.zones||[]).join(', ')||'All zones';
+      const parts=[p.dcc_config?.packageName||'Daily Car Cleaning',p.see_config?.creditsPerCycle?`${p.see_config.creditsPerCycle} wash credits${svc?` · ${svc.name}`:''}`:'Car Wash'];
+      return `<tr><td><strong>${esc(p.name)}</strong><div class="cwp-v2-cell-secondary">${esc(p.package_code)} · v${esc(p.version)}</div></td><td>${esc(area)}<div class="cwp-v2-cell-secondary">${esc(zone)}</div></td><td>${parts.map(esc).join('<br>')}</td><td>₹${Number(p.price||0).toFixed(2)}</td><td>${esc(p.validity_value)} ${esc(p.validity_unit)} · ${esc(p.billing_cycle)}</td><td><span class="cwp-v2-badge ${p.status==='active'?'cwp-v2-badge-success':p.status==='draft'?'cwp-v2-badge-info':'cwp-v2-badge-neutral'}">${esc(p.status)}</span></td><td>${p.status==='draft'?`<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-hybrid-edit="${esc(p.id)}">Edit</button> <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-hybrid-status="active" data-id="${esc(p.id)}">Activate</button>`:''} ${p.status==='active'?`<button type="button" class="cwp-v2-btn cwp-v2-btn-tertiary cwp-v2-btn-sm" data-hybrid-status="retired" data-id="${esc(p.id)}">Retire</button>`:''}</td></tr>`;
+    }).join('');
+    const empty=$('v2HybridState');empty.style.display=state.packages.length?'none':'block';empty.textContent=state.error|| (state.packages.length?'':'No hybrid packages found.');
+    const recoveryBody=$('v2HybridRecoveryBody');
+    recoveryBody.innerHTML=state.memberships.map(m=>{const dcc=m.components.find(c=>c.engine==='DCC'),see=m.components.find(c=>c.engine==='SEE');const canRetry=!['cancelled','expired','active','reconciliation_required'].includes(m.status)&&m.components.some(c=>['pending','failed','provisioning','retrying'].includes(c.status));const failures=m.components.filter(c=>c.safe_error_message).map(c=>`${c.engine}: ${c.safe_error_message}`).join('<br>')||'—';const last=m.components.map(c=>c.last_attempt_at).filter(Boolean).sort().pop();return `<tr><td><span class="cwp-v2-cell-mono">${esc(m.id)}</span></td><td>${esc(m.packageName||m.package_snapshot?.name||'Hybrid package')}</td><td><span class="cwp-v2-badge ${m.status==='active'?'cwp-v2-badge-success':'cwp-v2-badge-warning'}">${esc(m.status)}</span></td><td>${esc(dcc?.status||'missing')}<div class="cwp-v2-cell-secondary">${esc(dcc?.engine_record_id||'')}</div></td><td>${esc(see?.status||'missing')}<div class="cwp-v2-cell-secondary">${esc(see?.engine_record_id||'')}</div></td><td><div class="v2-hybrid-recovery-error">${failures}</div><div class="cwp-v2-cell-secondary">${last?esc(new Date(last).toLocaleString()):'No attempt recorded'} · ${m.components.reduce((n,c)=>n+Number(c.attempts||0),0)} attempt(s)</div></td><td><button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-hybrid-reconcile="${esc(m.id)}" ${state.reconciling?'disabled':''}>Reconcile</button> ${canRetry?`<button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-hybrid-retry="${esc(m.id)}" ${state.reconciling?'disabled':''}>Retry</button>`:''}</td></tr>`;}).join('');
+    const recoveryState=$('v2HybridRecoveryState');recoveryState.style.display=state.memberships.length?'none':'block';recoveryState.textContent=state.memberships.length?'':'No memberships need provisioning recovery.';if($('v2HybridReconcileAll'))$('v2HybridReconcileAll').disabled=state.reconciling;
+  }
+  async function load(){state.loading=true;state.error='';render();try{const [p]=await Promise.all([request('/api/see/hybrid/packages'),loadServices()]);state.packages=p.packages||[];}catch(e){state.packages=[];state.error=`Could not load hybrid packages: ${e.message}`;notify(state.error,'error');}try{const r=await request('/api/see/hybrid/recovery?limit=100');state.memberships=r.memberships||[];}catch(e){$('v2HybridRecoveryState').style.display='block';$('v2HybridRecoveryState').textContent=`Could not load recovery status: ${e.message}`;}finally{state.loading=false;render();}}
+  function setForm(p=null){
+    const el=$('v2HybridForm');el.reset();clearErrors();state.editing=p;state.dirty=false;
+    $('v2HybridModalTitle').textContent=p?'Edit Hybrid Package':'New Hybrid Package';$('v2HybridSaveLabel').textContent=p?'Save changes':'Save draft';
+    $('v2HybridCode').value=p?.package_code||'';$('v2HybridCode').readOnly=Boolean(p);$('v2HybridName').value=p?.name||'';$('v2HybridPrice').value=p?.price??'';
+    $('v2HybridBilling').value=p?.billing_cycle||'monthly';$('v2HybridDuration').value=p?.validity_value||1;$('v2HybridValidityUnit').value=p?.validity_unit||'months';
+    const eligibility=p?.city_zone_eligibility||{};$('v2HybridCity').value=(eligibility.cities||[]).join(', ');$('v2HybridZones').value=(eligibility.zones||[]).join(', ');
+    renderSegments(p?.vehicle_segments||[]);$('v2HybridDccName').value=p?.dcc_config?.packageName||p?.name||'';$('v2HybridRotation').value=p?.dcc_config?.rotationType||'none';
+    $('v2HybridWashService').value=p?.see_config?.serviceId||'';$('v2HybridCredits').value=p?.see_config?.creditsPerCycle??2;
+  }
+  async function openModal(p=null){setForm(p);const modal=$('v2HybridPackageModal');modal.style.display='flex';modal.setAttribute('aria-hidden','false');document.body.classList.add('cwp-v2-modal-open');try{await loadServices();$('v2HybridWashService').value=p?.see_config?.serviceId||'';}catch(e){const select=$('v2HybridWashService');select.innerHTML='<option value="">Could not load services</option>';showFieldError('serviceId',e.message);}setTimeout(()=>$('v2HybridName').focus(),0);}
+  function closeModal(force=false){if(state.saving&&!force)return;if(!force&&state.dirty&&!window.confirm('Discard unsaved hybrid package changes?'))return;const modal=$('v2HybridPackageModal');modal.style.display='none';modal.setAttribute('aria-hidden','true');document.body.classList.remove('cwp-v2-modal-open');state.editing=null;state.dirty=false;}
+  async function submit(event){event.preventDefault();if(state.saving)return;const payload=formPayload();if(!validate(payload))return;
+    state.saving=true;const button=$('v2HybridSave');button.disabled=true;$('v2HybridSaveLabel').textContent='Saving…';
+    try{
+      if(state.editing){const update={name:payload.name,price:payload.price,currency:payload.currency,validity_value:payload.validityValue,validity_unit:payload.validityUnit,billing_cycle:payload.billingCycle,city_zone_eligibility:payload.cityZoneEligibility,vehicle_segments:payload.vehicleSegments,dcc_config:payload.dccConfig,see_config:payload.seeConfig};await request(`/api/see/hybrid/packages/${encodeURIComponent(state.editing.id)}`,{method:'PATCH',body:JSON.stringify(update)});}
+      else await request('/api/see/hybrid/packages',{method:'POST',body:JSON.stringify(payload)});
+      notify(state.editing?'Hybrid package updated.':'Hybrid package saved as draft.','success');closeModal(true);await load();
+    }catch(e){const target=$('v2HybridFormError');target.textContent=/duplicate|unique|already exists/i.test(e.message)?'That package code is already in use. Choose a unique code.':e.message;target.style.display='block';notify(target.textContent,'error');}
+    finally{state.saving=false;button.disabled=false;$('v2HybridSaveLabel').textContent=state.editing?'Save changes':'Save draft';}
+  }
+  async function setStatus(id,status){try{await request(`/api/see/hybrid/packages/${encodeURIComponent(id)}/status`,{method:'POST',body:JSON.stringify({status})});notify(`Hybrid package ${status}.`,'success');await load();}catch(e){notify(e.message,'error');}}
+  async function recoveryAction(id,action,button){if(state.reconciling)return;if(!window.confirm(action==='retry'?'Retry failed hybrid component provisioning? This does not repeat components already confirmed active.':'Run reconciliation against DCC subscriptions and SEE entitlement records?'))return;state.reconciling=true;if(button){button.disabled=true;button.textContent=action==='retry'?'Retrying…':'Reconciling…';}render();try{const result=await request(`/api/see/hybrid/memberships/${encodeURIComponent(id)}/${action}`,{method:'POST',body:'{}'});notify(action==='retry'?'Hybrid recovery attempt completed.':`Reconciliation: ${result.classification||'completed'}.`,'success');}catch(e){notify(e.message,'error');}finally{state.reconciling=false;await load();}}
+  async function reconcileAll(button){if(state.reconciling||!window.confirm('Run reconciliation for all incomplete hybrid memberships?'))return;state.reconciling=true;button.disabled=true;button.textContent='Reconciling…';render();try{const result=await request('/api/see/hybrid/reconciliation/run',{method:'POST',body:'{}'});notify(`Reconciled ${result.results?.length||0} membership(s).`,'success');}catch(e){notify(e.message,'error');}finally{state.reconciling=false;await load();}}
+  function bind(){
+    $('v2HybridRefresh')?.addEventListener('click',load);$('v2HybridCreate')?.addEventListener('click',()=>openModal());$('v2HybridCancel')?.addEventListener('click',()=>closeModal());$('v2HybridModalClose')?.addEventListener('click',()=>closeModal());$('v2HybridForm')?.addEventListener('submit',submit);
+    $('v2HybridForm')?.addEventListener('input',()=>{state.dirty=true;});$('v2HybridForm')?.addEventListener('change',()=>{state.dirty=true;});
+    $('v2HybridBody')?.addEventListener('click',e=>{const edit=e.target.closest('[data-hybrid-edit]');if(edit){const p=state.packages.find(x=>String(x.id)===edit.dataset.hybridEdit);if(p)openModal(p);return;}const b=e.target.closest('[data-hybrid-status]');if(b)setStatus(b.dataset.id,b.dataset.hybridStatus);});
+    $('v2HybridRecoveryBody')?.addEventListener('click',e=>{const b=e.target.closest('[data-hybrid-retry],[data-hybrid-reconcile]');if(b)return recoveryAction(b.dataset.hybridRetry||b.dataset.hybridReconcile,b.hasAttribute('data-hybrid-retry')?'retry':'reconcile',b);});
+    $('v2HybridReconcileAll')?.addEventListener('click',e=>reconcileAll(e.currentTarget));
+    $('v2HybridPackageModal')?.addEventListener('click',e=>{if(e.target.id==='v2HybridPackageModal')closeModal();});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('v2HybridPackageModal')?.getAttribute('aria-hidden')==='false')closeModal();});
+    window.addEventListener('cwp-v2:tab-changed',e=>{if(e.detail?.tab==='hybridPackages')load();});if($('v2View_hybridPackages')?.classList.contains('is-active'))load();
+  }
+  window.CWP_ADMIN_V2.hybridPackages={init:bind,load,openModal,closeModal,validate,formPayload};
 })(window);

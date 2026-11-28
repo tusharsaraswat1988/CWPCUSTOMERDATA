@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="/admin-v2/css/v2-assign-jobs.css?v=2.2.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-sequence.css?v=2.2.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-dashboard.css?v=2.2.0">
+  <link rel="stylesheet" href="/admin-v2/css/v2-hybrid-packages.css?v=1">
 </head>
 <body class="cwp-v2-body">
   <div id="cwpV2App" class="cwp-v2-root">
@@ -5367,9 +5368,42 @@
                 <div style="display:flex;gap:8px"><button id="v2HybridRefresh" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" type="button">Refresh</button><button id="v2HybridCreate" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" type="button">New Hybrid Package</button></div>
               </div>
               <div id="v2HybridState" class="cwp-v2-empty-state-panel" style="display:none;margin:16px"></div>
-              <div class="cwp-v2-table-wrap"><table class="cwp-v2-table" aria-label="Hybrid packages"><thead><tr><th>Code</th><th>Name</th><th>Version</th><th>Cycle</th><th>Price</th><th>Credits</th><th>Status</th><th>Actions</th></tr></thead><tbody id="v2HybridBody"></tbody></table></div>
+              <div class="cwp-v2-table-wrap"><table class="cwp-v2-table" aria-label="Hybrid packages"><thead><tr><th>Package</th><th>City / zone</th><th>Components</th><th>Price</th><th>Validity</th><th>Status</th><th>Actions</th></tr></thead><tbody id="v2HybridBody"></tbody></table></div>
+              <div class="v2-hybrid-recovery-heading"><div><h3>Membership provisioning health</h3><p>Incomplete, failed, or inconsistent hybrid purchases.</p></div><button id="v2HybridReconcileAll" type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm"><span class="material-symbols-outlined" aria-hidden="true">sync</span> Reconcile all</button></div>
+              <div id="v2HybridRecoveryState" class="cwp-v2-empty-state-panel" style="display:none;margin:16px"></div>
+              <div class="cwp-v2-table-wrap"><table class="cwp-v2-table" aria-label="Hybrid membership recovery"><thead><tr><th>Membership</th><th>Package</th><th>Membership status</th><th>DCC status</th><th>SEE status</th><th>Failure / last attempt</th><th>Actions</th></tr></thead><tbody id="v2HybridRecoveryBody"></tbody></table></div>
             </div>
           </section>
+
+          <div id="v2HybridPackageModal" class="cwp-v2-overlay-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="v2HybridModalTitle" aria-hidden="true">
+            <div class="cwp-v2-modal cwp-v2-modal-lg" role="document">
+              <div class="cwp-v2-modal-header"><div class="cwp-v2-modal-header-content"><h3 id="v2HybridModalTitle" class="cwp-v2-modal-title">New Hybrid Package</h3><div class="cwp-v2-modal-subtitle">Configure one customer package with Daily Cleaning and Car Wash credits.</div></div><button type="button" id="v2HybridModalClose" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-icon cwp-v2-btn-sm" aria-label="Close modal">×</button></div>
+              <form id="v2HybridForm" novalidate>
+                <div class="cwp-v2-modal-body">
+                  <div id="v2HybridFormError" class="cwp-v2-empty-state-panel" role="alert" style="display:none;margin:0 0 14px;"></div>
+                  <div class="v2-hybrid-form-grid">
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridName">Package name <span class="cwp-v2-req-star">*</span></label><input id="v2HybridName" class="cwp-v2-input" required maxlength="160" autocomplete="off"><small class="v2-hybrid-error" data-error-for="name"></small></div>
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridCode">Package code <span class="cwp-v2-req-star">*</span></label><input id="v2HybridCode" class="cwp-v2-input" required maxlength="80" pattern="[A-Za-z0-9_-]+" autocomplete="off"><small class="v2-hybrid-error" data-error-for="packageCode"></small></div>
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridPrice">Selling price (INR) <span class="cwp-v2-req-star">*</span></label><input id="v2HybridPrice" class="cwp-v2-input" type="number" min="0" step="0.01" required><small class="v2-hybrid-error" data-error-for="price"></small></div>
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridCity">Eligible city names</label><input id="v2HybridCity" class="cwp-v2-input" placeholder="All cities, or comma-separated cities"><small>Leave blank for all cities.</small></div>
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridZones">Eligible zones / areas</label><input id="v2HybridZones" class="cwp-v2-input" placeholder="All zones, or comma-separated zones"><small>Leave blank for all zones.</small></div>
+                    <fieldset class="cwp-v2-field v2-hybrid-segments"><legend class="cwp-v2-field-label">Vehicle segments</legend><div id="v2HybridSegments" class="v2-hybrid-checks"></div><small>Leave all unchecked to allow every segment.</small></fieldset>
+                    <div class="v2-hybrid-subhead">Billing &amp; validity</div>
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridBilling">Billing cycle <span class="cwp-v2-req-star">*</span></label><select id="v2HybridBilling" class="cwp-v2-select" required><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="annual">Annual</option></select></div>
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridDuration">Entitlement validity <span class="cwp-v2-req-star">*</span></label><div class="v2-hybrid-inline"><input id="v2HybridDuration" class="cwp-v2-input" type="number" min="1" max="120" value="1" required><select id="v2HybridValidityUnit" class="cwp-v2-select"><option value="months">Months</option><option value="days">Days</option><option value="years">Years</option></select></div><small>This expiry applies to the membership and wash credits.</small></div>
+                    <div class="v2-hybrid-subhead">Daily Car Cleaning</div>
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridDccName">Subscription label</label><input id="v2HybridDccName" class="cwp-v2-input" maxlength="160"><small>DCC is a required component of a hybrid package.</small></div>
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridRotation">Cleaning frequency</label><select id="v2HybridRotation" class="cwp-v2-select"><option value="none">Default schedule</option><option value="daily">Daily</option><option value="alternate">Alternate days</option><option value="weekly">Weekly</option></select></div>
+                    <div class="v2-hybrid-subhead">Car Wash credits</div>
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridWashService">Eligible wash service <span class="cwp-v2-req-star">*</span></label><select id="v2HybridWashService" class="cwp-v2-select" required><option value="">Loading Car Wash services…</option></select><small class="v2-hybrid-error" data-error-for="serviceId"></small></div>
+                    <div class="cwp-v2-field"><label class="cwp-v2-field-label" for="v2HybridCredits">Credits per billing cycle <span class="cwp-v2-req-star">*</span></label><input id="v2HybridCredits" class="cwp-v2-input" type="number" min="1" max="100" step="1" value="2" required><small class="v2-hybrid-error" data-error-for="creditsPerCycle"></small></div>
+                    <div class="v2-hybrid-note">Packages save as drafts. Expiry follows the validity above. Separate rollover, activation, cancellation, and renewal policies are not implemented by the current backend contract.</div>
+                  </div>
+                </div>
+                <div class="cwp-v2-modal-footer"><button type="button" id="v2HybridCancel" class="cwp-v2-btn cwp-v2-btn-secondary">Cancel</button><button type="submit" id="v2HybridSave" class="cwp-v2-btn cwp-v2-btn-primary"><span id="v2HybridSaveLabel">Save draft</span></button></div>
+              </form>
+            </div>
+          </div>
 
           <!-- ============================================================= -->
           <!-- VIEW: SECURITY & DEVICES (SECURITY CENTER)                    -->

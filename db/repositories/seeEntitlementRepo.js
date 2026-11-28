@@ -208,6 +208,15 @@ async function findLedgerByAccount(accountId, { limit = 100, offset = 0 } = {}, 
   return res.rows;
 }
 
+async function findLedgerByIdempotencyKey(accountId, idempotencyKey, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    `SELECT * FROM public.entitlement_ledger WHERE entitlement_account_id = $1 AND idempotency_key = $2 LIMIT 1`,
+    [accountId, idempotencyKey]
+  );
+  return res.rows[0] || null;
+}
+
 module.exports = {
   createPurchaseSnapshot,
   findSnapshotById,
@@ -221,5 +230,6 @@ module.exports = {
   findLedgerByIdempotencyKey,
   updateAccountBalances,
   insertLedgerEntry,
-  findLedgerByAccount
+  findLedgerByAccount,
+  findLedgerByIdempotencyKey
 };

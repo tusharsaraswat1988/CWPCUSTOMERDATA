@@ -34,6 +34,15 @@ async function findById(id, client = null) {
   return res.rows[0] || null;
 }
 
+async function findByHybridMembershipId(membershipId, client = null) {
+  const runner = client || db;
+  const res = await runner.query(
+    'SELECT * FROM public.subscriptions WHERE hybrid_membership_id = $1 ORDER BY created_at ASC',
+    [membershipId]
+  );
+  return res.rows;
+}
+
 async function createSubscription({
   customerId,
   serviceCategoryId = 'daily_car_cleaning',
@@ -43,16 +52,11 @@ async function createSubscription({
   rotationNotes = null,
   status = 'active',
   startDate = null,
-  endDate = null
+  endDate = null,
+  hybridMembershipId = null
 }, client = null) {
   const runner = client || db;
-  const res = await runner.query(
-    `INSERT INTO public.subscriptions (
-       customer_id, service_category_id, package_name, packages_purchased,
-       rotation_type, rotation_notes, status, start_date, end_date
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, CURRENT_DATE), $9)
-     RETURNING *`,
-    [
+  const baseValues = [
       customerId,
       serviceCategoryId,
       packageName,
@@ -62,8 +66,22 @@ async function createSubscription({
       status || 'active',
       startDate,
       endDate
-    ]
-  );
+  ];
+  const res = hybridMembershipId
+    ? await runner.query(
+      `INSERT INTO public.subscriptions (
+         customer_id, service_category_id, package_name, packages_purchased,
+         rotation_type, rotation_notes, status, start_date, end_date, hybrid_membership_id
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,COALESCE($8,CURRENT_DATE),$9,$10) RETURNING *`,
+      [...baseValues, hybridMembershipId]
+    )
+    : await runner.query(
+      `INSERT INTO public.subscriptions (
+         customer_id, service_category_id, package_name, packages_purchased,
+         rotation_type, rotation_notes, status, start_date, end_date
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,COALESCE($8,CURRENT_DATE),$9) RETURNING *`,
+      baseValues
+    );
   return res.rows[0];
 }
 
@@ -136,6 +154,7 @@ module.exports = {
   findByCustomerId,
   findActiveByCustomerId,
   findById,
+  findByHybridMembershipId,
   createSubscription,
   updateSubscription,
   cancelSubscription
