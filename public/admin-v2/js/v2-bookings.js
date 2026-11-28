@@ -23,6 +23,8 @@
     seeServices: [],
     selectedSeeService: null,
     selectedBookingId: null,
+    pendingNavigationBookingId: null,
+    pendingNavigationStaffId: null,
     checkedIds: new Set(),
     kpiFilter: null, // null | 'unassigned' | 'assigned' | 'in_progress' | 'completed' | 'exceptions'
     searchQuery: '',
@@ -222,6 +224,10 @@
         loadData();
       }
     });
+    window.addEventListener('cwp-v2:search-select', (e) => {
+      const item = e && e.detail;
+      if (item && item.group === 'Bookings' && item.id) navigateToBooking(item.id);
+    });
 
     const viewEl = document.getElementById('v2View_serviceAssign');
     if (viewEl && viewEl.classList.contains('is-active')) {
@@ -290,9 +296,13 @@
         state.hasLoadedOnce = true;
       }
 
-      populateFilterDropdowns();
-      updateKpis();
-      applyFiltersAndRender();
+      if (state.pendingNavigationBookingId || state.pendingNavigationStaffId) {
+        consumePendingNavigation();
+      } else {
+        populateFilterDropdowns();
+        updateKpis();
+        applyFiltersAndRender();
+      }
       if (state.selectedBookingId) {
         renderDetailPanel();
       }
@@ -666,6 +676,70 @@
     if (split) split.classList.remove('is-detail-closed');
     renderDetailPanel();
     renderTable();
+  }
+
+  function consumePendingNavigation() {
+    const requestedId = state.pendingNavigationBookingId;
+    const requestedStaffId = state.pendingNavigationStaffId;
+    if (!requestedId && !requestedStaffId) return;
+    const booking = requestedId
+      ? state.allBookings.find(item => String(item.id || item.jobId) === requestedId)
+      : null;
+    state.pendingNavigationBookingId = null;
+    state.pendingNavigationStaffId = null;
+    const staffExists = !requestedStaffId || state.staffList.some(item => String(item.staffCode || item.id || item.name) === requestedStaffId);
+    if (requestedId && !booking) {
+      state.selectedBookingId = null;
+      showToast('That job is not available in the Assign Booking queue.', 'warning');
+    }
+    state.kpiFilter = null;
+    state.searchQuery = '';
+    state.filters = { status: 'all', service: 'all', date: '', staff: 'all', route: 'all' };
+    if (staffExists && requestedStaffId) state.filters.staff = requestedStaffId;
+    else if (requestedStaffId) showToast('That staff member is not available in the Assign Booking filter.', 'warning');
+    const searchInput = document.getElementById('v2BkSearchInput');
+    if (searchInput) searchInput.value = '';
+    document.getElementById('v2BkSearchClear')?.classList.remove('is-visible');
+    ['v2BkFilterStatus', 'v2BkFilterService', 'v2BkFilterStaff', 'v2BkFilterRoute'].forEach(id => {
+      const select = document.getElementById(id);
+      if (select) select.value = 'all';
+    });
+    const dateInput = document.getElementById('v2BkFilterDate');
+    if (dateInput) dateInput.value = '';
+    state.checkedIds.clear();
+    state.pagination.currentPage = 1;
+    populateFilterDropdowns();
+    const staffFilter = document.getElementById('v2BkFilterStaff');
+    if (staffFilter) staffFilter.value = state.filters.staff;
+    updateKpis();
+    applyFiltersAndRender();
+    if (booking) openDetail(String(booking.id || booking.jobId));
+  }
+
+  function navigateToBooking(jobId) {
+    const requestedId = String(jobId || '').trim();
+    if (!requestedId) return;
+    state.pendingNavigationBookingId = requestedId;
+    state.pendingNavigationStaffId = null;
+    state.selectedBookingId = null;
+    const shell = window.CWP_ADMIN_V2.shell;
+    if (shell && typeof shell.navigateTo === 'function') shell.navigateTo('serviceAssign');
+    if (!state.isLoading && document.getElementById('v2View_serviceAssign')?.classList.contains('is-active')) {
+      loadData();
+    }
+  }
+
+  function navigateToStaffBookings(staffId) {
+    const requestedId = String(staffId || '').trim();
+    if (!requestedId) return;
+    state.pendingNavigationStaffId = requestedId;
+    state.pendingNavigationBookingId = null;
+    state.selectedBookingId = null;
+    const shell = window.CWP_ADMIN_V2.shell;
+    if (shell && typeof shell.navigateTo === 'function') shell.navigateTo('serviceAssign');
+    if (!state.isLoading && document.getElementById('v2View_serviceAssign')?.classList.contains('is-active')) {
+      loadData();
+    }
   }
 
   function closeDetail() {
@@ -1604,6 +1678,8 @@
     closeDetail,
     openAssignModal,
     openCreateModal,
+    navigateToBooking,
+    navigateToStaffBookings,
     getState: () => state
   };
 })(window);

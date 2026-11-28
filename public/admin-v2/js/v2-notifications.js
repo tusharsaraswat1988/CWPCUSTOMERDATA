@@ -747,10 +747,10 @@
         if (unassigned.length > 0) {
           items.push({
             id: `jobs_unassigned_${unassigned.length}`,
-            source: 'Special Jobs',
+            source: 'Bookings',
             title: `${unassigned.length} pending special job(s) awaiting staff`,
-            subtitle: 'Assign staff in Other Cleaning Status',
-            tab: 'specialJobs',
+            subtitle: 'Assign staff in Assign Booking',
+            tab: 'serviceAssign',
             icon: 'solar_power',
             timestamp: ''
           });

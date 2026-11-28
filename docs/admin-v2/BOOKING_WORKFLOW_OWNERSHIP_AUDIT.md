@@ -1,7 +1,26 @@
 # CWP Admin V2 — Booking Workflow Ownership Audit
 
-**Status:** Audit only; no application code, UI, tests, or data were changed.
+**Status:** Remediation implemented in Admin V2; verification summary follows. No database schema or data was changed.
 **Scope:** Active Admin V2 booking and operational assignment entry points.
+
+## Remediation delivery (2026-11-28)
+
+Assign Booking (`serviceAssign`) is now the sole Admin V2 UI for creating and assigning on-demand service bookings. Its existing paid/entitlement creation flow, assignment/reassignment, cancellation, and exception handling remain in place. Other Cleaning Status (`specialJobs`) is an execution and exception monitor: the duplicate create/assign and reassign modals and their submission paths were removed; its toolbar and row/detail controls hand admins to Assign Booking. Start, complete, failure, proof, and status visibility remain operational there.
+
+Customer and Staff “Assign Job” actions were traced to `assignDailyCleanCustomer`, which maintains recurring DCC schedules rather than on-demand bookings. They remain available with the explicit label “Assign DCC Schedule.” The Assign Jobs page and route-membership controls remain separate DCC scheduling functions. Customer booking history remains read-only and includes a Manage bookings handoff. Staff detail includes a View on-demand bookings shortcut that filters Assign Booking. Global search booking results and unassigned-booking notifications now route to Assign Booking. DCC execution status/proof, catalogue and package lifecycle controls, and backend compatibility handlers were preserved. The inert Customer “Log Service” warning-only modal was removed.
+
+Active ownership confirmation remains the repository route contract: `server.js` serves `/admin` from `public/admin-v2/index.html`; the page loads the listed Admin V2 modules and not Legacy `public/js/app.js`. The modified modules are `v2-bookings.js`, `v2-special-jobs.js`, `v2-customers.js`, `v2-staff.js`, `v2-shell.js`, `v2-search.js`, and `v2-notifications.js`. Their version query parameters were bumped in `index.html`. No Legacy implementation was changed.
+
+### Verification performed
+
+- `node --check` passed for all modified JavaScript modules and the new booking ownership QA test.
+- `node tests/test_admin_v2_booking_ownership_qa.js` passed.
+- `node tests/test_daily_clean_assignment_hub_qa.js` failed a static assertion for the legacy `btnSubTabDailyRoutes` selector in `index.html`; this is unrelated to the DCC button relabeling, and the test stopped before runtime checks.
+- `tests/test_bookings_migration_qa.js` passed its static checks but could not connect to its local test server at `127.0.0.1:5998` (`EACCES`); runtime/API assertions therefore did not run.
+- `tests/test_customer_migration_qa.js` passed its static phase but its local server checks were blocked by the same `127.0.0.1:5998` (`EACCES`) restriction.
+- Browser inspection of the active Admin V2 localhost session showed the revised Other Cleaning Status purpose text and Manage bookings control, plus the Assign Booking queue and New Booking control. The live handoff/selection interaction was inconsistent and the queue was loading; browser verification is partial, not end-to-end.
+
+No live booking or customer data was submitted or modified during browser inspection. The DCC scope is explicitly treated as recurring schedule management, separate from on-demand booking ownership.
 
 ## Executive summary
 

@@ -47,10 +47,10 @@
       group: 'OPERATIONS',
       groupEn: 'Operations',
       groupHi: 'संचालन',
-      title: 'Assign Jobs',
-      titleHi: 'कार्य आवंटन',
-      subtitle: 'Daily clean assignments & service dispatch allocation',
-      subtitleHi: 'दैनिक सफाई और सेवा कार्य आवंटन'
+      title: 'DCC Schedule Assignments',
+      titleHi: 'डीसीसी शेड्यूल आवंटन',
+      subtitle: 'Recurring Daily Car Cleaning customer schedules and route coverage',
+      subtitleHi: 'आवर्ती दैनिक कार क्लीनिंग ग्राहक शेड्यूल और रूट कवरेज'
     },
     staffTracking: {
       group: 'OPERATIONS',

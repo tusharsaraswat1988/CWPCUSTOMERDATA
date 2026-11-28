@@ -16,7 +16,7 @@
  * - Rich Vehicle Cards with multi-vehicle management & expand/collapse
  * - 5-Step guided Add Customer wizard with inline validation & duplicate prevention
  * - Tabbed flexible Edit Customer form (Info, Vehicles, Plan, Operations)
- * - Persistent Quick Actions: Assign Job, Log Service, Add Vehicle, Update Plan
+ * - Persistent Quick Actions: Assign DCC Schedule, Add Vehicle, Update Plan
  * - Overflow actions: WhatsApp, Call, Active/Suspension toggle, Administrative Delete
  */
 
@@ -140,7 +140,6 @@
             window.CWP_ADMIN_V2.overlay.close('v2ModalAddCustomer', { pushHistory: false });
             window.CWP_ADMIN_V2.overlay.close('v2ModalEditCustomer', { pushHistory: false });
             window.CWP_ADMIN_V2.overlay.close('v2ModalAssignJob', { pushHistory: false });
-            window.CWP_ADMIN_V2.overlay.close('v2ModalLogService', { pushHistory: false });
             window.CWP_ADMIN_V2.overlay.close('v2ModalAddVehicle', { pushHistory: false });
             window.CWP_ADMIN_V2.overlay.close('v2ModalUpdatePlan', { pushHistory: false });
           }
@@ -553,11 +552,8 @@
                   <span class="material-symbols-outlined" style="color:#16a34a;">chat</span>
                 </a>
               ` : ''}
-              <button type="button" class="cwp-v2-cust-action-btn" data-action="assignJob" data-id="${escapeHtml(c.id)}" title="Assign Job">
+              <button type="button" class="cwp-v2-cust-action-btn" data-action="assignJob" data-id="${escapeHtml(c.id)}" title="Assign DCC Schedule">
                 <span class="material-symbols-outlined">assignment_ind</span>
-              </button>
-              <button type="button" class="cwp-v2-cust-action-btn" data-action="logService" data-id="${escapeHtml(c.id)}" title="Log Service">
-                <span class="material-symbols-outlined">fact_check</span>
               </button>
             </div>
           </td>
@@ -820,7 +816,7 @@
         <div id="v2CustSeeBalance" aria-live="polite">Loading canonical entitlement balance…</div>
       </div>
       <div>
-        <div class="cwp-v2-cust-section-title"><span>Service &amp; booking history</span></div>
+        <div class="cwp-v2-cust-section-title"><span>Service &amp; booking history</span><button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-xs" id="v2CustManageBookings">Manage bookings</button></div>
         <div id="v2CustSeeHistory" aria-live="polite">Loading recorded service history…</div>
       </div>
     `;
@@ -857,8 +853,10 @@
         const canonical = Boolean(job.service_payload && job.service_payload._seeManaged);
         const executionText = canonical ? (job.latest_execution_id ? `Execution ${job.latest_execution_id} · ${escapeHtml(job.latest_execution_outcome || 'recorded')}` : 'No canonical execution record') : 'Legacy record';
         const proof = job.latest_proof_photos || {};
+        const assignedStaff = job.assigned_staff_name || job.staff_name || job.assignedStaffName || 'Unassigned';
+        const scheduled = [job.scheduled_date || 'Unscheduled', job.scheduled_time || job.scheduledTime].filter(Boolean).join(' · ');
         const proofText = job.latest_execution_id ? ` · Proof ${Array.isArray(proof.before) ? proof.before.length : 0} before / ${Array.isArray(proof.after) ? proof.after.length : 0} after` : '';
-        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">${job.status === 'completed' ? 'check_circle' : 'event_note'}</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service booking')} · ${escapeHtml(job.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">${escapeHtml(job.scheduled_date || 'Unscheduled')} · ${canonical ? 'SEE canonical job' : 'Legacy job'} · Job ${escapeHtml(job.id)}</span><span class="cwp-v2-cust-activity-time">${executionText}${proofText}</span></div></div>`;
+        return `<div class="cwp-v2-cust-activity-item"><span class="material-symbols-outlined cwp-v2-cust-activity-icon">${job.status === 'completed' ? 'check_circle' : 'event_note'}</span><div class="cwp-v2-cust-activity-info"><span class="cwp-v2-cust-activity-title">${escapeHtml(job.service_name_snapshot || job.service_type || 'Service booking')} · ${escapeHtml(job.status || 'unknown')}</span><span class="cwp-v2-cust-activity-time">${escapeHtml(scheduled)} · Staff ${escapeHtml(assignedStaff)} · ${canonical ? 'SEE canonical job' : 'Legacy job'} · Job ${escapeHtml(job.id)}</span><span class="cwp-v2-cust-activity-time">${executionText}${proofText}</span></div></div>`;
       }).join('')}</div>` : '<div class="cwp-v2-cust-activity-time">No recorded service jobs.</div>';
     } catch (error) {
       historyEl.textContent = `Service history unavailable: ${error.message}`;
@@ -1690,19 +1688,7 @@
     }
   }
 
-  // 2. Log Service
-  function openLogServiceModal(cust = null) {
-    if (!(cust || state.selectedCustomer)) return;
-    if (window.CWP_ADMIN_V2.toast) {
-      window.CWP_ADMIN_V2.toast.warning('Service completion is recorded from an assigned booking. Create or open the canonical booking to record the work.');
-    }
-  }
-
-  async function submitLogService() {
-    if (window.CWP_ADMIN_V2.toast) window.CWP_ADMIN_V2.toast.warning('This legacy action does not persist a service record. Use the canonical booking and staff completion workflow.');
-  }
-
-  // 3. Add Vehicle Direct
+  // Add Vehicle Direct
   function openAddVehicleModal(cust = null) {
     const target = cust || state.selectedCustomer;
     if (!target) return;
@@ -2045,9 +2031,6 @@
             case 'assignJob':
               openAssignJobModal(cust);
               break;
-            case 'logService':
-              openLogServiceModal(cust);
-              break;
           }
           return;
         }
@@ -2125,6 +2108,9 @@
   }
 
   function bindDetailPanelEvents(cust) {
+    document.getElementById('v2CustManageBookings')?.addEventListener('click', () => {
+      window.CWP_ADMIN_V2.shell?.navigateTo('serviceAssign');
+    });
     const detailScroll = document.getElementById('v2CustDetailScroll');
     if (detailScroll) detailScroll.onclick = async (event) => {
       const ledgerButton = event.target.closest('[data-see-ledger]');
@@ -2182,12 +2168,10 @@
 
     // 4 Persistent Quick Actions in Footer
     const qaAssign = document.getElementById('v2CustQaAssignJob');
-    const qaLog = document.getElementById('v2CustQaLogService');
     const qaAddVeh = document.getElementById('v2CustQaAddVehicle');
     const qaUpdatePlan = document.getElementById('v2CustQaUpdatePlan');
 
     if (qaAssign) qaAssign.onclick = () => openAssignJobModal(cust);
-    if (qaLog) qaLog.onclick = () => openLogServiceModal(cust);
     const purchaseBtn = document.getElementById('v2CustSeePurchaseOpen');
     if (purchaseBtn) purchaseBtn.addEventListener('click', () => openCustomerPurchase(cust));
     if (qaAddVeh) qaAddVeh.onclick = () => openAddVehicleModal(cust);
@@ -2249,10 +2233,6 @@
     // Assign Job
     const assignBtn = document.getElementById('v2BtnSubmitAssignJob');
     if (assignBtn) assignBtn.addEventListener('click', submitAssignJob);
-
-    // Log Service
-    const logBtn = document.getElementById('v2BtnSubmitLogService');
-    if (logBtn) logBtn.addEventListener('click', submitLogService);
 
     // Add Vehicle Direct
     const addVehBtn = document.getElementById('v2BtnSubmitAddVehDirect');

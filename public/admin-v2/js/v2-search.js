@@ -181,7 +181,7 @@
       }
     });
 
-    // Special Jobs -> specialJobs
+    // Booking search results open the authoritative Assign Booking queue.
     dataset.jobs.forEach(j => {
       const hay = [
         j.id, j.jobId,
@@ -193,8 +193,8 @@
       ].map(normalizeText).join(' ');
       if (hay.includes(q)) {
         matches.push({
-          group: 'Special Jobs',
-          tab: 'specialJobs',
+          group: 'Bookings',
+          tab: 'serviceAssign',
           icon: 'solar_power',
           id: j.id || j.jobId || '',
           title: j.customerName || j.customer_name || j.serviceCategory || j.serviceType || j.id || 'Special Job',

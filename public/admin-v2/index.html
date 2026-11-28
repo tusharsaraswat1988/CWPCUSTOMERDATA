@@ -7,10 +7,33 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48x48.png">
 
+  <!-- Preload self-hosted Material Symbols Outlined so download starts immediately (even while #v2AppContainer is hidden) -->
+  <link rel="preload" href="/fonts/material-symbols-outlined.woff2" as="font" type="font/woff2" crossorigin>
+
+  <!-- Critical first-paint typography & icon-box containment (prevents FOUT & raw ligature flash) -->
+  <style>
+    body.cwp-v2-body {
+      font-family: 'Inter', 'Noto Sans Devanagari', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .cwp-v2-root .material-symbols-outlined {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1em;
+      height: 1em;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    html:not(.cwp-v2-icons-ready) .cwp-v2-root .material-symbols-outlined {
+      color: transparent !important;
+      text-shadow: none !important;
+    }
+  </style>
+
   <!-- Admin V2 Scoped Stylesheets (Self-hosted Material Symbols, Zero External CDN Fonts, Completely isolated from V1) -->
   <link rel="stylesheet" href="/admin-v2/css/v2-tokens.css?v=2.2.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-base.css?v=2.2.0">
-  <link rel="stylesheet" href="/admin-v2/css/v2-layout.css?v=2.2.0">
+  <link rel="stylesheet" href="/admin-v2/css/v2-base.css?v=2.2.1">
+  <link rel="stylesheet" href="/admin-v2/css/v2-layout.css?v=2.2.1">
   <link rel="stylesheet" href="/admin-v2/css/v2-components.css?v=2.2.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-customers.css?v=2.2.1">
   <link rel="stylesheet" href="/admin-v2/css/v2-staff.css?v=2.2.0">
@@ -23,6 +46,24 @@
   <link rel="stylesheet" href="/admin-v2/css/v2-sequence.css?v=2.2.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-dashboard.css?v=2.2.0">
   <link rel="stylesheet" href="/admin-v2/css/v2-hybrid-packages.css?v=1">
+  <script>
+    (function () {
+      var root = document.documentElement;
+      if (!document.fonts || typeof document.fonts.load !== 'function') {
+        root.classList.add('cwp-v2-icons-ready');
+        return;
+      }
+      var markReady = function () {
+        root.classList.add('cwp-v2-icons-ready');
+      };
+      document.fonts.load('24px "Material Symbols Outlined"').then(function (faces) {
+        if (faces && faces.length > 0) markReady();
+      }).catch(function () {});
+      if (document.fonts.ready) {
+        document.fonts.ready.then(markReady).catch(function () {});
+      }
+    })();
+  </script>
 </head>
 <body class="cwp-v2-body">
   <div id="cwpV2App" class="cwp-v2-root">
@@ -75,9 +116,9 @@
                 <span id="v2AlertSpecialJobs" class="cwp-v2-nav-alert-indicator" hidden aria-label="Unread other cleaning activity">0</span>
                 <span id="v2BadgeSpecialJobs" class="cwp-v2-nav-badge">—</span>
               </button>
-              <button type="button" id="v2NavBtnJobAssignment" class="cwp-v2-nav-item" data-tab="jobAssignment" title="Assign Jobs">
+              <button type="button" id="v2NavBtnJobAssignment" class="cwp-v2-nav-item" data-tab="jobAssignment" title="DCC Schedule Assignments">
                 <span class="material-symbols-outlined" aria-hidden="true">assignment_add</span>
-                <span class="cwp-v2-nav-label">Assign Jobs</span>
+                <span class="cwp-v2-nav-label">DCC Assignments</span>
                 <span id="v2BadgeJobAssignment" class="cwp-v2-nav-badge">—</span>
               </button>
               <button type="button" id="v2NavBtnStaffTracking" class="cwp-v2-nav-item" data-tab="staffTracking" title="Track Staff">
@@ -5549,7 +5590,7 @@
                 </button>
                 <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-dash-quick-action="assignJobs">
                   <span class="material-symbols-outlined" aria-hidden="true">assignment_add</span>
-                  <span>Assign Jobs</span>
+                  <span>DCC Schedules</span>
                 </button>
                 <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-dash-quick-action="viewLeads">
                   <span class="material-symbols-outlined" aria-hidden="true">contact_mail</span>
@@ -5883,7 +5924,7 @@
                   <span>Other Cleaning Status</span>
                   <span id="v2SjHeaderCount" class="cwp-v2-sj-count-pill">0 jobs</span>
                 </h2>
-                <p class="cwp-v2-sj-subtitle">Service Operations Tracker</p>
+                <p class="cwp-v2-sj-subtitle">Execution, completion, proof and exceptions. Create or manage bookings in Assign Booking.</p>
               </div>
               <div class="cwp-v2-sj-top-actions">
                 <select id="v2SjPeriodSelect" class="cwp-v2-sj-period-select" aria-label="Date period">
@@ -5898,9 +5939,9 @@
                   <span class="material-symbols-outlined" style="font-size:16px;" aria-hidden="true">refresh</span>
                   <span>Refresh</span>
                 </button>
-                <button type="button" id="v2SjBtnAssignJob" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm">
-                  <span class="material-symbols-outlined" style="font-size:16px;" aria-hidden="true">add_task</span>
-                  <span>Assign Job</span>
+                <button type="button" id="v2SjBtnManageBookings" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm">
+                  <span class="material-symbols-outlined" style="font-size:16px;" aria-hidden="true">event_note</span>
+                  <span>Manage bookings</span>
                 </button>
               </div>
             </div>
@@ -6103,13 +6144,13 @@
             </div>
           </section>
 
-          <section id="v2View_jobAssignment" class="cwp-v2-view" aria-label="Assign Jobs">
+          <section id="v2View_jobAssignment" class="cwp-v2-view" aria-label="DCC Schedule Assignments">
             <!-- Contextual Header Bar -->
             <div class="cwp-v2-aj-header-bar">
               <div class="cwp-v2-aj-title-group">
                 <h2 class="cwp-v2-aj-title">
                   <span class="material-symbols-outlined" aria-hidden="true">assignment_ind</span>
-                  <span>Assign Jobs</span>
+                  <span>DCC Schedule Assignments</span>
                   <span id="v2AjTotalPill" class="cwp-v2-aj-count-pill">0 Daily Subscribers</span>
                 </h2>
                 <p class="cwp-v2-aj-subtitle">Daily cleaning dispatch, staff allocation &amp; route coverage</p>
@@ -6835,13 +6876,9 @@
                 </div>
                 <!-- Persistent 4 Quick Actions Bar -->
                 <div class="cwp-v2-cust-quick-actions-bar">
-                  <button type="button" class="cwp-v2-cust-qa-btn is-primary" id="v2CustQaAssignJob" title="Assign Cleaner or Job">
+                  <button type="button" class="cwp-v2-cust-qa-btn is-primary" id="v2CustQaAssignJob" title="Assign customer to recurring DCC schedule">
                     <span class="material-symbols-outlined">assignment_ind</span>
-                    <span>Assign Job</span>
-                  </button>
-                  <button type="button" class="cwp-v2-cust-qa-btn" id="v2CustQaLogService" title="Log Service Completion">
-                    <span class="material-symbols-outlined">fact_check</span>
-                    <span>Log Service</span>
+                    <span>Assign DCC Schedule</span>
                   </button>
                   <button type="button" class="cwp-v2-cust-qa-btn" id="v2CustQaAddVehicle" title="Register New Vehicle">
                     <span class="material-symbols-outlined">directions_car</span>
@@ -7356,7 +7393,11 @@
                 <div class="cwp-v2-staff-quick-actions-bar">
                   <button type="button" class="cwp-v2-staff-qa-btn is-primary" id="v2StaffQaAssignJob">
                     <span class="material-symbols-outlined">assignment_ind</span>
-                    <span>Assign Job</span>
+                    <span>Assign DCC Schedule</span>
+                  </button>
+                  <button type="button" class="cwp-v2-staff-qa-btn" id="v2StaffQaViewBookings">
+                    <span class="material-symbols-outlined">event_note</span>
+                    <span>View on-demand bookings</span>
                   </button>
                   <button type="button" class="cwp-v2-staff-qa-btn" id="v2StaffQaChangeRoute">
                     <span class="material-symbols-outlined">alt_route</span>
@@ -8378,7 +8419,7 @@
       <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2AssignJobTitle">
         <div class="cwp-v2-modal-header">
           <div>
-            <h2 id="v2AssignJobTitle" class="cwp-v2-modal-title">Assign Job / Daily Cleaner</h2>
+            <h2 id="v2AssignJobTitle" class="cwp-v2-modal-title">Assign Customer to DCC Schedule</h2>
             <div style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">Assign customer to cleaner daily schedule</div>
           </div>
           <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close dialog">
@@ -8400,7 +8441,7 @@
           </div>
           <div class="cwp-v2-modal-footer">
             <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
-            <button type="button" class="cwp-v2-btn cwp-v2-btn-primary" id="v2BtnSubmitAssignJob">Assign Staff</button>
+            <button type="button" class="cwp-v2-btn cwp-v2-btn-primary" id="v2BtnSubmitAssignJob">Assign DCC Schedule</button>
           </div>
         </form>
       </div>
@@ -8474,43 +8515,6 @@
             <button type="submit" class="cwp-v2-btn cwp-v2-btn-primary" id="v2AjUnassignBtnConfirm" style="background:#dc2626; border-color:#dc2626;">
               <span>Unassign Customer</span>
             </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Operational Action: Log Service Modal -->
-    <div id="v2ModalLogService" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
-      <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2LogServiceTitle">
-        <div class="cwp-v2-modal-header">
-          <div>
-            <h2 id="v2LogServiceTitle" class="cwp-v2-modal-title">Log Service Completion</h2>
-            <div style="font-size:12px; color:var(--cwp-v2-sys-on-surface-variant);">Record manual daily clean entry or exception</div>
-          </div>
-          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close dialog">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        </div>
-        <form id="v2LogServiceForm" onsubmit="return false;">
-          <input type="hidden" id="v2LogServiceCustId" />
-          <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:12px;">
-            <div>Customer: <strong id="v2LogServiceCustName"></strong></div>
-            <div class="cwp-v2-field">
-              <label for="v2LogServiceStatus">Completion Status</label>
-              <select id="v2LogServiceStatus" class="cwp-v2-select">
-                <option value="Completed">Clean Completed (Verified)</option>
-                <option value="Car Not Present">Car Not Present / Locked</option>
-                <option value="Customer Declined">Customer Declined Today</option>
-              </select>
-            </div>
-            <div class="cwp-v2-field">
-              <label for="v2LogServiceNotes">Log Notes</label>
-              <textarea id="v2LogServiceNotes" class="cwp-v2-input" rows="2" placeholder="Additional details or exception remarks..."></textarea>
-            </div>
-          </div>
-          <div class="cwp-v2-modal-footer">
-            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
-            <button type="button" class="cwp-v2-btn cwp-v2-btn-primary" id="v2BtnSubmitLogService">Submit Entry</button>
           </div>
         </form>
       </div>
@@ -8922,7 +8926,7 @@
     <div id="v2ModalStaffAssignJob" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
       <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2StaffAssignJobTitle">
         <div class="cwp-v2-modal-header">
-          <h2 id="v2StaffAssignJobTitle" class="cwp-v2-modal-title">Assign Customer to Staff</h2>
+          <h2 id="v2StaffAssignJobTitle" class="cwp-v2-modal-title">Assign Customer to DCC Schedule</h2>
           <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close dialog">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
@@ -8932,7 +8936,7 @@
           <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:12px;">
             <div>Staff: <strong id="v2StaffAssignJobName"></strong></div>
             <div class="cwp-v2-field">
-              <label class="is-required" for="v2StaffAssignCustomerSelect">Select Customer</label>
+              <label class="is-required" for="v2StaffAssignCustomerSelect">Select DCC Customer</label>
               <select id="v2StaffAssignCustomerSelect" class="cwp-v2-select" required></select>
             </div>
           </div>
@@ -9627,176 +9631,6 @@
       </div>
     </div>
 
-    <!-- Assign On-Demand / Special Job Modal -->
-    <div id="v2ModalSjAssign" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
-      <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2SjAssignModalTitle">
-        <div class="cwp-v2-modal-header">
-          <h2 id="v2SjAssignModalTitle" class="cwp-v2-modal-title">Assign Service Job</h2>
-          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close assign service job modal">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        </div>
-        <form id="v2SjAssignForm">
-          <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:12px;">
-            <div id="v2SjAssignError" class="cwp-v2-form-alert is-error" role="alert" aria-live="assertive" hidden></div>
-
-            <div style="display:flex; gap:14px; font-size:12.5px; font-weight:600;">
-              <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-                <input type="radio" name="v2SjCustMode" value="existing" checked>
-                <span>Existing Customer</span>
-              </label>
-              <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-                <input type="radio" name="v2SjCustMode" value="new">
-                <span>New Customer</span>
-              </label>
-            </div>
-
-            <div class="cwp-v2-field" id="v2SjAssignExistingWrap">
-              <label for="v2SjAssignCustomerSelect" class="cwp-v2-field-label">Select Customer <span class="cwp-v2-req-star">*</span></label>
-              <select id="v2SjAssignCustomerSelect" class="cwp-v2-select">
-                <option value="">-- Choose Existing Customer --</option>
-              </select>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignCustName" class="cwp-v2-field-label">Customer Name <span class="cwp-v2-req-star">*</span></label>
-                <input type="text" id="v2SjAssignCustName" class="cwp-v2-input" placeholder="e.g. Ramesh Sharma" required>
-              </div>
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignCustPhone" class="cwp-v2-field-label">Mobile Number <span class="cwp-v2-req-star">*</span></label>
-                <input type="tel" id="v2SjAssignCustPhone" class="cwp-v2-input" placeholder="10-digit mobile" maxlength="10" required>
-              </div>
-            </div>
-
-            <div class="cwp-v2-field">
-              <label for="v2SjAssignCustAddress" class="cwp-v2-field-label">Service Address / Location <span class="cwp-v2-req-star">*</span></label>
-              <input type="text" id="v2SjAssignCustAddress" class="cwp-v2-input" placeholder="House/Flat, Society, Landmark..." required>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignCategory" class="cwp-v2-field-label">Service Category <span class="cwp-v2-req-star">*</span></label>
-                <select id="v2SjAssignCategory" class="cwp-v2-select" required>
-                  <option value="solar_cleaning">Solar Panel Cleaning</option>
-                  <option value="car_washing">Car Wash</option>
-                  <option value="interior_detailing">Interior Detailing</option>
-                  <option value="exterior_detailing">Exterior Detailing</option>
-                </select>
-              </div>
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignServiceType" class="cwp-v2-field-label">Service Type</label>
-                <input type="text" id="v2SjAssignServiceType" class="cwp-v2-input" placeholder="e.g. Solar Panel Cleaning">
-              </div>
-            </div>
-
-            <div id="v2SjAssignSolarFields" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignPanelCount" class="cwp-v2-field-label">Solar Panel Count <span class="cwp-v2-req-star">*</span></label>
-                <input type="number" id="v2SjAssignPanelCount" class="cwp-v2-input" min="1" max="500" value="10">
-              </div>
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignRoofScope" class="cwp-v2-field-label">Site / Roof Details</label>
-                <input type="text" id="v2SjAssignRoofScope" class="cwp-v2-input" placeholder="e.g. Terrace 3rd floor">
-              </div>
-            </div>
-
-            <div id="v2SjAssignVehicleFields" style="display:none; grid-template-columns:1fr 1fr; gap:10px;">
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignSeater" class="cwp-v2-field-label">Vehicle Seater Type</label>
-                <select id="v2SjAssignSeater" class="cwp-v2-select">
-                  <option value="5_seater">5 Seater</option>
-                  <option value="5_plus_seater">5+ Seater (SUV/MPV)</option>
-                </select>
-              </div>
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignVehicleReg" class="cwp-v2-field-label">Vehicle Registration / Model</label>
-                <input type="text" id="v2SjAssignVehicleReg" class="cwp-v2-input" placeholder="e.g. UP32 AB 1234">
-              </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignDate" class="cwp-v2-field-label">Scheduled Date <span class="cwp-v2-req-star">*</span></label>
-                <input type="date" id="v2SjAssignDate" class="cwp-v2-input" required>
-              </div>
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignTime" class="cwp-v2-field-label">Time Slot <span class="cwp-v2-req-star">*</span></label>
-                <input type="text" id="v2SjAssignTime" class="cwp-v2-input" placeholder="e.g. 09:00 AM - 10:30 AM" required>
-              </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignStaff" class="cwp-v2-field-label">Assign Staff <span class="cwp-v2-req-star">*</span></label>
-                <select id="v2SjAssignStaff" class="cwp-v2-select" required>
-                  <option value="">-- Select Capable Staff --</option>
-                </select>
-              </div>
-              <div class="cwp-v2-field">
-                <label for="v2SjAssignSeq" class="cwp-v2-field-label">Visit Stop # (Optional)</label>
-                <input type="number" id="v2SjAssignSeq" class="cwp-v2-input" min="1" max="99" placeholder="e.g. 1">
-              </div>
-            </div>
-
-            <div class="cwp-v2-field">
-              <label for="v2SjAssignNotes" class="cwp-v2-field-label">Special Instructions (Optional)</label>
-              <input type="text" id="v2SjAssignNotes" class="cwp-v2-input" placeholder="Gate code, water tap, parking instructions...">
-            </div>
-          </div>
-          <div class="cwp-v2-modal-footer">
-            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
-            <button type="submit" id="v2SjAssignSubmitBtn" class="cwp-v2-btn cwp-v2-btn-primary">Assign &amp; Dispatch</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Reassign / Unassign Service Job Modal -->
-    <div id="v2ModalSjReassign" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
-      <div class="cwp-v2-modal cwp-v2-modal-md" role="dialog" aria-modal="true" aria-labelledby="v2SjReassignTitle">
-        <div class="cwp-v2-modal-header">
-          <h2 id="v2SjReassignTitle" class="cwp-v2-modal-title">Reassign Service Job</h2>
-          <button type="button" class="cwp-v2-modal-close-btn" data-overlay-close aria-label="Close reassign modal">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        </div>
-        <form id="v2SjReassignForm">
-          <div class="cwp-v2-modal-body" style="display:flex; flex-direction:column; gap:12px;">
-            <div id="v2SjReassignSummary" style="padding:8px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; font-size:12.5px; color:#334155;"></div>
-            <div id="v2SjReassignError" class="cwp-v2-form-alert is-error" role="alert" aria-live="assertive" hidden></div>
-
-            <div class="cwp-v2-field">
-              <label for="v2SjReassignStaff" class="cwp-v2-field-label">Select Staff <span class="cwp-v2-req-star">*</span></label>
-              <select id="v2SjReassignStaff" class="cwp-v2-select" required>
-                <option value="">-- Select Staff --</option>
-              </select>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-              <div class="cwp-v2-field">
-                <label for="v2SjReassignTime" class="cwp-v2-field-label">Time Slot (Optional)</label>
-                <input type="text" id="v2SjReassignTime" class="cwp-v2-input" placeholder="e.g. 11:00 AM - 12:30 PM">
-              </div>
-              <div class="cwp-v2-field">
-                <label for="v2SjReassignSeq" class="cwp-v2-field-label">Stop # (Optional)</label>
-                <input type="number" id="v2SjReassignSeq" class="cwp-v2-input" min="1" max="99" placeholder="Stop order">
-              </div>
-            </div>
-
-            <div class="cwp-v2-field">
-              <label for="v2SjReassignReason" class="cwp-v2-field-label">Reassignment Reason (Optional)</label>
-              <input type="text" id="v2SjReassignReason" class="cwp-v2-input" placeholder="Reason for reassignment or unassignment">
-            </div>
-          </div>
-          <div class="cwp-v2-modal-footer">
-            <button type="button" class="cwp-v2-btn cwp-v2-btn-secondary" data-overlay-close>Cancel</button>
-            <button type="submit" id="v2SjReassignSubmitBtn" class="cwp-v2-btn cwp-v2-btn-primary">Save Assignment</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <!-- Status Action Modal (Start / Complete / Cancel / Unable to Complete) -->
     <div id="v2ModalSjStatusAction" class="cwp-v2-overlay-backdrop" aria-hidden="true" style="display:none;">
       <div class="cwp-v2-modal cwp-v2-modal-sm" role="dialog" aria-modal="true" aria-labelledby="v2SjStatusModalTitle">
@@ -10067,16 +9901,16 @@
   <script src="/admin-v2/js/v2-ui-helpers.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-auth.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-overlay.js?v=2.1.2"></script>
-  <script src="/admin-v2/js/v2-search.js?v=2.1.2"></script>
-  <script src="/admin-v2/js/v2-notifications.js?v=2.1.2"></script>
-  <script src="/admin-v2/js/v2-shell.js?v=2.1.2"></script>
-  <script src="/admin-v2/js/v2-customers.js?v=2.1.3"></script>
-  <script src="/admin-v2/js/v2-staff.js?v=2.1.5"></script>
-  <script src="/admin-v2/js/v2-bookings.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-search.js?v=2.1.3"></script>
+  <script src="/admin-v2/js/v2-notifications.js?v=2.1.3"></script>
+  <script src="/admin-v2/js/v2-shell.js?v=2.1.3"></script>
+  <script src="/admin-v2/js/v2-customers.js?v=2.1.4"></script>
+  <script src="/admin-v2/js/v2-staff.js?v=2.1.6"></script>
+  <script src="/admin-v2/js/v2-bookings.js?v=2.1.3"></script>
   <script src="/admin-v2/js/v2-leads.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-track-staff.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-clean-reports.js?v=2.1.2"></script>
-  <script src="/admin-v2/js/v2-special-jobs.js?v=2.1.2"></script>
+  <script src="/admin-v2/js/v2-special-jobs.js?v=2.1.3"></script>
   <script src="/admin-v2/js/v2-assign-jobs.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-sequence.js?v=2.1.2"></script>
   <script src="/admin-v2/js/v2-dashboard.js?v=2.1.2"></script>

@@ -529,7 +529,7 @@
                   <span class="material-symbols-outlined" style="color:#16a34a;">chat</span>
                 </a>
               ` : ''}
-              <button type="button" class="cwp-v2-staff-action-btn" data-action="assignJob" data-id="${staffCode}" title="Assign Job">
+              <button type="button" class="cwp-v2-staff-action-btn" data-action="assignJob" data-id="${staffCode}" title="Assign DCC Schedule">
                 <span class="material-symbols-outlined">assignment_ind</span>
               </button>
               <button type="button" class="cwp-v2-staff-action-btn" data-action="resetPin" data-id="${staffCode}" title="Reset PIN">
@@ -700,13 +700,15 @@
     document.getElementById('v2StaffOfToggleActive')?.addEventListener('click', () => toggleStaffStatus(s));
     document.getElementById('v2StaffOfDelete')?.addEventListener('click', () => deleteStaffConfirm(s));
 
-    // Bind 4 persistent footer quick actions
+    // Bind staff and DCC-specific quick actions
     const qaAssign = document.getElementById('v2StaffQaAssignJob');
+    const qaBookings = document.getElementById('v2StaffQaViewBookings');
     const qaRoute = document.getElementById('v2StaffQaChangeRoute');
     const qaLeave = document.getElementById('v2StaffQaMarkLeave');
     const qaMore = document.getElementById('v2StaffQaMore');
 
     if (qaAssign) qaAssign.onclick = () => openAssignJobModal(s);
+    if (qaBookings) qaBookings.onclick = () => window.CWP_ADMIN_V2.bookings?.navigateToStaffBookings(s.staffCode || s.id);
     if (qaRoute) qaRoute.onclick = () => openChangeRouteModal(s);
     if (qaLeave) qaLeave.onclick = () => toggleStaffStatus(s);
     if (qaMore) qaMore.onclick = (e) => {

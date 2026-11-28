@@ -27,6 +27,7 @@
   min-width: var(--cwp-v2-sidebar-width);
   background-color: var(--cwp-v2-sidebar-bg);
   color: var(--cwp-v2-sidebar-text);
+  font-family: var(--cwp-v2-font-sans, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--cwp-v2-sidebar-border);
@@ -145,6 +146,7 @@
   background: transparent;
   border: none;
   color: #94a3b8;
+  font-family: inherit;
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -195,6 +197,7 @@
   padding: 6px var(--cwp-v2-space-3);
   border-radius: var(--cwp-v2-radius-md);
   color: var(--cwp-v2-sidebar-text);
+  font-family: inherit;
   font-size: var(--cwp-v2-text-sm);
   font-weight: 500;
   cursor: pointer;

@@ -9,7 +9,7 @@
  * - Split-View Workstation, Table Directory, Persistent Detail Panel
  * - Live KPIs, Search, Primary/Secondary Filters, Multi-Column Sorting, Pagination
  * - Rich Vehicle Cards, 5-Step Add Customer Wizard, 4-Tab Edit Form
- * - Quick Actions: Assign Job, Log Service, Add Vehicle, Update Plan, Call, WhatsApp
+ * - Quick Actions: Assign DCC Schedule, Manage Bookings, Add Vehicle, Update Plan, Call, WhatsApp
  * - A11Y, Keyboard Navigation, History/Popstate, Zero Console Errors
  * - Legacy Admin & Staff Portal Regression Safety
  */
@@ -608,18 +608,22 @@ async function runTestSuite() {
     `);
     assert.notStrictEqual(sortRes.firstRowDesc, sortRes.firstRowAsc, 'Sorting must invert alphabetical order');
 
-    // 3h. 4 Persistent Quick Actions in Customer Detail Panel
-    console.log('  Testing Persistent Quick Actions...');
+    // 3h. Customer actions distinguish recurring DCC scheduling from booking management.
+    console.log('  Testing Customer Quick Actions and Booking Ownership...');
     const qaButtons = await cdp.evaluate(`
       return {
         assignJob: Boolean(document.getElementById('v2CustQaAssignJob')),
+        assignJobLabel: document.getElementById('v2CustQaAssignJob')?.textContent.trim(),
+        manageBookings: Boolean(document.getElementById('v2CustManageBookings')),
         logService: Boolean(document.getElementById('v2CustQaLogService')),
         addVehicle: Boolean(document.getElementById('v2CustQaAddVehicle')),
         updatePlan: Boolean(document.getElementById('v2CustQaUpdatePlan'))
       };
     `);
-    assert.strictEqual(qaButtons.assignJob, true, 'Assign Job quick action must exist');
-    assert.strictEqual(qaButtons.logService, true, 'Log Service quick action must exist');
+    assert.strictEqual(qaButtons.assignJob, true, 'DCC schedule assignment quick action must remain available');
+    assert.match(qaButtons.assignJobLabel, /DCC Schedule/, 'Customer schedule action must be clearly labeled DCC');
+    assert.strictEqual(qaButtons.manageBookings, true, 'Customer history must link to the Assign Booking page');
+    assert.strictEqual(qaButtons.logService, false, 'Customer page must not expose the obsolete booking-like Log Service action');
     assert.strictEqual(qaButtons.addVehicle, true, 'Add Vehicle quick action must exist');
     assert.strictEqual(qaButtons.updatePlan, true, 'Update Plan quick action must exist');
 

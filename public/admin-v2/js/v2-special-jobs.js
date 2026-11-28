@@ -44,12 +44,9 @@
       pageSize: 25,
       totalRecords: 0
     },
-    reassignModal: {
-      jobId: null
-    },
     statusModal: {
       jobId: null,
-      mode: null // 'start' | 'complete' | 'cancel' | 'fail'
+      mode: null // 'start' | 'complete' | 'fail'
     },
     isLoading: false,
     isSubmitting: false,
@@ -219,22 +216,6 @@
     return s && s.active !== false && s.isActive !== false && s.is_active !== false && s.active !== 'No' && s.active !== 'Inactive';
   }
 
-  function getStaffCapabilities(s) {
-    if (!s) return [];
-    if (Array.isArray(s.serviceCapabilities)) return s.serviceCapabilities.map(c => String(c).toLowerCase());
-    if (Array.isArray(s.service_capabilities)) return s.service_capabilities.map(c => String(c).toLowerCase());
-    const wt = String(s.workType || s.work_type || '').toLowerCase();
-    if (wt === 'dcc_only') return ['daily_car_cleaning'];
-    return ['daily_car_cleaning', 'car_washing', 'interior_detailing', 'exterior_detailing', 'solar_cleaning'];
-  }
-
-  function staffHasCapability(s, categoryId) {
-    const norm = getCategoryMeta(categoryId).id;
-    const caps = getStaffCapabilities(s);
-    if (caps.length === 0) return true;
-    return caps.includes(norm);
-  }
-
   function formatDateDisplay(val) {
     if (!val) return '—';
     const key = getIstDateKey(val);
@@ -272,8 +253,6 @@
     bindToolbarEvents();
     bindTableEvents();
     bindDetailEvents();
-    bindAssignModalEvents();
-    bindReassignModalEvents();
     bindStatusModalEvents();
 
     window.addEventListener('cwp-v2:tab-changed', (e) => {
@@ -643,12 +622,10 @@
 
       let primaryActionHtml = '';
       if (!isTerminalJob(j)) {
-        if (!assigned) {
-          primaryActionHtml = `<button type="button" class="cwp-v2-sj-act-btn is-primary" data-sj-action="reassign" data-sj-id="${escapeHtml(id)}">Assign</button>`;
-        } else if (st === 'in_progress') {
+        if (st === 'in_progress') {
           primaryActionHtml = `<button type="button" class="cwp-v2-sj-act-btn is-primary" data-sj-action="complete" data-sj-id="${escapeHtml(id)}">Complete</button>`;
         } else {
-          primaryActionHtml = `<button type="button" class="cwp-v2-sj-act-btn" data-sj-action="reassign" data-sj-id="${escapeHtml(id)}">Reassign</button>`;
+          primaryActionHtml = `<button type="button" class="cwp-v2-sj-act-btn" data-sj-action="manageBooking" data-sj-id="${escapeHtml(id)}">Manage booking</button>`;
         }
       } else {
         primaryActionHtml = `<button type="button" class="cwp-v2-sj-act-btn" data-sj-action="view" data-sj-id="${escapeHtml(id)}">Details</button>`;
@@ -897,19 +874,15 @@
     // Action buttons strictly adhering to backend PERMITTED_TRANSITIONS
     let actHtml = '';
     if (!terminal) {
-      actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-sj-detail-act="reassign">${assigned ? 'Reassign Staff' : 'Assign Staff'}</button>`;
+      actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-sj-detail-act="manageBooking">Manage booking</button>`;
       if (st === 'requested' || st === 'booked' || st === 'pending' || st === 'assigned') {
         actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-sj-detail-act="start">Start Job</button>`;
-        actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-sj-detail-act="cancel" style="color:#b91c1c;">Cancel</button>`;
       }
       if (st === 'in_progress') {
         actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-primary cwp-v2-btn-sm" data-sj-detail-act="complete">Complete Job</button>`;
       }
       if (st === 'assigned' || st === 'in_progress') {
         actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-secondary cwp-v2-btn-sm" data-sj-detail-act="fail" style="color:#92400e;">Unable to Complete</button>`;
-      }
-      if (st !== 'in_progress') {
-        actHtml += `<button type="button" class="cwp-v2-btn cwp-v2-btn-ghost cwp-v2-btn-sm" data-sj-detail-act="delete" style="color:#b91c1c;">Delete</button>`;
       }
     } else {
       actHtml = `<span style="font-size:12px; color:#64748b;">Terminal state (${escapeHtml(stMeta.label)}) — read-only record</span>`;
@@ -935,253 +908,7 @@
   }
 
   // -------------------------------------------------------------------------
-  // ASSIGN NEW SPECIAL JOB MODAL
-  // -------------------------------------------------------------------------
-  function openAssignModal() {
-    const modal = document.getElementById('v2ModalSjAssign');
-    if (!modal) return;
-    const form = document.getElementById('v2SjAssignForm');
-    if (form) form.reset();
-
-    const err = document.getElementById('v2SjAssignError');
-    if (err) { err.hidden = true; err.textContent = ''; }
-
-    const dateInp = document.getElementById('v2SjAssignDate');
-    if (dateInp) dateInp.value = getIstDateKey(new Date());
-
-    const custSel = document.getElementById('v2SjAssignCustomerSelect');
-    if (custSel) {
-      let opts = '<option value="">-- Choose Existing Customer --</option>';
-      state.customers.forEach(c => {
-        const cid = c.id || c.customerId;
-        const name = c.customerName || c.name || 'Customer';
-        const phone = c.customerNumber || c.phone || '';
-        opts += `<option value="${escapeHtml(cid)}">${escapeHtml(name)}${phone ? ` (${escapeHtml(phone)})` : ''}</option>`;
-      });
-      custSel.innerHTML = opts;
-    }
-
-    toggleAssignCustomerMode('existing');
-    updateAssignCategoryFields('solar_cleaning');
-
-    if (window.CWP_ADMIN_V2.overlay && typeof window.CWP_ADMIN_V2.overlay.open === 'function') {
-      window.CWP_ADMIN_V2.overlay.open('v2ModalSjAssign');
-    } else {
-      modal.style.display = 'flex';
-    }
-  }
-
-  function toggleAssignCustomerMode(mode) {
-    const wrap = document.getElementById('v2SjAssignExistingWrap');
-    if (wrap) wrap.style.display = mode === 'existing' ? 'flex' : 'none';
-  }
-
-  function updateAssignCategoryFields(catId) {
-    const solarWrap = document.getElementById('v2SjAssignSolarFields');
-    const vehWrap = document.getElementById('v2SjAssignVehicleFields');
-    const isSolar = catId === 'solar_cleaning';
-    if (solarWrap) solarWrap.style.display = isSolar ? 'grid' : 'none';
-    if (vehWrap) vehWrap.style.display = isSolar ? 'none' : 'grid';
-
-    const staffSel = document.getElementById('v2SjAssignStaff');
-    if (staffSel) {
-      let opts = '<option value="">-- Select Capable Staff --</option>';
-      state.staffList.filter(s => isStaffActive(s) && staffHasCapability(s, catId)).forEach(s => {
-        const code = s.staffCode || s.id;
-        opts += `<option value="${escapeHtml(code)}">${escapeHtml(s.name)} (${escapeHtml(code)})</option>`;
-      });
-      staffSel.innerHTML = opts;
-    }
-  }
-
-  function bindAssignModalEvents() {
-    document.querySelectorAll('input[name="v2SjCustMode"]').forEach(radio => {
-      radio.addEventListener('change', (e) => toggleAssignCustomerMode(e.target.value));
-    });
-
-    const custSel = document.getElementById('v2SjAssignCustomerSelect');
-    if (custSel) {
-      custSel.addEventListener('change', () => {
-        const cust = state.customerMap[custSel.value];
-        if (!cust) return;
-        const nameInp = document.getElementById('v2SjAssignCustName');
-        const phoneInp = document.getElementById('v2SjAssignCustPhone');
-        const addrInp = document.getElementById('v2SjAssignCustAddress');
-        const vehInp = document.getElementById('v2SjAssignVehicleReg');
-        if (nameInp) nameInp.value = cust.customerName || cust.name || '';
-        if (phoneInp) phoneInp.value = String(cust.customerNumber || cust.phone || '').replace(/\D/g, '').slice(-10);
-        if (addrInp) addrInp.value = cust.address || cust.addressText || '';
-        if (vehInp) vehInp.value = cust.vehicle || '';
-      });
-    }
-
-    const catSel = document.getElementById('v2SjAssignCategory');
-    if (catSel) {
-      catSel.addEventListener('change', () => updateAssignCategoryFields(catSel.value));
-    }
-
-    const form = document.getElementById('v2SjAssignForm');
-    if (form) {
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (state.isSubmitting) return;
-        const api = window.CWP_ADMIN_V2.api;
-        if (!api) return;
-
-        const errEl = document.getElementById('v2SjAssignError');
-        const showErr = (msg) => {
-          if (errEl) { errEl.textContent = msg; errEl.hidden = false; }
-        };
-        if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
-
-        const mode = document.querySelector('input[name="v2SjCustMode"]:checked')?.value || 'existing';
-        const customerId = mode === 'existing' ? (document.getElementById('v2SjAssignCustomerSelect')?.value || null) : null;
-        const customerName = document.getElementById('v2SjAssignCustName')?.value.trim();
-        const customerPhone = document.getElementById('v2SjAssignCustPhone')?.value.trim();
-        const address = document.getElementById('v2SjAssignCustAddress')?.value.trim();
-        const serviceCategoryId = document.getElementById('v2SjAssignCategory')?.value;
-        const serviceType = document.getElementById('v2SjAssignServiceType')?.value.trim() || getCategoryMeta(serviceCategoryId).label;
-        const panelCount = document.getElementById('v2SjAssignPanelCount')?.value;
-        const roofScope = document.getElementById('v2SjAssignRoofScope')?.value.trim();
-        const seaterType = document.getElementById('v2SjAssignSeater')?.value;
-        const vehicleDetails = document.getElementById('v2SjAssignVehicleReg')?.value.trim();
-        const scheduledDate = document.getElementById('v2SjAssignDate')?.value;
-        const scheduledTime = document.getElementById('v2SjAssignTime')?.value.trim();
-        const staffId = document.getElementById('v2SjAssignStaff')?.value;
-        const sequenceOrder = document.getElementById('v2SjAssignSeq')?.value;
-        const specialInstructions = document.getElementById('v2SjAssignNotes')?.value.trim();
-
-        if (!customerName || !customerPhone || !address || !staffId || !scheduledDate || !scheduledTime) {
-          showErr('Please fill all required customer, schedule, and staff fields.');
-          return;
-        }
-
-        const btn = document.getElementById('v2SjAssignSubmitBtn');
-        state.isSubmitting = true;
-        try {
-          await api.withLoadingButton(btn, () => api.request('assignSpecialJob', {
-            customerId,
-            customerName,
-            customerPhone,
-            address,
-            serviceCategoryId,
-            serviceType,
-            panelCount: serviceCategoryId === 'solar_cleaning' ? Number(panelCount || 10) : null,
-            packageDetails: serviceCategoryId === 'solar_cleaning' ? (roofScope || null) : null,
-            seaterType: serviceCategoryId !== 'solar_cleaning' ? seaterType : null,
-            vehicleDetails: serviceCategoryId !== 'solar_cleaning' ? vehicleDetails : null,
-            scheduledDate,
-            scheduledTime,
-            staffId,
-            sequenceOrder: sequenceOrder ? Number(sequenceOrder) : null,
-            specialInstructions: specialInstructions || null
-          }));
-          if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2ModalSjAssign');
-          showToast('Service job assigned and dispatched.', 'success');
-          await loadData();
-        } catch (err) {
-          showErr(err.message || 'Failed to assign service job.');
-        } finally {
-          state.isSubmitting = false;
-        }
-      });
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // REASSIGN / UNASSIGN MODAL
-  // -------------------------------------------------------------------------
-  function openReassignModal(jobId) {
-    const j = state.allJobs.find(x => String(x.id) === String(jobId));
-    if (!j) return;
-    if (normalizeStatus(j) === 'completed') {
-      showToast('Completed jobs cannot be reassigned.', 'warning');
-      return;
-    }
-
-    state.reassignModal.jobId = j.id;
-    const summary = document.getElementById('v2SjReassignSummary');
-    if (summary) {
-      summary.innerHTML = `<strong>${escapeHtml(j.customerName || 'Customer')}</strong> • ${escapeHtml(getCategoryMeta(j.serviceCategoryId).label)}<br>Current Staff: <strong>${escapeHtml(j.staffName || 'Unassigned')}</strong>`;
-    }
-
-    const err = document.getElementById('v2SjReassignError');
-    if (err) { err.hidden = true; err.textContent = ''; }
-
-    const timeInp = document.getElementById('v2SjReassignTime');
-    const seqInp = document.getElementById('v2SjReassignSeq');
-    const reasonInp = document.getElementById('v2SjReassignReason');
-    if (timeInp) timeInp.value = j.scheduledTime || j.tentativeTime || '';
-    if (seqInp) seqInp.value = j.sequenceOrder != null ? String(j.sequenceOrder) : '';
-    if (reasonInp) reasonInp.value = '';
-
-    const sel = document.getElementById('v2SjReassignStaff');
-    if (sel) {
-      let opts = '<option value="">-- Select Staff --</option><option value="unassigned">Unassign (Return to Pool)</option>';
-      state.staffList.filter(s => isStaffActive(s) && staffHasCapability(s, j.serviceCategoryId)).forEach(s => {
-        const code = s.staffCode || s.id;
-        opts += `<option value="${escapeHtml(code)}">${escapeHtml(s.name)} (${escapeHtml(code)})</option>`;
-      });
-      sel.innerHTML = opts;
-    }
-
-    if (window.CWP_ADMIN_V2.overlay && typeof window.CWP_ADMIN_V2.overlay.open === 'function') {
-      window.CWP_ADMIN_V2.overlay.open('v2ModalSjReassign');
-    } else {
-      document.getElementById('v2ModalSjReassign').style.display = 'flex';
-    }
-  }
-
-  function bindReassignModalEvents() {
-    const form = document.getElementById('v2SjReassignForm');
-    if (!form) return;
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (state.isSubmitting) return;
-      const api = window.CWP_ADMIN_V2.api;
-      if (!api) return;
-
-      const errEl = document.getElementById('v2SjReassignError');
-      const showErr = (msg) => {
-        if (errEl) { errEl.textContent = msg; errEl.hidden = false; }
-      };
-      if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
-
-      const newStaffId = document.getElementById('v2SjReassignStaff')?.value;
-      const scheduledTime = document.getElementById('v2SjReassignTime')?.value.trim() || null;
-      const sequenceOrder = document.getElementById('v2SjReassignSeq')?.value.trim();
-      const reason = document.getElementById('v2SjReassignReason')?.value.trim() || null;
-
-      if (!newStaffId) {
-        showErr('Please select a staff member or unassign option.');
-        return;
-      }
-
-      const btn = document.getElementById('v2SjReassignSubmitBtn');
-      state.isSubmitting = true;
-      try {
-        await api.withLoadingButton(btn, () => api.request('reassignSpecialJob', {
-          jobId: state.reassignModal.jobId,
-          newStaffId,
-          unassign: newStaffId === 'unassigned',
-          scheduledTime,
-          tentativeTime: scheduledTime,
-          sequenceOrder: sequenceOrder ? Number(sequenceOrder) : null,
-          reason
-        }));
-        if (window.CWP_ADMIN_V2.overlay) window.CWP_ADMIN_V2.overlay.close('v2ModalSjReassign');
-        showToast(newStaffId === 'unassigned' ? 'Job unassigned successfully.' : 'Job reassigned successfully.', 'success');
-        await loadData();
-      } catch (err) {
-        showErr(err.message || 'Failed to update assignment.');
-      } finally {
-        state.isSubmitting = false;
-      }
-    });
-  }
-
-  // -------------------------------------------------------------------------
-  // STATUS TRANSITION MODAL (START / COMPLETE / CANCEL / UNABLE TO COMPLETE)
+  // STATUS TRANSITION MODAL (START / COMPLETE / UNABLE TO COMPLETE)
   // -------------------------------------------------------------------------
   function openStatusModal(jobId, mode) {
     const j = state.allJobs.find(x => String(x.id) === String(jobId));
@@ -1215,12 +942,6 @@
       if (reasonWrap) reasonWrap.hidden = true;
       if (notesLabel) notesLabel.textContent = 'Completion Notes (Optional)';
       if (submitBtn) { submitBtn.textContent = 'Mark Completed'; submitBtn.className = 'cwp-v2-btn cwp-v2-btn-primary'; }
-    } else if (mode === 'cancel') {
-      if (title) title.textContent = 'Cancel Service Job';
-      if (reasonWrap) reasonWrap.hidden = false;
-      if (reasonLabel) reasonLabel.innerHTML = 'Cancellation Reason <span class="cwp-v2-req-star">*</span>';
-      if (notesLabel) notesLabel.textContent = 'Remarks (Optional)';
-      if (submitBtn) { submitBtn.textContent = 'Confirm Cancel'; submitBtn.className = 'cwp-v2-btn cwp-v2-btn-danger-solid'; }
     } else if (mode === 'fail') {
       if (title) title.textContent = 'Mark Unable to Complete';
       if (reasonWrap) reasonWrap.hidden = false;
@@ -1255,7 +976,7 @@
       };
       if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
 
-      if ((mode === 'cancel' || mode === 'fail') && !reason) {
+      if (mode === 'fail' && !reason) {
         showErr('A reason is required for this status change.');
         return;
       }
@@ -1269,9 +990,6 @@
         } else if (mode === 'complete') {
           await api.withLoadingButton(btn, () => api.request('completeSpecialJob', { jobId, completionNotes: notes, notes }));
           showToast('Job marked as Completed.', 'success');
-        } else if (mode === 'cancel') {
-          await api.withLoadingButton(btn, () => api.request('cancelSpecialJob', { jobId, reason, cancellationReason: reason, remarks: notes }));
-          showToast('Job cancelled.', 'success');
         } else if (mode === 'fail') {
           await api.withLoadingButton(btn, () => api.request('failServiceJob', { jobId, failureReason: reason, reason, failureRemarks: notes, remarks: notes }));
           showToast('Job marked as Unable to Complete.', 'success');
@@ -1286,26 +1004,6 @@
     });
   }
 
-  async function deleteJob(jobId) {
-    const api = window.CWP_ADMIN_V2.api;
-    if (!api || state.isSubmitting) return;
-    if (!window.confirm('Delete / cancel this service job? This action cannot be undone.')) return;
-    state.isSubmitting = true;
-    try {
-      await api.request('deleteSpecialJob', { jobId });
-      showToast('Service job deleted.', 'success');
-      if (state.selectedJobId === jobId) closeDetail();
-      await loadData();
-    } catch (err) {
-      showToast(err.message || 'Failed to delete job.', 'error');
-    } finally {
-      state.isSubmitting = false;
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // EVENT BINDINGS
-  // -------------------------------------------------------------------------
   function bindToolbarEvents() {
     const periodSel = document.getElementById('v2SjPeriodSelect');
     if (periodSel) {
@@ -1325,8 +1023,10 @@
     const refreshBtn = document.getElementById('v2SjBtnRefresh');
     if (refreshBtn) refreshBtn.addEventListener('click', () => loadData());
 
-    const assignBtn = document.getElementById('v2SjBtnAssignJob');
-    if (assignBtn) assignBtn.addEventListener('click', () => openAssignModal());
+    const manageBookingsBtn = document.getElementById('v2SjBtnManageBookings');
+    if (manageBookingsBtn) manageBookingsBtn.addEventListener('click', () => {
+      window.CWP_ADMIN_V2.shell?.navigateTo('serviceAssign');
+    });
 
     const kpiStrip = document.getElementById('v2SjKpiStrip');
     if (kpiStrip) {
@@ -1504,7 +1204,7 @@
           e.stopPropagation();
           const act = actBtn.getAttribute('data-sj-action');
           const jid = actBtn.getAttribute('data-sj-id');
-          if (act === 'reassign') openReassignModal(jid);
+          if (act === 'manageBooking') window.CWP_ADMIN_V2.bookings?.navigateToBooking(jid);
           else if (act === 'complete') openStatusModal(jid, 'complete');
           else openDetail(jid);
           return;
@@ -1577,8 +1277,7 @@
       const actBtn = e.target.closest('[data-sj-detail-act]');
       if (actBtn && state.selectedJobId) {
         const act = actBtn.getAttribute('data-sj-detail-act');
-        if (act === 'reassign') openReassignModal(state.selectedJobId);
-        else if (act === 'delete') deleteJob(state.selectedJobId);
+        if (act === 'manageBooking') window.CWP_ADMIN_V2.bookings?.navigateToBooking(state.selectedJobId);
         else openStatusModal(state.selectedJobId, act);
       }
     });
