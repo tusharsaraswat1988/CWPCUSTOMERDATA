@@ -782,7 +782,7 @@ async function updateCustomer(custData, adminUser = 'admin') {
     // Reject attempts to route a Hybrid catalogue identity through the legacy
     // customer editor, even if a client bypasses the display-only UI control.
     const requestedLegacyPackage = String(custData.packageType || custData.packageName || '').trim();
-    if (requestedLegacyPackage) {
+    if (!custData.profileOnly && requestedLegacyPackage) {
       const hybridTable = await client.query("SELECT to_regclass('public.hybrid_packages') AS table_name");
       if (hybridTable.rows[0]?.table_name) {
         const hybridMatch = await client.query(
@@ -792,9 +792,9 @@ async function updateCustomer(custData, adminUser = 'admin') {
           [requestedLegacyPackage]
         );
         if (hybridMatch.rows.length) {
-        const err = new Error('Hybrid packages must be assigned through the Hybrid purchase and provisioning workflow.');
-        err.code = 'HYBRID_PACKAGE_REQUIRES_ORCHESTRATION';
-        throw err;
+          const err = new Error('Hybrid packages must be assigned through the Hybrid purchase and provisioning workflow.');
+          err.code = 'HYBRID_PACKAGE_REQUIRES_ORCHESTRATION';
+          throw err;
         }
       }
     }
@@ -833,11 +833,13 @@ async function updateCustomer(custData, adminUser = 'admin') {
 
     const reqCat = (custData.serviceCategory || custData.serviceType || custData.interestedService || '').toString().trim();
     let normCategory = customer.interested_service || 'Daily Car Cleaning';
-    if (/solar/i.test(reqCat)) normCategory = 'Solar Panel Cleaning';
-    else if (/interior/i.test(reqCat)) normCategory = 'Interior Detailing';
-    else if (/exterior/i.test(reqCat)) normCategory = 'Exterior Detailing';
-    else if (/wash/i.test(reqCat)) normCategory = 'Car Washing';
-    else if (/daily/i.test(reqCat) || /dcc/i.test(reqCat)) normCategory = 'Daily Car Cleaning';
+    if (!custData.profileOnly) {
+      if (/solar/i.test(reqCat)) normCategory = 'Solar Panel Cleaning';
+      else if (/interior/i.test(reqCat)) normCategory = 'Interior Detailing';
+      else if (/exterior/i.test(reqCat)) normCategory = 'Exterior Detailing';
+      else if (/wash/i.test(reqCat)) normCategory = 'Car Washing';
+      else if (/daily/i.test(reqCat) || /dcc/i.test(reqCat)) normCategory = 'Daily Car Cleaning';
+    }
 
     await repos.customers.updateCustomer(customer.id, {
       name: finalName,

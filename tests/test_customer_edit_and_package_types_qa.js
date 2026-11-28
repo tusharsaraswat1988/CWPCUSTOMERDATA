@@ -70,14 +70,15 @@ assert(styleCssSrc.includes('#editCustSolarPanelsRow[style*="display: none"]') |
   'style.css must enforce display: none !important for hidden solar panel rows');
 console.log('✅ PASS 4.1: CSS specificity properly protects hidden solar panels from erroneous display.');
 
-// 5. Verify Label & Clarity in Index.html
-console.log('\n--- TEST 5: Daily Clean Route Assignment & Job Assignment Hub in Index.html ---');
-const indexHtmlSrc = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
-assert(indexHtmlSrc.includes('id="btnSubTabDailyRoutes"') || indexHtmlSrc.includes('Primary Cleaner / Staff (प्राथमिक स्टाफ)'),
-  'Index.html must support daily clean route assignment in Job Assignment Hub');
-assert(indexHtmlSrc.includes('Job Assignment') || indexHtmlSrc.includes('One-off / date-scheduled jobs are dispatched from "Job Assignment" tab'),
-  'Index.html must contain guidance linking cleaner allocation to Job Assignment hub');
-console.log('✅ PASS 5.1: Daily clean route allocation and Job Assignment Hub verified.');
+// 5. Verify the current Admin V2 route and assignment view. The legacy
+// Index.html assertion became stale when this workflow moved into Admin V2.
+console.log('\n--- TEST 5: Daily Clean Route Assignment & Job Assignment Hub in Admin V2 ---');
+const adminV2Html = fs.readFileSync(path.join(__dirname, '..', 'public', 'admin-v2', 'index.html'), 'utf8');
+assert(adminV2Html.includes('id="v2NavBtnJobAssignment"') && adminV2Html.includes('data-tab="jobAssignment"'),
+  'Admin V2 must expose the Assign Jobs route');
+assert(adminV2Html.includes('id="v2View_jobAssignment"') && adminV2Html.includes('id="v2AjTable"'),
+  'Admin V2 Assign Jobs view must contain the daily route assignment table');
+console.log('✅ PASS 5.1: Admin V2 route allocation and Assign Jobs view verified.');
 
 console.log('\n===============================================================');
 console.log('🎉 ALL 5 CUSTOMER EDIT & PACKAGE VERIFICATION TESTS PASSED!');

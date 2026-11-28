@@ -2,11 +2,11 @@
 
 ## Scope and finding
 
-The legacy Admin Customer edit flow and the Hybrid Package Engine are separate systems. The screenshots show the legacy `editCustCategory` / `editCustPkgType` controls in `public/js/app.js`. The category options and per-category package options are assembled as literal HTML in `openEditCustomerModal` and `handleEditCategoryChange`; they are not loaded from either the canonical service catalogue endpoint or the Hybrid catalogue.
+The screenshot's modal is the Admin V2 Customer editor: `v2EditCustCategory` and `v2EditCustPackage` are declared in `public/admin-v2/index.html` and populated by `public/admin-v2/js/v2-customers.js`. Its category and package options were hardcoded. A separate older editor in `public/js/app.js` also builds `editCustCategory` / `editCustPkgType` options from literal HTML. Neither editor loads its package choices from the canonical service catalogue or Hybrid catalogue.
 
 For a customer already present in Neon, `updateCustomer` in `services/adminService.js` persists the normalized `interested_service` value and profile/vehicle/location fields. Before this alignment, the same generic update path could update or create a DCC subscription based on `packageType`, and update/create an on-demand job with a package label. It did not create a SEE purchase or Hybrid membership. The old dropdown therefore mixed profile editing with legacy provisioning behavior and could route a Hybrid label into DCC/job metadata. The existing-customer edit UI now marks service/package identity display-only and sends a profile-only update, so it cannot cause service or package records to be created, cancelled, or relabeled. Other explicit legacy workflows retain their behavior.
 
-This alignment makes service and package identity display-only in the legacy editor. It preserves legacy labels and normalization for viewing while preventing a profile edit from causing assignment side effects. Server-side checks reject any Hybrid package id, code, or name routed through the legacy customer update path. Hybrid assignment remains unavailable from this legacy modal and must be performed through a future dedicated customer purchase action calling `POST /api/see/hybrid/purchases`.
+This alignment makes service and package identity display-only in both customer editors. The Admin V2 editor retains unmapped legacy values as display options. Profile-only saves avoid assignment side effects. Server-side checks reject any Hybrid package id, code, or name routed through the legacy customer update path. Hybrid assignment remains unavailable from these modals and must be performed through a future dedicated customer purchase action calling `POST /api/see/hybrid/purchases`.
 
 ## Catalogue and taxonomy inventory
 
@@ -36,10 +36,10 @@ The repository has legacy sheet/source metadata (`sourceSheetName`, `source_row_
 
 ## Safe behavior and remaining gaps
 
-- Existing package labels, including unmapped legacy labels, continue to be loaded and preserved in the legacy edit form. The package field is now disabled and clearly described as display-only.
+- Existing package labels, including unmapped legacy labels, continue to be loaded and preserved in the Admin V2 and legacy edit forms. The service and package identity controls are disabled and clearly described as display-only.
 - The legacy customer editor still displays service interest and package label. Both are read-only in this form; profile-only saves preserve customer, vehicle, location, and existing staff-edit behavior without creating/cancelling/relabeling service/package records.
 - Existing assignments and historical data are not migrated or rewritten.
 - The Hybrid builder/catalogue and purchase orchestration exist, but the Customer Edit experience does not have a dedicated assignment workflow that selects a customer, vehicle, location and Hybrid package and submits the validated purchase request. Do not add Hybrid packages to the legacy dropdown.
 - The customer edit projection does not currently include hybrid membership/component status, validity, and included components. Customer-management display needs a read-only Hybrid membership API/projection before that can be truthfully shown.
 - Canonical service/SEE catalogues are available via `getServiceCatalog` / `getPackageCatalog`, but the legacy edit selector currently uses literal options. It is now display-only; catalogue-driven purchase selection should be implemented in each engine-specific purchase UI rather than restoring direct editing here.
-- No production DB, migrations, deployment, push, or commit were used for this audit/change.
+- No production DB connection or writes were made, and no migration was applied or deployment performed. The requested worktree publication was pushed as commit `f08b903`; no additional push or commit was made during this stabilization pass.

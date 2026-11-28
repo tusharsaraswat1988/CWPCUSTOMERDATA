@@ -1041,6 +1041,15 @@
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
 }
 
+#v2ModalEditCustomer .cwp-v2-input:disabled,
+#v2ModalEditCustomer .cwp-v2-select:disabled {
+  background-color: var(--cwp-v2-sys-surface-container, #f1f5f9) !important;
+  border-color: var(--cwp-v2-sys-border-subtle, #e2e8f0) !important;
+  color: var(--cwp-v2-sys-on-surface-variant, #475569) !important;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
 /* Edit Customer Tabs */
 .cwp-v2-edit-tabs-bar {
   display: flex;

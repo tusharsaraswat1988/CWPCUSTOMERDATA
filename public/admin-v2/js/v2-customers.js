@@ -1399,6 +1399,25 @@
   // -------------------------------------------------------------------------
   // 12. EDIT CUSTOMER DIRECT TABBED FORM (4 TABS)
   // -------------------------------------------------------------------------
+  function setCustomerEditIdentityDisplayOnly(id, rawValue, fallback) {
+    const select = document.getElementById(id);
+    if (!select) return;
+    Array.from(select.querySelectorAll('option[data-legacy-dynamic="true"]')).forEach(opt => opt.remove());
+    const value = String(rawValue || fallback || '').trim();
+    let option = Array.from(select.options).find(item =>
+      item.value.toLowerCase() === value.toLowerCase() || item.textContent.trim().toLowerCase() === value.toLowerCase()
+    );
+    if (!option && value) {
+      option = new Option(value, value);
+      option.dataset.legacyDynamic = 'true';
+      select.add(option);
+    }
+    if (option) select.value = option.value;
+    select.disabled = true;
+    select.setAttribute('aria-disabled', 'true');
+    select.setAttribute('aria-describedby', 'v2EditCustPackageNote');
+  }
+
   function openEditCustomerModal(cust = null) {
     const target = cust || state.selectedCustomer;
     if (!target) return;
@@ -1413,8 +1432,8 @@
     document.getElementById('v2EditCustAltPhone').value = target.altPhone || '';
     document.getElementById('v2EditCustEmail').value = target.email || '';
     document.getElementById('v2EditCustAddress').value = target.address || '';
-    document.getElementById('v2EditCustCategory').value = target.serviceCategory || target.interestedService || 'Daily Car Cleaning';
-    document.getElementById('v2EditCustPackage').value = target.packageName || target.packageType || 'DCC ONLY';
+    setCustomerEditIdentityDisplayOnly('v2EditCustCategory', target.serviceCategory || target.interestedService, 'Daily Car Cleaning');
+    setCustomerEditIdentityDisplayOnly('v2EditCustPackage', target.packageName || target.packageType, 'DCC ONLY');
     document.getElementById('v2EditCustStaff').value = target.staffId || '';
     document.getElementById('v2EditCustStatus').value = (target.active === 'No' || target.isStopped) ? 'inactive' : 'active';
     document.getElementById('v2EditCustNotes').value = target.notes || '';
@@ -1557,8 +1576,6 @@
     const altPhone = document.getElementById('v2EditCustAltPhone')?.value.trim();
     const email = document.getElementById('v2EditCustEmail')?.value.trim();
     const address = document.getElementById('v2EditCustAddress')?.value.trim();
-    const category = document.getElementById('v2EditCustCategory')?.value;
-    const pkg = document.getElementById('v2EditCustPackage')?.value;
     const staffId = document.getElementById('v2EditCustStaff')?.value;
     const statusVal = document.getElementById('v2EditCustStatus')?.value;
     const notes = document.getElementById('v2EditCustNotes')?.value.trim();
@@ -1580,9 +1597,7 @@
       altPhone: altPhone || '',
       email: email || '',
       address: address,
-      serviceCategory: category,
-      packageType: pkg,
-      packageName: pkg,
+      profileOnly: true,
       staffId: staffId || null,
       active: statusVal === 'active' ? 'Yes' : 'No',
       notes: notes || '',
@@ -1826,7 +1841,8 @@
           customerData: {
             id: target.id,
             active: 'Yes',
-            isStopped: false
+            isStopped: false,
+            profileOnly: true
           }
         });
       }

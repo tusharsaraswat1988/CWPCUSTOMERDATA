@@ -59,6 +59,7 @@ if (process.env.NODE_ENV !== 'test' && !process.env.DATA_FILE) {
 }
 
 const db = require('./db/index');
+const startupSafety = require('./lib/startupSafety');
 const repos = require('./db/repositories/index');
 const authService = require('./services/authService');
 const adminService = require('./services/adminService');
@@ -3966,8 +3967,13 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(neonUpdateRes));
             } catch (err) {
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ success: false, error: err.message }));
+              const statusCode = err.code === 'HYBRID_PACKAGE_REQUIRES_ORCHESTRATION' ? 400 : 500;
+              res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: err.message,
+                ...(err.code ? { code: err.code } : {})
+              }));
             }
           }
 
@@ -5228,8 +5234,13 @@ const server = http.createServer(async (req, res) => {
               res.writeHead(200, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify(neonUpdateRes));
             } catch (err) {
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ success: false, error: err.message }));
+              const statusCode = err.code === 'HYBRID_PACKAGE_REQUIRES_ORCHESTRATION' ? 400 : 500;
+              res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: err.message,
+                ...(err.code ? { code: err.code } : {})
+              }));
             }
           }
 
@@ -8321,13 +8332,33 @@ if (require.main === module) {
   process.on('SIGINT', () => handleShutdown('SIGINT'));
 
   const startServer = async () => {
-    if (isNeonConfigured() && process.env.AUTO_MIGRATE !== 'false') {
-      try {
-        const migrate = require('./migrations/migrate');
-        console.log('[Bootstrap] Verifying database schema & migrations...');
-        await migrate.runMigration();
-      } catch (migErr) {
-        console.warn('[Bootstrap] Warning: Auto-migration check:', migErr.message);
+    const dbConfig = db.resolveDatabaseConfig();
+    const startupSummary = startupSafety.getStartupSummary({
+      port: PORT,
+      domain: DOMAIN,
+      env: process.env,
+      dbConfig
+    });
+
+    if (isNeonConfigured()) {
+      const policy = startupSummary.migrationPolicy;
+      if (!policy.allowed) {
+        if (policy.mode === 'BLOCKED_PRODUCTION_TARGET') {
+          console.warn(`[Bootstrap] SAFETY BLOCK: ${policy.reason}`);
+        } else {
+          console.log(`[Bootstrap] Auto-migration skipped (${policy.mode}).`);
+        }
+      } else {
+        try {
+          if (policy.warn) {
+            console.warn(`[Bootstrap] ${policy.warn}`);
+          }
+          const migrate = require('./migrations/migrate');
+          console.log('[Bootstrap] Verifying database schema & migrations...');
+          await migrate.runMigration({ source: 'server_startup' });
+        } catch (migErr) {
+          console.warn('[Bootstrap] Warning: Auto-migration check:', migErr.message);
+        }
       }
     }
 
@@ -8354,8 +8385,13 @@ if (require.main === module) {
       console.log(`🚗 CWP Detailers & Motors - Staff Information Viewer`);
       console.log(`=======================================================`);
       console.log(`✔ Hardened Security & Functional Architecture Active`);
-      console.log(`✔ Server Running on PORT: ${PORT}`);
-      console.log(`✔ Production Domain: https://${DOMAIN}`);
+      console.log(`✔ Environment: ${startupSummary.runtimeEnv}`);
+      console.log(`✔ Hosting: ${startupSummary.hostingEnv}`);
+      console.log(`✔ Server: ${startupSummary.serverEndpoint}`);
+      console.log(`✔ ${startupSummary.domainLabel}: ${startupSummary.domainUrl}`);
+      console.log(`✔ Database: ${startupSummary.dbTarget.databaseName} (${startupSummary.dbTarget.provider} | ${startupSummary.dbTarget.classification})`);
+      console.log(`✔ DB Host: ${startupSummary.dbTarget.sanitizedHost}`);
+      console.log(`✔ Migration Startup: ${startupSummary.migrationStatusLabel}`);
       console.log(`✔ Cloudinary Status: ${isCloudinaryConfigured() ? 'Connected' : 'Pending Environment Variables'}`);
       console.log(`✔ Admin Password: ${hasAdminPasswordConfigured() ? 'Configured' : 'NOT CONFIGURED (Must set ADMIN_PASSWORD)'}`);
       console.log(`=======================================================`);

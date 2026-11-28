@@ -1,5 +1,5 @@
 -- =========================================================================
--- CWP DATA APP - POSTGRESQL SCHEMA MIGRATION: 019_enhance_dcc_core_operations.sql
+-- CWP DATA APP - POSTGRESQL SCHEMA MIGRATION: 032_restore_dcc_core_indexes.sql
 -- Module: Daily Car Cleaning (DCC) Core Operations Subsystem
 -- Target Database: cwp_customer_db (Neon PostgreSQL)
 -- Target Entities: public.subscriptions, public.subscription_vehicles, public.service_logs
@@ -11,8 +11,6 @@
 --      are permanently auditable and never conflated with completed cleans.
 -- Safety: Pure DDL definition. Idempotent. Zero production data modifications.
 -- =========================================================================
-
-BEGIN;
 
 -- 1. Performance Indexes for DCC Subscriptions Lifecycle & Expiry Queries
 CREATE INDEX IF NOT EXISTS idx_subscriptions_customer_status 
@@ -35,11 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_sub_veh_sub_veh
     ON public.subscription_vehicles (subscription_id, vehicle_id);
 
 -- 3. Daily Execution Ledger Indexing & Concurrency Protection
--- Guarantee exactly-once daily operational record per vehicle per subscription per operational date
-CREATE UNIQUE INDEX IF NOT EXISTS uq_service_logs_daily_vehicle 
-    ON public.service_logs (subscription_id, vehicle_id, service_date) 
-    WHERE subscription_id IS NOT NULL AND vehicle_id IS NOT NULL;
-
+-- uq_service_logs_daily_vehicle is already created by migration 001.
 CREATE INDEX IF NOT EXISTS idx_service_logs_sub_date 
     ON public.service_logs (subscription_id, service_date) 
     WHERE subscription_id IS NOT NULL;
@@ -50,5 +44,3 @@ CREATE INDEX IF NOT EXISTS idx_service_logs_status_date
 CREATE INDEX IF NOT EXISTS idx_service_logs_staff_sub_date 
     ON public.service_logs (staff_id, service_date) 
     WHERE subscription_id IS NOT NULL;
-
-COMMIT;

@@ -34,20 +34,62 @@ try {
 } catch (e) {}
 
 const { resolveDatabaseConfig } = require('../db/connectionResolver');
+const startupSafety = require('../lib/startupSafety');
 
-async function runMigration() {
+async function runMigration(options = {}) {
+  const source = options.source || (require.main === module ? 'cli_migrate' : 'server_startup');
   console.log('================================================================');
   console.log('CWP DATA APP - DATABASE SCHEMA PROVISIONING');
   console.log('================================================================');
+
+  // Validate migration numbering before reading DB config or opening a
+  // connection. The runner keys applied migrations by numeric prefix, so
+  // duplicate prefixes would otherwise cause a file to be silently skipped.
+  const migrationsDir = __dirname;
+  const sqlFiles = fs.readdirSync(migrationsDir)
+    .filter(f => f.endsWith('.sql'))
+    .sort();
+  const versions = new Map();
+  for (const file of sqlFiles) {
+    const match = file.match(/^(\d+)_/);
+    if (!match) continue;
+    const version = match[1];
+    const previous = versions.get(version);
+    if (previous) throw new Error(`[Migration] Duplicate version ${version}: ${previous} and ${file}`);
+    versions.set(version, file);
+  }
 
   const dbConfig = resolveDatabaseConfig(process.env.DATABASE_URL, process.env.DATABASE_URL_UNPOOLED);
   if (!dbConfig.isConfigured) {
     throw new Error(`[Migration] Configuration Error: ${dbConfig.error}`);
   }
 
+  const policy = startupSafety.evaluateMigrationPolicy({
+    env: process.env,
+    dbConfig,
+    source
+  });
+
+  if (!policy.allowed) {
+    console.warn(`[Migration Safety]: ${policy.reason}`);
+    return {
+      executed: false,
+      skipped: true,
+      mode: policy.mode,
+      reason: policy.reason,
+      appliedCount: 0,
+      sequencesSynced: false
+    };
+  }
+
+  if (policy.warn) {
+    console.warn(`[Migration Safety]: ${policy.warn}`);
+  }
+
   // Migrations use the direct unpooled connection for DDL execution
   const connectionString = dbConfig.directUrl;
-  console.log(`[Connection Target]: ${dbConfig.host} (Database: ${dbConfig.databaseName}, Mode: ${dbConfig.isNeon ? 'Direct/Unpooled' : 'Standard'})`);
+  const sanitizedHost = startupSafety.sanitizeHost(dbConfig.host);
+  console.log(`[Connection Target]: ${sanitizedHost} (Database: ${dbConfig.databaseName}, Mode: ${dbConfig.isNeon ? 'Direct/Unpooled' : 'Standard'})`);
 
   const client = new Client({
     connectionString,
@@ -75,11 +117,8 @@ async function runMigration() {
       );
     `);
 
-    // 3. Find all migration files
-    const migrationsDir = __dirname;
-    const sqlFiles = fs.readdirSync(migrationsDir)
-      .filter(f => f.endsWith('.sql'))
-      .sort();
+    // 3. Execute migrations in filename order after the preflight above.
+    let appliedCount = 0;
 
     for (const file of sqlFiles) {
       const match = file.match(/^(\d+)_/);
@@ -106,6 +145,7 @@ async function runMigration() {
           SET checksum = EXCLUDED.checksum, applied_at = CURRENT_TIMESTAMP;
         `, [version, file, checksum, 'Automated Provisioner']);
         await client.query('COMMIT');
+        appliedCount += 1;
         const duration = Date.now() - startTime;
         console.log(`[DDL Execution]: ${file} SUCCESS in ${duration} ms`);
       } catch (e) {
@@ -114,12 +154,25 @@ async function runMigration() {
       }
     }
 
-    // 4. Synchronize all database sequences to prevent primary key collisions
-    await syncSequences(client);
+    // 4. Synchronize sequences only when new migrations were applied or explicitly forced
+    let sequencesSynced = false;
+    if (appliedCount > 0 || process.env.FORCE_SYNC_SEQUENCES === 'true') {
+      await syncSequences(client);
+      sequencesSynced = true;
+    } else {
+      console.log('[Sequences]: Skipped sequence synchronization (no new migrations applied).');
+    }
 
     console.log('\n================================================================');
     console.log('ALL MIGRATIONS COMPLETED SUCCESSFULLY');
     console.log('================================================================');
+    return {
+      executed: true,
+      skipped: false,
+      mode: policy.mode,
+      appliedCount,
+      sequencesSynced
+    };
 
   } catch (err) {
     console.error('\n[MIGRATION FAILED]:', err.message);

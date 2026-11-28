@@ -4,7 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const hybrid = require('../services/hybridPackageService');
 const seeEntitlements = fs.readFileSync(path.join(__dirname, '../services/seeEntitlementService.js'), 'utf8');
-const migration = fs.readFileSync(path.join(__dirname, '../migrations/028_create_hybrid_package_engine.sql'), 'utf8');
+const migration = [
+  '028_create_hybrid_package_engine.sql',
+  '030_hybrid_durable_recovery.sql',
+  '031_hybrid_renewal_lifecycle.sql'
+].map(name => fs.readFileSync(path.join(__dirname, '..', 'migrations', name), 'utf8')).join('\n');
 
 let passed = 0;
 function test(name, fn) { fn(); passed += 1; console.log(`PASS ${name}`); }

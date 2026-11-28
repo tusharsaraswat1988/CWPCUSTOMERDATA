@@ -7,6 +7,7 @@ ALTER TABLE public.hybrid_packages
 ALTER TABLE public.hybrid_memberships
   ADD COLUMN IF NOT EXISTS cancellation_requested_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS cancellation_reason TEXT,
+  ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS expired_at TIMESTAMPTZ;
 ALTER TABLE public.hybrid_memberships DROP CONSTRAINT IF EXISTS hybrid_memberships_status_check;
 ALTER TABLE public.hybrid_memberships ADD CONSTRAINT hybrid_memberships_status_check
@@ -18,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.hybrid_membership_renewals (
   idempotency_key VARCHAR(120) NOT NULL UNIQUE,
   payment_reference VARCHAR(120),
   period_start DATE NOT NULL,
-  period_end DATE NOT NULL,
+  period_end DATE NOT NULL CHECK (period_end > period_start),
   amount NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
   currency VARCHAR(3) NOT NULL,
   package_snapshot JSONB NOT NULL,
