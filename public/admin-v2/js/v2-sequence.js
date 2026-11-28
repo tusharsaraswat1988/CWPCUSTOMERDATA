@@ -533,6 +533,10 @@
     openModal('v2SeqRouteModal');
   }
 
+  function isUuidStr(val) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(val || '').trim());
+  }
+
   function openAssignStaffModal(routeId) {
     const route = state.routes.find(r => r.id === routeId) || state.activeRoute;
     if (!route) return;
@@ -546,13 +550,25 @@
     if (sel) {
       sel.innerHTML = '<option value="">Select DCC eligible staff...</option>' +
         eligible.map(s => {
-          const code = s.staffCode || s.staff_code || '';
+          const code = s.staffCode || s.staff_code || (!isUuidStr(s.id) ? s.id : '') || '';
           const desig = s.designationName || s.designation || s.role || '';
           const val = s.dbId || s.id;
           const label = `${s.name || 'Staff'}${code ? ` (${code})` : ''}${desig ? ` — ${desig}` : ''}`;
           return `<option value="${esc(val)}">${esc(label)}</option>`;
         }).join('');
-      if (route.assigned_staff_id) sel.value = route.assigned_staff_id;
+
+      if (route.assigned_staff_id) {
+        sel.value = route.assigned_staff_id;
+        if (!sel.value) {
+          const match = eligible.find(s =>
+            (s.dbId && String(s.dbId).toLowerCase() === String(route.assigned_staff_id).toLowerCase()) ||
+            (s.id && String(s.id).toLowerCase() === String(route.assigned_staff_id).toLowerCase()) ||
+            (s.staffCode && String(s.staffCode).toUpperCase() === String(route.assigned_staff_id).toUpperCase()) ||
+            (s.staff_code && String(s.staff_code).toUpperCase() === String(route.assigned_staff_id).toUpperCase())
+          );
+          if (match) sel.value = match.dbId || match.id;
+        }
+      }
     }
     openModal('v2SeqAssignStaffModal');
   }

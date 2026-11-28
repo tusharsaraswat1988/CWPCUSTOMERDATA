@@ -1120,13 +1120,37 @@ async function getDailyRouteReconciliation({ operationalDate = null, routeId = n
 async function resolveStaff(staffCodeOrId) {
   if (!staffCodeOrId) return null;
   const target = String(staffCodeOrId).trim();
+  if (!target) return null;
 
   let staff = null;
+  // 1. Try findById (safe in Neon as staffRepo.findById guards non-UUIDs; also supports unit test mocks)
   if (repos.staff && repos.staff.findById) {
-    staff = await repos.staff.findById(target);
+    try {
+      staff = await repos.staff.findById(target);
+    } catch (_) {
+      staff = null;
+    }
   }
+  // 2. Try findByStaffCode (e.g., 'STF01')
   if (!staff && repos.staff && repos.staff.findByStaffCode) {
-    staff = await repos.staff.findByStaffCode(target);
+    try {
+      staff = await repos.staff.findByStaffCode(target);
+    } catch (_) {
+      staff = null;
+    }
+  }
+  // 3. Fallback lookup across all staff (matches id, staff_code, or name)
+  if (!staff && repos.staff && repos.staff.findAll) {
+    try {
+      const all = await repos.staff.findAll({ includeInactive: true });
+      staff = (all || []).find(s =>
+        s.id === target ||
+        (s.staff_code && s.staff_code.toUpperCase() === target.toUpperCase()) ||
+        (s.name && s.name.toLowerCase() === target.toLowerCase())
+      ) || null;
+    } catch (_) {
+      staff = null;
+    }
   }
   return staff;
 }

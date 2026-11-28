@@ -1194,8 +1194,15 @@ function applyStaffSequenceOrder(customers, staffId) {
  * Sanitizes staff list for public / staff use (Removes PIN and Phone completely)
  */
 function sanitizeStaffForPublic(staff) {
+  const staffUuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const canonicalDbId = staff.dbId || (staffUuidRegex.test(String(staff.id || '').trim()) ? staff.id : null);
+  const canonicalCode = staff.staffCode || staff.staff_code || (!staffUuidRegex.test(String(staff.id || '').trim()) ? staff.id : '');
   return {
     id: staff.id,
+    dbId: canonicalDbId,
+    staffId: canonicalDbId,
+    staffCode: canonicalCode,
+    staff_code: canonicalCode,
     name: staff.name,
     photoUrl: staff.photoUrl || staff.photo_url || staff.photo || '',
     active: staff.active !== undefined ? staff.active : true
@@ -1206,6 +1213,9 @@ function sanitizeStaffForPublic(staff) {
  * Sanitizes staff list for admin use (Provides masked/viewable PIN and hasPin indicator for Admin Portal)
  */
 function sanitizeStaffForAdmin(staff) {
+  const staffUuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const canonicalDbId = staff.dbId || (staffUuidRegex.test(String(staff.id || '').trim()) ? staff.id : null);
+  const canonicalCode = staff.staffCode || staff.staff_code || (!staffUuidRegex.test(String(staff.id || '').trim()) ? staff.id : '');
   let pinVal = '';
   if (staff.displayPin && staff.displayPin !== '******' && !staff.displayPin.startsWith('scrypt:') && !staff.displayPin.startsWith('sha256:')) {
     pinVal = staff.displayPin;
@@ -1221,6 +1231,10 @@ function sanitizeStaffForAdmin(staff) {
     : !!(staff.pin && isValidCredentialFormat(staff.pin));
   return {
     id: staff.id,
+    dbId: canonicalDbId,
+    staffId: canonicalDbId,
+    staffCode: canonicalCode,
+    staff_code: canonicalCode,
     name: staff.name,
     phone: staff.phone || '',
     photoUrl: staff.photoUrl || staff.photo_url || staff.photo || '',

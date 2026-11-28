@@ -65,17 +65,21 @@ async function findAll({ includeInactive = true, client = null } = {}) {
 
 async function findById(id, client = null) {
   if (!id) return null;
+  const target = String(id).trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target);
+
   if (isNeonConfigured()) {
+    if (!isUuid) return null;
     const runner = client || db;
     const res = await runner.query(
       'SELECT * FROM public.staff WHERE id = $1 AND deleted_at IS NULL LIMIT 1',
-      [id]
+      [target]
     );
     return res.rows[0] ? normalizeStaffRow(res.rows[0]) : null;
   }
 
   // Local fallback
-  const found = localStaffStore.find(s => s.id === id && !s.deleted_at);
+  const found = localStaffStore.find(s => s.id === target && !s.deleted_at);
   return found ? normalizeStaffRow(found) : null;
 }
 

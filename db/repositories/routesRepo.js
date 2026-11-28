@@ -84,20 +84,25 @@ async function createRoute({
  */
 async function findById(id, client = null) {
   if (!id) return null;
+  const target = String(id).trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target);
 
   if (isNeonActive()) {
+    if (!isUuid) {
+      return findByCode(target, client);
+    }
     const runner = client || db;
     const res = await runner.query(
       `SELECT r.*, s.name AS staff_name, s.staff_code, s.phone AS staff_phone
        FROM public.routes r
        LEFT JOIN public.staff s ON r.assigned_staff_id = s.id
        WHERE r.id = $1 LIMIT 1`,
-      [id]
+      [target]
     );
     return res.rows[0] || null;
   }
 
-  const route = localRoutesStore.find(r => r.id === id);
+  const route = localRoutesStore.find(r => r.id === target || (r.route_code && r.route_code.toUpperCase() === target.toUpperCase()));
   return route ? { ...route } : null;
 }
 
@@ -464,19 +469,22 @@ async function reorderStops(routeId, orderedStopIds = [], client = null) {
  */
 async function findRouteByAssignedStaffId(staffId, client = null) {
   if (!staffId) return null;
+  const target = String(staffId).trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target);
 
   if (isNeonActive()) {
+    if (!isUuid) return null;
     const runner = client || db;
     const res = await runner.query(
       `SELECT * FROM public.routes 
        WHERE assigned_staff_id = $1 AND status = 'active'
        LIMIT 1`,
-      [staffId]
+      [target]
     );
     return res.rows[0] || null;
   }
 
-  const route = localRoutesStore.find(r => r.assigned_staff_id === staffId && r.status === 'active');
+  const route = localRoutesStore.find(r => r.assigned_staff_id === target && r.status === 'active');
   return route ? { ...route } : null;
 }
 
