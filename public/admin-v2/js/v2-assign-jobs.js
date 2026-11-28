@@ -36,7 +36,11 @@
       pageSize: 25
     },
     modalCustomerId: null,
+    modalSubscriptionId: null,
+    modalVehicleId: null,
     unassignCustomerId: null,
+    unassignSubscriptionId: null,
+    unassignVehicleId: null,
     isLoading: false,
     isSubmitting: false,
     hasLoadedOnce: false,
@@ -530,23 +534,23 @@
 
       const actionsHtml = row.isAssigned
         ? `
-          <button type="button" class="cwp-v2-aj-btn-sm" data-aj-action="assign" data-customer-id="${escapeHtml(row.customerId)}" title="Reassign Staff">
+          <button type="button" class="cwp-v2-aj-btn-sm" data-aj-action="assign" data-customer-id="${escapeHtml(row.customerId)}" data-subscription-id="${escapeHtml(row.subscriptionId || '')}" data-vehicle-id="${escapeHtml(row.vehicleId || '')}" title="Reassign Staff">
             <span class="material-symbols-outlined cwp-v2-aj-icon-14" aria-hidden="true">sync_alt</span>
             <span>Reassign</span>
           </button>
-          <button type="button" class="cwp-v2-aj-btn-sm is-danger" data-aj-action="unassign" data-customer-id="${escapeHtml(row.customerId)}" title="Unassign Cleaner">
+          <button type="button" class="cwp-v2-aj-btn-sm is-danger" data-aj-action="unassign" data-customer-id="${escapeHtml(row.customerId)}" data-subscription-id="${escapeHtml(row.subscriptionId || '')}" data-vehicle-id="${escapeHtml(row.vehicleId || '')}" title="Unassign Cleaner">
             <span class="material-symbols-outlined cwp-v2-aj-icon-14" aria-hidden="true">person_remove</span>
           </button>
         `
         : `
-          <button type="button" class="cwp-v2-aj-btn-sm is-primary" data-aj-action="assign" data-customer-id="${escapeHtml(row.customerId)}" title="Assign Cleaner">
+          <button type="button" class="cwp-v2-aj-btn-sm is-primary" data-aj-action="assign" data-customer-id="${escapeHtml(row.customerId)}" data-subscription-id="${escapeHtml(row.subscriptionId || '')}" data-vehicle-id="${escapeHtml(row.vehicleId || '')}" title="Assign Cleaner">
             <span class="material-symbols-outlined cwp-v2-aj-icon-14" aria-hidden="true">person_add</span>
             <span>Assign</span>
           </button>
         `;
 
       return `
-        <tr data-customer-id="${escapeHtml(row.customerId)}">
+        <tr data-customer-id="${escapeHtml(row.customerId)}" data-subscription-id="${escapeHtml(row.subscriptionId || '')}" data-vehicle-id="${escapeHtml(row.vehicleId || '')}">
           <td>${seqHtml}</td>
           <td>
             <div class="cwp-v2-aj-cust-name">${escapeHtml(row.customerName || 'Subscriber')}</div>
@@ -719,24 +723,34 @@
     applyFiltersAndRender();
   }
 
-  function openAssignModal(customerId, triggerEl) {
-    const row = state.assignments.find(r => r.customerId === customerId);
+  function openAssignModal(customerId, triggerEl, subscriptionId = null, vehicleId = null) {
+    const row = state.assignments.find(r => 
+      (subscriptionId && r.subscriptionId === subscriptionId && (!vehicleId || r.vehicleId === vehicleId)) ||
+      (vehicleId && r.vehicleId === vehicleId) ||
+      (r.customerId === customerId)
+    );
     if (!row) return;
 
-    state.modalCustomerId = customerId;
+    state.modalCustomerId = row.customerId || customerId;
+    state.modalSubscriptionId = row.subscriptionId || subscriptionId;
+    state.modalVehicleId = row.vehicleId || vehicleId;
 
     const titleEl = document.getElementById('v2AjModalTitle');
     const subEl = document.getElementById('v2AjModalSubtitle');
     const custInput = document.getElementById('v2AjModalCustomerId');
+    const subInput = document.getElementById('v2AjModalSubscriptionId');
+    const vehInput = document.getElementById('v2AjModalVehicleId');
     const summaryEl = document.getElementById('v2AjModalSummary');
     const staffSelect = document.getElementById('v2AjModalStaffSelect');
     const errEl = document.getElementById('v2AjModalError');
     const unassignBtn = document.getElementById('v2AjModalBtnUnassign');
     const submitBtn = document.getElementById('v2AjModalBtnSubmit');
 
-    if (titleEl) titleEl.textContent = row.isAssigned ? 'Reassign Daily Cleaner' : 'Assign Daily Cleaner';
-    if (subEl) subEl.textContent = row.isAssigned ? 'Transfer customer to another cleaner route' : 'Allocate customer to a cleaner daily route';
-    if (custInput) custInput.value = customerId;
+    if (titleEl) titleEl.textContent = row.isAssigned ? 'Reassign Vehicle Cleaner' : 'Assign Vehicle Cleaner';
+    if (subEl) subEl.textContent = row.isAssigned ? 'Transfer vehicle to another cleaner route' : 'Allocate vehicle to a cleaner daily route';
+    if (custInput) custInput.value = state.modalCustomerId;
+    if (subInput) subInput.value = state.modalSubscriptionId || '';
+    if (vehInput) vehInput.value = state.modalVehicleId || '';
     if (errEl) {
       errEl.hidden = true;
       errEl.textContent = '';
@@ -755,7 +769,7 @@
         </div>
         <div class="cwp-v2-aj-modal-summary-row">
           <span class="cwp-v2-aj-modal-summary-label">Vehicle &amp; Plan</span>
-          <span class="cwp-v2-aj-modal-summary-val">${escapeHtml(row.vehicleNumber || 'Unregistered')} • ${escapeHtml(row.packageType || 'Daily Clean')}</span>
+          <span class="cwp-v2-aj-modal-summary-val" style="font-weight:700; color:var(--cwp-v2-sys-primary, #0284c7);">${escapeHtml(row.vehicleNumber || 'Unregistered')} • ${escapeHtml(row.packageType || 'Daily Clean')}</span>
         </div>
         <div class="cwp-v2-aj-modal-summary-row">
           <span class="cwp-v2-aj-modal-summary-label">Location</span>
@@ -797,11 +811,13 @@
     if (state.isSubmitting) return;
 
     const customerId = (document.getElementById('v2AjModalCustomerId') || {}).value || state.modalCustomerId;
+    const subscriptionId = (document.getElementById('v2AjModalSubscriptionId') || {}).value || state.modalSubscriptionId;
+    const vehicleId = (document.getElementById('v2AjModalVehicleId') || {}).value || state.modalVehicleId;
     const staffId = (document.getElementById('v2AjModalStaffSelect') || {}).value || '';
     const errEl = document.getElementById('v2AjModalError');
     const submitBtn = document.getElementById('v2AjModalBtnSubmit');
 
-    if (!customerId || !staffId) {
+    if ((!customerId && !subscriptionId && !vehicleId) || !staffId) {
       if (errEl) {
         errEl.textContent = 'Please select an eligible staff cleaner.';
         errEl.hidden = false;
@@ -816,6 +832,8 @@
       await window.CWP_ADMIN_V2.api.withLoadingButton(submitBtn, async () => {
         const res = await window.CWP_ADMIN_V2.api.request('assignDailyCleanCustomer', {
           customerId,
+          subscriptionId,
+          vehicleId,
           staffId
         });
 
@@ -843,20 +861,33 @@
     }
   }
 
-  function openUnassignModal(customerId, triggerEl) {
-    const row = state.assignments.find(r => r.customerId === customerId);
+  function openUnassignModal(customerId, triggerEl, subscriptionId = null, vehicleId = null) {
+    const row = state.assignments.find(r => 
+      (subscriptionId && r.subscriptionId === subscriptionId && (!vehicleId || r.vehicleId === vehicleId)) ||
+      (vehicleId && r.vehicleId === vehicleId) ||
+      (r.customerId === customerId)
+    );
     if (!row) return;
 
-    state.unassignCustomerId = customerId;
+    state.unassignCustomerId = row.customerId || customerId;
+    state.unassignSubscriptionId = row.subscriptionId || subscriptionId;
+    state.unassignVehicleId = row.vehicleId || vehicleId;
+
     const custInput = document.getElementById('v2AjUnassignCustId');
+    const subInput = document.getElementById('v2AjUnassignSubscriptionId');
+    const vehInput = document.getElementById('v2AjUnassignVehicleId');
     const promptEl = document.getElementById('v2AjUnassignPrompt');
     const reasonEl = document.getElementById('v2AjUnassignReason');
     const errEl = document.getElementById('v2AjUnassignError');
     const confirmBtn = document.getElementById('v2AjUnassignBtnConfirm');
 
-    if (custInput) custInput.value = customerId;
+    if (custInput) custInput.value = state.unassignCustomerId;
+    if (subInput) subInput.value = state.unassignSubscriptionId || '';
+    if (vehInput) vehInput.value = state.unassignVehicleId || '';
+
     if (promptEl) {
-      promptEl.textContent = `Remove ${row.customerName || 'this customer'} from ${row.staffName || 'their assigned cleaner'}'s daily cleaning route?`;
+      const vehLabel = row.vehicleNumber ? `${row.vehicleNumber} (${row.customerName || 'Customer'})` : (row.customerName || 'this customer');
+      promptEl.textContent = `Remove ${vehLabel} from ${row.staffName || 'their assigned cleaner'}'s daily cleaning route?`;
     }
     if (reasonEl) reasonEl.value = '';
     if (errEl) {
@@ -878,11 +909,13 @@
     if (state.isSubmitting) return;
 
     const customerId = (document.getElementById('v2AjUnassignCustId') || {}).value || state.unassignCustomerId;
+    const subscriptionId = (document.getElementById('v2AjUnassignSubscriptionId') || {}).value || state.unassignSubscriptionId;
+    const vehicleId = (document.getElementById('v2AjUnassignVehicleId') || {}).value || state.unassignVehicleId;
     const reason = (document.getElementById('v2AjUnassignReason') || {}).value || 'Unassigned by admin';
     const errEl = document.getElementById('v2AjUnassignError');
     const confirmBtn = document.getElementById('v2AjUnassignBtnConfirm');
 
-    if (!customerId) return;
+    if (!customerId && !subscriptionId && !vehicleId) return;
 
     state.isSubmitting = true;
     if (errEl) errEl.hidden = true;
@@ -891,17 +924,19 @@
       await window.CWP_ADMIN_V2.api.withLoadingButton(confirmBtn, async () => {
         const res = await window.CWP_ADMIN_V2.api.request('unassignDailyCleanCustomer', {
           customerId,
+          subscriptionId,
+          vehicleId,
           reason: reason.trim() || 'Unassigned by admin'
         });
 
         if (!res || res.success === false) {
-          throw new Error((res && res.error) || 'Failed to unassign customer.');
+          throw new Error((res && res.error) || 'Failed to unassign vehicle.');
         }
 
         if (window.CWP_ADMIN_V2.overlay) {
           window.CWP_ADMIN_V2.overlay.close('v2ModalAjUnassign');
         }
-        showToast(res.message || 'Customer unassigned from daily route.', 'success');
+        showToast(res.message || 'Vehicle unassigned from daily route.', 'success');
         await loadData({ force: true });
         if (window.CWP_ADMIN_V2.notifications && typeof window.CWP_ADMIN_V2.notifications.refreshBadges === 'function') {
           window.CWP_ADMIN_V2.notifications.refreshBadges();
@@ -909,7 +944,7 @@
       }, 'Unassigning...');
     } catch (err) {
       if (errEl) {
-        errEl.textContent = err.message || 'Unable to unassign customer. Please retry.';
+        errEl.textContent = err.message || 'Unable to unassign vehicle. Please retry.';
         errEl.hidden = false;
       }
       showToast(err.message || 'Unassign failed', 'error');
@@ -1038,9 +1073,11 @@
         if (!btn) return;
         const action = btn.getAttribute('data-aj-action');
         const customerId = btn.getAttribute('data-customer-id');
-        if (!customerId) return;
-        if (action === 'assign') openAssignModal(customerId, btn);
-        else if (action === 'unassign') openUnassignModal(customerId, btn);
+        const subscriptionId = btn.getAttribute('data-subscription-id');
+        const vehicleId = btn.getAttribute('data-vehicle-id');
+        if (!customerId && !subscriptionId) return;
+        if (action === 'assign') openAssignModal(customerId, btn, subscriptionId, vehicleId);
+        else if (action === 'unassign') openUnassignModal(customerId, btn, subscriptionId, vehicleId);
       });
     }
 
@@ -1108,10 +1145,12 @@
     if (modalUnassignBtn) {
       modalUnassignBtn.addEventListener('click', () => {
         const custId = state.modalCustomerId;
+        const subId = state.modalSubscriptionId;
+        const vehId = state.modalVehicleId;
         if (window.CWP_ADMIN_V2.overlay) {
           window.CWP_ADMIN_V2.overlay.close('v2ModalAjAssign');
         }
-        if (custId) openUnassignModal(custId);
+        if (custId || subId) openUnassignModal(custId, null, subId, vehId);
       });
     }
 

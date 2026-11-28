@@ -662,34 +662,49 @@ async function saveCustomer(custData, adminUser = 'admin') {
       const isDaily = rawCat === 'Daily Car Cleaning' || rawCat === 'Daily Clean' || rawCat === 'daily_car_cleaning';
 
       if (isDaily) {
-        const sub = await repos.subscriptions.createSubscription({
-          customerId: customer.id,
-          serviceCategoryId: 'daily_car_cleaning',
-          packageName: custData.packageType || custData.packageName || 'Daily Clean',
-          packagesPurchased: parseInt(custData.packagesPurchased, 10) || 1,
-          rotationType: custData.rotationType || (custData.aajKal ? 'aaj_kal' : 'none'),
-          rotationNotes: custData.rotationNotes || custData.notes || null,
-          status: 'active'
-        }, client);
-
-        // Attach vehicles to subscription
-        for (const cv of createdVehicles) {
-          await repos.subscriptionVehicles.addVehicleToSubscription({
-            subscriptionId: sub.id,
+        // Vehicle-Level Subscriptions: each vehicle gets its own subscription so staff can be assigned independently
+        const vehiclesToEnroll = createdVehicles.length > 0 ? createdVehicles : [null];
+        for (const cv of vehiclesToEnroll) {
+          const sub = await repos.subscriptions.createSubscription({
             customerId: customer.id,
-            vehicleId: cv.id,
-            locationId: primaryLocation?.id || null,
-            scheduleTag: custData.scheduleTag || 'daily'
+            serviceCategoryId: 'daily_car_cleaning',
+            packageName: custData.packageType || custData.packageName || 'Daily Clean',
+            packagesPurchased: 1,
+            rotationType: custData.rotationType || (custData.aajKal ? 'aaj_kal' : 'none'),
+            rotationNotes: custData.rotationNotes || custData.notes || null,
+            status: 'active'
           }, client);
-        }
 
-        // Assign staff to subscription
-        if (assignedStaff) {
-          await repos.staffAssignments.assignStaffToSubscription({
-            staffId: assignedStaff.id,
-            subscriptionId: sub.id,
-            assignedBy: adminUser
-          }, client);
+          if (cv) {
+            await repos.subscriptionVehicles.addVehicleToSubscription({
+              subscriptionId: sub.id,
+              customerId: customer.id,
+              vehicleId: cv.id,
+              locationId: primaryLocation?.id || null,
+              scheduleTag: custData.scheduleTag || 'daily'
+            }, client);
+          }
+
+          if (assignedStaff) {
+            await repos.staffAssignments.assignStaffToSubscription({
+              staffId: assignedStaff.id,
+              subscriptionId: sub.id,
+              assignedBy: adminUser
+            }, client);
+
+            try {
+              const maxSeqRes = await client.query(
+                'SELECT COALESCE(MAX(sequence_order), 0) AS max_seq FROM public.staff_route_sequences WHERE staff_id = $1',
+                [assignedStaff.id]
+              );
+              const nextSeq = (parseInt(maxSeqRes.rows[0]?.max_seq, 10) || 0) + 1;
+              await client.query(
+                `INSERT INTO public.staff_route_sequences (staff_id, subscription_id, sequence_order, updated_by, updated_at)
+                 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+                [assignedStaff.id, sub.id, nextSeq, adminUser || 'admin']
+              );
+            } catch (seqErr) {}
+          }
         }
       } else {
         // On-Demand Service Job (Car Wash, Solar, Interior, Exterior)
@@ -1096,9 +1111,16 @@ async function updateCustomer(custData, adminUser = 'admin') {
               carColor: inc.carColor || null,
               seaterType: inc.seaterType || '5_seater'
             }, client);
-            if (activeSubForVehs && normCategory === 'Daily Car Cleaning') {
+            if (normCategory === 'Daily Car Cleaning') {
+              const newSub = await repos.subscriptions.createSubscription({
+                customerId: customer.id,
+                serviceCategoryId: 'daily_car_cleaning',
+                packageName: activeSubForVehs?.package_name || custData.packageType || custData.packageName || 'Daily Clean',
+                packagesPurchased: 1,
+                status: 'active'
+              }, client);
               await repos.subscriptionVehicles.addVehicleToSubscription({
-                subscriptionId: activeSubForVehs.id,
+                subscriptionId: newSub.id,
                 customerId: customer.id,
                 vehicleId: createdVeh.id,
                 locationId: targetPrimLoc?.id || null,
@@ -1111,6 +1133,15 @@ async function updateCustomer(custData, adminUser = 'admin') {
         // Soft-delete genuinely removed vehicles and clean their subscription_vehicles links
         for (const ev of existingVehs) {
           if (!matchedExistingIds.has(ev.id)) {
+            const svSubRes = await client.query('SELECT subscription_id FROM public.subscription_vehicles WHERE vehicle_id = $1', [ev.id]);
+            for (const row of svSubRes.rows) {
+              const countRes = await client.query('SELECT count(*) FROM public.subscription_vehicles WHERE subscription_id = $1', [row.subscription_id]);
+              if (parseInt(countRes.rows[0].count, 10) <= 1) {
+                await repos.subscriptions.updateStatus(row.subscription_id, 'cancelled', client);
+                await repos.staffAssignments.unassignSubscription({ subscriptionId: row.subscription_id, unassignedBy: adminUser, reason: 'Vehicle removed' }, client);
+                await client.query('DELETE FROM public.staff_route_sequences WHERE subscription_id = $1', [row.subscription_id]);
+              }
+            }
             await client.query('DELETE FROM public.subscription_vehicles WHERE vehicle_id = $1', [ev.id]);
             await repos.vehicles.softDelete(ev.id, client);
           }
@@ -2437,32 +2468,35 @@ async function convertLeadToCustomer(leadId, convertData = {}, adminUser = 'admi
 
     // 4. Create Subscription or Job
     if (isDaily) {
-      const sub = await repos.subscriptions.createSubscription({
-        customerId: customer.id,
-        serviceCategoryId: 'daily_car_cleaning',
-        packageName: pkgType,
-        packagesPurchased: parseInt(convertData.packagesPurchased, 10) || 1,
-        rotationType: convertData.rotationType || 'none',
-        rotationNotes: convertData.rotationNotes || null,
-        status: 'active'
-      }, client);
-
-      for (const cv of vehicles) {
-        await repos.subscriptionVehicles.addVehicleToSubscription({
-          subscriptionId: sub.id,
+      const vehiclesToEnroll = vehicles.length > 0 ? vehicles : [null];
+      for (const cv of vehiclesToEnroll) {
+        const sub = await repos.subscriptions.createSubscription({
           customerId: customer.id,
-          vehicleId: cv.id,
-          locationId: primaryLocation?.id || null,
-          scheduleTag: convertData.scheduleTag || 'daily'
+          serviceCategoryId: 'daily_car_cleaning',
+          packageName: pkgType,
+          packagesPurchased: 1,
+          rotationType: convertData.rotationType || 'none',
+          rotationNotes: convertData.rotationNotes || null,
+          status: 'active'
         }, client);
-      }
 
-      if (assignedStaff) {
-        await repos.staffAssignments.assignStaffToSubscription({
-          staffId: assignedStaff.id,
-          subscriptionId: sub.id,
-          assignedBy: adminUser
-        }, client);
+        if (cv) {
+          await repos.subscriptionVehicles.addVehicleToSubscription({
+            subscriptionId: sub.id,
+            customerId: customer.id,
+            vehicleId: cv.id,
+            locationId: primaryLocation?.id || null,
+            scheduleTag: convertData.scheduleTag || 'daily'
+          }, client);
+        }
+
+        if (assignedStaff) {
+          await repos.staffAssignments.assignStaffToSubscription({
+            staffId: assignedStaff.id,
+            subscriptionId: sub.id,
+            assignedBy: adminUser
+          }, client);
+        }
       }
     } else {
       const job = await repos.serviceJobs.createJob({
@@ -3242,23 +3276,56 @@ async function getDailyOperationsSummary(date = null) {
 }
 
 /**
- * Assign Daily Car Cleaning customer to a staff cleaner (Route Allocation)
+ * Assign Daily Car Cleaning customer/vehicle to a staff cleaner (Route Allocation)
+ * Supports customerId, subscriptionId, and/or vehicleId for vehicle-level precision
  */
-async function assignDailyCleanCustomer({ customerId, staffId, adminUser = 'admin' }) {
-  if (!customerId) return { success: false, error: 'Customer ID is required.' };
+async function assignDailyCleanCustomer({ customerId, subscriptionId = null, vehicleId = null, staffId, adminUser = 'admin' }) {
+  if (!customerId && !subscriptionId && !vehicleId) return { success: false, error: 'Customer ID, Subscription ID, or Vehicle ID is required.' };
   if (!staffId) return { success: false, error: 'Staff ID is required.' };
 
   return db.withTransaction(async (client) => {
-    // 1. Resolve Customer
-    const target = String(customerId).trim();
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(target);
-    let customer = isUuid ? await repos.customers.findById(target, client) : null;
-    if (!customer) customer = await repos.customers.findByCode(target, client);
-    if (!customer) {
-      const all = await repos.customers.findAll({ client });
-      customer = all.find(c => c.id === target || c.customer_code === target || c.phone === target || c.name === target) || null;
+    let sub = null;
+    let customer = null;
+
+    // 1. Resolve Subscription if explicit subscriptionId or vehicleId is provided
+    if (subscriptionId) {
+      const isSubUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(subscriptionId).trim());
+      if (isSubUuid) {
+        sub = await repos.subscriptions.findById(String(subscriptionId).trim(), client);
+      }
     }
-    if (!customer) return { success: false, error: `Customer '${target}' not found.` };
+
+    if (!sub && vehicleId) {
+      const vTarget = String(vehicleId).trim();
+      const isVehUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(vTarget);
+      const svRes = await client.query(
+        `SELECT sub.*, sv.customer_id as sv_customer_id FROM public.subscription_vehicles sv
+         JOIN public.subscriptions sub ON sv.subscription_id = sub.id
+         WHERE (sv.vehicle_id = $1 OR ($2 = FALSE AND sv.vehicle_id::text = $1))
+           AND sub.status = 'active' AND sub.deleted_at IS NULL
+         LIMIT 1`,
+        [vTarget, isVehUuid]
+      );
+      if (svRes.rows.length > 0) {
+        sub = svRes.rows[0];
+      }
+    }
+
+    if (sub && sub.customer_id) {
+      customer = await repos.customers.findById(sub.customer_id, client);
+    }
+
+    if (!customer && customerId) {
+      const target = String(customerId).trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(target);
+      if (isUuid) customer = await repos.customers.findById(target, client);
+      if (!customer) customer = await repos.customers.findByCode(target, client);
+      if (!customer) {
+        const all = await repos.customers.findAll({ client });
+        customer = all.find(c => c.id === target || c.customer_code === target || c.phone === target || c.name === target) || null;
+      }
+    }
+    if (!customer) return { success: false, error: `Customer not found.` };
 
     // 2. Resolve Staff
     const sTarget = String(staffId).trim();
@@ -3277,19 +3344,39 @@ async function assignDailyCleanCustomer({ customerId, staffId, adminUser = 'admi
       return { success: false, error: `Staff member '${staff.name}' is classified as 'services_only' and is not eligible for Daily Car Cleaning.` };
     }
 
-    // 3. Resolve or Create Active Subscription for Daily Car Cleaning
-    let sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
+    // 3. Resolve or Create Active Subscription
     if (!sub) {
-      const allSubs = await repos.subscriptions.findByCustomerId(customer.id, { client });
-      sub = allSubs.find(s => s.status === 'active' && s.service_category_id === 'daily_car_cleaning') || allSubs.find(s => s.status === 'active') || null;
+      sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
+      if (!sub) {
+        const allSubs = await repos.subscriptions.findByCustomerId(customer.id, { client });
+        sub = allSubs.find(s => s.status === 'active' && s.service_category_id === 'daily_car_cleaning') || allSubs.find(s => s.status === 'active') || null;
+      }
+      if (!sub) {
+        sub = await repos.subscriptions.createSubscription({
+          customerId: customer.id,
+          serviceCategoryId: 'daily_car_cleaning',
+          packageName: customer.interested_service || 'DCC ONLY',
+          status: 'active'
+        }, client);
+      }
     }
-    if (!sub) {
-      sub = await repos.subscriptions.createSubscription({
-        customerId: customer.id,
-        serviceCategoryId: 'daily_car_cleaning',
-        packageName: customer.interested_service || 'DCC ONLY',
-        status: 'active'
-      }, client);
+
+    // Dynamic split: If this sub currently shares multiple vehicles and vehicleId was specified, split this vehicle into its own subscription!
+    if (sub && vehicleId) {
+      const svCountRes = await client.query('SELECT count(*) FROM public.subscription_vehicles WHERE subscription_id = $1', [sub.id]);
+      if (parseInt(svCountRes.rows[0].count, 10) > 1) {
+        const newSub = await repos.subscriptions.createSubscription({
+          customerId: customer.id,
+          serviceCategoryId: 'daily_car_cleaning',
+          packageName: sub.package_name || 'Daily Clean',
+          packagesPurchased: 1,
+          rotationType: sub.rotation_type || 'none',
+          rotationNotes: sub.rotation_notes || null,
+          status: 'active'
+        }, client);
+        await client.query('UPDATE public.subscription_vehicles SET subscription_id = $1 WHERE vehicle_id = $2', [newSub.id, vehicleId]);
+        sub = newSub;
+      }
     }
 
     // 4. Update Customer's interestedService / status
@@ -3341,6 +3428,7 @@ async function assignDailyCleanCustomer({ customerId, staffId, adminUser = 'admi
         customerId: customer.id,
         customerName: customer.name,
         subscriptionId: sub.id,
+        vehicleId: vehicleId || null,
         staffId: staff.staff_code,
         staffName: staff.name
       }
@@ -3350,28 +3438,63 @@ async function assignDailyCleanCustomer({ customerId, staffId, adminUser = 'admi
       success: true,
       message: `${customer.name} allocated to ${staff.name}'s daily route.`,
       customerId: customer.id,
+      subscriptionId: sub.id,
+      vehicleId: vehicleId || null,
       staffId: staff.staff_code,
       staffName: staff.name,
-      subscriptionId: sub.id,
       assignmentId: assignment.id
     };
   });
 }
 
 /**
- * Unassign Daily Car Cleaning customer from active staff route
+ * Unassign Daily Car Cleaning customer / vehicle from active staff route
  */
-async function unassignDailyCleanCustomer({ customerId, reason = 'Unassigned by admin', adminUser = 'admin' }) {
-  if (!customerId) return { success: false, error: 'Customer ID is required.' };
+async function unassignDailyCleanCustomer({ customerId, subscriptionId = null, vehicleId = null, reason = 'Unassigned by admin', adminUser = 'admin' }) {
+  if (!customerId && !subscriptionId && !vehicleId) return { success: false, error: 'Customer ID, Subscription ID, or Vehicle ID is required.' };
 
   return db.withTransaction(async (client) => {
-    const target = String(customerId).trim();
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(target);
-    let customer = isUuid ? await repos.customers.findById(target, client) : null;
-    if (!customer) customer = await repos.customers.findByCode(target, client);
-    if (!customer) return { success: false, error: `Customer '${target}' not found.` };
+    let sub = null;
+    let customer = null;
 
-    const sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
+    if (subscriptionId) {
+      const isSubUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(subscriptionId).trim());
+      if (isSubUuid) {
+        sub = await repos.subscriptions.findById(String(subscriptionId).trim(), client);
+      }
+    }
+
+    if (!sub && vehicleId) {
+      const vTarget = String(vehicleId).trim();
+      const isVehUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(vTarget);
+      const svRes = await client.query(
+        `SELECT sub.* FROM public.subscription_vehicles sv
+         JOIN public.subscriptions sub ON sv.subscription_id = sub.id
+         WHERE (sv.vehicle_id = $1 OR ($2 = FALSE AND sv.vehicle_id::text = $1))
+           AND sub.status = 'active' AND sub.deleted_at IS NULL
+         LIMIT 1`,
+        [vTarget, isVehUuid]
+      );
+      if (svRes.rows.length > 0) {
+        sub = svRes.rows[0];
+      }
+    }
+
+    if (sub && sub.customer_id) {
+      customer = await repos.customers.findById(sub.customer_id, client);
+    }
+
+    if (!customer && customerId) {
+      const target = String(customerId).trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(target);
+      if (isUuid) customer = await repos.customers.findById(target, client);
+      if (!customer) customer = await repos.customers.findByCode(target, client);
+    }
+
+    if (!sub && customer) {
+      sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
+    }
+
     if (sub) {
       await repos.staffAssignments.unassignSubscription({
         subscriptionId: sub.id,
@@ -3388,14 +3511,16 @@ async function unassignDailyCleanCustomer({ customerId, reason = 'Unassigned by 
         entityId: sub.id,
         action: 'unassign_daily_clean_route',
         changedBy: adminUser,
-        afterState: { customerId: customer.id, customerName: customer.name, unassigned: true, reason }
+        afterState: { customerId: customer?.id || sub.customer_id, customerName: customer?.name, subscriptionId: sub.id, vehicleId, unassigned: true, reason }
       }, client);
     }
 
     return {
       success: true,
-      message: `${customer.name} unassigned from daily clean route.`,
-      customerId: customer.id
+      message: `${customer ? customer.name : 'Subscription'} unassigned from daily clean route.`,
+      customerId: customer?.id || sub?.customer_id,
+      subscriptionId: sub?.id,
+      vehicleId: vehicleId || null
     };
   });
 }
@@ -3577,10 +3702,28 @@ async function assignCustomerService(serviceData, adminUser = 'admin') {
     let jobId = null;
 
     if (isDaily) {
-      let sub = await repos.subscriptions.findActiveByCustomerId(customer.id, client);
+      let sub = null;
+      if (targetVehicle) {
+        const svRes = await client.query(
+          `SELECT sub.* FROM public.subscription_vehicles sv
+           JOIN public.subscriptions sub ON sv.subscription_id = sub.id
+           WHERE sv.vehicle_id = $1 AND sub.deleted_at IS NULL AND sub.status = 'active'
+           LIMIT 1`,
+          [targetVehicle.id]
+        );
+        sub = svRes.rows[0] || null;
+      }
       if (!sub) {
         const allSubs = await repos.subscriptions.findByCustomerId(customer.id, { client });
-        sub = allSubs.find(s => s.service_category_id === 'daily_car_cleaning') || null;
+        for (const s of allSubs) {
+          if (s.status === 'active' && s.service_category_id === 'daily_car_cleaning') {
+            const countRes = await client.query('SELECT count(*) FROM public.subscription_vehicles WHERE subscription_id = $1', [s.id]);
+            if (parseInt(countRes.rows[0].count, 10) === 0) {
+              sub = s;
+              break;
+            }
+          }
+        }
       }
 
       if (sub) {
@@ -3602,13 +3745,16 @@ async function assignCustomerService(serviceData, adminUser = 'admin') {
 
       // Link vehicle to subscription with chosen location
       if (targetVehicle) {
-        await repos.subscriptionVehicles.addVehicleToSubscription({
-          subscriptionId: sub.id,
-          customerId: customer.id,
-          vehicleId: targetVehicle.id,
-          locationId: targetLoc?.id || null,
-          scheduleTag: 'daily'
-        }, client);
+        const existingSv = await client.query('SELECT id FROM public.subscription_vehicles WHERE subscription_id = $1 AND vehicle_id = $2', [sub.id, targetVehicle.id]);
+        if (existingSv.rows.length === 0) {
+          await repos.subscriptionVehicles.addVehicleToSubscription({
+            subscriptionId: sub.id,
+            customerId: customer.id,
+            vehicleId: targetVehicle.id,
+            locationId: targetLoc?.id || null,
+            scheduleTag: 'daily'
+          }, client);
+        }
       }
 
       // Handle staff assignment
